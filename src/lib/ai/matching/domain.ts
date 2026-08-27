@@ -218,11 +218,12 @@ const overallMatchingResultSchema = z
     strongestAlignment: z.array(nonEmptyId).max(30),
     mostImportantGaps: z.array(nonEmptyId).max(30),
     evidenceCoverage: z.number().min(0).max(100),
-    fitScore: z.number().min(0).max(100),
+    fitScore: z.number().min(0).max(100).nullable(),
     fitLabel: z.enum([
       'strong_current_alignment',
       'moderate_current_alignment',
       'limited_current_alignment',
+      'not_assessed',
     ]),
   })
   .strict();

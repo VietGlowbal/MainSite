@@ -3,6 +3,7 @@ import {
   getLatestApplicationMatchingAnalysis,
   getMatchingAnalysisByInputHash,
   saveApplicationMatchingAnalysis,
+  saveApplicationAcademicAssessment,
   getApplicationProfileAnalysisVersion,
   stableHash,
   type MatchingAnalysisRecord,
@@ -11,14 +12,106 @@ import { regeneratePersonalReport } from '@/features/apply/api/personal-report-g
 import { resolveTargetProfile } from '@/lib/ai/target-profile/generation';
 import { MATCHING_ENGINE_VERSION, MATCHING_PROMPT_BUNDLE_VERSION } from './domain';
 import { composeMatchingReport } from './report';
+import { normalizeTargetProfile } from './criteria';
+import { evaluateHardRequirements } from './aggregation';
 import { REPORT_PROMPT_VERSIONS } from '../runtime/prompt-registry';
 import { TARGET_PROFILE_SCHEMA_VERSION } from '../target-profile/domain';
-import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
+import {
+  academicBandFromScore,
+  buildProgrammeFitPlaceholder,
+  F5_DIMENSION_KEYS,
+  F5_ENGINE_VERSION,
+  type ProgrammeFitInput,
+} from '@/shared/evaluation/f5-programme-fit';
 import { buildApplicantStateFromSnapshot } from '../applicant-state/context-builder';
-import { defaultOpenAIModel } from '../openai-client';
+import { defaultOpenAIModel, isOpenAIConfigured } from '../openai-client';
 import { matchLabel, maxMatchLabel } from '@/lib/match-insights';
 import type { EvidenceBank } from '@/shared/evidence/domain';
 import { EVIDENCE_BANK_VERSION } from '@/shared/evidence/domain';
+import { programmeFitSchema } from '@/features/apply/domain';
+import { toMatchingEvidence } from './evidence';
+import type { AcademicProfile } from '../applicant-state/domain';
+
+function programmeFitInputFromRecord(
+  record: MatchingAnalysisRecord | null,
+  evidenceBank: EvidenceBank,
+): ProgrammeFitInput {
+  const storedFit = record?.reportV2?.programmeFit ?? (
+    record?.fitDimensions && record.fitEligibility && record.fitClassification
+      ? {
+          classification: record.fitClassification,
+          confidence: record.fitConfidence ?? 0,
+          limitations: record.fitLimitations ?? [],
+          eligibility: record.fitEligibility,
+          dimensions: record.fitDimensions,
+        }
+      : null
+  );
+  const parsed = programmeFitSchema.safeParse(storedFit);
+  if (!parsed.success) {
+    const placeholder = buildProgrammeFitPlaceholder();
+    return {
+      eligibility: placeholder.eligibility,
+      academicBand: placeholder.academicBand,
+      dimensions: placeholder.dimensions,
+    };
+  }
+
+  const evidenceById = new Map(toMatchingEvidence(evidenceBank).map((item) => [item.id, item]));
+  const dimensions = Object.fromEntries(
+    F5_DIMENSION_KEYS.map((key) => {
+      const dimension = parsed.data.dimensions[key];
+      return [key, {
+        status: dimension.status,
+        score: dimension.score,
+        summary: dimension.summary,
+        strengths: dimension.strengths,
+        gaps: dimension.gaps,
+        evidenceRefs: dimension.evidence.flatMap((id) => {
+          const evidence = evidenceById.get(id);
+          return evidence ? [{ id: evidence.id, kind: evidence.category, label: evidence.statement }] : [];
+        }),
+        ...(dimension.limitation ? { limitation: dimension.limitation } : {}),
+      }];
+    }),
+  ) as ProgrammeFitInput['dimensions'];
+
+  return {
+    eligibility: parsed.data.eligibility,
+    academicBand: academicBandFromScore(dimensions.academicCompetitiveness.score),
+    dimensions,
+  };
+}
+
+function currentEligibilityFromHardRequirements(args: {
+  targetProfile: Parameters<typeof normalizeTargetProfile>[0];
+  academicProfile: AcademicProfile;
+  evidenceBank: EvidenceBank;
+}): ProgrammeFitInput['eligibility'] {
+  const criteria = normalizeTargetProfile(args.targetProfile);
+  const requirements = evaluateHardRequirements({
+    criteria,
+    academicProfile: args.academicProfile,
+    evidenceBank: args.evidenceBank,
+  });
+  const requirementById = new Map(requirements.map((requirement) => [requirement.criterionId, requirement]));
+  const gate = (pattern: RegExp) => {
+    const statuses = criteria
+      .filter((criterion) => criterion.requirementType === 'hard' && pattern.test(`${criterion.label} ${criterion.description}`))
+      .map((criterion) => requirementById.get(criterion.id)?.status)
+      .filter((status): status is NonNullable<typeof status> => Boolean(status));
+    if (statuses.some((status) => status === 'does_not_meet')) return 'not_met' as const;
+    if (statuses.some((status) => status === 'meets')) return 'met' as const;
+    return 'unknown' as const;
+  };
+  return {
+    requiredSubjects: gate(/subject|coursework|prerequisite/i),
+    minimumQualification: gate(/qualification|gpa|grade|degree|diploma/i),
+    languageRequirement: gate(/language|english|ielts|toefl/i),
+    citizenshipRequirement: gate(/citizenship|residen|nationality/i),
+    deadline: gate(/deadline|closing|due date/i),
+  };
+}
 
 function isEvidenceBank(value: unknown): value is EvidenceBank {
   if (!value || typeof value !== 'object') return false;
@@ -58,6 +151,13 @@ export async function generateApplicationMatchingReport(args: {
   if (appError || !application) {
     return { status: 'not_ready', reason: 'Application not found or unauthorized' };
   }
+
+  const migrationCheck = await getLatestApplicationMatchingAnalysis(
+    supabase,
+    { userId, applicationId },
+    { analysisStatus: 'complete' },
+  );
+  if (migrationCheck.migrationMissing) return { status: 'migration_missing' };
 
   const personalRes = await regeneratePersonalReport({
     supabase,
@@ -135,31 +235,43 @@ export async function generateApplicationMatchingReport(args: {
       { userId, applicationId },
       inputHash,
     );
+    if (cached.migrationMissing) return { status: 'migration_missing' };
     if (cached.record && cached.record.inputHash === inputHash && cached.record.reportV2) {
       return { status: 'cached', record: cached.record };
     }
   }
 
   if (!force && cooldownUntil && new Date(cooldownUntil).getTime() > Date.now()) {
-    const { record: current } = await getLatestApplicationMatchingAnalysis(
+    const currentResult = await getLatestApplicationMatchingAnalysis(
       supabase,
       { userId, applicationId },
       { analysisStatus: 'complete' },
     );
-    if (current) return { status: 'cooldown', record: current, nextRegenerationAt: cooldownUntil };
+    if (currentResult.migrationMissing) return { status: 'migration_missing' };
+    if (currentResult.record) return { status: 'cooldown', record: currentResult.record, nextRegenerationAt: cooldownUntil };
   }
 
-  const { record: latestRecord } = await getLatestApplicationMatchingAnalysis(
+  const latestResult = await getLatestApplicationMatchingAnalysis(
     supabase,
     { userId, applicationId },
     { analysisStatus: 'complete' },
   );
+  if (latestResult.migrationMissing) return { status: 'migration_missing' };
+  const latestRecord = latestResult.record;
+
+  if (!isOpenAIConfigured()) return { status: 'not_configured' };
 
   const state = await buildApplicantStateFromSnapshot({
     supabase,
     userId,
     applicationId,
     snapshotId: confirmedSnapshotId,
+  });
+  const programmeFitInput = programmeFitInputFromRecord(latestRecord, analysis.evidenceBank);
+  programmeFitInput.eligibility = currentEligibilityFromHardRequirements({
+    targetProfile,
+    academicProfile: state.academicProfile ?? { records: [] },
+    evidenceBank: analysis.evidenceBank,
   });
 
   const reportV2 = await composeMatchingReport({
@@ -178,8 +290,24 @@ export async function generateApplicationMatchingReport(args: {
       sourceAnalysisVersionId,
       confirmedSnapshotId,
       evidenceBankVersion: analysis.moduleVersions['evidence']
-    }
+    },
+    programmeFitInput,
   });
+
+  const academicAssessment = await saveApplicationAcademicAssessment(supabase, {
+    userId,
+    applicationId,
+    confirmedSnapshotId: confirmedSnapshotId,
+    inputHash,
+    assessment: reportV2.academicRequirements,
+    moduleVersions: { academic: 'academic-analysis-v1' },
+    generationMetadata: { targetProfileVersionId, matchingEngineVersion: MATCHING_ENGINE_VERSION },
+  });
+  if (!academicAssessment.versionId) {
+    return academicAssessment.migrationMissing
+      ? { status: 'migration_missing' }
+      : { status: 'not_ready', reason: 'Academic assessment could not be persisted' };
+  }
 
   const saved = await saveApplicationMatchingAnalysis(supabase, {
     applicationId,
@@ -189,8 +317,8 @@ export async function generateApplicationMatchingReport(args: {
     legacy: {
       currentMatchScore: reportV2.overall.fitScore,
       maxPossibleMatchScore: reportV2.overall.fitScore,
-      scoreLabel: matchLabel(reportV2.overall.fitScore),
-      maxScoreLabel: maxMatchLabel(reportV2.overall.fitScore),
+      scoreLabel: reportV2.overall.fitScore === null ? 'Not assessed' : matchLabel(reportV2.overall.fitScore),
+      maxScoreLabel: reportV2.overall.fitScore === null ? 'Not assessed' : maxMatchLabel(reportV2.overall.fitScore),
       pillars: {},
       confidence: reportV2.programmeFit.confidence,
       inputsPresent: {},

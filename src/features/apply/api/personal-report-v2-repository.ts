@@ -139,6 +139,7 @@ export async function getLatestPersonalReportV2(
     .from('student_personal_report_versions')
     .select(VERSION_SELECT)
     .eq('user_id', userId)
+    .is('application_id', null)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -160,6 +161,7 @@ export async function listPersonalReportV2Versions(
     .from('student_personal_report_versions')
     .select('id,generated_at,trigger')
     .eq('user_id', userId)
+    .is('application_id', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -188,6 +190,7 @@ export async function getPersonalReportV2Version(
     .select(VERSION_SELECT)
     .eq('id', versionId)
     .eq('user_id', userId)
+    .is('application_id', null)
     .maybeSingle();
 
   if (error) {
@@ -437,6 +440,21 @@ export async function createPersonalReportV2Version(
     cacheKey?: string;
   },
 ): Promise<{ record: { id: string; generatedAt: string } | null; error: { migrationMissing: boolean; message: string } | null }> {
+  if (
+    args.applicationId &&
+    (!args.confirmedSnapshotId ||
+      !args.sourceAnalysisVersionId ||
+      !args.reportContractVersion ||
+      !args.cacheKey)
+  ) {
+    return {
+      record: null,
+      error: {
+        migrationMissing: false,
+        message: 'Application report lineage is incomplete.',
+      },
+    };
+  }
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('student_personal_report_versions')

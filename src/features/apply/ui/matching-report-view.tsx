@@ -161,6 +161,7 @@ export function MatchingReportView({
       strong_current_alignment: 'Strong current alignment',
       moderate_current_alignment: 'Moderate current alignment',
       limited_current_alignment: 'Limited current alignment',
+      not_assessed: 'Not assessed',
     }[v2.snapshot.fitLabel];
 
     return (
@@ -184,22 +185,33 @@ export function MatchingReportView({
           <div className="flex min-w-0 flex-col gap-gb-4xl">
             <section className="flex flex-col gap-gb-xl">
               <h2 className="text-gb-display-xs font-semibold text-fg">{t('Current Alignment Snapshot')}</h2>
-              <Panel className="flex flex-col gap-gb-md">
-                <div className="flex flex-wrap gap-gb-lg">
+              <Panel className="flex flex-col gap-gb-lg">
+                <div className="flex flex-col gap-gb-sm">
+                  <Badge variant={fitLabel === 'Strong current alignment' ? 'safe-chip' : fitLabel === 'Limited current alignment' ? 'reach' : 'neutral-chip'}>
+                    {t(fitLabel)}
+                  </Badge>
+                  <p className="max-w-2xl text-gb-sm leading-relaxed text-fg-secondary">{v2.snapshot.summary}</p>
+                </div>
+                <div className="grid gap-gb-md sm:grid-cols-2">
                   <div>
-                    <p className="text-gb-xs text-fg-muted">{t('Alignment score')}</p>
-                    <p className="font-display text-gb-display-xs font-semibold text-fg-brand">{v2.snapshot.fitScore}%</p>
+                    <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Strongest Alignment Areas')}</p>
+                    <ul className="mt-gb-xs space-y-gb-xs text-gb-sm text-fg-secondary">
+                      {v2.strengths.slice(0, 2).map((strength) => <li key={strength.id}>{strength.title}</li>)}
+                      {v2.strengths.length === 0 ? <li>{t('No evidence-backed strengths were recorded for this programme yet.')}</li> : null}
+                    </ul>
                   </div>
                   <div>
-                    <p className="text-gb-xs text-fg-muted">{t('Evidence coverage')}</p>
-                    <p className="font-display text-gb-display-xs font-semibold text-fg">{v2.snapshot.evidenceCoverage}%</p>
-                  </div>
-                  <div>
-                    <p className="text-gb-xs text-fg-muted">{t('Alignment level')}</p>
-                    <p className="text-gb-md font-semibold text-fg">{t(fitLabel)}</p>
+                    <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Important Gaps')}</p>
+                    <ul className="mt-gb-xs space-y-gb-xs text-gb-sm text-fg-secondary">
+                      {v2.gaps.slice(0, 2).map((gap) => <li key={gap.id}>{gap.title}</li>)}
+                      {v2.gaps.length === 0 ? <li>{t('We did not find evidence-backed gaps for this programme.')}</li> : null}
+                    </ul>
                   </div>
                 </div>
-                <p className="max-w-2xl text-gb-sm leading-relaxed text-fg-secondary">{v2.snapshot.summary}</p>
+                <div className="flex flex-wrap gap-x-gb-lg gap-y-gb-xs border-t border-line pt-gb-md text-gb-xs text-fg-muted">
+                  <span>{t('Alignment score')}: {v2.snapshot.fitScore === null ? t('Not assessed') : `${v2.snapshot.fitScore}%`}</span>
+                  <span>{t('Evidence coverage')}: {v2.snapshot.evidenceCoverage}%</span>
+                </div>
                 <p className="text-gb-xs text-fg-muted">{t(MATCH_SCORE_DISCLAIMER)}</p>
               </Panel>
             </section>

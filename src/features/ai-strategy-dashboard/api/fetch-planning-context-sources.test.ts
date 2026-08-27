@@ -247,6 +247,11 @@ const VALID_PROFILE_EVALUATION = {
 
 const VALID_REPORT_ROW: MockTable = {
   id: 'report-1',
+  application_id: 'app-1',
+  confirmed_snapshot_id: 'snapshot-1',
+  source_analysis_version_id: 'analysis-1',
+  report_contract_version: 'v3',
+  cache_key: 'cache-1',
   report_v2: {
     coreIdentity: 'x',
     drivingForce: 'x',

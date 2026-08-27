@@ -77,19 +77,22 @@ export async function fetchOnboardingState(
   userId: string,
   applicationId: string,
 ): Promise<OnboardingState> {
-  const [application, personalV2, legacyAnalysis, matchAnalysis, strategyRecommendation] =
+  const [application, personalV2, latestSnapshot, matchAnalysis, strategyRecommendation] =
     await Promise.all([
       selectApplicationFlags(supabase, userId, applicationId),
       supabase
         .from('student_personal_report_versions')
-        .select('id')
+        .select('id, confirmed_snapshot_id')
         .eq('user_id', userId)
+        .eq('application_id', applicationId)
         .limit(1)
         .maybeSingle(),
       supabase
-        .from('applicant_analyses')
+        .from('confirmed_candidate_snapshots')
         .select('id')
         .eq('application_id', applicationId)
+        .eq('user_id', userId)
+        .order('confirmed_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
       // `analysis_status = 'complete'` is only ever set in the same insert that
@@ -112,7 +115,14 @@ export async function fetchOnboardingState(
         .maybeSingle(),
     ]);
 
-  const hasPersonalReport = Boolean(personalV2.data) || Boolean(legacyAnalysis.data);
+  const personalRow = personalV2.data as { id?: unknown; confirmed_snapshot_id?: unknown } | null;
+  const hasPersonalReport = Boolean(
+    application?.candidate_confirmed_at &&
+      personalRow?.id &&
+      personalRow.confirmed_snapshot_id &&
+      latestSnapshot.data?.id &&
+      personalRow.confirmed_snapshot_id === latestSnapshot.data.id,
+  );
 
   return {
     personalSummaryComplete: Boolean(application?.personal_summary_reviewed_at),

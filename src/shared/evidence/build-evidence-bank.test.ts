@@ -6,7 +6,7 @@ const BASE_INPUT: EvidenceBankInput = {
   academicRecords: [
     { id: 'ielts-1', kind: 'english_test', testType: 'IELTS', value: 7.0, scale: 9, raw: 'IELTS 7.0 overall' },
   ],
-  documents: [{ id: 'doc-1', fileName: 'ielts-certificate.pdf' }],
+  documents: [{ id: 'doc-1', fileName: 'olympiad.pdf', storageKey: 'uploads/olympiad.pdf' }],
   activities: [
     {
       id: 'act-1',
@@ -88,6 +88,7 @@ describe('buildEvidenceBank — provenance rules', () => {
     // Achievement with an evidence document → verified.
     const olympiad = bank.claims.find((claim) => claim.id === 'experience:ach-1');
     expect(olympiad?.status).toBe('verified');
+    expect(olympiad?.sourceRefs).toContain('document:doc-1');
 
     // Plain self-reported activity → stays unverified.
     const club = bank.claims.find((claim) => claim.id === 'experience:act-1');

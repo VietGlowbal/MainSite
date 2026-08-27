@@ -5792,6 +5792,7 @@ export const translations: Record<string, string> = {
   'Core identity evidence signals': 'Các tín hiệu bằng chứng về bản sắc cốt lõi',
   'Could not load that version.': 'Không thể tải phiên bản đó.',
   'Could not save the report.': 'Không thể lưu báo cáo.',
+  'Application report lineage is incomplete.': 'Thiếu đầy đủ lineage của báo cáo ứng dụng.',
   'Could not save your answer.': 'Không thể lưu câu trả lời của bạn.',
   'Course alignment': 'Sự liên kết với ngành học',
   'Creating your Personal Report': 'Đang tạo Báo cáo Cá nhân',

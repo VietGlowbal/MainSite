@@ -99,7 +99,7 @@ describe('application Personal Report route', () => {
 
     expect(response.status).toBe(202);
     expect(mocks.enqueue).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      userId: 'user-1', applicationId: 'app-1', force: true,
+      userId: 'user-1', applicationId: 'app-1', force: true, idempotencyKey: 'req-1',
     }));
   });
 
@@ -111,7 +111,7 @@ describe('application Personal Report route', () => {
     for (let i = 0; i < 6; i += 1) {
       const response = await POST(request(), context());
       expect(response.status).toBe(202);
-      await expect(response.json()).resolves.toMatchObject({ queued: true, generation: activeJob });
+      await expect(response.json()).resolves.toMatchObject({ queued: true, generation: { status: 'pending' } });
     }
 
     expect(mocks.enqueue).not.toHaveBeenCalled();

@@ -19,21 +19,18 @@ all passed. The build used placeholder Supabase configuration and logged its
 expected unreachable-placeholder fetches while exiting 0. PostgreSQL
 integration remains for CI because `psql` is unavailable locally.
 
-Working tree 2026-08-27: reviewed and hardened Matching Report V2 end to end.
-Matching now scopes application reads by application and user, resolves the
-canonical course application/target, records Personal Report and Evidence
-Bank lineage, validates criterion/evidence provenance, keeps hard requirements
-deterministic, fails closed on partial batches or invalid summaries, and uses
-content/version-only cache identity. Persistence dual-reads valid V2 before
-legacy F5, dual-writes the legacy F5 columns, preserves the last complete
-report on failed regeneration, and scopes Strategy/Planner F5 reads by user.
-The canonical V2 UI now renders all required report sections while retaining
-legacy fallback. Measured: full Vitest **362 files / 3,419 tests passing, 2
-todo**, typecheck, i18n check, focused changed-file ESLint, and production
-build pass. Full ESLint has 0 errors and 592 warnings, primarily from
-untracked internal tooling and existing test/source files. The local Node gate
-remains blocked by Node 24.13.0 versus required 24.19.0; live schema and
-signed-in browser verification remain unrun.
+Working tree 2026-08-27 (Personal Report backend review fixes): application
+scoping, atomic confirmation, exact document evidence, reflection signal
+propagation, academic assessment persistence, issued follow-up questions,
+durable queue idempotency/force handling, safe generation DTOs, and fresh UI
+polling are implemented. Added the required Supabase migration scripts and
+regression coverage. Measured: full Vitest 362 files / 3440 passed (2 todo),
+`npm.cmd run typecheck`, `npm.cmd run typecheck:strict`, `npm.cmd run lint`
+(0 errors, 591 warnings), `node scripts/check-i18n.mjs --all`,
+`npm.cmd run build:ci`, and `git diff --check` pass. Live Supabase schema/RLS
+and signed-in browser verification remain unrun. `npm.cmd run verify:pr` is
+blocked locally because the repository requires Node 24.19.0 and this shell
+has Node 24.13.0.
 
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 

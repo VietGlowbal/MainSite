@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   analysisFromRow,
   isMigrationMissing,
+  saveApplicationMatchingAnalysis,
   toMatchingAnalysisRecord,
 } from './ai-reports-repository';
 import { MATCHING_REPORT_CONTRACT_VERSION } from '@/lib/ai/matching/domain';
+import { vi } from 'vitest';
 
 describe('ai-reports-repository helpers', () => {
   describe('isMigrationMissing', () => {
@@ -158,5 +160,57 @@ describe('ai-reports-repository helpers', () => {
       expect(view?.reportV2).toBeUndefined();
       expect(view?.fit.classification).toBe('strong_match');
     });
+  });
+
+  it('does not insert a legacy row when the V2 migration is missing', async () => {
+    const insert = vi.fn();
+    const insertChain = {
+      select: vi.fn(() => insertChain),
+      single: vi.fn().mockResolvedValue({
+        data: null,
+        error: { code: '42703', message: 'column report_v2 does not exist' },
+      }),
+    };
+    insert.mockReturnValue(insertChain);
+    const supabase = { from: vi.fn(() => ({ insert })) } as any;
+
+    const result = await saveApplicationMatchingAnalysis(supabase, {
+      applicationId: 'app-1',
+      userId: 'user-1',
+      inputHash: 'hash-1',
+      promptVersion: 'matching-prompts-v2',
+      legacy: {
+        currentMatchScore: null,
+        maxPossibleMatchScore: null,
+        scoreLabel: 'Not assessed',
+        maxScoreLabel: 'Not assessed',
+        pillars: {},
+        confidence: 0,
+        inputsPresent: {},
+        strengths: [],
+        weaknesses: [],
+        improvementActions: [],
+        explanation: 'Not assessed',
+      },
+      reportV2: {
+        contractVersion: 'matching-report-v2',
+        metadata: { matchingEngineVersion: 'matching-v2.0.0' },
+      } as any,
+      modelName: 'test-model',
+      targetProfileVersionId: 'tp-1',
+      sourceAnalysisVersionId: 'sa-1',
+      confirmedSnapshotId: 'cs-1',
+      sourcePersonalReportVersionId: 'pr-1',
+      sourcePersonalReportInputHash: 'pr-hash',
+      f5EngineVersion: 'f5-v1',
+      fitDimensions: {},
+      fitEligibility: {},
+      fitClassification: 'insufficient_data',
+      fitConfidence: 0,
+      fitLimitations: [],
+    });
+
+    expect(result).toEqual({ record: null, migrationMissing: true });
+    expect(insert).toHaveBeenCalledTimes(1);
   });
 });

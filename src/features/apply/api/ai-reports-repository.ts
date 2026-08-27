@@ -73,7 +73,7 @@ function latestAnalysisFromRows(rows: Array<Record<string, unknown>>): MatchingA
 }
 
 const MATCHING_ANALYSIS_SELECT =
-  'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at,report_v2';
+  'id,application_id,user_id,analysis_status,current_match_score,max_possible_match_score,score_label,max_score_label,pillars,inputs_present,improvement_actions,explanation,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at,report_v2,report_contract_version,matching_engine_version,target_profile_version_id,source_analysis_version_id,confirmed_snapshot_id,source_personal_report_version_id,source_personal_report_input_hash,f5_engine_version';
 const LEGACY_ANALYSIS_SELECT =
   'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at';
 
@@ -326,7 +326,8 @@ export function isMigrationMissing(error: PostgrestError | null | undefined): bo
     error.code === '42P01' ||
     error.code === '42703' ||
     error.code === 'PGRST204' ||
-    error.code === 'PGRST205'
+    error.code === 'PGRST205' ||
+    /(?:report_v2|report_contract_version|matching_engine_version|target_profile_version_id|source_analysis_version_id|confirmed_snapshot_id|source_personal_report|f5_engine_version)/i.test(error.message ?? '')
   );
 }
 
@@ -382,7 +383,7 @@ export async function getLatestApplicationMatchingAnalysis(
 ): Promise<{ record: MatchingAnalysisRecord | null; migrationMissing: boolean }> {
   let query = supabase
     .from('application_match_analyses')
-    .select('*')
+    .select(MATCHING_ANALYSIS_SELECT)
     .eq('application_id', scope.applicationId)
     .eq('user_id', scope.userId);
 
@@ -413,7 +414,7 @@ export async function getMatchingAnalysisByInputHash(
 ): Promise<{ record: MatchingAnalysisRecord | null; migrationMissing: boolean }> {
   const { data, error } = await supabase
     .from('application_match_analyses')
-    .select('*')
+    .select(MATCHING_ANALYSIS_SELECT)
     .eq('application_id', scope.applicationId)
     .eq('user_id', scope.userId)
     .eq('input_hash', inputHash)
@@ -440,8 +441,8 @@ export async function saveApplicationMatchingAnalysis(
     promptVersion: string;
     // Legacy columns
     legacy: {
-      currentMatchScore: number;
-      maxPossibleMatchScore: number;
+      currentMatchScore: number | null;
+      maxPossibleMatchScore: number | null;
       scoreLabel: string;
       maxScoreLabel: string;
       pillars: Record<string, unknown>;
@@ -526,27 +527,7 @@ export async function saveApplicationMatchingAnalysis(
       }
     }
     if (isMigrationMissing(error)) {
-      // dual-write fallback
-      const { data: legacyData, error: legacyError } = await supabase
-        .from('application_match_analyses')
-        .insert(commonRow)
-        .select('*')
-        .single();
-      
-      if (legacyError?.code === '23505') {
-        const existing = await getMatchingAnalysisByInputHash(
-          supabase,
-          { userId: args.userId, applicationId: args.applicationId },
-          args.inputHash,
-        );
-        if (existing.record?.analysisStatus === 'complete' && existing.record.reportV2) {
-          return existing;
-        }
-      }
-      if (legacyError) {
-        return { record: null, migrationMissing: isMigrationMissing(legacyError) };
-      }
-      return { record: toMatchingAnalysisRecord(legacyData), migrationMissing: true };
+      return { record: null, migrationMissing: true };
     }
     return { record: null, migrationMissing: false };
   }

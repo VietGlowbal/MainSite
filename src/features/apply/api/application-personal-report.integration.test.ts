@@ -50,7 +50,9 @@ function memoryDatabase(): MemoryDatabase {
       const builder: Record<string, (...args: never[]) => unknown> = {};
       const execute = () => {
         let result = tableRows().filter((row) =>
-          filters.every(([column, value]) => row[column] === value),
+          filters.every(([column, value]) => value === null
+            ? row[column] === null || row[column] === undefined
+            : row[column] === value),
         );
         if (orderColumn) {
           const column = orderColumn;
@@ -67,6 +69,10 @@ function memoryDatabase(): MemoryDatabase {
 
       builder.select = () => builder;
       builder.eq = (column: string, value: unknown) => {
+        filters = [...filters, [column, value]];
+        return builder;
+      };
+      builder.is = (column: string, value: unknown) => {
         filters = [...filters, [column, value]];
         return builder;
       };

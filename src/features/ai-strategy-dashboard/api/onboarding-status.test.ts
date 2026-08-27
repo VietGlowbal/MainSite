@@ -17,8 +17,8 @@ function buildSupabase(options: {
   perApplicationColumnsMissing?: boolean;
   /** Simulates only `supabase-application-experience-flow.sql` (the personal_reflection_reviewed_at column) not having run yet. */
   personalReflectionColumnMissing?: boolean;
-  hasApplicantAnalysis?: boolean;
   hasPersonalReportV2?: boolean;
+  hasConfirmedSnapshot?: boolean;
   hasCompleteMatchAnalysis?: boolean;
   introSeenAt?: string | null;
   hasStrategyRecommendation?: boolean;
@@ -26,9 +26,14 @@ function buildSupabase(options: {
   function resolve(table: string, selected: string) {
     switch (table) {
       case 'student_personal_report_versions':
-        return { data: options.hasPersonalReportV2 ? { id: 'v2-1' } : null, error: null };
-      case 'applicant_analyses':
-        return { data: options.hasApplicantAnalysis ? { id: 'analysis-1' } : null, error: null };
+        return {
+          data: options.hasPersonalReportV2
+            ? { id: 'v2-1', confirmed_snapshot_id: 'snapshot-1' }
+            : null,
+          error: null,
+        };
+      case 'confirmed_candidate_snapshots':
+        return { data: options.hasConfirmedSnapshot ? { id: 'snapshot-1' } : null, error: null };
       case 'application_match_analyses':
         return { data: options.hasCompleteMatchAnalysis ? { id: 'match-1' } : null, error: null };
       case 'course_applications':
@@ -81,6 +86,7 @@ function buildSupabase(options: {
         return builder;
       },
       eq: () => builder,
+      order: () => builder,
       limit: () => builder,
       maybeSingle: async () => resolve(table, selected),
       then: (onFulfilled: (v: unknown) => unknown) =>
@@ -94,19 +100,19 @@ function buildSupabase(options: {
 
 describe('fetchOnboardingState', () => {
   it('is aiAnalysisComplete only when BOTH the Personal Report and a complete Matching Report exist', async () => {
-    const supabase = buildSupabase({ hasApplicantAnalysis: true, hasCompleteMatchAnalysis: false });
+    const supabase = buildSupabase({ hasPersonalReportV2: true, hasConfirmedSnapshot: true, candidateConfirmedAt: '2026-01-01T00:00:00Z', hasCompleteMatchAnalysis: false });
     const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
     expect(state.aiAnalysisComplete).toBe(false);
   });
 
   it('is aiAnalysisComplete false when only the Matching Report exists (Personal Report missing)', async () => {
-    const supabase = buildSupabase({ hasApplicantAnalysis: false, hasCompleteMatchAnalysis: true });
+    const supabase = buildSupabase({ hasCompleteMatchAnalysis: true });
     const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
     expect(state.aiAnalysisComplete).toBe(false);
   });
 
   it('is aiAnalysisComplete true once both reports exist', async () => {
-    const supabase = buildSupabase({ hasApplicantAnalysis: true, hasCompleteMatchAnalysis: true });
+    const supabase = buildSupabase({ hasPersonalReportV2: true, hasConfirmedSnapshot: true, candidateConfirmedAt: '2026-01-01T00:00:00Z', hasCompleteMatchAnalysis: true });
     const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
     expect(state.aiAnalysisComplete).toBe(true);
   });
@@ -117,7 +123,8 @@ describe('fetchOnboardingState', () => {
       achievementsReviewedAt: '2026-01-01T00:00:00Z',
       personalReflectionReviewedAt: '2026-01-01T06:00:00Z',
       candidateConfirmedAt: '2026-01-01T12:00:00Z',
-      hasApplicantAnalysis: true,
+      hasPersonalReportV2: true,
+      hasConfirmedSnapshot: true,
       hasCompleteMatchAnalysis: true,
       introSeenAt: '2026-01-02T00:00:00Z',
       hasStrategyRecommendation: true,

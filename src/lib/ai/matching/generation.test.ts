@@ -4,17 +4,20 @@ const mocks = vi.hoisted(() => ({
   getLatest: vi.fn(),
   getByHash: vi.fn(),
   save: vi.fn(),
+  saveAcademic: vi.fn(),
   personal: vi.fn(),
   analysis: vi.fn(),
   target: vi.fn(),
   compose: vi.fn(),
   state: vi.fn(),
+  openaiConfigured: true,
 }));
 
 vi.mock('@/features/apply/api', () => ({
   getLatestApplicationMatchingAnalysis: mocks.getLatest,
   getMatchingAnalysisByInputHash: mocks.getByHash,
   saveApplicationMatchingAnalysis: mocks.save,
+  saveApplicationAcademicAssessment: mocks.saveAcademic,
   getApplicationProfileAnalysisVersion: mocks.analysis,
   stableHash: (value: unknown) => JSON.stringify(value),
 }));
@@ -22,7 +25,10 @@ vi.mock('@/features/apply/api/personal-report-generation', () => ({ regeneratePe
 vi.mock('@/lib/ai/target-profile/generation', () => ({ resolveTargetProfile: mocks.target }));
 vi.mock('../applicant-state/context-builder', () => ({ buildApplicantStateFromSnapshot: mocks.state }));
 vi.mock('./report', () => ({ composeMatchingReport: mocks.compose }));
-vi.mock('../openai-client', () => ({ defaultOpenAIModel: () => 'test-model' }));
+vi.mock('../openai-client', () => ({
+  defaultOpenAIModel: () => 'test-model',
+  isOpenAIConfigured: () => mocks.openaiConfigured,
+}));
 
 import { generateApplicationMatchingReport } from './generation';
 
@@ -49,12 +55,18 @@ function supabaseMock(filters: Array<[string, unknown]>) {
 
 function setup() {
   const filters: Array<[string, unknown]> = [];
+  mocks.openaiConfigured = true;
   mocks.getLatest.mockResolvedValue({ record: null, migrationMissing: false });
   mocks.getByHash.mockResolvedValue({ record: null, migrationMissing: false });
   mocks.save.mockResolvedValue({ record: { id: 'match-1', reportV2: report }, migrationMissing: false });
+  mocks.saveAcademic.mockResolvedValue({ versionId: 'academic-1', migrationMissing: false });
   mocks.personal.mockResolvedValue({ status: 'cached', record: personalRecord });
   mocks.analysis.mockResolvedValue({ analysis: { id: 'analysis-1', confirmedSnapshotId: 'snapshot-1', moduleVersions: { evidence: 'eb-v1' }, evidenceBank }, migrationMissing: false });
-  mocks.target.mockResolvedValue({ status: 'cached', versionId: 'target-1', profile: { requirements: [] } });
+  mocks.target.mockResolvedValue({
+    status: 'cached',
+    versionId: 'target-1',
+    profile: { requirements: [], universityValues: [], programmeThemes: { themes: [], description: null } },
+  });
   mocks.compose.mockResolvedValue(report);
   mocks.state.mockResolvedValue({ academicProfile: { records: [] } });
   return { filters, supabase: supabaseMock(filters) };
@@ -96,6 +108,14 @@ describe('generateApplicationMatchingReport', () => {
     const result = await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
     expect(result.status).toBe('regenerated');
     expect(mocks.target).toHaveBeenCalledWith(expect.objectContaining({ programmeId: 'course-1' }));
+    expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
+      programmeFitInput: expect.objectContaining({
+        academicBand: 'unknown',
+        dimensions: expect.objectContaining({
+          academicCompetitiveness: expect.objectContaining({ status: 'not_available', score: null }),
+        }),
+      }),
+    }));
   });
 
   it('6. does not insert when the Target Profile is not ready', async () => {
@@ -165,5 +185,91 @@ describe('generateApplicationMatchingReport', () => {
     const { supabase } = setup();
     mocks.save.mockResolvedValue({ record: null, migrationMissing: false });
     await expect(generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' })).rejects.toThrow('Failed to save matching analysis');
+  });
+
+  it('15. migration missing fails closed before personal report generation', async () => {
+    const { supabase } = setup();
+    mocks.getLatest.mockResolvedValueOnce({ record: null, migrationMissing: true });
+
+    const result = await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+
+    expect(result).toEqual({ status: 'migration_missing' });
+    expect(mocks.personal).not.toHaveBeenCalled();
+    expect(mocks.compose).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it('16. exact cache succeeds without OpenAI configuration', async () => {
+    const { supabase } = setup();
+    mocks.openaiConfigured = false;
+    mocks.getByHash.mockImplementation(async (_client: unknown, _scope: unknown, inputHash: string) => ({
+      record: { id: 'cached-no-key', inputHash, reportV2: report },
+      migrationMissing: false,
+    }));
+
+    const result = await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+
+    expect(result.status).toBe('cached');
+    expect(mocks.compose).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it('17. regeneration returns typed not_configured after cache and cooldown checks', async () => {
+    const { supabase } = setup();
+    mocks.openaiConfigured = false;
+
+    const result = await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+
+    expect(result).toEqual({ status: 'not_configured' });
+    expect(mocks.compose).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it('18. cooldown prevents the configuration check and regeneration', async () => {
+    const { supabase } = setup();
+    mocks.openaiConfigured = false;
+    const current = { id: 'current', reportV2: report };
+    mocks.getLatest.mockResolvedValue({ record: current, migrationMissing: false });
+
+    const result = await generateApplicationMatchingReport({
+      supabase,
+      userId: 'user-1',
+      applicationId: 'app-1',
+      cooldownUntil: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    expect(result.status).toBe('cooldown');
+    expect(mocks.compose).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it('19. derives the academic band from a persisted canonical F5 score', async () => {
+    const { supabase } = setup();
+    const dimension = { status: 'assessed', score: 4.5, summary: 'Canonical result', strengths: [], gaps: [], evidence: [] };
+    const previous = {
+      id: 'previous',
+      reportV2: {
+        programmeFit: {
+          classification: 'safety',
+          confidence: 100,
+          limitations: [],
+          eligibility: { requiredSubjects: 'unknown', minimumQualification: 'unknown', languageRequirement: 'unknown', citizenshipRequirement: 'unknown', deadline: 'unknown' },
+          dimensions: {
+            academicCompetitiveness: dimension,
+            personaAlignment: dimension,
+            financialFeasibility: dimension,
+            careerDirection: dimension,
+            applicationReadiness: dimension,
+          },
+        },
+      },
+    };
+    mocks.getLatest.mockResolvedValue({ record: previous, migrationMissing: false });
+
+    await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+
+    expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
+      programmeFitInput: expect.objectContaining({ academicBand: 'above_range' }),
+    }));
   });
 });

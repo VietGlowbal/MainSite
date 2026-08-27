@@ -26,6 +26,9 @@ create table if not exists public.application_personal_report_generation_jobs (
   completed_at timestamptz
 );
 
+alter table public.application_personal_report_generation_jobs
+  add column if not exists idempotency_key text;
+
 create index if not exists idx_application_personal_report_generation_jobs_claimable
   on public.application_personal_report_generation_jobs(next_attempt_at, created_at)
   where status in ('pending', 'retry');

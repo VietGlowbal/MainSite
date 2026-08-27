@@ -216,6 +216,13 @@ export type IdentitySynthesis = Insight & {
   recurringBehaviour: string | null;
   /** The domain/value the behaviour tends to serve — not a trait adjective. */
   valueOrientation: string | null;
+  /** Explicit Personal Reflection signals kept separate from activity inference. */
+  reflectionSignals?: Record<string, string>;
+};
+
+type ReflectionIdentitySignal = {
+  dimension: string;
+  value: string;
 };
 
 /** Exact-match recurrence — for fields expected to repeat literally, like a role label or a domain theme. */
@@ -267,7 +274,10 @@ function mostCommonLeadingVerb(values: readonly string[]): string | null {
   return bestCount >= 2 ? best : null;
 }
 
-export function synthesizeIdentity(activities: readonly NarrativeActivity[]): IdentitySynthesis {
+export function synthesizeIdentity(
+  activities: readonly NarrativeActivity[],
+  reflectionSignals: readonly ReflectionIdentitySignal[] = [],
+): IdentitySynthesis {
   const readiness = synthesisReadiness(activities);
   const roles = activities.map((activity) => activity.role).filter(nonEmpty);
   const behaviours = activities.map((activity) => activity.behaviour).filter(nonEmpty);
@@ -283,8 +293,12 @@ export function synthesizeIdentity(activities: readonly NarrativeActivity[]): Id
   const recurringBehaviour = recurringVerb
     ? behaviours.find((behaviour) => behaviour.toLowerCase().startsWith(recurringVerb)) ?? null
     : null;
+  const explicitValues = reflectionSignals
+    .filter((signal) => ['values_growth', 'problem_domains'].includes(signal.dimension))
+    .map((signal) => signal.value.trim())
+    .filter(nonEmpty);
   const valueOrientation =
-    readiness.level === 'mature' ? mostCommon(themes) : null;
+    (readiness.level === 'mature' ? mostCommon(themes) : null) ?? explicitValues[0] ?? null;
 
   const found = [recurringRole, recurringBehaviour, valueOrientation].filter(Boolean).length;
 
@@ -321,6 +335,7 @@ export function synthesizeIdentity(activities: readonly NarrativeActivity[]): Id
     recurringRole,
     recurringBehaviour,
     valueOrientation,
+    reflectionSignals: {},
   };
 }
 

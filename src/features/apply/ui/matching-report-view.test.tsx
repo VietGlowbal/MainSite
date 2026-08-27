@@ -228,8 +228,8 @@ describe('MatchingReportView', () => {
     
     // It should render V2 headings
     expect(screen.getByText('Critical Requirements')).toBeDefined();
-    expect(screen.getByText('Strongest Alignment Areas')).toBeDefined();
-    expect(screen.getByText('Important Gaps')).toBeDefined();
+    expect(screen.getAllByText('Strongest Alignment Areas').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Important Gaps').length).toBeGreaterThan(0);
     expect(screen.getByText('Programme Criteria Breakdown')).toBeDefined();
     expect(screen.getByText('Positioning Opportunities')).toBeDefined();
     expect(screen.getByText('Scholarship Alignment')).toBeDefined();

@@ -59,6 +59,7 @@ export interface SupplementInput {
 export interface DocumentInput {
   id: string;
   fileName: string;
+  storageKey?: string | null;
 }
 
 export interface EvidenceBankInput {
@@ -97,10 +98,6 @@ class BankBuilder {
     return Boolean(this.sources[id]);
   }
 
-  hasDocumentSource(): boolean {
-    return Object.keys(this.sources).some((key) => key.startsWith('document:'));
-  }
-
   addClaim(claim: EvidenceClaim): void {
     this._claims.push(claim);
   }
@@ -123,10 +120,13 @@ class BankBuilder {
 export function buildEvidenceBank(input: EvidenceBankInput): EvidenceBank {
   const builder = new BankBuilder();
   const missingInformation: EvidenceBank['missingInformation'] = [];
+  const documentSourceByKey = new Map<string, string>();
 
   // ── documents register first so evidence keys can link to them ────────────
   for (const doc of input.documents ?? []) {
-    builder.addSource({ id: `document:${doc.id}`, type: 'document', label: doc.fileName });
+    const sourceId = builder.addSource({ id: `document:${doc.id}`, type: 'document', label: doc.fileName });
+    documentSourceByKey.set(doc.id, sourceId);
+    if (doc.storageKey) documentSourceByKey.set(doc.storageKey, sourceId);
   }
 
   const claimsById = new Map<string, EvidenceClaim>();
@@ -242,17 +242,15 @@ export function buildEvidenceBank(input: EvidenceBankInput): EvidenceBank {
       label: item.title,
     });
 
-    const backingDoc =
-      item.evidenceKey != null &&
-      builder.hasDocumentSource();
+    const backingDoc = item.evidenceKey ? documentSourceByKey.get(item.evidenceKey) ?? null : null;
     putNumericClaim({
       id: `experience:${item.id}`,
       category: 'experience',
       statement: item.freeText ?? item.title,
       normalizedValue: null,
-      sourceRefs: [sourceId],
+      sourceRefs: [sourceId, ...(backingDoc ? [backingDoc] : [])],
       // Deterministic rule: an attached uploaded document verifies the entry.
-      verified: item.kind === 'achievement' && Boolean(item.evidenceKey) && Boolean(backingDoc),
+      verified: item.kind === 'achievement' && Boolean(backingDoc),
       tags: {},
     });
   }

@@ -115,4 +115,29 @@ describe('runProfileEvaluation', () => {
     expect(result.evidence.items).toHaveLength(1);
     expect(result.evidence.items[0]?.tier).toBe('verified');
   });
+
+  it('consumes every explicit reflection signal into identity metadata and direction', () => {
+    const signals = [
+      { key: 'q1', dimension: 'interests_motivations' as const, value: 'building useful tools', status: 'isolated' as const },
+      { key: 'q2', dimension: 'values_growth' as const, value: 'peer learning', status: 'isolated' as const },
+      { key: 'q3', dimension: 'problem_domains' as const, value: 'education access', status: 'isolated' as const },
+      { key: 'q4', dimension: 'capability_ownership' as const, value: 'organising teams', status: 'isolated' as const },
+      { key: 'q5', dimension: 'academic_direction' as const, value: 'computer science', status: 'isolated' as const },
+      { key: 'q6', dimension: 'career_direction' as const, value: 'education technology', status: 'isolated' as const },
+      { key: 'q7', dimension: 'environment_preference' as const, value: 'collaborative teams', status: 'isolated' as const },
+    ] as const;
+    const result = runProfileEvaluation(input({ reflectionAnswerSignals: signals }));
+
+    expect(result.narrativeIdentity.identity.reflectionSignals).toMatchObject({
+      interests_motivations: 'building useful tools',
+      values_growth: 'peer learning',
+      problem_domains: 'education access',
+      capability_ownership: 'organising teams',
+      academic_direction: 'computer science',
+      career_direction: 'education technology',
+      environment_preference: 'collaborative teams',
+    });
+    expect(result.narrativeIdentity.identity.valueOrientation).toBe('peer learning');
+    expect(result.narrativeIdentity.positioning.intendedDirection).toBe('computer science; education technology');
+  });
 });

@@ -147,10 +147,11 @@ function stateEvidenceBank(
   const documents = state.evidenceBank
     .filter((item) => item.kind === 'document')
     .map((item) => {
-      const raw = (item.raw ?? {}) as { id?: unknown; fileName?: unknown };
+      const raw = (item.raw ?? {}) as { id?: unknown; fileName?: unknown; storageKey?: unknown };
       return {
         id: typeof raw.id === 'string' ? raw.id : item.id.slice('document:'.length),
         fileName: typeof raw.fileName === 'string' ? raw.fileName : item.label,
+        storageKey: typeof raw.storageKey === 'string' ? raw.storageKey : null,
       };
     });
   const followUpAnswers = state.activities.flatMap((item) => item.followUpAnswers ?? []);

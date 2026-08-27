@@ -22,6 +22,7 @@ import type { BlockingIssue } from './reflection-steps';
 export const candidateSnapshotDocumentSchema = z.object({
   id: z.string().min(1),
   fileName: z.string().min(1),
+  storageKey: z.string().min(1).nullable().optional(),
 });
 
 /** One resolved Adaptive Follow-up answer frozen into a snapshot (schema v2). */

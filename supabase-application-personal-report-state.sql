@@ -44,6 +44,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_personal_report_application_cache_key
   ON public.student_personal_report_versions(application_id, cache_key)
   WHERE application_id IS NOT NULL AND cache_key IS NOT NULL;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'public.student_personal_report_versions'::regclass
+      AND conname = 'student_personal_report_versions_application_lineage_complete'
+  ) THEN
+    ALTER TABLE public.student_personal_report_versions
+      ADD CONSTRAINT student_personal_report_versions_application_lineage_complete
+      CHECK (
+        (application_id IS NULL AND confirmed_snapshot_id IS NULL AND source_analysis_version_id IS NULL
+          AND report_contract_version IS NULL AND cache_key IS NULL)
+        OR
+        (application_id IS NOT NULL AND confirmed_snapshot_id IS NOT NULL AND source_analysis_version_id IS NOT NULL
+          AND report_contract_version IS NOT NULL AND cache_key IS NOT NULL)
+      ) NOT VALID;
+  END IF;
+END $$;
+
 COMMENT ON COLUMN public.student_personal_report_versions.application_id IS
   'NULL on legacy archive rows written before reports became application-scoped. Never backfilled.';
 COMMENT ON COLUMN public.student_personal_report_versions.confirmed_snapshot_id IS

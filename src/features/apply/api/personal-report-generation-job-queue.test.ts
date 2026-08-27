@@ -18,6 +18,7 @@ import {
 
 const JOB = {
   id: 'job-1', user_id: 'user-1', application_id: 'app-1', status: 'pending', trigger: 'manual', force_requested: false, attempts: 0,
+  idempotency_key: null,
   next_attempt_at: '2026-08-27T00:00:00.000Z', locked_at: null, locked_by: null,
   confirmed_snapshot_id: null, input_hash: null, report_version_id: null,
   error_code: null, error_message: null, created_at: '2026-08-27T00:00:00.000Z',
@@ -39,9 +40,16 @@ describe('personal-report-generation-job-queue', () => {
     vi.clearAllMocks();
     mocks.read.mockResolvedValue({ data: null, error: null });
     mocks.write.mockResolvedValue({ data: JOB, error: null });
-    mocks.update.mockImplementation(() => ({
-      eq: vi.fn(() => ({ select: vi.fn(() => ({ single: mocks.write })), error: null })),
-    }));
+    mocks.update.mockImplementation(() => {
+      const chain: Record<string, unknown> = {
+        error: null,
+        eq: vi.fn(() => chain),
+        select: vi.fn(() => chain),
+        single: mocks.write,
+        maybeSingle: async () => ({ data: { id: 'job-1' }, error: null }),
+      };
+      return chain;
+    });
     mocks.admin.mockReturnValue({ from: client().from, rpc: mocks.rpc });
   });
 
@@ -85,5 +93,36 @@ describe('personal-report-generation-job-queue', () => {
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
       status: 'complete', report_version_id: 'report-1', confirmed_snapshot_id: 'snapshot-1', input_hash: 'hash-1',
     }));
+  });
+
+  it('treats a repeated idempotency key as a no-op even after completion', async () => {
+    const complete = { ...JOB, status: 'complete', idempotency_key: 'request-1' };
+    mocks.read.mockResolvedValue({ data: complete, error: null });
+
+    const result = await enqueueApplicationPersonalReportGeneration(client() as never, {
+      userId: 'user-1', applicationId: 'app-1', trigger: 'manual', idempotencyKey: 'request-1',
+    });
+
+    expect(result.job).toEqual(complete);
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+
+  it('requeues a force request that arrives while a worker completes', async () => {
+    mocks.update
+      .mockImplementationOnce(() => {
+        const chain: Record<string, unknown> = { error: null, eq: vi.fn(() => chain), select: vi.fn(() => chain), maybeSingle: async () => ({ data: null, error: null }) };
+        return chain;
+      })
+      .mockImplementationOnce(() => {
+        const chain: Record<string, unknown> = { error: null, eq: vi.fn(() => chain) };
+        return chain;
+      });
+
+    await markApplicationPersonalReportGenerationComplete('job-1', {
+      reportVersionId: 'report-1', confirmedSnapshotId: 'snapshot-1', inputHash: 'hash-1',
+    });
+
+    expect(mocks.update).toHaveBeenCalledTimes(2);
+    expect(mocks.update.mock.calls[1]![0]).toMatchObject({ status: 'pending', completed_at: null });
   });
 });

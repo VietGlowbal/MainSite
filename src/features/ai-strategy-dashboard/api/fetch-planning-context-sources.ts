@@ -26,7 +26,7 @@ import type {
   ApplicationTask,
   CourseApplicationStatus,
 } from '@/lib/apply-types';
-import { getLatestPersonalReportV2 } from '@/features/apply/api';
+import { getLatestApplicationPersonalReportV2 } from '@/features/apply/api';
 import {
   enforceFitClassification,
   programmeFitSchema,
@@ -499,9 +499,10 @@ export async function fetchPlanningContextSources(
   // ── 7. Profile Evaluation (Personal Report V2 → structured_evaluation) ────
   let profileEvaluation: PlanningContextSources['profileEvaluation'] = null;
 
-  // Reuse the repository's own query semantics (ordering, selection, userId filter).
+  // Reuse the application-scoped repository query; never let another
+  // application (or a legacy archive row) feed this planner context.
   const { record: reportRecord, migrationMissing: reportMigMissing } =
-    await getLatestPersonalReportV2(supabase, userId);
+    await getLatestApplicationPersonalReportV2(supabase, { userId, applicationId });
 
   if (reportMigMissing) {
     diagnostics.push({ source: 'student_personal_report_versions', status: 'unavailable', message: 'migration missing' });

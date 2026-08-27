@@ -125,7 +125,18 @@ export function runProfileEvaluation(input: ProfileEvaluationInput): ProfileEval
   // them instead of substituting unrelated proxies.
   const readiness = synthesisReadiness(input.narrativeActivities);
   const base = scoreNarrativeBaseFaithful(input.narrativeActivities);
-  const identity = synthesizeIdentity(input.narrativeActivities);
+  const reflectionSignals = input.reflectionAnswerSignals ?? [];
+  const reflectionDirection = reflectionSignals
+    .filter((signal) => signal.dimension === 'academic_direction' || signal.dimension === 'career_direction')
+    .map((signal) => signal.value.trim())
+    .filter(Boolean)
+    .join('; ');
+  const identity = {
+    ...synthesizeIdentity(input.narrativeActivities, reflectionSignals),
+    reflectionSignals: Object.fromEntries(
+      reflectionSignals.map((signal) => [signal.dimension, signal.value]),
+    ),
+  };
   const motivation = assessMotivationConsistencyWithProfile(
     input.narrativeActivities,
     input.profileMotivations ?? [],
@@ -135,7 +146,7 @@ export function runProfileEvaluation(input: ProfileEvaluationInput): ProfileEval
     identity,
     pattern,
     theme: null,
-    intendedDirection: input.intendedDirection,
+    intendedDirection: input.intendedDirection ?? (reflectionDirection || null),
     coherent: identity.kind !== 'missing' && pattern.pattern !== null,
   });
 
