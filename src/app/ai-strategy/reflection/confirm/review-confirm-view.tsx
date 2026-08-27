@@ -126,6 +126,9 @@ export function ReviewConfirmView({
 
   const aboutHref = readOnly ? undefined : editHref('about', returnTo);
   const evidenceHref = readOnly ? undefined : editHref('evidence', returnTo);
+  const reviewEvidenceHref = evidenceHref
+    ? `${evidenceHref}${evidenceHref.includes('?') ? '&' : '?'}review=1`
+    : undefined;
   const personalHref = readOnly ? undefined : personalReflectionHref(returnTo);
   const confirmedCardCount =
     reflection.achievements.filter((a) => !isReflectionCardEmpty(a.reflectionCard)).length +
@@ -255,8 +258,8 @@ export function ReviewConfirmView({
                       count: readiness.achievementsNeedingReview,
                     })}
                   </span>
-                  {evidenceHref ? (
-                    <Button href={evidenceHref} variant="secondary" size="sm">
+                  {reviewEvidenceHref ? (
+                    <Button href={reviewEvidenceHref} variant="secondary" size="sm">
                       {t('Review')}
                     </Button>
                   ) : null}
@@ -269,8 +272,8 @@ export function ReviewConfirmView({
                       count: readiness.activitiesNeedingReview,
                     })}
                   </span>
-                  {evidenceHref ? (
-                    <Button href={evidenceHref} variant="secondary" size="sm">
+                  {reviewEvidenceHref ? (
+                    <Button href={reviewEvidenceHref} variant="secondary" size="sm">
                       {t('Review')}
                     </Button>
                   ) : null}

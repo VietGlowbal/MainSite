@@ -4,12 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReflectionEvidenceForm } from './reflection-evidence-form';
 
 const pushMock = vi.fn();
+let reviewMode = false;
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: pushMock,
   }),
   useSearchParams: () => ({
-    get: (key: string) => (key === 'return' ? '/custom-return' : null),
+    get: (key: string) => (key === 'return' ? '/custom-return' : key === 'review' && reviewMode ? '1' : null),
   }),
 }));
 
@@ -26,6 +27,7 @@ vi.mock('@/lib/supabase/client', () => ({
 describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    reviewMode = false;
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ ok: true }),
@@ -91,6 +93,46 @@ describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
 
     // Submit button
     expect(screen.getByRole('button', { name: /Continue/i })).toBeInTheDocument();
+  });
+
+  it('opens the extracted-item review queue and resolves each item explicitly', async () => {
+    const user = userEvent.setup();
+    reviewMode = true;
+
+    render(
+      <ReflectionEvidenceForm
+        initialAchievements={[
+          {
+            id: 'ach-1',
+            category: 'competition',
+            title: 'Extracted award',
+            detail: 'Award detail',
+            year: 2024,
+            reviewStatus: 'needs_review',
+          },
+        ]}
+        initialActivities={[
+          {
+            id: 'act-1',
+            category: 'community_project',
+            title: 'Extracted activity',
+            description: 'Activity detail',
+            reviewStatus: 'needs_review',
+          },
+        ]}
+        initialDocuments={[]}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Extracted award' })).toBeInTheDocument();
+    expect(screen.getByText('1 of 2')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Keep' }));
+    expect(screen.getByRole('heading', { name: 'Extracted activity' })).toBeInTheDocument();
+    expect(screen.getByText('2 of 2')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Keep' }));
+    expect(screen.getByText('All extracted achievements reviewed')).toBeInTheDocument();
   });
 
   it('allows adding and removing achievements', async () => {
