@@ -77,7 +77,9 @@ BEGIN
     p_payload_hash,
     v_previous_snapshot_id
   )
-  RETURNING id, confirmed_at INTO snapshot_id, v_saved_confirmed_at;
+  RETURNING confirmed_candidate_snapshots.id,
+            confirmed_candidate_snapshots.confirmed_at
+    INTO snapshot_id, v_saved_confirmed_at;
   confirmed_at := v_saved_confirmed_at;
 
   UPDATE public.course_applications
