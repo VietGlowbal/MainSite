@@ -61,7 +61,9 @@ queue. Existing rows with the old `needs_review` status also no longer block
 confirmation. The Experiences summary now reports saved achievements and
 activities as `Experiences confirmed`, instead of showing `0 confirmed` when
 no separate Reflection Cards exist. Focused Vitest (30 tests), typecheck and
-targeted ESLint passed.
+targeted ESLint passed. The confirm route now safe-parses the snapshot payload
+and returns an actionable 422 when legacy experience data cannot be frozen,
+instead of surfacing an opaque 500.
 
 Audit 2026-08-27: after the queue repair was applied, the live Personal Report
 queue schema exposes `idempotency_key` and its worker processed a job. That job
