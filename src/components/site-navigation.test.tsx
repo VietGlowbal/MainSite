@@ -1,7 +1,7 @@
 import { act, render, screen, within } from '@testing-library/react';
 import { hydrateRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   session: {
@@ -14,6 +14,12 @@ const mocks = vi.hoisted(() => ({
     lang: 'en' as 'en' | 'vi',
     t: (label: string) => label,
   },
+  roles: null as {
+    userId: string;
+    isAdvisor: boolean;
+    isAdmin: boolean;
+    isCoordinator: boolean;
+  } | null,
 }));
 
 vi.mock('next/link', () => ({ default: ({ children }: { children: React.ReactNode }) => children }));
@@ -21,6 +27,23 @@ vi.mock('@/components/glowbal-logo', () => ({ GlowbalLogo: () => <span>GlowBal</
 vi.mock('@/components/saved-nav-link', () => ({ SavedNavLink: () => <span>Saved</span> }));
 vi.mock('@/components/navigation-session', () => ({
   useNavigationSession: () => mocks.session,
+}));
+vi.mock('@/components/navigation-roles', () => ({
+  useNavigationRoles: () => mocks.roles,
+  withNavigationRoleItems: (
+    items: Array<{ href?: string; label: string }>,
+    roles: typeof mocks.roles,
+    t: (label: string) => string,
+  ) => [
+    ...items,
+    ...(roles?.isAdvisor
+      ? [{ href: '/dashboard/advisor', label: t('Advisor hub') }]
+      : []),
+    ...(roles?.isCoordinator
+      ? [{ href: '/coordinator', label: t('Coordinator') }]
+      : []),
+    ...(roles?.isAdmin ? [{ href: '/admin', label: t('Admin') }] : []),
+  ],
 }));
 vi.mock('@/lib/i18n', () => ({
   useLanguage: () => mocks.language,
@@ -50,11 +73,13 @@ vi.mock('@/shared/ui', () => ({
     />
   ),
   MobileNav: (props: {
+    items: Array<{ label: string }>;
     primaryAction?: { label: string };
     secondaryAction?: { label: string };
   }) => (
     <div
       data-testid="mobile-nav"
+      data-items={props.items.map((item) => item.label).join('|')}
       data-primary={props.primaryAction?.label ?? ''}
       data-account={props.secondaryAction?.label ?? ''}
     />
@@ -64,6 +89,10 @@ vi.mock('@/shared/ui', () => ({
 import { SiteNavigation } from './site-navigation';
 
 describe('SiteNavigation', () => {
+  beforeEach(() => {
+    mocks.roles = null;
+  });
+
   it('withholds first-time actions while the session is unresolved', () => {
     mocks.session = {
       ready: false,
@@ -109,6 +138,32 @@ describe('SiteNavigation', () => {
     expect(desktop).toHaveAttribute('data-primary', 'Strategy Master');
     expect(desktop).toHaveAttribute('data-account', 'Student');
     expect(desktop).not.toHaveAttribute('data-items', expect.stringContaining('Strategy Master'));
+  });
+
+  it('shows signed-in role destinations on pages that own their header', () => {
+    mocks.session = {
+      ready: true,
+      signedIn: true,
+      completed: true,
+      user: { id: 'staff-1', name: 'Staff User' },
+    };
+    mocks.roles = {
+      userId: 'staff-1',
+      isAdvisor: true,
+      isCoordinator: true,
+      isAdmin: true,
+    };
+
+    render(<SiteNavigation />);
+
+    expect(screen.getByTestId('desktop-nav')).toHaveAttribute(
+      'data-items',
+      expect.stringContaining('Advisor hub|Coordinator|Admin'),
+    );
+    expect(screen.getByTestId('mobile-nav')).toHaveAttribute(
+      'data-items',
+      expect.stringContaining('Advisor hub|Coordinator|Admin'),
+    );
   });
 
   it('recomputes the Strategy Master pill in both directions', () => {

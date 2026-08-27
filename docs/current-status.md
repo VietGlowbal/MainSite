@@ -1,5 +1,17 @@
 # Current project status
 
+Working tree 2026-08-27: fixed role-gated top-navigation links disappearing
+outside `/profile`. The advisor, coordinator, and admin checks now live in one
+root navigation-role provider shared by both the legacy app header and the
+`SiteNavigation` header used by Home and other rebuilt routes; desktop and
+mobile menus receive the same role destinations. Role reads remain best-effort
+UI affordances and do not replace the existing server-side route guards.
+Measured locally: focused navigation Vitest **4 files / 22 tests passing**,
+base and strict TypeScript, scoped ESLint, `git diff --check`, and the Next.js
+16.3.1 production build pass. The build retains three pre-existing Turbopack
+filesystem-tracing warnings in `src/lib/geo-content.ts`. Signed-in browser
+verification remains unrun.
+
 Working tree 2026-08-26: kept the Personal Canvas artwork as the desktop background and changed its four upper/middle hover effects to SVG cutouts. Each highlight now follows its panel and excludes the shared Core Identity hub; rectangular hover shadows were removed. Hotspots 1/4/5 were then lifted to match their artwork, the hover/active highlight was strengthened, and hotspots 2/3 were shortened to stop at their own lower divider (with further 0.75% and 1% trims). The centre hotspot and all cutout ellipses now derive from the actual 1024×731 artwork circle coordinates, rather than estimated per-card percentages. Parts 4/5 now start at their actual divider and extend to their existing bottom edge. Selecting a section now opens the existing accessible centered modal rather than shrinking the canvas into a side panel and drawing a connector; the modal owns Escape, backdrop close, scroll lock, and focus return. Part 6 uses a stronger brand overlay and shadow on hover/selection. Last focused Personal Canvas measurement before the final 1% adjustment: Vitest 13/13 passing and `git diff --check` passing; no test rerun by owner request. ESLint still reports 26 pre-existing raw-colour errors in the same uncommitted canvas overhaul; browser visual verification remains unrun.
 Working tree 2026-08-27: fixed the terminal hardened canonical Planner
 reconciler so micro-step inserts collect their IDs in `v_micro_id` and never

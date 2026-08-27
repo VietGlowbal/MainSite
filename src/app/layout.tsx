@@ -4,6 +4,7 @@ import { Bricolage_Grotesque, Geist_Mono, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
+import { NavigationRolesProvider } from '@/components/navigation-roles';
 import { NavigationSessionProvider } from '@/components/navigation-session';
 import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
@@ -165,8 +166,9 @@ export default function RootLayout({
           #F5F6FF to white. The background belongs to the base layer. */}
       <body className="min-h-full flow-root overflow-x-clip text-slate-800 glowbal-site-shell">
         <NavigationSessionProvider>
-          <LanguageProvider>
-            <NavReveal />
+          <NavigationRolesProvider>
+            <LanguageProvider>
+              <NavReveal />
           {/* Puts the globe loader up during client-side navigation. Renders
               nothing itself — it only drives the loading store. */}
             <RouteLoading />
@@ -186,8 +188,9 @@ export default function RootLayout({
           {/* Whole-page translation for any text not covered by the static
               dictionary or t()/AutoTranslate. Only calls /api/translate when
               Vietnamese is active; English stays the zero-cost default. */}
-            <DomTranslator />
-          </LanguageProvider>
+              <DomTranslator />
+            </LanguageProvider>
+          </NavigationRolesProvider>
         </NavigationSessionProvider>
         <Analytics />
         <SpeedInsights />
