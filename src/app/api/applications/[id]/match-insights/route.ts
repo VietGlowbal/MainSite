@@ -29,6 +29,16 @@ export async function POST(
     outcome: 'started',
   });
 
+  const { data: application, error: appError } = await supabase
+    .from('course_applications')
+    .select('*, courses (*)')
+    .eq('id', applicationId)
+    .eq('user_id', userId)
+    .single();
+  if (appError || !application) {
+    return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+  }
+
   const { record: latestV2 } = await getLatestApplicationMatchingAnalysis(supabase, { userId, applicationId });
 
   const { data: profile } = await supabase.from('student_profiles').select('plus_status, plus_expires_at').eq('user_id', userId).maybeSingle();
