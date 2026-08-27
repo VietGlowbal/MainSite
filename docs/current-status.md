@@ -53,6 +53,26 @@ base and strict TypeScript, scoped ESLint, `git diff --check`, and the Next.js
 16.3.1 production build pass. The build retains three pre-existing Turbopack
 filesystem-tracing warnings in `src/lib/geo-content.ts`. Signed-in browser
 verification remains unrun.
+Working tree 2026-08-27: candidate-information step 2 (`Activities &
+Achievements`) is now the approval point for AI-extracted evidence. Its
+Continue action persists displayed extracted rows as `reviewed`; Review &
+Confirm is summary-only and no longer forces an additional per-item review
+queue. Existing rows with the old `needs_review` status also no longer block
+confirmation. The Experiences summary now reports saved achievements and
+activities as `Experiences confirmed`, instead of showing `0 confirmed` when
+no separate Reflection Cards exist. Focused Vitest (30 tests), typecheck and
+targeted ESLint passed.
+
+Audit 2026-08-27: after the queue repair was applied, the live Personal Report
+queue schema exposes `idempotency_key` and its worker processed a job. That job
+was correctly blocked as `INSUFFICIENT_EVIDENCE`, so queue execution is proven
+but a new successful generation still needs adequate confirmed evidence. The
+all required Matching V2 and Personal-lineage columns now resolve (`200` via
+PostgREST) after `supabase-matching-report-personal-lineage.sql` was applied.
+The migration blocker is closed; the separate execution-flow findings in the
+audit still need remediation before calling Matching end-to-end reliable.
+See `docs/plans/2026-08-27-personal-matching-ai-flow-audit.md`; local green
+test/build gates are not production migration verification.
 
 Working tree 2026-08-26: kept the Personal Canvas artwork as the desktop background and changed its four upper/middle hover effects to SVG cutouts. Each highlight now follows its panel and excludes the shared Core Identity hub; rectangular hover shadows were removed. Hotspots 1/4/5 were then lifted to match their artwork, the hover/active highlight was strengthened, and hotspots 2/3 were shortened to stop at their own lower divider (with further 0.75% and 1% trims). The centre hotspot and all cutout ellipses now derive from the actual 1024×731 artwork circle coordinates, rather than estimated per-card percentages. Parts 4/5 now start at their actual divider and extend to their existing bottom edge. Selecting a section now opens the existing accessible centered modal rather than shrinking the canvas into a side panel and drawing a connector; the modal owns Escape, backdrop close, scroll lock, and focus return. Part 6 uses a stronger brand overlay and shadow on hover/selection. Last focused Personal Canvas measurement before the final 1% adjustment: Vitest 13/13 passing and `git diff --check` passing; no test rerun by owner request. ESLint still reports 26 pre-existing raw-colour errors in the same uncommitted canvas overhaul; browser visual verification remains unrun.
 

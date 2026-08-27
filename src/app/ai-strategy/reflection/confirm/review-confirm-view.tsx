@@ -10,7 +10,6 @@ import {
   formatBudgetRange,
   fundingSourceLabel,
   isCompleteBudget,
-  isReflectionCardEmpty,
   personalReflectionAnsweredCount,
   reflectionStep,
   subjectById,
@@ -130,9 +129,7 @@ export function ReviewConfirmView({
     ? `${evidenceHref}${evidenceHref.includes('?') ? '&' : '?'}review=1`
     : undefined;
   const personalHref = readOnly ? undefined : personalReflectionHref(returnTo);
-  const confirmedCardCount =
-    reflection.achievements.filter((a) => !isReflectionCardEmpty(a.reflectionCard)).length +
-    reflection.activities.filter((a) => !isReflectionCardEmpty(a.reflectionCard)).length;
+  const confirmedExperienceCount = reflection.achievements.length + reflection.activities.length;
   const personalReflectionAnswered = personalReflectionAnsweredCount(reflection.personalReflection);
   const confirmedDate = confirmedAt
     ? formatUiDate(confirmedAt, lang, {
@@ -369,8 +366,8 @@ export function ReviewConfirmView({
             })}
           />
           <Field
-            label={t('Reflection Cards')}
-            value={t('{count} confirmed', { count: confirmedCardCount })}
+            label={t('Experiences confirmed')}
+            value={t('{count} confirmed', { count: confirmedExperienceCount })}
           />
         </ReviewSection>
 

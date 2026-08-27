@@ -66,6 +66,23 @@ describe('ReviewConfirmView read-only mode', () => {
     ).toBeInTheDocument();
   });
 
+  it('reports confirmed experiences instead of counting only reflection cards', () => {
+    render(
+      <ReviewConfirmView
+        reflection={{
+          ...reflection,
+          achievements: [{ category: 'academic_award', title: 'Award' }],
+          activities: [{ category: 'leadership', title: 'Activity' }],
+        }}
+        documents={[]}
+        readiness={readiness}
+      />,
+    );
+
+    expect(screen.getByText('Experiences confirmed')).toBeInTheDocument();
+    expect(screen.getByText('2 confirmed')).toBeInTheDocument();
+  });
+
   it('renders blocking issues with actionable Fix this links and preserved return context', () => {
     const unreadyReadiness = {
       blockingIssues: [

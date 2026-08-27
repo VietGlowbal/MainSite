@@ -390,8 +390,15 @@ export function ReflectionEvidenceForm({
     setSaving(true);
     setError(null);
 
-    const validAchievements = achievements.filter((a) => a.title && a.title.trim().length > 0);
-    const validActivities = activities.filter((a) => a.title && a.title.trim().length > 0);
+    // Continue is the student's approval point for this step. Keep the
+    // extraction provenance, but persist every displayed extracted item as
+    // reviewed so Review & Confirm remains a summary-only checkpoint.
+    const validAchievements = achievements
+      .filter((a) => a.title && a.title.trim().length > 0)
+      .map((a) => (a.reviewStatus === 'needs_review' ? { ...a, reviewStatus: 'reviewed' as const } : a));
+    const validActivities = activities
+      .filter((a) => a.title && a.title.trim().length > 0)
+      .map((a) => (a.reviewStatus === 'needs_review' ? { ...a, reviewStatus: 'reviewed' as const } : a));
 
     const payload = {
       achievements: validAchievements,

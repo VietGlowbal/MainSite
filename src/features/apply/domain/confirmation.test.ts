@@ -29,7 +29,7 @@ describe('candidateReadiness', () => {
     expect(readiness.blockingIssues).toEqual([]);
   });
 
-  it('is not ready while an extracted achievement or activity still needs review', () => {
+  it('keeps Review & Confirm available when legacy extracted items still have review status', () => {
     const readiness = candidateReadiness({
       ...READY,
       achievements: [
@@ -37,7 +37,7 @@ describe('candidateReadiness', () => {
       ],
       activities: [{ category: 'leadership', title: 'Demo', reviewStatus: 'needs_review' }],
     });
-    expect(readiness.ready).toBe(false);
+    expect(readiness.ready).toBe(true);
     expect(readiness.achievementsNeedingReview).toBe(1);
     expect(readiness.activitiesNeedingReview).toBe(1);
   });

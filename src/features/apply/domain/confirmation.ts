@@ -59,7 +59,7 @@ export type CandidateReadiness = {
   blockingIssues: BlockingIssue[];
   achievementsNeedingReview: number;
   activitiesNeedingReview: number;
-  /** Nothing extracted by AI is still waiting for the student to review it. */
+  /** Review & Confirm is a summary-only checkpoint, so it never blocks. */
   ready: boolean;
 };
 
@@ -78,9 +78,10 @@ export type CandidateReadiness = {
  * `intake` even though the new application flow no longer asks those questions
  * here — leaving students permanently unable to confirm or generate reports.
  *
- * The only data-level blocker that belongs at this checkpoint is unresolved AI
- * extraction: an achievement/activity marked `needs_review` must be accepted,
- * edited or removed before it can be frozen into the confirmed snapshot.
+ * Step 2's Continue action is the student's approval point for extracted
+ * evidence. This final screen only displays the saved candidate information
+ * before it is frozen into a snapshot, and must not send the student back to
+ * the form for an extra review pass.
  */
 export function candidateReadiness(reflection: ReflectionValues): CandidateReadiness {
   const blockingIssues: BlockingIssue[] = [];
@@ -95,6 +96,6 @@ export function candidateReadiness(reflection: ReflectionValues): CandidateReadi
     blockingIssues,
     achievementsNeedingReview,
     activitiesNeedingReview,
-    ready: achievementsNeedingReview === 0 && activitiesNeedingReview === 0,
+    ready: true,
   };
 }

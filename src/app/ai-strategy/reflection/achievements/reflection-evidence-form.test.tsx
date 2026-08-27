@@ -135,6 +135,29 @@ describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
     expect(screen.getByText('All extracted achievements reviewed')).toBeInTheDocument();
   });
 
+  it('treats Continue as approval and saves extracted items as reviewed', async () => {
+    const user = userEvent.setup();
+    render(
+      <ReflectionEvidenceForm
+        initialAchievements={[
+          { id: 'ach-1', category: 'competition', title: 'Extracted award', reviewStatus: 'needs_review' },
+        ]}
+        initialActivities={[
+          { id: 'act-1', category: 'leadership', title: 'Extracted activity', reviewStatus: 'needs_review' },
+        ]}
+        initialDocuments={[]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+
+    const [, init] = vi.mocked(global.fetch).mock.calls[0] ?? [];
+    const payload = JSON.parse(String(init?.body));
+    expect(payload.achievements[0].reviewStatus).toBe('reviewed');
+    expect(payload.activities[0].reviewStatus).toBe('reviewed');
+  });
+
   it('allows adding and removing achievements', async () => {
     const user = userEvent.setup();
     render(

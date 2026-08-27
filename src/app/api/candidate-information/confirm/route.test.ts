@@ -149,7 +149,7 @@ describe('POST /api/candidate-information/confirm', () => {
     expect(body.snapshotId).toBe('snap-no-legacy');
   });
 
-  it('rejects confirmation while an extracted achievement still needs review', async () => {
+  it('allows confirmation when a legacy extracted achievement still has review status', async () => {
     mocks.loadCandidateReflection.mockResolvedValue({
       reflection: {
         ...READY_REFLECTION,
@@ -158,13 +158,20 @@ describe('POST /api/candidate-information/confirm', () => {
       documents: [],
       confirmedAt: null,
     });
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'confirmed_candidate_snapshots') {
+        return insertBuilder({ data: { id: 'snap-legacy-review', confirmed_at: '2026-08-13T12:00:00Z' }, error: null });
+      }
+      if (table === 'student_profiles') return updateBuilder({ error: null });
+      throw new Error(`unexpected table ${table}`);
+    });
 
     const { POST } = await import('./route');
     const response = await POST(request());
     const body = await response.json();
 
-    expect(response.status).toBe(422);
-    expect(body.achievementsNeedingReview).toBe(1);
+    expect(response.status).toBe(200);
+    expect(body.snapshotId).toBe('snap-legacy-review');
   });
 
   it('creates a snapshot and locks the profile when ready', async () => {
