@@ -229,6 +229,7 @@ const overallMatchingResultSchema = z
 
 const scholarshipAlignmentSchema = z
   .object({
+    hardRequirements: z.array(hardRequirementMatchSchema).max(100).optional(),
     criteria: z.array(fitSignalSchema).max(100),
     strengths: z.array(matchingStrengthSchema).max(30),
     gaps: z.array(matchingGapSchema).max(30),
@@ -295,6 +296,16 @@ export const matchingReportV2Schema = z
     }
 
     if (report.scholarshipAlignment) {
+      for (const [index, requirement] of (report.scholarshipAlignment.hardRequirements ?? []).entries()) {
+        const criterion = byId.get(requirement.criterionId);
+        if (!criterion || criterion.category !== 'scholarship' || criterion.requirementType !== 'hard') {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['scholarshipAlignment', 'hardRequirements', index],
+            message: 'Scholarship hard requirements must reference scholarship hard criteria.',
+          });
+        }
+      }
       for (const [index, signal] of report.scholarshipAlignment.criteria.entries()) {
         const criterion = byId.get(signal.criterionId);
         if (criterion && criterion.category !== 'scholarship') {

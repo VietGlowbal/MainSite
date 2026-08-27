@@ -286,10 +286,12 @@ export function getV2Sections(report: MatchingReportV2) {
     snapshot: report.overall,
     criticalRequirements: report.academicRequirements,
     strengths: report.strengths,
-    gaps: report.gaps.filter(g => g.type !== 'missing_evidence' && g.type !== 'weak_evidence'),
+    gaps: report.gaps,
     criteriaBreakdown: report.programmeAlignment,
     opportunities: report.positioningOpportunities,
     scholarship: report.scholarshipAlignment,
-    evidenceNeeded: report.gaps.filter(g => g.type === 'missing_evidence' || g.type === 'weak_evidence')
+    evidenceNeeded: report.gaps.filter(
+      (g) => g.type === 'missing_evidence' || g.type === 'weak_evidence' || g.evidenceNeeded.length > 0,
+    ),
   };
 }

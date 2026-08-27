@@ -86,6 +86,11 @@ describe('calculateEvidenceCoverage', () => {
     const result = calculateEvidenceCoverage([c1], [createSignal('c1', 'strong')]);
     expect(result).toBe(100);
   });
+
+  it('excludes hard requirements from semantic evidence coverage', () => {
+    const hard = createCriterion('hard-1', 'critical', 'academic_requirement', 'hard');
+    expect(calculateEvidenceCoverage([hard], [createSignal('hard-1', 'strong')])).toBe(0);
+  });
 });
 
 describe('deriveStrengths', () => {

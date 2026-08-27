@@ -213,6 +213,7 @@ describe('MatchingReportView', () => {
             { id: 'g1', type: 'capability_gap', title: 'Real Gap', whyItMatters: 'Gap', description: '', criterionIds: [], currentEvidenceIds: [], severity: 'critical', fixability: 'low', evidenceNeeded: [], priority: 1 },
             { id: 'g2', type: 'missing_evidence', title: 'Missing Proof', whyItMatters: 'Proof', description: '', criterionIds: [], currentEvidenceIds: [], severity: 'medium', fixability: 'high', evidenceNeeded: [], priority: 2 }
           ],
+          criteria: [],
           programmeAlignment: [],
           positioningOpportunities: [],
           scholarshipAlignment: { criteria: [], strengths: [], gaps: [] },
@@ -232,7 +233,7 @@ describe('MatchingReportView', () => {
     expect(screen.getByText('Programme Criteria Breakdown')).toBeDefined();
     expect(screen.getByText('Positioning Opportunities')).toBeDefined();
     expect(screen.getByText('Scholarship Alignment')).toBeDefined();
-    expect(screen.getByText('Evidence That Would Improve This Assessment')).toBeDefined();
+    expect(screen.getByText('Evidence that improves assessment')).toBeDefined();
   });
 });
 

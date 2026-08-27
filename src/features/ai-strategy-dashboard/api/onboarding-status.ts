@@ -100,6 +100,7 @@ export async function fetchOnboardingState(
         .from('application_match_analyses')
         .select('id')
         .eq('application_id', applicationId)
+        .eq('user_id', userId)
         .eq('analysis_status', 'complete')
         .limit(1)
         .maybeSingle(),

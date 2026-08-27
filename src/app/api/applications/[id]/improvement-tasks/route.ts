@@ -91,6 +91,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     .from('application_match_analyses')
     .select('pillars')
     .eq('application_id', applicationId)
+    .eq('user_id', user.id)
     .eq('analysis_status', 'complete')
     .order('created_at', { ascending: false })
     .limit(1)

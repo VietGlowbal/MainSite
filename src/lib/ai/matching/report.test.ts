@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { composeMatchingReport, partitionCriteriaForRecompute } from './report';
+import { MATCHING_ENGINE_VERSION, MATCHING_PROMPT_BUNDLE_VERSION } from './domain';
+import { REPORT_PROMPT_VERSIONS } from '../runtime/prompt-registry';
 import type { FitSignal, MatchingCriterion, MatchingEvidence } from './domain';
 import { stableHash } from '@/features/apply/api';
 
@@ -32,8 +34,20 @@ describe('partitionCriteriaForRecompute', () => {
   it('reuses signal if hash matches and evidence exists', () => {
     const hash = stableHash({
       criterion: mockCriterion,
-      evidence: [mockEvidence],
+      retrievedEvidence: [{
+        id: mockEvidence.id,
+        category: mockEvidence.category,
+        statement: mockEvidence.statement,
+        sourceRefs: mockEvidence.sourceRefs,
+        interpretationRefs: mockEvidence.interpretationRefs,
+        status: mockEvidence.status,
+        competencies: mockEvidence.competencies,
+        criteria: mockEvidence.criteria,
+        direct: mockEvidence.direct,
+      }],
       personalContext: mockPersonalContext,
+      engineVersion: MATCHING_ENGINE_VERSION,
+      criterionPromptVersion: REPORT_PROMPT_VERSIONS.matching_criterion_reasoning,
     });
 
     const mockSignal: FitSignal = {
@@ -59,6 +73,12 @@ describe('partitionCriteriaForRecompute', () => {
       currentEvidence: [mockEvidence],
       evidenceByCriterion: { 'crit-1': [mockEvidence] },
       personalContext: mockPersonalContext,
+      previousMetadata: {
+        contractVersion: 'matching-report-v2',
+        matchingEngineVersion: MATCHING_ENGINE_VERSION,
+        promptVersion: MATCHING_PROMPT_BUNDLE_VERSION,
+        criterionPromptVersion: REPORT_PROMPT_VERSIONS.matching_criterion_reasoning,
+      },
     });
 
     expect(reusable).toHaveLength(1);
@@ -236,7 +256,8 @@ describe('composeMatchingReport', () => {
     });
 
     expect(report.scholarshipAlignment).not.toBeNull();
-    expect(report.scholarshipAlignment?.criteria[0].criterionId).toBe('scholarship:crit-scholarship');
+    expect(report.scholarshipAlignment?.hardRequirements?.[0]?.criterionId).toBe('scholarship:crit-scholarship');
+    expect(report.scholarshipAlignment?.criteria).toHaveLength(0);
     expect(report.programmeAlignment).toHaveLength(0);
   });
 
@@ -299,7 +320,7 @@ describe('composeMatchingReport', () => {
       ]
     };
 
-    const report = await composeMatchingReport({
+    await expect(composeMatchingReport({
       targetProfile: targetWithCrit,
       academicProfile: fakeAcademicProfile,
       evidenceBank: mockEvBank,
@@ -308,9 +329,6 @@ describe('composeMatchingReport', () => {
       lineage: fakeLineage,
       programmeFitInput: fakeProgrammeFitInput,
       generate: fakeGenerate,
-    });
-
-    const signal = report.programmeAlignment.find(s => s.criterionId === 'competency:crit-1');
-    expect(signal).toBeUndefined(); // Dropped entirely because reasoner threw
+    })).rejects.toThrow('Failed to process');
   });
 });

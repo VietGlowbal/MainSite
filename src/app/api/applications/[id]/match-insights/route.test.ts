@@ -106,6 +106,11 @@ describe('POST /api/applications/[id]/match-insights', () => {
       createdAt: new Date(Date.now() - 60_000).toISOString(),
     };
     mocks.getLatestApplicationMatchingAnalysis.mockResolvedValue({ record: recent, migrationMissing: false });
+    mocks.generateApplicationMatchingReport.mockResolvedValue({
+      status: 'cooldown',
+      record: recent,
+      nextRegenerationAt: new Date(Date.now() + 86_400_000).toISOString(),
+    });
     setupSupabase();
 
     const { POST } = await importRoute();
@@ -113,6 +118,18 @@ describe('POST /api/applications/[id]/match-insights', () => {
     expect(response.status).toBe(429);
     const body = await response.json();
     expect(body.nextRegenerationAt).toBeDefined();
+  });
+
+  it('does not block an exact cache hit during the free-tier cooldown', async () => {
+    const recent = { id: 'analysis-prev', createdAt: new Date(Date.now() - 60_000).toISOString() };
+    mocks.getLatestApplicationMatchingAnalysis.mockResolvedValue({ record: recent, migrationMissing: false });
+    mocks.generateApplicationMatchingReport.mockResolvedValue({ status: 'cached', record: recent });
+    setupSupabase();
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+    expect(response.status).toBe(200);
+    expect((await response.json()).cached).toBe(true);
   });
 
   it('returns 503 when AI service is not configured', async () => {

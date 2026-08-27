@@ -19,13 +19,29 @@ all passed. The build used placeholder Supabase configuration and logged its
 expected unreachable-placeholder fetches while exiting 0. PostgreSQL
 integration remains for CI because `psql` is unavailable locally.
 
+Working tree 2026-08-27: reviewed and hardened Matching Report V2 end to end.
+Matching now scopes application reads by application and user, resolves the
+canonical course application/target, records Personal Report and Evidence
+Bank lineage, validates criterion/evidence provenance, keeps hard requirements
+deterministic, fails closed on partial batches or invalid summaries, and uses
+content/version-only cache identity. Persistence dual-reads valid V2 before
+legacy F5, dual-writes the legacy F5 columns, preserves the last complete
+report on failed regeneration, and scopes Strategy/Planner F5 reads by user.
+The canonical V2 UI now renders all required report sections while retaining
+legacy fallback. Measured: full Vitest **362 files / 3,419 tests passing, 2
+todo**, typecheck, i18n check, focused changed-file ESLint, and production
+build pass. Full ESLint has 0 errors and 592 warnings, primarily from
+untracked internal tooling and existing test/source files. The local Node gate
+remains blocked by Node 24.13.0 versus required 24.19.0; live schema and
+signed-in browser verification remain unrun.
+
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
 Working tree 2026-08-26: replaced Personal Reflection's previous five prompts with the supplied seven-question “About Yourself” and “About Your Direction” set. Each prompt now includes its guidance and sample answer; completion and progress correctly use seven answers. Measured: focused Vitest 11/11 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
 Working tree 2026-08-25 (reflection evidence UI continuation): the achievements reflection form now follows the supplied SVG layout more closely: normalized achievement cards, compact activity detail row, corrected searchable picker focus behavior, compact add controls, and the sample upload row. The uncommitted shared reflection shell change was restored to HEAD after review; the unrelated latest SEO commit was not rolled back. Measured after this pass: npm.cmd run typecheck and npm.cmd run lint pass. npm.cmd run build also passes.
 
-Last reconciled: **2026-08-25 (Asia/Bangkok)**
+Last reconciled: **2026-08-27 (Asia/Saigon)**
 
 Working tree 2026-08-25: Comprehensive SEO improvement plan (`docs/plans/2026-08-25-seo-improvement-implementation-plan.md`) implemented end-to-end.
 - **GEO Quality Gate & CMS read boundary:** `src/lib/geo-cms-validation.ts` enforces zero placeholder markers (`TODO_SOURCE_REQUIRED`, generator draft copy) and source verification on tuition/entry claims across the admin publish API and reader path.

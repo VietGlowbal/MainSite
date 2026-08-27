@@ -67,6 +67,7 @@ export async function fetchApplicationWorkspace(
       .from('application_match_analyses')
       .select('*')
       .eq('application_id', applicationId)
+      .eq('user_id', userId)
       .eq('analysis_status', 'complete')
       .order('created_at', { ascending: false })
       .limit(1)

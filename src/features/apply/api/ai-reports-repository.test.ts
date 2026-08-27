@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  analysisFromRow,
   isMigrationMissing,
   toMatchingAnalysisRecord,
 } from './ai-reports-repository';
@@ -130,6 +131,32 @@ describe('ai-reports-repository helpers', () => {
       expect(record.reportV2?.contractVersion).toBe(MATCHING_REPORT_CONTRACT_VERSION);
       expect(record.reportContractVersion).toBe(MATCHING_REPORT_CONTRACT_VERSION);
       expect(record.matchingEngineVersion).toBe('matching-v2.0.0');
+
+      const pageView = analysisFromRow({
+        ...baseRow,
+        report_v2: validReport,
+      });
+      expect(pageView?.reportV2?.overall.fitScore).toBe(75);
+      expect(pageView?.fit.classification).toBe('strong_match');
+    });
+
+    it('falls back to the legacy F5 columns when report_v2 is invalid', () => {
+      const view = analysisFromRow({
+        ...baseRow,
+        fit_dimensions: {
+          academicCompetitiveness: { status: 'assessed', score: 4, summary: 's', strengths: [], gaps: [], evidence: [] },
+          personaAlignment: { status: 'assessed', score: 4, summary: 's', strengths: [], gaps: [], evidence: [] },
+          financialFeasibility: { status: 'assessed', score: 4, summary: 's', strengths: [], gaps: [], evidence: [] },
+          careerDirection: { status: 'assessed', score: 4, summary: 's', strengths: [], gaps: [], evidence: [] },
+          applicationReadiness: { status: 'assessed', score: 4, summary: 's', strengths: [], gaps: [], evidence: [] },
+        },
+        fit_eligibility: { requiredSubjects: 'met', minimumQualification: 'met', languageRequirement: 'met', citizenshipRequirement: 'met', deadline: 'met' },
+        fit_classification: 'strong_match',
+        fit_confidence: 90,
+        report_v2: { invalid: true },
+      });
+      expect(view?.reportV2).toBeUndefined();
+      expect(view?.fit.classification).toBe('strong_match');
     });
   });
 });

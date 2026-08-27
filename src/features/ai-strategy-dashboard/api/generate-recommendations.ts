@@ -92,11 +92,13 @@ export function seedToRow(seed: RecommendationSeed, recommendationType: string) 
 export async function generateRecommendations(
   supabase: SupabaseClient,
   applicationId: string,
+  userId: string,
 ): Promise<GenerateRecommendationsResult> {
   const { data: latestMatch } = await supabase
     .from('application_match_analyses')
     .select('id, improvement_actions')
     .eq('application_id', applicationId)
+    .eq('user_id', userId)
     .eq('analysis_status', 'complete')
     .order('created_at', { ascending: false })
     .limit(1)

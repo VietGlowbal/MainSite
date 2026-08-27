@@ -15,8 +15,8 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
-function analysisFromRow(row: Record<string, unknown> | null): MatchingAnalysisView | null {
-  if (!row?.fit_dimensions || !row.fit_eligibility || !row.fit_classification) return null;
+function legacyAnalysisFromRow(row: Record<string, unknown>): MatchingAnalysisView | null {
+  if (!row.fit_dimensions || !row.fit_eligibility || !row.fit_classification) return null;
   const parsed = programmeFitSchema.safeParse({
     classification: row.fit_classification,
     confidence: row.fit_confidence ?? 0,
@@ -35,6 +35,48 @@ function analysisFromRow(row: Record<string, unknown> | null): MatchingAnalysisV
   };
 }
 
+function reportFromRow(row: Record<string, unknown>): MatchingReportV2 | null {
+  const parsed = matchingReportV2Schema.safeParse(row.report_v2);
+  return parsed.success ? parsed.data : null;
+}
+
+export function analysisFromRow(row: Record<string, unknown> | null): MatchingAnalysisView | null {
+  if (!row) return null;
+  const reportV2 = reportFromRow(row);
+  if (reportV2) {
+    const fit = programmeFitSchema.safeParse(reportV2.programmeFit);
+    if (fit.success) {
+      return {
+        fit: enforceFitClassification(fit.data),
+        createdAt: String(row.created_at),
+        promptVersion: reportV2.metadata.promptVersion,
+        inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+        strengths: reportV2.strengths.map((item) => item.title),
+        weaknesses: reportV2.gaps.map((item) => item.title),
+        reportV2,
+      };
+    }
+  }
+  return legacyAnalysisFromRow(row);
+}
+
+function latestAnalysisFromRows(rows: Array<Record<string, unknown>>): MatchingAnalysisView | null {
+  // Prefer the newest valid V2 artifact so a later legacy-only row cannot hide it.
+  for (const row of rows) {
+    if (reportFromRow(row)) return analysisFromRow(row);
+  }
+  for (const row of rows) {
+    const analysis = analysisFromRow(row);
+    if (analysis) return analysis;
+  }
+  return null;
+}
+
+const MATCHING_ANALYSIS_SELECT =
+  'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at,report_v2';
+const LEGACY_ANALYSIS_SELECT =
+  'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at';
+
 export async function listMatchingApplications(
   supabase: SupabaseClient,
   userId: string,
@@ -52,26 +94,42 @@ export async function listMatchingApplications(
   const ids = (applications ?? []).map((application) => application.id);
   if (ids.length === 0) return { applications: [], migrationMissing: false };
 
-  const { data: analyses, error: analysisError } = await supabase
+  const matchingResult = await supabase
     .from('application_match_analyses')
-    .select(
-      'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at',
-    )
+    .select(MATCHING_ANALYSIS_SELECT)
     .in('application_id', ids)
+    .eq('user_id', userId)
     .eq('analysis_status', 'complete')
-    .eq('prompt_version', MATCH_PROMPT_VERSION_V2)
     .order('created_at', { ascending: false });
-  const missing =
-    analysisError?.code === '42703' ||
-    analysisError?.code === 'PGRST204' ||
-    /fit_dimensions|fit_confidence|input_hash/i.test(analysisError?.message ?? '');
-  const latestByApplication = new Map<string, MatchingAnalysisView>();
-  for (const row of (analyses ?? []) as Array<Record<string, unknown>>) {
-    const applicationId = String(row.application_id);
-    if (latestByApplication.has(applicationId)) continue;
-    const analysis = analysisFromRow(row);
-    if (analysis) latestByApplication.set(applicationId, analysis);
+  let analyses = (matchingResult.data ?? []) as Array<Record<string, unknown>>;
+  let analysisError = matchingResult.error;
+  if (analysisError && isMigrationMissing(analysisError)) {
+    const legacyResult = await supabase
+      .from('application_match_analyses')
+      .select(LEGACY_ANALYSIS_SELECT)
+      .in('application_id', ids)
+      .eq('user_id', userId)
+      .eq('analysis_status', 'complete')
+      .eq('prompt_version', MATCH_PROMPT_VERSION_V2)
+      .order('created_at', { ascending: false });
+    analyses = (legacyResult.data ?? []) as Array<Record<string, unknown>>;
+    analysisError = legacyResult.error;
   }
+  const missing =
+    isMigrationMissing(analysisError) || /fit_dimensions|fit_confidence|input_hash|report_v2/i.test(analysisError?.message ?? '');
+  const rowsByApplication = new Map<string, Array<Record<string, unknown>>>();
+  for (const row of analyses) {
+    const applicationId = String(row.application_id);
+    const rows = rowsByApplication.get(applicationId) ?? [];
+    rows.push(row);
+    rowsByApplication.set(applicationId, rows);
+  }
+  const latestByApplication = new Map(
+    [...rowsByApplication.entries()].flatMap(([id, rows]) => {
+      const analysis = latestAnalysisFromRows(rows);
+      return analysis ? [[id, analysis] as const] : [];
+    }),
+  );
 
   return {
     applications: (applications ?? []).map((application) => ({
@@ -101,18 +159,28 @@ export async function getMatchingReportPageData(
   if (error || !application) return { data: null, migrationMissing: false };
 
   const universityId = application.university_id ?? application.courses?.university_id ?? null;
-  const [analysisResult, universityResult, scholarshipLinksResult] = await Promise.all([
-    supabase
+  const matchingResult = await supabase
+    .from('application_match_analyses')
+    .select(MATCHING_ANALYSIS_SELECT)
+    .eq('application_id', applicationId)
+    .eq('user_id', userId)
+    .eq('analysis_status', 'complete')
+    .order('created_at', { ascending: false });
+  let analysisRows = (matchingResult.data ?? []) as Array<Record<string, unknown>>;
+  let analysisError = matchingResult.error;
+  if (analysisError && isMigrationMissing(analysisError)) {
+    const legacyResult = await supabase
       .from('application_match_analyses')
-      .select(
-        'fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at',
-      )
+      .select(LEGACY_ANALYSIS_SELECT)
       .eq('application_id', applicationId)
+      .eq('user_id', userId)
       .eq('analysis_status', 'complete')
       .eq('prompt_version', MATCH_PROMPT_VERSION_V2)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order('created_at', { ascending: false });
+    analysisRows = (legacyResult.data ?? []) as Array<Record<string, unknown>>;
+    analysisError = legacyResult.error;
+  }
+  const [universityResult, scholarshipLinksResult] = await Promise.all([
     universityId == null
       ? Promise.resolve({ data: null, error: null })
       : supabase.from('universities').select('*').eq('id', universityId).maybeSingle(),
@@ -128,9 +196,8 @@ export async function getMatchingReportPageData(
           .limit(8),
   ]);
   const migrationMissing =
-    analysisResult.error?.code === '42703' ||
-    analysisResult.error?.code === 'PGRST204' ||
-    /fit_dimensions|fit_confidence|input_hash/i.test(analysisResult.error?.message ?? '');
+    isMigrationMissing(analysisError) ||
+    /fit_dimensions|fit_confidence|input_hash|report_v2/i.test(analysisError?.message ?? '');
   const university = universityResult.data as Record<string, unknown> | null;
   const course = (application.courses ?? {}) as Record<string, unknown>;
   const scholarshipLinks = (scholarshipLinksResult.data ?? []) as Array<{
@@ -169,8 +236,8 @@ export async function getMatchingReportPageData(
       country: application.country ?? courseText('country') ?? universityText('country'),
       degreeLevel: application.degree_level ?? courseText('degree_level'),
       deadline: application.deadline ?? universityText('application_deadline'),
-      analysis: analysisFromRow(
-        (analysisResult.data ?? null) as Record<string, unknown> | null,
+      analysis: latestAnalysisFromRows(
+        analysisRows,
       ),
       universityId,
       courseUrl: application.course_url ?? courseText('course_url'),
@@ -350,6 +417,7 @@ export async function getMatchingAnalysisByInputHash(
     .eq('application_id', scope.applicationId)
     .eq('user_id', scope.userId)
     .eq('input_hash', inputHash)
+    .eq('analysis_status', 'complete')
     .maybeSingle();
 
   if (error) {
@@ -447,6 +515,16 @@ export async function saveApplicationMatchingAnalysis(
     .single();
 
   if (error) {
+    if (error.code === '23505') {
+      const existing = await getMatchingAnalysisByInputHash(
+        supabase,
+        { userId: args.userId, applicationId: args.applicationId },
+        args.inputHash,
+      );
+      if (existing.record?.analysisStatus === 'complete' && existing.record.reportV2) {
+        return existing;
+      }
+    }
     if (isMigrationMissing(error)) {
       // dual-write fallback
       const { data: legacyData, error: legacyError } = await supabase
@@ -455,8 +533,18 @@ export async function saveApplicationMatchingAnalysis(
         .select('*')
         .single();
       
+      if (legacyError?.code === '23505') {
+        const existing = await getMatchingAnalysisByInputHash(
+          supabase,
+          { userId: args.userId, applicationId: args.applicationId },
+          args.inputHash,
+        );
+        if (existing.record?.analysisStatus === 'complete' && existing.record.reportV2) {
+          return existing;
+        }
+      }
       if (legacyError) {
-        return { record: null, migrationMissing: true };
+        return { record: null, migrationMissing: isMigrationMissing(legacyError) };
       }
       return { record: toMatchingAnalysisRecord(legacyData), migrationMissing: true };
     }

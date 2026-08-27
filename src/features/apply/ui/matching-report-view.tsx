@@ -27,8 +27,8 @@ import {
   type BadgeVariant,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { RequirementStatusTrack, GapImpactRanking } from './matching-report';
-import type { EligibilityRow, GapEntry } from '../domain';
+import { RequirementStatusTrack } from './matching-report';
+import type { EligibilityRow } from '../domain';
 
 /**
  * The Matching Report — six sections, per docs/strategy-reports-spec.md.
@@ -153,7 +153,16 @@ export function MatchingReportView({
   
   if (analysis.reportV2) {
     const v2 = getV2Sections(analysis.reportV2);
-    
+    const criterionLabels = new Map(
+      analysis.reportV2.criteria.map((criterion) => [criterion.id, criterion.label]),
+    );
+    const criterionLabel = (id: string, fallback: string) => criterionLabels.get(id) ?? fallback;
+    const fitLabel = {
+      strong_current_alignment: 'Strong current alignment',
+      moderate_current_alignment: 'Moderate current alignment',
+      limited_current_alignment: 'Limited current alignment',
+    }[v2.snapshot.fitLabel];
+
     return (
       <div className="flex flex-col gap-gb-4xl" data-no-auto-translate>
         <ReportHeader
@@ -174,55 +183,133 @@ export function MatchingReportView({
         <div className="grid gap-gb-3xl lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
           <div className="flex min-w-0 flex-col gap-gb-4xl">
             <section className="flex flex-col gap-gb-xl">
-              <h2 className="text-gb-display-xs font-semibold text-fg">Critical Requirements</h2>
-              <RequirementStatusTrack
-                criteria={v2.criticalRequirements.map((r): EligibilityRow => ({
-                  key: r.criterionId,
-                  label: r.criterionId,
-                  status: r.status === 'meets' ? 'met' : r.status === 'does_not_meet' ? 'not_met' : 'unknown',
-                  statusLabel:
-                    r.status === 'meets' ? 'Met' : r.status === 'does_not_meet' ? 'Not met' : 'We could not check this',
-                  blocking: r.status === 'does_not_meet',
-                }))}
-              />
-            </section>
-            
-            <section className="flex flex-col gap-gb-xl">
-              <h2 className="text-gb-display-xs font-semibold text-fg">Strongest Alignment Areas</h2>
-              {v2.strengths.map(s => <div key={s.id}>{s.title}</div>)}
-            </section>
-            
-            <section className="flex flex-col gap-gb-xl">
-              <h2 className="text-gb-display-xs font-semibold text-fg">Important Gaps</h2>
-              <GapImpactRanking
-                gaps={v2.gaps.map((g): GapEntry => ({
-                  tier: g.severity === 'critical' || g.severity === 'high' ? 'critical' : 'competitive',
-                  dimension: g.type,
-                  text: g.description,
-                }))}
-              />
+              <h2 className="text-gb-display-xs font-semibold text-fg">{t('Current Alignment Snapshot')}</h2>
+              <Panel className="flex flex-col gap-gb-md">
+                <div className="flex flex-wrap gap-gb-lg">
+                  <div>
+                    <p className="text-gb-xs text-fg-muted">{t('Alignment score')}</p>
+                    <p className="font-display text-gb-display-xs font-semibold text-fg-brand">{v2.snapshot.fitScore}%</p>
+                  </div>
+                  <div>
+                    <p className="text-gb-xs text-fg-muted">{t('Evidence coverage')}</p>
+                    <p className="font-display text-gb-display-xs font-semibold text-fg">{v2.snapshot.evidenceCoverage}%</p>
+                  </div>
+                  <div>
+                    <p className="text-gb-xs text-fg-muted">{t('Alignment level')}</p>
+                    <p className="text-gb-md font-semibold text-fg">{t(fitLabel)}</p>
+                  </div>
+                </div>
+                <p className="max-w-2xl text-gb-sm leading-relaxed text-fg-secondary">{v2.snapshot.summary}</p>
+                <p className="text-gb-xs text-fg-muted">{t(MATCH_SCORE_DISCLAIMER)}</p>
+              </Panel>
             </section>
 
             <section className="flex flex-col gap-gb-xl">
-              <h2 className="text-gb-display-xs font-semibold text-fg">Programme Criteria Breakdown</h2>
-              {v2.criteriaBreakdown.map(c => <div key={c.criterionId}>{c.criterionLabel}</div>)}
+              <h2 className="text-gb-display-xs font-semibold text-fg">{t('Critical Requirements')}</h2>
+              {v2.criticalRequirements.length > 0 ? (
+                <RequirementStatusTrack
+                  criteria={v2.criticalRequirements.map((r): EligibilityRow => ({
+                    key: r.criterionId,
+                    label: criterionLabel(r.criterionId, r.criterionId),
+                    status: r.status === 'meets' ? 'met' : r.status === 'does_not_meet' ? 'not_met' : 'unknown',
+                    statusLabel: r.status === 'meets' ? 'Met' : r.status === 'does_not_meet' ? 'Not met' : 'We could not check this',
+                    blocking: r.status === 'does_not_meet',
+                  }))}
+                />
+              ) : <Panel><p className="text-gb-sm text-fg-muted">{t('No hard requirements were recorded.')}</p></Panel>}
+              {v2.criticalRequirements.map((requirement) => (
+                <Panel key={`hard-${requirement.criterionId}`} className="flex flex-col gap-gb-xs">
+                  <h3 className="text-gb-md font-semibold text-fg">{criterionLabel(requirement.criterionId, requirement.criterionId)}</h3>
+                  <p className="text-gb-sm text-fg-secondary">{requirement.explanation}</p>
+                  <V2References evidenceIds={requirement.evidenceIds} sourceRefs={[]} t={t} />
+                </Panel>
+              ))}
             </section>
 
             <section className="flex flex-col gap-gb-xl">
-              <h2 className="text-gb-display-xs font-semibold text-fg">Positioning Opportunities</h2>
-              {v2.opportunities.map(o => <div key={o.id}>{o.title}</div>)}
+              <h2 className="text-gb-display-xs font-semibold text-fg">{t('Strongest Alignment Areas')}</h2>
+              {v2.strengths.length > 0 ? v2.strengths.map((strength) => (
+                <Panel key={strength.id} className="flex flex-col gap-gb-xs">
+                  <h3 className="text-gb-md font-semibold text-fg">{strength.title}</h3>
+                  <p className="text-gb-sm text-fg-secondary">{strength.description}</p>
+                  <V2References evidenceIds={strength.evidenceIds} sourceRefs={[]} t={t} />
+                </Panel>
+              )) : <Panel><p className="text-gb-sm text-fg-muted">{t('No evidence-backed strengths were recorded for this programme yet.')}</p></Panel>}
+            </section>
+            
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">{t('Important Gaps')}</h2>
+              {v2.gaps.length > 0 ? v2.gaps.map((gap) => (
+                <Panel key={gap.id} className="flex flex-col gap-gb-xs">
+                  <div className="flex flex-wrap items-center gap-gb-sm">
+                    <Badge variant={gap.severity === 'critical' || gap.severity === 'high' ? 'reach' : 'neutral-chip'}>{t(gap.severity)}</Badge>
+                    <h3 className="text-gb-md font-semibold text-fg">{gap.title}</h3>
+                  </div>
+                  <p className="text-gb-sm text-fg-secondary">{gap.description}</p>
+                  {gap.evidenceNeeded.length > 0 ? <p className="text-gb-xs text-fg-muted">{t('Evidence needed')}: {gap.evidenceNeeded.join(' · ')}</p> : null}
+                  <V2References evidenceIds={gap.currentEvidenceIds} sourceRefs={[]} t={t} />
+                </Panel>
+              )) : <Panel><p className="text-gb-sm text-fg-muted">{t('We did not find evidence-backed gaps for this programme.')}</p></Panel>}
+            </section>
+
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">{t('Programme Criteria Breakdown')}</h2>
+              {v2.criteriaBreakdown.map((signal) => (
+                <Panel key={signal.criterionId} className="flex flex-col gap-gb-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-gb-sm">
+                    <h3 className="text-gb-md font-semibold text-fg">{criterionLabel(signal.criterionId, signal.criterionLabel)}</h3>
+                    <Badge variant={signal.alignment === 'strong' ? 'safe-chip' : signal.alignment === 'missing' ? 'reach' : 'neutral-chip'}>{t(signal.alignment)}</Badge>
+                  </div>
+                  <p className="text-gb-sm text-fg-secondary">{signal.reasoning}</p>
+                  {signal.missingEvidence.length > 0 ? <p className="text-gb-xs text-fg-muted">{t('Evidence needed')}: {signal.missingEvidence.join(' · ')}</p> : null}
+                  <V2References evidenceIds={signal.applicantEvidenceIds} sourceRefs={signal.criterionSourceRefs} t={t} />
+                </Panel>
+              ))}
+            </section>
+
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">{t('Positioning Opportunities')}</h2>
+              {v2.opportunities.length > 0 ? v2.opportunities.map((opportunity) => (
+                <Panel key={opportunity.id} className="flex flex-col gap-gb-xs">
+                  <h3 className="text-gb-md font-semibold text-fg">{opportunity.title}</h3>
+                  <p className="text-gb-sm text-fg-secondary">{opportunity.recommendedPositioning}</p>
+                  <p className="text-gb-xs text-fg-muted">{opportunity.rationale}</p>
+                  <V2References evidenceIds={opportunity.evidenceIds} sourceRefs={[]} t={t} />
+                </Panel>
+              )) : <Panel><p className="text-gb-sm text-fg-muted">{t('No positioning opportunities were recorded.')}</p></Panel>}
             </section>
 
             {v2.scholarship && (
               <section className="flex flex-col gap-gb-xl">
-                <h2 className="text-gb-display-xs font-semibold text-fg">Scholarship Alignment</h2>
-                {v2.scholarship.criteria.map(c => <div key={c.criterionId}>{c.criterionLabel}</div>)}
+                <h2 className="text-gb-display-xs font-semibold text-fg">{t('Scholarship Alignment')}</h2>
+                {(v2.scholarship.hardRequirements ?? []).map((requirement) => (
+                  <Panel key={`scholarship-hard-${requirement.criterionId}`} className="flex flex-col gap-gb-xs">
+                    <h3 className="text-gb-md font-semibold text-fg">{criterionLabel(requirement.criterionId, requirement.criterionId)}</h3>
+                    <p className="text-gb-sm text-fg-secondary">{requirement.explanation}</p>
+                    <V2References evidenceIds={requirement.evidenceIds} sourceRefs={[]} t={t} />
+                  </Panel>
+                ))}
+                {v2.scholarship.criteria.map((signal) => (
+                  <Panel key={`scholarship-${signal.criterionId}`} className="flex flex-col gap-gb-xs">
+                    <h3 className="text-gb-md font-semibold text-fg">{criterionLabel(signal.criterionId, signal.criterionLabel)}</h3>
+                    <p className="text-gb-sm text-fg-secondary">{signal.reasoning}</p>
+                    <V2References evidenceIds={signal.applicantEvidenceIds} sourceRefs={signal.criterionSourceRefs} t={t} />
+                  </Panel>
+                ))}
               </section>
             )}
 
             <section className="flex flex-col gap-gb-xl">
-              <h2 className="text-gb-display-xs font-semibold text-fg">Evidence That Would Improve This Assessment</h2>
-              {v2.evidenceNeeded.map(g => <div key={g.id}>{g.title}</div>)}
+              <h2 className="text-gb-display-xs font-semibold text-fg">{t('Evidence that improves assessment')}</h2>
+              {v2.evidenceNeeded.length > 0 ? v2.evidenceNeeded.map((gap) => (
+                <Panel key={`evidence-${gap.id}`} className="flex flex-col gap-gb-xs">
+                  <h3 className="text-gb-md font-semibold text-fg">{gap.title}</h3>
+                  <p className="text-gb-sm text-fg-secondary">{gap.description}</p>
+                  <ul className="list-disc space-y-gb-xs pl-gb-xl text-gb-xs text-fg-tertiary">
+                    {(gap.evidenceNeeded.length > 0 ? gap.evidenceNeeded : [t('Add a verified source for this criterion.')]).map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </Panel>
+              )) : <Panel><p className="text-gb-sm text-fg-muted">{t('No additional evidence was requested.')}</p></Panel>}
             </section>
 
           </div>
@@ -276,6 +363,24 @@ export function MatchingReportView({
 
         <SourcesAside data={data} analysis={analysis} t={t} />
       </div>
+    </div>
+  );
+}
+
+function V2References({
+  evidenceIds,
+  sourceRefs,
+  t,
+}: {
+  evidenceIds: string[];
+  sourceRefs: string[];
+  t: Translate;
+}) {
+  if (evidenceIds.length === 0 && sourceRefs.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-gb-xxs text-gb-xs text-fg-muted">
+      {evidenceIds.length > 0 ? <p>{t('Evidence references')}: {evidenceIds.join(', ')}</p> : null}
+      {sourceRefs.length > 0 ? <p>{t('Programme source references')}: {sourceRefs.join(', ')}</p> : null}
     </div>
   );
 }

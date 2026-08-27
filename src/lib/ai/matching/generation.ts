@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   getLatestApplicationMatchingAnalysis,
+  getMatchingAnalysisByInputHash,
   saveApplicationMatchingAnalysis,
   getApplicationProfileAnalysisVersion,
   stableHash,
@@ -12,33 +13,44 @@ import { MATCHING_ENGINE_VERSION, MATCHING_PROMPT_BUNDLE_VERSION } from './domai
 import { composeMatchingReport } from './report';
 import { REPORT_PROMPT_VERSIONS } from '../runtime/prompt-registry';
 import { TARGET_PROFILE_SCHEMA_VERSION } from '../target-profile/domain';
-import { F5_ENGINE_VERSION, type ProgrammeFitInput } from '@/shared/evaluation/f5-programme-fit';
+import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
 import { buildApplicantStateFromSnapshot } from '../applicant-state/context-builder';
-import { isOpenAIConfigured, defaultOpenAIModel } from '../openai-client';
+import { defaultOpenAIModel } from '../openai-client';
 import { matchLabel, maxMatchLabel } from '@/lib/match-insights';
 import type { EvidenceBank } from '@/shared/evidence/domain';
+import { EVIDENCE_BANK_VERSION } from '@/shared/evidence/domain';
+
+function isEvidenceBank(value: unknown): value is EvidenceBank {
+  if (!value || typeof value !== 'object') return false;
+  const bank = value as Partial<EvidenceBank>;
+  return (
+    bank.version === EVIDENCE_BANK_VERSION &&
+    Array.isArray(bank.claims) &&
+    Array.isArray(bank.interpretations) &&
+    Array.isArray(bank.missingInformation) &&
+    Boolean(bank.sources && typeof bank.sources === 'object')
+  );
+}
 
 export async function generateApplicationMatchingReport(args: {
   supabase: SupabaseClient;
   userId: string;
   applicationId: string;
   force?: boolean;
+  cooldownUntil?: string;
 }): Promise<
   | { status: 'cached'; record: MatchingAnalysisRecord }
   | { status: 'regenerated'; record: MatchingAnalysisRecord; reusedCriterionIds: string[] }
   | { status: 'not_ready'; reason: string }
   | { status: 'migration_missing' }
   | { status: 'not_configured' }
+  | { status: 'cooldown'; record: MatchingAnalysisRecord; nextRegenerationAt: string }
 > {
-  const { supabase, userId, applicationId, force = false } = args;
-
-  if (!isOpenAIConfigured()) {
-    return { status: 'not_configured' };
-  }
+  const { supabase, userId, applicationId, force = false, cooldownUntil } = args;
 
   const { data: application, error: appError } = await supabase
-    .from('applications')
-    .select('id, user_id, programme_id')
+    .from('course_applications')
+    .select('id, user_id, course_id')
     .eq('id', applicationId)
     .eq('user_id', userId)
     .single();
@@ -55,6 +67,9 @@ export async function generateApplicationMatchingReport(args: {
     force: false,
   });
 
+  if (personalRes.status === 'migration_missing') return { status: 'migration_missing' };
+  if (personalRes.status === 'not_configured') return { status: 'not_configured' };
+  if (personalRes.status === 'error') throw new Error(personalRes.message);
   if (!('record' in personalRes) || !personalRes.record?.reportV2) {
     return { status: 'not_ready', reason: 'Personal report not ready' };
   }
@@ -71,16 +86,26 @@ export async function generateApplicationMatchingReport(args: {
     sourceAnalysisVersionId
   );
 
+  if (analysisRes.migrationMissing) return { status: 'migration_missing' };
   if (!analysisRes.analysis) {
     return { status: 'not_ready', reason: 'Source profile analysis version not found' };
   }
 
   const analysis = analysisRes.analysis;
+  if (analysis.confirmedSnapshotId !== confirmedSnapshotId) {
+    return { status: 'not_ready', reason: 'Source profile analysis snapshot does not match the report' };
+  }
+  if (analysis.moduleVersions.evidence !== EVIDENCE_BANK_VERSION || !isEvidenceBank(analysis.evidenceBank)) {
+    return { status: 'not_ready', reason: 'Evidence Bank is missing or uses an unsupported version' };
+  }
+  if (typeof application.course_id !== 'string' || application.course_id.length === 0) {
+    return { status: 'not_ready', reason: 'Application is not linked to a course' };
+  }
 
   const targetRes = await resolveTargetProfile({
     supabase,
     userId,
-    programmeId: application.programme_id,
+    programmeId: application.course_id,
   });
   if ((targetRes.status !== 'ready' && targetRes.status !== 'cached' && targetRes.status !== 'stale') || !targetRes.profile) {
     return { status: 'not_ready', reason: 'Target profile not ready' };
@@ -96,7 +121,7 @@ export async function generateApplicationMatchingReport(args: {
     personalReportInputHash: personalRecord.inputHash,
     targetProfileVersionId,
     targetProfileSchemaVersion: TARGET_PROFILE_SCHEMA_VERSION,
-    evidenceBankVersion: analysis.moduleVersions['evidence'],
+    evidenceBankVersion: EVIDENCE_BANK_VERSION,
     matchingEngineVersion: MATCHING_ENGINE_VERSION,
     f5EngineVersion: F5_ENGINE_VERSION,
     promptBundleVersion: MATCHING_PROMPT_BUNDLE_VERSION,
@@ -105,15 +130,29 @@ export async function generateApplicationMatchingReport(args: {
   });
 
   if (!force) {
-    const cached = await getLatestApplicationMatchingAnalysis(supabase, { userId, applicationId });
+    const cached = await getMatchingAnalysisByInputHash(
+      supabase,
+      { userId, applicationId },
+      inputHash,
+    );
     if (cached.record && cached.record.inputHash === inputHash && cached.record.reportV2) {
       return { status: 'cached', record: cached.record };
     }
   }
 
+  if (!force && cooldownUntil && new Date(cooldownUntil).getTime() > Date.now()) {
+    const { record: current } = await getLatestApplicationMatchingAnalysis(
+      supabase,
+      { userId, applicationId },
+      { analysisStatus: 'complete' },
+    );
+    if (current) return { status: 'cooldown', record: current, nextRegenerationAt: cooldownUntil };
+  }
+
   const { record: latestRecord } = await getLatestApplicationMatchingAnalysis(
     supabase,
-    { userId, applicationId }
+    { userId, applicationId },
+    { analysisStatus: 'complete' },
   );
 
   const state = await buildApplicantStateFromSnapshot({
@@ -123,22 +162,10 @@ export async function generateApplicationMatchingReport(args: {
     snapshotId: confirmedSnapshotId,
   });
 
-  const programmeFitInput: ProgrammeFitInput = {
-    eligibility: { requiredSubjects: 'unknown', minimumQualification: 'unknown', languageRequirement: 'unknown', citizenshipRequirement: 'unknown', deadline: 'unknown' },
-    academicBand: 'unknown',
-    dimensions: {
-      academicCompetitiveness: { status: 'not_available', score: null, summary: '', strengths: [], gaps: [], evidenceRefs: [], limitation: '' },
-      personaAlignment: { status: 'not_available', score: null, summary: '', strengths: [], gaps: [], evidenceRefs: [], limitation: '' },
-      financialFeasibility: { status: 'not_available', score: null, summary: '', strengths: [], gaps: [], evidenceRefs: [], limitation: '' },
-      careerDirection: { status: 'not_available', score: null, summary: '', strengths: [], gaps: [], evidenceRefs: [], limitation: '' },
-      applicationReadiness: { status: 'not_available', score: null, summary: '', strengths: [], gaps: [], evidenceRefs: [], limitation: '' },
-    }
-  };
-
   const reportV2 = await composeMatchingReport({
     targetProfile,
     academicProfile: state.academicProfile ?? { records: [] },
-    evidenceBank: analysis.evidenceBank as unknown as EvidenceBank,
+    evidenceBank: analysis.evidenceBank,
     personalContext: {
       coreIdentity: [personalRecord.reportV2.coreIdentity.interpretation].filter((x): x is string => Boolean(x)),
       motivations: [personalRecord.reportV2.drivingForce.explanation].filter((x): x is string => Boolean(x)),
@@ -151,8 +178,7 @@ export async function generateApplicationMatchingReport(args: {
       sourceAnalysisVersionId,
       confirmedSnapshotId,
       evidenceBankVersion: analysis.moduleVersions['evidence']
-    },
-    programmeFitInput
+    }
   });
 
   const saved = await saveApplicationMatchingAnalysis(supabase, {
@@ -189,7 +215,7 @@ export async function generateApplicationMatchingReport(args: {
   });
 
   if (saved.migrationMissing) return { status: 'migration_missing' };
-  if (!saved.record) return { status: 'not_ready', reason: 'Failed to save analysis' };
+  if (!saved.record) throw new Error('Failed to save matching analysis');
 
   return {
     status: 'regenerated',

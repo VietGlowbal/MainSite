@@ -39,31 +39,27 @@ export async function POST(
     return NextResponse.json({ error: 'Application not found' }, { status: 404 });
   }
 
-  const { record: latestV2 } = await getLatestApplicationMatchingAnalysis(supabase, { userId, applicationId });
+  const { record: latestV2 } = await getLatestApplicationMatchingAnalysis(
+    supabase,
+    { userId, applicationId },
+    { analysisStatus: 'complete' },
+  );
 
   const { data: profile } = await supabase.from('student_profiles').select('plus_status, plus_expires_at').eq('user_id', userId).maybeSingle();
   const isPlus = isPlusEntitlementActive(profile ?? {});
 
-  if (latestV2 && !isPlus) {
-    const nextAt = new Date(new Date(latestV2.createdAt).getTime() + COOLDOWN_MS);
-    if (nextAt.getTime() > Date.now()) {
-      return NextResponse.json(
-        {
-          error: "Your information has changed, but a free report regeneration isn't available yet.",
-          stale: true,
-          analysis: latestV2,
-          nextRegenerationAt: nextAt.toISOString(),
-        },
-        { status: 429 },
-      );
-    }
-  }
+  const latestCreatedAt = latestV2 ? Date.parse(latestV2.createdAt) : Number.NaN;
+  const nextRegenerationAt =
+    latestV2 && !isPlus && Number.isFinite(latestCreatedAt)
+      ? new Date(latestCreatedAt + COOLDOWN_MS).toISOString()
+      : undefined;
 
   try {
     const result = await generateApplicationMatchingReport({
       supabase,
       userId,
       applicationId,
+      cooldownUntil: nextRegenerationAt,
     });
 
     if (result.status === 'not_configured') {
@@ -81,6 +77,18 @@ export async function POST(
       return NextResponse.json(
         { error: 'Matching Report needs a database update before it can be used.' },
         { status: 503 }
+      );
+    }
+
+    if (result.status === 'cooldown') {
+      return NextResponse.json(
+        {
+          error: "Your information has changed, but a free report regeneration isn't available yet.",
+          stale: true,
+          analysis: result.record,
+          nextRegenerationAt: result.nextRegenerationAt,
+        },
+        { status: 429 },
       );
     }
 

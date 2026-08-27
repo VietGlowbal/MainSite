@@ -206,11 +206,14 @@ export function evaluateHardRequirements(args: {
   criteria: MatchingCriterion[];
   academicProfile: AcademicProfile | null;
   evidenceBank: EvidenceBank;
+  includeScholarship?: boolean;
 }): HardRequirementMatch[] {
-  const { criteria, academicProfile, evidenceBank } = args;
+  const { criteria, academicProfile, evidenceBank, includeScholarship = false } = args;
   const records = academicProfile?.records ?? [];
   const hardCriteria = criteria.filter(
-    (criterion) => criterion.requirementType === 'hard' && criterion.category !== 'scholarship',
+    (criterion) =>
+      criterion.requirementType === 'hard' &&
+      (includeScholarship || criterion.category !== 'scholarship'),
   );
 
   return hardCriteria.map((criterion) => {
@@ -245,7 +248,9 @@ export function calculateEvidenceCoverage(
   criteria: MatchingCriterion[],
   signals: FitSignal[],
 ): number {
-  const applicableCriteria = criteria.filter((c) => c.category !== 'scholarship');
+  const applicableCriteria = criteria.filter(
+    (c) => c.category !== 'scholarship' && c.requirementType !== 'hard',
+  );
   if (applicableCriteria.length === 0) return 0;
 
   let totalWeight = 0;

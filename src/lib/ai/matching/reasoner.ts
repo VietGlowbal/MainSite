@@ -14,6 +14,7 @@ import {
   type MatchingStrength,
   type MatchingSummaryResult,
   type PositioningOpportunity,
+  MATCHING_ENGINE_VERSION,
 } from './domain';
 import type { ProgrammeFit } from '@/features/apply/domain';
 import { stableHash } from '@/features/apply/api';
@@ -102,18 +103,48 @@ export async function reasonAboutCriteria(args: {
       });
 
       const batchResults = result.data.results;
+      const expectedIds = new Set(batch.map((criterion) => criterion.id));
+      const seenIds = new Set<string>();
+      if (batchResults.length !== batch.length) {
+        throw new Error(
+          `Criterion batch returned ${batchResults.length} results for ${batch.length} criteria.`,
+        );
+      }
 
       for (const res of batchResults) {
-        const criterion = batch.find(c => c.id === res.criterionId);
-        if (!criterion) continue;
+        if (!expectedIds.has(res.criterionId)) {
+          throw new Error(`Unknown criterion ID in batch: ${res.criterionId}`);
+        }
+        if (seenIds.has(res.criterionId)) {
+          throw new Error(`Duplicate criterion ID in batch: ${res.criterionId}`);
+        }
+        seenIds.add(res.criterionId);
+        const criterion = batch.find((c) => c.id === res.criterionId);
+        if (!criterion) throw new Error(`Missing criterion in batch: ${res.criterionId}`);
 
         const evidence = args.evidenceByCriterion[criterion.id] || [];
         const validatedRes = validateEvidenceReferences(res, evidence);
 
         const inputHash = stableHash({
           criterion,
-          evidence,
-          personalContext: args.personalContext,
+          retrievedEvidence: evidence.map((item) => ({
+            id: item.id,
+            category: item.category,
+            statement: item.statement,
+            sourceRefs: item.sourceRefs,
+            interpretationRefs: item.interpretationRefs,
+            status: item.status,
+            competencies: item.competencies,
+            criteria: item.criteria,
+            direct: item.direct,
+          })),
+          personalContext: {
+            coreIdentity: args.personalContext.coreIdentity,
+            motivations: args.personalContext.motivations,
+            direction: args.personalContext.direction,
+          },
+          engineVersion: MATCHING_ENGINE_VERSION,
+          criterionPromptVersion: promptVersion,
         });
 
         allSignals.push({
@@ -132,6 +163,9 @@ export async function reasonAboutCriteria(args: {
           criterionSourceRefs: criterion.sourceRefs,
           inputHash,
         });
+      }
+      if (seenIds.size !== expectedIds.size) {
+        throw new Error('Criterion batch omitted one or more requested criteria.');
       }
     } catch (err) {
       console.error('Batch processing failed', err);
@@ -210,6 +244,7 @@ export async function generateMatchingSummary(args: {
   collectIds(args.gaps as unknown as Array<Record<string, unknown>>);
   collectIds(args.positioningOpportunities as unknown as Array<Record<string, unknown>>);
   if (args.scholarshipAlignment) {
+    collectIds((args.scholarshipAlignment.hardRequirements ?? []) as unknown as Array<Record<string, unknown>>);
     collectIds(args.scholarshipAlignment.criteria as unknown as Array<Record<string, unknown>>);
     collectIds(args.scholarshipAlignment.strengths as unknown as Array<Record<string, unknown>>);
     collectIds(args.scholarshipAlignment.gaps as unknown as Array<Record<string, unknown>>);
@@ -251,13 +286,34 @@ export async function generateMatchingSummary(args: {
   checkUnknown(summary.evidenceIds, validEvidenceIds, 'evidence');
   checkUnknown(summary.criterionIds, validCriterionIds, 'criterion');
 
-  // Check forbidden phrases
-  const summaryStr = JSON.stringify(summary).toLowerCase();
-  const forbidden = ["admission chance", "acceptance probability", "guaranteed admission"];
-  for (const phrase of forbidden) {
-    if (summaryStr.includes(phrase)) {
-      throw new Error(`Summary contains forbidden phrase: ${phrase}`);
-    }
+  const summaryStr = summary.summary.toLowerCase();
+  const forbidden = [
+    /admission\s+(?:chance|probability|likelihood|odds)/i,
+    /(?:chance|probability|likelihood|odds)\s+of\s+(?:being\s+)?admitted/i,
+    /probability\s+of\s+acceptance/i,
+    /guaranteed\s+admission/i,
+    /will\s+be\s+admitted/i,
+  ];
+  if (forbidden.some((pattern) => pattern.test(summaryStr))) {
+    throw new Error('Summary contains admissions-probability language.');
+  }
+
+  const failedHard = [
+    ...args.academicRequirements,
+    ...(args.scholarshipAlignment?.hardRequirements ?? []),
+  ].filter(
+    (requirement) => requirement.status === 'does_not_meet',
+  );
+  if (
+    failedHard.length > 0 &&
+    /\b(?:all|every|each)\s+(?:entry\s+)?requirements?\s+(?:are\s+)?(?:met|satisfied)|fully\s+eligible\b/i.test(
+      summaryStr,
+    )
+  ) {
+    throw new Error('Summary contradicts a failed hard requirement.');
+  }
+  if (/\b(?:cannot|can not|unable to|incapable of|lacks the ability)\b/i.test(summaryStr)) {
+    throw new Error('Summary turns missing evidence into an ability claim.');
   }
 
   return summary;

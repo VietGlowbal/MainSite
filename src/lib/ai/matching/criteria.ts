@@ -61,7 +61,10 @@ function requiredLanguage(requirement: TargetRequirement): boolean {
 
 function applicationRequired(requirement: TargetRequirement): boolean {
   if (requirement.status === 'required') return true;
-  return /\b(required|mandatory|must|portfolio|document|transcript|reference|recommendation|essay|statement)\b/i.test(
+  // A field name such as "portfolio" or "transcript" says what the item is,
+  // not that the programme requires it. Only explicit obligation language may
+  // turn an application criterion into a deterministic hard gate.
+  return /\b(required|mandatory|must\s+(?:submit|provide|include)|minimum|at\s+least|equivalent)\b/i.test(
     `${requirement.label} ${requirement.detail ?? ''}`,
   );
 }

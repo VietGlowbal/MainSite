@@ -69,7 +69,22 @@ describe('Matching Reasoner', () => {
         id: `crit-${i}`, label: `L-${i}`, description: 'd', category: 'competency', expectedSignals: [], sourceRefs: []
       })) as any;
       
-      const generateSpy = fakeGenerateWithSpy({ results: [] });
+      const generateSpy = vi.fn().mockImplementation(async (args: any) => ({
+        data: {
+          results: JSON.parse(args.userPrompt).criteria.map((criterion: { id: string }) => ({
+            criterionId: criterion.id,
+            alignment: 'missing',
+            evidenceIds: [],
+            directEvidenceIds: [],
+            supportingEvidenceIds: [],
+            reasoning: 'No supplied evidence was available for this criterion.',
+            missingEvidence: ['Provide relevant evidence.'],
+            evidenceQuality: 'none',
+            confidence: 0.2,
+          })),
+        },
+        meta: {},
+      }));
       await reasonAboutCriteria({
         criteria,
         evidenceByCriterion: {},
@@ -82,6 +97,24 @@ describe('Matching Reasoner', () => {
       const call2Prompt = JSON.parse(generateSpy.mock.calls[1][0].userPrompt);
       expect(call1Prompt.criteria.length).toBe(6);
       expect(call2Prompt.criteria.length).toBe(2);
+    });
+
+    test('2a. duplicate, omitted and unknown criterion outputs fail closed', async () => {
+      const criteria = [
+        { ...dummyCriteria[0], id: 'crit-1' },
+        { ...dummyCriteria[0], id: 'crit-2' },
+      ];
+      const duplicate = fakeGenerate({ results: [
+        { criterionId: 'crit-1', alignment: 'missing', evidenceIds: [], directEvidenceIds: [], supportingEvidenceIds: [], reasoning: 'r', missingEvidence: [], evidenceQuality: 'none', confidence: 0.2 },
+        { criterionId: 'crit-1', alignment: 'missing', evidenceIds: [], directEvidenceIds: [], supportingEvidenceIds: [], reasoning: 'r', missingEvidence: [], evidenceQuality: 'none', confidence: 0.2 },
+      ] });
+      await expect(reasonAboutCriteria({ criteria, evidenceByCriterion: {}, personalContext, generate: duplicate })).rejects.toThrow(BatchReasoningError);
+
+      const unknown = fakeGenerate({ results: [
+        { criterionId: 'unknown', alignment: 'missing', evidenceIds: [], directEvidenceIds: [], supportingEvidenceIds: [], reasoning: 'r', missingEvidence: [], evidenceQuality: 'none', confidence: 0.2 },
+        { criterionId: 'crit-2', alignment: 'missing', evidenceIds: [], directEvidenceIds: [], supportingEvidenceIds: [], reasoning: 'r', missingEvidence: [], evidenceQuality: 'none', confidence: 0.2 },
+      ] });
+      await expect(reasonAboutCriteria({ criteria, evidenceByCriterion: {}, personalContext, generate: unknown })).rejects.toThrow(BatchReasoningError);
     });
 
     test('3. Hallucinated evidence ID rejected via validateEvidenceReferences', async () => {
@@ -208,7 +241,7 @@ describe('Matching Reasoner', () => {
     };
 
     test('9. Summary receives structured results only', async () => {
-      const generateSpy = fakeGenerateWithSpy({ criterionIds: ['crit-1'], evidenceIds: ['ev-1'], academicSummary: 'a', alignmentSummary: 'b', strengthSummary: 'c', gapSummary: 'd', positioningSummary: 'e', scholarshipSummary: null });
+      const generateSpy = fakeGenerateWithSpy({ summary: 'This structured summary explains the applicant alignment using only the supplied criterion and evidence references for review.', criterionIds: ['crit-1'], evidenceIds: ['ev-1'] });
       
       await generateMatchingSummary({
         ...dummyArgs,
@@ -222,20 +255,20 @@ describe('Matching Reasoner', () => {
     });
 
     test('10. Summary called exactly once per report', async () => {
-      const generateSpy = fakeGenerateWithSpy({ criterionIds: ['crit-1'], evidenceIds: ['ev-1'], academicSummary: 'a', alignmentSummary: 'b', strengthSummary: 'c', gapSummary: 'd', positioningSummary: 'e', scholarshipSummary: null });
+      const generateSpy = fakeGenerateWithSpy({ summary: 'This structured summary explains the applicant alignment using only the supplied criterion and evidence references for review.', criterionIds: ['crit-1'], evidenceIds: ['ev-1'] });
       await generateMatchingSummary({ ...dummyArgs, generate: generateSpy });
       expect(generateSpy).toHaveBeenCalledTimes(1);
     });
 
     test('11. Summary output has valid criterionIds and evidenceIds', async () => {
-      const generateSpy = fakeGenerateWithSpy({ criterionIds: ['crit-1'], evidenceIds: ['ev-1'], academicSummary: 'a', alignmentSummary: 'b', strengthSummary: 'c', gapSummary: 'd', positioningSummary: 'e', scholarshipSummary: null });
+      const generateSpy = fakeGenerateWithSpy({ summary: 'This structured summary explains the applicant alignment using only the supplied criterion and evidence references for review.', criterionIds: ['crit-1'], evidenceIds: ['ev-1'] });
       const res = await generateMatchingSummary({ ...dummyArgs, generate: generateSpy });
       expect(res.criterionIds).toContain('crit-1');
       expect(res.evidenceIds).toContain('ev-1');
     });
 
     test('12. Summary with unknown ID rejected', async () => {
-      const generateSpy = fakeGenerate({ criterionIds: ['crit-unknown'], evidenceIds: ['ev-1'], academicSummary: 'a', alignmentSummary: 'b', strengthSummary: 'c', gapSummary: 'd', positioningSummary: 'e', scholarshipSummary: null });
+      const generateSpy = fakeGenerate({ summary: 'This structured summary explains the applicant alignment using only the supplied criterion and evidence references for review.', criterionIds: ['crit-unknown'], evidenceIds: ['ev-1'] });
       await expect(generateMatchingSummary({ ...dummyArgs, generate: generateSpy })).rejects.toThrow('Unknown criterion ID in summary: crit-unknown');
     });
 
@@ -245,8 +278,8 @@ describe('Matching Reasoner', () => {
     });
 
     test('14. Summary containing forbidden phrases rejected', async () => {
-      const generateSpy = fakeGenerate({ criterionIds: ['crit-1'], evidenceIds: ['ev-1'], academicSummary: 'a', alignmentSummary: 'Great admission chance', strengthSummary: 'c', gapSummary: 'd', positioningSummary: 'e', scholarshipSummary: null });
-      await expect(generateMatchingSummary({ ...dummyArgs, generate: generateSpy })).rejects.toThrow('Summary contains forbidden phrase: admission chance');
+      const generateSpy = fakeGenerate({ summary: 'This applicant has a great admission chance based on the current evidence, which should be rejected as predictive language.', criterionIds: ['crit-1'], evidenceIds: ['ev-1'] });
+      await expect(generateMatchingSummary({ ...dummyArgs, generate: generateSpy })).rejects.toThrow('admissions-probability language');
     });
   });
 });
