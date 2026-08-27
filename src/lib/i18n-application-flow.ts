@@ -254,6 +254,7 @@ export const APPLICATION_FLOW_TRANSLATIONS: Record<string, string> = {
 
   // Step 4 — Review & Confirm additions
   Experiences: 'Trải nghiệm',
+  'Experiences confirmed': 'Trải nghiệm đã xác nhận',
   'Activities added': 'Hoạt động đã thêm',
   'Reflection Cards': 'Thẻ Suy ngẫm',
   '{count} confirmed': '{count} đã xác nhận',
