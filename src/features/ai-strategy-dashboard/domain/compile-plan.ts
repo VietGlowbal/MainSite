@@ -79,6 +79,7 @@ function step(group: PlanGroup, decision: DecisionResult, order: number): PlanSt
     microSteps: [{
       id: `micro-step:${group}:${stableKey(decision.id)}:resolution-detail`,
       title: detail.microStepTitle,
+      guidance: detail.microStepGuidance,
       order: 1,
       readiness,
       contentSchema: inputSchema(group, decision) ?? null,
@@ -114,31 +115,35 @@ function phaseDetails(group: PlanGroup): { title: string; objective: string } {
   }
 }
 
-function stepDetails(group: PlanGroup, decision: DecisionResult): { title: string; objective: string; microStepTitle: string } {
+function stepDetails(group: PlanGroup, decision: DecisionResult): { title: string; objective: string; microStepTitle: string; microStepGuidance: string } {
   switch (group) {
     case 'resolve_blockers':
       return {
         title: `Resolve: ${decision.subject}`,
         objective: decision.summary,
         microStepTitle: 'Define a valid resolution for the confirmed blocker.',
+        microStepGuidance: 'Review the confirmed blocker and document a resolution that satisfies the cited requirement.',
       };
     case 'resolve_information':
       return {
         title: `Clarify: ${decision.subject}`,
         objective: decision.summary,
         microStepTitle: 'Define the information required before detailed planning.',
+        microStepGuidance: 'Find the missing information from an authoritative source, record it here, then use it to update your application plan.',
       };
     case 'confirm_choices':
       return {
         title: `Choose: ${decision.subject}`,
         objective: decision.summary,
         microStepTitle: 'Record the user choice; no option is selected automatically.',
+        microStepGuidance: 'Select the option that best represents your situation. The Planner will use only the choice you explicitly save.',
       };
     case 'available_direction':
       return {
         title: `Explore: ${decision.subject}`,
         objective: decision.summary,
         microStepTitle: 'Define detailed next actions through later planning enrichment.',
+        microStepGuidance: 'Use the related strategy and evidence to break this direction into your next concrete actions.',
       };
   }
 }

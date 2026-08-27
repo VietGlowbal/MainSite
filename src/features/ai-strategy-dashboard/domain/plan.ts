@@ -54,6 +54,8 @@ export type PlanStep = {
 export type PlanMicroStep = {
   id: string;
   title: string;
+  /** Student-facing direction generated with the task, never execution state. */
+  guidance?: string;
   order: number;
   readiness: PlanNodeReadiness;
   /**
@@ -64,3 +66,14 @@ export type PlanMicroStep = {
   sourceDecisionIds: string[];
   sourceProvenances: PlanNodeProvenance[];
 };
+
+/**
+ * Legacy plans predate persisted guidance. Keep their task surface useful
+ * immediately while a later reconciliation writes richer generated copy.
+ */
+export function plannerMicroStepGuidance(title: string, guidance?: string | null): string {
+  const supplied = guidance?.trim();
+  return supplied && supplied.length > 0
+    ? supplied
+    : `Complete this task: ${title} Review the related step, then mark it complete when you have finished.`;
+}

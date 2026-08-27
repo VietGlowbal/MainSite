@@ -6,6 +6,7 @@ const root = process.cwd();
 const legacyRepairPath = resolve(root, 'supabase-canonical-planner-multi-microstep-fix.sql');
 const hardeningPath = resolve(root, 'supabase-planner-production-hardening.sql');
 const terminalRepairPath = resolve(root, 'supabase-planner-production-hardening-multi-microstep-fix.sql');
+const guidanceMigrationPath = resolve(root, 'supabase-planner-micro-step-guidance.sql');
 const integrationWrapperPath = resolve(root, 'scripts/planner-integration-check.ps1');
 
 function readRequiredSql(path: string) {
@@ -28,15 +29,23 @@ describe('canonical Planner multi-microstep reconciliation migrations', () => {
     expectMicroLoopToPreserveStepId(readRequiredSql(legacyRepairPath));
   });
 
-  it('keeps the hardened reconciler and its forward-only terminal repair correct', () => {
+  it('keeps the hardened reconciler and its forward-only repairs correct', () => {
     const hardeningSql = readRequiredSql(hardeningPath);
     const terminalRepairSql = readRequiredSql(terminalRepairPath);
+    const guidanceMigrationSql = readRequiredSql(guidanceMigrationPath);
 
     expectMicroLoopToPreserveStepId(hardeningSql);
     expectMicroLoopToPreserveStepId(terminalRepairSql);
+    expectMicroLoopToPreserveStepId(guidanceMigrationSql);
     expect(terminalRepairSql).toMatch(/PERFORM 1 FROM public\.course_applications[\s\S]*?FOR UPDATE/i);
     expect(terminalRepairSql).toContain('public.planner_content_value_compatible');
     expect(terminalRepairSql).toContain('GRANT EXECUTE ON FUNCTION public.reconcile_canonical_application_plan(uuid, jsonb) TO service_role');
+    expect(guidanceMigrationSql).toContain('ADD COLUMN IF NOT EXISTS guidance TEXT');
+    expect(guidanceMigrationSql).toMatch(/INSERT INTO application_plan_micro_steps\(step_id, domain_node_id, title, guidance/i);
+    expect(guidanceMigrationSql).toMatch(/guidance = EXCLUDED\.guidance/i);
+    expect(guidanceMigrationSql).toMatch(/PERFORM 1 FROM public\.course_applications[\s\S]*?FOR UPDATE/i);
+    expect(guidanceMigrationSql).toContain('public.planner_content_value_compatible');
+    expect(guidanceMigrationSql).toContain('GRANT EXECUTE ON FUNCTION public.reconcile_canonical_application_plan(uuid, jsonb) TO service_role');
   });
 
   it('applies the corrected terminal reconciler after hardening in the PostgreSQL integration chain', () => {
@@ -46,5 +55,7 @@ describe('canonical Planner multi-microstep reconciliation migrations', () => {
     expect(wrapper.indexOf('supabase-planner-production-hardening.sql')).toBeGreaterThan(-1);
     expect(wrapper.indexOf('supabase-planner-production-hardening-multi-microstep-fix.sql'))
       .toBeGreaterThan(wrapper.indexOf('supabase-planner-production-hardening.sql'));
+    expect(wrapper.indexOf('supabase-planner-micro-step-guidance.sql'))
+      .toBeGreaterThan(wrapper.indexOf('supabase-planner-production-hardening-multi-microstep-fix.sql'));
   });
 });

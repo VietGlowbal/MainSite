@@ -1,5 +1,29 @@
 # Current project status
 
+Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
+planning-owned student guidance, shown immediately in the hierarchical List
+and in the task detail’s “What to do” panel. New and refreshed deterministic,
+roadmap, and optional enrichment tasks supply specific guidance; legacy rows
+without the new field safely show a deterministic fallback until they next
+reconcile. `supabase-planner-micro-step-guidance.sql` is a forward-only
+terminal migration after the hardened multi-microstep repair. It adds nullable
+`guidance` without changing execution state and installs the final hardened
+reconciler: application lock, content compatibility/reset, archiving,
+service-role grant, and `v_micro_id` handling remain intact. The code also
+retries only the PostgREST missing-`guidance` projection errors, so a deploy
+that reaches Vercel before the dashboard migration does not take the Planner
+down. Measured locally: focused Planner Vitest 57/57, base and strict
+TypeScript, lint, the CI-placeholder production build, and `git diff --check`
+passed. The i18n audit reports 0 missing static keys; the new Planner string
+is catalog-backed. PR #220's Planner Tests and real PostgreSQL Planner DB
+integration passed. Its initial static/aggregate CI failure came from nine
+`response is possibly undefined` test-only errors in
+`src/app/api/ai-strategy/personal-report/route.test.ts`; a scoped follow-up
+now makes each test fail explicitly if the handler does not return an HTTP
+response, while leaving route behavior unchanged. Measured: that route suite
+10/10, base and strict TypeScript, and `git diff --check` pass. PostgreSQL
+integration was not run locally because `psql` is unavailable.
+
 Working tree 2026-08-27: fixed advisor applications being invisible and
 unactionable at `/admin/achievers`. Submission was already succeeding — a
 read-only production check found 6 reviewable `achiever_profiles` rows, 2 of
@@ -31,6 +55,7 @@ filesystem-tracing warnings in `src/lib/geo-content.ts`. Signed-in browser
 verification remains unrun.
 
 Working tree 2026-08-26: kept the Personal Canvas artwork as the desktop background and changed its four upper/middle hover effects to SVG cutouts. Each highlight now follows its panel and excludes the shared Core Identity hub; rectangular hover shadows were removed. Hotspots 1/4/5 were then lifted to match their artwork, the hover/active highlight was strengthened, and hotspots 2/3 were shortened to stop at their own lower divider (with further 0.75% and 1% trims). The centre hotspot and all cutout ellipses now derive from the actual 1024×731 artwork circle coordinates, rather than estimated per-card percentages. Parts 4/5 now start at their actual divider and extend to their existing bottom edge. Selecting a section now opens the existing accessible centered modal rather than shrinking the canvas into a side panel and drawing a connector; the modal owns Escape, backdrop close, scroll lock, and focus return. Part 6 uses a stronger brand overlay and shadow on hover/selection. Last focused Personal Canvas measurement before the final 1% adjustment: Vitest 13/13 passing and `git diff --check` passing; no test rerun by owner request. ESLint still reports 26 pre-existing raw-colour errors in the same uncommitted canvas overhaul; browser visual verification remains unrun.
+
 Working tree 2026-08-27: fixed the terminal hardened canonical Planner
 reconciler so micro-step inserts collect their IDs in `v_micro_id` and never
 overwrite the parent `v_step_id`. Added

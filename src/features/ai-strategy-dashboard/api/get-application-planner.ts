@@ -72,12 +72,21 @@ async function loadHierarchyRows(supabase: SupabaseClient, plan: PersistedPlan):
   if (stepsResult.error) throw new PlannerReadError(`Could not load plan steps: ${stepsResult.error.message}`);
   const steps = (stepsResult.data ?? []).map((row) => stepFromRow(plan.id, row));
 
-  const microStepsResult = steps.length === 0
+  let microStepsResult = steps.length === 0
     ? { data: [], error: null }
     : await supabase
       .from('application_plan_micro_steps')
-      .select('id, step_id, domain_node_id, title, sort_order, readiness, content_schema, source_decision_ids, source_provenances, status, deadline, content_value, execution_evidence, archived_at')
+      .select('id, step_id, domain_node_id, title, guidance, sort_order, readiness, content_schema, source_decision_ids, source_provenances, status, deadline, content_value, execution_evidence, archived_at')
       .in('step_id', steps.map((step) => step.id));
+  // Production migration is applied through the Supabase dashboard. A deploy
+  // that arrives first must retain the legacy task surface instead of failing
+  // the whole Planner on PostgREST's missing-column response.
+  if (microStepsResult.error && isMissingGuidanceColumn(microStepsResult.error)) {
+    microStepsResult = await supabase
+      .from('application_plan_micro_steps')
+      .select('id, step_id, domain_node_id, title, sort_order, readiness, content_schema, source_decision_ids, source_provenances, status, deadline, content_value, execution_evidence, archived_at')
+      .in('step_id', steps.map((step) => step.id)) as typeof microStepsResult;
+  }
   if (microStepsResult.error) throw new PlannerReadError(`Could not load plan micro-steps: ${microStepsResult.error.message}`);
 
   return { plan, phases, steps, microSteps: (microStepsResult.data ?? []).map((row) => microStepFromRow(plan.id, row)) };
@@ -96,11 +105,14 @@ function stepFromRow(planId: string, row: Record<string, unknown>): PersistedPla
 }
 
 function microStepFromRow(planId: string, row: Record<string, unknown>): PersistedPlanMicroStep {
-  return { id: text(row.id), planId, stepId: text(row.step_id), domainNodeId: text(row.domain_node_id), title: text(row.title), order: number(row.sort_order), readiness: nodeReadiness(row.readiness), contentSchema: (row.content_schema ?? null) as PersistedPlanMicroStep['contentSchema'], sourceDecisionIds: texts(row.source_decision_ids), sourceProvenances: provenances(row.source_provenances), status: text(row.status), deadline: nullableText(row.deadline), contentValue: (row.content_value ?? null) as PersistedPlanMicroStep['contentValue'], executionEvidence: Array.isArray(row.execution_evidence) ? row.execution_evidence : [], archivedAt: nullableText(row.archived_at) };
+  return { id: text(row.id), planId, stepId: text(row.step_id), domainNodeId: text(row.domain_node_id), title: text(row.title), guidance: nullableText(row.guidance), order: number(row.sort_order), readiness: nodeReadiness(row.readiness), contentSchema: (row.content_schema ?? null) as PersistedPlanMicroStep['contentSchema'], sourceDecisionIds: texts(row.source_decision_ids), sourceProvenances: provenances(row.source_provenances), status: text(row.status), deadline: nullableText(row.deadline), contentValue: (row.content_value ?? null) as PersistedPlanMicroStep['contentValue'], executionEvidence: Array.isArray(row.execution_evidence) ? row.execution_evidence : [], archivedAt: nullableText(row.archived_at) };
 }
 
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
 function nullableText(value: unknown): string | null { return typeof value === 'string' ? value : null; }
+function isMissingGuidanceColumn(error: { code?: string; message: string }): boolean {
+  return (error.code === '42703' || error.code === 'PGRST204') && /guidance/i.test(error.message);
+}
 function number(value: unknown): number { return typeof value === 'number' ? value : 0; }
 function texts(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
 function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] {

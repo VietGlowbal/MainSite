@@ -59,6 +59,7 @@ export type PlannerMicroStep = {
   stepId: string;
   phaseId: string;
   title: string;
+  guidance?: string;
   order: number;
   readiness: PlanNodeReadiness;
   contentSchema: ContentBlock | null;

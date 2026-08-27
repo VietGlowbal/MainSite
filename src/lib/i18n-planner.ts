@@ -72,6 +72,8 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Needs your input': 'Cần bạn nhập thông tin',
   'Needs enrichment': 'Cần bổ sung dữ liệu',
 
+  'What to do': 'Việc cần làm',
+
   // Canonical planner calendar (Part 5 follow-up) + email preference controls
   'This plan has no micro-steps yet.': 'Kế hoạch này chưa có nhiệm vụ nhỏ nào.',
   'Everything has a date.': 'Mọi việc đã có ngày hoàn thành.',

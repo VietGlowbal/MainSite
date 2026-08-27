@@ -17,6 +17,7 @@ function plan(overrides: Partial<PlanResult> = {}): PlanResult {
         sourceDecisionIds: ['decision:eligibility'], sourceProvenances: ['database_factual'],
         microSteps: [{
           id: 'micro-step:blockers:eligibility:detail', title: 'Collect official evidence', order: 1,
+          guidance: 'Collect an official record that addresses the stated eligibility requirement.',
           readiness: 'requires_enrichment', sourceDecisionIds: ['decision:eligibility'],
           sourceProvenances: ['database_factual'],
         }],
@@ -38,7 +39,7 @@ function persistedFor(source = plan()): ExistingPersistedPlan {
     plan: { id: 'db-plan', applicationId, producer: CORE3_PLAN_PRODUCER, domainPlanId: source.id, readiness: source.readiness, archivedAt: null },
     phases: [{ id: 'db-phase', planId: 'db-plan', domainNodeId: phase.id, title: phase.title, objective: phase.objective, order: phase.order, sourceDecisionIds: phase.sourceDecisionIds, sourceProvenances: phase.sourceProvenances, archivedAt: null }],
     steps: [{ id: 'db-step', planId: 'db-plan', phaseId: 'db-phase', domainNodeId: step.id, title: step.title, objective: step.objective, order: step.order, sourceDecisionIds: step.sourceDecisionIds, sourceProvenances: step.sourceProvenances, archivedAt: null }],
-    microSteps: [{ id: 'db-micro', planId: 'db-plan', stepId: 'db-step', domainNodeId: microStep.id, title: microStep.title, order: microStep.order, readiness: microStep.readiness, contentSchema: microStep.contentSchema ?? null, sourceDecisionIds: microStep.sourceDecisionIds, sourceProvenances: microStep.sourceProvenances, archivedAt: null, status: 'in_progress', deadline: '2026-10-01', contentValue: { type: 'long_text', text: 'Student work' }, executionEvidence: [{ id: 'evidence-1' }] }],
+    microSteps: [{ id: 'db-micro', planId: 'db-plan', stepId: 'db-step', domainNodeId: microStep.id, title: microStep.title, guidance: microStep.guidance ?? null, order: microStep.order, readiness: microStep.readiness, contentSchema: microStep.contentSchema ?? null, sourceDecisionIds: microStep.sourceDecisionIds, sourceProvenances: microStep.sourceProvenances, archivedAt: null, status: 'in_progress', deadline: '2026-10-01', contentValue: { type: 'long_text', text: 'Student work' }, executionEvidence: [{ id: 'evidence-1' }] }],
   });
 }
 
@@ -249,6 +250,7 @@ function microStepWriteOps(operations: readonly PlanPersistenceOperation[]): Mic
 const GENERATED_MICRO_STEP_FIELD_KEYS = [
   'contentSchema',
   'domainNodeId',
+  'guidance',
   'order',
   'readiness',
   'sourceDecisionIds',

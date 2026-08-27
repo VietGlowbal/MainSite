@@ -238,6 +238,7 @@ export type {
   PlanResult,
   PlanStep,
 } from './plan';
+export { plannerMicroStepGuidance } from './plan';
 export type {
   ExistingPersistedPlan,
   PersistedPlan,

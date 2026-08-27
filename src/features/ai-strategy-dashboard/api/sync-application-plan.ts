@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/server/db/admin';
 import {
   CORE3_PLAN_PRODUCER,
+  plannerMicroStepGuidance,
   reconcilePlan,
   retainAnsweredPlannerInputs,
   type ExistingPersistedPlan,
@@ -94,6 +95,7 @@ async function applyPlanAtomically(supabase: SupabaseClient, applicationId: stri
         sourceDecisionIds: step.sourceDecisionIds, sourceProvenances: step.sourceProvenances,
         microSteps: step.microSteps.map((microStep) => ({
           domainNodeId: microStep.id, title: microStep.title, order: microStep.order, readiness: microStep.readiness,
+          guidance: plannerMicroStepGuidance(microStep.title, microStep.guidance),
           contentSchema: microStep.contentSchema ?? null, sourceDecisionIds: microStep.sourceDecisionIds, sourceProvenances: microStep.sourceProvenances,
         })),
       })),
@@ -133,12 +135,18 @@ async function loadExistingPlan(supabase: SupabaseClient, applicationId: string)
   if (stepsResult.error) throw new PlanPersistenceError(`Could not load plan steps: ${stepsResult.error.message}`);
   const steps = (stepsResult.data ?? []).map(stepFromRow.bind(null, plan.id));
 
-  const microStepsResult = steps.length === 0
+  let microStepsResult = steps.length === 0
     ? { data: [], error: null }
     : await supabase
       .from('application_plan_micro_steps')
-      .select('id, step_id, domain_node_id, title, sort_order, readiness, content_schema, source_decision_ids, source_provenances, status, deadline, content_value, execution_evidence, archived_at')
+      .select('id, step_id, domain_node_id, title, guidance, sort_order, readiness, content_schema, source_decision_ids, source_provenances, status, deadline, content_value, execution_evidence, archived_at')
       .in('step_id', steps.map((step) => step.id));
+  if (microStepsResult.error && isMissingGuidanceColumn(microStepsResult.error)) {
+    microStepsResult = await supabase
+      .from('application_plan_micro_steps')
+      .select('id, step_id, domain_node_id, title, sort_order, readiness, content_schema, source_decision_ids, source_provenances, status, deadline, content_value, execution_evidence, archived_at')
+      .in('step_id', steps.map((step) => step.id)) as typeof microStepsResult;
+  }
   if (microStepsResult.error) throw new PlanPersistenceError(`Could not load plan micro-steps: ${microStepsResult.error.message}`);
 
   return { plan, phases, steps, microSteps: (microStepsResult.data ?? []).map((row) => microStepFromRow(plan.id, row)) };
@@ -240,7 +248,7 @@ function stepPayload(fields: Extract<PlanPersistenceOperation, { kind: 'insert_s
 }
 
 function microStepPayload(fields: Extract<PlanPersistenceOperation, { kind: 'insert_micro_step' }>['fields']) {
-  return { domain_node_id: fields.domainNodeId, title: fields.title, sort_order: fields.order, readiness: fields.readiness, content_schema: fields.contentSchema, source_decision_ids: fields.sourceDecisionIds, source_provenances: fields.sourceProvenances };
+  return { domain_node_id: fields.domainNodeId, title: fields.title, guidance: fields.guidance, sort_order: fields.order, readiness: fields.readiness, content_schema: fields.contentSchema, source_decision_ids: fields.sourceDecisionIds, source_provenances: fields.sourceProvenances };
 }
 
 async function insertMicroStep(supabase: SupabaseClient, stepId: string, fields: ReturnType<typeof microStepPayload>, action: string) {
@@ -278,11 +286,14 @@ function stepFromRow(planId: string, row: Record<string, unknown>): PersistedPla
 }
 
 function microStepFromRow(planId: string, row: Record<string, unknown>): PersistedPlanMicroStep {
-  return { id: text(row.id), planId, stepId: text(row.step_id), domainNodeId: text(row.domain_node_id), title: text(row.title), order: number(row.sort_order), readiness: nodeReadiness(row.readiness), contentSchema: (row.content_schema ?? null) as PersistedPlanMicroStep['contentSchema'], sourceDecisionIds: texts(row.source_decision_ids), sourceProvenances: provenances(row.source_provenances), status: text(row.status), deadline: nullableText(row.deadline), contentValue: (row.content_value ?? null) as PersistedPlanMicroStep['contentValue'], executionEvidence: Array.isArray(row.execution_evidence) ? row.execution_evidence : [], archivedAt: nullableText(row.archived_at) };
+  return { id: text(row.id), planId, stepId: text(row.step_id), domainNodeId: text(row.domain_node_id), title: text(row.title), guidance: nullableText(row.guidance), order: number(row.sort_order), readiness: nodeReadiness(row.readiness), contentSchema: (row.content_schema ?? null) as PersistedPlanMicroStep['contentSchema'], sourceDecisionIds: texts(row.source_decision_ids), sourceProvenances: provenances(row.source_provenances), status: text(row.status), deadline: nullableText(row.deadline), contentValue: (row.content_value ?? null) as PersistedPlanMicroStep['contentValue'], executionEvidence: Array.isArray(row.execution_evidence) ? row.execution_evidence : [], archivedAt: nullableText(row.archived_at) };
 }
 
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
 function nullableText(value: unknown): string | null { return typeof value === 'string' ? value : null; }
+function isMissingGuidanceColumn(error: { code?: string; message: string }): boolean {
+  return (error.code === '42703' || error.code === 'PGRST204') && /guidance/i.test(error.message);
+}
 function number(value: unknown): number { return typeof value === 'number' ? value : 0; }
 function texts(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
 function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] {

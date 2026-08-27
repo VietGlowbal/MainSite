@@ -5,7 +5,7 @@ import type { PlannerReadModel } from '../domain';
 import { HierarchicalApplicationPlanner } from './hierarchical-application-planner';
 
 function planner(): PlannerReadModel {
-  const task = { id: 'micro-1', domainNodeId: 'micro:1', stepId: 'step-1', phaseId: 'phase-1', title: 'Upload evidence', order: 1, readiness: 'requires_enrichment' as const, contentSchema: null, sourceDecisionIds: [], sourceProvenances: [], status: 'not_started' as const, deadline: null, contentValue: null, executionEvidence: [] };
+  const task = { id: 'micro-1', domainNodeId: 'micro:1', stepId: 'step-1', phaseId: 'phase-1', title: 'Upload evidence', guidance: 'Upload an official document that verifies this requirement.', order: 1, readiness: 'requires_enrichment' as const, contentSchema: null, sourceDecisionIds: [], sourceProvenances: [], status: 'not_started' as const, deadline: null, contentValue: null, executionEvidence: [] };
   return { plan: { id: 'plan-1', applicationId: 'app-1', producer: 'core3_deterministic', domainPlanId: 'plan:1', readiness: 'requires_enrichment' }, lifecycle: 'active', diagnostics: [], phases: [{ id: 'phase-1', domainNodeId: 'phase:1', title: 'Meet requirements', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, steps: [{ id: 'step-1', domainNodeId: 'step:1', phaseId: 'phase-1', title: 'Provide proof', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, microSteps: [task] }] }] };
 }
 
@@ -33,6 +33,7 @@ describe('HierarchicalApplicationPlanner', () => {
     expect(screen.getByText(/Meet requirements/)).toBeInTheDocument();
     expect(screen.getByText(/Provide proof/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Upload evidence' })).toHaveAttribute('href', '/ai-strategy/app-1/planner/tasks/micro-1');
+    expect(screen.getByText('Upload an official document that verifies this requirement.')).toBeInTheDocument();
     expect(screen.getByText('0 / 1 complete · 0%')).toBeInTheDocument();
   });
 

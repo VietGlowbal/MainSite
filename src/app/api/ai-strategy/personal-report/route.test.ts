@@ -20,6 +20,14 @@ async function importRoute() {
   return import('./route');
 }
 
+/** The handler must always produce an HTTP response for every tested request. */
+async function post(request: Request) {
+  const { POST } = await importRoute();
+  const response = await POST(request);
+  if (!response) throw new Error('Personal Report route returned no response.');
+  return response;
+}
+
 function request(body: unknown = { applicationId: 'app-1' }) {
   return new Request('http://localhost/api/ai-strategy/personal-report', {
     method: 'POST',
@@ -41,9 +49,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
 
   it('requires authentication', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null } });
-    const { POST } = await importRoute();
-
-    const response = await POST(request({}));
+    const response = await post(request({}));
 
     expect(response.status).toBe(401);
     expect(mocks.regeneratePersonalReport).not.toHaveBeenCalled();
@@ -52,9 +58,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
   it('defaults to a manual trigger when no body is sent', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });
-    const { POST } = await importRoute();
-
-    await POST(request());
+    await post(request());
 
     expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-1', trigger: 'manual' }),
@@ -64,9 +68,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
   it('passes through a client-provided supplement_answer trigger', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'regenerated', record: FAKE_RECORD });
-    const { POST } = await importRoute();
-
-    await POST(request({ applicationId: 'app-1', trigger: 'supplement_answer' }));
+    await post(request({ applicationId: 'app-1', trigger: 'supplement_answer' }));
 
     expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: 'supplement_answer' }),
@@ -76,9 +78,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
   it('passes application lineage controls to snapshot-scoped generation', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });
-    const { POST } = await importRoute();
-
-    await POST(request({ applicationId: 'app-1', force: true, idempotencyKey: 'request-1' }));
+    await post(request({ applicationId: 'app-1', force: true, idempotencyKey: 'request-1' }));
 
     expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -93,18 +93,14 @@ describe('POST /api/ai-strategy/personal-report', () => {
   it('accepts matching_report for the compatibility seam', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });
-    const { POST } = await importRoute();
-
-    await POST(request({ applicationId: 'app-1', trigger: 'matching_report' }));
+    await post(request({ applicationId: 'app-1', trigger: 'matching_report' }));
 
     expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(expect.objectContaining({ trigger: 'matching_report' }));
   });
 
   it('requires application context and never creates a global report row', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
-    const { POST } = await importRoute();
-
-    const response = await POST(request({}));
+    const response = await post(request({}));
     expect(response.status).toBe(422);
     expect((await response.json()).code).toBe('APPLICATION_REQUIRED');
     expect(mocks.regeneratePersonalReport).not.toHaveBeenCalled();
@@ -113,9 +109,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
   it('returns the cached report with its version id', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });
-    const { POST } = await importRoute();
-
-    const response = await POST(request({ applicationId: 'app-1' }));
+    const response = await post(request({ applicationId: 'app-1' }));
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -130,18 +124,14 @@ describe('POST /api/ai-strategy/personal-report', () => {
   it('returns 503 when the versions table has not been created yet', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'migration_missing' });
-    const { POST } = await importRoute();
-
-    const response = await POST(request({ applicationId: 'app-1' }));
+    const response = await post(request({ applicationId: 'app-1' }));
     expect(response.status).toBe(503);
   });
 
   it('returns 503 when OpenAI is not configured', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'not_configured' });
-    const { POST } = await importRoute();
-
-    const response = await POST(request({ applicationId: 'app-1' }));
+    const response = await post(request({ applicationId: 'app-1' }));
     expect(response.status).toBe(503);
   });
 
@@ -161,9 +151,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
       message: 'The AI could not produce a valid report.',
       record: FAKE_RECORD,
     });
-    const { POST } = await importRoute();
-
-    const response = await POST(request({ applicationId: 'app-1' }));
+    const response = await post(request({ applicationId: 'app-1' }));
     const body = await response.json();
 
     expect(response.status).toBe(502);
