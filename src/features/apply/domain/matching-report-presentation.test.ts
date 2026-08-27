@@ -310,7 +310,7 @@ describe('V2 Presentation Adapter', () => {
     
     // Gaps should exclude missing/weak evidence
     expect(sections.gaps.length).toBe(1);
-    expect(sections.gaps[0].type).toBe('capability_gap');
+    expect(sections.gaps[0]?.type).toBe('capability_gap');
     
     // Evidence needed should include missing and weak evidence
     expect(sections.evidenceNeeded.length).toBe(2);

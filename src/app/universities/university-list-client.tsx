@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  useCallback,
   startTransition,
   useEffect,
   useMemo,
@@ -551,39 +550,45 @@ export function UniversityListClient({
     wikiPairs,
     canonicalSearch,
   }), [canonicalSearch, country, page, pageSize, search, total, universities, wikiPairs]);
-  const getPrefetchHrefs = useCallback(universityPrefetchHrefs, []);
+  const getPrefetchHrefs = universityPrefetchHrefs;
   const directory = useDirectoryNavigation({
     pathname: '/universities',
     endpoint: '/api/directory/universities',
     initialData: initialDirectory,
     getPrefetchHrefs,
   });
-  const [withImages, setWithImages] = useState<ExplorerUniversity[]>(directory.data.page.items);
+  const [imageOverrides, setImageOverrides] = useState<
+    Record<string, { campus: string | null; logo: string | null }>
+  >({});
+  const withImages = directory.data.page.items.map((university) => {
+    const title = university.name.replace(/\s*\([^)]*\)\s*$/, '').trim().replace(/\s+/g, '_');
+    const resolved = imageOverrides[title];
+    return resolved
+      ? { ...university, image_url: resolved.campus ?? university.image_url, logo_url: resolved.logo ?? university.logo_url }
+      : university;
+  });
   const [authState, setAuthState] = useState<{
     id: string;
     shortlist: number[];
   } | null>(null);
-  const [authResolved, setAuthResolved] = useState(false);
-
-  useEffect(() => {
-    setWithImages(directory.data.page.items);
-  }, [directory.data.page.items]);
+  const [authResolvedUserId, setAuthResolvedUserId] = useState<string | null>(null);
+  const currentUserId = navigationSession.user?.id ?? null;
+  const currentAuthState = currentUserId && authState?.id === currentUserId ? authState : null;
+  const authResolved = !navigationSession.signedIn || !currentUserId
+    ? navigationSession.ready
+    : authResolvedUserId === currentUserId;
 
   useEffect(() => {
     let active = true;
-    const userId = navigationSession.user?.id ?? null;
+    const userId = currentUserId;
 
     if (!navigationSession.signedIn || !userId) {
-      setAuthState(null);
-      setAuthResolved(navigationSession.ready);
       return () => {
         active = false;
       };
     }
 
     const authenticatedUserId = userId;
-    setAuthResolved(false);
-
     async function hydrate() {
       const { createClient } = await import('@/lib/supabase/client');
       if (!active) return;
@@ -597,10 +602,10 @@ export function UniversityListClient({
         id: authenticatedUserId,
         shortlist: (data ?? []).map((row) => row.university_id as number),
       });
-      setAuthResolved(true);
+      setAuthResolvedUserId(authenticatedUserId);
     }
 
-    const run = () => void hydrate().catch(() => active && setAuthResolved(true));
+    const run = () => void hydrate().catch(() => active && setAuthResolvedUserId(authenticatedUserId));
     const idleId = window.requestIdleCallback?.(run, { timeout: 1000 }) ?? null;
     const timeoutId = idleId === null ? window.setTimeout(run, 0) : null;
     return () => {
@@ -608,7 +613,7 @@ export function UniversityListClient({
       if (idleId !== null) window.cancelIdleCallback(idleId);
       if (timeoutId !== null) window.clearTimeout(timeoutId);
     };
-  }, [navigationSession.ready, navigationSession.signedIn, navigationSession.user?.id]);
+  }, [currentUserId, navigationSession.ready, navigationSession.signedIn]);
 
   /*
    * Hydration gate for the imagery patch below.
@@ -652,21 +657,7 @@ export function UniversityListClient({
         .then((r) => (r.ok ? r.json() : null))
         .then((imagery: Record<string, { campus: string | null; logo: string | null }> | null) => {
           if (cancelled || !imagery) return;
-          startTransition(() => {
-            setWithImages((prev) =>
-              prev.map((uni) => {
-                const cleanName = uni.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-                const title = cleanName.replace(/\s+/g, '_');
-                const resolved = imagery[title];
-                if (!resolved) return uni;
-                return {
-                  ...uni,
-                  image_url: resolved.campus ?? uni.image_url,
-                  logo_url: resolved.logo ?? uni.logo_url,
-                };
-              }),
-            );
-          });
+          startTransition(() => setImageOverrides((previous) => ({ ...previous, ...imagery })));
         })
         .catch(() => {
           /* keep placeholders */
@@ -685,9 +676,9 @@ export function UniversityListClient({
   return (
     <UniversityExplorerProvider
       initialUniversities={withImages}
-      initialShortlist={authState?.shortlist ?? []}
+      initialShortlist={currentAuthState?.shortlist ?? []}
       initialApplications={[]}
-      isLoggedIn={authState !== null}
+      isLoggedIn={currentAuthState !== null}
       authPending={!authResolved}
       hasProfile={false}
       admissionUnlocked={false}

@@ -9,7 +9,6 @@ import {
 } from './aggregation';
 import type { FitSignal, HardRequirementMatch, MatchingCriterion } from './domain';
 import type { EvidenceBank } from '@/shared/evidence/domain';
-import type { AcademicProfile } from '@/lib/ai/applicant-state/domain';
 
 // --- Fixtures ---
 
@@ -27,11 +26,13 @@ const createCriterion = (
   description: `Description for ${id}`,
   sourceText: null,
   sourceRefs: [],
+  expectedSignals: [],
+  negativeSignals: [],
   metadata: {
     missingInformation: null,
-    inferredIntent: null,
+    targetRequirementId: null,
+    importanceSource: 'default',
   },
-  dependencies: [],
 });
 
 const createSignal = (
@@ -95,7 +96,7 @@ describe('deriveStrengths', () => {
 
     const s1 = createSignal('c1', 'strong', 'strong');
     const s2 = createSignal('c2', 'strong', 'strong');
-    const s3 = createSignal('c3', 'strong', 'moderate');
+    const s3 = createSignal('c3', 'strong', 'mixed');
 
     const strengths = deriveStrengths([c1, c2, c3], [s1, s2, s3]);
     expect(strengths).toHaveLength(2);
@@ -115,7 +116,7 @@ describe('deriveStrengths', () => {
 
 describe('deriveGaps', () => {
   it('identifies hard requirement failures as critical gaps', () => {
-    const c1 = createCriterion('c1', 'critical', 'academic', 'hard');
+    const c1 = createCriterion('c1', 'critical', 'academic_requirement', 'hard');
     const hr: HardRequirementMatch = {
       criterionId: 'c1',
       status: 'does_not_meet',
@@ -168,7 +169,7 @@ describe('deriveGaps', () => {
 
   it('sorts by priority descending', () => {
     const c1 = createCriterion('c1', 'high'); // missing -> priority: 3 * 1 * 1 * 0.8 = 2.4 ~ 2
-    const c2 = createCriterion('c2', 'critical', 'academic', 'hard'); // does_not_meet -> priority: 4 * 1 * 2 * 1.2 = 9.6 ~ 10
+    const c2 = createCriterion('c2', 'critical', 'academic_requirement', 'hard'); // does_not_meet -> priority: 4 * 1 * 2 * 1.2 = 9.6 ~ 10
     const hr: HardRequirementMatch = {
       criterionId: 'c2',
       status: 'does_not_meet',
@@ -220,17 +221,22 @@ describe('buildDependencyIndex', () => {
 
 describe('evaluateHardRequirements', () => {
   it('detects IELTS threshold and evaluates insufficient when no records', () => {
-    const c1 = createCriterion('c1', 'critical', 'academic', 'hard');
+    const c1 = createCriterion('c1', 'critical', 'academic_requirement', 'hard');
     c1.description = 'Requires IELTS 6.5 minimum';
     
     const bank: EvidenceBank = {
+      version: 'eb-1',
       sources: {},
       claims: [],
-    };
+      interpretations: [],
+      missingInformation: [],
+      documents: [],
+      profile: {} as any,
+    } as any;
     
     const hr = evaluateHardRequirements({
       criteria: [c1],
-      academicProfile: { records: [] },
+      academicProfile: { qualifications: [], tests: [] } as any,
       evidenceBank: bank,
     });
     

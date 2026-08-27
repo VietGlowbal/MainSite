@@ -1,28 +1,30 @@
 import { describe, it, expect, vi } from 'vitest';
 import { composeMatchingReport, partitionCriteriaForRecompute } from './report';
-import type { FitSignal, MatchingCriterion, MatchingEvidence, MatchingReportV2 } from './domain';
-import { stableHash } from '@/features/apply/api/candidate-context';
+import type { FitSignal, MatchingCriterion, MatchingEvidence } from './domain';
+import { stableHash } from '@/features/apply/api';
 
 describe('partitionCriteriaForRecompute', () => {
   const mockCriterion: MatchingCriterion = {
     id: 'crit-1',
-    category: 'academic',
-    requirementType: 'semantic',
+    category: 'academic_requirement',
+    requirementType: 'soft',
     label: 'Test Criterion',
     description: 'Test description',
     sourceRefs: [],
     expectedSignals: [],
-  };
+  } as any;
 
   const mockEvidence: MatchingEvidence = {
     id: 'ev-1',
-    sourceId: 'src-1',
-    kind: 'achievement',
+    category: 'academic_requirement',
     statement: 'Did something',
+    sourceRefs: ['src-1'],
+    interpretationRefs: [],
     status: 'verified',
-    timestamp: '2023',
     competencies: [],
-    relevanceContext: '',
+    criteria: [],
+    direct: true,
+    rankScore: 1,
   };
 
   const mockPersonalContext = { coreIdentity: [], motivations: [], direction: [] };
@@ -36,7 +38,7 @@ describe('partitionCriteriaForRecompute', () => {
 
     const mockSignal: FitSignal = {
       criterionId: 'crit-1',
-      category: 'academic',
+      category: 'academic_requirement',
       criterionLabel: 'Test Criterion',
       criterionSourceRefs: [],
       applicantEvidenceIds: ['ev-1'],
@@ -67,7 +69,7 @@ describe('partitionCriteriaForRecompute', () => {
   it('does not reuse if evidence is missing', () => {
     const mockSignal: FitSignal = {
       criterionId: 'crit-1',
-      category: 'academic',
+      category: 'academic_requirement',
       criterionLabel: 'Test',
       criterionSourceRefs: [],
       applicantEvidenceIds: ['ev-1', 'ev-2'], // ev-2 is missing in currentEvidence
@@ -125,6 +127,10 @@ describe('composeMatchingReport', () => {
   };
 
   const fakeEvidenceBank: any = {
+    version: 'eb-1',
+    sources: {
+      'src-1': { id: 'src-1', type: 'achievement', label: 'Test' },
+    },
     claims: [],
     achievements: [],
     activities: [],
@@ -189,7 +195,7 @@ describe('composeMatchingReport', () => {
     };
 
     const fakeGenerate = vi.fn().mockImplementation(async (args) => {
-      if (args.promptId === 'matching_criterion_reasoning') {
+      if (args.moduleId === 'matching_criterion_reasoning') {
         return {
           data: {
             results: [
@@ -240,7 +246,7 @@ describe('composeMatchingReport', () => {
         data: {
           results: [
             {
-              criterionId: 'academic_requirement:crit-1',
+              criterionId: 'competency:crit-1',
               alignment: 'strong',
               evidenceIds: ['ev-1', 'fake-1'],
               directEvidenceIds: ['ev-1', 'fake-2'],
@@ -255,7 +261,7 @@ describe('composeMatchingReport', () => {
       })
       .mockResolvedValueOnce({
         data: {
-          summary: 'Valid summary.',
+          summary: 'This is a valid summary of the matching analysis report that meets the eighty characters minimum length requirement.',
           criterionIds: [],
           evidenceIds: [],
         }
@@ -266,7 +272,7 @@ describe('composeMatchingReport', () => {
       requirements: [
         {
           id: 'crit-1',
-          category: 'academic',
+          category: 'competency',
           label: 'Test',
           detail: 'Test detail',
           status: 'required',
@@ -281,14 +287,14 @@ describe('composeMatchingReport', () => {
       claims: [
         {
           id: 'ev-1',
-          category: 'academic_requirement',
+          category: 'competency',
           statement: 'Legit evidence',
           status: 'verified',
           relevanceContext: '',
           timestamp: '',
-          sourceRefs: [],
+          sourceRefs: ['src-1'],
           interpretationRefs: [],
-          tags: { competencies: [], criteria: [] },
+          tags: { competencies: ['Test'], criteria: ['competency'] },
         }
       ]
     };
@@ -304,7 +310,7 @@ describe('composeMatchingReport', () => {
       generate: fakeGenerate,
     });
 
-    const signal = report.programmeAlignment.find(s => s.criterionId === 'academic_requirement:crit-1');
+    const signal = report.programmeAlignment.find(s => s.criterionId === 'competency:crit-1');
     expect(signal).toBeUndefined(); // Dropped entirely because reasoner threw
   });
 });

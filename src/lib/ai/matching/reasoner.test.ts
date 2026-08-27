@@ -1,10 +1,9 @@
 import { expect, test, describe, vi } from 'vitest';
 import { reasonAboutCriteria, generateMatchingSummary, BatchReasoningError } from './reasoner';
-import { validateEvidenceReferences } from './evidence';
-import type { MatchingCriterion, MatchingEvidence, FitSignal, HardRequirementMatch, MatchingStrength, MatchingGap, PositioningOpportunity } from './domain';
+import type { MatchingCriterion, MatchingEvidence, FitSignal } from './domain';
 
-function fakeGenerate<T>(data: T) {
-  return async () => ({
+function fakeGenerate(data: any): any {
+  return (async () => ({
     data,
     meta: {
       moduleId: 'test',
@@ -16,10 +15,10 @@ function fakeGenerate<T>(data: T) {
       latencyMs: 100,
       usage: null,
     },
-  });
+  })) as any;
 }
 
-function fakeGenerateWithSpy<T>(data: T) {
+function fakeGenerateWithSpy(data: any): any {
   return vi.fn().mockImplementation(async () => ({
     data,
     meta: {
@@ -32,16 +31,16 @@ function fakeGenerateWithSpy<T>(data: T) {
       latencyMs: 100,
       usage: null,
     },
-  }));
+  })) as any;
 }
 
 describe('Matching Reasoner', () => {
   const dummyCriteria: MatchingCriterion[] = [
-    { id: 'crit-1', label: 'Leadership', description: 'desc', category: 'competency', expectedSignals: ['sig'], sourceRefs: [] },
+    { id: 'crit-1', label: 'Leadership', description: 'desc', category: 'competency', expectedSignals: ['sig'], sourceRefs: [] } as any,
   ];
 
   const dummyEvidence: MatchingEvidence[] = [
-    { id: 'ev-1', statement: 'Led a team', status: 'verified', sourceRefs: [], competencies: [] },
+    { id: 'ev-1', category: 'competency', statement: 'Led a team', status: 'verified', sourceRefs: ['src-1'], interpretationRefs: [], competencies: [], criteria: [], direct: true, rankScore: 1 },
   ];
 
   const personalContext = { coreIdentity: [], motivations: [], direction: [] };
@@ -68,7 +67,7 @@ describe('Matching Reasoner', () => {
     test('2. Batch size capped at 6', async () => {
       const criteria: MatchingCriterion[] = Array.from({ length: 8 }).map((_, i) => ({
         id: `crit-${i}`, label: `L-${i}`, description: 'd', category: 'competency', expectedSignals: [], sourceRefs: []
-      }));
+      })) as any;
       
       const generateSpy = fakeGenerateWithSpy({ results: [] });
       await reasonAboutCriteria({
@@ -113,7 +112,7 @@ describe('Matching Reasoner', () => {
       const generateSpy = fakeGenerate({ results: [{ criterionId: 'crit-1', alignment: 'strong', evidenceIds: ['ev-vague'], directEvidenceIds: [], supportingEvidenceIds: ['ev-vague'], reasoning: 'vague' }] });
       const results = await reasonAboutCriteria({
         criteria: dummyCriteria,
-        evidenceByCriterion: { 'crit-1': [{ id: 'ev-vague', category: 'competency', statement: 'vague', status: 'self_reported', sourceRefs: [], interpretationRefs: [], competencies: [], criteria: [], direct: false, rankScore: 0 }] as MatchingEvidence[] }, 
+        evidenceByCriterion: { 'crit-1': [{ id: 'ev-vague', category: 'competency', statement: 'vague', status: 'unverified', sourceRefs: [], interpretationRefs: [], competencies: [], criteria: [], direct: false, rankScore: 0 }] },
         personalContext,
         generate: generateSpy,
       });
@@ -150,8 +149,8 @@ describe('Matching Reasoner', () => {
 
     test('8. One batch failure doesn\'t destroy other batch results', async () => {
       const criteria: MatchingCriterion[] = [
-        { id: 'crit-1', label: 'C1', description: 'd', category: 'competency', expectedSignals: [], sourceRefs: [] },
-        { id: 'crit-2', label: 'C2', description: 'd', category: 'academic', expectedSignals: [], sourceRefs: [] },
+        { id: 'crit-1', label: 'C1', description: 'd', category: 'competency', expectedSignals: [], sourceRefs: [] } as any,
+        { id: 'crit-2', label: 'C2', description: 'd', category: 'academic_requirement', expectedSignals: [], sourceRefs: [] } as any,
       ];
       
       let callCount = 0;
@@ -182,7 +181,22 @@ describe('Matching Reasoner', () => {
   });
 
   describe('generateMatchingSummary', () => {
-    const dummyFit: FitSignal = { criterionId: 'crit-1', alignment: 'strong', reasoning: '', evidenceIds: ['ev-1'], directEvidenceIds: ['ev-1'], supportingEvidenceIds: [], criterionLabel: 'a', category: 'b', criterionSourceRefs: [], inputHash: 'hash' };
+    const dummyFit: FitSignal = {
+      criterionId: 'crit-1',
+      alignment: 'strong',
+      reasoning: '',
+      applicantEvidenceIds: ['ev-1'],
+      directEvidenceIds: ['ev-1'],
+      supportingEvidenceIds: [],
+      criterionLabel: 'a',
+      category: 'competency',
+      criterionSourceRefs: [],
+      evidenceQuality: 'strong',
+      missingEvidence: [],
+      confidence: 0.9,
+      opportunity: null,
+      inputHash: 'hash',
+    };
     const dummyArgs = {
       academicRequirements: [],
       programmeAlignment: [dummyFit],

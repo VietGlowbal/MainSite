@@ -39,15 +39,10 @@ export function AmbassadorsClient() {
   useLoadingIndicator(busy !== null, 'Updating the ambassador');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [origin, setOrigin] = useState('');
+  const [chartNow] = useState(() => Date.now());
+  const origin = typeof window === 'undefined' ? '' : window.location.origin;
 
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  async function load() {
-    setState({ kind: 'loading' });
-    try {
+  async function fetchState(): Promise<Extract<LoadState, { kind: 'ready' }>> {
       const res = await fetch('/api/coordinator/ambassadors', { cache: 'no-store' });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -59,7 +54,7 @@ export function AmbassadorsClient() {
       };
       // Normalise defensively: during a deploy the client and API can briefly
       // be different versions, so never assume the response shape.
-      setState({
+      return {
         kind: 'ready',
         ambassadors: Array.isArray(body.ambassadors) ? body.ambassadors : [],
         summary: {
@@ -67,7 +62,13 @@ export function AmbassadorsClient() {
             ? body.summary!.signups_by_day!
             : [],
         },
-      });
+      };
+  }
+
+  async function load() {
+    setState({ kind: 'loading' });
+    try {
+      setState(await fetchState());
     } catch (err) {
       setState({
         kind: 'error',
@@ -77,7 +78,19 @@ export function AmbassadorsClient() {
   }
 
   useEffect(() => {
-    void load();
+    let active = true;
+    void fetchState().then(
+      (next) => active && setState(next),
+      (err: unknown) =>
+        active &&
+        setState({
+          kind: 'error',
+          message: err instanceof Error ? err.message : 'Failed to load ambassadors.',
+        }),
+    );
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function createAmbassador(e: React.FormEvent) {
@@ -136,7 +149,7 @@ export function AmbassadorsClient() {
 
   async function copyLink(code: string) {
     try {
-      await navigator.clipboard.writeText(`${origin}/c/${code}`);
+      await navigator.clipboard.writeText(`${window.location.origin}/c/${code}`);
       setCopied(code);
       setTimeout(() => setCopied(null), 1800);
     } catch {
@@ -169,13 +182,13 @@ export function AmbassadorsClient() {
     for (const r of days) byDay.set(r.day.slice(0, 10), r.count);
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
     const series: { date: string; count: number }[] = [];
-    const now = Date.now();
+    const now = chartNow;
     for (let i = 29; i >= 0; i -= 1) {
       const key = fmt.format(new Date(now - i * 86_400_000));
       series.push({ date: key, count: byDay.get(key) ?? 0 });
     }
     return { series, max: Math.max(1, ...series.map((s) => s.count)) };
-  }, [state]);
+  }, [chartNow, state]);
 
   if (state.kind === 'loading') {
     return <p className="text-sm text-slate-400">Loading ambassadors…</p>;
@@ -273,7 +286,7 @@ export function AmbassadorsClient() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <code className="text-xs text-slate-600">{origin}/c/{a.code}</code>
+                      <code className="text-xs text-slate-600" suppressHydrationWarning>{origin}/c/{a.code}</code>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-900">
                       {a.total_visits}

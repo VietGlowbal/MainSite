@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import { generateStructured, type StructuredGenerationResult } from '@/lib/ai/runtime/structured-generation';
-import { REPORT_PROMPT_VERSIONS, getReportPrompt } from '@/lib/ai/runtime/prompt-registry';
+import { generateStructured } from '@/lib/ai/runtime/structured-generation';
+import { getReportPrompt } from '@/lib/ai/runtime/prompt-registry';
 import { validateEvidenceReferences } from './evidence';
 import {
   criterionMatchResultSchema,
   matchingSummaryResultSchema,
-  type CriterionMatchResult,
   type FitSignal,
   type HardRequirementMatch,
   type MatchingCriterion,
@@ -15,7 +14,6 @@ import {
   type MatchingStrength,
   type MatchingSummaryResult,
   type PositioningOpportunity,
-  MATCHING_ENGINE_VERSION,
 } from './domain';
 import type { ProgrammeFit } from '@/features/apply/domain';
 import { stableHash } from '@/features/apply/api';
@@ -45,7 +43,7 @@ export async function reasonAboutCriteria(args: {
   generate?: typeof generateStructured;
 }): Promise<FitSignal[]> {
   const generate = args.generate ?? generateStructured;
-  const { systemPrompt } = getReportPrompt('matching_criterion_reasoning');
+  const { systemPrompt, version: promptVersion } = getReportPrompt('matching_criterion_reasoning');
   
   // Batch criteria by category to avoid exceeding context or causing hallucination
   const batches: MatchingCriterion[][] = [];
@@ -74,7 +72,10 @@ export async function reasonAboutCriteria(args: {
         expectedSignals: c.expectedSignals,
       }));
 
-      const evidenceData: Record<string, any[]> = {};
+      const evidenceData: Record<
+        string,
+        Array<{ id: string; statement: string; status: string; competencies: string[] }>
+      > = {};
       batch.forEach(c => {
         const evidence = args.evidenceByCriterion[c.id] || [];
         evidenceData[c.id] = evidence.map(e => ({
@@ -92,7 +93,9 @@ export async function reasonAboutCriteria(args: {
       }, null, 2);
 
       const result = await generate({
-        promptId: 'matching_criterion_reasoning',
+        moduleId: 'matching_criterion_reasoning',
+        promptVersion,
+        schemaVersion: 'matching-criterion-v2.0.0',
         systemPrompt,
         userPrompt,
         schema: z.object({ results: z.array(criterionMatchResultSchema) }).strict(),
@@ -114,7 +117,16 @@ export async function reasonAboutCriteria(args: {
         });
 
         allSignals.push({
-          ...validatedRes,
+          criterionId: validatedRes.criterionId,
+          alignment: validatedRes.alignment,
+          directEvidenceIds: validatedRes.directEvidenceIds,
+          supportingEvidenceIds: validatedRes.supportingEvidenceIds,
+          reasoning: validatedRes.reasoning,
+          missingEvidence: validatedRes.missingEvidence,
+          evidenceQuality: validatedRes.evidenceQuality,
+          confidence: validatedRes.confidence,
+          applicantEvidenceIds: validatedRes.evidenceIds,
+          opportunity: validatedRes.positioningOpportunity ?? null,
           criterionLabel: criterion.label,
           category: criterion.category,
           criterionSourceRefs: criterion.sourceRefs,
@@ -154,24 +166,53 @@ export async function generateMatchingSummary(args: {
   const validCriterionIds = new Set<string>();
   const validEvidenceIds = new Set<string>();
 
-  const collectIds = (items: any[]) => {
+  const collectIds = (items: Array<Record<string, unknown>> | undefined | null) => {
+    if (!items || !Array.isArray(items)) return;
     for (const item of items) {
-      if (item.criterionId) validCriterionIds.add(item.criterionId);
-      if (item.evidenceIds) item.evidenceIds.forEach((id: string) => validEvidenceIds.add(id));
-      if (item.id && (item.statement || item.status)) validEvidenceIds.add(item.id); // It's an evidence itself
-      if (item.signals) {
-        item.signals.forEach((sig: any) => {
-          if (sig.criterionId) validCriterionIds.add(sig.criterionId);
+      if (typeof item.criterionId === 'string') validCriterionIds.add(item.criterionId);
+      if (Array.isArray(item.criterionIds)) {
+        item.criterionIds.forEach((id: unknown) => {
+          if (typeof id === 'string') validCriterionIds.add(id);
         });
       }
+      if (Array.isArray(item.evidenceIds)) {
+        item.evidenceIds.forEach((id: unknown) => {
+          if (typeof id === 'string') validEvidenceIds.add(id);
+        });
+      }
+      if (Array.isArray(item.currentEvidenceIds)) {
+        item.currentEvidenceIds.forEach((id: unknown) => {
+          if (typeof id === 'string') validEvidenceIds.add(id);
+        });
+      }
+      if (Array.isArray(item.applicantEvidenceIds)) {
+        item.applicantEvidenceIds.forEach((id: unknown) => {
+          if (typeof id === 'string') validEvidenceIds.add(id);
+        });
+      }
+      if (Array.isArray(item.directEvidenceIds)) {
+        item.directEvidenceIds.forEach((id: unknown) => {
+          if (typeof id === 'string') validEvidenceIds.add(id);
+        });
+      }
+      if (Array.isArray(item.supportingEvidenceIds)) {
+        item.supportingEvidenceIds.forEach((id: unknown) => {
+          if (typeof id === 'string') validEvidenceIds.add(id);
+        });
+      }
+      if (typeof item.id === 'string' && (item.statement || item.status)) validEvidenceIds.add(item.id);
     }
   };
 
-  collectIds(args.programmeAlignment);
-  collectIds(args.strengths);
-  collectIds(args.gaps);
+  collectIds(args.academicRequirements as unknown as Array<Record<string, unknown>>);
+  collectIds(args.programmeAlignment as unknown as Array<Record<string, unknown>>);
+  collectIds(args.strengths as unknown as Array<Record<string, unknown>>);
+  collectIds(args.gaps as unknown as Array<Record<string, unknown>>);
+  collectIds(args.positioningOpportunities as unknown as Array<Record<string, unknown>>);
   if (args.scholarshipAlignment) {
-    collectIds(args.scholarshipAlignment.signals);
+    collectIds(args.scholarshipAlignment.criteria as unknown as Array<Record<string, unknown>>);
+    collectIds(args.scholarshipAlignment.strengths as unknown as Array<Record<string, unknown>>);
+    collectIds(args.scholarshipAlignment.gaps as unknown as Array<Record<string, unknown>>);
   }
 
   const inputData = {
@@ -187,7 +228,9 @@ export async function generateMatchingSummary(args: {
   const userPrompt = JSON.stringify(inputData, null, 2);
 
   const result = await generate({
-    promptId: 'matching_report_summary',
+    moduleId: 'matching_report_summary',
+    promptVersion,
+    schemaVersion: 'matching-summary-v2.0.0',
     systemPrompt,
     userPrompt,
     schema: matchingSummaryResultSchema,
@@ -196,7 +239,8 @@ export async function generateMatchingSummary(args: {
   const summary = result.data;
 
   // Validate criterionIds and evidenceIds
-  const checkUnknown = (ids: string[], validSet: Set<string>, type: string) => {
+  const checkUnknown = (ids: string[] | undefined | null, validSet: Set<string>, type: string) => {
+    if (!ids || !Array.isArray(ids)) return;
     for (const id of ids) {
       if (!validSet.has(id)) {
         throw new Error(`Unknown ${type} ID in summary: ${id}`);

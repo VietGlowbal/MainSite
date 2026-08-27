@@ -186,7 +186,7 @@ export function readinessPercent(fit: ProgrammeFit): number | null {
 }
 
 export type EligibilityRow = {
-  key: keyof ProgrammeFit['eligibility'];
+  key: string;
   label: string;
   status: 'met' | 'not_met' | 'unknown';
   statusLabel: string;
@@ -279,7 +279,7 @@ export function matchSummary(fit: ProgrammeFit): MatchSummary {
     blockingRequirements: eligibilityRows(fit).filter((row) => row.blocking),
   };
 }
-import type { MatchingReportV2, HardRequirementMatch, MatchingStrength, MatchingGap, PositioningOpportunity, FitSignal } from '@/lib/ai/matching/domain';
+import type { MatchingReportV2 } from '@/lib/ai/matching/domain';
 
 export function getV2Sections(report: MatchingReportV2) {
   return {

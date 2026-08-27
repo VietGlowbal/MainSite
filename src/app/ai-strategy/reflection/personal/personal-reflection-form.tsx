@@ -109,7 +109,9 @@ export function PersonalReflectionForm({
   const dirtyRef = useRef(false);
 
   const answersRef = useRef(answers);
-  answersRef.current = answers;
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
 
   const saveAnswers = useCallback(
     async (currentAnswers: PersonalReflectionValues, finish = false): Promise<boolean> => {
@@ -174,7 +176,9 @@ export function PersonalReflectionForm({
   );
 
   const saveAnswersRef = useRef(saveAnswers);
-  saveAnswersRef.current = saveAnswers;
+  useEffect(() => {
+    saveAnswersRef.current = saveAnswers;
+  }, [saveAnswers]);
 
   const handleFieldChange = (key: PersonalReflectionKey, val: string) => {
     const updated = { ...answers, [key]: val };

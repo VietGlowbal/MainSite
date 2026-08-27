@@ -145,6 +145,15 @@ describe('POST /api/ai-strategy/personal-report', () => {
     expect(response.status).toBe(503);
   });
 
+  it('returns 422 when the application has insufficient evidence', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'insufficient_evidence' });
+    const { POST } = await importRoute();
+
+    const response = await POST(request({ applicationId: 'app-1' }));
+    expect(response.status).toBe(422);
+  });
+
   it('returns 502 and keeps any previous report on generation failure', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({

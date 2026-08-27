@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { logger, startTimer } from '@/server/observability';
+import { getLatestApplicationMatchingAnalysis } from '@/features/apply/api';
 import { generateApplicationMatchingReport } from '@/lib/ai/matching/generation';
-import { getLatestApplicationMatchingAnalysis } from '@/features/apply/api/ai-reports-repository';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;

@@ -381,7 +381,7 @@ export function deriveGaps(
       type = 'capability_gap';
       severity = 'medium';
       fixability = 'medium';
-    } else if (signal.alignment === 'moderate' && hasEvidence && isHighImportance) {
+    } else if (signal.alignment === 'moderate' && hasEvidence && !isPoorQuality) {
       type = 'positioning_gap';
       severity = 'medium';
       fixability = 'high';

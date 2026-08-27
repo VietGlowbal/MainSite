@@ -1,10 +1,10 @@
 import { normalizeTargetProfile } from './criteria';
-import { toMatchingEvidence, retrieveEvidenceForCriterion, validateEvidenceReferences } from './evidence';
+import { toMatchingEvidence, retrieveEvidenceForCriterion } from './evidence';
 import { evaluateHardRequirements, calculateEvidenceCoverage, deriveStrengths, deriveGaps, derivePositioningOpportunities, buildDependencyIndex } from './aggregation';
-import { reasonAboutCriteria, generateMatchingSummary } from './reasoner';
+import { reasonAboutCriteria, generateMatchingSummary, BatchReasoningError } from './reasoner';
 import { matchingReportV2Schema, MATCHING_REPORT_CONTRACT_VERSION, MATCHING_ENGINE_VERSION, MATCHING_PROMPT_BUNDLE_VERSION, type MatchingReportV2, type MatchingCriterion, type FitSignal, type MatchingEvidence } from './domain';
-import { stableHash } from '@/features/apply/api/candidate-context';
-import { assessProgrammeFit, academicBandFromScore, type ProgrammeFitInput } from '@/shared/evaluation/f5-programme-fit';
+import { stableHash } from '@/features/apply/api';
+import { assessProgrammeFit, type F5Dimension, type ProgrammeFitInput } from '@/shared/evaluation/f5-programme-fit';
 import { generateStructured } from '@/lib/ai/runtime/structured-generation';
 import { REPORT_PROMPT_VERSIONS } from '@/lib/ai/runtime/prompt-registry';
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
@@ -102,9 +102,10 @@ export async function composeMatchingReport(args: {
     evidenceBank: args.evidenceBank,
   });
 
-  // 4. retrieveEvidenceForCriterion
+  // 4. retrieveEvidenceForCriterion (semantic and scholarship criteria only)
+  const semanticCriteria = criteria.filter((c) => c.category !== 'academic_requirement' || c.requirementType !== 'hard');
   const evidenceByCriterion: Record<string, MatchingEvidence[]> = {};
-  for (const criterion of criteria) {
+  for (const criterion of semanticCriteria) {
     evidenceByCriterion[criterion.id] = retrieveEvidenceForCriterion({
       criterion,
       evidenceBank: args.evidenceBank,
@@ -117,7 +118,7 @@ export async function composeMatchingReport(args: {
     : null;
 
   const { reusable, needsRecompute } = partitionCriteriaForRecompute({
-    criteria,
+    criteria: semanticCriteria,
     previousSignals,
     currentEvidence,
     evidenceByCriterion,
@@ -134,8 +135,8 @@ export async function composeMatchingReport(args: {
         personalContext: args.personalContext,
         generate: args.generate,
       });
-    } catch (err: any) {
-      if (err.name === 'BatchReasoningError' && err.partialSignals) {
+    } catch (err: unknown) {
+      if (err instanceof BatchReasoningError && err.partialSignals) {
         newSignals = err.partialSignals;
       } else {
         throw err;
@@ -144,24 +145,20 @@ export async function composeMatchingReport(args: {
   }
 
   // 8. Merge and validate each with validateEvidenceReferences
-  const allSignals = [...reusable, ...newSignals].map((signal: any) => {
+  const allSignals = [...reusable, ...newSignals].map((signal) => {
     const evidenceForCrit = evidenceByCriterion[signal.criterionId] || [];
     const validEvidenceIds = new Set(evidenceForCrit.map(e => e.id));
     
-    // Map missing fields if reasoner returned CriterionMatchResult-like object
-    const applicantEvidenceIds = signal.applicantEvidenceIds || signal.evidenceIds || [];
-    const opportunity = signal.opportunity !== undefined ? signal.opportunity : (signal.positioningOpportunity || null);
-    
-    // Create a new valid object, omitting evidenceIds and positioningOpportunity
-    const { evidenceIds, positioningOpportunity, ...rest } = signal;
+    const applicantEvidenceIds = signal.applicantEvidenceIds || [];
+    const opportunity = signal.opportunity ?? null;
 
     return {
-      ...rest,
+      ...signal,
       applicantEvidenceIds: applicantEvidenceIds.filter((id: string) => validEvidenceIds.has(id)),
       directEvidenceIds: (signal.directEvidenceIds || []).filter((id: string) => validEvidenceIds.has(id)),
       supportingEvidenceIds: (signal.supportingEvidenceIds || []).filter((id: string) => validEvidenceIds.has(id)),
       opportunity,
-    } as FitSignal;
+    };
   });
 
   // 9. Separate scholarship signals from programme signals
@@ -170,13 +167,13 @@ export async function composeMatchingReport(args: {
 
   // 10. assessProgrammeFit
   const programmeFitResult = assessProgrammeFit(args.programmeFitInput);
-  const mapDimension = (dim: any) => ({
+  const mapDimension = (dim: F5Dimension) => ({
     status: dim.status,
     score: dim.score,
     summary: dim.summary || 'Not assessed',
     strengths: dim.strengths || [],
     gaps: dim.gaps || [],
-    evidence: (dim.evidenceRefs || []).map((e: any) => e.id),
+    evidence: (dim.evidenceRefs || []).map((e) => e.id),
     limitation: dim.limitation,
   });
 
@@ -193,7 +190,7 @@ export async function composeMatchingReport(args: {
       applicationReadiness: mapDimension(programmeFitResult.dimensions.applicationReadiness),
     },
   };
-  const evidenceCoverage = calculateEvidenceCoverage(allSignals);
+  const evidenceCoverage = calculateEvidenceCoverage(criteria, allSignals);
   const strengths = deriveStrengths(criteria, allSignals);
   const gaps = deriveGaps(criteria, academicRequirements, allSignals);
   const positioningOpportunities = derivePositioningOpportunities(criteria, allSignals);
@@ -215,17 +212,13 @@ export async function composeMatchingReport(args: {
     strengths,
     gaps,
     positioningOpportunities,
-    scholarshipAlignment: scholarshipAlignment ? {
-      ...scholarshipAlignment,
-      signals: scholarshipAlignment.criteria
-    } as any : null,
+    scholarshipAlignment,
     programmeFit,
     generate: args.generate,
   });
 
   // Calculate aiCallCount based on reasonAboutCriteria batches
   const BATCH_SIZE = 6;
-  const batches: MatchingCriterion[][] = [];
   const criteriaByCategory = needsRecompute.reduce((acc, c) => {
     if (!acc[c.category]) acc[c.category] = [];
     acc[c.category].push(c);

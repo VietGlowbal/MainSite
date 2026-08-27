@@ -1,17 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getLatestApplicationMatchingAnalysis, saveApplicationMatchingAnalysis, type MatchingAnalysisRecord } from '@/features/apply/api/ai-reports-repository';
+import {
+  getLatestApplicationMatchingAnalysis,
+  saveApplicationMatchingAnalysis,
+  getApplicationProfileAnalysisVersion,
+  stableHash,
+  type MatchingAnalysisRecord,
+} from '@/features/apply/api';
 import { regeneratePersonalReport } from '@/features/apply/api/personal-report-generation';
-import { getApplicationProfileAnalysisVersion } from '@/features/apply/api/application-analysis-repository';
 import { resolveTargetProfile } from '@/lib/ai/target-profile/generation';
-import { MATCHING_ENGINE_VERSION, MATCHING_PROMPT_BUNDLE_VERSION, MATCHING_REPORT_CONTRACT_VERSION } from './domain';
+import { MATCHING_ENGINE_VERSION, MATCHING_PROMPT_BUNDLE_VERSION } from './domain';
 import { composeMatchingReport } from './report';
-import { stableHash } from '@/features/apply/api/candidate-context';
 import { REPORT_PROMPT_VERSIONS } from '../runtime/prompt-registry';
 import { TARGET_PROFILE_SCHEMA_VERSION } from '../target-profile/domain';
 import { F5_ENGINE_VERSION, type ProgrammeFitInput } from '@/shared/evaluation/f5-programme-fit';
 import { buildApplicantStateFromSnapshot } from '../applicant-state/context-builder';
 import { isOpenAIConfigured, defaultOpenAIModel } from '../openai-client';
-import { matchLabel, maxMatchLabel, weightedScore } from '@/lib/match-insights';
+import { matchLabel, maxMatchLabel } from '@/lib/match-insights';
+import type { EvidenceBank } from '@/shared/evidence/domain';
 
 export async function generateApplicationMatchingReport(args: {
   supabase: SupabaseClient;
@@ -25,72 +30,68 @@ export async function generateApplicationMatchingReport(args: {
   | { status: 'migration_missing' }
   | { status: 'not_configured' }
 > {
-  const { supabase, userId, applicationId, force } = args;
+  const { supabase, userId, applicationId, force = false } = args;
+
+  if (!isOpenAIConfigured()) {
+    return { status: 'not_configured' };
+  }
 
   const { data: application, error: appError } = await supabase
-    .from('course_applications')
-    .select('*, courses (university_id)')
+    .from('applications')
+    .select('id, user_id, programme_id')
     .eq('id', applicationId)
     .eq('user_id', userId)
     .single();
 
   if (appError || !application) {
-    return { status: 'not_ready', reason: 'Application not found' };
+    return { status: 'not_ready', reason: 'Application not found or unauthorized' };
   }
 
-  const personalGeneration = await regeneratePersonalReport({
+  const personalRes = await regeneratePersonalReport({
     supabase,
     userId,
     applicationId,
     trigger: 'matching_report',
+    force: false,
   });
 
-  if (personalGeneration.status === 'migration_missing') return { status: 'migration_missing' };
-  if (personalGeneration.status === 'not_configured') return { status: 'not_configured' };
-  if (personalGeneration.status !== 'cached' && personalGeneration.status !== 'regenerated') {
-    return { status: 'not_ready', reason: 'Personal Report must complete before Matching Report generation can start.' };
+  if (!('record' in personalRes) || !personalRes.record?.reportV2) {
+    return { status: 'not_ready', reason: 'Personal report not ready' };
   }
 
-  const personalRecord = personalGeneration.record;
-  if (!personalRecord.sourceAnalysisVersionId) {
-    return { status: 'not_ready', reason: 'Missing source analysis version.' };
+  const personalRecord = personalRes.record;
+  const { confirmedSnapshotId, sourceAnalysisVersionId } = personalRecord;
+  if (!confirmedSnapshotId || !sourceAnalysisVersionId) {
+    return { status: 'not_ready', reason: 'Personal report lineage is incomplete' };
   }
 
-  const { analysis, migrationMissing } = await getApplicationProfileAnalysisVersion(
+  const analysisRes = await getApplicationProfileAnalysisVersion(
     supabase,
     { userId, applicationId },
-    personalRecord.sourceAnalysisVersionId
+    sourceAnalysisVersionId
   );
-  if (migrationMissing) return { status: 'migration_missing' };
-  if (!analysis) return { status: 'not_ready', reason: 'Source analysis not found.' };
-  if (analysis.moduleVersions['evidence'] !== 'eb-v1') {
-    return { status: 'not_ready', reason: 'Evidence bank version mismatch.' };
+
+  if (!analysisRes.analysis) {
+    return { status: 'not_ready', reason: 'Source profile analysis version not found' };
   }
 
-  const state = await buildApplicantStateFromSnapshot({
+  const analysis = analysisRes.analysis;
+
+  const targetRes = await resolveTargetProfile({
     supabase,
     userId,
-    applicationId,
-    snapshotId: personalRecord.confirmedSnapshotId!
+    programmeId: application.programme_id,
   });
-
-  const programmeId = application.course_id;
-  const targetResolution = await resolveTargetProfile({
-    supabase,
-    userId,
-    programmeId
-  });
-
-  if (targetResolution.status === 'not_ready') {
-    return { status: 'not_ready', reason: targetResolution.reason };
+  if ((targetRes.status !== 'ready' && targetRes.status !== 'cached' && targetRes.status !== 'stale') || !targetRes.profile) {
+    return { status: 'not_ready', reason: 'Target profile not ready' };
   }
 
-  const targetProfileVersionId = targetResolution.versionId;
-  const targetProfile = targetResolution.profile!;
+  const targetProfile = targetRes.profile;
+  const targetProfileVersionId = targetRes.versionId;
 
   const inputHash = stableHash({
     confirmedSnapshotId: personalRecord.confirmedSnapshotId,
-    sourceAnalysisVersionId: personalRecord.sourceAnalysisVersionId,
+    sourceAnalysisVersionId,
     personalReportVersionId: personalRecord.id,
     personalReportInputHash: personalRecord.inputHash,
     targetProfileVersionId,
@@ -103,16 +104,24 @@ export async function generateApplicationMatchingReport(args: {
     summaryPromptVersion: REPORT_PROMPT_VERSIONS.matching_report_summary,
   });
 
-  const { record: latestRecord, migrationMissing: latestMigrationMissing } = await getLatestApplicationMatchingAnalysis(supabase, { userId, applicationId });
-  if (latestMigrationMissing) return { status: 'migration_missing' };
-
-  if (latestRecord?.inputHash === inputHash && latestRecord.analysisStatus === 'complete' && !force) {
-    return { status: 'cached', record: latestRecord };
+  if (!force) {
+    const cached = await getLatestApplicationMatchingAnalysis(supabase, { userId, applicationId });
+    if (cached.record && cached.record.inputHash === inputHash && cached.record.reportV2) {
+      return { status: 'cached', record: cached.record };
+    }
   }
 
-  if (!process.env.OPENAI_API_KEY || !isOpenAIConfigured()) {
-    return { status: 'not_configured' };
-  }
+  const { record: latestRecord } = await getLatestApplicationMatchingAnalysis(
+    supabase,
+    { userId, applicationId }
+  );
+
+  const state = await buildApplicantStateFromSnapshot({
+    supabase,
+    userId,
+    applicationId,
+    snapshotId: confirmedSnapshotId,
+  });
 
   const programmeFitInput: ProgrammeFitInput = {
     eligibility: { requiredSubjects: 'unknown', minimumQualification: 'unknown', languageRequirement: 'unknown', citizenshipRequirement: 'unknown', deadline: 'unknown' },
@@ -128,19 +137,19 @@ export async function generateApplicationMatchingReport(args: {
 
   const reportV2 = await composeMatchingReport({
     targetProfile,
-    academicProfile: state.academicProfile!,
-    evidenceBank: analysis.evidenceBank as any,
+    academicProfile: state.academicProfile ?? { records: [] },
+    evidenceBank: analysis.evidenceBank as unknown as EvidenceBank,
     personalContext: {
-      coreIdentity: [personalRecord.reportV2.coreIdentity.interpretation].filter(Boolean),
-      motivations: [personalRecord.reportV2.drivingForce.explanation].filter(Boolean),
+      coreIdentity: [personalRecord.reportV2.coreIdentity.interpretation].filter((x): x is string => Boolean(x)),
+      motivations: [personalRecord.reportV2.drivingForce.explanation].filter((x): x is string => Boolean(x)),
       direction: [],
     },
     previousReport: latestRecord?.reportV2 || null,
     lineage: {
       targetProfileVersionId,
       personalReportVersionId: personalRecord.id,
-      sourceAnalysisVersionId: personalRecord.sourceAnalysisVersionId,
-      confirmedSnapshotId: personalRecord.confirmedSnapshotId!,
+      sourceAnalysisVersionId,
+      confirmedSnapshotId,
       evidenceBankVersion: analysis.moduleVersions['evidence']
     },
     programmeFitInput
@@ -167,12 +176,12 @@ export async function generateApplicationMatchingReport(args: {
     reportV2,
     modelName: defaultOpenAIModel(),
     targetProfileVersionId,
-    sourceAnalysisVersionId: personalRecord.sourceAnalysisVersionId,
-    confirmedSnapshotId: personalRecord.confirmedSnapshotId!,
+    sourceAnalysisVersionId,
+    confirmedSnapshotId,
     sourcePersonalReportVersionId: personalRecord.id,
     sourcePersonalReportInputHash: personalRecord.inputHash,
     f5EngineVersion: F5_ENGINE_VERSION,
-    fitDimensions: reportV2.programmeFit.dimensions as any,
+    fitDimensions: reportV2.programmeFit.dimensions as Record<string, unknown>,
     fitEligibility: reportV2.programmeFit.eligibility,
     fitClassification: reportV2.programmeFit.classification,
     fitConfidence: reportV2.programmeFit.confidence,

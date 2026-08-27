@@ -22,9 +22,10 @@ export function useDirectoryNavigation<T extends DirectoryPayload>({
   initialData,
   getPrefetchHrefs,
 }: Options<T>) {
-  const initialHrefRef = useRef(pageHref(pathname, initialData.canonicalSearch));
-  const cacheRef = useRef(new Map<string, T>([[initialHrefRef.current, initialData]]));
-  const lastSuccessfulHrefRef = useRef(initialHrefRef.current);
+  const initialHref = pageHref(pathname, initialData.canonicalSearch);
+  const initialHrefRef = useRef(initialHref);
+  const cacheRef = useRef(new Map<string, T>([[initialHref, initialData]]));
+  const lastSuccessfulHrefRef = useRef(initialHref);
   const abortRef = useRef<AbortController | null>(null);
   const requestRef = useRef(0);
   const [data, setData] = useState(initialData);

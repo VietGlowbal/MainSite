@@ -916,7 +916,6 @@ function CvPaper({
 }) {
   const t = useT();
   const editable = Boolean(onFormChange || onCvChange);
-  const draggedSection = useRef<CvDisplaySectionKey | null>(null);
   const [draggingSection, setDraggingSection] = useState<CvDisplaySectionKey | null>(null);
   const [dropTarget, setDropTarget] = useState<CvDisplaySectionKey | null>(null);
   const hiddenSections = cv.hiddenSections ?? [];
@@ -966,15 +965,14 @@ function CvPaper({
     },
     onDragOver: (event: DragEvent<HTMLElement>) => {
       event.preventDefault();
-      if (draggedSection.current && draggedSection.current !== section)
+      if (draggingSection && draggingSection !== section)
         setDropTarget(section);
     },
     onDrop: (event: DragEvent<HTMLElement>) => {
       event.preventDefault();
-      const dragged = draggedSection.current;
+      const dragged = draggingSection;
       if (dragged && dragged !== section)
         moveSection(dragged, visibleSectionOrder.indexOf(section));
-      draggedSection.current = null;
       setDraggingSection(null);
       setDropTarget(null);
     },
@@ -995,11 +993,9 @@ function CvPaper({
           draggable
           title={t('Drag to reorder')}
           onDragStart={() => {
-            draggedSection.current = section;
             setDraggingSection(section);
           }}
           onDragEnd={() => {
-            draggedSection.current = null;
             setDraggingSection(null);
             setDropTarget(null);
           }}
@@ -1620,6 +1616,7 @@ export function CvBuilderWorkspace({
   );
 
   useEffect(() => {
+    let cancelled = false;
     const saved = localStorage.getItem(storageKey);
     let value: unknown = null;
     try {
@@ -1648,17 +1645,21 @@ export function CvBuilderWorkspace({
           } satisfies CvBuilderDraftStrategyBinding)
         : null,
     );
-    if (restored) {
-      setForm(restored.form);
-      setSelectedDirection(
-        restored.selectedDirection ?? expectedDirection ?? strategy?.chosenDirection ?? '',
-      );
-      setTargetProfile(restored.targetProfile ?? null);
-      setGeneratedCv(restored.generatedCv ?? null);
-      setSourceRecommendationId(restored.sourceRecommendationId ?? null);
-    }
-    setHydrated(true);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (restored) {
+        setForm(restored.form);
+        setSelectedDirection(
+          restored.selectedDirection ?? expectedDirection ?? strategy?.chosenDirection ?? '',
+        );
+        setTargetProfile(restored.targetProfile ?? null);
+        setGeneratedCv(restored.generatedCv ?? null);
+        setSourceRecommendationId(restored.sourceRecommendationId ?? null);
+      }
+      setHydrated(true);
+    });
     return () => {
+      cancelled = true;
       requestGeneration.current += 1;
       controllers.current.forEach((controller) => controller.abort());
       controllers.current = [];
@@ -1822,33 +1823,40 @@ export function CvBuilderWorkspace({
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!strategy) {
-      setSelectedDirection('');
-      resetAiState(false);
-      return;
-    }
-    const directionName = strategy.directionOptions.some(
-      ({ name }) => name === selectedDirection,
-    )
-      ? selectedDirection
-      : strategy.chosenDirection;
-    if (directionName !== selectedDirection) {
-      setSelectedDirection(directionName);
-      resetAiState(false);
-      persistSafeDraft({ selectedDirection: directionName });
-      return;
-    }
-    if (
-      sourceRecommendationId !== strategy.recommendationId ||
-      targetProfile?.strategyProvenance?.selectedDirection !== directionName
-    ) {
-      setTargetProfile(null);
-      setSourceRecommendationId(null);
-      setGeneratedCv(null);
-      setPartial([]);
-      setReview(null);
-      setReviewEvents([]);
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (!strategy) {
+        setSelectedDirection('');
+        resetAiState(false);
+        return;
+      }
+      const directionName = strategy.directionOptions.some(
+        ({ name }) => name === selectedDirection,
+      )
+        ? selectedDirection
+        : strategy.chosenDirection;
+      if (directionName !== selectedDirection) {
+        setSelectedDirection(directionName);
+        resetAiState(false);
+        persistSafeDraft({ selectedDirection: directionName });
+        return;
+      }
+      if (
+        sourceRecommendationId !== strategy.recommendationId ||
+        targetProfile?.strategyProvenance?.selectedDirection !== directionName
+      ) {
+        setTargetProfile(null);
+        setSourceRecommendationId(null);
+        setGeneratedCv(null);
+        setPartial([]);
+        setReview(null);
+        setReviewEvents([]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [
     hydrated,
     persistSafeDraft,

@@ -455,17 +455,16 @@ export function StatementWriter({
     storedVinUni || (!isVinUni && initialAnalysis) ? 'review' : 'edit',
   );
   const [reviewEditing, setReviewEditing] = useState(false);
-  const [workspacePane, setWorkspacePane] = useState<'essay' | 'feedback'>('essay');
+  const [workspacePane, setWorkspacePane] = useState<'essay' | 'feedback'>(requestedWorkspacePane ?? 'essay');
   const analysisAbortRef = useRef<AbortController | null>(null);
   const textRef = useRef(text);
   const promptRef = useRef(essayPrompt);
-  textRef.current = text;
-  promptRef.current = essayPrompt;
+  useEffect(() => {
+    textRef.current = text;
+    promptRef.current = essayPrompt;
+  }, [essayPrompt, text]);
 
   useEffect(() => () => analysisAbortRef.current?.abort(), []);
-  useEffect(() => {
-    if (requestedWorkspacePane) setWorkspacePane(requestedWorkspacePane);
-  }, [requestedWorkspacePane]);
 
   const wordCount = text.split(/\s+/).filter((w) => w.length > 0).length;
   const minimumAnalysisLength = isVinUni ? 200 : isLor ? 80 : 20;

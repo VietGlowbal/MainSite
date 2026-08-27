@@ -72,9 +72,8 @@ beforeEach(() => {
 
 describe('GET /api/applications/[id]/cv/target-profile', () => {
   it('returns 401 without a session', async () => {
-    const { NextResponse } = await import('next/server');
     requireApplicationOwner.mockResolvedValue({
-      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+      response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
     });
 
     const { GET } = await import('../route');
@@ -83,9 +82,8 @@ describe('GET /api/applications/[id]/cv/target-profile', () => {
   });
 
   it('returns 404 for an application the caller does not own', async () => {
-    const { NextResponse } = await import('next/server');
     requireApplicationOwner.mockResolvedValue({
-      response: NextResponse.json({ error: 'Application not found' }, { status: 404 }),
+      response: new Response(JSON.stringify({ error: 'Application not found' }), { status: 404 }),
     });
 
     const { GET } = await import('../route');

@@ -91,7 +91,8 @@ function mapRequirement(requirement: TargetRequirement): CriterionDraft {
       : hard
         ? 'hard'
         : 'unknown';
-  const importance: CriterionImportance = hard ? 'critical' : 'medium';
+  const importance: CriterionImportance =
+    hard ? 'critical' : requirement.status === 'required' ? 'high' : 'medium';
   const description = sourceText ?? requirement.label;
 
   return {
@@ -107,7 +108,7 @@ function mapRequirement(requirement: TargetRequirement): CriterionDraft {
     expectedSignals: tokens(`${requirement.label} ${description}`),
     negativeSignals: [],
     metadata: {
-      importanceSource: hard ? 'source' : 'default',
+      importanceSource: hard || requirement.status === 'required' ? 'source' : 'default',
       targetRequirementId: requirement.id,
       missingInformation: requirement.missingInformation,
     },

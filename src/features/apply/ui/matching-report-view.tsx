@@ -27,7 +27,8 @@ import {
   type BadgeVariant,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { RequirementStatusTrack, GapImpactRanking, EvidenceFlowCard, StrategicSummaryFlow } from './matching-report';
+import { RequirementStatusTrack, GapImpactRanking } from './matching-report';
+import type { EligibilityRow, GapEntry } from '../domain';
 
 /**
  * The Matching Report — six sections, per docs/strategy-reports-spec.md.
@@ -174,7 +175,16 @@ export function MatchingReportView({
           <div className="flex min-w-0 flex-col gap-gb-4xl">
             <section className="flex flex-col gap-gb-xl">
               <h2 className="text-gb-display-xs font-semibold text-fg">Critical Requirements</h2>
-              <RequirementStatusTrack criteria={v2.criticalRequirements as any} data={data as any} t={t} />
+              <RequirementStatusTrack
+                criteria={v2.criticalRequirements.map((r): EligibilityRow => ({
+                  key: r.criterionId,
+                  label: r.criterionId,
+                  status: r.status === 'meets' ? 'met' : r.status === 'does_not_meet' ? 'not_met' : 'unknown',
+                  statusLabel:
+                    r.status === 'meets' ? 'Met' : r.status === 'does_not_meet' ? 'Not met' : 'We could not check this',
+                  blocking: r.status === 'does_not_meet',
+                }))}
+              />
             </section>
             
             <section className="flex flex-col gap-gb-xl">
@@ -184,7 +194,13 @@ export function MatchingReportView({
             
             <section className="flex flex-col gap-gb-xl">
               <h2 className="text-gb-display-xs font-semibold text-fg">Important Gaps</h2>
-              <GapImpactRanking gaps={v2.gaps as any} t={t} />
+              <GapImpactRanking
+                gaps={v2.gaps.map((g): GapEntry => ({
+                  tier: g.severity === 'critical' || g.severity === 'high' ? 'critical' : 'competitive',
+                  dimension: g.type,
+                  text: g.description,
+                }))}
+              />
             </section>
 
             <section className="flex flex-col gap-gb-xl">

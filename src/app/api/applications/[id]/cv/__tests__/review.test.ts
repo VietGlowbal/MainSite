@@ -134,9 +134,8 @@ beforeEach(() => {
 
 describe('POST /api/applications/[id]/cv/review', () => {
   it('returns 401 without a session', async () => {
-    const { NextResponse } = await import('next/server');
     requireApplicationOwner.mockResolvedValue({
-      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+      response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
     });
 
     const { POST } = await import('../review/route');

@@ -131,6 +131,8 @@ export function UniversityExplorerProvider({
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // This effect synchronizes server-provided auth data before children render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShortlist((current) =>
       current.length === initialShortlist.length &&
       current.every((id, index) => id === initialShortlist[index])
