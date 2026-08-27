@@ -4,16 +4,46 @@
 \set user_id 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 \set foreign_id 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 \set removed_payload '{"domainPlanId":"plan:test","readiness":"requires_enrichment","phases":[]}'
-\set plan_payload '{"domainPlanId":"plan:test","readiness":"requires_enrichment","phases":[{"domainNodeId":"phase:test","title":"Phase","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"steps":[{"domainNodeId":"step:test","title":"Step","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"microSteps":[{"domainNodeId":"micro:test","title":"Answer","order":1,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]}]}]}]}'
+\set plan_payload '{"domainPlanId":"plan:test","readiness":"requires_enrichment","phases":[{"domainNodeId":"phase:test","title":"Phase","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"steps":[{"domainNodeId":"step:test","title":"Step","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"microSteps":[{"domainNodeId":"micro:test","title":"Answer","order":1,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]},{"domainNodeId":"micro:second","title":"Second answer","order":2,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]},{"domainNodeId":"micro:third","title":"Third answer","order":3,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]}]}]}]}'
 
 SELECT set_config('planner.test.app_id', :'app_id', false);
 SELECT set_config('planner.test.foreign_id', :'foreign_id', false);
 SELECT set_config('planner.test.plan_payload', :'plan_payload', false);
 SET ROLE service_role;
 SELECT public.reconcile_canonical_application_plan(:'app_id'::uuid, :'plan_payload'::jsonb);
+DO $$ DECLARE v_step_id UUID; v_micro_ids TEXT[]; BEGIN
+  SELECT id INTO v_step_id FROM public.application_plan_steps WHERE domain_node_id = 'step:test' AND archived_at IS NULL;
+  SELECT array_agg(id::text ORDER BY domain_node_id) INTO v_micro_ids
+  FROM public.application_plan_micro_steps
+  WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third') AND archived_at IS NULL;
+  IF v_step_id IS NULL OR COALESCE(cardinality(v_micro_ids), 0) <> 3
+    OR EXISTS (
+      SELECT 1 FROM public.application_plan_micro_steps
+      WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third')
+        AND step_id IS DISTINCT FROM v_step_id
+    ) THEN
+    RAISE EXCEPTION 'multi-micro-step reconciliation used an incorrect parent step';
+  END IF;
+  PERFORM set_config('planner.test.step_id', v_step_id::text, false);
+  PERFORM set_config('planner.test.micro_ids', array_to_string(v_micro_ids, ','), false);
+END $$;
 SELECT public.reconcile_canonical_application_plan(:'app_id'::uuid, :'plan_payload'::jsonb);
-DO $$ BEGIN
+DO $$ DECLARE v_micro_ids TEXT[]; BEGIN
   IF (SELECT count(*) FROM public.application_plans WHERE application_id = current_setting('planner.test.app_id')::uuid AND archived_at IS NULL) <> 1 THEN RAISE EXCEPTION 'duplicate active plan'; END IF;
+  IF (SELECT count(*) FROM public.application_plan_micro_steps WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third') AND archived_at IS NULL) <> 3 THEN RAISE EXCEPTION 'duplicate active micro-steps'; END IF;
+  IF (SELECT count(DISTINCT step_id) FROM public.application_plan_micro_steps WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third') AND archived_at IS NULL) <> 1
+    OR EXISTS (
+      SELECT 1 FROM public.application_plan_micro_steps
+      WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third')
+        AND archived_at IS NULL
+        AND step_id <> current_setting('planner.test.step_id')::uuid
+    ) THEN
+    RAISE EXCEPTION 'micro-steps no longer reference the canonical parent step';
+  END IF;
+  SELECT array_agg(id::text ORDER BY domain_node_id) INTO v_micro_ids
+  FROM public.application_plan_micro_steps
+  WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third') AND archived_at IS NULL;
+  IF v_micro_ids IS DISTINCT FROM string_to_array(current_setting('planner.test.micro_ids'), ',') THEN RAISE EXCEPTION 'reconciliation changed stable micro-step ids'; END IF;
 END $$;
 
 -- Feedback uses the generated target key and a real database upsert, so two
@@ -58,7 +88,13 @@ END $$;
 
 SELECT public.reconcile_canonical_application_plan(:'app_id'::uuid, :'removed_payload'::jsonb);
 DO $$ BEGIN
-  IF (SELECT archived_at IS NULL FROM public.application_plan_micro_steps WHERE domain_node_id = 'micro:test') THEN RAISE EXCEPTION 'removed node was not archived'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.application_plan_micro_steps
+    WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third') AND archived_at IS NULL
+  ) THEN RAISE EXCEPTION 'removed micro-step was not archived'; END IF;
+  IF (SELECT count(*) FROM public.application_plan_micro_steps WHERE domain_node_id IN ('micro:test', 'micro:second', 'micro:third') AND archived_at IS NOT NULL) <> 3 THEN RAISE EXCEPTION 'removed micro-step archive count was incorrect'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.application_plan_steps WHERE domain_node_id = 'step:test' AND archived_at IS NOT NULL) THEN RAISE EXCEPTION 'removed step was not archived'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.application_plan_phases WHERE domain_node_id = 'phase:test' AND archived_at IS NOT NULL) THEN RAISE EXCEPTION 'removed phase was not archived'; END IF;
 END $$;
 
 -- A failing reconciliation rolls back the whole function statement.

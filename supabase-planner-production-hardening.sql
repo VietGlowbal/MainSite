@@ -171,6 +171,7 @@ DECLARE
   v_plan_id uuid;
   v_phase_id uuid;
   v_step_id uuid;
+  v_micro_id uuid;
   v_phase jsonb;
   v_step jsonb;
   v_micro jsonb;
@@ -247,8 +248,8 @@ BEGIN
             content_schema = EXCLUDED.content_schema,
             source_decision_ids = EXCLUDED.source_decision_ids, source_provenances = EXCLUDED.source_provenances,
             archived_at = NULL, updated_at = v_now
-          RETURNING id INTO v_step_id;
-        v_micro_keys := array_append(v_micro_keys, v_step_id::text);
+          RETURNING id INTO v_micro_id;
+        v_micro_keys := array_append(v_micro_keys, v_micro_id::text);
       END LOOP;
     END LOOP;
   END LOOP;
