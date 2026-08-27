@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 // One implementation of the F5 weights + match-percentage formula, shared with
 // the deterministic evaluation module â€” the plan's "one helper and one formula
 // everywhere" invariant. features â†’ shared is the allowed FSD direction.
@@ -208,6 +208,7 @@ export type MatchingAnalysisView = {
   inputHash: string | null;
   strengths: string[];
   weaknesses: string[];
+  reportV2?: import('@/lib/ai/matching/domain').MatchingReportV2 | null;
 };
 
 export type MatchingApplicationSummary = {

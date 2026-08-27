@@ -263,3 +263,59 @@ describe('wording guarantees', () => {
     }
   });
 });
+
+import type { MatchingReportV2 } from '@/lib/ai/matching/domain';
+import { getV2Sections } from './matching-report-presentation';
+
+describe('V2 Presentation Adapter', () => {
+  it('maps V2 sections correctly, separating missing evidence from regular gaps', () => {
+    const mockReport: MatchingReportV2 = {
+      contractVersion: 'matching-report-v2',
+      generatedAt: '2026-08-27T00:00:00Z',
+      overall: {
+        summary: 'summary',
+        summaryCriterionIds: [],
+        summaryEvidenceIds: [],
+        strongestAlignment: [],
+        mostImportantGaps: [],
+        evidenceCoverage: 80,
+        fitScore: 85,
+        fitLabel: 'strong_current_alignment',
+      },
+      criteria: [],
+      academicRequirements: [
+        { criterionId: 'hard1', status: 'does_not_meet', applicantValue: null, requiredValue: null, evidenceIds: [], explanation: 'bad' }
+      ],
+      programmeAlignment: [],
+      strengths: [
+        { id: 'str1', title: 'Strength 1', description: 'desc', criterionIds: [], evidenceIds: [], strength: 'high', whyItMatters: 'why', positioningUse: null }
+      ],
+      gaps: [
+        { id: 'gap1', type: 'capability_gap', title: 'Real Gap', description: 'desc', criterionIds: [], currentEvidenceIds: [], severity: 'critical', fixability: 'low', evidenceNeeded: [], whyItMatters: 'why', priority: 1 },
+        { id: 'gap2', type: 'missing_evidence', title: 'Need Proof', description: 'desc', criterionIds: [], currentEvidenceIds: [], severity: 'medium', fixability: 'high', evidenceNeeded: ['test score'], whyItMatters: 'why', priority: 2 },
+        { id: 'gap3', type: 'weak_evidence', title: 'Weak Proof', description: 'desc', criterionIds: [], currentEvidenceIds: [], severity: 'medium', fixability: 'high', evidenceNeeded: ['better project'], whyItMatters: 'why', priority: 3 }
+      ],
+      positioningOpportunities: [],
+      scholarshipAlignment: { criteria: [], strengths: [], gaps: [] },
+      programmeFit: makeFit(),
+      dependencyIndex: {},
+      metadata: {} as any
+    };
+
+    const sections = getV2Sections(mockReport);
+    
+    expect(sections.snapshot.fitScore).toBe(85);
+    expect(sections.criticalRequirements.length).toBe(1);
+    expect(sections.strengths.length).toBe(1);
+    
+    // Gaps should exclude missing/weak evidence
+    expect(sections.gaps.length).toBe(1);
+    expect(sections.gaps[0].type).toBe('capability_gap');
+    
+    // Evidence needed should include missing and weak evidence
+    expect(sections.evidenceNeeded.length).toBe(2);
+    expect(sections.evidenceNeeded.map(g => g.type)).toEqual(['missing_evidence', 'weak_evidence']);
+    
+    expect(sections.scholarship).toBeDefined();
+  });
+});

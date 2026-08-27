@@ -1,5 +1,5 @@
-﻿/**
- * apply â€” domain logic.
+/**
+ * apply — domain logic.
  *
  * Pure functions and types: no I/O, no React, no framework imports. Everything
  * here must be unit-testable without a database or a DOM.
@@ -285,6 +285,7 @@ export {
   overallMatchPercent,
   readinessPercent,
   tieredGaps,
+  getV2Sections,
 } from './matching-report-presentation';
 export type {
   AlignmentLevel,
@@ -332,3 +333,4 @@ export type {
   Readiness,
   ReadinessState,
 } from './final-check';
+

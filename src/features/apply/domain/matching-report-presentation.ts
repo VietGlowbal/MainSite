@@ -279,3 +279,17 @@ export function matchSummary(fit: ProgrammeFit): MatchSummary {
     blockingRequirements: eligibilityRows(fit).filter((row) => row.blocking),
   };
 }
+import type { MatchingReportV2, HardRequirementMatch, MatchingStrength, MatchingGap, PositioningOpportunity, FitSignal } from '@/lib/ai/matching/domain';
+
+export function getV2Sections(report: MatchingReportV2) {
+  return {
+    snapshot: report.overall,
+    criticalRequirements: report.academicRequirements,
+    strengths: report.strengths,
+    gaps: report.gaps.filter(g => g.type !== 'missing_evidence' && g.type !== 'weak_evidence'),
+    criteriaBreakdown: report.programmeAlignment,
+    opportunities: report.positioningOpportunities,
+    scholarship: report.scholarshipAlignment,
+    evidenceNeeded: report.gaps.filter(g => g.type === 'missing_evidence' || g.type === 'weak_evidence')
+  };
+}

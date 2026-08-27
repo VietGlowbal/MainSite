@@ -1,5 +1,6 @@
 'use client';
 
+import { getV2Sections } from '../domain';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
@@ -26,6 +27,7 @@ import {
   type BadgeVariant,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { RequirementStatusTrack, GapImpactRanking, EvidenceFlowCard, StrategicSummaryFlow } from './matching-report';
 
 /**
  * The Matching Report — six sections, per docs/strategy-reports-spec.md.
@@ -147,7 +149,75 @@ export function MatchingReportView({
 
   const fit = analysis.fit;
   const summary = matchSummary(fit);
+  
+  if (analysis.reportV2) {
+    const v2 = getV2Sections(analysis.reportV2);
+    
+    return (
+      <div className="flex flex-col gap-gb-4xl" data-no-auto-translate>
+        <ReportHeader
+          data={data}
+          summary={summary}
+          busy={busy}
+          onGenerate={generate}
+          t={t}
+        />
+
+        {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
+        {nextAt ? (
+          <p className="text-gb-xs text-fg-muted">
+            {t('Next free generation')}: {new Date(nextAt).toLocaleString('vi-VN')}
+          </p>
+        ) : null}
+
+        <div className="grid gap-gb-3xl lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+          <div className="flex min-w-0 flex-col gap-gb-4xl">
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">Critical Requirements</h2>
+              <RequirementStatusTrack criteria={v2.criticalRequirements as any} data={data as any} t={t} />
+            </section>
+            
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">Strongest Alignment Areas</h2>
+              {v2.strengths.map(s => <div key={s.id}>{s.title}</div>)}
+            </section>
+            
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">Important Gaps</h2>
+              <GapImpactRanking gaps={v2.gaps as any} t={t} />
+            </section>
+
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">Programme Criteria Breakdown</h2>
+              {v2.criteriaBreakdown.map(c => <div key={c.criterionId}>{c.criterionLabel}</div>)}
+            </section>
+
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">Positioning Opportunities</h2>
+              {v2.opportunities.map(o => <div key={o.id}>{o.title}</div>)}
+            </section>
+
+            {v2.scholarship && (
+              <section className="flex flex-col gap-gb-xl">
+                <h2 className="text-gb-display-xs font-semibold text-fg">Scholarship Alignment</h2>
+                {v2.scholarship.criteria.map(c => <div key={c.criterionId}>{c.criterionLabel}</div>)}
+              </section>
+            )}
+
+            <section className="flex flex-col gap-gb-xl">
+              <h2 className="text-gb-display-xs font-semibold text-fg">Evidence That Would Improve This Assessment</h2>
+              {v2.evidenceNeeded.map(g => <div key={g.id}>{g.title}</div>)}
+            </section>
+
+          </div>
+          <SourcesAside data={data} analysis={analysis} t={t} />
+        </div>
+      </div>
+    );
+  }
+
   const rows = fitRows(fit);
+
   const gaps = tieredGaps(fit);
   const criteria = eligibilityRows(fit);
   const unchecked = rows.filter((row) => !row.assessed);
@@ -799,3 +869,4 @@ function SourcesAside({
     </aside>
   );
 }
+
