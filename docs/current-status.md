@@ -14,8 +14,7 @@ retries only the PostgREST missing-`guidance` projection errors, so a deploy
 that reaches Vercel before the dashboard migration does not take the Planner
 down. Measured locally: focused Planner Vitest 57/57, base and strict
 TypeScript, lint, the CI-placeholder production build, and `git diff --check`
-passed. The i18n audit has two existing missing literals in
-`src/features/apply/api/personal-report-generation.ts`; the new Planner string
+passed. The i18n audit reports 0 missing static keys; the new Planner string
 is catalog-backed. PR #220's Planner Tests and real PostgreSQL Planner DB
 integration passed. Its initial static/aggregate CI failure came from nine
 `response is possibly undefined` test-only errors in
