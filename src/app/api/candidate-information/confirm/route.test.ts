@@ -174,6 +174,26 @@ describe('POST /api/candidate-information/confirm', () => {
     expect(body.snapshotId).toBe('snap-legacy-review');
   });
 
+  it('returns an actionable response when saved evidence cannot form a snapshot', async () => {
+    mocks.loadCandidateReflection.mockResolvedValue({
+      reflection: {
+        ...READY_REFLECTION,
+        activities: [{ category: 'legacy-category', title: 'Imported activity' }],
+      } as never,
+      documents: [],
+      confirmedAt: null,
+    });
+
+    const { POST } = await import('./route');
+    const response = await POST(request());
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body.error).toBe('INVALID_CANDIDATE_DATA');
+    expect(body.message).toMatch(/return to Experiences/i);
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
+
   it('creates a snapshot and locks the profile when ready', async () => {
     mocks.loadCandidateReflection.mockResolvedValue({
       reflection: READY_REFLECTION,

@@ -162,7 +162,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const payload = candidateSnapshotPayloadSchema.parse({
+  const payloadResult = candidateSnapshotPayloadSchema.safeParse({
     reflection,
     documents: documents.map((document) => ({
       id: document.id,
@@ -179,6 +179,23 @@ export async function POST(request: Request) {
         }
       : {}),
   });
+  if (!payloadResult.success) {
+    logger.warn('candidate_confirmation', {
+      userId: user.id,
+      applicationId,
+      stage: 'validated',
+      outcome: 'not_ready',
+      durationMs: getElapsed(),
+    });
+    return NextResponse.json(
+      {
+        error: 'INVALID_CANDIDATE_DATA',
+        message: 'Some saved experience data needs updating. Please return to Experiences and press Continue again.',
+      },
+      { status: 422 },
+    );
+  }
+  const payload = payloadResult.data;
 
   const nowIso = new Date().toISOString();
   const payloadHash = hashCandidateSnapshotPayload(payload);
