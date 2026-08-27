@@ -13,10 +13,15 @@ service-role grant, and `v_micro_id` handling remain intact. The code also
 retries only the PostgREST missing-`guidance` projection errors, so a deploy
 that reaches Vercel before the dashboard migration does not take the Planner
 down. Measured locally: focused Planner Vitest 57/57, base and strict
-TypeScript, and `git diff --check` passed. The i18n audit has two existing
-missing literals in `src/features/apply/api/personal-report-generation.ts`;
-the new Planner string is catalog-backed. PostgreSQL integration remains for
-CI because `psql` is unavailable locally.
+TypeScript, lint, the CI-placeholder production build, and `git diff --check`
+passed. The i18n audit has two existing missing literals in
+`src/features/apply/api/personal-report-generation.ts`; the new Planner string
+is catalog-backed. PR #220's Planner Tests and real PostgreSQL Planner DB
+integration passed. Its static/aggregate CI gates remain blocked by nine
+pre-existing `response is possibly undefined` type errors in
+`src/app/api/ai-strategy/personal-report/route.test.ts`; `origin/main` has the
+identical file and its recent CI runs fail the same gate. PostgreSQL integration
+was not run locally because `psql` is unavailable.
 
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
