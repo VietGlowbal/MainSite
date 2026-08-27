@@ -109,7 +109,7 @@ describe('ReviewConfirmView read-only mode', () => {
     const reviewLinks = screen.getAllByRole('link', { name: 'Review' });
     expect(reviewLinks[0]).toHaveAttribute(
       'href',
-      `/ai-strategy/reflection/achievements?return=${encodeURIComponent('/apply/app-test')}`,
+      `/ai-strategy/reflection/achievements?return=${encodeURIComponent('/apply/app-test')}&review=1`,
     );
   });
 });
