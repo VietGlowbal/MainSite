@@ -56,4 +56,19 @@ describe('POST /api/cron/process-personal-report-generation', () => {
     expect(mocks.retry).toHaveBeenCalledWith('job-1', 2, 'AI_GENERATION_FAILED', 'invalid response');
     expect(mocks.block).toHaveBeenCalledWith('job-2', 'NOT_CONFIGURED', expect.any(String));
   });
+
+  it('blocks a job with no evidence instead of retrying it forever', async () => {
+    const { POST } = await import('./route');
+    mocks.claim.mockResolvedValue([JOB]);
+    mocks.regenerate.mockResolvedValue({ status: 'insufficient_evidence' });
+
+    await POST(new Request('http://localhost/api/cron/process-personal-report-generation'));
+
+    expect(mocks.block).toHaveBeenCalledWith(
+      'job-1',
+      'INSUFFICIENT_EVIDENCE',
+      expect.stringContaining('Add reflections'),
+    );
+    expect(mocks.retry).not.toHaveBeenCalled();
+  });
 });

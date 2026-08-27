@@ -69,6 +69,7 @@ export type RegeneratePersonalReportResult =
   | { status: 'cached'; record: PersonalReportV2Record }
   | { status: 'regenerated'; record: PersonalReportV2Record }
   | { status: 'snapshot_missing' }
+  | { status: 'insufficient_evidence' }
   | { status: 'migration_missing' }
   | { status: 'not_configured' }
   | { status: 'error'; message: string; record: PersonalReportV2Record | null };
@@ -387,6 +388,16 @@ async function regenerateApplicationPersonalReport(
     generatedAt,
     evidenceBank,
   });
+  if (
+    !deterministicReport.coreIdentity.available &&
+    !deterministicReport.drivingForce.available &&
+    !deterministicReport.signaturePattern.available &&
+    !deterministicReport.emergingThemes.available &&
+    !deterministicReport.personalPositioning.available &&
+    !deterministicReport.proofOfMe.available
+  ) {
+    return { status: 'insufficient_evidence' };
+  }
   const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };
