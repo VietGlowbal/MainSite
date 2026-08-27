@@ -44,6 +44,7 @@ describe('compilePlan', () => {
         }],
       }],
     });
+    expect(plan.phases[0]?.steps[0]?.microSteps[0]?.guidance).toContain('document a resolution');
   });
 
   it('keeps missing information unresolved instead of fabricating downstream actions', () => {

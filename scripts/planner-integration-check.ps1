@@ -2,7 +2,7 @@ param([Parameter(Mandatory = $true)][string]$DatabaseUrl)
 $psql = Get-Command psql -ErrorAction SilentlyContinue
 if (-not $psql) { throw 'psql is required. Install PostgreSQL/Supabase CLI and rerun against a disposable database; production is never touched.' }
 $root = Split-Path -Parent $PSScriptRoot
-$migrations = @('supabase-core3-plan-hierarchy.sql','supabase-canonical-planner-production.sql','supabase-planner-ops.sql','supabase-planner-production-hardening.sql','supabase-planner-production-hardening-multi-microstep-fix.sql')
+$migrations = @('supabase-core3-plan-hierarchy.sql','supabase-canonical-planner-production.sql','supabase-planner-ops.sql','supabase-planner-production-hardening.sql','supabase-planner-production-hardening-multi-microstep-fix.sql','supabase-planner-micro-step-guidance.sql')
 & $psql.Source $DatabaseUrl --set ON_ERROR_STOP=1 --file (Join-Path $PSScriptRoot 'planner-integration-bootstrap.sql')
 if ($LASTEXITCODE -ne 0) { throw 'Integration bootstrap failed.' }
 foreach ($migration in $migrations) {

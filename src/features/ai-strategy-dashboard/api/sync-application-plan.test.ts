@@ -23,7 +23,7 @@ const compiledPlan: PlanResult = {
 
 type Write = { table: string; kind: 'insert' | 'update'; payload: Record<string, unknown>; filters: [string, unknown][] };
 
-function fakeSupabase(rows: Record<string, Record<string, unknown>[]> = {}) {
+function fakeSupabase(rows: Record<string, Record<string, unknown>[]> = {}, options?: { missingGuidance?: boolean }) {
   const calls: { table: string; filters: [string, unknown][] }[] = [];
   const writes: Write[] = [];
   const rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
@@ -35,9 +35,10 @@ function fakeSupabase(rows: Record<string, Record<string, unknown>[]> = {}) {
     const filters: [string, unknown][] = [];
     let kind: 'select' | 'insert' | 'update' = 'select';
     let payload: Record<string, unknown> = {};
+    let selected = '';
     const response = () => ({ data: rows[table] ?? [], error: null });
     const builder = {
-      select: () => builder,
+      select: (columns?: string) => { selected = columns ?? ''; return builder; },
       eq: (column: string, value: unknown) => {
         filters.push([column, value]);
         if (kind === 'update') {
@@ -47,7 +48,14 @@ function fakeSupabase(rows: Record<string, Record<string, unknown>[]> = {}) {
         return builder;
       },
       is: (column: string, value: unknown) => { filters.push([column, value]); return builder; },
-      in: (column: string, value: unknown) => { filters.push([column, value]); return Promise.resolve(response()); },
+      in: (column: string, value: unknown) => {
+        filters.push([column, value]);
+        return Promise.resolve(table === 'application_plan_micro_steps' && options?.missingGuidance && selected.includes('guidance')
+          ? { data: null, error: { code: '42703', message: 'column guidance does not exist' } }
+          : table === 'application_plan_micro_steps' && options?.missingGuidance
+            ? { data: (rows[table] ?? []).map(({ guidance: _guidance, ...row }) => row), error: null }
+            : response());
+      },
       maybeSingle: async () => ({ data: (rows[table] ?? (table === 'course_applications' ? [{ id: 'application-1' }] : []))[0] ?? null, error: null }),
       single: async () => ({ data: (rows[table] ?? [])[0] ?? null, error: null }),
       insert: (next: Record<string, unknown>) => {
@@ -139,11 +147,27 @@ describe('syncApplicationPlan', () => {
     expect(payload.phases[0]?.steps[0]?.microSteps).toEqual([{
       domainNodeId: 'micro-step:planner-inputs:availability',
       title: 'Record when you are available',
+      guidance: 'Complete this task: Record when you are available Review the related step, then mark it complete when you have finished.',
       order: 1,
       readiness: 'requires_enrichment',
       contentSchema: { type: 'long_text', prompt: 'When can you work?', semanticKey: 'planner.availability' },
       sourceDecisionIds: [],
       sourceProvenances: [],
     }]);
+  });
+
+  it('uses the legacy projection only for a missing guidance column before the migration runs', async () => {
+    mockedGetApplicationPlan.mockResolvedValue({ plan: compiledPlan, enriched: false });
+    const fake = fakeSupabase({
+      application_plans: [{ id: 'db-plan', application_id: 'application-1', producer: 'core3_deterministic', domain_plan_id: compiledPlan.id, readiness: compiledPlan.readiness, archived_at: null }],
+      application_plan_phases: [{ id: 'db-phase', plan_id: 'db-plan', domain_node_id: 'phase:blockers', title: 'Resolve blockers', objective: 'Remove blocker.', sort_order: 1, source_decision_ids: ['decision:eligibility'], source_provenances: ['database_factual'], archived_at: null }],
+      application_plan_steps: [{ id: 'db-step', phase_id: 'db-phase', domain_node_id: 'step:blockers:eligibility', title: 'Resolve eligibility', objective: 'Meet rule.', sort_order: 1, source_decision_ids: ['decision:eligibility'], source_provenances: ['database_factual'], archived_at: null }],
+      application_plan_micro_steps: [{ id: 'db-micro', step_id: 'db-step', domain_node_id: 'micro-step:blockers:eligibility:detail', title: 'Collect evidence', sort_order: 1, readiness: 'requires_enrichment', content_schema: null, source_decision_ids: ['decision:eligibility'], source_provenances: ['database_factual'], status: 'not_started', deadline: null, content_value: null, execution_evidence: [], archived_at: null }],
+    }, { missingGuidance: true });
+
+    await expect(syncApplicationPlan(fake.client, 'application-1', 'user-1')).resolves.toEqual({ inserted: 0, updated: 1, restored: 0, archived: 0 });
+    expect(fake.calls.filter((call) => call.table === 'application_plan_micro_steps')).toHaveLength(3);
+    expect(fake.writes.find((write) => write.table === 'application_plan_micro_steps')?.payload.guidance)
+      .toBe('Complete this task: Collect evidence Review the related step, then mark it complete when you have finished.');
   });
 });

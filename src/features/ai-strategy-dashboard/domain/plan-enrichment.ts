@@ -31,6 +31,7 @@ const enrichmentSchema = z.object({
       microSteps: z.array(z.object({
         clientKey,
         title: text,
+        guidance: z.string().trim().min(3).max(500).optional(),
         contentSchema: contentSchema.nullable().optional(),
       }).strict()).min(1).max(6),
     }).strict()).min(1).max(6),
@@ -126,6 +127,7 @@ function enrichedStep(
     microSteps: proposal.microSteps.map((micro, microOrder) => ({
       id: `ai:${stable(decisionId)}:micro:${proposal.clientKey}:${micro.clientKey}`,
       title: micro.title,
+      guidance: micro.guidance ?? `Complete this task: ${micro.title} ${proposal.objective}`,
       order: microOrder + 1,
       readiness: micro.contentSchema ? 'requires_user_input' : 'requires_enrichment',
       contentSchema: (micro.contentSchema ?? null) as ContentBlock | null,

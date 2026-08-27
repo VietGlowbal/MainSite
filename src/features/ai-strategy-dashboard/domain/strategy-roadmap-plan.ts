@@ -83,6 +83,7 @@ function mergeMissingAvailabilityInputs(plan: PlanResult, inputs: readonly Plann
           return {
             id: detail.id,
             title: detail.title,
+            guidance: detail.prompt,
             order: detail.order,
             readiness: 'requires_user_input' as const,
             contentSchema: { type: 'long_text' as const, prompt: detail.prompt, semanticKey },
@@ -124,6 +125,7 @@ function f8Phases(
         microSteps: uniqueDeliverables(phase.deliverables).map((deliverable, index) => ({
           id: `micro-step:strategy-roadmap:${phase.phaseKey}:${deliverable.key}`,
           title: deliverable.label,
+          guidance: `Complete this deliverable: ${deliverable.label} ${phase.objective}`,
           order: index + 1,
           readiness: 'requires_enrichment' as const,
           contentSchema: phase.successCriteria.length
@@ -161,6 +163,7 @@ function f7Phases(
       microSteps: priorities.map((priority, index) => ({
         id: `micro-step:strategy-roadmap:legacy:${fnv1a(priority)}`,
         title: priority,
+        guidance: `Complete this strategy priority: ${priority} ${roadmap.data.roadmap.why}`,
         order: index + 1,
         readiness: 'requires_enrichment' as const,
         contentSchema: null,

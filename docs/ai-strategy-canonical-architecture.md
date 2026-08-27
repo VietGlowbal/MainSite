@@ -391,9 +391,14 @@ parent step UUID used by subsequent micro-steps. It must not be the final
 reconciler after production hardening because it predates hardening's
 application lock and content-value compatibility logic. The complete current
 sequence is Core 3 hierarchy → canonical production → Planner Ops → production
-hardening → `supabase-planner-production-hardening-multi-microstep-fix.sql`.
-That terminal, forward-only repair retains hardening behaviour while preserving
-the parent step UUID through every micro-step insert.
+hardening → `supabase-planner-production-hardening-multi-microstep-fix.sql` →
+`supabase-planner-micro-step-guidance.sql`. The multi-microstep repair retains
+hardening behaviour while preserving the parent step UUID through every
+micro-step insert. The final guidance migration adds nullable planning-owned
+`guidance` and reinstalls that hardened implementation as the final reconciler;
+it never overwrites student execution fields. Readers tolerate the brief
+dashboard-migration-before-code-deploy skew only for a verified missing
+`guidance` column and render a deterministic legacy fallback until refresh.
 
 The active Planner route now selects deliberately between two non-merged data
 models: an application with an active canonical plan renders

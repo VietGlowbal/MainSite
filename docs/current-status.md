@@ -1,22 +1,22 @@
 # Current project status
 
-Working tree 2026-08-27: fixed the terminal hardened canonical Planner
-reconciler so micro-step inserts collect their IDs in `v_micro_id` and never
-overwrite the parent `v_step_id`. Added
-`supabase-planner-production-hardening-multi-microstep-fix.sql` as the
-forward-only repair for databases where hardening was already applied; it keeps
-hardening's application lock, content-value compatibility/reset rules,
-archiving, and service-role grant. The real PostgreSQL harness now reconciles
-three sibling micro-steps and checks their common parent, stable IDs,
-execution-state preservation, schema-reset behavior, archiving, and atomic
-rollback. The required hardened sequence is Core 3 hierarchy → canonical
-production → Planner Ops → production hardening → the terminal hardening
-multi-microstep repair; the earlier canonical repair is pre-hardening only.
-Measured locally: Planner Vitest 48 files / 476 tests, migration Vitest 3/3,
-base and strict TypeScript, ESLint, `git diff --check`, and production build
-all passed. The build used placeholder Supabase configuration and logged its
-expected unreachable-placeholder fetches while exiting 0. PostgreSQL
-integration remains for CI because `psql` is unavailable locally.
+Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
+planning-owned student guidance, shown immediately in the hierarchical List
+and in the task detail’s “What to do” panel. New and refreshed deterministic,
+roadmap, and optional enrichment tasks supply specific guidance; legacy rows
+without the new field safely show a deterministic fallback until they next
+reconcile. `supabase-planner-micro-step-guidance.sql` is a forward-only
+terminal migration after the hardened multi-microstep repair. It adds nullable
+`guidance` without changing execution state and installs the final hardened
+reconciler: application lock, content compatibility/reset, archiving,
+service-role grant, and `v_micro_id` handling remain intact. The code also
+retries only the PostgREST missing-`guidance` projection errors, so a deploy
+that reaches Vercel before the dashboard migration does not take the Planner
+down. Measured locally: focused Planner Vitest 57/57, base and strict
+TypeScript, and `git diff --check` passed. The i18n audit has two existing
+missing literals in `src/features/apply/api/personal-report-generation.ts`;
+the new Planner string is catalog-backed. PostgreSQL integration remains for
+CI because `psql` is unavailable locally.
 
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 

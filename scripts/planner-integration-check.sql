@@ -4,7 +4,7 @@
 \set user_id 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 \set foreign_id 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 \set removed_payload '{"domainPlanId":"plan:test","readiness":"requires_enrichment","phases":[]}'
-\set plan_payload '{"domainPlanId":"plan:test","readiness":"requires_enrichment","phases":[{"domainNodeId":"phase:test","title":"Phase","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"steps":[{"domainNodeId":"step:test","title":"Step","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"microSteps":[{"domainNodeId":"micro:test","title":"Answer","order":1,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]},{"domainNodeId":"micro:second","title":"Second answer","order":2,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]},{"domainNodeId":"micro:third","title":"Third answer","order":3,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]}]}]}]}'
+\set plan_payload '{"domainPlanId":"plan:test","readiness":"requires_enrichment","phases":[{"domainNodeId":"phase:test","title":"Phase","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"steps":[{"domainNodeId":"step:test","title":"Step","objective":"Objective","order":1,"sourceDecisionIds":[],"sourceProvenances":[],"microSteps":[{"domainNodeId":"micro:test","title":"Answer","guidance":"Write the requested answer with official supporting detail.","order":1,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]},{"domainNodeId":"micro:second","title":"Second answer","guidance":"Provide the second answer independently.","order":2,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]},{"domainNodeId":"micro:third","title":"Third answer","guidance":"Provide the third answer independently.","order":3,"readiness":"requires_user_input","contentSchema":{"type":"long_text","prompt":"Explain"},"sourceDecisionIds":[],"sourceProvenances":[]}]}]}]}'
 
 SELECT set_config('planner.test.app_id', :'app_id', false);
 SELECT set_config('planner.test.foreign_id', :'foreign_id', false);
@@ -23,6 +23,10 @@ DO $$ DECLARE v_step_id UUID; v_micro_ids TEXT[]; BEGIN
         AND step_id IS DISTINCT FROM v_step_id
     ) THEN
     RAISE EXCEPTION 'multi-micro-step reconciliation used an incorrect parent step';
+  END IF;
+  IF (SELECT guidance FROM public.application_plan_micro_steps WHERE domain_node_id = 'micro:test')
+      <> 'Write the requested answer with official supporting detail.' THEN
+    RAISE EXCEPTION 'micro-step guidance was not persisted';
   END IF;
   PERFORM set_config('planner.test.step_id', v_step_id::text, false);
   PERFORM set_config('planner.test.micro_ids', array_to_string(v_micro_ids, ','), false);
@@ -72,10 +76,11 @@ END $$;
 UPDATE public.application_plan_micro_steps
 SET status = 'completed', deadline = '2026-10-01', content_value = '{"type":"long_text","text":"student answer"}'::jsonb, execution_evidence = '[{"id":"evidence-1"}]'::jsonb
 WHERE domain_node_id = 'micro:test';
-SELECT public.reconcile_canonical_application_plan(:'app_id'::uuid, replace(:'plan_payload', '"title":"Answer"', '"title":"Answer revised"')::jsonb);
-DO $$ DECLARE v_status TEXT; v_deadline DATE; v_value JSONB; v_evidence JSONB; BEGIN
-  SELECT status, deadline, content_value, execution_evidence INTO v_status, v_deadline, v_value, v_evidence FROM public.application_plan_micro_steps WHERE domain_node_id = 'micro:test';
+SELECT public.reconcile_canonical_application_plan(:'app_id'::uuid, replace(replace(:'plan_payload', '"title":"Answer"', '"title":"Answer revised"'), '"guidance":"Write the requested answer with official supporting detail."', '"guidance":"Revise the answer using the official evidence you collected."')::jsonb);
+DO $$ DECLARE v_status TEXT; v_deadline DATE; v_value JSONB; v_evidence JSONB; v_guidance TEXT; BEGIN
+  SELECT status, deadline, content_value, execution_evidence, guidance INTO v_status, v_deadline, v_value, v_evidence, v_guidance FROM public.application_plan_micro_steps WHERE domain_node_id = 'micro:test';
   IF v_status <> 'completed' OR v_deadline <> '2026-10-01'::date OR v_value->>'text' <> 'student answer' OR jsonb_array_length(v_evidence) <> 1 THEN RAISE EXCEPTION 'execution state was overwritten'; END IF;
+  IF v_guidance <> 'Revise the answer using the official evidence you collected.' THEN RAISE EXCEPTION 'reconciliation did not update micro-step guidance'; END IF;
 END $$;
 
 -- Incompatible schema changes cannot retain a completed value.

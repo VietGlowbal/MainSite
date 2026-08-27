@@ -1,5 +1,5 @@
 import type { ContentBlock, ContentBlockValue } from '@/lib/match-insights';
-import type { PlanMicroStep, PlanNodeReadiness, PlanNodeProvenance, PlanPhase, PlanReadiness, PlanResult, PlanStep } from './plan';
+import { plannerMicroStepGuidance, type PlanMicroStep, type PlanNodeReadiness, type PlanNodeProvenance, type PlanPhase, type PlanReadiness, type PlanResult, type PlanStep } from './plan';
 import { isCompleteContentValue, isContentValueCompatible } from './recommendation';
 import { isPlannerAvailabilityInputKey } from './planning-context';
 
@@ -39,6 +39,7 @@ export type PersistedPlanStep = PersistedPlanningFields & {
 export type PersistedPlanMicroStep = PersistedPlanningFields & {
   stepId: string;
   readiness: PlanNodeReadiness;
+  guidance?: string | null;
   contentSchema: ContentBlock | null;
   status: string;
   deadline: string | null;
@@ -56,7 +57,7 @@ export type ExistingPersistedPlan = {
 type PlanFields = Pick<PersistedPlan, 'domainPlanId' | 'readiness'>;
 type PhaseFields = Pick<PersistedPlanPhase, 'domainNodeId' | 'title' | 'objective' | 'order' | 'sourceDecisionIds' | 'sourceProvenances'>;
 type StepFields = Pick<PersistedPlanStep, 'domainNodeId' | 'title' | 'objective' | 'order' | 'sourceDecisionIds' | 'sourceProvenances'>;
-type MicroStepFields = Pick<PersistedPlanMicroStep, 'domainNodeId' | 'title' | 'order' | 'readiness' | 'contentSchema' | 'sourceDecisionIds' | 'sourceProvenances'>;
+type MicroStepFields = Pick<PersistedPlanMicroStep, 'domainNodeId' | 'title' | 'guidance' | 'order' | 'readiness' | 'contentSchema' | 'sourceDecisionIds' | 'sourceProvenances'>;
 type MicroStepPersistenceFields = MicroStepFields & { executionReset?: boolean };
 
 export type PlanPersistenceOperation =
@@ -200,6 +201,7 @@ function persistedMicroStepToPlan(microStep: PersistedPlanMicroStep): PlanMicroS
   return {
     id: microStep.domainNodeId,
     title: microStep.title,
+    ...(microStep.guidance ? { guidance: microStep.guidance } : {}),
     order: microStep.order,
     // An answer is already present; this retained node is editable context, not
     // an unresolved gate on the next plan read.
@@ -253,6 +255,7 @@ function microStepFields(microStep: PlanMicroStep, current?: PersistedPlanMicroS
   );
   return {
     ...planningFields(microStep),
+    guidance: plannerMicroStepGuidance(microStep.title, microStep.guidance),
     readiness: microStep.readiness,
     contentSchema: nextSchema,
     ...(executionReset ? { executionReset: true } : {}),

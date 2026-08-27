@@ -17,6 +17,7 @@ import {
   PROGRESS_STATUS,
   PROGRESS_STATUS_LABEL,
   parsePlannerView,
+  plannerMicroStepGuidance,
   shiftMonth,
   toIsoDate,
   type PlannerMicroStep,
@@ -313,6 +314,7 @@ function MicroStepRow({
   onDeadline: (id: string, deadline: string | null) => Promise<void>;
 }) {
   const isCompleted = microStep.status === 'completed';
+  const guidance = plannerMicroStepGuidance(microStep.title, microStep.guidance);
 
   return (
     <article className="flex flex-col gap-gb-md px-gb-xl py-gb-lg transition-colors hover:bg-surface-muted/30 sm:flex-row sm:items-center sm:justify-between">
@@ -337,6 +339,9 @@ function MicroStepRow({
           >
             {microStep.title}
           </Link>
+          <p className="mt-gb-xxs text-gb-xs leading-relaxed text-fg-tertiary">
+            {guidance}
+          </p>
           <div className="mt-gb-xxs flex items-center gap-gb-xs">
             {microStep.readiness === 'requires_user_input' ? (
               <Badge variant="brand-subtle" className="text-gb-xs py-gb-xxs px-gb-sm">
@@ -882,7 +887,7 @@ function filterPlanner(
           microSteps: step.microSteps.filter(
             (microStep) =>
               (status === 'all' || microStep.status === status) &&
-              [microStep.title, step.title, phase.title]
+              [microStep.title, plannerMicroStepGuidance(microStep.title, microStep.guidance), step.title, phase.title]
                 .join(' ')
                 .toLowerCase()
                 .includes(needle),

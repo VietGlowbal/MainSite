@@ -50,6 +50,14 @@ describe('buildPlannerReadModel', () => {
     expect(model.phases[0]?.steps[1]?.progress).toEqual({ total: 0, completed: 0, percentage: 0 });
     expect(model.phases[0]?.progress).toEqual({ total: 2, completed: 1, percentage: 50 });
     expect(model.phases[1]?.progress).toEqual({ total: 1, completed: 0, percentage: 0 });
+    expect(model.phases[0]?.steps[0]?.microSteps[0]?.guidance).toBe('Complete this task: First micro Review the related step, then mark it complete when you have finished.');
+  });
+
+  it('uses persisted guidance when available', () => {
+    const current = input();
+    current.microSteps[1] = { ...current.microSteps[1]!, guidance: 'Upload the official document issued by your school.' };
+    expect(buildPlannerReadModel(current).phases[0]?.steps[0]?.microSteps[0]?.guidance)
+      .toBe('Upload the official document issued by your school.');
   });
 
   it('excludes an archived phase and every descendant even when child archive values are inconsistent', () => {

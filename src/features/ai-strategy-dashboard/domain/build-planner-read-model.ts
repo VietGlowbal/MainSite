@@ -10,6 +10,7 @@ import type {
   PlannerStep,
 } from './planner-read-model';
 import type { PlanReadiness } from './plan';
+import { plannerMicroStepGuidance } from './plan';
 import type { PlannerMicroStepExecutionPatch } from './planner-micro-step-execution';
 
 const EMPTY_PROGRESS: PlannerProgress = { total: 0, completed: 0, percentage: 0 };
@@ -83,6 +84,7 @@ export function buildPlannerReadModel(input: PlannerReadModelInput): PlannerRead
       stepId: row.stepId,
       phaseId,
       title: row.title,
+      guidance: plannerMicroStepGuidance(row.title, row.guidance),
       order: row.order,
       readiness: row.readiness,
       contentSchema: row.contentSchema,

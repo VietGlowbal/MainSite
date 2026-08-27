@@ -3,16 +3,24 @@ import { getApplicationPlanner, PlannerReadError } from './get-application-plann
 
 type Call = { table: string; filters: [string, unknown][] };
 
-function fakeSupabase(rows: Record<string, Record<string, unknown>[]>) {
+function fakeSupabase(rows: Record<string, Record<string, unknown>[]>, options?: { missingGuidance?: boolean }) {
   const calls: Call[] = [];
   const from = (table: string) => {
     const filters: [string, unknown][] = [];
+    let selected = '';
     const response = () => ({ data: rows[table] ?? [], error: null });
     const builder = {
-      select: () => builder,
+      select: (columns: string) => { selected = columns; return builder; },
       eq: (column: string, value: unknown) => { filters.push([column, value]); return builder; },
       is: (column: string, value: unknown) => { filters.push([column, value]); return builder; },
-      in: (column: string, value: unknown) => { filters.push([column, value]); return Promise.resolve(response()); },
+      in: (column: string, value: unknown) => {
+        filters.push([column, value]);
+        return Promise.resolve(table === 'application_plan_micro_steps' && options?.missingGuidance && selected.includes('guidance')
+          ? { data: null, error: { code: 'PGRST204', message: "Could not find the 'guidance' column" } }
+          : table === 'application_plan_micro_steps' && options?.missingGuidance
+            ? { data: (rows[table] ?? []).map(({ guidance: _guidance, ...row }) => row), error: null }
+            : response());
+      },
       maybeSingle: async () => ({ data: (rows[table] ?? [])[0] ?? null, error: null }),
       then: (resolve: (value: { data: Record<string, unknown>[]; error: null }) => unknown) => Promise.resolve(resolve(response())),
     };
@@ -35,7 +43,7 @@ function ownedRows(): Record<string, Record<string, unknown>[]> {
       { id: 'old-step', phase_id: 'archived-phase', domain_node_id: 'step:old', title: 'Old step', objective: 'Old', sort_order: 1, source_decision_ids: [], source_provenances: [], archived_at: null },
     ],
     application_plan_micro_steps: [
-      { id: 'micro-db', step_id: 'step-db', domain_node_id: 'micro:a', title: 'Upload document', sort_order: 1, readiness: 'requires_enrichment', content_schema: { type: 'checklist', items: ['Upload'] }, source_decision_ids: ['decision:a'], source_provenances: ['database_factual'], status: 'in_progress', deadline: '2026-10-01', content_value: { type: 'checklist', checkedItems: [] }, execution_evidence: [{ documentId: 'doc-1' }], archived_at: null },
+      { id: 'micro-db', step_id: 'step-db', domain_node_id: 'micro:a', title: 'Upload document', guidance: 'Upload the official document from your school.', sort_order: 1, readiness: 'requires_enrichment', content_schema: { type: 'checklist', items: ['Upload'] }, source_decision_ids: ['decision:a'], source_provenances: ['database_factual'], status: 'in_progress', deadline: '2026-10-01', content_value: { type: 'checklist', checkedItems: [] }, execution_evidence: [{ documentId: 'doc-1' }], archived_at: null },
       { id: 'old-micro', step_id: 'old-step', domain_node_id: 'micro:old', title: 'Old micro', sort_order: 1, readiness: 'requires_enrichment', content_schema: null, source_decision_ids: [], source_provenances: [], status: 'completed', deadline: null, content_value: null, execution_evidence: [], archived_at: null },
     ],
   };
@@ -52,7 +60,7 @@ describe('getApplicationPlanner', () => {
     expect(fake.calls[0]?.filters).toEqual([['id', 'application-1'], ['user_id', 'user-1']]);
     expect(fake.calls.some((call) => call.table === 'application_recommendations')).toBe(false);
     expect(model.phases.map((phase) => phase.id)).toEqual(['phase-db']);
-    expect(model.phases[0]?.steps[0]?.microSteps[0]).toMatchObject({ id: 'micro-db', status: 'in_progress', deadline: '2026-10-01' });
+    expect(model.phases[0]?.steps[0]?.microSteps[0]).toMatchObject({ id: 'micro-db', guidance: 'Upload the official document from your school.', status: 'in_progress', deadline: '2026-10-01' });
   });
 
   it('returns an empty canonical model for legacy-only applications without reading application_recommendations', async () => {
@@ -72,5 +80,14 @@ describe('getApplicationPlanner', () => {
     const model = await getApplicationPlanner(fake.client, 'application-1', 'user-1');
     expect(model.phases.map((phase) => phase.title)).toEqual(['Resolve blockers']);
     expect(model.diagnostics).toContainEqual({ kind: 'orphan_step', nodeId: 'old-step', parentId: 'archived-phase' });
+  });
+
+  it('retries the legacy micro-step projection only when guidance has not migrated yet', async () => {
+    const fake = fakeSupabase(ownedRows(), { missingGuidance: true });
+    const model = await getApplicationPlanner(fake.client, 'application-1', 'user-1');
+
+    expect(fake.calls.filter((call) => call.table === 'application_plan_micro_steps')).toHaveLength(2);
+    expect(model.phases[0]?.steps[0]?.microSteps[0]?.guidance)
+      .toBe('Complete this task: Upload document Review the related step, then mark it complete when you have finished.');
   });
 });
