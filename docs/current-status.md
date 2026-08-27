@@ -1,5 +1,23 @@
 # Current project status
 
+Working tree 2026-08-27: fixed advisor applications being invisible and
+unactionable at `/admin/achievers`. Submission was already succeeding — a
+read-only production check found 6 reviewable `achiever_profiles` rows, 2 of
+them pending — but the page queried with the signed-in request client, whose
+RLS policy exposes only approved profiles and the caller's own row. Approve and
+Reject used that same browser client, so they could update zero rows without an
+error while the UI still moved the card to Processed. The review queue now
+loads through an admin-authorized mentorship repository using the trusted
+server client and an explicit minimal projection; decisions go through a new
+admin-authorized PATCH route, update pending rows only, and change client state
+only after the database confirms the write. No migration is required. The
+optional `quick_signup` badge was removed from the DTO after the live exact-
+projection check proved that column is not deployed. Measured locally: focused
+Vitest 3 files / 9 tests passing, base and strict TypeScript, scoped ESLint, and
+the static i18n audit (0 missing keys), and the Next.js 16.3.1 production build
+pass. The build retains the 3 pre-existing Turbopack filesystem-tracing warnings
+in `src/lib/geo-content.ts`.
+
 Working tree 2026-08-27: fixed role-gated top-navigation links disappearing
 outside `/profile`. The advisor, coordinator, and admin checks now live in one
 root navigation-role provider shared by both the legacy app header and the

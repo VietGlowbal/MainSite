@@ -577,7 +577,7 @@ a.from('english_test_scores').select('id').then(r => console.log('anon sees', r.
 When the durable policies land, all six `getPublic*`/`getApproved*` helpers can
 drop back to the request-scoped client together.
 
-### The same gap hides pending mentors from the admin who has to approve them (found 2026-07-31)
+### The same gap hid pending mentors from the admin who has to approve them (fixed 2026-08-27)
 
 Found while screenshotting the rebuilt `/admin`. The console contradicts itself:
 
@@ -606,19 +606,27 @@ Promise.all([svc.from('achiever_profiles').select('status'), anon.from('achiever
 "
 ```
 
-**PRE-EXISTING, and deliberately not fixed by the 31/07 console rebuild** — that
-was a UI pass, and this is a data-access boundary. The two candidate fixes are
-both bigger than a restyle:
+**Resolved 2026-08-27 without widening the table's client-visible RLS policy.**
+`src/features/mentorship/api/admin-advisor-applications.ts` is now the trusted
+data boundary: it independently authenticates and authorizes the caller, then
+uses the service-role client with an explicit minimal projection to list the
+review queue. `/admin/achievers` calls that repository instead of constructing
+either Supabase client in the page. Approve/Reject now call
+`PATCH /api/admin/achievers/[id]`; the same repository re-authorizes the request
+and updates only a row still in `pending`, so a stale admin tab cannot overwrite
+another admin's decision. The browser moves a card to Processed only after the
+server confirms the write and shows an error otherwise.
 
-1. An admin read policy on `achiever_profiles` (the durable fix, and it also
-   retires the `getPublic*` workarounds above).
-2. Move the page's read behind an API route or a repository that may use the
-   service role. Note it **cannot** just switch to `createAdminClient()` in
-   place: eslint's `ADMIN_CLIENT_DEBT` list in `eslint.config.mjs` "may SHRINK,
-   never grow", and `src/app/admin/achievers/page.tsx` is not on it.
+A read-only production check using the exact new projection returned 6 rows,
+including 2 pending, with no schema error. An earlier draft included the
+optional `quick_signup` field and the live API returned `42703`; that field is
+not deployed and was removed from the DTO rather than making this fix depend on
+an unrelated migration. No database write was used to verify this repair.
 
-Until one of those lands, mentor applications can only be approved by editing
-the row directly.
+The **public/anon read-policy gap described in the first half of §1b remains**;
+the `getPublic*` service-role projections in `src/lib/mentors.ts` are still
+required for the signed-out directory and profile pages. This fix closes only
+the admin review queue and decision path.
 
 ---
 
