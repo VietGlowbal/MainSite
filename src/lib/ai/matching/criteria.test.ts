@@ -144,6 +144,7 @@ describe('normalizeTargetProfile', () => {
       metadata: { importanceSource: 'default' },
     });
     expect(missing?.sourceRefs).toEqual([]);
+    expect(missing?.metadata.missingInformation).toBe('The source does not publish this requirement.');
     expect(criteria.some((criterion) => criterion.label.includes('Add examples'))).toBe(false);
   });
 

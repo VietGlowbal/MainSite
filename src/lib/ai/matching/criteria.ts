@@ -109,6 +109,7 @@ function mapRequirement(requirement: TargetRequirement): CriterionDraft {
     metadata: {
       importanceSource: hard ? 'source' : 'default',
       targetRequirementId: requirement.id,
+      missingInformation: requirement.missingInformation,
     },
   };
 }
@@ -134,7 +135,11 @@ function mapFreeText(
     sourceText: label,
     expectedSignals: tokens(`${label} ${description ?? ''}`),
     negativeSignals: [],
-    metadata: { importanceSource: 'default', targetRequirementId: null },
+    metadata: {
+      importanceSource: 'default',
+      targetRequirementId: null,
+      missingInformation: null,
+    },
   };
 }
 
@@ -168,6 +173,9 @@ function mergeDrafts(drafts: CriterionDraft[]): MatchingCriterion[] {
       const targetRequirementId = ordered
         .map((item) => item.metadata.targetRequirementId)
         .find((id): id is string => Boolean(id)) ?? null;
+      const missingInformation = ordered
+        .map((item) => item.metadata.missingInformation)
+        .find((note): note is string => note !== null) ?? null;
       return {
         id: `${first.category}:${stableCriterionSlug(sourceIdentity ?? first.label)}`,
         category: first.category,
@@ -188,6 +196,7 @@ function mergeDrafts(drafts: CriterionDraft[]): MatchingCriterion[] {
             ? 'source'
             : 'default',
           targetRequirementId,
+          missingInformation,
         },
       } satisfies MatchingCriterion;
     })

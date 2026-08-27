@@ -5,13 +5,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/cron-auth', () => ({ isAuthorizedCron: mocks.authorized }));
-vi.mock('@/features/apply/api/personal-report-generation-job-queue', () => ({
+vi.mock('@/features/apply/api', () => ({
+  regeneratePersonalReport: mocks.regenerate,
   claimApplicationPersonalReportGenerations: mocks.claim,
   markApplicationPersonalReportGenerationComplete: mocks.complete,
   retryApplicationPersonalReportGeneration: mocks.retry,
   blockApplicationPersonalReportGeneration: mocks.block,
 }));
-vi.mock('@/features/apply/api/personal-report-generation', () => ({ regeneratePersonalReport: mocks.regenerate }));
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: vi.fn(() => ({})) }));
 
 const JOB = { id: 'job-1', user_id: 'user-1', application_id: 'app-1', trigger: 'manual', force_requested: false, attempts: 2 };

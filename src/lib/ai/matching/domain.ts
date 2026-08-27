@@ -48,6 +48,7 @@ export const matchingCriterionSchema = z
       .object({
         importanceSource: z.enum(['source', 'default']),
         targetRequirementId: nonEmptyId.nullable(),
+        missingInformation: z.string().max(500).nullable(),
       })
       .strict(),
   })
@@ -163,7 +164,7 @@ export type PositioningOpportunity = z.infer<typeof positioningOpportunitySchema
 
 export const matchingSummaryResultSchema = z
   .object({
-    summary: text,
+    summary: z.string().trim().min(80).max(1_600),
     criterionIds: z.array(nonEmptyId).max(30),
     evidenceIds: z.array(nonEmptyId).max(30),
   })
