@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { z } from 'zod';
 import {
   enqueueApplicationPersonalReportGeneration,
   getApplicationPersonalReportGeneration,
   getLatestApplicationPersonalReportV2,
+  processApplicationPersonalReportGenerations,
 } from '@/features/apply/api';
 import { PERSONAL_REPORT_CONTRACT_VERSION } from '@/features/apply/domain';
 import { PERSONAL_REPORT_EXTRACTION_VERSION } from '@/lib/ai/personal-report-v2';
@@ -178,5 +179,14 @@ export async function POST(request: Request, context: Params) {
   });
   if (queued.migrationMissing) return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
   if (!queued.job) return NextResponse.json({ error: 'Could not queue Personal Report generation.' }, { status: 502 });
+  // Start a leased worker now rather than making the student wait for the next
+  // one-minute cron tick. Cron remains the durable retry/fallback path.
+  after(async () => {
+    try {
+      await processApplicationPersonalReportGenerations(1);
+    } catch (error) {
+      console.error('[personal-report-generation] request-time worker dispatch failed', error);
+    }
+  });
   return NextResponse.json({ applicationId, queued: true, generation: publicGeneration(queued.job), stale: true }, { status: 202 });
 }

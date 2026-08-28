@@ -15,9 +15,17 @@ import {
   type MatchingSummaryResult,
   type PositioningOpportunity,
   MATCHING_ENGINE_VERSION,
+  MATCHING_ENGINE_V3_VERSION,
+  matchingV3MetricResultSchema,
+  type MatchingV3MetricResult,
 } from './domain';
 import type { ProgrammeFit } from '@/features/apply/domain';
 import { stableHash } from '@/features/apply/api';
+import type { ApplicantMatchingContext } from './applicant-context';
+import type { TargetProfile } from '../target-profile/domain';
+import type { V3MetricDefinition } from './v3-scoring';
+import { targetRefsForMetric, targetStructuredFacts, UNIVERSITY_FIT_METRICS } from './v3-scoring';
+import type { MatchingReportV3 } from './domain';
 
 const BATCH_SIZE = 6;
 
@@ -317,4 +325,212 @@ export async function generateMatchingSummary(args: {
   }
 
   return summary;
+}
+
+const V3_BATCH_SIZE = 6;
+
+function relevantV3Evidence(context: ApplicantMatchingContext, definitions: readonly V3MetricDefinition[]) {
+  const tokens = new Set(
+    definitions
+      .flatMap((definition) => [definition.label, ...definition.submetrics.map((item) => item.label)])
+      .join(' ')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 3),
+  );
+  return context.evidence
+    .map((item) => ({
+      item,
+      rank: item.status === 'verified' ? 2 : item.status === 'report_only' ? 0 : 1,
+      tokenHits: item.statement.toLowerCase().split(/[^a-z0-9]+/).filter((token) => tokens.has(token)).length,
+    }))
+    .sort((a, b) => b.tokenHits - a.tokenHits || b.rank - a.rank || a.item.id.localeCompare(b.item.id))
+    .slice(0, 12)
+    .map(({ item }) => item);
+}
+
+export async function reasonAboutV3Metrics(args: {
+  definitions: readonly V3MetricDefinition[];
+  context: ApplicantMatchingContext;
+  targetProfile: TargetProfile;
+  previousReport?: MatchingReportV3 | null;
+  generate?: typeof generateStructured;
+}): Promise<{
+  results: MatchingV3MetricResult[];
+  metricBatches: number;
+  providerCalls: number;
+  metricInputHashes: Record<string, string>;
+  reusedMetricIds: string[];
+}> {
+  const generate = args.generate ?? generateStructured;
+  const { systemPrompt, version: promptVersion } = getReportPrompt('matching_metric_reasoning');
+  const metricInputHashes: Record<string, string> = {};
+  const reusable = new Map<string, MatchingV3MetricResult[]>();
+  for (const definition of args.definitions) {
+    const targetRefs = targetRefsForMetric(args.targetProfile, definition.id);
+    const input = {
+      definition,
+      applicantContext: args.context,
+      evidence: relevantV3Evidence(args.context, [definition]),
+      targetSourceRefs: targetRefs,
+      targetFacts: [
+        ...args.targetProfile.requirements
+        .filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref)))
+        .map((item) => ({ id: item.id, label: item.label, detail: item.detail, sourceRefs: item.sourceRefs })),
+        ...targetStructuredFacts(args.targetProfile).filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref))),
+      ],
+    };
+    const inputHash = stableHash({ input, promptVersion });
+    metricInputHashes[definition.id] = inputHash;
+    const previousFit = args.previousReport
+      ? UNIVERSITY_FIT_METRICS.some((item) => item.id === definition.id)
+        ? args.previousReport.universityFit
+        : args.previousReport.programmeFit
+      : null;
+    const previousMetrics = previousFit?.metrics as Record<string, { submetrics: MatchingV3MetricResult[] }> | undefined;
+    const previousCompatible = args.previousReport?.metadata.matchingEngineVersion === MATCHING_ENGINE_V3_VERSION &&
+      args.previousReport.metadata.metricPromptVersion === promptVersion;
+    const previousMetric = previousCompatible && args.previousReport?.metadata.metricInputHashes[definition.id] === inputHash
+      ? previousMetrics?.[definition.id] ?? null
+      : null;
+    if (previousMetric && previousMetric.submetrics.length === definition.submetrics.length) {
+      reusable.set(definition.id, previousMetric.submetrics);
+    }
+  }
+  const activeDefinitions = args.definitions.filter((definition) => !reusable.has(definition.id));
+  const batches: Array<{ definition: V3MetricDefinition; submetrics: V3MetricDefinition['submetrics'] }> = [];
+  const submetrics = activeDefinitions.flatMap((definition) =>
+    definition.submetrics.map((submetric) => ({ definition, submetric })),
+  );
+  for (let i = 0; i < submetrics.length; i += V3_BATCH_SIZE) {
+    const chunk = submetrics.slice(i, i + V3_BATCH_SIZE);
+    const grouped = new Map<string, { definition: V3MetricDefinition; submetrics: V3MetricDefinition['submetrics'] }>();
+    for (const item of chunk) {
+      const current = grouped.get(item.definition.id) ?? { definition: item.definition, submetrics: [] };
+      current.submetrics.push(item.submetric);
+      grouped.set(item.definition.id, current);
+    }
+    batches.push(...grouped.values());
+  }
+
+  const results: MatchingV3MetricResult[] = [...reusable.values()].flat();
+  let providerCalls = 0;
+  const evidenceById = new Map(args.context.evidence.map((item) => [item.id, item]));
+
+  for (const batch of batches) {
+    const targetRefs = targetRefsForMetric(args.targetProfile, batch.definition.id);
+    const batchEvidence = relevantV3Evidence(args.context, [batch.definition]);
+    const input = {
+      metrics: [{
+        metricId: batch.definition.id,
+        label: batch.definition.label,
+        submetrics: batch.submetrics,
+      }],
+      applicantContext: args.context,
+      evidence: batchEvidence,
+      targetFacts: [
+        ...args.targetProfile.requirements
+        .filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref)))
+        .map((item) => ({ id: item.id, label: item.label, detail: item.detail, sourceRefs: item.sourceRefs })),
+        ...targetStructuredFacts(args.targetProfile).filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref))),
+      ],
+      targetSourceRefs: targetRefs,
+    };
+    const generated = await generate({
+      moduleId: 'matching_metric_reasoning',
+      promptVersion,
+      schemaVersion: 'matching-metric-v3.0.0',
+      systemPrompt,
+      userPrompt: JSON.stringify(input),
+      schema: z.object({ results: z.array(matchingV3MetricResultSchema) }).strict(),
+    });
+    providerCalls += generated.meta.attemptCount;
+
+    const expected = new Set(batch.submetrics.map((item) => item.id));
+    const seen = new Set<string>();
+    if (generated.data.results.length !== expected.size) {
+      throw new Error(`Metric batch returned ${generated.data.results.length} results for ${expected.size} submetrics.`);
+    }
+    for (const result of generated.data.results) {
+      if (result.metricId !== batch.definition.id || !expected.has(result.submetricId)) {
+        throw new Error(`Metric batch returned an unknown result: ${result.metricId}/${result.submetricId}`);
+      }
+      if (seen.has(result.submetricId)) throw new Error(`Duplicate submetric result: ${result.submetricId}`);
+      seen.add(result.submetricId);
+      for (const id of result.applicantEvidenceIds) {
+        const item = evidenceById.get(id);
+        if (!item) throw new Error(`Unknown applicant evidence id: ${id}`);
+        if (item.status === 'conflicting') throw new Error(`Conflicting evidence cannot support a metric: ${id}`);
+      }
+      for (const ref of result.targetSourceRefs) {
+        if (!targetRefs.includes(ref)) throw new Error(`Unknown target source ref: ${ref}`);
+      }
+      const hasGroundedEvidence = result.applicantEvidenceIds.some((id) => {
+        const item = evidenceById.get(id);
+        return item?.status === 'verified' || item?.status === 'unverified';
+      });
+      if (result.score !== null && result.score > 50 && !hasGroundedEvidence) {
+        throw new Error(`Strong metric result has no grounded applicant evidence: ${result.submetricId}`);
+      }
+      if (result.score !== null && result.score > 50 && targetRefs.length === 0) {
+        throw new Error(`Strong metric result has no grounded target source: ${result.submetricId}`);
+      }
+      results.push(result);
+    }
+  }
+  return { results, metricBatches: batches.length, providerCalls, metricInputHashes, reusedMetricIds: [...reusable.keys()] };
+}
+
+const v3SummaryOutputSchema = z
+  .object({
+    summary: z.string().trim().min(40).max(1_600),
+    keyTakeaways: z
+      .object({
+        strongestAlignment: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
+        criticalGap: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
+        evidenceToAdd: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
+        positioningNextStep: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export type MatchingV3SummaryOutput = z.infer<typeof v3SummaryOutputSchema>;
+
+export async function generateMatchingV3Summary(args: {
+  candidate: unknown;
+  evidenceIds: readonly string[];
+  targetSourceRefs: readonly string[];
+  metricIds: readonly string[];
+  hardRequirements?: readonly { status: string }[];
+  generate?: typeof generateStructured;
+}): Promise<{ data: MatchingV3SummaryOutput; providerCalls: number }> {
+  const generate = args.generate ?? generateStructured;
+  const { systemPrompt, version: promptVersion } = getReportPrompt('matching_report_summary_v3');
+  const result = await generate({
+    moduleId: 'matching_report_summary_v3',
+    promptVersion,
+    schemaVersion: 'matching-report-v3.0.0',
+    systemPrompt,
+    userPrompt: JSON.stringify(args.candidate),
+    schema: v3SummaryOutputSchema,
+  });
+  const evidenceIds = new Set(args.evidenceIds);
+  const targetSourceRefs = new Set(args.targetSourceRefs);
+  const metricIds = new Set(args.metricIds);
+  const forbidden = /admission\s+(?:chance|probability|likelihood|odds)|(?:chance|probability|likelihood|odds)\s+of\s+(?:being\s+)?admitted|probability\s+of\s+acceptance|guaranteed\s+admission|will\s+be\s+admitted/i;
+  const copy = [result.data.summary, ...Object.values(result.data.keyTakeaways).flatMap((takeaway) => [takeaway.title, takeaway.body])].join(' ');
+  if (forbidden.test(copy)) throw new Error('V3 summary contains admissions-probability language.');
+  if (args.hardRequirements?.some((requirement) => requirement.status === 'not_met') && /(?:all|every)\s+(?:hard\s+)?requirements?\s+(?:are\s+)?met|fully\s+eligible/i.test(copy)) {
+    throw new Error('V3 summary contradicts a failed hard requirement.');
+  }
+  if (/\b(?:cannot|can\'t|unable to|lacks the ability|not capable of)\b/i.test(copy)) {
+    throw new Error('V3 summary treats missing evidence as inability.');
+  }
+  for (const takeaway of Object.values(result.data.keyTakeaways)) {
+    if (takeaway.evidenceIds.some((id) => !evidenceIds.has(id))) throw new Error('V3 summary returned an unknown evidence id.');
+    if (takeaway.targetSourceRefs.some((ref) => !targetSourceRefs.has(ref))) throw new Error('V3 summary returned an unknown target source ref.');
+    if (takeaway.metricIds.some((id) => !metricIds.has(id))) throw new Error('V3 summary returned an unknown metric id.');
+  }
+  return { data: result.data, providerCalls: result.meta.attemptCount };
 }

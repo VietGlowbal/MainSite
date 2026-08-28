@@ -286,44 +286,6 @@ function allowedEvidenceIdsBySection(report: PersonalReportV2) {
   };
 }
 
-function reasoningBundle(
-  grounding: PersonalReportNarrativeGrounding,
-  report: PersonalReportV2,
-  intendedDirection: string | null,
-) {
-  return {
-    // Only deterministic findings are exposed to the prose model. Raw
-    // activity/reflection text stays in the extraction/grounding stages, so
-    // the narrative model cannot promote an unseen fact into the report.
-    structuredFindings: {
-      input: synthesisInputFromReport(report, intendedDirection),
-      report: {
-        overallEvidenceConfidence: report.overallEvidenceConfidence,
-        availableSections: Object.entries(report)
-          .filter(([, value]) => Boolean(value && typeof value === 'object' && 'available' in value && (value as { available: boolean }).available))
-          .map(([key]) => key),
-      },
-    },
-    evidenceBank: grounding.evidenceBank
-      ? {
-          // Claim statements can contain the applicant's raw first-person
-          // answer. The prose model already has the deterministic findings
-          // below, so send provenance without replaying source wording.
-          claims: grounding.evidenceBank.claims.map((claim) => ({
-            id: claim.id,
-            category: claim.category,
-            status: claim.status,
-            sourceRefs: claim.sourceRefs,
-            interpretationRefs: claim.interpretationRefs,
-            tags: claim.tags,
-            limitations: claim.limitations ?? [],
-          })),
-          missingInformation: grounding.evidenceBank.missingInformation,
-        }
-      : null,
-  };
-}
-
 function narrativeNumbers(value: string): string[] {
   return value.match(/\d+(?:[.,]\d+)?/g) ?? [];
 }
@@ -448,26 +410,20 @@ type NarrativeBatch = {
   required: boolean;
 };
 
-// Keep each response comfortably below the provider's completion ceiling. The
-// calls run in parallel, so splitting the prose does not multiply route time.
+// Two concise calls keep the report within the worker runtime budget. Each
+// receives only the sections it must write; no raw evidence is duplicated.
 const NARRATIVE_BATCHES: readonly NarrativeBatch[] = [
   {
     canonical: ['coreIdentity', 'drivingForce', 'signaturePattern'],
-    optional: [],
-    maxTokens: 3_000,
+    optional: ['snapshot', 'overview'],
+    maxTokens: 1_800,
     required: true,
   },
   {
     canonical: ['emergingThemes', 'personalPositioning', 'proofOfMe'],
-    optional: [],
-    maxTokens: 3_000,
-    required: true,
-  },
-  {
-    canonical: [],
-    optional: ['snapshot', 'overview', 'overallSummary'],
+    optional: ['overallSummary'],
     maxTokens: 1_800,
-    required: false,
+    required: true,
   },
 ];
 
@@ -647,7 +603,6 @@ export async function synthesizePersonalReportNarrative(args: {
                 content: JSON.stringify({
                   input: batchInput(sectionInput, batch),
                   requestedSections: [...batch.canonical, ...batch.optional],
-                  reasoningBundle: reasoningBundle(args.grounding, report, intendedDirection),
                   allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowed, allowedBySection),
                 }),
               },

@@ -216,7 +216,7 @@ export type HardConstraint = {
  *   - f5_limitation: a top-level ProgrammeFit limitation
  *   - f4_limitation: a limitation from the ProfileEvaluation narrative base
  */
-export type PlanningGapSource = 'f5_dimension' | 'f5_limitation' | 'f4_limitation';
+export type PlanningGapSource = 'f5_dimension' | 'f5_limitation' | 'f4_limitation' | 'v3_metric';
 
 export type PlanningGap = {
   /** Stable identifier within the context: e.g. `f5_dimension_academicCompetitiveness_0`. */
@@ -783,6 +783,11 @@ export type PlanningContextSources = {
    */
   strategyRecommendation: {
     data: StrategyRecommendation;
+    provenance: SourceProvenance;
+  } | null;
+  /** New Matching Report V3 read model; F5 remains only as a legacy fallback. */
+  programmeFitV3?: {
+    data: import('@/lib/ai/matching/domain').MatchingReportV3;
     provenance: SourceProvenance;
   } | null;
   /** Optional while older callers still provide only strategyRecommendation. */

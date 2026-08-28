@@ -1,6 +1,7 @@
 'use client';
 
 import { getV2Sections } from '../domain';
+import type { MatchingReportV3 } from '@/lib/ai/matching/domain';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
@@ -29,6 +30,7 @@ import {
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { RequirementStatusTrack } from './matching-report';
 import type { EligibilityRow } from '../domain';
+import { PROGRAMME_FIT_METRICS, UNIVERSITY_FIT_METRICS } from '@/lib/ai/matching/v3-scoring';
 
 /**
  * The Matching Report — six sections, per docs/strategy-reports-spec.md.
@@ -78,6 +80,10 @@ const SECTIONS = [
   { id: 'perspective', label: 'Admissions view' },
   { id: 'next', label: 'What next' },
 ] as const;
+
+const V3_METRIC_LABELS = Object.fromEntries(
+  [...UNIVERSITY_FIT_METRICS, ...PROGRAMME_FIT_METRICS].map((metric) => [metric.id, metric.label]),
+) as Record<string, string>;
 
 function verified(value: string | null | undefined, fallback: string) {
   return value || fallback;
@@ -146,6 +152,10 @@ export function MatchingReportView({
         </Button>
       </div>
     );
+  }
+
+  if (analysis.reportV3) {
+    return <V3ReportView data={data} report={analysis.reportV3} busy={busy} onGenerate={generate} error={error} t={t} />;
   }
 
   const fit = analysis.fit;
@@ -1003,3 +1013,194 @@ function SourcesAside({
   );
 }
 
+function V3ReportView({
+  data,
+  report,
+  busy,
+  onGenerate,
+  error,
+  t,
+}: {
+  data: MatchingReportPageData;
+  report: MatchingReportV3;
+  busy: boolean;
+  onGenerate: () => void;
+  error: string | null;
+  t: Translate;
+}) {
+  const evidence = new Map(report.evidenceIndex.map((item) => [item.id, item]));
+  const sources = new Map(report.targetSourceIndex.map((item) => [item.ref, item]));
+  const statusLabel = (status: string) => status === 'assessed' ? t('Assessed') : status === 'limited' ? t('Limited') : t('Not available');
+  const fitBadge = report.overall.overallAlignmentScore === null ? 'neutral-chip' : report.overall.overallAlignmentScore >= 70 ? 'safe-chip' : report.overall.overallAlignmentScore >= 50 ? 'neutral-chip' : 'reach';
+
+  return (
+    <div className="flex flex-col gap-gb-4xl" data-no-auto-translate data-report-auto-translate>
+      <header className="flex flex-col gap-gb-xl rounded-gb-2xl bg-surface-inverse-deep p-gb-3xl text-fg-on-inverse">
+        <div className="flex flex-wrap items-start justify-between gap-gb-xl">
+          <div className="flex min-w-0 items-center gap-gb-lg">
+            <Avatar name={data.universityName} src={data.university?.logoUrl} size="lg" />
+            <div className="min-w-0">
+              <p className="text-gb-sm text-fg-on-inverse-muted">{data.universityName}</p>
+              <h1 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight">{data.courseName}</h1>
+              <p className="text-gb-sm text-fg-on-inverse-secondary">{[data.degreeLevel, data.country].filter(Boolean).join(' · ')}</p>
+            </div>
+          </div>
+          <Badge variant={fitBadge}>{report.overall.overallAlignmentScore === null ? t('Not assessed') : `${report.overall.overallAlignmentScore}% ${t('alignment')}`}</Badge>
+        </div>
+        <div className="flex flex-wrap gap-gb-md">
+          <Button onClick={onGenerate} disabled={busy} variant="primary-on-dark">{busy ? t('Updating…') : t('Update report')}</Button>
+          <Button href="/ai-strategy" variant="secondary-on-dark">{t('Back to AI Strategy')}</Button>
+        </div>
+      </header>
+      {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
+
+      <section className="flex flex-col gap-gb-xl">
+        <SectionHeading id="university-fit" index={1} title={t('University Fit')} blurb={t('Alignment with the university’s mission, community, learning environment and named opportunities—not an admissions probability.')} />
+        <V3FitPanel fit={report.universityFit} statusLabel={statusLabel} evidence={evidence} sources={sources} t={t} />
+      </section>
+
+      <section className="flex flex-col gap-gb-xl">
+        <SectionHeading id="programme-fit" index={2} title={t('Programme Fit')} blurb={t('Alignment with the programme’s curriculum, competencies, experience opportunities and future direction.')} />
+        <V3FitPanel fit={report.programmeFit} statusLabel={statusLabel} evidence={evidence} sources={sources} t={t} />
+        <Panel className="flex flex-col gap-gb-sm">
+          <h3 className="text-gb-md font-semibold text-fg">{t('Programme interpretation')}</h3>
+          <div className="grid gap-gb-md md:grid-cols-2">
+            <div>
+              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Strongest alignment')}</p>
+              <p className="text-gb-sm text-fg-secondary">
+                {report.programmeFit.strongestAlignment.length > 0
+                  ? report.programmeFit.strongestAlignment.join(' · ')
+                  : t('Not assessed')}
+              </p>
+            </div>
+            <div>
+              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Potential gap')}</p>
+              <p className="text-gb-sm text-fg-secondary">{report.programmeFit.potentialGap ?? t('Not assessed')}</p>
+            </div>
+          </div>
+          <div className="border-t border-line pt-gb-sm">
+            <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Strategic interpretation')}</p>
+            <p className="text-gb-sm leading-relaxed text-fg-secondary">{report.programmeFit.strategicInterpretation}</p>
+          </div>
+        </Panel>
+      </section>
+
+      <section className="flex flex-col gap-gb-xl">
+        <SectionHeading id="key-takeaways" index={3} title={t('Key Takeaways')} />
+        <div className="grid gap-gb-lg md:grid-cols-2">
+          {Object.entries(report.keyTakeaways).map(([key, takeaway]) => (
+            <Panel key={key} className="flex flex-col gap-gb-sm">
+              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t({
+                strongestAlignment: 'Strongest fit',
+                criticalGap: 'Critical gap',
+                evidenceToAdd: 'Evidence to add',
+                positioningNextStep: 'Strategic direction',
+              }[key as keyof MatchingReportV3['keyTakeaways']] ?? key)}</p>
+              <h3 className="text-gb-md font-semibold text-fg">{takeaway.title}</h3>
+              <p className="text-gb-sm leading-relaxed text-fg-secondary">{takeaway.body}</p>
+              <V3References evidenceIds={takeaway.evidenceIds} targetSourceRefs={takeaway.targetSourceRefs} evidence={evidence} sources={sources} t={t} />
+            </Panel>
+          ))}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-gb-xl">
+        <SectionHeading id="hard-requirements" index={4} title={t('Hard Requirements')} blurb={t('These statuses are deterministic checks. Unknown means the available evidence could not establish a result.')} />
+        {report.hardRequirements.length > 0 ? report.hardRequirements.map((requirement) => (
+          <Panel key={requirement.id} className="flex flex-col gap-gb-xs">
+            <div className="flex flex-wrap items-center justify-between gap-gb-sm">
+              <h3 className="text-gb-md font-semibold text-fg">{requirement.label}</h3>
+              <Badge variant={requirement.status === 'met' ? 'safe-chip' : requirement.status === 'not_met' ? 'reach' : 'neutral-chip'}>{t(requirement.status)}</Badge>
+            </div>
+            <p className="text-gb-sm text-fg-secondary">{requirement.explanation}</p>
+            <V3References evidenceIds={requirement.evidenceIds} targetSourceRefs={requirement.targetSourceRefs} evidence={evidence} sources={sources} t={t} />
+          </Panel>
+        )) : <Panel><p className="text-gb-sm text-fg-muted">{t('No hard requirements were recorded.')}</p></Panel>}
+      </section>
+
+      <section className="flex flex-col gap-gb-xl">
+        <SectionHeading id="scholarship-alignment" index={5} title={t('Scholarship Alignment')} />
+        <Panel><p className="text-gb-sm text-fg-muted">{report.scholarshipAlignment ? t('Scholarship alignment is shown separately from programme fit.') : t('No selected scholarship was available for this application, so scholarship alignment was not assessed.')}</p></Panel>
+      </section>
+
+      <aside className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface-subtle p-gb-lg text-gb-xs text-fg-muted">
+        <p>{t('Evidence coverage')}: {report.overall.evidenceCoverage}% · {t('Confidence')}: {Math.round(report.overall.confidence * 100)}%</p>
+        <p>{t('Last analysed')}: {new Date(report.generatedAt).toLocaleString('vi-VN')}</p>
+        <p>{t('Scores describe alignment with the supplied evidence and target sources. They do not predict admission decisions.')}</p>
+      </aside>
+    </div>
+  );
+}
+
+function V3FitPanel({
+  fit,
+  statusLabel,
+  evidence,
+  sources,
+  t,
+}: {
+  fit: MatchingReportV3['universityFit'] | MatchingReportV3['programmeFit'];
+  statusLabel: (status: string) => string;
+  evidence: Map<string, MatchingReportV3['evidenceIndex'][number]>;
+  sources: Map<string, MatchingReportV3['targetSourceIndex'][number]>;
+  t: Translate;
+}) {
+  return (
+    <div className="flex flex-col gap-gb-lg">
+      <Panel className="flex flex-col gap-gb-md">
+        <div className="flex flex-wrap items-end justify-between gap-gb-md">
+          <div>
+            <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{statusLabel(fit.status)}</p>
+            <p className="font-display text-gb-display-sm font-semibold text-fg">{fit.score === null ? t('Not assessed') : `${fit.score}%`}</p>
+          </div>
+          <p className="text-gb-sm text-fg-muted">{t('Coverage')}: {fit.coverage}% · {t('Confidence')}: {Math.round(fit.confidence * 100)}%</p>
+        </div>
+        <ProgressBar value={fit.score ?? 0} label={t('Alignment score')} />
+        <p className="max-w-3xl text-gb-sm leading-relaxed text-fg-secondary">{fit.summary}</p>
+      </Panel>
+      <div className="grid gap-gb-lg md:grid-cols-2">
+        {Object.values(fit.metrics).map((metric) => (
+          <Panel key={metric.id} className="flex flex-col gap-gb-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-gb-sm">
+              <h3 className="text-gb-md font-semibold text-fg">{t(V3_METRIC_LABELS[metric.id] ?? metric.id)}</h3>
+              <span className="text-gb-sm font-semibold text-fg-brand">{metric.score === null ? t('Not assessed') : `${metric.score}%`}</span>
+            </div>
+            <p className="text-gb-xs text-fg-muted">{statusLabel(metric.status)} · {t('Coverage')}: {metric.coverage}%</p>
+            <p className="text-gb-sm leading-relaxed text-fg-secondary">{metric.summary}</p>
+            <div className="flex flex-col gap-gb-sm border-t border-line pt-gb-sm">
+              {metric.submetrics.map((submetric) => (
+                <div key={submetric.submetricId} className="flex flex-col gap-gb-xxs">
+                  <p className="text-gb-xs font-medium text-fg">{submetric.submetricId} · {statusLabel(submetric.status)}</p>
+                  <p className="text-gb-xs text-fg-muted">{submetric.reasoning}</p>
+                  <V3References evidenceIds={submetric.applicantEvidenceIds} targetSourceRefs={submetric.targetSourceRefs} evidence={evidence} sources={sources} t={t} />
+                </div>
+              ))}
+            </div>
+          </Panel>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function V3References({
+  evidenceIds,
+  targetSourceRefs,
+  evidence,
+  sources,
+  t,
+}: {
+  evidenceIds: string[];
+  targetSourceRefs: string[];
+  evidence: Map<string, MatchingReportV3['evidenceIndex'][number]>;
+  sources: Map<string, MatchingReportV3['targetSourceIndex'][number]>;
+  t: Translate;
+}) {
+  if (evidenceIds.length === 0 && targetSourceRefs.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-gb-xxs text-gb-xs text-fg-muted">
+      {evidenceIds.length > 0 ? <p>{t('Evidence')}: {evidenceIds.map((id) => evidence.get(id)?.label ?? id).join(' · ')}</p> : null}
+      {targetSourceRefs.length > 0 ? <p>{t('Target source')}: {targetSourceRefs.map((ref) => sources.get(ref)?.title ?? ref).join(' · ')}</p> : null}
+    </div>
+  );
+}

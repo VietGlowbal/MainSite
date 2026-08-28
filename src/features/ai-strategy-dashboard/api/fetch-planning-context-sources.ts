@@ -31,6 +31,7 @@ import {
   enforceFitClassification,
   programmeFitSchema,
 } from '@/features/apply/domain';
+import { matchingReportV3Schema } from '@/lib/ai/matching/domain';
 import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
 import { recommendationFromRow } from '../domain/recommendation';
 import { strategyRecommendationFromRow, strategyReportV2FromRow } from '../domain/strategy-recommendation';
@@ -530,60 +531,92 @@ export async function fetchPlanningContextSources(
 
   // ── 8. Programme Fit (F5 — application_match_analyses) ────────────────────
   let programmeFit: PlanningContextSources['programmeFit'] = null;
+  let programmeFitV3: PlanningContextSources['programmeFitV3'] = null;
 
-  // Consume the canonical F5 columns written alongside Matching Report V2;
-  // the planner does not parse report_v2 itself.
-  const { data: matchRow, error: matchError } = await supabase
+  // Prefer the newest valid V3 row, then the newest compatible F5 row. A
+  // malformed newest row must not hide an older valid report.
+  const { data: matchRows, error: matchError } = await supabase
     .from('application_match_analyses')
     .select(
       'id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,' +
-      'fit_limitations,input_hash,prompt_version,f5_engine_version,model_name,improvement_actions,created_at',
+      'fit_limitations,input_hash,prompt_version,f5_engine_version,model_name,improvement_actions,created_at,' +
+      'report_v2,report_contract_version,matching_engine_version',
     )
     .eq('application_id', applicationId)
     .eq('user_id', userId)
     .eq('analysis_status', 'complete')
-    .eq('f5_engine_version', F5_ENGINE_VERSION)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
   if (matchError) {
     diagnostics.push({ source: 'application_match_analyses', status: 'unavailable', message: 'query failed' });
-  } else if (!matchRow) {
+  } else if (!Array.isArray(matchRows) || matchRows.length === 0) {
     diagnostics.push({ source: 'application_match_analyses', status: 'missing' });
   } else {
-    const row = matchRow as unknown as Record<string, unknown>;
-    const fitParsed = programmeFitSchema.safeParse({
+    const rows = matchRows as unknown as Record<string, unknown>[];
+    const selected = rows.find((candidate) => matchingReportV3Schema.safeParse(candidate.report_v2).success)
+      ?? rows.find((candidate) => {
+        const f5Version = candidate.f5_engine_version;
+        if (typeof f5Version === 'string' && f5Version !== F5_ENGINE_VERSION) return false;
+        return programmeFitSchema.safeParse({
+          classification: candidate.fit_classification,
+          confidence: candidate.fit_confidence ?? 0,
+          limitations: candidate.fit_limitations ?? [],
+          eligibility: candidate.fit_eligibility,
+          dimensions: candidate.fit_dimensions,
+        }).success && parseImprovementActions(candidate.improvement_actions) !== null;
+      });
+
+    if (!selected) {
+      diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'no valid V3 or compatible F5 report found' });
+    } else {
+      const row = selected;
+      const v3 = matchingReportV3Schema.safeParse(row.report_v2);
+      if (v3.success) {
+      const provenance: SourceProvenance = {
+        id: row.id as string,
+        generatedAt: row.created_at as string,
+        inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+        promptVersion: v3.data.metadata.promptVersion,
+        engineVersion: v3.data.metadata.matchingEngineVersion,
+        modelName: v3.data.metadata.model,
+        sourceAnalysisId: v3.data.metadata.sourceAnalysisVersionId,
+        sourceMatchAnalysisId: row.id as string,
+      };
+      programmeFitV3 = { data: v3.data, provenance };
+      diagnostics.push({ source: 'application_match_analyses', status: 'present' });
+      programmeFit = null;
+    } else {
+      const fitParsed = programmeFitSchema.safeParse({
       classification: row.fit_classification,
       confidence: row.fit_confidence ?? 0,
       limitations: row.fit_limitations ?? [],
       eligibility: row.fit_eligibility,
       dimensions: row.fit_dimensions,
-    });
+      });
 
-    const improvementActions = parseImprovementActions(row.improvement_actions);
-
-    if (!fitParsed.success) {
-      diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'programmeFitSchema parse failed' });
-    } else if (improvementActions === null) {
-      diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'improvement_actions failed structural validation' });
-    } else {
-      const provenance: SourceProvenance = {
-        id: row.id as string,
-        generatedAt: row.created_at as string,
-        inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
-        promptVersion: typeof row.prompt_version === 'string' ? row.prompt_version : null,
-        engineVersion: typeof row.f5_engine_version === 'string' ? row.f5_engine_version : null,
-        modelName: typeof row.model_name === 'string' ? row.model_name : null,
-        sourceAnalysisId: null,
-        sourceMatchAnalysisId: null,
-      };
-      programmeFit = {
-        data: enforceFitClassification(fitParsed.data),
-        improvementActions,
-        provenance,
-      };
-      diagnostics.push({ source: 'application_match_analyses', status: 'present' });
+      const improvementActions = parseImprovementActions(row.improvement_actions);
+      if (!fitParsed.success || improvementActions === null) {
+        diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'selected F5 report changed during parsing' });
+      } else {
+        const provenance: SourceProvenance = {
+          id: row.id as string,
+          generatedAt: row.created_at as string,
+          inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+          promptVersion: typeof row.prompt_version === 'string' ? row.prompt_version : null,
+          engineVersion: typeof row.f5_engine_version === 'string' ? row.f5_engine_version : null,
+          modelName: typeof row.model_name === 'string' ? row.model_name : null,
+          sourceAnalysisId: null,
+          sourceMatchAnalysisId: null,
+        };
+        programmeFit = {
+          data: enforceFitClassification(fitParsed.data),
+          improvementActions,
+          provenance,
+        };
+        diagnostics.push({ source: 'application_match_analyses', status: 'present' });
+      }
+      }
     }
   }
 
@@ -765,6 +798,7 @@ export async function fetchPlanningContextSources(
     evidenceInventory,
     profileEvaluation,
     programmeFit,
+    programmeFitV3,
     strategyRecommendation,
     strategyRoadmap,
     userConstraints,

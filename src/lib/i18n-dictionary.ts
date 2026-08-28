@@ -2349,6 +2349,28 @@ export const translations: Record<string, string> = {
   // Programme Fit
   'How well you match this course, university and its scholarships':
     'Phân tích mức độ phù hợp (giữa ứng viên với ngành - trường - học bổng)',
+  'no valid V3 or compatible F5 report found': 'Không tìm thấy báo cáo V3 hợp lệ hoặc báo cáo F5 tương thích',
+  'selected F5 report changed during parsing': 'Báo cáo F5 đã chọn thay đổi trong khi phân tích',
+  Assessed: 'Đã đánh giá',
+  alignment: 'mức độ phù hợp',
+  'University Fit': 'Mức độ phù hợp với trường',
+  'Alignment with the university’s mission, community, learning environment and named opportunities—not an admissions probability.':
+    'Mức độ phù hợp với sứ mệnh, cộng đồng, môi trường học tập và cơ hội cụ thể của trường — không phải xác suất trúng tuyển.',
+  'Programme Fit': 'Mức độ phù hợp với ngành học',
+  'Alignment with the programme’s curriculum, competencies, experience opportunities and future direction.':
+    'Mức độ phù hợp với chương trình đào tạo, năng lực, cơ hội trải nghiệm và định hướng tương lai của ngành.',
+  'Programme interpretation': 'Diễn giải mức độ phù hợp với ngành',
+  'Strongest alignment': 'Mức độ phù hợp nổi bật nhất',
+  'Potential gap': 'Khoảng trống tiềm ẩn',
+  'Hard Requirements': 'Yêu cầu bắt buộc',
+  'These statuses are deterministic checks. Unknown means the available evidence could not establish a result.':
+    'Các trạng thái này được kiểm tra theo quy tắc xác định. Chưa rõ nghĩa là bằng chứng hiện có chưa đủ để kết luận.',
+  'Scholarship alignment is shown separately from programme fit.': 'Mức độ phù hợp với học bổng được hiển thị riêng với mức độ phù hợp ngành học.',
+  'No selected scholarship was available for this application, so scholarship alignment was not assessed.':
+    'Hồ sơ này chưa có học bổng được chọn theo nguồn chuẩn, nên chưa đánh giá mức độ phù hợp với học bổng.',
+  'Scores describe alignment with the supplied evidence and target sources. They do not predict admission decisions.':
+    'Điểm số mô tả mức độ phù hợp dựa trên bằng chứng đã cung cấp và nguồn thông tin mục tiêu. Điểm số không dự đoán quyết định tuyển sinh.',
+  'Target source': 'Nguồn mục tiêu',
   // "Why this university", "Admission requirements", "Costs and scholarships"
   // and "Scholarships" are already translated above for the university detail
   // page, which uses the same section names. Reusing those keys is the point of
@@ -2551,6 +2573,8 @@ export const translations: Record<string, string> = {
   'Click directly on the CV content to edit it before running a review.':
     'Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi đánh giá.',
   'Evidence coverage': 'Độ phủ dẫn chứng',
+  'Evidence Base': 'Nền tảng dẫn chứng',
+  'Key themes': 'Chủ đề chính',
   '3 strengths': '3 điểm mạnh',
   'Needs more evidence': 'Cần bổ sung',
   'AI needs more from you': 'AI cần bạn bổ sung',
@@ -5945,6 +5969,7 @@ export const translations: Record<string, string> = {
   'Other evidence-backed gaps': 'Khoảng trống khác có bằng chứng',
   'Outcome + capability + evidence': 'Kết quả + năng lực + bằng chứng',
   'Overall evidence confidence': 'Độ tin cậy tổng thể của bằng chứng',
+  'Overall impression': 'Ấn tượng tổng quan',
   'Overall Match Summary': 'Tổng quan mức độ phù hợp',
   'Part of GlowBal Plus': 'Thuộc gói GlowBal Plus',
   'Pattern consistency': 'Tính nhất quán của mẫu hành vi',

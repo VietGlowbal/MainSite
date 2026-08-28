@@ -19,6 +19,7 @@ import {
   extractRoleAndTheme,
   type RoleThemeExtractionInput,
 } from './evaluation/narrative-activity-extraction';
+import { extractReflectionSignalSummaries } from './evaluation/reflection-signal-extraction';
 
 /**
  * Bump when the semantic extraction/grounding contract changes independently
@@ -26,7 +27,7 @@ import {
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v7-third-person-narrative';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v8-normalized-reflections';
 
 /** Dynamic report-only evidence rows use this namespace in the supplements table. */
 export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';
@@ -440,11 +441,20 @@ export async function buildProfileEvaluationInput(args: {
     freeText: record.freeText,
   }));
 
-  const [rawReflectionRecords, rawCompetencyClaims, roleThemeResults] = await Promise.all([
+  const [rawReflectionRecords, rawCompetencyClaims, roleThemeResults, reflectionSummaries] = await Promise.all([
     extractCmcaitfFields({ inputs: cmcaitfInputs, apiKey, model }),
     extractCompetencyClaims({ sources: competencySources, apiKey, model }),
     extractRoleAndTheme({ inputs: roleThemeInputs, apiKey, model }),
+    extractReflectionSignalSummaries({
+      signals: reflectionAnalysis.signals,
+      apiKey,
+      ...(model ? { model } : {}),
+    }),
   ]);
+  const reflectionSignals = reflectionAnalysis.signals.map((signal) => {
+    const summary = reflectionSummaries.get(signal.key);
+    return summary ? { ...signal, summary } : signal;
+  });
 
   const reflectionRecords = rawReflectionRecords.map((record) =>
     groundCmcaitf(record, sourceById.get(record.id)?.freeText ?? ''),
@@ -520,22 +530,22 @@ export async function buildProfileEvaluationInput(args: {
 
   // The seven Personal Reflection answers are routed by dimension. Activity
   // and achievement text is the independent corroborating source for status.
-  const reflectionWrittenFields: VaguenessField[] = reflectionAnalysis.signals.map((signal) => ({
+  const reflectionWrittenFields: VaguenessField[] = reflectionSignals.map((signal) => ({
     field: `reflection_${signal.key}`,
     label: `Personal reflection — ${signal.dimension.replaceAll('_', ' ')}`,
     value: signal.value,
   }));
-  const reflectionMotivations = reflectionAnalysis.signals
+  const reflectionMotivations = reflectionSignals
     .filter((signal) => signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3')
     .map((signal) => ({
       id: `profile:reflection_${signal.key}`,
       label: `Reflection — ${signal.dimension.replaceAll('_', ' ')}`,
-      value: signal.value,
+      value: signal.summary ?? 'A self-reported motivation or value signal',
     }));
 
-  const reflectionDirection = reflectionAnalysis.signals
+  const reflectionDirection = reflectionSignals
     .filter((signal) => signal.key === 'q5' || signal.key === 'q6' || signal.key === 'q7')
-    .map((signal) => signal.value)
+    .map((signal) => signal.summary)
     .filter(Boolean)
     .join('; ');
   const rawSubjects = profile.target_subjects ?? profile.majors;
@@ -548,9 +558,9 @@ export async function buildProfileEvaluationInput(args: {
     .join('; ') || null;
   const directionSignals = {
     academicDirection:
-      reflectionAnalysis.directionSignals?.academicDirection ?? subjectDirection ?? null,
-    careerDirection: reflectionAnalysis.directionSignals?.careerDirection ?? careerDirection ?? null,
-    preferredEnvironment: reflectionAnalysis.directionSignals?.preferredEnvironment ?? null,
+      reflectionSignals.find((signal) => signal.key === 'q5')?.summary ?? subjectDirection ?? null,
+    careerDirection: reflectionSignals.find((signal) => signal.key === 'q6')?.summary ?? careerDirection ?? null,
+    preferredEnvironment: reflectionSignals.find((signal) => signal.key === 'q7')?.summary ?? null,
   };
 
   return {
@@ -561,8 +571,14 @@ export async function buildProfileEvaluationInput(args: {
     evidenceItems,
     narrativeActivities,
     profileMotivations: [...profileMotivationsFor(context), ...reflectionMotivations],
-    reflectionAnswerSignals: reflectionAnalysis.signals,
-    capabilitySignals: q4Signal ? [q4Signal] : [],
+    reflectionAnswerSignals: reflectionSignals,
+    capabilitySignals: q4Signal
+      ? [
+          reflectionSummaries.has(q4Signal.key)
+            ? { ...q4Signal, summary: reflectionSummaries.get(q4Signal.key)! }
+            : q4Signal,
+        ]
+      : [],
     directionSignals,
     intendedDirection,
     generatedAt,

@@ -87,9 +87,21 @@ export function KeyTakeawaysView({ report }: { report: PersonalReportV2 }) {
       </div>
 
       <div className="grid gap-gb-lg md:grid-cols-3">
-        <TakeawayCard title="What Makes You Stand Out" insight={structured?.whatMakesYouStandOut.statement ?? standOut} finding={structured?.whatMakesYouStandOut} />
-        <TakeawayCard title="Your Competitive Advantage" insight={structured?.competitiveAdvantage.statement ?? advantage} finding={structured?.competitiveAdvantage} />
-        <TakeawayCard title="Your Growth Opportunity" insight={structured?.growthOpportunity.statement ?? growth} finding={structured?.growthOpportunity} />
+        <TakeawayCard
+          title="What Makes You Stand Out"
+          insight={structured?.whatMakesYouStandOut.statement ?? standOut}
+          {...(structured?.whatMakesYouStandOut ? { finding: structured.whatMakesYouStandOut } : {})}
+        />
+        <TakeawayCard
+          title="Your Competitive Advantage"
+          insight={structured?.competitiveAdvantage.statement ?? advantage}
+          {...(structured?.competitiveAdvantage ? { finding: structured.competitiveAdvantage } : {})}
+        />
+        <TakeawayCard
+          title="Your Growth Opportunity"
+          insight={structured?.growthOpportunity.statement ?? growth}
+          {...(structured?.growthOpportunity ? { finding: structured.growthOpportunity } : {})}
+        />
       </div>
     </section>
   );

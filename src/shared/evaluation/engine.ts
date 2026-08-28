@@ -48,6 +48,8 @@ export const REFLECTION_ANSWER_DIMENSIONS: Record<ReflectionAnswerKey, Reflectio
 export type ReflectionAnswerSignal = {
   key: ReflectionAnswerKey;
   dimension: ReflectionAnswerDimension;
+  /** Short AI-normalized finding. Raw `value` remains evidence-only. */
+  summary?: string;
   value: string;
   /** repeated = ≥2 independent sources; isolated = this single answer only. */
   status: 'repeated' | 'isolated';

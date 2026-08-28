@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MatchingReportPageData } from '../domain';
+import type { MatchingReportV3 } from '@/lib/ai/matching/domain';
 import { MatchingReportView } from './matching-report-view';
 
 vi.mock('next/navigation', () => ({
@@ -78,6 +79,129 @@ const data: MatchingReportPageData = {
 function renderReport(override?: Partial<MatchingReportPageData>) {
   return render(<MatchingReportView data={{ ...data, ...override }} migrationMissing={false} />);
 }
+
+const V3_SUBMETRICS = {
+  academicReadiness: ['academicPreparation', 'curriculumReadiness', 'academicEvidence', 'academicRequirements'],
+  valuesAlignment: ['missionValues', 'educationalPhilosophy', 'communityValues', 'personalPositioning'],
+  communityContribution: ['contributionEvidence', 'socialProof', 'collaboration', 'communityOpportunity'],
+  learningEnvironment: ['teachingModel', 'experientialLearning', 'classStructure', 'environmentPreference'],
+  distinctiveOpportunity: ['namedOpportunity', 'opportunityFit', 'accessPath', 'distinctiveness'],
+  interestMotivation: ['statedInterest', 'motivationGrounding', 'themeAlignment', 'subjectExploration'],
+  capability: ['targetCompetencies', 'academicCapability', 'demonstratedSkills', 'capabilityEvidence'],
+  experienceExposure: ['relevantExperience', 'meaningfulEngagement', 'reflectionDepth', 'exposureRange'],
+  careerFutureDirection: ['futureDirection', 'pathwayAlignment', 'opportunityUse', 'directionEvidence'],
+} as const;
+
+function v3Metric(id: string, score: number | null = 80, status: 'assessed' | 'limited' | 'not_available' = 'assessed') {
+  return {
+    id,
+    score,
+    status,
+    confidence: score === null ? 0 : 0.8,
+    coverage: score === null ? 0 : 100,
+    summary: `${id} summary`,
+    submetrics: V3_SUBMETRICS[id as keyof typeof V3_SUBMETRICS].map((submetricId) => ({
+      metricId: id,
+      submetricId,
+      status,
+      score,
+      confidence: score === null ? 0 : 0.8,
+      reasoning: score === null ? 'More evidence is needed.' : 'The supplied evidence supports this alignment.',
+      applicantEvidenceIds: score === null ? [] : ['claim-1'],
+      targetSourceRefs: ['source-1'],
+      missingEvidence: score === null ? ['Add a concrete example.'] : [],
+      limitations: [],
+    })),
+  } as MatchingReportV3['universityFit']['metrics']['academicReadiness'];
+}
+
+const V3_REPORT: MatchingReportV3 = {
+  contractVersion: 'matching-report-v3',
+  generatedAt: '2026-08-28T00:00:00.000Z',
+  overall: {
+    summary: 'Grounded alignment summary.',
+    overallAlignmentScore: 80,
+    evidenceCoverage: 88,
+    confidence: 0.8,
+    strongestAlignment: ['academicReadiness'],
+    criticalGaps: ['gap:capability'],
+    summaryEvidenceIds: ['claim-1'],
+    summaryTargetSourceRefs: ['source-1'],
+  },
+  universityFit: {
+    score: 80,
+    status: 'assessed',
+    confidence: 0.8,
+    coverage: 100,
+    summary: 'University alignment summary.',
+    metrics: {
+      academicReadiness: v3Metric('academicReadiness'),
+      valuesAlignment: v3Metric('valuesAlignment'),
+      communityContribution: v3Metric('communityContribution'),
+      learningEnvironment: v3Metric('learningEnvironment', null, 'not_available'),
+      distinctiveOpportunity: v3Metric('distinctiveOpportunity'),
+    },
+  },
+  programmeFit: {
+    score: 80,
+    status: 'limited',
+    confidence: 0.8,
+    coverage: 88,
+    summary: 'Programme alignment summary.',
+    metrics: {
+      interestMotivation: v3Metric('interestMotivation'),
+      capability: v3Metric('capability', 55, 'limited'),
+      experienceExposure: v3Metric('experienceExposure'),
+      careerFutureDirection: v3Metric('careerFutureDirection'),
+    },
+    strongestAlignment: ['interestMotivation'],
+    potentialGap: 'Capability evidence is limited.',
+    strategicInterpretation: 'Position the project evidence around the programme direction.',
+  },
+  hardRequirements: [{
+    id: 'language-1',
+    kind: 'language',
+    label: 'English language',
+    status: 'not_met',
+    applicantValue: null,
+    requiredValue: 'IELTS 6.5',
+    explanation: 'An English test result is still needed.',
+    evidenceIds: [],
+    targetSourceRefs: ['source-1'],
+  }],
+  scholarshipAlignment: null,
+  strengths: [{ id: 'strength:academicReadiness', title: 'Academic readiness', description: 'Strong academic evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'] }],
+  gaps: [{ id: 'gap:capability', title: 'Capability gap', description: 'Capability evidence is limited.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'] }],
+  positioningOpportunities: [{ id: 'positioning:academicReadiness', title: 'Use academic readiness', description: 'Use the cited academic evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'] }],
+  keyTakeaways: {
+    strongestAlignment: { title: 'Strongest fit', body: 'Academic readiness is the strongest fit.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+    criticalGap: { title: 'Critical gap', body: 'Language evidence is still required.', evidenceIds: [], targetSourceRefs: ['source-1'], metricIds: ['capability'] },
+    evidenceToAdd: { title: 'Evidence to add', body: 'Add a concrete capability example.', evidenceIds: [], targetSourceRefs: ['source-1'], metricIds: ['capability'] },
+    positioningNextStep: { title: 'Strategic direction', body: 'Use the strongest fit carefully.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+  },
+  evidenceIndex: [{ id: 'claim-1', label: 'Verified project', statement: 'The applicant completed a project.', kind: 'applicant', status: 'verified', sourceRefs: ['raw-1'], direct: true }],
+  targetSourceIndex: [{ ref: 'source-1', label: 'Programme page', title: 'Programme page', url: 'https://example.edu/programme', kind: 'programme' }],
+  metadata: {
+    matchingEngineVersion: 'matching-v3.0.0',
+    promptVersion: 'matching-prompts-v3.0.0',
+    metricPromptVersion: 'matching-metric-v3.0.0',
+    summaryPromptVersion: 'matching-summary-v3.0.0',
+    formulaVersion: 'matching-formula-v3.0.0',
+    model: 'test-model',
+    targetProfileVersionId: 'target-1',
+    targetProfileSchemaVersion: 'tp-v1',
+    personalReportVersionId: 'personal-1',
+    personalReportInputHash: 'personal-hash',
+    sourceAnalysisVersionId: 'analysis-1',
+    confirmedSnapshotId: 'snapshot-1',
+    evidenceBankVersion: 'eb-v1',
+    selectedScholarshipKey: null,
+    selectedScholarshipVersionId: null,
+    reusedMetricIds: [],
+    metricInputHashes: {},
+    aiCallCount: { metricBatches: 2, providerCalls: 3, summary: 1 },
+  },
+};
 
 describe('MatchingReportView', () => {
   afterEach(() => {
@@ -234,6 +358,24 @@ describe('MatchingReportView', () => {
     expect(screen.getByText('Positioning Opportunities')).toBeDefined();
     expect(screen.getByText('Scholarship Alignment')).toBeDefined();
     expect(screen.getByText('Evidence that improves assessment')).toBeDefined();
+  });
+
+  it('renders the canonical V3 fits, takeaways, hard requirements and provenance', () => {
+    renderReport({ analysis: { ...data.analysis!, reportV2: null, reportV3: V3_REPORT } });
+
+    for (const label of ['University Fit', 'Programme Fit', 'Academic Readiness', 'Values Alignment', 'Community & Contribution', 'Learning Environment', 'Distinctive Opportunity', 'Interest & Motivation', 'Capability', 'Experience & Exposure', 'Career & Future Direction']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    for (const label of ['Strongest fit', 'Critical gap', 'Evidence to add', 'Strategic direction', 'Strongest alignment', 'Potential gap', 'Strategic interpretation']) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByText('English language')).toBeInTheDocument();
+    expect(screen.getAllByText(/Programme page/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Verified project/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/scholarship alignment was not assessed/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Not assessed').length).toBeGreaterThan(0);
+    expect(screen.getByText(/do not predict admission decisions/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^0%$/)).not.toBeInTheDocument();
   });
 });
 

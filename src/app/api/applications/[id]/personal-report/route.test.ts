@@ -7,13 +7,20 @@ const mocks = vi.hoisted(() => ({
   getLatest: vi.fn(),
   enqueue: vi.fn(),
   getGeneration: vi.fn(),
+  after: vi.fn(),
+  process: vi.fn(),
 }));
 
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after: mocks.after,
+}));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => supabaseMock }));
 vi.mock('@/features/apply/api', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatest,
   enqueueApplicationPersonalReportGeneration: mocks.enqueue,
   getApplicationPersonalReportGeneration: mocks.getGeneration,
+  processApplicationPersonalReportGenerations: mocks.process,
 }));
 
 function chain(result: { data: unknown; error: unknown }) {
@@ -74,6 +81,7 @@ describe('application Personal Report route', () => {
       job: { id: 'job-1', status: 'pending', attempts: 0 },
     });
     mocks.getGeneration.mockResolvedValue({ migrationMissing: false, job: null });
+    mocks.after.mockImplementation(() => undefined);
   });
 
   it('requires authentication and ownership', async () => {
@@ -102,6 +110,7 @@ describe('application Personal Report route', () => {
     expect(mocks.enqueue).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       userId: 'user-1', applicationId: 'app-1', force: true, idempotencyKey: 'req-1',
     }));
+    expect(mocks.after).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it('returns an already-active job without consuming the generation rate limit', async () => {

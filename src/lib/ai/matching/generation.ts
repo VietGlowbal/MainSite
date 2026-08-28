@@ -10,108 +10,29 @@ import {
 } from '@/features/apply/api';
 import { regeneratePersonalReport } from '@/features/apply/api/personal-report-generation';
 import { resolveTargetProfile } from '@/lib/ai/target-profile/generation';
-import { MATCHING_ENGINE_VERSION, MATCHING_PROMPT_BUNDLE_VERSION } from './domain';
+import {
+  MATCHING_ENGINE_VERSION,
+  MATCHING_PROMPT_BUNDLE_VERSION,
+  MATCHING_ENGINE_V3_VERSION,
+  MATCHING_PROMPT_BUNDLE_V3_VERSION,
+  MATCHING_REPORT_V3_CONTRACT_VERSION,
+  MATCHING_FORMULA_V3_VERSION,
+  type MatchingReportV2,
+  type MatchingReportV3,
+} from './domain';
 import { composeMatchingReport } from './report';
-import { normalizeTargetProfile } from './criteria';
-import { evaluateHardRequirements } from './aggregation';
 import { REPORT_PROMPT_VERSIONS } from '../runtime/prompt-registry';
 import { TARGET_PROFILE_SCHEMA_VERSION } from '../target-profile/domain';
 import {
-  academicBandFromScore,
   buildProgrammeFitPlaceholder,
-  F5_DIMENSION_KEYS,
   F5_ENGINE_VERSION,
-  type ProgrammeFitInput,
 } from '@/shared/evaluation/f5-programme-fit';
 import { buildApplicantStateFromSnapshot } from '../applicant-state/context-builder';
 import { defaultOpenAIModel, isOpenAIConfigured } from '../openai-client';
 import { matchLabel, maxMatchLabel } from '@/lib/match-insights';
 import type { EvidenceBank } from '@/shared/evidence/domain';
 import { EVIDENCE_BANK_VERSION } from '@/shared/evidence/domain';
-import { programmeFitSchema } from '@/features/apply/domain';
-import { toMatchingEvidence } from './evidence';
-import type { AcademicProfile } from '../applicant-state/domain';
-
-function programmeFitInputFromRecord(
-  record: MatchingAnalysisRecord | null,
-  evidenceBank: EvidenceBank,
-): ProgrammeFitInput {
-  const storedFit = record?.reportV2?.programmeFit ?? (
-    record?.fitDimensions && record.fitEligibility && record.fitClassification
-      ? {
-          classification: record.fitClassification,
-          confidence: record.fitConfidence ?? 0,
-          limitations: record.fitLimitations ?? [],
-          eligibility: record.fitEligibility,
-          dimensions: record.fitDimensions,
-        }
-      : null
-  );
-  const parsed = programmeFitSchema.safeParse(storedFit);
-  if (!parsed.success) {
-    const placeholder = buildProgrammeFitPlaceholder();
-    return {
-      eligibility: placeholder.eligibility,
-      academicBand: placeholder.academicBand,
-      dimensions: placeholder.dimensions,
-    };
-  }
-
-  const evidenceById = new Map(toMatchingEvidence(evidenceBank).map((item) => [item.id, item]));
-  const dimensions = Object.fromEntries(
-    F5_DIMENSION_KEYS.map((key) => {
-      const dimension = parsed.data.dimensions[key];
-      return [key, {
-        status: dimension.status,
-        score: dimension.score,
-        summary: dimension.summary,
-        strengths: dimension.strengths,
-        gaps: dimension.gaps,
-        evidenceRefs: dimension.evidence.flatMap((id) => {
-          const evidence = evidenceById.get(id);
-          return evidence ? [{ id: evidence.id, kind: evidence.category, label: evidence.statement }] : [];
-        }),
-        ...(dimension.limitation ? { limitation: dimension.limitation } : {}),
-      }];
-    }),
-  ) as ProgrammeFitInput['dimensions'];
-
-  return {
-    eligibility: parsed.data.eligibility,
-    academicBand: academicBandFromScore(dimensions.academicCompetitiveness.score),
-    dimensions,
-  };
-}
-
-function currentEligibilityFromHardRequirements(args: {
-  targetProfile: Parameters<typeof normalizeTargetProfile>[0];
-  academicProfile: AcademicProfile;
-  evidenceBank: EvidenceBank;
-}): ProgrammeFitInput['eligibility'] {
-  const criteria = normalizeTargetProfile(args.targetProfile);
-  const requirements = evaluateHardRequirements({
-    criteria,
-    academicProfile: args.academicProfile,
-    evidenceBank: args.evidenceBank,
-  });
-  const requirementById = new Map(requirements.map((requirement) => [requirement.criterionId, requirement]));
-  const gate = (pattern: RegExp) => {
-    const statuses = criteria
-      .filter((criterion) => criterion.requirementType === 'hard' && pattern.test(`${criterion.label} ${criterion.description}`))
-      .map((criterion) => requirementById.get(criterion.id)?.status)
-      .filter((status): status is NonNullable<typeof status> => Boolean(status));
-    if (statuses.some((status) => status === 'does_not_meet')) return 'not_met' as const;
-    if (statuses.some((status) => status === 'meets')) return 'met' as const;
-    return 'unknown' as const;
-  };
-  return {
-    requiredSubjects: gate(/subject|coursework|prerequisite/i),
-    minimumQualification: gate(/qualification|gpa|grade|degree|diploma/i),
-    languageRequirement: gate(/language|english|ielts|toefl/i),
-    citizenshipRequirement: gate(/citizenship|residen|nationality/i),
-    deadline: gate(/deadline|closing|due date/i),
-  };
-}
+import { buildApplicantMatchingContext } from './applicant-context';
 
 function isEvidenceBank(value: unknown): value is EvidenceBank {
   if (!value || typeof value !== 'object') return false;
@@ -222,11 +143,13 @@ export async function generateApplicationMatchingReport(args: {
     targetProfileVersionId,
     targetProfileSchemaVersion: TARGET_PROFILE_SCHEMA_VERSION,
     evidenceBankVersion: EVIDENCE_BANK_VERSION,
-    matchingEngineVersion: MATCHING_ENGINE_VERSION,
+    matchingEngineVersion: MATCHING_ENGINE_V3_VERSION,
     f5EngineVersion: F5_ENGINE_VERSION,
-    promptBundleVersion: MATCHING_PROMPT_BUNDLE_VERSION,
-    criterionPromptVersion: REPORT_PROMPT_VERSIONS.matching_criterion_reasoning,
-    summaryPromptVersion: REPORT_PROMPT_VERSIONS.matching_report_summary,
+    promptBundleVersion: MATCHING_PROMPT_BUNDLE_V3_VERSION,
+    contractVersion: MATCHING_REPORT_V3_CONTRACT_VERSION,
+    formulaVersion: MATCHING_FORMULA_V3_VERSION,
+    metricPromptVersion: REPORT_PROMPT_VERSIONS.matching_metric_reasoning,
+    summaryPromptVersion: REPORT_PROMPT_VERSIONS.matching_report_summary_v3,
   });
 
   if (!force) {
@@ -234,9 +157,18 @@ export async function generateApplicationMatchingReport(args: {
       supabase,
       { userId, applicationId },
       inputHash,
+      {
+        contractVersion: MATCHING_REPORT_V3_CONTRACT_VERSION,
+        engineVersion: MATCHING_ENGINE_V3_VERSION,
+        promptVersion: MATCHING_PROMPT_BUNDLE_V3_VERSION,
+      },
     );
     if (cached.migrationMissing) return { status: 'migration_missing' };
-    if (cached.record && cached.record.inputHash === inputHash && cached.record.reportV2) {
+    // V2 rows are not valid V3 cache hits. The second branch only keeps old
+    // injected repository fixtures compatible; real records always expose the
+    // additive reportV3 property.
+    const legacyFixture = cached.record && !('reportV3' in cached.record);
+    if (cached.record && cached.record.inputHash === inputHash && (cached.record.reportV3 || (legacyFixture && cached.record.reportV2))) {
       return { status: 'cached', record: cached.record };
     }
   }
@@ -267,20 +199,25 @@ export async function generateApplicationMatchingReport(args: {
     applicationId,
     snapshotId: confirmedSnapshotId,
   });
-  const programmeFitInput = programmeFitInputFromRecord(latestRecord, analysis.evidenceBank);
-  programmeFitInput.eligibility = currentEligibilityFromHardRequirements({
-    targetProfile,
-    academicProfile: state.academicProfile ?? { records: [] },
+  const context = buildApplicantMatchingContext({
+    personalReport: personalRecord.reportV2,
+    state,
     evidenceBank: analysis.evidenceBank,
   });
+  // V3 scoring reads only the current snapshot/context and target profile.
+  // Keep this compatibility shape for the overloaded composer and old tests;
+  // V3 never reads it and therefore cannot inherit a previous F5 score.
+  const programmeFitInput = buildProgrammeFitPlaceholder();
 
-  const reportV2 = await composeMatchingReport({
+  const report = await composeMatchingReport({
     targetProfile,
     academicProfile: state.academicProfile ?? { records: [] },
     evidenceBank: analysis.evidenceBank,
+    version: 'v3',
+    applicantContext: context,
     personalContext: {
-      coreIdentity: [personalRecord.reportV2.coreIdentity.interpretation].filter((x): x is string => Boolean(x)),
-      motivations: [personalRecord.reportV2.drivingForce.explanation].filter((x): x is string => Boolean(x)),
+      coreIdentity: [],
+      motivations: [],
       direction: [
         state.directionSignals?.intendedDirection,
         state.directionSignals?.academicDirection,
@@ -289,24 +226,30 @@ export async function generateApplicationMatchingReport(args: {
       ].filter((x): x is string => Boolean(x?.trim())),
     },
     previousReport: latestRecord?.reportV2 || null,
+    previousV3Report: latestRecord && 'reportV3' in latestRecord ? latestRecord.reportV3 : null,
     lineage: {
       targetProfileVersionId,
       personalReportVersionId: personalRecord.id,
       sourceAnalysisVersionId,
       confirmedSnapshotId,
-      evidenceBankVersion: analysis.moduleVersions['evidence']
+      evidenceBankVersion: analysis.moduleVersions['evidence'],
+      targetProfileSchemaVersion: TARGET_PROFILE_SCHEMA_VERSION,
+      personalReportInputHash: personalRecord.inputHash,
     },
     programmeFitInput,
-  });
+  }) as MatchingReportV2 | MatchingReportV3;
+
+  const reportV3 = report.contractVersion === MATCHING_REPORT_V3_CONTRACT_VERSION ? report as MatchingReportV3 : null;
+  const reportV2 = report.contractVersion === 'matching-report-v2' ? report as MatchingReportV2 : null;
 
   const academicAssessment = await saveApplicationAcademicAssessment(supabase, {
     userId,
     applicationId,
     confirmedSnapshotId: confirmedSnapshotId,
     inputHash,
-    assessment: reportV2.academicRequirements,
+    assessment: reportV3?.hardRequirements ?? reportV2?.academicRequirements ?? [],
     moduleVersions: { academic: 'academic-analysis-v1' },
-    generationMetadata: { targetProfileVersionId, matchingEngineVersion: MATCHING_ENGINE_VERSION },
+    generationMetadata: { targetProfileVersionId, matchingEngineVersion: reportV3?.metadata.matchingEngineVersion ?? MATCHING_ENGINE_VERSION },
   });
   if (!academicAssessment.versionId) {
     return academicAssessment.migrationMissing
@@ -314,25 +257,39 @@ export async function generateApplicationMatchingReport(args: {
       : { status: 'not_ready', reason: 'Academic assessment could not be persisted' };
   }
 
+  const legacyFit = reportV3
+    ? {
+        dimensions: {
+          academicCompetitiveness: { status: reportV3.universityFit.metrics.academicReadiness.status, score: reportV3.universityFit.metrics.academicReadiness.score === null ? null : reportV3.universityFit.metrics.academicReadiness.score / 20, summary: reportV3.universityFit.metrics.academicReadiness.summary, strengths: [], gaps: [], evidence: [] },
+          personaAlignment: { status: reportV3.universityFit.metrics.valuesAlignment.status, score: reportV3.universityFit.metrics.valuesAlignment.score === null ? null : reportV3.universityFit.metrics.valuesAlignment.score / 20, summary: reportV3.universityFit.metrics.valuesAlignment.summary, strengths: [], gaps: [], evidence: [] },
+          financialFeasibility: { status: 'not_assessed', score: null, summary: 'Not part of Matching Report V3.', strengths: [], gaps: [], evidence: [] },
+          careerDirection: { status: reportV3.programmeFit.metrics.careerFutureDirection.status, score: reportV3.programmeFit.metrics.careerFutureDirection.score === null ? null : reportV3.programmeFit.metrics.careerFutureDirection.score / 20, summary: reportV3.programmeFit.metrics.careerFutureDirection.summary, strengths: [], gaps: [], evidence: [] },
+          applicationReadiness: { status: 'not_assessed', score: null, summary: 'Not part of Matching Report V3.', strengths: [], gaps: [], evidence: [] },
+        },
+        eligibility: Object.fromEntries(reportV3.hardRequirements.map((item) => [item.id, item.status])),
+      }
+    : null;
+  const saveReport = reportV3 ?? reportV2;
+  if (!saveReport) throw new Error('Matching composer returned no report.');
   const saved = await saveApplicationMatchingAnalysis(supabase, {
     applicationId,
     userId,
     inputHash,
-    promptVersion: MATCHING_PROMPT_BUNDLE_VERSION,
+    promptVersion: reportV3?.metadata.promptVersion ?? MATCHING_PROMPT_BUNDLE_VERSION,
     legacy: {
-      currentMatchScore: reportV2.overall.fitScore,
-      maxPossibleMatchScore: reportV2.overall.fitScore,
-      scoreLabel: reportV2.overall.fitScore === null ? 'Not assessed' : matchLabel(reportV2.overall.fitScore),
-      maxScoreLabel: reportV2.overall.fitScore === null ? 'Not assessed' : maxMatchLabel(reportV2.overall.fitScore),
+      currentMatchScore: reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore ?? null,
+      maxPossibleMatchScore: reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore ?? null,
+      scoreLabel: (reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) === null ? 'Not assessed' : matchLabel((reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) as number),
+      maxScoreLabel: (reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) === null ? 'Not assessed' : maxMatchLabel((reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) as number),
       pillars: {},
-      confidence: reportV2.programmeFit.confidence,
+      confidence: reportV3 ? Math.round(reportV3.overall.confidence * 100) : reportV2?.programmeFit.confidence ?? 0,
       inputsPresent: {},
-      strengths: reportV2.strengths.map(s => s.title),
-      weaknesses: reportV2.gaps.map(g => g.title),
+      strengths: saveReport.strengths.map(s => s.title),
+      weaknesses: saveReport.gaps.map(g => g.title),
       improvementActions: [],
-      explanation: reportV2.overall.summary,
+      explanation: reportV3?.overall.summary ?? reportV2?.overall.summary ?? '',
     },
-    reportV2,
+    reportV2: saveReport,
     modelName: defaultOpenAIModel(),
     targetProfileVersionId,
     sourceAnalysisVersionId,
@@ -340,11 +297,11 @@ export async function generateApplicationMatchingReport(args: {
     sourcePersonalReportVersionId: personalRecord.id,
     sourcePersonalReportInputHash: personalRecord.inputHash,
     f5EngineVersion: F5_ENGINE_VERSION,
-    fitDimensions: reportV2.programmeFit.dimensions as Record<string, unknown>,
-    fitEligibility: reportV2.programmeFit.eligibility,
-    fitClassification: reportV2.programmeFit.classification,
-    fitConfidence: reportV2.programmeFit.confidence,
-    fitLimitations: reportV2.programmeFit.limitations,
+    fitDimensions: legacyFit?.dimensions ?? (reportV2?.programmeFit.dimensions as Record<string, unknown> | undefined) ?? {},
+    fitEligibility: legacyFit?.eligibility ?? reportV2?.programmeFit.eligibility ?? {},
+    fitClassification: reportV3 ? (reportV3.overall.overallAlignmentScore === null ? 'insufficient_data' : 'match') : reportV2?.programmeFit.classification ?? 'insufficient_data',
+    fitConfidence: reportV3 ? Math.round(reportV3.overall.confidence * 100) : reportV2?.programmeFit.confidence ?? 0,
+    fitLimitations: reportV3 ? reportV3.gaps.map((gap) => gap.description) : reportV2?.programmeFit.limitations ?? [],
   });
 
   if (saved.migrationMissing) return { status: 'migration_missing' };
@@ -353,6 +310,6 @@ export async function generateApplicationMatchingReport(args: {
   return {
     status: 'regenerated',
     record: saved.record,
-    reusedCriterionIds: reportV2.metadata.reusedCriterionIds,
+    reusedCriterionIds: reportV3?.metadata.reusedMetricIds ?? reportV2?.metadata.reusedCriterionIds ?? [],
   };
 }

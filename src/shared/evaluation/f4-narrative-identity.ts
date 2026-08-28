@@ -235,6 +235,7 @@ export type IdentitySynthesis = Insight & {
 type ReflectionIdentitySignal = {
   dimension: string;
   value: string;
+  summary?: string;
   status?: 'repeated' | 'isolated';
 };
 
@@ -312,7 +313,7 @@ export function synthesizeIdentity(
         signal.status === 'repeated' &&
         ['interests_motivations', 'values_growth', 'problem_domains'].includes(signal.dimension),
     )
-    .map((signal) => signal.value.trim())
+    .map((signal) => signal.summary?.trim() ?? 'a self-reported value orientation')
     .filter(nonEmpty);
   const valueOrientation =
     (readiness.level === 'mature' ? mostCommon(themes) : null) ??
@@ -354,7 +355,7 @@ export function synthesizeIdentity(
     recurringBehaviour,
     valueOrientation,
     reflectionSignals: Object.fromEntries(
-      reflectionSignals.map((signal) => [signal.dimension, signal.value]),
+      reflectionSignals.map((signal) => [signal.dimension, signal.summary ?? 'self-reported reflection context']),
     ),
   };
 }

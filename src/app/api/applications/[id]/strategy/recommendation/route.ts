@@ -11,7 +11,8 @@ import {
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
 import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
-import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
+import { buildProgrammeFitPlaceholder } from '@/shared/evaluation/f5-programme-fit';
+import { matchingReportV3Schema, type MatchingReportV3 } from '@/lib/ai/matching/domain';
 
 /**
  * GET  /api/applications/[id]/strategy/recommendation — latest F8 report, or null.
@@ -48,6 +49,36 @@ function fitFromRow(row: Record<string, unknown> | null): { fit: ProgrammeFit; i
   });
   if (!parsed.success) return null;
   return { fit: enforceFitClassification(parsed.data), id: String(row.id) };
+}
+
+function matchingFromRows(rows: Record<string, unknown>[]): { fit: ProgrammeFit; id: string; row: Record<string, unknown>; reportV3: MatchingReportV3 | null } | null {
+  const v3Row = rows.find((row) => matchingReportV3Schema.safeParse(row.report_v2).success);
+  const row = v3Row ?? rows.find((candidate) => fitFromRow(candidate) !== null);
+  if (!row) return null;
+  const parsedV3 = matchingReportV3Schema.safeParse(row.report_v2);
+  const legacy = fitFromRow(row);
+  if (!parsedV3.success) return legacy ? { ...legacy, row, reportV3: null } : null;
+
+  const placeholder = buildProgrammeFitPlaceholder();
+  return {
+    fit: legacy?.fit ?? programmeFitSchema.parse({
+      classification: placeholder.classification,
+      confidence: placeholder.confidencePercent,
+      limitations: placeholder.limitations,
+      eligibility: placeholder.eligibility,
+      dimensions: Object.fromEntries(Object.entries(placeholder.dimensions).map(([key, dimension]) => [key, {
+        status: dimension.status,
+        score: dimension.score,
+        summary: dimension.summary,
+        strengths: dimension.strengths,
+        gaps: dimension.gaps,
+        evidence: dimension.evidenceRefs.map((ref) => ref.id),
+      }])),
+    }),
+      id: String(row.id),
+      row,
+      reportV3: parsedV3.data,
+  };
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -109,7 +140,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
   const [
     personalReportResult,
-    { data: matchRow },
+    { data: matchRows },
     { data: achievements },
     { data: activities },
     universityResult,
@@ -121,10 +152,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       .eq('application_id', applicationId)
       .eq('user_id', user.id)
       .eq('analysis_status', 'complete')
-      .eq('f5_engine_version', F5_ENGINE_VERSION)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(20),
     supabase.from('student_achievements').select('category, title, detail').eq('user_id', user.id),
     supabase.from('student_activities').select('category, title, description').eq('user_id', user.id),
     application.university_id == null
@@ -137,7 +166,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   ]);
 
   const personalRecord = personalReportResult.record;
-  const fitResult = matchRow ? fitFromRow(matchRow) : null;
+  const matchingRows = (Array.isArray(matchRows) ? matchRows : matchRows ? [matchRows] : []) as Record<string, unknown>[];
+  const fitResult = matchingFromRows(matchingRows);
+  const matchRow = fitResult?.row ?? null;
 
   if (!personalRecord || !fitResult) {
     logger.warn('strategy_recommendation_generate', {
@@ -185,6 +216,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     matchAnalysisInputHash: matchRow?.input_hash ?? null,
     matchAnalysisPromptVersion: matchRow?.prompt_version ?? null,
     matchAnalysisF5EngineVersion: matchRow?.f5_engine_version ?? null,
+    matchingReportContractVersion: fitResult.reportV3?.contractVersion ?? null,
+    matchingReportEngineVersion: fitResult.reportV3?.metadata.matchingEngineVersion ?? null,
     programme: programmeInput,
     achievements: achievements ?? [],
     activities: activities ?? [],
@@ -239,6 +272,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     result = await generateStrategyReportV2({
       personalReport: personalRecord.reportV2,
       fit: fitResult.fit,
+      matchingReportV3: fitResult.reportV3,
       programme: programmeInput,
       achievements: achievements ?? [],
       activities: activities ?? [],
@@ -258,6 +292,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       result = await generateStrategyRecommendation({
         personalReport: personalRecord.reportV2,
         fit: fitResult.fit,
+        matchingReportV3: fitResult.reportV3,
         programme: programmeInput,
         achievements: achievements ?? [],
         activities: activities ?? [],
@@ -335,6 +370,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       const legacy = await generateStrategyRecommendation({
         personalReport: personalRecord.reportV2,
         fit: fitResult.fit,
+        matchingReportV3: fitResult.reportV3,
         programme: programmeInput,
         achievements: achievements ?? [],
         activities: activities ?? [],

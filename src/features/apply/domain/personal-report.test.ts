@@ -284,7 +284,7 @@ describe('buildPersonalReport', () => {
     const result = report();
 
     expect(result.snapshot?.summary).not.toContain('I wanted to help classmates');
-    expect(result.snapshot?.summary).toContain('an explicitly stated motivation');
+    expect(result.snapshot?.summary).toContain('activity-level reflection');
   });
 
   it('uses the persisted Evidence Bank for coverage and preserves raw-source provenance', () => {

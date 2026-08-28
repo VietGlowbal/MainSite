@@ -272,6 +272,7 @@ function tableChain(resolved: { data: unknown; error: unknown }) {
   chain.limit = self;
   chain.single = async () => resolved;
   chain.maybeSingle = async () => resolved;
+  chain.then = (onFulfilled: (value: unknown) => unknown) => Promise.resolve(resolved).then(onFulfilled);
   chain.insert = () => ({
     select: () => ({ single: async () => resolved }),
   });
@@ -458,7 +459,7 @@ describe('/api/applications/[id]/strategy/recommendation', () => {
       expect(json.needsInputs).toBe(true);
     });
 
-    it('consumes the canonical F5 columns from the owned application', async () => {
+    it('consumes matching rows from the owned application', async () => {
       const { matchAnalysisFilters } = setupSupabase();
       const { POST } = await importRoute();
       const res = await POST(new Request('http://localhost', { method: 'POST' }), {
@@ -468,7 +469,6 @@ describe('/api/applications/[id]/strategy/recommendation', () => {
       expect(res.status).toBe(200);
       expect(matchAnalysisFilters).toEqual(expect.arrayContaining([
         ['user_id', 'user-1'],
-        ['f5_engine_version', 'f5-programme-fit-v1'],
       ]));
     });
 

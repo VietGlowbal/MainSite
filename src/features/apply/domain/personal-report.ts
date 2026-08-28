@@ -239,12 +239,12 @@ function buildDrivingForce(
         signal.status === 'repeated' &&
         (signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3'),
     )
-    .map((signal) => signal.value);
+    .map((signal) => signal.summary ?? 'A self-reported motivation corroborated by activity evidence.');
   const repeatedMotivations = [
     ...corroboratedReflectionMotivations,
-    ...activities
-    .map((activity) => activity.statedMotivation)
-    .filter((value): value is string => Boolean(value))
+    ...(activities.some((activity) => Boolean(activity.statedMotivation))
+      ? ['A motivation is consistently described in the activity-level reflection.']
+      : []),
   ].slice(0, 4);
 
   if (!available) {
@@ -279,7 +279,7 @@ function buildDrivingForce(
 
   const explanationParts: string[] = [];
   if (statedMotivation) {
-    explanationParts.push(`The candidate has clearly stated their motivation: "${statedMotivation}".`);
+    explanationParts.push('The candidate has clearly stated a motivation in the confirmed source material.');
   } else {
     explanationParts.push(
       'The candidate has not clearly stated their motivation; the finding below is inferred only from a repeated pattern of activity choices, and is therefore an EMERGING HYPOTHESIS, not a confirmed fact.',
@@ -498,9 +498,10 @@ function buildEmergingThemes(
   // Keep it visible as self-reported context until activity evidence links it
   // to a recurring problem/domain.
   for (const signal of reflectedInterests) {
-    if (built.some((theme) => theme.theme.toLowerCase() === signal.value.toLowerCase())) continue;
+    const themeLabel = signal.summary ?? 'A self-reported interest';
+    if (built.some((theme) => theme.theme.toLowerCase() === themeLabel.toLowerCase())) continue;
     built.push({
-      theme: signal.value,
+      theme: themeLabel,
       status: 'possible_theme',
       statusLabel: THEME_MATURITY_LABEL.possible_theme,
       explanation: 'This interest is self-reported in Q1 and is not yet linked to an independent activity theme.',
@@ -589,7 +590,7 @@ function buildPersonalPositioning(
   const q3 = reflectionSignals.find((signal) => signal.key === 'q3');
   const reflectedProblem = q3
     ? {
-        theme: q3.value,
+        theme: q3.summary ?? 'A self-reported problem focus',
         status: q3.status === 'repeated' ? ('early_signal' as const) : ('possible_theme' as const),
         evidenceCount: q3.status === 'repeated' ? 2 : 1,
         explicitLinkCount: 0,

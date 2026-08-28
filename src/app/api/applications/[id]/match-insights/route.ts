@@ -93,13 +93,14 @@ export async function POST(
     }
 
     if (result.status === 'cached') {
-      return NextResponse.json({ ok: true, cached: true, analysis: result.record, reportV2: result.record.reportV2 });
+      return NextResponse.json({ ok: true, cached: true, analysis: result.record, reportV3: result.record.reportV3, reportV2: result.record.reportV2 });
     }
 
     return NextResponse.json({
       ok: true,
       cached: false,
       analysis: result.record,
+      reportV3: result.record.reportV3,
       reportV2: result.record.reportV2,
       reusedCriterionIds: result.reusedCriterionIds,
     });

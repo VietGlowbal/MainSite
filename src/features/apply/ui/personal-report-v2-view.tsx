@@ -265,40 +265,41 @@ export function PersonalReportV2View({
 
   return (
     <div className="flex flex-col gap-gb-3xl" data-report-auto-translate>
-      <header className="flex flex-col gap-gb-lg">
-        <div className="flex flex-wrap items-center gap-gb-sm">
+      <header className="flex flex-col gap-gb-xl">
+        <div className="flex items-center gap-gb-xs">
           <Badge variant="brand-subtle">{t('Personal Report')}</Badge>
-          <span className="text-gb-xs text-fg-muted">Personal Canvas</span>
+          <span className="text-gb-xs text-fg-muted">/</span>
+          <span className="text-gb-xs font-medium text-fg-tertiary">Personal Canvas</span>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-gb-lg">
-          <div className="flex flex-col gap-gb-xs">
+        <div className="flex flex-wrap items-start justify-between gap-gb-xl">
+          <div className="flex max-w-2xl flex-col gap-gb-xs">
             <h1
               className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg"
               data-no-auto-translate
             >
               {studentName}
             </h1>
-            <p className="max-w-2xl text-gb-sm text-fg-tertiary">
+            <p className="text-gb-sm leading-relaxed text-fg-tertiary">
               A profile of who you are as an applicant — built from your reflected experiences,
               evidence and recurring patterns.
             </p>
             {viewedGeneratedAt ? (
-              <p className="text-gb-xs text-fg-muted">
+              <p className="mt-gb-xxs text-gb-xs text-fg-muted">
                 {t('Generated')}: {formatUiDate(viewedGeneratedAt, lang)}
               </p>
             ) : null}
           </div>
 
-          <div className="flex items-center gap-gb-md rounded-gb-xl bg-surface-muted px-gb-lg py-gb-md">
-            <span className="text-gb-sm text-fg-tertiary">
+          <div className="flex items-center gap-gb-sm rounded-gb-xl border border-line bg-surface-muted/60 px-gb-lg py-gb-sm">
+            <span className="text-gb-xs font-medium text-fg-muted">
               {t('Overall evidence confidence')}:
             </span>
             <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-gb-lg border-t border-line pt-gb-lg print:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-gb-md border-t border-line/70 pt-gb-md print:hidden">
           <Button
             href={withReturn('/ai-strategy/reflection', returnTo)}
             variant="secondary"

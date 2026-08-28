@@ -685,6 +685,23 @@ describe('fetchPlanningContextSources', () => {
     expect(diag?.status).toBe('invalid');
   });
 
+  it('falls back to the newest valid report when a newer row is malformed', async () => {
+    const badMatch: MockTable = {
+      ...VALID_MATCH_ROW,
+      id: 'match-bad',
+      fit_classification: 'INVALID_ENUM_VALUE',
+      created_at: '2025-02-01T00:00:00Z',
+    };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_match_analyses: [badMatch, VALID_MATCH_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.programmeFit?.provenance.id).toBe('match-1');
+    expect(result.diagnostics.find((diagnostic) => diagnostic.source === 'application_match_analyses')?.status).toBe('present');
+  });
+
   // ── 13. Valid F7 → strategyRecommendation populated ──────────────────────────
   it('populates strategyRecommendation with provenance including F7 ancestry IDs', async () => {
     const supabase = buildSupabase({

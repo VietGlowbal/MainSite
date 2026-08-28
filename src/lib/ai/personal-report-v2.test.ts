@@ -197,6 +197,18 @@ describe('buildProfileEvaluationInput', () => {
       vi.fn().mockImplementation((_url: string, init: RequestInit) => {
         const body = JSON.parse(init.body as string);
         const userMessage = body.messages[1].content as string;
+        const reflectionRequest = (() => {
+          try {
+            return JSON.parse(userMessage) as { answers?: Array<{ key: string }> };
+          } catch {
+            return {} as { answers?: Array<{ key: string }> };
+          }
+        })();
+        if (reflectionRequest.answers) {
+          return Promise.resolve(chatResponse({
+            signals: reflectionRequest.answers.map(({ key }) => ({ key, summary: `normalized ${key}` })),
+          }));
+        }
         if (userMessage.includes('competenc')) {
           return Promise.resolve(
             chatResponse({
@@ -316,6 +328,18 @@ describe('seven personal reflection answers feed Identity/Direction signals', ()
       vi.fn().mockImplementation((_url: string, init: RequestInit) => {
         const body = JSON.parse(init.body as string);
         const userMessage = body.messages[1].content as string;
+        const reflectionRequest = (() => {
+          try {
+            return JSON.parse(userMessage) as { answers?: Array<{ key: string }> };
+          } catch {
+            return {} as { answers?: Array<{ key: string }> };
+          }
+        })();
+        if (reflectionRequest.answers) {
+          return Promise.resolve(chatResponse({
+            signals: reflectionRequest.answers.map(({ key }) => ({ key, summary: `normalized ${key}` })),
+          }));
+        }
         if (userMessage.includes('competenc')) {
           return Promise.resolve(chatResponse({ claims: [] }));
         }
@@ -367,9 +391,9 @@ describe('seven personal reflection answers feed Identity/Direction signals', ()
       expect.objectContaining({ key: 'q4', dimension: 'capability_ownership', status: 'isolated' }),
     ]);
     expect(result.directionSignals).toMatchObject({
-      academicDirection: ANSWERS.q5,
-      careerDirection: ANSWERS.q6,
-      preferredEnvironment: ANSWERS.q7,
+      academicDirection: 'normalized q5',
+      careerDirection: 'normalized q6',
+      preferredEnvironment: 'normalized q7',
     });
     const motivationIds = (result.profileMotivations ?? []).map((item) => item.id);
     expect(motivationIds).toEqual(expect.arrayContaining(['profile:reflection_q1', 'profile:reflection_q2', 'profile:reflection_q3']));

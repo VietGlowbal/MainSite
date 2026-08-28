@@ -73,7 +73,7 @@ export async function extractCompetencyClaims(args: {
       { role: 'user', content: buildUserPrompt(withText) },
     ],
     temperature: 0.2,
-    maxTokens: 2400,
+    maxTokens: 1800,
   });
 
   const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

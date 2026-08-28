@@ -598,7 +598,7 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.coreIdentity).not.toBeNull();
   });
 
-  it('sends evidence provenance without raw first-person claim statements', async () => {
+  it('never sends raw first-person claim statements to the prose model', async () => {
     const fetchMock = vi.fn().mockResolvedValue(chatResponse(JSON.stringify(completeSynthesisResponse())));
     vi.stubGlobal('fetch', fetchMock);
     const grounding = narrativeGrounding();
@@ -631,7 +631,6 @@ describe('synthesizePersonalReportNarrative', () => {
     const content = fetchMock.mock.calls
       .map((call) => JSON.parse(call?.[1]?.body as string).messages[1].content)
       .join('\n');
-    expect(content).toContain('experience:1');
     expect(content).not.toContain('I built a chatbot for my school.');
   });
 
@@ -650,9 +649,9 @@ describe('synthesizePersonalReportNarrative', () => {
     const bodies = fetchMock.mock.calls.map((call) =>
       JSON.parse(call?.[1]?.body as string),
     );
-    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([1800, 3000, 3000]);
+    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([1800, 1800]);
     const content = bodies.map((body) => body.messages[1].content).join('\n');
-    expect(content).toContain('structuredFindings');
+    expect(content).toContain('"input"');
     expect(content).toContain('coordinating volunteers');
     expect(content).not.toContain('I organise coding workshops for younger students.');
     expect(content).not.toContain('Coding club attendance record');

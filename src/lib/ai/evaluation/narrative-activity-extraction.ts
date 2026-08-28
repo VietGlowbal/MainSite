@@ -88,7 +88,7 @@ export async function extractRoleAndTheme(args: {
       { role: 'user', content: buildUserPrompt(withText) },
     ],
     temperature: 0,
-    maxTokens: 1600,
+    maxTokens: 1200,
   });
 
   const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

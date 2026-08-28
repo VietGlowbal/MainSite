@@ -251,7 +251,7 @@ describe('generateApplicationMatchingReport', () => {
     expect(mocks.save).not.toHaveBeenCalled();
   });
 
-  it('19. derives the academic band from a persisted canonical F5 score', async () => {
+  it('19. keeps persisted F5 scores out of first-generation V3 scoring', async () => {
     const { supabase } = setup();
     const dimension = { status: 'assessed', score: 4.5, summary: 'Canonical result', strengths: [], gaps: [], evidence: [] };
     const previous = {
@@ -277,7 +277,8 @@ describe('generateApplicationMatchingReport', () => {
     await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
 
     expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
-      programmeFitInput: expect.objectContaining({ academicBand: 'above_range' }),
+      version: 'v3',
+      programmeFitInput: expect.objectContaining({ academicBand: 'unknown' }),
     }));
   });
 
