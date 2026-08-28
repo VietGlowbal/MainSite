@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, isPlaceholderSupabaseConfig } from '@/lib/supabase/admin';
 import type {
   MentorBrowseFilters,
   MentorWithUniversity,
@@ -63,6 +63,8 @@ const PUBLIC_MENTOR_SELECT = `
 export async function getApprovedMentors(
   filters?: MentorBrowseFilters,
 ): Promise<PublicMentor[]> {
+  if (isPlaceholderSupabaseConfig()) return [];
+
   /*
    * Admin client, not the request-scoped one.
    *

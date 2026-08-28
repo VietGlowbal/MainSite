@@ -8,4 +8,4 @@
  * frozen in the ADMIN_CLIENT_DEBT list in eslint.config.mjs; that list may
  * shrink but never grow.
  */
-export { createAdminClient } from '@/server/db/admin';
+export { createAdminClient, isPlaceholderSupabaseConfig } from '@/server/db/admin';

@@ -11,9 +11,9 @@ synthesis receives structured findings only and rejects unsupported numeric
 facts. Personal Report strings added to the locale catalog. Measured: requested
 Personal Report/evaluation/API/UI suites pass (153 tests), full Vitest 3,480
 passed with 2 todo, typecheck, i18n integration, CI build, and diff check pass;
-lint has 0 errors and 590 pre-existing/untracked-skill warnings. CI build still
-logs placeholder Supabase fetch failures for static mentor/university data and
-the 3 existing geo-content filesystem-tracing warnings.
+lint has 0 errors and 6 pre-existing source warnings. CI placeholder builds now
+skip mentor/university Supabase reads instead of logging DNS failures; the 3
+existing geo-content filesystem-tracing warnings remain.
 
 Working tree 2026-08-28 (report rendering/localisation): Personal, Matching,
 and Strategy report roots now explicitly opt into AI-backed DOM translation when

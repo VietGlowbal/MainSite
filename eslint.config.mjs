@@ -118,6 +118,14 @@ const eslintConfig = defineConfig([
     'tmp-*/**',
     '.gitnexus/**',
     'next-env.d.ts',
+    // Local agent/plugin bundles are not application source and are not part
+    // of repository CI; keep their vendored scripts out of the app lint pass.
+    '.claude/**',
+    '.cursor/**',
+    '.gemini/**',
+    '.github/agents/**',
+    '.github/hooks/**',
+    '.github/skills/**',
     // The GEO pipeline generates and commits code from here on a daily cron.
     // It has its own gate (`npm run geo:check` runs tsc against geo.tsconfig).
     'scripts/**',
