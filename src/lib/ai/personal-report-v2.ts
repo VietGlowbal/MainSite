@@ -26,7 +26,7 @@ import {
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v6-grounded-routing';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v7-third-person-narrative';
 
 /** Dynamic report-only evidence rows use this namespace in the supplements table. */
 export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';

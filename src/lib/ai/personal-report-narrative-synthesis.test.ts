@@ -548,6 +548,93 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failureCode).toBe('unsupported_narrative_fact');
   });
 
+  it('rejects first-person prose instead of publishing the applicant voice as report narration', async () => {
+    const response = completeSynthesisResponse({
+      coreIdentity: {
+        headline: 'I enjoy building systems',
+        paragraphs: ['I enjoy building systems and helping people.'],
+        evidenceIds: ['activity-1'],
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(chatResponse(JSON.stringify(response))));
+    let failureCode: string | null = null;
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+      onFailure: (code) => {
+        failureCode = code;
+      },
+    });
+
+    expect(result).toBeNull();
+    expect(failureCode).toBe('unsupported_narrative_voice');
+  });
+
+  it('does not keep a first-person optional snapshot when canonical prose is valid', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      chatResponse(
+        JSON.stringify(
+          completeSynthesisResponse({
+            snapshot: { summary: 'I enjoy building systems and helping people.' },
+          }),
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.snapshot).toBeUndefined();
+    expect(result?.coreIdentity).not.toBeNull();
+  });
+
+  it('sends evidence provenance without raw first-person claim statements', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(chatResponse(JSON.stringify(completeSynthesisResponse())));
+    vi.stubGlobal('fetch', fetchMock);
+    const grounding = narrativeGrounding();
+    grounding.evidenceBank = {
+      version: 'eb-v1',
+      sources: {},
+      interpretations: [],
+      claims: [
+        {
+          id: 'experience:1',
+          category: 'experience',
+          statement: 'I built a chatbot for my school.',
+          status: 'unverified',
+          sourceRefs: ['activity:1'],
+          interpretationRefs: [],
+          tags: { competencies: [], criteria: [] },
+        },
+      ],
+      missingInformation: [],
+    };
+
+    await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding,
+    });
+
+    const content = fetchMock.mock.calls
+      .map((call) => JSON.parse(call?.[1]?.body as string).messages[1].content)
+      .join('\n');
+    expect(content).toContain('experience:1');
+    expect(content).not.toContain('I built a chatbot for my school.');
+  });
+
   it('sends deterministic findings and section-scoped evidence ids, never raw extraction input', async () => {
     const fetchMock = vi.fn().mockResolvedValue(chatResponse(JSON.stringify(completeSynthesisResponse())));
     vi.stubGlobal('fetch', fetchMock);

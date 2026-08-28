@@ -1229,6 +1229,8 @@ See [audit-2026-08-03.md](audit-2026-08-03.md) for the point-in-time audit and
 
 2026-08-28 Personal Canvas overflow fix (working tree): navigation previews now compact verbose model output and apply line clamping/overflow clipping to every canvas card, while full findings remain in the existing portal modal. Added a regression test for long Core Identity output. Measured: `personal-canvas.test.tsx` 14/14 passed and scoped ESLint passed; repository typecheck remains blocked by four existing matching errors (`reasoner.ts`, `v3-scoring.ts`).
 
+2026-08-28 Personal Report narrative voice guard (working tree): the synthesis prompt now explicitly requires third-person prose, raw Evidence Bank claim statements are withheld from the prose model, and validator rejection falls back from first-person output (including the optional snapshot) without changing deterministic findings. The deterministic executive snapshot also suppresses raw first-person/overlong activity text. Prompt/extraction versions bumped to `report-synthesis-v6-third-person-grounded` and `personal-report-extraction-v7-third-person-narrative`, so existing cached reports regenerate with the guard. Measured: narrative/domain regression 41/41, generation/UI 21/21, typecheck and scoped ESLint passed.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

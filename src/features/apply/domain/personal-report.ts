@@ -852,6 +852,23 @@ function wordCount(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
 }
 
+// Activity/reflection text is evidence, not report prose. Older snapshots can
+// contain the applicant's full first-person answer here, so never interpolate
+// that raw text into the deterministic executive summary.
+function snapshotPhrase(value: string | undefined, fallback: string): string {
+  const candidate = value?.trim();
+  if (!candidate) return fallback;
+  if (
+    candidate.length > 180 ||
+    /(?:^|[\s(])(?:i(?:['’](?:m|ve|d|ll))?|me|my|mine|we(?:['’](?:re|ve))?|our|ours|us|tôi|mình|em|chúng tôi|chúng mình|của tôi|của mình)(?=$|[\s,.;:!?])/iu.test(
+      candidate,
+    )
+  ) {
+    return fallback;
+  }
+  return candidate.replace(/[.!?]+$/, '');
+}
+
 function snapshotSummary(
   coreIdentity: CoreIdentitySection,
   drivingForce: DrivingForceSection,
@@ -860,10 +877,10 @@ function snapshotSummary(
   growthAreas: PersonalReportInsight[],
 ): string {
   const identity = coreIdentity.available
-    ? coreIdentity.headline || 'a recurring identity signal'
+    ? snapshotPhrase(coreIdentity.headline ?? undefined, 'a recurring identity signal')
     : 'no recurring identity pattern yet';
   const motivation = drivingForce.available
-    ? drivingForce.repeatedMotivations[0] || 'an emerging motivation pattern'
+    ? snapshotPhrase(drivingForce.repeatedMotivations[0], 'an explicitly stated motivation')
     : 'no confirmed motivation pattern yet';
   const pattern = signaturePattern.available
     ? signaturePattern.patternStrength === 'established'
@@ -873,7 +890,10 @@ function snapshotSummary(
   const evidence = proofOfMe.available
     ? `${proofOfMe.cards.length} recorded evidence item${proofOfMe.cards.length === 1 ? '' : 's'}`
     : 'no evidence cards yet';
-  const gap = growthAreas[0]?.currentGap || growthAreas[0]?.statement || 'more specific evidence';
+  const gap = snapshotPhrase(
+    growthAreas[0]?.currentGap || growthAreas[0]?.statement,
+    'more specific evidence',
+  );
   const sentences = [
     `This snapshot describes a candidate whose clearest identity signal is ${identity}.`,
     `The available activities and achievements point toward ${motivation}, while the current record shows ${pattern}.`,

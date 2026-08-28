@@ -111,6 +111,7 @@ export type PersonalReportNarrativeFailureCode =
   | 'timeout'
   | 'provider_error'
   | 'unsupported_narrative_fact'
+  | 'unsupported_narrative_voice'
   | 'unknown';
 
 // Prompt text and its version live in the shared registry (Task 2).
@@ -305,7 +306,18 @@ function reasoningBundle(
     },
     evidenceBank: grounding.evidenceBank
       ? {
-          claims: grounding.evidenceBank.claims,
+          // Claim statements can contain the applicant's raw first-person
+          // answer. The prose model already has the deterministic findings
+          // below, so send provenance without replaying source wording.
+          claims: grounding.evidenceBank.claims.map((claim) => ({
+            id: claim.id,
+            category: claim.category,
+            status: claim.status,
+            sourceRefs: claim.sourceRefs,
+            interpretationRefs: claim.interpretationRefs,
+            tags: claim.tags,
+            limitations: claim.limitations ?? [],
+          })),
           missingInformation: grounding.evidenceBank.missingInformation,
         }
       : null,
@@ -339,6 +351,27 @@ function assertNarrativeNumbersAreGrounded(
   ].filter((value): value is string => Boolean(value));
   if (prose.some((value) => narrativeNumbers(value).some((number) => !allowed.has(number)))) {
     throw new Error('Narrative synthesis introduced an unsupported numeric fact.');
+  }
+}
+
+function assertNarrativeVoice(parsed: z.infer<typeof synthesisResponseSchema>): void {
+  const prose: string[] = [
+    parsed.snapshot?.summary,
+    parsed.overview?.summary,
+    parsed.coreIdentity?.headline,
+    ...(parsed.coreIdentity?.paragraphs ?? []),
+    parsed.drivingForce?.headline,
+    ...(parsed.drivingForce?.paragraphs ?? []),
+    ...(parsed.signaturePattern?.paragraphs ?? []),
+    ...(parsed.emergingThemes?.paragraphs ?? []),
+    parsed.personalPositioning?.statement,
+    ...(parsed.personalPositioning?.whyItFits ?? []),
+    ...(parsed.proofOfMe?.paragraphs ?? []),
+    ...(parsed.overallSummary?.paragraphs ?? []),
+  ].filter((value): value is string => Boolean(value));
+  const firstPerson = /(?:^|[\s(])(?:i(?:['’](?:m|ve|d|ll))?|me|my|mine|we(?:['’](?:re|ve))?|our|ours|us|tôi|mình|chúng tôi|của tôi)(?=$|[\s,.;:!?])/iu;
+  if (prose.some((value) => firstPerson.test(value))) {
+    throw new Error('Narrative synthesis used first-person voice.');
   }
 }
 
@@ -393,6 +426,7 @@ function failureCode(error: unknown): PersonalReportNarrativeFailureCode {
   if (/cover every available report section/i.test(message)) return 'missing_sections';
   if (/cited evidence outside its section/i.test(message)) return 'invalid_evidence_ids';
   if (/unsupported numeric fact/i.test(message)) return 'unsupported_narrative_fact';
+  if (/first-person voice/i.test(message)) return 'unsupported_narrative_voice';
   if (/exceeded the token limit/i.test(message)) return 'output_truncated';
   if (/request timed out/i.test(message)) return 'timeout';
   if (/OpenAI request failed/i.test(message)) return 'provider_error';
@@ -555,6 +589,7 @@ function parseNarrativeBatch(
   }
   const parsed = synthesisResponseSchema.parse(normalized);
   assertNarrativeNumbersAreGrounded(parsed, batchInputValue);
+  assertNarrativeVoice(parsed);
 
   for (const key of batch.canonical) {
     if (Boolean(parsed[key]) !== Boolean(batchInputValue[key])) {

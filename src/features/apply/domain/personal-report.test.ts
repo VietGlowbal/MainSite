@@ -280,6 +280,13 @@ describe('buildPersonalReport', () => {
     );
   });
 
+  it('does not interpolate first-person activity motivation into the executive snapshot', () => {
+    const result = report();
+
+    expect(result.snapshot?.summary).not.toContain('I wanted to help classmates');
+    expect(result.snapshot?.summary).toContain('an explicitly stated motivation');
+  });
+
   it('uses the persisted Evidence Bank for coverage and preserves raw-source provenance', () => {
     const evidenceBank = buildEvidenceBank({
       academicRecords: [],
