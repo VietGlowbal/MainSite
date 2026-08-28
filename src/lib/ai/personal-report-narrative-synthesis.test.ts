@@ -13,10 +13,17 @@ afterEach(() => {
 });
 
 function chatResponse(content: string) {
-  return new Response(
-    JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content } }] }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
-  );
+  const body = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content } }] });
+  return {
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(body);
+    },
+    async text() {
+      return body;
+    },
+  } as Response;
 }
 
 const NOT_AVAILABLE_INSUFFICIENT = { reason: 'Not enough evidence yet.', actions: [] };
@@ -553,15 +560,18 @@ describe('synthesizePersonalReportNarrative', () => {
       grounding: narrativeGrounding(),
     });
 
-    const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
-    expect(body.max_completion_tokens).toBe(4000);
-    expect(body.messages[1].content).toContain('structuredFindings');
-    expect(body.messages[1].content).toContain('coordinating volunteers');
-    expect(body.messages[1].content).not.toContain('I organise coding workshops for younger students.');
-    expect(body.messages[1].content).not.toContain('Coding club attendance record');
-    expect(body.messages[1].content).not.toContain('Values peer learning');
-    expect(body.messages[1].content).toContain('"signaturePattern":["activity-1"]');
-    expect(body.messages[1].content).toContain('"proofOfMe":["proof-1"]');
+    const bodies = fetchMock.mock.calls.map((call) =>
+      JSON.parse(call?.[1]?.body as string),
+    );
+    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([1800, 3000, 3000]);
+    const content = bodies.map((body) => body.messages[1].content).join('\n');
+    expect(content).toContain('structuredFindings');
+    expect(content).toContain('coordinating volunteers');
+    expect(content).not.toContain('I organise coding workshops for younger students.');
+    expect(content).not.toContain('Coding club attendance record');
+    expect(content).not.toContain('Values peer learning');
+    expect(content).toContain('"signaturePattern":["activity-1"]');
+    expect(content).toContain('"proofOfMe":["proof-1"]');
   });
 });
 

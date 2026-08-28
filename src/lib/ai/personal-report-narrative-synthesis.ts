@@ -399,6 +399,171 @@ function failureCode(error: unknown): PersonalReportNarrativeFailureCode {
   return 'unknown';
 }
 
+type CanonicalNarrativeSection =
+  | 'coreIdentity'
+  | 'drivingForce'
+  | 'signaturePattern'
+  | 'emergingThemes'
+  | 'personalPositioning'
+  | 'proofOfMe';
+type OptionalNarrativeSection = 'snapshot' | 'overview' | 'overallSummary';
+type NarrativeBatch = {
+  canonical: readonly CanonicalNarrativeSection[];
+  optional: readonly OptionalNarrativeSection[];
+  maxTokens: number;
+  required: boolean;
+};
+
+// Keep each response comfortably below the provider's completion ceiling. The
+// calls run in parallel, so splitting the prose does not multiply route time.
+const NARRATIVE_BATCHES: readonly NarrativeBatch[] = [
+  {
+    canonical: ['coreIdentity', 'drivingForce', 'signaturePattern'],
+    optional: [],
+    maxTokens: 3_000,
+    required: true,
+  },
+  {
+    canonical: ['emergingThemes', 'personalPositioning', 'proofOfMe'],
+    optional: [],
+    maxTokens: 3_000,
+    required: true,
+  },
+  {
+    canonical: [],
+    optional: ['snapshot', 'overview', 'overallSummary'],
+    maxTokens: 1_800,
+    required: false,
+  },
+];
+
+function batchInput(
+  sectionInput: SynthesisSectionInput,
+  batch: NarrativeBatch,
+): SynthesisSectionInput {
+  const requested = new Set(batch.canonical);
+  return {
+    coreIdentity: requested.has('coreIdentity') ? sectionInput.coreIdentity : null,
+    drivingForce: requested.has('drivingForce') ? sectionInput.drivingForce : null,
+    signaturePattern: requested.has('signaturePattern') ? sectionInput.signaturePattern : null,
+    emergingThemes: requested.has('emergingThemes') ? sectionInput.emergingThemes : null,
+    personalPositioning: requested.has('personalPositioning') ? sectionInput.personalPositioning : null,
+    proofOfMe: requested.has('proofOfMe') ? sectionInput.proofOfMe : null,
+    overall: sectionInput.overall,
+  };
+}
+
+function batchAllowedEvidenceIds(
+  batch: NarrativeBatch,
+  allowed: ReadonlyMap<string, EvidenceRef>,
+  allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
+) {
+  const requested = new Set(batch.canonical);
+  return {
+    all: [...allowed.keys()],
+    coreIdentity: requested.has('coreIdentity') ? [...allowedBySection.coreIdentity.keys()] : [],
+    drivingForce: requested.has('drivingForce') ? [...allowedBySection.drivingForce.keys()] : [],
+    signaturePattern: requested.has('signaturePattern') ? [...allowedBySection.signaturePattern.keys()] : [],
+    emergingThemes: requested.has('emergingThemes') ? [...allowedBySection.emergingThemes.keys()] : [],
+    personalPositioning: requested.has('personalPositioning') ? [...allowedBySection.personalPositioning.keys()] : [],
+    proofOfMe: requested.has('proofOfMe') ? [...allowedBySection.proofOfMe.keys()] : [],
+  };
+}
+
+function materializeBatch(
+  parsed: z.infer<typeof synthesisResponseSchema>,
+  batch: NarrativeBatch,
+  sectionInput: SynthesisSectionInput,
+  allowed: ReadonlyMap<string, EvidenceRef>,
+  allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
+): Partial<PersonalReportNarrativeSynthesis> {
+  const result: Partial<PersonalReportNarrativeSynthesis> = {};
+  const requested = new Set(batch.canonical);
+  const optional = new Set(batch.optional);
+
+  if (optional.has('snapshot') && parsed.snapshot) result.snapshot = { summary: parsed.snapshot.summary };
+  if (optional.has('overview')) {
+    result.overview = parsed.overview
+      ? (() => {
+          const evidenceRefs = hydrate(parsed.overview.evidenceIds, allowed);
+          return evidenceRefs ? { summary: parsed.overview.summary, evidenceRefs } : null;
+        })()
+      : null;
+  }
+  if (optional.has('overallSummary')) {
+    result.overallSummary = parsed.overallSummary
+      ? (() => {
+          const evidenceRefs = hydrate(parsed.overallSummary.evidenceIds, allowed);
+          return evidenceRefs ? { paragraphs: parsed.overallSummary.paragraphs, evidenceRefs } : null;
+        })()
+      : null;
+  }
+
+  if (requested.has('coreIdentity') && sectionInput.coreIdentity && parsed.coreIdentity) {
+    const evidenceRefs = hydrate(parsed.coreIdentity.evidenceIds, allowedBySection.coreIdentity);
+    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
+    result.coreIdentity = { headline: parsed.coreIdentity.headline, paragraphs: parsed.coreIdentity.paragraphs, evidenceRefs };
+  }
+  if (requested.has('drivingForce') && sectionInput.drivingForce && parsed.drivingForce) {
+    const evidenceRefs = hydrate(parsed.drivingForce.evidenceIds, allowedBySection.drivingForce);
+    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
+    result.drivingForce = { headline: parsed.drivingForce.headline, paragraphs: parsed.drivingForce.paragraphs, evidenceRefs };
+  }
+  if (requested.has('signaturePattern') && sectionInput.signaturePattern && parsed.signaturePattern) {
+    const evidenceRefs = hydrate(parsed.signaturePattern.evidenceIds, allowedBySection.signaturePattern);
+    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
+    result.signaturePattern = { paragraphs: parsed.signaturePattern.paragraphs, evidenceRefs };
+  }
+  if (requested.has('emergingThemes') && sectionInput.emergingThemes && parsed.emergingThemes) {
+    const evidenceRefs = hydrate(parsed.emergingThemes.evidenceIds, allowedBySection.emergingThemes);
+    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
+    result.emergingThemes = { paragraphs: parsed.emergingThemes.paragraphs, evidenceRefs };
+  }
+  if (requested.has('personalPositioning') && sectionInput.personalPositioning && parsed.personalPositioning) {
+    const evidenceRefs = hydrate(parsed.personalPositioning.evidenceIds, allowedBySection.personalPositioning);
+    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
+    result.personalPositioning = {
+      statement: parsed.personalPositioning.statement,
+      whyItFits: parsed.personalPositioning.whyItFits,
+      evidenceRefs,
+    };
+  }
+  if (requested.has('proofOfMe') && sectionInput.proofOfMe && parsed.proofOfMe) {
+    const evidenceRefs = hydrate(parsed.proofOfMe.evidenceIds, allowedBySection.proofOfMe);
+    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
+    result.proofOfMe = { paragraphs: parsed.proofOfMe.paragraphs, evidenceRefs };
+  }
+
+  return result;
+}
+
+function parseNarrativeBatch(
+  content: string,
+  batch: NarrativeBatch,
+  sectionInput: SynthesisSectionInput,
+  allowed: ReadonlyMap<string, EvidenceRef>,
+  allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
+): Partial<PersonalReportNarrativeSynthesis> {
+  const batchInputValue = batchInput(sectionInput, batch);
+  const raw = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()) as Record<string, unknown>;
+  const normalized = normalizeEmptyOptionalSections(raw, batchInputValue);
+  for (const key of ['snapshot', 'overview', 'overallSummary'] as const) {
+    if (!(batch.optional as readonly string[]).includes(key)) {
+      if (key === 'snapshot') delete normalized[key];
+      else normalized[key] = null;
+    }
+  }
+  const parsed = synthesisResponseSchema.parse(normalized);
+  assertNarrativeNumbersAreGrounded(parsed, batchInputValue);
+
+  for (const key of batch.canonical) {
+    if (Boolean(parsed[key]) !== Boolean(batchInputValue[key])) {
+      throw new Error('Narrative synthesis must cover every available report section.');
+    }
+  }
+  return materializeBatch(parsed, batch, batchInputValue, allowed, allowedBySection);
+}
+
 export async function synthesizePersonalReportNarrative(args: {
   report: PersonalReportV2;
   intendedDirection: string | null;
@@ -425,143 +590,59 @@ export async function synthesizePersonalReportNarrative(args: {
     return null;
   }
 
-  const userPrompt = JSON.stringify({
-    input: sectionInput,
-    reasoningBundle: reasoningBundle(args.grounding, report, intendedDirection),
-    allowedEvidenceIds: {
-      all: [...allowed.keys()],
-      coreIdentity: [...allowedBySection.coreIdentity.keys()],
-      drivingForce: [...allowedBySection.drivingForce.keys()],
-      signaturePattern: [...allowedBySection.signaturePattern.keys()],
-      emergingThemes: [...allowedBySection.emergingThemes.keys()],
-      personalPositioning: [...allowedBySection.personalPositioning.keys()],
-      proofOfMe: [...allowedBySection.proofOfMe.keys()],
-    },
-  });
-
   try {
-    const content = await openAiJsonCompletion({
-      apiKey,
-      model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.4,
-      maxTokens: 4000,
-    });
+    const availableCanonical = NARRATIVE_BATCHES
+      .filter((batch) => batch.required)
+      .some((batch) => batch.canonical.some((key) => Boolean(sectionInput[key])));
+    const batches = NARRATIVE_BATCHES.filter((batch) =>
+      batch.required
+        ? batch.canonical.some((key) => Boolean(sectionInput[key]))
+        : availableCanonical,
+    );
+    const outcomes = await Promise.all(
+      batches.map(async (batch) => {
+        try {
+          const content = await openAiJsonCompletion({
+            apiKey,
+            model,
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              {
+                role: 'user',
+                content: JSON.stringify({
+                  input: batchInput(sectionInput, batch),
+                  requestedSections: [...batch.canonical, ...batch.optional],
+                  reasoningBundle: reasoningBundle(args.grounding, report, intendedDirection),
+                  allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowed, allowedBySection),
+                }),
+              },
+            ],
+            temperature: 0.4,
+            maxTokens: batch.maxTokens,
+          });
+          return { batch, value: parseNarrativeBatch(content, batch, sectionInput, allowed, allowedBySection), error: null };
+        } catch (error) {
+          return { batch, value: null, error };
+        }
+      }),
+    );
+    const requiredFailure = outcomes.find((outcome) => outcome.batch.required && outcome.error);
+    if (requiredFailure?.error) throw requiredFailure.error;
 
-    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const raw = JSON.parse(cleaned) as Record<string, unknown>;
-    const parsed = synthesisResponseSchema.parse(normalizeEmptyOptionalSections(raw, sectionInput));
-    assertNarrativeNumbersAreGrounded(parsed, sectionInput);
-
-    if (
-      Boolean(parsed.coreIdentity) !== Boolean(sectionInput.coreIdentity) ||
-      Boolean(parsed.drivingForce) !== Boolean(sectionInput.drivingForce) ||
-      Boolean(parsed.signaturePattern) !== Boolean(sectionInput.signaturePattern) ||
-      Boolean(parsed.emergingThemes) !== Boolean(sectionInput.emergingThemes) ||
-      Boolean(parsed.personalPositioning) !== Boolean(sectionInput.personalPositioning) ||
-      Boolean(parsed.proofOfMe) !== Boolean(sectionInput.proofOfMe)
-    ) {
-      throw new Error('Narrative synthesis must cover every available report section.');
-    }
-
-    const snapshot = parsed.snapshot ? { summary: parsed.snapshot.summary } : undefined;
-    const overview = parsed.overview
-      ? (() => {
-          const evidenceRefs = hydrate(parsed.overview!.evidenceIds, allowed);
-          return evidenceRefs ? { summary: parsed.overview!.summary, evidenceRefs } : null;
-        })()
-      : null;
-
-    const coreIdentity =
-      parsed.coreIdentity && sectionInput.coreIdentity
-        ? (() => {
-          const evidenceRefs = hydrate(parsed.coreIdentity!.evidenceIds, allowedBySection.coreIdentity);
-            return evidenceRefs
-              ? { headline: parsed.coreIdentity!.headline, paragraphs: parsed.coreIdentity!.paragraphs, evidenceRefs }
-              : null;
-          })()
-        : null;
-
-    const drivingForce =
-      parsed.drivingForce && sectionInput.drivingForce
-        ? (() => {
-          const evidenceRefs = hydrate(parsed.drivingForce!.evidenceIds, allowedBySection.drivingForce);
-            return evidenceRefs
-              ? { headline: parsed.drivingForce!.headline, paragraphs: parsed.drivingForce!.paragraphs, evidenceRefs }
-              : null;
-          })()
-        : null;
-
-    const signaturePattern =
-      parsed.signaturePattern && sectionInput.signaturePattern
-        ? (() => {
-            const evidenceRefs = hydrate(parsed.signaturePattern!.evidenceIds, allowedBySection.signaturePattern);
-            return evidenceRefs ? { paragraphs: parsed.signaturePattern!.paragraphs, evidenceRefs } : null;
-          })()
-        : null;
-
-    const emergingThemes =
-      parsed.emergingThemes && sectionInput.emergingThemes
-        ? (() => {
-            const evidenceRefs = hydrate(parsed.emergingThemes!.evidenceIds, allowedBySection.emergingThemes);
-            return evidenceRefs ? { paragraphs: parsed.emergingThemes!.paragraphs, evidenceRefs } : null;
-          })()
-        : null;
-
-    const personalPositioning =
-      parsed.personalPositioning && sectionInput.personalPositioning
-        ? (() => {
-          const evidenceRefs = hydrate(parsed.personalPositioning!.evidenceIds, allowedBySection.personalPositioning);
-            return evidenceRefs
-              ? {
-                  statement: parsed.personalPositioning!.statement,
-                  whyItFits: parsed.personalPositioning!.whyItFits,
-                  evidenceRefs,
-                }
-              : null;
-          })()
-        : null;
-
-    const proofOfMe =
-      parsed.proofOfMe && sectionInput.proofOfMe
-        ? (() => {
-            const evidenceRefs = hydrate(parsed.proofOfMe!.evidenceIds, allowedBySection.proofOfMe);
-            return evidenceRefs ? { paragraphs: parsed.proofOfMe!.paragraphs, evidenceRefs } : null;
-          })()
-        : null;
-
-    const overallSummary = parsed.overallSummary
-      ? (() => {
-          const evidenceRefs = hydrate(parsed.overallSummary!.evidenceIds, allowed);
-          return evidenceRefs ? { paragraphs: parsed.overallSummary!.paragraphs, evidenceRefs } : null;
-        })()
-      : null;
-
-    if (
-      (sectionInput.coreIdentity && !coreIdentity) ||
-      (sectionInput.drivingForce && !drivingForce) ||
-      (sectionInput.signaturePattern && !signaturePattern) ||
-      (sectionInput.emergingThemes && !emergingThemes) ||
-      (sectionInput.personalPositioning && !personalPositioning) ||
-      (sectionInput.proofOfMe && !proofOfMe)
-    ) {
-      throw new Error('Narrative synthesis cited evidence outside its section.');
-    }
-
-    return {
-      ...(snapshot ? { snapshot } : {}),
-      overview,
-      coreIdentity,
-      drivingForce,
-      signaturePattern,
-      emergingThemes,
-      personalPositioning,
-      proofOfMe,
-      overallSummary,
+    const synthesis: PersonalReportNarrativeSynthesis = {
+      overview: null,
+      coreIdentity: null,
+      drivingForce: null,
+      signaturePattern: null,
+      emergingThemes: null,
+      personalPositioning: null,
+      proofOfMe: null,
+      overallSummary: null,
     };
+    for (const outcome of outcomes) {
+      if (outcome.value) Object.assign(synthesis, outcome.value);
+    }
+    return synthesis;
   } catch (error) {
     const code = failureCode(error);
     args.onFailure?.(code);

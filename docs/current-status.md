@@ -15,6 +15,16 @@ never shown as zero. Measured: focused domain/UI tests (23/23), typecheck,
 ESLint (0 errors, 6 pre-existing warnings), and static i18n audit (0 missing
 keys) pass.
 
+Working tree 2026-08-28 (Personal Report narrative batching): the constrained
+LLM prose layer now generates canonical sections in two parallel batches
+(`3000` completion tokens each) and optional summaries in a separate `1800`
+token batch, then merges them through the existing section-scoped evidence
+validator. This avoids truncating the full report response while preserving
+the deterministic findings, scores, availability, and evidence boundaries.
+Measured: narrative/generation/UI tests (42/42), typecheck, scoped ESLint,
+and CI build pass. The full Vitest run had two unrelated CV-route timeout
+flakes; both pass when run in isolation.
+
 Working tree 2026-08-28 (CI strict typecheck repair): `buildPersonalReport`
 now omits the optional `reflectionAnswerSignals` property when it is undefined,
 which satisfies `exactOptionalPropertyTypes` without changing report output.
