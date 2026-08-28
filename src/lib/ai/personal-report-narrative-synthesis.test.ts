@@ -228,6 +228,11 @@ function completeSynthesisResponse(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function sparseSynthesisResponse(requestedSections: readonly string[]) {
+  const complete = completeSynthesisResponse() as Record<string, unknown>;
+  return Object.fromEntries(requestedSections.map((key) => [key, complete[key]]));
+}
+
 function narrativeGrounding(): PersonalReportNarrativeGrounding {
   return {
     evaluationInput: {
@@ -321,6 +326,30 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.signaturePattern?.paragraphs).toHaveLength(1);
     expect(result?.emergingThemes?.paragraphs).toHaveLength(1);
     expect(result?.proofOfMe?.paragraphs).toHaveLength(1);
+  });
+
+  it('accepts sparse batch responses that omit non-requested canonical sections', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const request = JSON.parse(String(init?.body)) as { requestedSections: string[] };
+      return chatResponse(JSON.stringify(sparseSynthesisResponse(request.requestedSections)));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result?.coreIdentity).not.toBeNull();
+    expect(result?.drivingForce).not.toBeNull();
+    expect(result?.signaturePattern).not.toBeNull();
+    expect(result?.emergingThemes).not.toBeNull();
+    expect(result?.personalPositioning).not.toBeNull();
+    expect(result?.proofOfMe).not.toBeNull();
   });
 
   it('keeps a grounded short snapshot and ignores unsupported optional summaries', async () => {

@@ -537,10 +537,25 @@ function parseNarrativeBatch(
   const batchInputValue = batchInput(sectionInput, batch);
   const raw = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()) as Record<string, unknown>;
   const normalized = normalizeEmptyOptionalSections(raw, batchInputValue);
+  // The prompt deliberately allows sparse responses. Zod's `nullable()` still
+  // requires a key, so fill omitted non-requested canonical sections before
+  // validation; requested sections remain subject to the coverage check below.
+  for (const key of [
+    'coreIdentity',
+    'drivingForce',
+    'signaturePattern',
+    'emergingThemes',
+    'personalPositioning',
+    'proofOfMe',
+  ] as const) {
+    if (!(key in normalized)) normalized[key] = null;
+  }
   for (const key of ['snapshot', 'overview', 'overallSummary'] as const) {
     if (!(batch.optional as readonly string[]).includes(key)) {
       if (key === 'snapshot') delete normalized[key];
       else normalized[key] = null;
+    } else if (key !== 'snapshot' && !(key in normalized)) {
+      normalized[key] = null;
     }
   }
   const parsed = synthesisResponseSchema.parse(normalized);
