@@ -1,5 +1,20 @@
 # Current project status
 
+Working tree 2026-08-28 (Personal Report architecture alignment): confirmed
+snapshot reconstruction now preserves activity/achievement metadata,
+reflection/reflectionCard, and canonical direction aliases; Q1-Q7 route to
+their specified insight sections; reflection signals require independent
+activity corroboration before becoming repeated; Q4-only capability claims are
+self-reported and capped until corroborated; Social Proof, Positioning,
+Key Takeaways, and later Matching consume the grounded inputs; narrative
+synthesis receives structured findings only and rejects unsupported numeric
+facts. Personal Report strings added to the locale catalog. Measured: requested
+Personal Report/evaluation/API/UI suites pass (153 tests), full Vitest 3,480
+passed with 2 todo, typecheck, i18n integration, CI build, and diff check pass;
+lint has 0 errors and 590 pre-existing/untracked-skill warnings. CI build still
+logs placeholder Supabase fetch failures for static mentor/university data and
+the 3 existing geo-content filesystem-tracing warnings.
+
 Working tree 2026-08-28 (report rendering/localisation): Personal, Matching,
 and Strategy report roots now explicitly opt into AI-backed DOM translation when
 Vietnamese is selected; the Personal Canvas body-level modal is covered too.

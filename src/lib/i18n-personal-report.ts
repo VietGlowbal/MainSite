@@ -239,6 +239,12 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'These bars show recurrence across the motivations you explicitly recorded. They are not personality scores.':
     'Các thanh này cho thấy mức độ lặp lại trong những động lực bạn đã ghi nhận rõ ràng. Đây không phải điểm số tính cách.',
   'Repeated stated motivations': 'Các động lực đã nêu lặp lại',
+  'Personal reflection — What You Are Proud Of': 'Suy ngẫm cá nhân — Điều bạn tự hào',
+  'Personal reflection — interests and motivations': 'Suy ngẫm cá nhân — mối quan tâm và động lực',
+  'Personal reflection — problem domains': 'Suy ngẫm cá nhân — các lĩnh vực vấn đề',
+  'Evidence metadata captured': 'Siêu dữ liệu minh chứng đã được lưu',
+  'Experiences retaining organisation, level, period, competition or verification provenance':
+    'Các trải nghiệm còn giữ tổ chức, cấp độ, thời gian, cuộc thi hoặc nguồn xác minh',
   'Experiences analysed': 'Trải nghiệm đã phân tích',
   'Activities contributing evidence to this report': 'Các hoạt động đóng góp bằng chứng cho báo cáo này',
   'Strong evidence items': 'Hạng mục bằng chứng mạnh',

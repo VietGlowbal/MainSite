@@ -142,6 +142,18 @@ function stateEvidenceBank(
       title: item.title,
       freeText: item.freeText,
       evidenceKey: item.evidenceKey ?? null,
+      metadata: {
+        organisation: item.organisation ?? null,
+        level: item.level ?? null,
+        year: item.year ?? null,
+        period: item.period ?? null,
+        competition: item.competition ?? null,
+        reviewStatus: item.reviewStatus ?? null,
+        sourceType: item.sourceType ?? null,
+        sources: item.sources ?? [],
+        reflection: item.reflection ?? null,
+        reflectionCard: item.reflectionCard ?? null,
+      },
     };
   });
   const documents = state.evidenceBank
@@ -432,6 +444,9 @@ async function regenerateApplicationPersonalReport(
       personalPositioning: reportV2.personalPositioning,
       proofOfMe: reportV2.proofOfMe,
       intendedDirection: evaluationInput.intendedDirection,
+      profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
+        .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
+        .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
     }),
   } as PersonalReportV2Record['reportV2'];
 
@@ -603,6 +618,9 @@ async function regenerateLegacyPersonalReport(
         personalPositioning: synthesizedReport.personalPositioning,
         proofOfMe: synthesizedReport.proofOfMe,
         intendedDirection: evaluationInput.intendedDirection,
+        profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
+          .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
+          .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
       }),
     };
 

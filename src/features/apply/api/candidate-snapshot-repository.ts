@@ -40,7 +40,7 @@ type Row = Record<string, unknown>;
 type Client = SupabaseClient;
 
 const PROFILE_BASE_COLUMNS =
-  'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary, goals';
+  'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary, goals, career_interests';
 /** Added by supabase-reflection-questions.sql and supabase-reflection-subject-motivations.sql. */
 const PROFILE_NEW_COLUMNS = 'study_motivation, subject_motivations, target_intake';
 /** Added by supabase-application-experience-flow.sql. */

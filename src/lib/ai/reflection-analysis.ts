@@ -32,8 +32,10 @@ const STOPWORDS = new Set([
 function significantTokens(text: string): Set<string> {
   return new Set(
     text
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .split(/[^a-z0-9]+/)
+      .split(/[^\p{L}\p{N}]+/u)
       .filter((token) => token.length > 3 && !STOPWORDS.has(token)),
   );
 }

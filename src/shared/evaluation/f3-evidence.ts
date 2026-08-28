@@ -51,6 +51,15 @@ export type EvidenceReach = 'international' | 'national' | 'provincial' | 'distr
 export type EvidenceItemInput = {
   id: string;
   title: string;
+  /** Full activity/achievement provenance from the confirmed snapshot. */
+  organisation?: string | null;
+  competition?: string | null;
+  year?: number | null;
+  period?: string | null;
+  evidenceKey?: string | null;
+  reviewStatus?: string | null;
+  sourceType?: string | null;
+  sources?: unknown[];
   sourceKind: EvidenceSourceKind;
   /** A number, scale or measurable reach — e.g. "raised $3,000", "served 400 families". Null if nothing quantified was stated. */
   quantifiedOutcome: string | null;
@@ -75,6 +84,14 @@ export const EVIDENCE_METRIC_WEIGHTS: Record<EvidenceMetricKey, number> = {
 export type EvidenceItem = Insight & {
   itemId: string;
   title: string;
+  organisation?: string | null;
+  competition?: string | null;
+  year?: number | null;
+  period?: string | null;
+  evidenceKey?: string | null;
+  reviewStatus?: string | null;
+  sourceType?: string | null;
+  sources?: unknown[];
   metrics: Record<EvidenceMetricKey, number | null>;
   /** B. Verification status — can anyone but the student confirm this. */
   tier: EvidenceTier;
@@ -206,6 +223,14 @@ export function scoreEvidenceItem(input: EvidenceItemInput): EvidenceItem {
     frameworkId: 'F3',
     itemId: input.id,
     title: input.title,
+    organisation: input.organisation ?? null,
+    competition: input.competition ?? null,
+    year: input.year ?? null,
+    period: input.period ?? null,
+    evidenceKey: input.evidenceKey ?? null,
+    reviewStatus: input.reviewStatus ?? null,
+    sourceType: input.sourceType ?? null,
+    sources: input.sources ?? [],
     status: weighted.score === null ? 'unassessed' : 'assessed',
     score: weighted.score,
     confidence: tier === 'verified' ? 'high' : tier === 'attributable' ? 'medium' : 'low',

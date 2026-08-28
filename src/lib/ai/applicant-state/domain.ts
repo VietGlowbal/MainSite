@@ -35,6 +35,16 @@ export interface ActivityAnalysisItem {
   title: string;
   category?: string | null;
   freeText: string | null;
+  organisation?: string | null;
+  level?: string | null;
+  year?: number | null;
+  period?: string | null;
+  competition?: string | null;
+  reflection?: Record<string, unknown> | null;
+  reflectionCard?: Record<string, unknown> | null;
+  reviewStatus?: string | null;
+  sourceType?: string | null;
+  sources?: unknown[];
   /** Storage key of an uploaded document backing this entry (achievements). */
   evidenceKey?: string | null;
   followUpAnswers?: CandidateFollowUpAnswer[];

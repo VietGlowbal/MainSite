@@ -12,6 +12,7 @@ import {
   type IdentityProof,
   type NarrativeActivity,
   type ProfileEvaluation,
+  type ReflectionAnswerSignal,
   type ThemeMaturityResult,
 } from '@/shared/evaluation';
 import { buildPersonalReportAnalytics, type PersonalReportAnalytics } from './personal-report-analytics';
@@ -232,10 +233,19 @@ function buildDrivingForce(
     (finding) => finding.field === 'studyMotivation' && finding.severity !== 'ok',
   );
 
-  const repeatedMotivations = activities
+  const corroboratedReflectionMotivations = (evaluation.reflectionAnswerSignals ?? [])
+    .filter(
+      (signal) =>
+        signal.status === 'repeated' &&
+        (signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3'),
+    )
+    .map((signal) => signal.value);
+  const repeatedMotivations = [
+    ...corroboratedReflectionMotivations,
+    ...activities
     .map((activity) => activity.statedMotivation)
     .filter((value): value is string => Boolean(value))
-    .slice(0, 4);
+  ].slice(0, 4);
 
   if (!available) {
     return {
@@ -441,8 +451,10 @@ export function themeMaturityResults(activities: readonly NarrativeActivity[]): 
 function buildEmergingThemes(
   activities: readonly NarrativeActivity[],
   themes: readonly ThemeMaturityResult[],
+  reflectionSignals: readonly ReflectionAnswerSignal[] = [],
 ): EmergingThemesSection {
-  if (themes.length === 0) {
+  const reflectedInterests = reflectionSignals.filter((signal) => signal.key === 'q1');
+  if (themes.length === 0 && reflectedInterests.length === 0) {
     return {
       available: false,
       themes: [],
@@ -481,6 +493,27 @@ function buildEmergingThemes(
     })
     .sort((a, b) => b.supportingExperiences.length - a.supportingExperiences.length)
     .slice(0, 5);
+
+  // Q1 is an emerging-interest input, never an established theme by itself.
+  // Keep it visible as self-reported context until activity evidence links it
+  // to a recurring problem/domain.
+  for (const signal of reflectedInterests) {
+    if (built.some((theme) => theme.theme.toLowerCase() === signal.value.toLowerCase())) continue;
+    built.push({
+      theme: signal.value,
+      status: 'possible_theme',
+      statusLabel: THEME_MATURITY_LABEL.possible_theme,
+      explanation: 'This interest is self-reported in Q1 and is not yet linked to an independent activity theme.',
+      supportingExperiences: [],
+      confidence: signal.status === 'repeated' ? 'medium' : 'low',
+      limitation: 'Add an activity that demonstrates this interest before treating it as an established theme.',
+      evidenceRefs: [{
+        id: `profile:reflection_${signal.key}`,
+        kind: 'profile_reflection',
+        label: 'Personal reflection — interests and motivations',
+      }],
+    });
+  }
 
   if (built.length === 0) {
     return {
@@ -550,9 +583,20 @@ function buildPersonalPositioning(
   evaluation: ProfileEvaluation,
   themes: readonly ThemeMaturityResult[],
   intendedDirection: string | null,
+  reflectionSignals: readonly ReflectionAnswerSignal[] = [],
 ): PersonalPositioningSection {
   const { identity, pattern } = evaluation.narrativeIdentity;
-  const topTheme = [...themes].sort((a, b) => b.evidenceCount - a.evidenceCount)[0] ?? null;
+  const q3 = reflectionSignals.find((signal) => signal.key === 'q3');
+  const reflectedProblem = q3
+    ? {
+        theme: q3.value,
+        status: q3.status === 'repeated' ? ('early_signal' as const) : ('possible_theme' as const),
+        evidenceCount: q3.status === 'repeated' ? 2 : 1,
+        explicitLinkCount: 0,
+      }
+    : null;
+  const topTheme = [...themes, ...(reflectedProblem ? [reflectedProblem] : [])]
+    .sort((a, b) => b.evidenceCount - a.evidenceCount)[0] ?? null;
   const coherent = identity.kind !== 'missing' && pattern.pattern !== null && (topTheme === null || topTheme.evidenceCount > 0);
 
   const positioning = assessApplicantPositioning({
@@ -561,6 +605,13 @@ function buildPersonalPositioning(
     theme: topTheme,
     intendedDirection,
     coherent,
+    themeEvidenceRefs: q3
+      ? [{ id: `profile:reflection_${q3.key}`, kind: 'profile_reflection', label: 'Personal reflection — problem domains' }]
+      : [],
+    capabilityEvidenceRefs: evaluation.competencies.claims
+      .flatMap((claim) => claim.evidenceRefs)
+      .filter((ref) => ref.kind !== 'profile_reflection'),
+    motivationEvidenceRefs: evaluation.narrativeIdentity.motivation.evidenceRefs,
   });
 
   if (positioning.positioningStatus === 'insufficient_data') {
@@ -615,6 +666,15 @@ function buildPersonalPositioning(
 export type ProofCard = {
   activityId: string;
   title: string;
+  organisation?: string | null;
+  level?: string | null;
+  year?: number | null;
+  period?: string | null;
+  competition?: string | null;
+  evidenceKey?: string | null;
+  reviewStatus?: string | null;
+  sourceType?: string | null;
+  sources?: unknown[];
   role: string | null;
   personalContribution: string | null;
   outcome: string | null;
@@ -727,6 +787,15 @@ function buildProofOfMe(
     return {
       activityId: proof.activityId,
       title: proof.title,
+      organisation: activity?.organisation ?? null,
+      level: activity?.level ?? null,
+      year: activity?.year ?? null,
+      period: activity?.period ?? null,
+      competition: activity?.competition ?? null,
+      evidenceKey: activity?.evidenceKey ?? null,
+      reviewStatus: activity?.reviewStatus ?? null,
+      sourceType: activity?.sourceType ?? null,
+      sources: activity?.sources ?? [],
       role: proof.role,
       personalContribution: proof.personalContribution,
       outcome: proof.outcome,
@@ -852,10 +921,14 @@ function evidenceCoverageFromBank(
 }
 
 function buildApplicationInsights(args: {
+  evaluation: ProfileEvaluation;
   coreIdentity: CoreIdentitySection;
   drivingForce: DrivingForceSection;
   signaturePattern: SignaturePatternSection;
+  personalPositioning: PersonalPositioningSection;
   proofOfMe: ProofOfMeSection;
+  intendedDirection: string | null;
+  reflectionAnswerSignals?: readonly ReflectionAnswerSignal[];
   evidenceBank?: EvidenceBank;
 }): {
   growthAreas: PersonalReportInsight[];
@@ -863,7 +936,16 @@ function buildApplicationInsights(args: {
   keyTakeaways: PersonalReportKeyTakeaways;
   evidenceCoverage: PersonalReportEvidenceCoverage;
 } {
-  const { coreIdentity, drivingForce, signaturePattern, proofOfMe } = args;
+  const {
+    evaluation,
+    coreIdentity,
+    drivingForce,
+    signaturePattern,
+    personalPositioning,
+    proofOfMe,
+    intendedDirection,
+    reflectionAnswerSignals = [],
+  } = args;
   const growthAreas: PersonalReportInsight[] = [];
   const addGrowth = (gap: string, confidence: ReportConfidence, evidenceIds: string[]) =>
     growthAreas.push(
@@ -894,6 +976,37 @@ function buildApplicationInsights(args: {
   for (const card of proofOfMe.cards.filter((item) => item.evidenceStrength === 'limited')) {
     addGrowth(`The evidence behind "${card.title}" is limited.`, 'low', card.evidenceRefs.map((ref) => ref.id));
   }
+  const activityCapabilityRefs = evaluation.competencies.claims
+    .flatMap((claim) => claim.evidenceRefs)
+    .filter((ref) => ref.kind !== 'profile_reflection');
+  if (activityCapabilityRefs.length === 0) {
+    addGrowth(
+      'No capability is yet grounded in activity or achievement evidence; the Q4 self-report remains uncorroborated.',
+      'low',
+      evaluation.capabilitySignals?.flatMap((signal) => [`profile:reflection_${signal.key}`]) ?? [],
+    );
+  }
+  for (const [key, label] of [
+    ['q2', 'values/growth signal'],
+    ['q5', 'academic direction'],
+    ['q6', 'future/career direction'],
+    ['q7', 'preferred environment'],
+  ] as const) {
+    const signal = reflectionAnswerSignals.find((item) => item.key === key);
+    if (!signal) {
+      addGrowth(`The ${label} is not stated in the confirmed snapshot yet.`, 'low', []);
+    } else if (signal.status === 'isolated') {
+      addGrowth(`The ${label} is self-reported and needs independent evidence or clearer linkage.`, 'low', [
+        `profile:reflection_${key}`,
+      ]);
+    }
+  }
+  for (const gap of personalPositioning.whatPreventsStrongerPositioning) {
+    addGrowth(gap, personalPositioning.confidence, personalPositioning.evidenceRefs.map((ref) => ref.id));
+  }
+  if (!intendedDirection) {
+    addGrowth('No canonical intended major or future direction is recorded yet.', 'low', []);
+  }
   if (growthAreas.length === 0) {
     addGrowth('The current snapshot does not identify a specific next growth area yet.', 'low', []);
   }
@@ -909,6 +1022,29 @@ function buildApplicationInsights(args: {
         confidence: coreIdentity.confidence,
         evidenceIds: coreIdentity.evidenceRefs.map((ref) => ref.id),
         limitations: coreIdentity.evidenceRefs.length > 1 ? [] : ['Only one supporting record is available.'],
+      }),
+    );
+  }
+  const groundedCapabilities = evaluation.competencies.claims
+    .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind !== 'profile_reflection'))
+    .map((claim) => claim.label)
+    .slice(0, 4);
+  if (groundedCapabilities.length > 0) {
+    const socialProofCount = proofOfMe.cards.filter(
+      (card) => card.organisation || card.level || card.year || card.period || card.competition || card.outcome,
+    ).length;
+    competitiveAdvantages.push(
+      insight({
+        kind: 'competitive_advantage',
+        statement: `Grounded capabilities (${groundedCapabilities.join(', ')}) are supported by ${socialProofCount} activity or achievement record${socialProofCount === 1 ? '' : 's'} and the current positioning intersection.`,
+        scope: socialProofCount > 1 ? 'repeated' : 'isolated',
+        strength: socialProofCount > 1 ? 'strong' : 'moderate',
+        confidence: evaluation.competencies.confidence,
+        evidenceIds: [
+          ...evaluation.competencies.claims.flatMap((claim) => claim.evidenceRefs.map((ref) => ref.id)),
+          ...personalPositioning.evidenceRefs.map((ref) => ref.id),
+        ],
+        limitations: socialProofCount > 1 ? [] : ['More independent social proof is needed.'],
       }),
     );
   }
@@ -932,15 +1068,27 @@ function buildApplicationInsights(args: {
   const standout = insight({
     kind: 'takeaway',
     statement: coreIdentity.available
-      ? coreIdentity.headline || 'A recurring identity signal is visible.'
+      ? [
+          coreIdentity.headline || 'A recurring identity signal is visible.',
+          signaturePattern.available ? signaturePattern.steps.find((step) => step.key === 'method')?.description : null,
+          personalPositioning.available ? personalPositioning.statement : null,
+        ]
+          .filter(Boolean)
+          .join(' ')
       : 'The current evidence does not yet establish what makes the candidate stand out.',
     scope: coreIdentity.available ? (coreIdentity.evidenceRefs.length > 1 ? 'repeated' : 'isolated') : 'insufficient',
     strength: coreIdentity.available ? 'moderate' : 'weak',
     confidence: coreIdentity.confidence,
-    evidenceIds: coreIdentity.evidenceRefs.map((ref) => ref.id),
-    limitations: coreIdentity.available ? [] : ['More independent evidence is needed.'],
+    evidenceIds: Array.from(
+      new Set([
+        ...coreIdentity.evidenceRefs.map((ref) => ref.id),
+        ...signaturePattern.evidenceRefs.map((ref) => ref.id),
+        ...personalPositioning.evidenceRefs.map((ref) => ref.id),
+      ]),
+    ),
+    limitations: coreIdentity.available ? personalPositioning.whatPreventsStrongerPositioning : ['More independent evidence is needed.'],
   });
-  const advantage = competitiveAdvantages[0] ?? insight({
+  const advantage = competitiveAdvantages.find((item) => item.statement.startsWith('Grounded capabilities')) ?? competitiveAdvantages[0] ?? insight({
     kind: 'takeaway',
     statement: 'No competitive advantage is established by the current snapshot.',
     scope: 'insufficient',
@@ -1105,13 +1253,23 @@ export function buildPersonalReport(args: {
   const coreIdentity = buildCoreIdentity(evaluation, activities);
   const drivingForce = buildDrivingForce(evaluation, activities);
   const signaturePattern = buildSignaturePattern(evaluation, activities);
-  const emergingThemes = buildEmergingThemes(activities, themes);
+  const emergingThemes = buildEmergingThemes(activities, themes, evaluation.reflectionAnswerSignals);
   const proofOfMe = buildProofOfMe(evaluation, activities, themes);
+  const personalPositioning = buildPersonalPositioning(
+    evaluation,
+    themes,
+    intendedDirection,
+    evaluation.reflectionAnswerSignals,
+  );
   const applicationInsights = buildApplicationInsights({
+    evaluation,
     coreIdentity,
     drivingForce,
     signaturePattern,
+    personalPositioning,
     proofOfMe,
+    intendedDirection,
+    reflectionAnswerSignals: evaluation.reflectionAnswerSignals,
     ...(evidenceBank ? { evidenceBank } : {}),
   });
 
@@ -1122,7 +1280,7 @@ export function buildPersonalReport(args: {
     drivingForce,
     signaturePattern,
     emergingThemes,
-    personalPositioning: buildPersonalPositioning(evaluation, themes, intendedDirection),
+    personalPositioning,
     proofOfMe,
     analytics: buildPersonalReportAnalytics({
       evaluation,

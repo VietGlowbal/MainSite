@@ -137,7 +137,10 @@ describe('runProfileEvaluation', () => {
       career_direction: 'education technology',
       environment_preference: 'collaborative teams',
     });
-    expect(result.narrativeIdentity.identity.valueOrientation).toBe('peer learning');
+    // A lone questionnaire answer is context only; it cannot establish an
+    // identity/value orientation without independent corroboration.
+    expect(result.narrativeIdentity.identity.valueOrientation).toBeNull();
     expect(result.narrativeIdentity.positioning.intendedDirection).toBe('computer science; education technology');
+    expect(result.directionSignals?.preferredEnvironment).toBe('collaborative teams');
   });
 });

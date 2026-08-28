@@ -110,6 +110,7 @@ export type PersonalReportNarrativeFailureCode =
   | 'output_truncated'
   | 'timeout'
   | 'provider_error'
+  | 'unsupported_narrative_fact'
   | 'unknown';
 
 // Prompt text and its version live in the shared registry (Task 2).
@@ -143,6 +144,8 @@ type SynthesisSectionInput = {
   } | null;
   personalPositioning: {
     identity: string | null;
+    motivations: string[];
+    capabilities: string[];
     signatureStrength: string | null;
     theme: string | null;
     intendedDirection: string | null;
@@ -217,6 +220,10 @@ export function synthesisInputFromReport(
     personalPositioning: report.personalPositioning.available
       ? {
           identity: report.coreIdentity.recurringBehaviours[0] ?? report.coreIdentity.recurringRole,
+          motivations: report.drivingForce.repeatedMotivations,
+          capabilities: Array.from(
+            new Set(report.proofOfMe.cards.flatMap((card) => card.competenciesDemonstrated)),
+          ),
           signatureStrength: report.signaturePattern.available
             ? report.signaturePattern.steps.find((step) => step.key === 'method')?.description ?? null
             : null,
@@ -278,22 +285,61 @@ function allowedEvidenceIdsBySection(report: PersonalReportV2) {
   };
 }
 
-function reasoningBundle(grounding: PersonalReportNarrativeGrounding) {
-  const { evaluationInput } = grounding;
+function reasoningBundle(
+  grounding: PersonalReportNarrativeGrounding,
+  report: PersonalReportV2,
+  intendedDirection: string | null,
+) {
   return {
-    extractedInputs: {
-      writtenFields: evaluationInput.writtenFields,
-      reflectionRecords: evaluationInput.reflectionRecords,
-      competencyClaims: evaluationInput.competencyClaims,
-      evidenceItems: evaluationInput.evidenceItems,
-      narrativeActivities: evaluationInput.narrativeActivities,
-      profileMotivations: evaluationInput.profileMotivations ?? [],
-      reflectionAnswerSignals: evaluationInput.reflectionAnswerSignals ?? [],
-      intendedDirection: evaluationInput.intendedDirection,
+    // Only deterministic findings are exposed to the prose model. Raw
+    // activity/reflection text stays in the extraction/grounding stages, so
+    // the narrative model cannot promote an unseen fact into the report.
+    structuredFindings: {
+      input: synthesisInputFromReport(report, intendedDirection),
+      report: {
+        overallEvidenceConfidence: report.overallEvidenceConfidence,
+        availableSections: Object.entries(report)
+          .filter(([, value]) => Boolean(value && typeof value === 'object' && 'available' in value && (value as { available: boolean }).available))
+          .map(([key]) => key),
+      },
     },
-    evaluation: grounding.evaluation,
-    evidenceBank: grounding.evidenceBank,
+    evidenceBank: grounding.evidenceBank
+      ? {
+          claims: grounding.evidenceBank.claims,
+          missingInformation: grounding.evidenceBank.missingInformation,
+        }
+      : null,
   };
+}
+
+function narrativeNumbers(value: string): string[] {
+  return value.match(/\d+(?:[.,]\d+)?/g) ?? [];
+}
+
+/** Rejects a prose response that introduces a numeric fact absent from the
+ * deterministic section findings (e.g. an invented team size or outcome). */
+function assertNarrativeNumbersAreGrounded(
+  parsed: z.infer<typeof synthesisResponseSchema>,
+  sectionInput: SynthesisSectionInput,
+): void {
+  const allowed = new Set(narrativeNumbers(JSON.stringify(sectionInput)));
+  const prose: string[] = [
+    parsed.snapshot?.summary,
+    parsed.overview?.summary,
+    parsed.coreIdentity?.headline,
+    ...(parsed.coreIdentity?.paragraphs ?? []),
+    parsed.drivingForce?.headline,
+    ...(parsed.drivingForce?.paragraphs ?? []),
+    ...(parsed.signaturePattern?.paragraphs ?? []),
+    ...(parsed.emergingThemes?.paragraphs ?? []),
+    parsed.personalPositioning?.statement,
+    ...(parsed.personalPositioning?.whyItFits ?? []),
+    ...(parsed.proofOfMe?.paragraphs ?? []),
+    ...(parsed.overallSummary?.paragraphs ?? []),
+  ].filter((value): value is string => Boolean(value));
+  if (prose.some((value) => narrativeNumbers(value).some((number) => !allowed.has(number)))) {
+    throw new Error('Narrative synthesis introduced an unsupported numeric fact.');
+  }
 }
 
 function hydrate(ids: readonly string[], allowed: ReadonlyMap<string, EvidenceRef>): EvidenceRef[] | null {
@@ -346,6 +392,7 @@ function failureCode(error: unknown): PersonalReportNarrativeFailureCode {
   const message = error instanceof Error ? error.message : '';
   if (/cover every available report section/i.test(message)) return 'missing_sections';
   if (/cited evidence outside its section/i.test(message)) return 'invalid_evidence_ids';
+  if (/unsupported numeric fact/i.test(message)) return 'unsupported_narrative_fact';
   if (/exceeded the token limit/i.test(message)) return 'output_truncated';
   if (/request timed out/i.test(message)) return 'timeout';
   if (/OpenAI request failed/i.test(message)) return 'provider_error';
@@ -380,7 +427,7 @@ export async function synthesizePersonalReportNarrative(args: {
 
   const userPrompt = JSON.stringify({
     input: sectionInput,
-    reasoningBundle: reasoningBundle(args.grounding),
+    reasoningBundle: reasoningBundle(args.grounding, report, intendedDirection),
     allowedEvidenceIds: {
       all: [...allowed.keys()],
       coreIdentity: [...allowedBySection.coreIdentity.keys()],
@@ -407,6 +454,7 @@ export async function synthesizePersonalReportNarrative(args: {
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const raw = JSON.parse(cleaned) as Record<string, unknown>;
     const parsed = synthesisResponseSchema.parse(normalizeEmptyOptionalSections(raw, sectionInput));
+    assertNarrativeNumbersAreGrounded(parsed, sectionInput);
 
     if (
       Boolean(parsed.coreIdentity) !== Boolean(sectionInput.coreIdentity) ||

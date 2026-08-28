@@ -26,6 +26,18 @@ import {
 export type NarrativeActivity = {
   id: string;
   title: string;
+  /** Canonical fields frozen in the confirmed snapshot and carried for downstream provenance. */
+  organisation?: string | null;
+  level?: string | null;
+  year?: number | null;
+  period?: string | null;
+  competition?: string | null;
+  evidenceKey?: string | null;
+  reviewStatus?: string | null;
+  sourceType?: string | null;
+  sources?: unknown[];
+  reflection?: Record<string, unknown> | null;
+  reflectionCard?: Record<string, unknown> | null;
   /** The role the student actually played — a behaviour, not a job title. E.g. "organised weekly sessions", not "leader". */
   role: string | null;
   /** What the student did, in their own words or paraphrased from the record. */
@@ -223,6 +235,7 @@ export type IdentitySynthesis = Insight & {
 type ReflectionIdentitySignal = {
   dimension: string;
   value: string;
+  status?: 'repeated' | 'isolated';
 };
 
 /** Exact-match recurrence — for fields expected to repeat literally, like a role label or a domain theme. */
@@ -294,11 +307,16 @@ export function synthesizeIdentity(
     ? behaviours.find((behaviour) => behaviour.toLowerCase().startsWith(recurringVerb)) ?? null
     : null;
   const explicitValues = reflectionSignals
-    .filter((signal) => ['values_growth', 'problem_domains'].includes(signal.dimension))
+    .filter(
+      (signal) =>
+        signal.status === 'repeated' &&
+        ['interests_motivations', 'values_growth', 'problem_domains'].includes(signal.dimension),
+    )
     .map((signal) => signal.value.trim())
     .filter(nonEmpty);
   const valueOrientation =
-    (readiness.level === 'mature' ? mostCommon(themes) : null) ?? explicitValues[0] ?? null;
+    (readiness.level === 'mature' ? mostCommon(themes) : null) ??
+    (canSynthesise ? explicitValues[0] ?? null : null);
 
   const found = [recurringRole, recurringBehaviour, valueOrientation].filter(Boolean).length;
 
@@ -335,7 +353,9 @@ export function synthesizeIdentity(
     recurringRole,
     recurringBehaviour,
     valueOrientation,
-    reflectionSignals: {},
+    reflectionSignals: Object.fromEntries(
+      reflectionSignals.map((signal) => [signal.dimension, signal.value]),
+    ),
   };
 }
 
@@ -570,6 +590,9 @@ export type ApplicantPositioning = Insight & {
   coherent: boolean;
   directionAligned: boolean;
   credible: boolean;
+  /** Whether the positioning intersection had capability and motivation inputs. */
+  capabilityInformed?: boolean;
+  motivationInformed?: boolean;
 };
 
 /**
@@ -586,8 +609,21 @@ export function assessApplicantPositioning(args: {
   intendedDirection: string | null;
   /** Whether the identity/pattern/theme all point toward the same thing rather than pulling in different directions. */
   coherent: boolean;
+  /** Optional intersection inputs. Omitted for legacy callers/tests; supplied by the profile engine. */
+  capabilityEvidenceRefs?: readonly EvidenceRef[];
+  motivationEvidenceRefs?: readonly EvidenceRef[];
+  themeEvidenceRefs?: readonly EvidenceRef[];
 }): ApplicantPositioning {
-  const { identity, pattern, theme, intendedDirection, coherent } = args;
+  const {
+    identity,
+    pattern,
+    theme,
+    intendedDirection,
+    coherent,
+    capabilityEvidenceRefs,
+    motivationEvidenceRefs,
+    themeEvidenceRefs,
+  } = args;
 
   const identityLabel = identity.recurringBehaviour ?? identity.recurringRole;
   const signatureStrength = pattern.pattern ? pattern.pattern.method : null;
@@ -596,8 +632,14 @@ export function assessApplicantPositioning(args: {
   const authentic = Boolean(identityLabel) && identity.kind !== 'missing';
   const differentiated = Boolean(signatureStrength) && Boolean(themeLabel);
   const directionAligned = Boolean(intendedDirection) && Boolean(themeLabel);
+  const capabilityInformed = capabilityEvidenceRefs === undefined || capabilityEvidenceRefs.length > 0;
+  const motivationInformed = motivationEvidenceRefs === undefined || motivationEvidenceRefs.length > 0;
   const credible =
-    identity.evidenceRefs.length > 0 && pattern.evidenceRefs.length > 0 && (theme?.evidenceCount ?? 0) > 0;
+    identity.evidenceRefs.length > 0 &&
+    pattern.evidenceRefs.length > 0 &&
+    (theme?.evidenceCount ?? 0) > 0 &&
+    capabilityInformed &&
+    motivationInformed;
 
   const strongCount = [authentic, differentiated, coherent, directionAligned, credible].filter(Boolean).length;
 
@@ -618,6 +660,8 @@ export function assessApplicantPositioning(args: {
   if (!coherent) limitations.push('Identity, signature pattern and theme do not yet point toward the same direction.');
   if (!credible) limitations.push('Not every element of this positioning is backed by linked evidence.');
   if (!intendedDirection) limitations.push('No stated intended direction to check alignment against.');
+  if (!capabilityInformed) limitations.push('No grounded capability evidence is available for the positioning intersection.');
+  if (!motivationInformed) limitations.push('No motivation evidence is available for the positioning intersection.');
 
   return {
     ...makeInsight({
@@ -633,7 +677,13 @@ export function assessApplicantPositioning(args: {
         ...(themeLabel ? [] : ['theme']),
         ...(intendedDirection ? [] : ['intendedDirection']),
       ],
-      evidenceRefs: [...identity.evidenceRefs, ...pattern.evidenceRefs],
+      evidenceRefs: [
+        ...identity.evidenceRefs,
+        ...pattern.evidenceRefs,
+        ...(themeEvidenceRefs ?? []),
+        ...(capabilityEvidenceRefs ?? []),
+        ...(motivationEvidenceRefs ?? []),
+      ],
     }),
     positioningStatus,
     identity: identityLabel,
@@ -645,6 +695,8 @@ export function assessApplicantPositioning(args: {
     coherent,
     directionAligned,
     credible,
+    capabilityInformed,
+    motivationInformed,
   };
 }
 

@@ -68,7 +68,15 @@ function setup() {
     profile: { requirements: [], universityValues: [], programmeThemes: { themes: [], description: null } },
   });
   mocks.compose.mockResolvedValue(report);
-  mocks.state.mockResolvedValue({ academicProfile: { records: [] } });
+  mocks.state.mockResolvedValue({
+    academicProfile: { records: [] },
+    directionSignals: {
+      intendedDirection: 'Study computer science',
+      academicDirection: 'Human-computer interaction',
+      careerDirection: 'Build accessible tools',
+      preferredEnvironment: 'Collaborative residential campus',
+    },
+  });
   return { filters, supabase: supabaseMock(filters) };
 }
 
@@ -270,6 +278,22 @@ describe('generateApplicationMatchingReport', () => {
 
     expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
       programmeFitInput: expect.objectContaining({ academicBand: 'above_range' }),
+    }));
+  });
+
+  it('20. forwards Q7 preferred environment and canonical direction into later Matching context', async () => {
+    const { supabase } = setup();
+    await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+
+    expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
+      personalContext: expect.objectContaining({
+        direction: expect.arrayContaining([
+          'Study computer science',
+          'Human-computer interaction',
+          'Build accessible tools',
+          'Collaborative residential campus',
+        ]),
+      }),
     }));
   });
 });

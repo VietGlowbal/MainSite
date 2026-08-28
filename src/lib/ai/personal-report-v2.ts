@@ -26,7 +26,7 @@ import {
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v5-complete-ai-narrative';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v6-grounded-routing';
 
 /** Dynamic report-only evidence rows use this namespace in the supplements table. */
 export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';
@@ -42,6 +42,11 @@ type InlineEvidenceSupplement = { answer: string };
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function textList(value: unknown): string {
+  if (Array.isArray(value)) return value.map(text).filter(Boolean).join(', ');
+  return text(value);
 }
 
 function normalize(value: string): string {
@@ -169,7 +174,7 @@ export function isGroundedInSource(
  */
 function enrichedFreeText(row: Record<string, unknown>, baseText: string): string {
   const reflection = row['reflection'] as Record<string, unknown> | null | undefined;
-  const card = row['reflection_card'] as Record<string, unknown> | null | undefined;
+  const card = (row['reflection_card'] ?? row['reflectionCard']) as Record<string, unknown> | null | undefined;
 
   const reflectionLines = reflection
     ? (['context', 'motivation', 'challenge', 'action', 'impact', 'transformation', 'future'] as const)
@@ -288,12 +293,12 @@ function writtenFieldsFor(context: CandidateContext): VaguenessField[] {
     {
       field: 'careerGoal',
       label: 'Career goal after graduation',
-      value: text(profile.goals) || null,
+      value: text(profile.goals ?? profile.careerGoal) || null,
     },
     {
       field: 'studyMotivation',
       label: 'Why you are interested in these subjects',
-      value: text(profile.study_motivation) || null,
+      value: text(profile.study_motivation ?? profile.studyMotivation) || null,
     },
   ];
 }
@@ -303,12 +308,12 @@ function profileMotivationsFor(
 ): NonNullable<ProfileEvaluationInput['profileMotivations']> {
   const profile = context.profile as Record<string, unknown>;
   const result: Array<{ id: string; label: string; value: string }> = [];
-  const general = text(profile.study_motivation);
+  const general = text(profile.study_motivation ?? profile.studyMotivation);
   if (general) {
     result.push({ id: 'profile:study_motivation', label: 'Study motivation', value: general });
   }
 
-  const subjectMotivations = profile.subject_motivations;
+  const subjectMotivations = profile.subject_motivations ?? profile.subjectMotivations;
   if (
     subjectMotivations &&
     typeof subjectMotivations === 'object' &&
@@ -386,18 +391,49 @@ export async function buildProfileEvaluationInput(args: {
   const achievements = achievementRecords(context);
   const activities = activityRecords(context);
   const all = [...achievements, ...activities];
-  const sourceById = new Map(all.map((record) => [record.id, record]));
+  const profile = context.profile as Record<string, unknown>;
+  const reflectionAnswers = (profile.personal_reflection_answers ?? profile.personalReflection ?? null) as
+    | Record<string, string | undefined>
+    | null;
+  const reflectionAnalysis = analyzeReflectionAnswers(
+    reflectionAnswers,
+    all.map((record) => record.freeText),
+  );
+  const q4Signal = reflectionAnalysis.signals.find((signal) => signal.key === 'q4');
+  const capabilityReflectionRecord: FreeTextRecord | null = q4Signal
+    ? {
+        id: `profile:reflection_${q4Signal.key}`,
+        title: 'Personal reflection — capability ownership',
+        freeText: q4Signal.value,
+        row: { source_type: 'profile_reflection', review_status: 'reviewed' },
+      }
+    : null;
+  const sourceById = new Map(
+    [...all, ...(capabilityReflectionRecord ? [capabilityReflectionRecord] : [])].map((record) => [
+      record.id,
+      record,
+    ]),
+  );
 
   const cmcaitfInputs: CmcaitfExtractionInput[] = all.map((record) => ({
     id: record.id,
     title: record.title,
     freeText: record.freeText,
   }));
-  const competencySources: CompetencyExtractionSource[] = all.map((record) => ({
-    id: record.id,
-    kind: record.id.startsWith('achievement:') ? 'achievement' : 'activity',
-    text: record.freeText,
-  }));
+  const competencySources: CompetencyExtractionSource[] = [
+    ...all.map((record) => ({
+      id: record.id,
+      kind: record.id.startsWith('achievement:') ? 'achievement' : 'activity',
+      text: record.freeText,
+    })),
+    ...(capabilityReflectionRecord
+      ? [{
+          id: capabilityReflectionRecord.id,
+          kind: 'profile_reflection',
+          text: capabilityReflectionRecord.freeText,
+        }]
+      : []),
+  ];
   const roleThemeInputs: RoleThemeExtractionInput[] = all.map((record) => ({
     id: record.id,
     title: record.title,
@@ -427,6 +463,24 @@ export async function buildProfileEvaluationInput(args: {
     return {
       id: record.id,
       title: record.title,
+      organisation: text(record.row.organisation ?? record.row.organization) || null,
+      level: text(record.row.level) || null,
+      year: typeof record.row.year === 'number' ? record.row.year : null,
+      period: text(record.row.period) || null,
+      competition: text(record.row.competition) || null,
+      evidenceKey: text(record.row.evidence_key ?? record.row.evidenceKey) || null,
+      reviewStatus: text(record.row.review_status ?? record.row.reviewStatus) || null,
+      sourceType: text(record.row.source_type ?? record.row.sourceType) || null,
+      sources: Array.isArray(record.row.sources) ? record.row.sources : [],
+      reflection:
+        record.row.reflection && typeof record.row.reflection === 'object'
+          ? (record.row.reflection as Record<string, unknown>)
+          : null,
+      reflectionCard:
+        (record.row.reflection_card ?? record.row.reflectionCard) &&
+        typeof (record.row.reflection_card ?? record.row.reflectionCard) === 'object'
+          ? ((record.row.reflection_card ?? record.row.reflectionCard) as Record<string, unknown>)
+          : null,
       role: roleTheme?.role ?? null,
       behaviour: cmcaitf?.action ?? null,
       domainTheme: roleTheme?.domainTheme ?? null,
@@ -446,33 +500,33 @@ export async function buildProfileEvaluationInput(args: {
     return {
       id: record.id,
       title: record.title,
+      organisation: text(record.row.organisation ?? record.row.organization) || null,
+      competition: text(record.row.competition) || null,
+      year: typeof record.row.year === 'number' ? record.row.year : null,
+      period: text(record.row.period) || null,
+      evidenceKey: text(record.row.evidence_key ?? record.row.evidenceKey) || null,
+      reviewStatus: text(record.row.review_status ?? record.row.reviewStatus) || null,
+      sourceType: text(record.row.source_type ?? record.row.sourceType) || null,
+      sources: Array.isArray(record.row.sources) ? record.row.sources : [],
       sourceKind: evidenceSourceKindFor(record, kind),
       quantifiedOutcome,
       qualitativeOutcome,
-      hasDocument: kind === 'achievement' && Boolean(text(record.row.evidence_key)),
+      hasDocument: kind === 'achievement' && Boolean(text(record.row.evidence_key ?? record.row.evidenceKey)),
       attributingOrganisation:
-        text(record.row.organisation) || text(record.row.competition) || null,
+        text(record.row.organisation ?? record.row.organization) || text(record.row.competition) || null,
       level: text(record.row.level) || null,
     };
   });
 
-  const profile = context.profile as Record<string, unknown>;
-
-  // The seven Personal Reflection answers — previously ignored entirely
-  // (plan Task 6 regression). They now (a) join the vagueness-graded written
-  // fields, (b) feed profile motivations, and (c) ride along as dimension-
-  // tagged Identity/Direction signals so downstream consumers and the input
-  // hash both see them.
-  const reflectionAnswers = (profile.personal_reflection_answers ?? null) as
-    | Record<string, string | undefined>
-    | null;
-  const reflectionAnalysis = analyzeReflectionAnswers(reflectionAnswers);
+  // The seven Personal Reflection answers are routed by dimension. Activity
+  // and achievement text is the independent corroborating source for status.
   const reflectionWrittenFields: VaguenessField[] = reflectionAnalysis.signals.map((signal) => ({
     field: `reflection_${signal.key}`,
     label: `Personal reflection — ${signal.dimension.replaceAll('_', ' ')}`,
     value: signal.value,
   }));
   const reflectionMotivations = reflectionAnalysis.signals
+    .filter((signal) => signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3')
     .map((signal) => ({
       id: `profile:reflection_${signal.key}`,
       label: `Reflection — ${signal.dimension.replaceAll('_', ' ')}`,
@@ -480,13 +534,24 @@ export async function buildProfileEvaluationInput(args: {
     }));
 
   const reflectionDirection = reflectionAnalysis.signals
-    .filter((signal) => signal.key === 'q5' || signal.key === 'q6')
+    .filter((signal) => signal.key === 'q5' || signal.key === 'q6' || signal.key === 'q7')
     .map((signal) => signal.value)
     .filter(Boolean)
     .join('; ');
-  const intendedDirection = [text(profile.goals), reflectionDirection]
+  const rawSubjects = profile.target_subjects ?? profile.majors;
+  const subjectDirection = Array.isArray(rawSubjects)
+    ? rawSubjects.map(text).filter(Boolean).join(', ')
+    : text(rawSubjects);
+  const careerDirection = textList(profile.career_interests ?? profile.careerInterests);
+  const intendedDirection = [text(profile.goals ?? profile.careerGoal), subjectDirection, careerDirection, reflectionDirection]
     .filter(Boolean)
     .join('; ') || null;
+  const directionSignals = {
+    academicDirection:
+      reflectionAnalysis.directionSignals?.academicDirection ?? subjectDirection ?? null,
+    careerDirection: reflectionAnalysis.directionSignals?.careerDirection ?? careerDirection ?? null,
+    preferredEnvironment: reflectionAnalysis.directionSignals?.preferredEnvironment ?? null,
+  };
 
   return {
     subjectId,
@@ -497,6 +562,8 @@ export async function buildProfileEvaluationInput(args: {
     narrativeActivities,
     profileMotivations: [...profileMotivationsFor(context), ...reflectionMotivations],
     reflectionAnswerSignals: reflectionAnalysis.signals,
+    capabilitySignals: q4Signal ? [q4Signal] : [],
+    directionSignals,
     intendedDirection,
     generatedAt,
   };

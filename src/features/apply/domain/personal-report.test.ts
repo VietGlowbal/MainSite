@@ -8,6 +8,7 @@ import {
 import { buildEvidenceBank } from '@/shared/evidence/build-evidence-bank';
 import type { EvidenceBank } from '@/shared/evidence/domain';
 import { buildPersonalReport } from './personal-report';
+import { buildPersonalCanvasDetails } from './personal-canvas-details';
 
 const TUTOR: NarrativeActivity = {
   id: 'tutor',
@@ -17,6 +18,10 @@ const TUTOR: NarrativeActivity = {
   domainTheme: 'education access',
   statedMotivation: 'I wanted to help classmates who fell behind after long absences.',
   outcome: 'Average scores rose by 15%.',
+  organisation: 'School Learning Centre',
+  level: 'School',
+  period: '2024–2025',
+  sources: [{ type: 'teacher_reference' }],
   evidenceRefs: [{ id: 'tutor', kind: 'activity', label: 'Peer tutoring' }],
 };
 
@@ -28,6 +33,10 @@ const CODING: NarrativeActivity = {
   domainTheme: 'education access',
   statedMotivation: 'I wanted more students to have the chance to learn to code.',
   outcome: 'Membership grew to 45 students.',
+  organisation: 'School Coding Club',
+  level: 'School',
+  period: '2023–2025',
+  sources: [{ type: 'club_record' }],
   evidenceRefs: [{ id: 'coding', kind: 'activity', label: 'Coding club' }],
 };
 
@@ -39,6 +48,13 @@ const CAREERBRIDGE: NarrativeActivity = {
   domainTheme: 'education access',
   statedMotivation: 'I noticed students had no clear source of scholarship information.',
   outcome: 'Reached 350 students across six schools.',
+  organisation: 'CareerBridge',
+  level: 'National',
+  year: 2025,
+  competition: 'Social Innovation Challenge',
+  evidenceKey: 'careerbridge.pdf',
+  reviewStatus: 'reviewed',
+  sources: [{ type: 'certificate', verified: true }],
   evidenceRefs: [{ id: 'careerbridge', kind: 'achievement', label: 'CareerBridge' }],
 };
 
@@ -282,5 +298,62 @@ describe('buildPersonalReport', () => {
 
     expect(result.evidenceCoverage?.strongEvidence).toContain('achievement:careerbridge');
     expect(result.evidenceCoverage?.weakEvidence).not.toContain('achievement:careerbridge');
+  });
+
+  it('retains metadata and quantified outcomes in Social Proof instead of counting cards only', () => {
+    const args = input({
+      evidenceItems: [
+        {
+          ...NATIONAL_PRIZE,
+          id: 'tutor',
+          title: TUTOR.title,
+          sourceKind: 'structured_achievement',
+          quantifiedOutcome: TUTOR.outcome,
+          hasDocument: false,
+          attributingOrganisation: TUTOR.organisation ?? null,
+          level: TUTOR.level ?? null,
+        },
+      ],
+    });
+    const evaluation = runProfileEvaluation(args);
+    const result = buildPersonalReport({
+      evaluation,
+      activities: args.narrativeActivities,
+      intendedDirection: args.intendedDirection,
+      generatedAt: args.generatedAt,
+    });
+    expect(result.proofOfMe.cards[0]).toMatchObject({ organisation: expect.any(String), period: expect.any(String) });
+
+    const canvas = buildPersonalCanvasDetails({
+      activities: args.narrativeActivities,
+      coreIdentity: result.coreIdentity,
+      drivingForce: result.drivingForce,
+      emergingThemes: result.emergingThemes,
+      personalPositioning: result.personalPositioning,
+      proofOfMe: result.proofOfMe,
+      intendedDirection: args.intendedDirection,
+    });
+    expect(canvas.socialProof.find((metric) => metric.key === 'metadataCoverage')?.value).toBeGreaterThan(0);
+    expect(canvas.socialProof.find((metric) => metric.key === 'quantifiedOutcomes')?.value).toBeGreaterThan(0);
+  });
+
+  it('routes Q1 into emerging themes and Q3 into positioning as explicitly scoped context', () => {
+    const reflectionAnswerSignals = [
+      { key: 'q1' as const, dimension: 'interests_motivations' as const, value: 'access to practical education', status: 'isolated' as const },
+      { key: 'q3' as const, dimension: 'problem_domains' as const, value: 'unequal access to education', status: 'isolated' as const },
+    ];
+    const args = input({ reflectionAnswerSignals });
+    const evaluation = runProfileEvaluation(args);
+    const result = buildPersonalReport({
+      evaluation,
+      activities: args.narrativeActivities,
+      intendedDirection: args.intendedDirection,
+      generatedAt: args.generatedAt,
+    });
+
+    expect(result.emergingThemes.themes.some((theme) =>
+      theme.evidenceRefs.some((ref) => ref.id === 'profile:reflection_q1'),
+    )).toBe(true);
+    expect(result.personalPositioning.evidenceRefs.some((ref) => ref.id === 'profile:reflection_q3')).toBe(true);
   });
 });

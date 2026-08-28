@@ -121,7 +121,14 @@ export type {
 } from './f5-programme-fit';
 
 export { runProfileEvaluation } from './engine';
-export type { F4Result, ProfileEvaluation, ProfileEvaluationInput } from './engine';
+export type {
+  F4Result,
+  ProfileEvaluation,
+  ProfileEvaluationInput,
+  ReflectionAnswerDimension,
+  ReflectionAnswerKey,
+  ReflectionAnswerSignal,
+} from './engine';
 
 export { ENGINE_VERSION, shouldRegenerate } from './versioning';
 export type { StoredEvaluationStamp } from './versioning';

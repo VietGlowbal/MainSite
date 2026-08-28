@@ -287,7 +287,7 @@ describe('synthesizePersonalReportNarrative', () => {
   });
 
   it('hydrates a response that only cites known evidence ids', async () => {
-    const snapshotSummary = Array.from({ length: 150 }, (_, index) => `word${index}`).join(' ');
+    const snapshotSummary = Array.from({ length: 150 }, () => 'word').join(' ');
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify({
@@ -515,7 +515,33 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failureCode).toBe('invalid_json');
   });
 
-  it('sends the complete structured grounding bundle and section-scoped evidence ids', async () => {
+  it('rejects prose that invents a numeric outcome not present in structured findings', async () => {
+    const response = completeSynthesisResponse({
+      coreIdentity: {
+        headline: 'A natural organiser',
+        paragraphs: ['The candidate led a 999-person team.'],
+        evidenceIds: ['activity-1'],
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(chatResponse(JSON.stringify(response))));
+    let failureCode: string | null = null;
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+      onFailure: (code) => {
+        failureCode = code;
+      },
+    });
+
+    expect(result).toBeNull();
+    expect(failureCode).toBe('unsupported_narrative_fact');
+  });
+
+  it('sends deterministic findings and section-scoped evidence ids, never raw extraction input', async () => {
     const fetchMock = vi.fn().mockResolvedValue(chatResponse(JSON.stringify(completeSynthesisResponse())));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -528,9 +554,11 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
-    expect(body.messages[1].content).toContain('I organise coding workshops for younger students.');
-    expect(body.messages[1].content).toContain('Coding club attendance record');
-    expect(body.messages[1].content).toContain('Values peer learning');
+    expect(body.messages[1].content).toContain('structuredFindings');
+    expect(body.messages[1].content).toContain('coordinating volunteers');
+    expect(body.messages[1].content).not.toContain('I organise coding workshops for younger students.');
+    expect(body.messages[1].content).not.toContain('Coding club attendance record');
+    expect(body.messages[1].content).not.toContain('Values peer learning');
     expect(body.messages[1].content).toContain('"signaturePattern":["activity-1"]');
     expect(body.messages[1].content).toContain('"proofOfMe":["proof-1"]');
   });

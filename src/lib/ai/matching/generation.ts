@@ -281,7 +281,12 @@ export async function generateApplicationMatchingReport(args: {
     personalContext: {
       coreIdentity: [personalRecord.reportV2.coreIdentity.interpretation].filter((x): x is string => Boolean(x)),
       motivations: [personalRecord.reportV2.drivingForce.explanation].filter((x): x is string => Boolean(x)),
-      direction: [],
+      direction: [
+        state.directionSignals?.intendedDirection,
+        state.directionSignals?.academicDirection,
+        state.directionSignals?.careerDirection,
+        state.directionSignals?.preferredEnvironment,
+      ].filter((x): x is string => Boolean(x?.trim())),
     },
     previousReport: latestRecord?.reportV2 || null,
     lineage: {

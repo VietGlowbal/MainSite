@@ -6,8 +6,6 @@ import {
 } from './personal-report-v2';
 import {
   REFLECTION_ANSWER_DIMENSIONS,
-  deriveReflectionSignals,
-  analyzeReflectionAnswers,
 } from './reflection-analysis';
 
 afterEach(() => {
@@ -32,6 +30,13 @@ const baseContext: CandidateContext = {
       evidence_key: 'olivia/careerbridge.pdf',
       organisation: 'CareerBridge',
       level: 'National',
+      year: 2025,
+      competition: 'National Social Innovation Challenge',
+      reflection: { action: 'Founded a 12-person team.' },
+      reflection_card: { keyTakeaway: 'I turn access gaps into practical systems.' },
+      review_status: 'reviewed',
+      source_type: 'uploaded_document',
+      sources: [{ type: 'certificate', verified: true }],
     },
   ],
   activities: [
@@ -39,6 +44,14 @@ const baseContext: CandidateContext = {
       id: 'data',
       title: 'Student information data project',
       description: 'Surveyed 500 students to find gaps in scholarship awareness.',
+      organisation: 'School Research Lab',
+      level: 'School',
+      period: '2024–2025',
+      reflection: { context: 'Students lacked clear scholarship information.' },
+      reflection_card: { story: 'I used data to make the gap visible.' },
+      review_status: 'reviewed',
+      source_type: 'student_entry',
+      sources: [{ type: 'school_record' }],
     },
   ],
   englishTests: [],
@@ -120,10 +133,30 @@ describe('buildProfileEvaluationInput', () => {
     expect(careerbridge?.domainTheme).toBe('education access');
     expect(careerbridge?.behaviour).toBe('Founded a 12-person team to run the programme.');
     expect(careerbridge?.outcome).toBe('Reached 350 students.');
+    expect(careerbridge).toMatchObject({
+      organisation: 'CareerBridge',
+      level: 'National',
+      year: 2025,
+      competition: 'National Social Innovation Challenge',
+      reflection: { action: 'Founded a 12-person team.' },
+      reflectionCard: { keyTakeaway: 'I turn access gaps into practical systems.' },
+      reviewStatus: 'reviewed',
+      sourceType: 'uploaded_document',
+      sources: [{ type: 'certificate', verified: true }],
+    });
 
     const evidenceItem = result.evidenceItems.find((item) => item.id === 'achievement:careerbridge');
     expect(evidenceItem?.hasDocument).toBe(true);
     expect(evidenceItem?.quantifiedOutcome).toBe('Reached 350 students.');
+    expect(evidenceItem).toMatchObject({
+      organisation: 'CareerBridge',
+      level: 'National',
+      year: 2025,
+      competition: 'National Social Innovation Challenge',
+      evidenceKey: 'olivia/careerbridge.pdf',
+      reviewStatus: 'reviewed',
+      sourceType: 'uploaded_document',
+    });
 
     expect(result.competencyClaims).toHaveLength(1);
     expect(result.intendedDirection).toBe('Build hospital scheduling software.');
@@ -156,6 +189,54 @@ describe('buildProfileEvaluationInput', () => {
     expect(result.evidenceItems).toEqual([]);
     expect(result.competencyClaims).toEqual([]);
     expect(result.intendedDirection).toBeNull();
+  });
+
+  it('passes Q4 into competency extraction as self-reported evidence', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+        const body = JSON.parse(init.body as string);
+        const userMessage = body.messages[1].content as string;
+        if (userMessage.includes('competenc')) {
+          return Promise.resolve(
+            chatResponse({
+              claims: [
+                {
+                  id: 'q4-capability',
+                  type: 'soft',
+                  label: 'Ownership',
+                  situation: 'I owned the entire rollout of our school tutoring platform.',
+                  evidenceIds: ['profile:reflection_q4'],
+                },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(chatResponse({ items: [] }));
+      }),
+    );
+
+    const result = await buildProfileEvaluationInput({
+      context: {
+        ...baseContext,
+        profile: {
+          ...baseContext.profile,
+          personal_reflection_answers: {
+            q4: 'I owned the entire rollout of our school tutoring platform.',
+          },
+        },
+      },
+      subjectId: 'user-q4',
+      generatedAt: '2026-08-26T00:00:00.000Z',
+      apiKey: 'test-key',
+    });
+
+    expect(result.competencyClaims).toEqual([
+      expect.objectContaining({
+        label: 'Ownership',
+        evidenceRefs: [expect.objectContaining({ id: 'profile:reflection_q4', kind: 'profile_reflection' })],
+      }),
+    ]);
   });
 });
 
@@ -277,5 +358,31 @@ describe('seven personal reflection answers feed Identity/Direction signals', ()
     return buildWith({}).then((result) => {
       expect(result.reflectionAnswerSignals).toEqual([]);
     });
+  });
+
+  it('routes Q4 to capability evidence and Q7 to environment/direction, without promoting Q4–Q7 into motivation', async () => {
+    const result = await buildWith(ANSWERS);
+
+    expect(result.capabilitySignals).toEqual([
+      expect.objectContaining({ key: 'q4', dimension: 'capability_ownership', status: 'isolated' }),
+    ]);
+    expect(result.directionSignals).toMatchObject({
+      academicDirection: ANSWERS.q5,
+      careerDirection: ANSWERS.q6,
+      preferredEnvironment: ANSWERS.q7,
+    });
+    const motivationIds = (result.profileMotivations ?? []).map((item) => item.id);
+    expect(motivationIds).toEqual(expect.arrayContaining(['profile:reflection_q1', 'profile:reflection_q2', 'profile:reflection_q3']));
+    expect(motivationIds).not.toEqual(expect.arrayContaining([
+      'profile:reflection_q4',
+      'profile:reflection_q5',
+      'profile:reflection_q6',
+      'profile:reflection_q7',
+    ]));
+  });
+
+  it('marks a reflection signal repeated only when activity text independently corroborates it', async () => {
+    const result = await buildWith({ ...ANSWERS, q3: 'I care about scholarship awareness and student access.' });
+    expect(result.reflectionAnswerSignals?.find((signal) => signal.key === 'q3')?.status).toBe('repeated');
   });
 });

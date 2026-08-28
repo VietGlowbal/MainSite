@@ -91,10 +91,24 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
     id?: unknown;
     title?: unknown;
     category?: unknown;
+    organisation?: unknown;
+    organization?: unknown;
+    level?: unknown;
+    year?: unknown;
+    period?: unknown;
+    competition?: unknown;
     detail?: unknown;
     description?: unknown;
+    reflection?: unknown;
+    reflectionCard?: unknown;
+    reflection_card?: unknown;
     evidenceKey?: unknown;
     evidence_key?: unknown;
+    reviewStatus?: unknown;
+    review_status?: unknown;
+    sourceType?: unknown;
+    source_type?: unknown;
+    sources?: unknown;
   };
   const mapItems = (items: unknown, prefix: 'achievement' | 'activity') =>
     (Array.isArray(items) ? items : []).flatMap((raw) => {
@@ -107,12 +121,38 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
           id: activityId,
           title: typeof item.title === 'string' ? item.title : 'Untitled',
           category: typeof item.category === 'string' ? item.category : null,
+          organisation:
+            typeof (item.organisation ?? item.organization) === 'string'
+              ? String(item.organisation ?? item.organization)
+              : null,
+          level: typeof item.level === 'string' ? item.level : null,
+          year: typeof item.year === 'number' ? item.year : null,
+          period: typeof item.period === 'string' ? item.period : null,
+          competition: typeof item.competition === 'string' ? item.competition : null,
           freeText:
             typeof item.detail === 'string'
               ? item.detail
               : typeof item.description === 'string'
                 ? item.description
                 : null,
+          reflection:
+            item.reflection && typeof item.reflection === 'object'
+              ? (item.reflection as Record<string, unknown>)
+              : null,
+          reflectionCard:
+            (item.reflectionCard ?? item.reflection_card) &&
+            typeof (item.reflectionCard ?? item.reflection_card) === 'object'
+              ? ((item.reflectionCard ?? item.reflection_card) as Record<string, unknown>)
+              : null,
+          reviewStatus:
+            typeof (item.reviewStatus ?? item.review_status) === 'string'
+              ? String(item.reviewStatus ?? item.review_status)
+              : null,
+          sourceType:
+            typeof (item.sourceType ?? item.source_type) === 'string'
+              ? String(item.sourceType ?? item.source_type)
+              : null,
+          sources: Array.isArray(item.sources) ? item.sources : [],
           evidenceKey:
             typeof (item.evidenceKey ?? item.evidence_key) === 'string' &&
             String(item.evidenceKey ?? item.evidence_key).trim()
@@ -176,6 +216,33 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
   const academicRecordsRaw = Array.isArray(row.payload?.academicRecords)
     ? row.payload!.academicRecords!
     : [];
+  const personalReflectionAnswers =
+    reflection['personal_reflection_answers'] &&
+    typeof reflection['personal_reflection_answers'] === 'object'
+      ? (reflection['personal_reflection_answers'] as Record<string, unknown>)
+      : reflection['personalReflection'] && typeof reflection['personalReflection'] === 'object'
+        ? (reflection['personalReflection'] as Record<string, unknown>)
+        : {};
+  const careerInterests = Array.isArray(reflection['career_interests'])
+    ? reflection['career_interests'].filter((value): value is string => typeof value === 'string').join(', ')
+    : typeof reflection['career_interests'] === 'string'
+      ? reflection['career_interests']
+      : null;
+  const intendedProfileDirection = [
+    typeof reflection['goals'] === 'string'
+      ? reflection['goals']
+      : typeof reflection['careerGoal'] === 'string'
+        ? reflection['careerGoal']
+        : null,
+    ...(Array.isArray(reflection['target_subjects'])
+      ? reflection['target_subjects'].filter((value): value is string => typeof value === 'string')
+      : Array.isArray(reflection['majors'])
+        ? reflection['majors'].filter((value): value is string => typeof value === 'string')
+        : []),
+    careerInterests,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join('; ');
 
   return {
     applicantId: row.user_id,
@@ -191,9 +258,17 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
     activities,
     evidenceBank,
     directionSignals: {
-      intendedDirection: typeof reflection['goals'] === 'string' ? reflection['goals'] : null,
+      intendedDirection: intendedProfileDirection || null,
+      academicDirection:
+        typeof personalReflectionAnswers.q5 === 'string' ? personalReflectionAnswers.q5 : null,
       careerDirection:
-        typeof reflection['career_interests'] === 'string' ? reflection['career_interests'] : null,
+        careerInterests
+          ? careerInterests
+          : typeof personalReflectionAnswers.q6 === 'string'
+            ? personalReflectionAnswers.q6
+            : null,
+      preferredEnvironment:
+        typeof personalReflectionAnswers.q7 === 'string' ? personalReflectionAnswers.q7 : null,
     },
     metadata: {
       createdAt: new Date().toISOString(),
@@ -226,12 +301,35 @@ export function candidateContextFromState(state: ApplicantAIState): import('@/fe
       profile[key] = item.raw;
     }
   }
+  // Confirmed snapshots store the Reflection form's camelCase keys, while
+  // live CandidateContext uses the profile table's snake_case names. Expose
+  // both aliases so the report/matching stages consume the same frozen facts.
+  const aliases: Record<string, string> = {
+    majors: 'target_subjects',
+    careerGoal: 'goals',
+    studyMotivation: 'study_motivation',
+    subjectMotivations: 'subject_motivations',
+    personalReflection: 'personal_reflection_answers',
+  };
+  for (const [from, to] of Object.entries(aliases)) {
+    if (profile[to] === undefined && profile[from] !== undefined) profile[to] = profile[from];
+  }
 
   const achievementRows = state.achievements.map((item) => ({
     id: item.id.slice('achievement:'.length),
     title: item.title,
     category: item.category ?? null,
+    organisation: item.organisation ?? null,
+    level: item.level ?? null,
+    year: item.year ?? null,
+    period: item.period ?? null,
+    competition: item.competition ?? null,
     detail: item.freeText,
+    reflection: item.reflection ?? null,
+    reflection_card: item.reflectionCard ?? null,
+    review_status: item.reviewStatus ?? null,
+    source_type: item.sourceType ?? null,
+    sources: item.sources ?? [],
     evidence_key: item.evidenceKey ?? null,
   }));
 
@@ -239,6 +337,11 @@ export function candidateContextFromState(state: ApplicantAIState): import('@/fe
     id: item.id.slice('activity:'.length),
     title: item.title,
     category: item.category ?? null,
+    organisation: item.organisation ?? null,
+    level: item.level ?? null,
+    year: item.year ?? null,
+    period: item.period ?? null,
+    competition: item.competition ?? null,
     description: [
       item.freeText,
       ...(item.followUpAnswers ?? []).map(
@@ -247,6 +350,12 @@ export function candidateContextFromState(state: ApplicantAIState): import('@/fe
     ]
       .filter(Boolean)
       .join('\n'),
+    reflection: item.reflection ?? null,
+    reflection_card: item.reflectionCard ?? null,
+    review_status: item.reviewStatus ?? null,
+    source_type: item.sourceType ?? null,
+    sources: item.sources ?? [],
+    evidence_key: item.evidenceKey ?? null,
   }));
 
   const englishTests = (state.academicProfile?.records ?? [])

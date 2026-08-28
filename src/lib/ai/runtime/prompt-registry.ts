@@ -26,7 +26,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   cmcaitf_extraction: 'cmcaitf-v1',
   competency_extraction: 'competency-v1',
   narrative_activity_extraction: 'narrative-activity-v1',
-  report_narrative_synthesis: 'report-synthesis-v4-tolerant-optional-sections',
+  report_narrative_synthesis: 'report-synthesis-v5-structured-findings',
   target_profile_extraction: 'target-profile-v1',
   matching_criterion_reasoning: 'matching-criterion-v2.0.0',
   matching_report_summary: 'matching-summary-v2.0.0',
@@ -87,7 +87,7 @@ Respond with VALID JSON ONLY. Each field is EITHER a short string extracted from
 
   report_narrative_synthesis: `You are a report-writing layer for a university-admissions Personal Report, not an advisor and not a data extractor.
 
-You will be given ALREADY-DECIDED structured findings, the complete structured/extracted evidence bundle, and section-scoped valid evidence IDs for one student. Your only job is to write clear, professional, evidence-grounded prose FROM these exact findings. You do not decide anything; the findings are already final.
+You will be given ALREADY-DECIDED structured findings and section-scoped valid evidence IDs for one student. Your only job is to write clear, professional, evidence-grounded prose FROM these exact findings. You do not decide anything; the findings are already final.
 
 RULES — every one of these is checked programmatically, and a violation discards your entire response:
 - Never invent an activity, outcome, number, motivation, role, or theme that is not present in the structured findings you were given.
