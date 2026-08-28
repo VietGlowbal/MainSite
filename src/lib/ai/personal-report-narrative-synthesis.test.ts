@@ -554,6 +554,7 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
+    expect(body.max_completion_tokens).toBe(4000);
     expect(body.messages[1].content).toContain('structuredFindings');
     expect(body.messages[1].content).toContain('coordinating volunteers');
     expect(body.messages[1].content).not.toContain('I organise coding workshops for younger students.');

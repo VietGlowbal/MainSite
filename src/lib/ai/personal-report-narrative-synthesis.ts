@@ -448,7 +448,7 @@ export async function synthesizePersonalReportNarrative(args: {
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.4,
-      maxTokens: 1800,
+      maxTokens: 4000,
     });
 
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
