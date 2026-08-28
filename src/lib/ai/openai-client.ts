@@ -82,7 +82,7 @@ export async function openAiJsonCompletion(args: {
         model: args.model,
         messages: args.messages,
         temperature: args.temperature,
-        max_tokens: args.maxTokens,
+        max_completion_tokens: args.maxTokens,
         response_format: { type: 'json_object' },
       }),
     });

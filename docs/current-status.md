@@ -1,15 +1,12 @@
 # Current project status
 
-Working tree 2026-08-28: production Vercel logs confirmed the Personal Report
-AI call succeeds but the narrative validator rejected otherwise usable output
-when the optional snapshot was shorter than 150 words or optional summaries
-contained empty evidence arrays. The synthesis boundary now accepts any
-non-empty grounded snapshot, normalizes unsupported empty optional sections to
-`null`, keeps evidence validation strict for available canonical sections, and
-updates the prompt contract/version. Focused Vitest 33/33, base TypeScript,
-scoped ESLint, and `git diff --check` pass. Production must redeploy this
-working-tree change before retrying the report; `OPENAI_MODEL` was changed in
-Vercel by the owner and is being verified through the next runtime attempt.
+Working tree 2026-08-28: production retry reached `gpt-5.6-luna`, but the
+Personal Report provider rejected the legacy `max_tokens` request parameter
+(`max_completion_tokens` is required). `openAiJsonCompletion` now sends the
+model-compatible parameter and has a regression test; the retry queue also
+runs forced retries immediately from the initial Create Report action. Focused
+Vitest 21/21, base TypeScript, scoped ESLint, and `git diff --check` pass.
+Production must redeploy this latest fix before the next report retry.
 
 Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
 planning-owned student guidance, shown immediately in the hierarchical List
