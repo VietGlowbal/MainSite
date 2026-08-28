@@ -13,8 +13,8 @@ migration is required before deploying the target-profile cache changes.
 Measured locally: full Vitest 370 files / 3,496 tests passed (2 todo),
 typecheck, lint (0 errors; 5 pre-existing warnings), i18n audit, CI production
 build (3 pre-existing geo-content tracing warnings), and `git diff --check`
-passed. GitNexus change detection could not resolve the indexed repository
-name in this environment.
+passed. GitNexus change detection reported medium risk across 24 files and 4
+symbols, with the Matching Report UI flow as the affected execution path.
 
 Working tree 2026-08-29 (Personal Report narrative batch contract): the prose
 prompt, parser, and optional-section semantics now agree: a batch returns only
