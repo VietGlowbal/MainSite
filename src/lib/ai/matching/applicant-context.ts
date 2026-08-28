@@ -48,6 +48,11 @@ export type ApplicantMatchingContext = {
     title: string;
     organisation: string | null;
     level: string | null;
+    year?: number | null;
+    period?: string | null;
+    competition?: string | null;
+    outcome?: string | null;
+    evidenceSource?: string | null;
     verificationStatus: string;
     evidenceIds: string[];
   }>;
@@ -170,6 +175,11 @@ export function buildApplicantMatchingContext(args: {
         title: card.title,
         organisation: card.organisation ?? null,
         level: card.level ?? null,
+        year: card.year ?? null,
+        period: card.period ?? null,
+        competition: card.competition ?? null,
+        outcome: card.outcome ?? null,
+        evidenceSource: card.evidenceSource ?? null,
         verificationStatus: card.verificationStatus,
         evidenceIds: refs(card.evidenceRefs),
       })),

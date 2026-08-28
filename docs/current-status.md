@@ -1,5 +1,21 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report + Matching Report V3 contract repair):
+Target Profile cache identity now includes schema and extraction-prompt
+versions, and the extractor carries source-backed typed university/programme
+facts. Matching V3 now uses the canonical metric/submetric names and weights,
+discrete academic rubric scores, four canonical key takeaways, explicit gap
+types, separate university/programme fit scores, and no fabricated legacy F5
+mapping. Personal Report cache validation is prompt-aware, stored reports are
+schema-validated, and reflection normalization no longer creates generic prose
+when AI extraction fails. The additive `supabase-target-profile-cache-contract.sql`
+migration is required before deploying the target-profile cache changes.
+Measured locally: full Vitest 370 files / 3,496 tests passed (2 todo),
+typecheck, lint (0 errors; 5 pre-existing warnings), i18n audit, CI production
+build (3 pre-existing geo-content tracing warnings), and `git diff --check`
+passed. GitNexus change detection could not resolve the indexed repository
+name in this environment.
+
 Working tree 2026-08-29 (Personal Report narrative batch contract): the prose
 prompt, parser, and optional-section semantics now agree: a batch returns only
 the sections it was asked to write, while omitted or null optional summaries

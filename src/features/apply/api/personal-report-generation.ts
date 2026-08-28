@@ -45,6 +45,7 @@ import type {
   PersonalReportV2Record,
 } from './personal-report-v2-repository';
 import { randomUUID } from 'node:crypto';
+import { REPORT_PROMPT_VERSIONS } from '@/lib/ai/runtime/prompt-registry';
 
 /**
  * The one place that decides whether the Personal Report needs a new
@@ -298,6 +299,7 @@ async function regenerateApplicationPersonalReport(
     inputHash,
     engineVersion: ENGINE_VERSION,
     promptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
+    narrativePromptVersion: REPORT_PROMPT_VERSIONS.report_narrative_synthesis,
     reportContractVersion: PERSONAL_REPORT_CONTRACT_VERSION,
   });
   const cacheKey = idempotencyKey
@@ -322,9 +324,10 @@ async function regenerateApplicationPersonalReport(
       current.inputHash === inputHash &&
       current.engineVersion === ENGINE_VERSION &&
       current.promptVersion === PERSONAL_REPORT_EXTRACTION_VERSION &&
-      current.reportContractVersion === PERSONAL_REPORT_CONTRACT_VERSION,
+      current.reportContractVersion === PERSONAL_REPORT_CONTRACT_VERSION &&
+      current.cacheKey === baseCacheKey,
   );
-  if (current && !force && (current.cacheKey === baseCacheKey || currentMatches)) {
+  if (current && !force && currentMatches) {
     return { status: 'cached', record: current };
   }
 

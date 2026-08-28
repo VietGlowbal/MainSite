@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   assessApplicantPositioning,
   assessThemeMaturity,
@@ -239,7 +240,8 @@ function buildDrivingForce(
         signal.status === 'repeated' &&
         (signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3'),
     )
-    .map((signal) => signal.summary ?? 'A self-reported motivation corroborated by activity evidence.');
+    .map((signal) => signal.summary)
+    .filter((value): value is string => Boolean(value?.trim()));
   const repeatedMotivations = [
     ...corroboratedReflectionMotivations,
     ...(activities.some((activity) => Boolean(activity.statedMotivation))
@@ -453,7 +455,7 @@ function buildEmergingThemes(
   themes: readonly ThemeMaturityResult[],
   reflectionSignals: readonly ReflectionAnswerSignal[] = [],
 ): EmergingThemesSection {
-  const reflectedInterests = reflectionSignals.filter((signal) => signal.key === 'q1');
+  const reflectedInterests = reflectionSignals.filter((signal) => signal.key === 'q1' && signal.summary?.trim());
   if (themes.length === 0 && reflectedInterests.length === 0) {
     return {
       available: false,
@@ -498,7 +500,7 @@ function buildEmergingThemes(
   // Keep it visible as self-reported context until activity evidence links it
   // to a recurring problem/domain.
   for (const signal of reflectedInterests) {
-    const themeLabel = signal.summary ?? 'A self-reported interest';
+    const themeLabel = signal.summary!;
     if (built.some((theme) => theme.theme.toLowerCase() === themeLabel.toLowerCase())) continue;
     built.push({
       theme: themeLabel,
@@ -587,10 +589,10 @@ function buildPersonalPositioning(
   reflectionSignals: readonly ReflectionAnswerSignal[] = [],
 ): PersonalPositioningSection {
   const { identity, pattern } = evaluation.narrativeIdentity;
-  const q3 = reflectionSignals.find((signal) => signal.key === 'q3');
+  const q3 = reflectionSignals.find((signal) => signal.key === 'q3' && signal.summary?.trim());
   const reflectedProblem = q3
     ? {
-        theme: q3.summary ?? 'A self-reported problem focus',
+        theme: q3.summary!,
         status: q3.status === 'repeated' ? ('early_signal' as const) : ('possible_theme' as const),
         evidenceCount: q3.status === 'repeated' ? 2 : 1,
         explicitLinkCount: 0,
@@ -1261,6 +1263,32 @@ export type PersonalReportV2 = {
   limitations?: string[];
   canvasDetails?: PersonalCanvasDetails;
 };
+
+const storedReportSectionSchema = z.object({ available: z.boolean().optional() }).passthrough();
+
+/** Runtime contract for append-only stored reports; optional fields preserve legacy versions. */
+export const personalReportV2Schema = z.preprocess((value) => {
+  if (!value || typeof value !== 'object') return value;
+  const record = { ...(value as Record<string, unknown>) };
+  // Archived pre-v2 rows used scalar section placeholders and a numeric
+  // confidence. Normalize only those known legacy shapes before validation.
+  for (const key of ['coreIdentity', 'drivingForce', 'signaturePattern', 'emergingThemes', 'personalPositioning', 'proofOfMe']) {
+    if (!record[key] || typeof record[key] !== 'object' || Array.isArray(record[key])) record[key] = {};
+  }
+  if (typeof record.overallEvidenceConfidence === 'number') {
+    record.overallEvidenceConfidence = record.overallEvidenceConfidence >= 75 ? 'high' : record.overallEvidenceConfidence >= 50 ? 'medium' : 'low';
+  }
+  return record;
+}, z.object({
+  generatedAt: z.string().min(1).optional(),
+  overallEvidenceConfidence: z.enum(['high', 'medium', 'low']),
+  coreIdentity: storedReportSectionSchema,
+  drivingForce: storedReportSectionSchema,
+  signaturePattern: storedReportSectionSchema,
+  emergingThemes: storedReportSectionSchema,
+  personalPositioning: storedReportSectionSchema,
+  proofOfMe: storedReportSectionSchema,
+}).passthrough());
 
 export function buildPersonalReport(args: {
   evaluation: ProfileEvaluation;

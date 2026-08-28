@@ -313,8 +313,8 @@ export function synthesizeIdentity(
         signal.status === 'repeated' &&
         ['interests_motivations', 'values_growth', 'problem_domains'].includes(signal.dimension),
     )
-    .map((signal) => signal.summary?.trim() ?? 'a self-reported value orientation')
-    .filter(nonEmpty);
+    .map((signal) => signal.summary?.trim() ?? null)
+    .filter((value): value is string => Boolean(value));
   const valueOrientation =
     (readiness.level === 'mature' ? mostCommon(themes) : null) ??
     (canSynthesise ? explicitValues[0] ?? null : null);
@@ -355,7 +355,9 @@ export function synthesizeIdentity(
     recurringBehaviour,
     valueOrientation,
     reflectionSignals: Object.fromEntries(
-      reflectionSignals.map((signal) => [signal.dimension, signal.summary ?? 'self-reported reflection context']),
+      reflectionSignals
+        .filter((signal) => Boolean(signal.summary?.trim()))
+        .map((signal) => [signal.dimension, signal.summary!]),
     ),
   };
 }

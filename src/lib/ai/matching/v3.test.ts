@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { composeMatchingReportV3 } from './report';
 import { matchingReportV3Schema } from './domain';
-import { weightedScore } from './v3-scoring';
+import { normalizeAcademicRubricScore, weightedScore } from './v3-scoring';
 
 const targetProfile = {
   programme: { id: 'programme-1', name: 'Computer Science', university: 'Example University', level: 'undergraduate', subject: 'computing' },
@@ -66,6 +66,12 @@ describe('matching report v3', () => {
     ], [{ id: 'a', weight: 50 }, { id: 'b', weight: 50 }]).score).toBe(80);
   });
 
+  it('keeps Academic Readiness on the discrete rubric', () => {
+    expect(normalizeAcademicRubricScore(81)).toBe(75);
+    expect(normalizeAcademicRubricScore(93)).toBe(100);
+    expect(normalizeAcademicRubricScore(null)).toBeNull();
+  });
+
   it('generates a strict V3 report with deterministic lineage and separate fits', async () => {
     const report = await composeMatchingReportV3({
       targetProfile,
@@ -80,7 +86,7 @@ describe('matching report v3', () => {
       modelName: 'test-model',
     });
     expect(matchingReportV3Schema.safeParse(report).success).toBe(true);
-    expect(report.universityFit.score).toBe(80);
+    expect(report.universityFit.score).toBe(79);
     expect(report.programmeFit.score).toBe(80);
     expect(report.scholarshipAlignment).toBeNull();
     expect(report.metadata.aiCallCount.summary).toBe(1);

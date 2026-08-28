@@ -257,18 +257,10 @@ export async function generateApplicationMatchingReport(args: {
       : { status: 'not_ready', reason: 'Academic assessment could not be persisted' };
   }
 
-  const legacyFit = reportV3
-    ? {
-        dimensions: {
-          academicCompetitiveness: { status: reportV3.universityFit.metrics.academicReadiness.status, score: reportV3.universityFit.metrics.academicReadiness.score === null ? null : reportV3.universityFit.metrics.academicReadiness.score / 20, summary: reportV3.universityFit.metrics.academicReadiness.summary, strengths: [], gaps: [], evidence: [] },
-          personaAlignment: { status: reportV3.universityFit.metrics.valuesAlignment.status, score: reportV3.universityFit.metrics.valuesAlignment.score === null ? null : reportV3.universityFit.metrics.valuesAlignment.score / 20, summary: reportV3.universityFit.metrics.valuesAlignment.summary, strengths: [], gaps: [], evidence: [] },
-          financialFeasibility: { status: 'not_assessed', score: null, summary: 'Not part of Matching Report V3.', strengths: [], gaps: [], evidence: [] },
-          careerDirection: { status: reportV3.programmeFit.metrics.careerFutureDirection.status, score: reportV3.programmeFit.metrics.careerFutureDirection.score === null ? null : reportV3.programmeFit.metrics.careerFutureDirection.score / 20, summary: reportV3.programmeFit.metrics.careerFutureDirection.summary, strengths: [], gaps: [], evidence: [] },
-          applicationReadiness: { status: 'not_assessed', score: null, summary: 'Not part of Matching Report V3.', strengths: [], gaps: [], evidence: [] },
-        },
-        eligibility: Object.fromEntries(reportV3.hardRequirements.map((item) => [item.id, item.status])),
-      }
-    : null;
+  // V3 has no honest one-to-one mapping to the historical F5 dimensions.
+  // Keep the legacy adapter explicitly unassessed instead of manufacturing
+  // scores or a default match classification for old consumers.
+  const legacyFit = reportV3 ? { dimensions: {}, eligibility: {} } : null;
   const saveReport = reportV3 ?? reportV2;
   if (!saveReport) throw new Error('Matching composer returned no report.');
   const saved = await saveApplicationMatchingAnalysis(supabase, {
@@ -277,12 +269,12 @@ export async function generateApplicationMatchingReport(args: {
     inputHash,
     promptVersion: reportV3?.metadata.promptVersion ?? MATCHING_PROMPT_BUNDLE_VERSION,
     legacy: {
-      currentMatchScore: reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore ?? null,
-      maxPossibleMatchScore: reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore ?? null,
-      scoreLabel: (reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) === null ? 'Not assessed' : matchLabel((reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) as number),
-      maxScoreLabel: (reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) === null ? 'Not assessed' : maxMatchLabel((reportV3?.overall.overallAlignmentScore ?? reportV2?.overall.fitScore) as number),
+      currentMatchScore: reportV3 ? null : reportV2?.overall.fitScore ?? null,
+      maxPossibleMatchScore: reportV3 ? null : reportV2?.overall.fitScore ?? null,
+      scoreLabel: reportV3 ? 'Not assessed' : reportV2?.overall.fitScore == null ? 'Not assessed' : matchLabel(reportV2.overall.fitScore),
+      maxScoreLabel: reportV3 ? 'Not assessed' : reportV2?.overall.fitScore == null ? 'Not assessed' : maxMatchLabel(reportV2.overall.fitScore),
       pillars: {},
-      confidence: reportV3 ? Math.round(reportV3.overall.confidence * 100) : reportV2?.programmeFit.confidence ?? 0,
+      confidence: reportV3 ? 0 : reportV2?.programmeFit.confidence ?? 0,
       inputsPresent: {},
       strengths: saveReport.strengths.map(s => s.title),
       weaknesses: saveReport.gaps.map(g => g.title),
@@ -299,8 +291,8 @@ export async function generateApplicationMatchingReport(args: {
     f5EngineVersion: F5_ENGINE_VERSION,
     fitDimensions: legacyFit?.dimensions ?? (reportV2?.programmeFit.dimensions as Record<string, unknown> | undefined) ?? {},
     fitEligibility: legacyFit?.eligibility ?? reportV2?.programmeFit.eligibility ?? {},
-    fitClassification: reportV3 ? (reportV3.overall.overallAlignmentScore === null ? 'insufficient_data' : 'match') : reportV2?.programmeFit.classification ?? 'insufficient_data',
-    fitConfidence: reportV3 ? Math.round(reportV3.overall.confidence * 100) : reportV2?.programmeFit.confidence ?? 0,
+    fitClassification: reportV3 ? 'insufficient_data' : reportV2?.programmeFit.classification ?? 'insufficient_data',
+    fitConfidence: reportV3 ? 0 : reportV2?.programmeFit.confidence ?? 0,
     fitLimitations: reportV3 ? reportV3.gaps.map((gap) => gap.description) : reportV2?.programmeFit.limitations ?? [],
   });
 

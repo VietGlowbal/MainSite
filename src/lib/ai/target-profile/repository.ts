@@ -125,6 +125,8 @@ export async function loadProgrammeCatalogue(
 export type StoredTargetProfileVersion = {
   id: string;
   sourceFingerprint: string;
+  schemaVersion: string;
+  extractionPromptVersion: string;
   profile: TargetProfile;
   createdAt: string;
 };
@@ -140,7 +142,7 @@ export async function getLatestTargetProfileVersion(
   void args.userId;
   let query = supabase
     .from('programme_target_profile_versions')
-    .select('id, source_fingerprint, profile, created_at')
+    .select('id, source_fingerprint, schema_version, extraction_prompt_version, profile, created_at')
     .eq('programme_id', args.programmeId);
   query = args.scholarshipKey
     ? query.eq('scholarship_key', args.scholarshipKey)
@@ -164,6 +166,8 @@ export async function getLatestTargetProfileVersion(
   return {
     id: data.id as string,
     sourceFingerprint: data.source_fingerprint as string,
+    schemaVersion: data.schema_version as string,
+    extractionPromptVersion: data.extraction_prompt_version as string,
     profile: data.profile as TargetProfile,
     createdAt: data.created_at as string,
   };
@@ -179,6 +183,7 @@ export async function createTargetProfileVersion(
     profile: TargetProfile;
     modelName: string;
     promptVersion: string;
+    schemaVersion: string;
   },
 ): Promise<{ versionId: string | null; migrationMissing: boolean }> {
   const { data, error } = await supabase
@@ -187,6 +192,8 @@ export async function createTargetProfileVersion(
       programme_id: args.programmeId,
       scholarship_key: args.scholarshipKey ?? null,
       source_fingerprint: args.sourceFingerprint,
+      schema_version: args.schemaVersion,
+      extraction_prompt_version: args.promptVersion,
       profile: args.profile,
       status: 'ready',
       model_name: args.modelName,

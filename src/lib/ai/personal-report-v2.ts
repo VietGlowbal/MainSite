@@ -537,10 +537,11 @@ export async function buildProfileEvaluationInput(args: {
   }));
   const reflectionMotivations = reflectionSignals
     .filter((signal) => signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3')
+    .filter((signal) => Boolean(signal.summary?.trim()))
     .map((signal) => ({
       id: `profile:reflection_${signal.key}`,
       label: `Reflection — ${signal.dimension.replaceAll('_', ' ')}`,
-      value: signal.summary ?? 'A self-reported motivation or value signal',
+      value: signal.summary!,
     }));
 
   const reflectionDirection = reflectionSignals

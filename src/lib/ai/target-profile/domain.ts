@@ -17,7 +17,7 @@ import { z } from 'zod';
  * Matching, never to a reusable profile artifact.
  */
 
-export const TARGET_PROFILE_SCHEMA_VERSION = 'tp-v1';
+export const TARGET_PROFILE_SCHEMA_VERSION = 'tp-v2';
 
 const targetFactSchema = z
   .object({

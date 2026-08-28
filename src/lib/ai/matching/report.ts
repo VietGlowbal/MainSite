@@ -214,7 +214,7 @@ function hardV3(args: {
     if (/document|transcript|portfolio|reference|essay/i.test(label)) return 'document';
     return 'other';
   };
-  const mapped = requirements
+  const mapped: MatchingReportV3['hardRequirements'] = requirements
     .filter((requirement) => byId.get(requirement.criterionId)?.category !== 'scholarship')
     .map((requirement) => {
       const criterion = byId.get(requirement.criterionId);
@@ -238,6 +238,7 @@ function hardV3(args: {
       kind: 'deadline',
       label: deadline.label,
       status: Number.isFinite(parsed) ? (parsed >= today.getTime() ? 'met' : 'not_met') : 'unknown',
+      deadlineStatus: Number.isFinite(parsed) ? (parsed >= today.getTime() ? 'open' : 'passed') : 'unknown',
       applicantValue: null,
       requiredValue: deadline.value,
       explanation: Number.isFinite(parsed)
@@ -256,8 +257,16 @@ function insight(
   description: string,
   evidenceIds: string[],
   targetSourceRefs: string[],
+  type?: 'requirement_gap' | 'evidence_gap' | 'experience_gap' | 'positioning_gap',
 ): MatchingReportV3['strengths'][number] {
-  return { id, title, description: description.slice(0, 3_900), evidenceIds: [...new Set(evidenceIds)], targetSourceRefs: [...new Set(targetSourceRefs)] };
+  return {
+    id,
+    title,
+    description: description.slice(0, 3_900),
+    evidenceIds: [...new Set(evidenceIds)],
+    targetSourceRefs: [...new Set(targetSourceRefs)],
+    ...(type ? { type } : {}),
+  };
 }
 
 function refsForMetric(metric: MatchingV3Metric) {
@@ -291,31 +300,33 @@ function deterministicTakeawayCandidates(args: {
   const take = (title: string, body: string, evidenceIds: string[], targetSourceRefs: string[], metricIds: string[]) => ({
     title, body: body.slice(0, 3_900), evidenceIds: [...new Set(evidenceIds)], targetSourceRefs: [...new Set(targetSourceRefs)], metricIds: [...new Set(metricIds)],
   });
+  const identity = args.context.coreIdentity.recurringRole ?? args.context.personalPositioning.statement ?? null;
+  const direction = args.context.futureDirection.intended ?? args.context.futureDirection.academic ?? args.context.futureDirection.career ?? null;
   return {
-    strongestAlignment: take(
-      strongest ? `${strongest.id} is the clearest alignment` : 'Strongest alignment is not available',
-      strongest?.summary ?? 'No metric has enough evidence to establish a strongest alignment yet.',
+    strongestFit: take(
+      strongest ? 'Strongest Fit' : 'Strongest Fit is not available',
+      [identity, strongest?.summary, direction ? `This should be read alongside the intended direction: ${direction}.` : null].filter(Boolean).join(' ') || 'No metric has enough evidence to establish a strongest fit yet.',
       strongestRefs.evidenceIds,
       strongestRefs.targetSourceRefs,
       strongest ? [strongest.id] : [],
     ),
     criticalGap: take(
-      failed?.label ?? (weakest ? `${weakest.id} needs attention` : 'Critical gap is not available'),
+      failed?.label ?? (weakest ? 'Critical Gap' : 'Critical gap is not available'),
       failed?.explanation ?? weakest?.summary ?? 'No critical gap could be established from the current evidence.',
       failed?.evidenceIds ?? weakestRefs.evidenceIds,
       failed?.targetSourceRefs ?? weakestRefs.targetSourceRefs,
       weakest ? [weakest.id] : [],
     ),
-    evidenceToAdd: take(
-      'Evidence to add next',
-      missingEvidence[0] ?? 'Add a concrete result, reflection, or document for the least-supported alignment area.',
-      [],
-      weakestRefs.targetSourceRefs,
-      weakest ? [weakest.id] : [],
+    competitiveAdvantage: take(
+      'Competitive Advantage',
+      [args.context.provenCapabilities[0]?.title, args.context.socialProof[0]?.title, args.context.personalPositioning.statement].filter(Boolean).join(' — ') || args.strengths[0]?.description || 'No evidence-backed competitive advantage is available yet.',
+      [...(args.context.provenCapabilities[0]?.evidenceIds ?? []), ...(args.context.socialProof[0]?.evidenceIds ?? []), ...positioning],
+      strongestRefs.targetSourceRefs,
+      strongest ? [strongest.id] : [],
     ),
-    positioningNextStep: take(
-      'Positioning next step',
-      args.strengths[0]?.description ?? 'Use the strongest evidence-backed alignment in the application narrative, without adding unsupported claims.',
+    strategicDirection: take(
+      'Strategic Direction',
+      [direction, missingEvidence[0] ? `Next evidence to add: ${missingEvidence[0]}` : null, args.programmeFit.strategicInterpretation].filter(Boolean).join(' ') || 'Use the intended direction and programme context to choose the next positioning step.',
       positioning,
       strongestRefs.targetSourceRefs,
       strongest ? [strongest.id] : [],
@@ -351,7 +362,12 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
     ...v3Fit(PROGRAMME_FIT_METRICS, programmeMetrics, 'Programme alignment is weighted across interest, capability, experience and future direction.'),
     strongestAlignment: Object.values(programmeMetrics).filter((metric) => metric.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3).map((metric) => metric.id),
     potentialGap: Object.values(programmeMetrics).filter((metric) => metric.score !== null).sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0]?.summary ?? null,
-    strategicInterpretation: args.applicantContext.personalPositioning.statement,
+    strategicInterpretation: [
+      args.applicantContext.personalPositioning.statement,
+      args.applicantContext.futureDirection.intended,
+      args.applicantContext.futureDirection.academic,
+      args.applicantContext.futureDirection.career,
+    ].filter(Boolean).join(' ') || null,
   } as unknown as MatchingReportV3['programmeFit'];
   const evidenceIndex: MatchingReportV3['evidenceIndex'] = toMatchingEvidence(args.evidenceBank).map((item) => ({
     id: item.id,
@@ -391,7 +407,14 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
     .slice(0, 5)
     .map((metric) => {
       const refs = refsForMetric(metric);
-      return insight(`gap:${metric.id}`, metric.id, metric.summary, refs.evidenceIds, refs.targetSourceRefs);
+      return insight(
+        `gap:${metric.id}`,
+        metric.id,
+        metric.summary,
+        refs.evidenceIds,
+        refs.targetSourceRefs,
+        metric.coverage < 50 ? 'evidence_gap' : metric.id === 'capability' || metric.id === 'experienceExposure' ? 'experience_gap' : 'positioning_gap',
+      );
     });
   const strengths = metricStrengths;
   const gaps = metricGaps;
@@ -419,7 +442,9 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
     generatedAt: new Date().toISOString(),
     overall: {
       summary: summaryResult.data.summary,
-      overallAlignmentScore: overall.score,
+      // V3 intentionally does not collapse university and programme fits into
+      // one legacy-style score. Consumers must read the two weighted fits.
+      overallAlignmentScore: null,
       evidenceCoverage: overall.coverage,
       confidence: overall.confidence,
       strongestAlignment: [...metricValues].filter((metric) => metric.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3).map((metric) => metric.id),
@@ -440,8 +465,8 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
     metadata: {
       matchingEngineVersion: MATCHING_ENGINE_V3_VERSION,
       promptVersion: MATCHING_PROMPT_BUNDLE_V3_VERSION,
-      metricPromptVersion: 'matching-metric-v3.0.0',
-      summaryPromptVersion: 'matching-summary-v3.0.0',
+      metricPromptVersion: REPORT_PROMPT_VERSIONS.matching_metric_reasoning,
+      summaryPromptVersion: REPORT_PROMPT_VERSIONS.matching_report_summary_v3,
       formulaVersion: MATCHING_FORMULA_V3_VERSION,
       model: args.modelName ?? defaultOpenAIModel(),
       targetProfileVersionId: args.lineage.targetProfileVersionId,

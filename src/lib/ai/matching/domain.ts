@@ -324,9 +324,9 @@ export type MatchingReportV2 = z.infer<typeof matchingReportV2Schema>;
 // V3 is additive. V2 constants and schemas remain available for historical
 // rows and for the older strategy surfaces.
 export const MATCHING_REPORT_V3_CONTRACT_VERSION = 'matching-report-v3' as const;
-export const MATCHING_ENGINE_V3_VERSION = 'matching-v3.0.0' as const;
-export const MATCHING_PROMPT_BUNDLE_V3_VERSION = 'matching-prompts-v3.0.0' as const;
-export const MATCHING_FORMULA_V3_VERSION = 'matching-formula-v3.0.0' as const;
+export const MATCHING_ENGINE_V3_VERSION = 'matching-v3.1.0' as const;
+export const MATCHING_PROMPT_BUNDLE_V3_VERSION = 'matching-prompts-v3.1.0' as const;
+export const MATCHING_FORMULA_V3_VERSION = 'matching-formula-v3.1.0' as const;
 
 export const matchingV3MetricStatusSchema = z.enum(['assessed', 'limited', 'not_available']);
 export type MatchingV3MetricStatus = z.infer<typeof matchingV3MetricStatusSchema>;
@@ -415,6 +415,7 @@ const v3HardRequirementSchema = z
     kind: z.enum(['academic', 'qualification', 'subject', 'language', 'document', 'deadline', 'other']),
     label: z.string().min(1).max(300),
     status: z.enum(['met', 'not_met', 'unknown', 'not_applicable']),
+    deadlineStatus: z.enum(['open', 'passed', 'unknown']).optional(),
     applicantValue: z.union([z.string(), z.number(), z.null()]),
     requiredValue: z.union([z.string(), z.number(), z.null()]),
     explanation: text,
@@ -430,10 +431,11 @@ const v3InsightSchema = z
     description: text,
     evidenceIds: z.array(nonEmptyId).max(30),
     targetSourceRefs: z.array(nonEmptyId).max(30),
+    type: z.enum(['requirement_gap', 'evidence_gap', 'experience_gap', 'positioning_gap']).optional(),
   })
   .strict();
 
-const v3KeyTakeawaySchema = z
+export const v3KeyTakeawaySchema = z
   .object({
     title: z.string().min(1).max(300),
     body: text,
@@ -442,6 +444,22 @@ const v3KeyTakeawaySchema = z
     metricIds: z.array(v3MetricIdSchema).max(20),
   })
   .strict();
+
+export const v3KeyTakeawaysSchema = z.preprocess((value) => {
+  if (!value || typeof value !== 'object') return value;
+  const record = value as Record<string, unknown>;
+  return {
+    strongestFit: record.strongestFit ?? record.strongestAlignment,
+    competitiveAdvantage: record.competitiveAdvantage ?? record.positioningNextStep,
+    criticalGap: record.criticalGap ?? record.evidenceToAdd,
+    strategicDirection: record.strategicDirection ?? record.positioningNextStep,
+  };
+}, z.object({
+  strongestFit: v3KeyTakeawaySchema,
+  competitiveAdvantage: v3KeyTakeawaySchema,
+  criticalGap: v3KeyTakeawaySchema,
+  strategicDirection: v3KeyTakeawaySchema,
+}).strict());
 
 const v3EvidenceIndexSchema = z
   .object({
@@ -519,14 +537,7 @@ export const matchingReportV3Schema = z
     strengths: z.array(v3InsightSchema).max(30),
     gaps: z.array(v3InsightSchema).max(30),
     positioningOpportunities: z.array(v3InsightSchema).max(30),
-    keyTakeaways: z
-      .object({
-        strongestAlignment: v3KeyTakeawaySchema,
-        criticalGap: v3KeyTakeawaySchema,
-        evidenceToAdd: v3KeyTakeawaySchema,
-        positioningNextStep: v3KeyTakeawaySchema,
-      })
-      .strict(),
+    keyTakeaways: v3KeyTakeawaysSchema,
     evidenceIndex: z.array(v3EvidenceIndexSchema).max(200),
     targetSourceIndex: z.array(v3TargetSourceIndexSchema).max(100),
     metadata: v3MetadataSchema,
@@ -534,15 +545,15 @@ export const matchingReportV3Schema = z
   .strict()
   .superRefine((report, ctx) => {
     const expectedSubmetrics: Record<string, string[]> = {
-      academicReadiness: ['academicPreparation', 'curriculumReadiness', 'academicEvidence', 'academicRequirements'],
-      valuesAlignment: ['missionValues', 'educationalPhilosophy', 'communityValues', 'personalPositioning'],
-      communityContribution: ['contributionEvidence', 'socialProof', 'collaboration', 'communityOpportunity'],
-      learningEnvironment: ['teachingModel', 'experientialLearning', 'classStructure', 'environmentPreference'],
-      distinctiveOpportunity: ['namedOpportunity', 'opportunityFit', 'accessPath', 'distinctiveness'],
-      interestMotivation: ['statedInterest', 'motivationGrounding', 'themeAlignment', 'subjectExploration'],
-      capability: ['targetCompetencies', 'academicCapability', 'demonstratedSkills', 'capabilityEvidence'],
-      experienceExposure: ['relevantExperience', 'meaningfulEngagement', 'reflectionDepth', 'exposureRange'],
-      careerFutureDirection: ['futureDirection', 'pathwayAlignment', 'opportunityUse', 'directionEvidence'],
+      academicReadiness: ['academicPerformance', 'requirementCoverage', 'programmePreparation', 'academicChallenge'],
+      valuesAlignment: ['valueMatch', 'behaviouralEvidence', 'motivationMatch', 'consistency'],
+      communityContribution: ['contributionEvidence', 'leadershipInitiative', 'collaboration', 'communityImpact'],
+      learningEnvironment: ['learningStyleMatch', 'academicExperienceMatch', 'collaborationCommunityMatch', 'developmentOpportunityMatch'],
+      distinctiveOpportunity: ['opportunityRelevance', 'capabilityOpportunityMatch', 'futureGoalRelevance', 'specificityUniqueness'],
+      interestMotivation: ['interestEvidence', 'personalMotivation', 'problemFieldConnection', 'consistencyAcrossEvidence'],
+      capability: ['coreCapabilityMatch', 'evidenceStrength', 'capabilityDepth', 'transferability'],
+      experienceExposure: ['fieldRelevance', 'depthOfEngagement', 'applicationPractice', 'breadthOfExploration'],
+      careerFutureDirection: ['goalProgrammeRelevance', 'skillGoalConnection', 'trajectoryConsistency', 'futureOpportunityRelevance'],
     };
     const evidence = new Map(report.evidenceIndex.map((item) => [item.id, item]));
     const sources = new Map(report.targetSourceIndex.map((item) => [item.ref, item]));

@@ -55,9 +55,25 @@ export type ExtractedRequirementDraft = {
   sourceRefs: string[];
 };
 
+export type ExtractedTargetFactDraft = {
+  field:
+    | 'universityMission' | 'universityValue' | 'educationalPhilosophy' | 'studentProfile'
+    | 'teachingModel' | 'experientialLearning' | 'classStructure' | 'interdisciplinary'
+    | 'research' | 'entrepreneurship' | 'mentorship' | 'communityProgramme'
+    | 'distinctiveOpportunity' | 'programmeDescription' | 'curriculum' | 'programmeOutcome'
+    | 'preferredCompetency' | 'careerPathway' | 'programmeOpportunity';
+  value: string;
+  sourceRefs: string[];
+};
+
+export type RequirementExtractorResult = {
+  requirements: ExtractedRequirementDraft[];
+  facts: ExtractedTargetFactDraft[];
+};
+
 export type RequirementExtractor = (
   sources: readonly UnstructuredSource[],
-) => Promise<ExtractedRequirementDraft[]>;
+) => Promise<ExtractedRequirementDraft[] | RequirementExtractorResult>;
 
 const extractionOutputSchema = z.object({
   requirements: z
@@ -70,6 +86,17 @@ const extractionOutputSchema = z.object({
       }),
     )
     .max(40),
+  facts: z.array(z.object({
+    field: z.enum([
+      'universityMission', 'universityValue', 'educationalPhilosophy', 'studentProfile',
+      'teachingModel', 'experientialLearning', 'classStructure', 'interdisciplinary',
+      'research', 'entrepreneurship', 'mentorship', 'communityProgramme',
+      'distinctiveOpportunity', 'programmeDescription', 'curriculum', 'programmeOutcome',
+      'preferredCompetency', 'careerPathway', 'programmeOpportunity',
+    ]),
+    value: z.string().min(1).max(2000),
+    sourceIndex: z.number().int().min(0).max(49),
+  })).max(80),
 });
 
 /**
@@ -93,7 +120,7 @@ export const structuredRequirementExtractor: RequirementExtractor = async (sourc
       temperature: 0,
       maxTokens: 2400,
     });
-    return result.data.requirements.map((item) => {
+    const requirements = result.data.requirements.map((item) => {
       const source = sources[item.sourceIndex];
       if (!source) throw new Error(`Target extraction cited unknown source index: ${item.sourceIndex}`);
       return {
@@ -103,6 +130,12 @@ export const structuredRequirementExtractor: RequirementExtractor = async (sourc
         sourceRefs: [source.ref],
       };
     });
+    const facts = result.data.facts.map((item) => {
+      const source = sources[item.sourceIndex];
+      if (!source) throw new Error(`Target extraction cited unknown source index: ${item.sourceIndex}`);
+      return { field: item.field, value: item.value, sourceRefs: [source.ref] };
+    });
+    return { requirements, facts };
   } catch (error) {
     if (error instanceof StructuredGenerationError) {
       // Extraction failure degrades to deterministic-only output; never fails
@@ -156,7 +189,12 @@ export async function resolveTargetProfile(args: {
     programmeId: args.programmeId,
     scholarshipKey: args.scholarshipKey,
   });
-  if (cached && cached.sourceFingerprint === fingerprint) {
+  if (
+    cached &&
+    cached.sourceFingerprint === fingerprint &&
+    cached.schemaVersion === TARGET_PROFILE_SCHEMA_VERSION &&
+    cached.extractionPromptVersion === REPORT_PROMPT_VERSIONS.target_profile_extraction
+  ) {
     return { status: 'cached', versionId: cached.id, profile: cached.profile };
   }
 
@@ -168,6 +206,7 @@ export async function resolveTargetProfile(args: {
   const universityValues: string[] = [];
   const universityValueFacts: TargetFact[] = [];
   let universityMission: TargetFact | null = null;
+  let universityStudentProfile: TargetFact | null = null;
   let educationalPhilosophy: TargetFact | null = null;
   const learningEnvironment: {
     teachingModel: TargetFact | null;
@@ -301,7 +340,8 @@ export async function resolveTargetProfile(args: {
     else missingInformation.push({ area: fieldName, note: 'Unstructured target fact lacks valid ingest provenance.' });
   }
 
-  const extracted = await extractor(unstructured);
+  const extractedResult = await extractor(unstructured);
+  const extracted = Array.isArray(extractedResult) ? extractedResult : extractedResult.requirements;
   for (const draft of extracted) {
     const sourceRefs = draft.sourceRefs.filter((ref) => knownSourceRefs.has(ref));
     requirements.push({
@@ -313,6 +353,40 @@ export async function resolveTargetProfile(args: {
       sourceRefs,
       missingInformation: sourceRefs.length ? null : 'Extraction cited no ingested source.',
     });
+  }
+
+  const extractedFacts = Array.isArray(extractedResult) ? [] : extractedResult.facts;
+  const validFact = (fact: ExtractedTargetFactDraft): TargetFact | null => {
+    const sourceRefs = fact.sourceRefs.filter((ref) => knownSourceRefs.has(ref));
+    return sourceRefs.length ? { value: fact.value.slice(0, 2_000), sourceRefs } : null;
+  };
+  for (const draft of extractedFacts) {
+    const fact = validFact(draft);
+    if (!fact) {
+      missingInformation.push({ area: draft.field, note: 'Extraction cited no ingested source.' });
+      continue;
+    }
+    switch (draft.field) {
+      case 'universityMission': universityMission ??= fact; break;
+      case 'universityValue': universityValueFacts.push(fact); universityValues.push(fact.value.slice(0, 200)); break;
+      case 'educationalPhilosophy': educationalPhilosophy ??= fact; break;
+      case 'studentProfile': universityStudentProfile ??= fact; break;
+      case 'teachingModel': learningEnvironment.teachingModel ??= fact; break;
+      case 'experientialLearning': learningEnvironment.experientialLearning.push(fact); break;
+      case 'classStructure': learningEnvironment.classStructure ??= fact; break;
+      case 'interdisciplinary': learningEnvironment.interdisciplinary ??= fact; break;
+      case 'research': learningEnvironment.research ??= fact; break;
+      case 'entrepreneurship': learningEnvironment.entrepreneurship ??= fact; break;
+      case 'mentorship': learningEnvironment.mentorship ??= fact; break;
+      case 'communityProgramme': learningEnvironment.communityProgrammes.push(fact); break;
+      case 'distinctiveOpportunity': programmeProfile.opportunities.push(fact); break;
+      case 'programmeDescription': description ??= fact.value; programmeProfile.description ??= fact; break;
+      case 'curriculum': programmeProfile.curriculum.push(fact); break;
+      case 'programmeOutcome': programmeProfile.outcomes.push(fact); break;
+      case 'preferredCompetency': programmeProfile.preferredCompetencies.push(fact); break;
+      case 'careerPathway': programmeProfile.careerPathways.push(fact); break;
+      case 'programmeOpportunity': programmeProfile.opportunities.push(fact); break;
+    }
   }
 
   const profile: TargetProfile = targetProfileSchema.parse({
@@ -338,7 +412,7 @@ export async function resolveTargetProfile(args: {
       mission: universityMission ?? null,
       values: universityValueFacts,
       educationalPhilosophy,
-      studentProfile: null,
+      studentProfile: universityStudentProfile,
       learningEnvironment,
       distinctiveOpportunities: programmeProfile.opportunities,
     },
@@ -360,6 +434,7 @@ export async function resolveTargetProfile(args: {
     profile,
     modelName: defaultOpenAIModel(),
     promptVersion: REPORT_PROMPT_VERSIONS.target_profile_extraction,
+    schemaVersion: TARGET_PROFILE_SCHEMA_VERSION,
   });
 
   if (!versionId) {

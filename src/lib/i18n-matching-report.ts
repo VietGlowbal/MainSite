@@ -86,6 +86,8 @@ export const MATCHING_REPORT_TRANSLATIONS: Record<string, string> = {
   // Matching Report V2 reading order
   'Current Alignment Snapshot': 'Tóm tắt mức phù hợp hiện tại',
   'Alignment score': 'Điểm phù hợp',
+  'No aggregate score is available until this fit has enough evidence.':
+    'Chưa có điểm tổng hợp cho đến khi phần phù hợp này có đủ bằng chứng.',
   'Evidence coverage': 'Mức độ bao phủ bằng chứng',
   'Alignment level': 'Mức phù hợp',
   'Strong current alignment': 'Mức phù hợp hiện tại cao',

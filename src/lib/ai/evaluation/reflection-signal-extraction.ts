@@ -9,16 +9,6 @@ const responseSchema = z.object({
   })).max(7),
 });
 
-const FALLBACK: Record<ReflectionAnswerKey, string> = {
-  q1: 'a self-reported interest',
-  q2: 'a self-reported value or growth priority',
-  q3: 'a self-reported problem area',
-  q4: 'a self-reported capability',
-  q5: 'a self-reported academic direction',
-  q6: 'a self-reported future direction',
-  q7: 'a self-reported preferred environment',
-};
-
 function normalizedTokens(value: string): Set<string> {
   return new Set(
     value
@@ -48,7 +38,9 @@ export async function extractReflectionSignalSummaries(args: {
   apiKey: string;
   model?: string;
 }): Promise<Map<ReflectionAnswerKey, string>> {
-  const fallback = new Map(args.signals.map((signal) => [signal.key, FALLBACK[signal.key]]));
+  // A failed normalization must not inject a generic phrase into a report.
+  // The raw answer remains source evidence, but no prose summary is created.
+  const fallback = new Map<ReflectionAnswerKey, string>();
   if (args.signals.length === 0) return fallback;
 
   try {

@@ -23,6 +23,6 @@ describe('reflection signal normalization guard', () => {
       signals: [{ key: 'q1', dimension: 'interests_motivations', value: raw, status: 'isolated' }],
     });
 
-    expect(summaries.get('q1')).toBe('a self-reported interest');
+    expect(summaries.get('q1')).toBeUndefined();
   });
 });

@@ -349,8 +349,8 @@ describe('buildPersonalReport', () => {
 
   it('routes Q1 into emerging themes and Q3 into positioning as explicitly scoped context', () => {
     const reflectionAnswerSignals = [
-      { key: 'q1' as const, dimension: 'interests_motivations' as const, value: 'access to practical education', status: 'isolated' as const },
-      { key: 'q3' as const, dimension: 'problem_domains' as const, value: 'unequal access to education', status: 'isolated' as const },
+      { key: 'q1' as const, dimension: 'interests_motivations' as const, value: 'access to practical education', summary: 'interest in practical education', status: 'isolated' as const },
+      { key: 'q3' as const, dimension: 'problem_domains' as const, value: 'unequal access to education', summary: 'unequal education access', status: 'isolated' as const },
     ];
     const args = input({ reflectionAnswerSignals });
     const evaluation = runProfileEvaluation(args);

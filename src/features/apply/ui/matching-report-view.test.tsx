@@ -174,10 +174,10 @@ const V3_REPORT: MatchingReportV3 = {
   gaps: [{ id: 'gap:capability', title: 'Capability gap', description: 'Capability evidence is limited.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'] }],
   positioningOpportunities: [{ id: 'positioning:academicReadiness', title: 'Use academic readiness', description: 'Use the cited academic evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'] }],
   keyTakeaways: {
-    strongestAlignment: { title: 'Strongest fit', body: 'Academic readiness is the strongest fit.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+    strongestFit: { title: 'Strongest fit', body: 'Academic readiness is the strongest fit.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+    competitiveAdvantage: { title: 'Competitive advantage', body: 'The project is supported by verified evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['capability'] },
     criticalGap: { title: 'Critical gap', body: 'Language evidence is still required.', evidenceIds: [], targetSourceRefs: ['source-1'], metricIds: ['capability'] },
-    evidenceToAdd: { title: 'Evidence to add', body: 'Add a concrete capability example.', evidenceIds: [], targetSourceRefs: ['source-1'], metricIds: ['capability'] },
-    positioningNextStep: { title: 'Strategic direction', body: 'Use the strongest fit carefully.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+    strategicDirection: { title: 'Strategic direction', body: 'Use the strongest fit carefully.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
   },
   evidenceIndex: [{ id: 'claim-1', label: 'Verified project', statement: 'The applicant completed a project.', kind: 'applicant', status: 'verified', sourceRefs: ['raw-1'], direct: true }],
   targetSourceIndex: [{ ref: 'source-1', label: 'Programme page', title: 'Programme page', url: 'https://example.edu/programme', kind: 'programme' }],
@@ -364,9 +364,9 @@ describe('MatchingReportView', () => {
     renderReport({ analysis: { ...data.analysis!, reportV2: null, reportV3: V3_REPORT } });
 
     for (const label of ['University Fit', 'Programme Fit', 'Academic Readiness', 'Values Alignment', 'Community & Contribution', 'Learning Environment', 'Distinctive Opportunity', 'Interest & Motivation', 'Capability', 'Experience & Exposure', 'Career & Future Direction']) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    for (const label of ['Strongest fit', 'Critical gap', 'Evidence to add', 'Strategic direction', 'Strongest alignment', 'Potential gap', 'Strategic interpretation']) {
+    for (const label of ['Strongest fit', 'Competitive advantage', 'Critical gap', 'Strategic direction', 'Strongest alignment', 'Potential gap', 'Strategic interpretation']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
     expect(screen.getByText('English language')).toBeInTheDocument();

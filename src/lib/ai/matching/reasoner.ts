@@ -18,13 +18,14 @@ import {
   MATCHING_ENGINE_V3_VERSION,
   matchingV3MetricResultSchema,
   type MatchingV3MetricResult,
+  v3KeyTakeawaysSchema,
 } from './domain';
 import type { ProgrammeFit } from '@/features/apply/domain';
 import { stableHash } from '@/features/apply/api';
 import type { ApplicantMatchingContext } from './applicant-context';
 import type { TargetProfile } from '../target-profile/domain';
 import type { V3MetricDefinition } from './v3-scoring';
-import { targetRefsForMetric, targetStructuredFacts, UNIVERSITY_FIT_METRICS } from './v3-scoring';
+import { normalizeAcademicRubricScore, targetRefsForMetric, targetStructuredFacts, UNIVERSITY_FIT_METRICS } from './v3-scoring';
 import type { MatchingReportV3 } from './domain';
 
 const BATCH_SIZE = 6;
@@ -439,7 +440,7 @@ export async function reasonAboutV3Metrics(args: {
     const generated = await generate({
       moduleId: 'matching_metric_reasoning',
       promptVersion,
-      schemaVersion: 'matching-metric-v3.0.0',
+      schemaVersion: 'matching-metric-v3.1.0',
       systemPrompt,
       userPrompt: JSON.stringify(input),
       schema: z.object({ results: z.array(matchingV3MetricResultSchema) }).strict(),
@@ -475,25 +476,20 @@ export async function reasonAboutV3Metrics(args: {
       if (result.score !== null && result.score > 50 && targetRefs.length === 0) {
         throw new Error(`Strong metric result has no grounded target source: ${result.submetricId}`);
       }
-      results.push(result);
+      results.push(
+        batch.definition.id === 'academicReadiness'
+          ? { ...result, score: normalizeAcademicRubricScore(result.score) }
+          : result,
+      );
     }
   }
   return { results, metricBatches: batches.length, providerCalls, metricInputHashes, reusedMetricIds: [...reusable.keys()] };
 }
 
-const v3SummaryOutputSchema = z
-  .object({
-    summary: z.string().trim().min(40).max(1_600),
-    keyTakeaways: z
-      .object({
-        strongestAlignment: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
-        criticalGap: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
-        evidenceToAdd: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
-        positioningNextStep: z.object({ title: z.string().min(1).max(300), body: z.string().min(1).max(1_000), evidenceIds: z.array(z.string().min(1)), targetSourceRefs: z.array(z.string().min(1)), metricIds: z.array(z.string().min(1)) }).strict(),
-      })
-      .strict(),
-  })
-  .strict();
+const v3SummaryOutputSchema = z.object({
+  summary: z.string().trim().min(40).max(1_600),
+  keyTakeaways: v3KeyTakeawaysSchema,
+}).strict();
 
 export type MatchingV3SummaryOutput = z.infer<typeof v3SummaryOutputSchema>;
 
@@ -510,7 +506,7 @@ export async function generateMatchingV3Summary(args: {
   const result = await generate({
     moduleId: 'matching_report_summary_v3',
     promptVersion,
-    schemaVersion: 'matching-report-v3.0.0',
+    schemaVersion: 'matching-report-v3.1.0',
     systemPrompt,
     userPrompt: JSON.stringify(args.candidate),
     schema: v3SummaryOutputSchema,

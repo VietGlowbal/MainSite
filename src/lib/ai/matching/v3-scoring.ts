@@ -16,46 +16,46 @@ export const UNIVERSITY_FIT_METRICS: readonly V3MetricDefinition[] = [
   {
     id: 'academicReadiness', label: 'Academic Readiness', weight: 25,
     submetrics: [
-      { id: 'academicPreparation', label: 'Academic preparation', weight: 40 },
-      { id: 'curriculumReadiness', label: 'Curriculum readiness', weight: 25 },
-      { id: 'academicEvidence', label: 'Academic evidence', weight: 20 },
-      { id: 'academicRequirements', label: 'Academic requirements', weight: 15 },
+      { id: 'academicPerformance', label: 'Academic Performance', weight: 40 },
+      { id: 'requirementCoverage', label: 'Requirement Coverage', weight: 25 },
+      { id: 'programmePreparation', label: 'Programme Preparation', weight: 20 },
+      { id: 'academicChallenge', label: 'Academic Challenge', weight: 15 },
     ],
   },
   {
     id: 'valuesAlignment', label: 'Values Alignment', weight: 25,
     submetrics: [
-      { id: 'missionValues', label: 'Mission and values', weight: 35 },
-      { id: 'educationalPhilosophy', label: 'Educational philosophy', weight: 30 },
-      { id: 'communityValues', label: 'Community values', weight: 20 },
-      { id: 'personalPositioning', label: 'Personal positioning', weight: 15 },
+      { id: 'valueMatch', label: 'Value Match', weight: 35 },
+      { id: 'behaviouralEvidence', label: 'Behavioural Evidence', weight: 30 },
+      { id: 'motivationMatch', label: 'Motivation Match', weight: 20 },
+      { id: 'consistency', label: 'Consistency', weight: 15 },
     ],
   },
   {
     id: 'communityContribution', label: 'Community & Contribution', weight: 20,
     submetrics: [
-      { id: 'contributionEvidence', label: 'Contribution evidence', weight: 35 },
-      { id: 'socialProof', label: 'Social proof', weight: 25 },
+      { id: 'contributionEvidence', label: 'Contribution Evidence', weight: 35 },
+      { id: 'leadershipInitiative', label: 'Leadership & Initiative', weight: 25 },
       { id: 'collaboration', label: 'Collaboration', weight: 20 },
-      { id: 'communityOpportunity', label: 'Community opportunity', weight: 20 },
+      { id: 'communityImpact', label: 'Community Impact', weight: 20 },
     ],
   },
   {
     id: 'learningEnvironment', label: 'Learning Environment', weight: 15,
     submetrics: [
-      { id: 'teachingModel', label: 'Teaching model', weight: 35 },
-      { id: 'experientialLearning', label: 'Experiential learning', weight: 25 },
-      { id: 'classStructure', label: 'Class structure', weight: 20 },
-      { id: 'environmentPreference', label: 'Environment preference', weight: 20 },
+      { id: 'learningStyleMatch', label: 'Learning Style Match', weight: 35 },
+      { id: 'academicExperienceMatch', label: 'Academic Experience Match', weight: 25 },
+      { id: 'collaborationCommunityMatch', label: 'Collaboration & Community Match', weight: 20 },
+      { id: 'developmentOpportunityMatch', label: 'Development Opportunity Match', weight: 20 },
     ],
   },
   {
     id: 'distinctiveOpportunity', label: 'Distinctive Opportunity', weight: 15,
     submetrics: [
-      { id: 'namedOpportunity', label: 'Named opportunity', weight: 35 },
-      { id: 'opportunityFit', label: 'Opportunity fit', weight: 25 },
-      { id: 'accessPath', label: 'Access path', weight: 25 },
-      { id: 'distinctiveness', label: 'Distinctiveness', weight: 15 },
+      { id: 'opportunityRelevance', label: 'Opportunity Relevance', weight: 35 },
+      { id: 'capabilityOpportunityMatch', label: 'Capability–Opportunity Match', weight: 25 },
+      { id: 'futureGoalRelevance', label: 'Future Goal Relevance', weight: 25 },
+      { id: 'specificityUniqueness', label: 'Specificity / Uniqueness', weight: 15 },
     ],
   },
 ] as const;
@@ -64,37 +64,37 @@ export const PROGRAMME_FIT_METRICS: readonly V3MetricDefinition[] = [
   {
     id: 'interestMotivation', label: 'Interest & Motivation', weight: 30,
     submetrics: [
-      { id: 'statedInterest', label: 'Stated interest', weight: 30 },
-      { id: 'motivationGrounding', label: 'Motivation grounding', weight: 30 },
-      { id: 'themeAlignment', label: 'Theme alignment', weight: 25 },
-      { id: 'subjectExploration', label: 'Subject exploration', weight: 15 },
+      { id: 'interestEvidence', label: 'Interest Evidence', weight: 30 },
+      { id: 'personalMotivation', label: 'Personal Motivation', weight: 30 },
+      { id: 'problemFieldConnection', label: 'Problem–Field Connection', weight: 25 },
+      { id: 'consistencyAcrossEvidence', label: 'Consistency Across Evidence', weight: 15 },
     ],
   },
   {
     id: 'capability', label: 'Capability', weight: 25,
     submetrics: [
-      { id: 'targetCompetencies', label: 'Target competencies', weight: 40 },
-      { id: 'academicCapability', label: 'Academic capability', weight: 30 },
-      { id: 'demonstratedSkills', label: 'Demonstrated skills', weight: 20 },
-      { id: 'capabilityEvidence', label: 'Capability evidence', weight: 10 },
+      { id: 'coreCapabilityMatch', label: 'Core Capability Match', weight: 40 },
+      { id: 'evidenceStrength', label: 'Evidence Strength', weight: 30 },
+      { id: 'capabilityDepth', label: 'Capability Depth', weight: 20 },
+      { id: 'transferability', label: 'Transferability', weight: 10 },
     ],
   },
   {
     id: 'experienceExposure', label: 'Experience & Exposure', weight: 20,
     submetrics: [
-      { id: 'relevantExperience', label: 'Relevant experience', weight: 40 },
-      { id: 'meaningfulEngagement', label: 'Meaningful engagement', weight: 25 },
-      { id: 'reflectionDepth', label: 'Reflection depth', weight: 20 },
-      { id: 'exposureRange', label: 'Exposure range', weight: 15 },
+      { id: 'fieldRelevance', label: 'Field Relevance', weight: 40 },
+      { id: 'depthOfEngagement', label: 'Depth of Engagement', weight: 25 },
+      { id: 'applicationPractice', label: 'Application / Practice', weight: 20 },
+      { id: 'breadthOfExploration', label: 'Breadth of Exploration', weight: 15 },
     ],
   },
   {
     id: 'careerFutureDirection', label: 'Career & Future Direction', weight: 25,
     submetrics: [
-      { id: 'futureDirection', label: 'Future direction', weight: 40 },
-      { id: 'pathwayAlignment', label: 'Pathway alignment', weight: 25 },
-      { id: 'opportunityUse', label: 'Opportunity use', weight: 20 },
-      { id: 'directionEvidence', label: 'Direction evidence', weight: 15 },
+      { id: 'goalProgrammeRelevance', label: 'Goal–Programme Relevance', weight: 40 },
+      { id: 'skillGoalConnection', label: 'Skill–Goal Connection', weight: 25 },
+      { id: 'trajectoryConsistency', label: 'Trajectory Consistency', weight: 20 },
+      { id: 'futureOpportunityRelevance', label: 'Future Opportunity Relevance', weight: 15 },
     ],
   },
 ] as const;
@@ -125,6 +125,14 @@ export function weightedScore(
     confidence,
     coverage,
   };
+}
+
+/** Academic rubric scores are intentionally discrete to keep them auditable. */
+export function normalizeAcademicRubricScore(score: number | null): number | null {
+  if (score === null) return null;
+  return [0, 25, 50, 75, 100].reduce((closest, value) =>
+    Math.abs(value - score) < Math.abs(closest - score) ? value : closest,
+  );
 }
 
 export function sourceKind(profile: TargetProfile, ref: string): MatchingReportV3['targetSourceIndex'][number]['kind'] {

@@ -84,6 +84,11 @@ const SECTIONS = [
 const V3_METRIC_LABELS = Object.fromEntries(
   [...UNIVERSITY_FIT_METRICS, ...PROGRAMME_FIT_METRICS].map((metric) => [metric.id, metric.label]),
 ) as Record<string, string>;
+const V3_SUBMETRIC_LABELS = Object.fromEntries(
+  [...UNIVERSITY_FIT_METRICS, ...PROGRAMME_FIT_METRICS].flatMap((metric) =>
+    metric.submetrics.map((submetric) => [submetric.id, submetric.label]),
+  ),
+) as Record<string, string>;
 
 function verified(value: string | null | undefined, fallback: string) {
   return value || fallback;
@@ -1031,7 +1036,7 @@ function V3ReportView({
   const evidence = new Map(report.evidenceIndex.map((item) => [item.id, item]));
   const sources = new Map(report.targetSourceIndex.map((item) => [item.ref, item]));
   const statusLabel = (status: string) => status === 'assessed' ? t('Assessed') : status === 'limited' ? t('Limited') : t('Not available');
-  const fitBadge = report.overall.overallAlignmentScore === null ? 'neutral-chip' : report.overall.overallAlignmentScore >= 70 ? 'safe-chip' : report.overall.overallAlignmentScore >= 50 ? 'neutral-chip' : 'reach';
+  const fitBadge = 'neutral-chip';
 
   return (
     <div className="flex flex-col gap-gb-4xl" data-no-auto-translate data-report-auto-translate>
@@ -1045,7 +1050,7 @@ function V3ReportView({
               <p className="text-gb-sm text-fg-on-inverse-secondary">{[data.degreeLevel, data.country].filter(Boolean).join(' · ')}</p>
             </div>
           </div>
-          <Badge variant={fitBadge}>{report.overall.overallAlignmentScore === null ? t('Not assessed') : `${report.overall.overallAlignmentScore}% ${t('alignment')}`}</Badge>
+          <Badge variant={fitBadge}>{t('University')} {report.universityFit.score === null ? t('Not assessed') : `${report.universityFit.score}%`} · {t('Programme')} {report.programmeFit.score === null ? t('Not assessed') : `${report.programmeFit.score}%`}</Badge>
         </div>
         <div className="flex flex-wrap gap-gb-md">
           <Button onClick={onGenerate} disabled={busy} variant="primary-on-dark">{busy ? t('Updating…') : t('Update report')}</Button>
@@ -1069,7 +1074,7 @@ function V3ReportView({
               <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Strongest alignment')}</p>
               <p className="text-gb-sm text-fg-secondary">
                 {report.programmeFit.strongestAlignment.length > 0
-                  ? report.programmeFit.strongestAlignment.join(' · ')
+                  ? report.programmeFit.strongestAlignment.map((id) => t(V3_METRIC_LABELS[id] ?? id)).join(' · ')
                   : t('Not assessed')}
               </p>
             </div>
@@ -1091,10 +1096,10 @@ function V3ReportView({
           {Object.entries(report.keyTakeaways).map(([key, takeaway]) => (
             <Panel key={key} className="flex flex-col gap-gb-sm">
               <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t({
-                strongestAlignment: 'Strongest fit',
+                strongestFit: 'Strongest fit',
+                competitiveAdvantage: 'Competitive advantage',
                 criticalGap: 'Critical gap',
-                evidenceToAdd: 'Evidence to add',
-                positioningNextStep: 'Strategic direction',
+                strategicDirection: 'Strategic direction',
               }[key as keyof MatchingReportV3['keyTakeaways']] ?? key)}</p>
               <h3 className="text-gb-md font-semibold text-fg">{takeaway.title}</h3>
               <p className="text-gb-sm leading-relaxed text-fg-secondary">{takeaway.body}</p>
@@ -1155,7 +1160,7 @@ function V3FitPanel({
           </div>
           <p className="text-gb-sm text-fg-muted">{t('Coverage')}: {fit.coverage}% · {t('Confidence')}: {Math.round(fit.confidence * 100)}%</p>
         </div>
-        <ProgressBar value={fit.score ?? 0} label={t('Alignment score')} />
+        {fit.score === null ? <p className="text-gb-xs text-fg-muted">{t('No aggregate score is available until this fit has enough evidence.')}</p> : <ProgressBar value={fit.score} label={t('Alignment score')} />}
         <p className="max-w-3xl text-gb-sm leading-relaxed text-fg-secondary">{fit.summary}</p>
       </Panel>
       <div className="grid gap-gb-lg md:grid-cols-2">
@@ -1170,7 +1175,7 @@ function V3FitPanel({
             <div className="flex flex-col gap-gb-sm border-t border-line pt-gb-sm">
               {metric.submetrics.map((submetric) => (
                 <div key={submetric.submetricId} className="flex flex-col gap-gb-xxs">
-                  <p className="text-gb-xs font-medium text-fg">{submetric.submetricId} · {statusLabel(submetric.status)}</p>
+                  <p className="text-gb-xs font-medium text-fg">{t(V3_SUBMETRIC_LABELS[submetric.submetricId] ?? submetric.submetricId)} · {statusLabel(submetric.status)}</p>
                   <p className="text-gb-xs text-fg-muted">{submetric.reasoning}</p>
                   <V3References evidenceIds={submetric.applicantEvidenceIds} targetSourceRefs={submetric.targetSourceRefs} evidence={evidence} sources={sources} t={t} />
                 </div>
