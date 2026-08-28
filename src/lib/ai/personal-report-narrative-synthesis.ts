@@ -517,8 +517,11 @@ export async function synthesizePersonalReportNarrative(args: {
   } catch (error) {
     const code = failureCode(error);
     args.onFailure?.(code);
-    console.error('[personal-report-narrative-synthesis] failed, falling back to deterministic copy', {
+    const detail = error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240);
+    console.error('[personal-report-narrative-synthesis] rejected', {
       code,
+      detail: code === 'provider_error' ? detail : undefined,
+      model,
     });
     return null;
   }
