@@ -100,14 +100,14 @@
       "title": "Next step"
     }
   ],
-  "lastUpdated": "2026-08-27",
+  "lastUpdated": "2026-08-28",
   "schema": {
     "article": {
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
       "description": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
-      "dateModified": "2026-08-27",
+      "dateModified": "2026-08-28",
       "image": [
         "https://glowbal-education.com/generated/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant.png"
       ],
