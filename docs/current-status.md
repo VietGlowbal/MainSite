@@ -12,6 +12,14 @@ run immediately from Create Report. Focused Vitest 88/88, base TypeScript,
 scoped ESLint, and `git diff --check` pass. Production must redeploy this
 latest fix before the next report retry.
 
+Working tree 2026-08-28: the analysis gate now treats a current Personal
+Report as complete even when an old active queue row is still pending. This
+prevents the page from staying at `0 / 2` forever and allows Matching Report
+generation to start after a report was completed by another generation path.
+The application Personal Report POST also returns the current report instead
+of re-waiting on that stale queue row. Focused route/UI tests, TypeScript,
+ESLint, and `git diff --check` pass.
+
 Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
 planning-owned student guidance, shown immediately in the hierarchical List
 and in the task detail’s “What to do” panel. New and refreshed deterministic,

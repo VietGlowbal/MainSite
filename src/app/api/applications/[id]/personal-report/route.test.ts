@@ -117,6 +117,39 @@ describe('application Personal Report route', () => {
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
+  it('returns the current report instead of waiting on a stale active job', async () => {
+    const { POST } = await import('./route');
+    mocks.getLatest.mockResolvedValue({
+      migrationMissing: false,
+      record: {
+        id: 'report-1',
+        reportV2: { coreIdentity: {} },
+        confirmedSnapshotId: 'snapshot-1',
+        reportContractVersion: 'personal-report-v3',
+        engineVersion: '1.1.0',
+        promptVersion: 'personal-report-extraction-v5-complete-ai-narrative',
+        generatedAt: '2026-08-28T00:00:00Z',
+        trigger: 'manual',
+      },
+    });
+    mocks.getGeneration.mockResolvedValue({
+      migrationMissing: false,
+      job: { id: 'job-1', status: 'pending', attempts: 0 },
+    });
+
+    const response = await POST(request(), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      queued: false,
+      cached: true,
+      versionId: 'report-1',
+      stale: false,
+    });
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
   it('blocks unconfirmed applications before generation', async () => {
     const { POST } = await import('./route');
     application = { id: 'app-1', candidate_confirmed_at: null };

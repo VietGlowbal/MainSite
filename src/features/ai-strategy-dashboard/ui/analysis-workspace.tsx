@@ -25,11 +25,14 @@ async function waitForPersonalReport(
       const body = await response.json().catch(() => ({}));
 
       if (response.ok) {
+        // A report can be saved by a direct/manual generation while an older
+        // queue row is still active. The current snapshot is authoritative;
+        // do not hold Matching behind that stale row.
+        if (body.reportV2 && body.stale !== true) {
+          return { status: 'complete' };
+        }
         if (body.generation?.status === 'blocked') {
           return { status: 'failed', error: errorMessages.generic };
-        }
-        if (body.reportV2 && (!body.generation || body.generation.status === 'complete')) {
-          return { status: 'complete' };
         }
       } else if (response.status !== 503) {
         if (response.status === 429) return { status: 'failed', error: errorMessages.rateLimit };

@@ -103,6 +103,35 @@ describe('AnalysisWorkspace', () => {
     ]);
   });
 
+  it('uses a current Personal Report even when an old queue row is still active', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') {
+        return jsonResponse({ queued: true }, true, 202);
+      }
+      if (url === PERSONAL_POST && !init) {
+        return jsonResponse({
+          reportV2: { coreIdentity: {} },
+          stale: false,
+          generation: { status: 'pending' },
+        });
+      }
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      PERSONAL_POST,
+      PERSONAL_POST,
+      MATCHING_GET,
+      MATCHING_POST,
+    ]);
+  });
+
   it('lets the canonical Personal Report be opened while Matching is still generating', async () => {
     let resolveMatching: (() => void) | null = null;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {

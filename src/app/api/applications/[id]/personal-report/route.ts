@@ -5,8 +5,11 @@ import {
   getApplicationPersonalReportGeneration,
   getLatestApplicationPersonalReportV2,
 } from '@/features/apply/api';
+import { PERSONAL_REPORT_CONTRACT_VERSION } from '@/features/apply/domain';
+import { PERSONAL_REPORT_EXTRACTION_VERSION } from '@/lib/ai/personal-report-v2';
 import { createClient } from '@/lib/supabase/server';
 import { applyRateLimit, personalReportLimiter } from '@/lib/rate-limiter';
+import { ENGINE_VERSION } from '@/shared/evaluation';
 import {
   isPersonalReportMigrationMissing,
   loadLatestApplicationSnapshot,
@@ -118,13 +121,43 @@ export async function POST(request: Request, context: Params) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
 
-  const currentGeneration = await getApplicationPersonalReportGeneration(supabase, {
-    userId: user.id,
-    applicationId,
-  });
+  const [latest, snapshot, currentGeneration] = await Promise.all([
+    getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
+    loadLatestApplicationSnapshot(supabase, user.id, applicationId),
+    getApplicationPersonalReportGeneration(supabase, { userId: user.id, applicationId }),
+  ]);
+  if (latest.migrationMissing || isPersonalReportMigrationMissing(snapshot.error)) {
+    return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
+  }
   if (currentGeneration.migrationMissing) {
     return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
   }
+
+  const currentSnapshotId = snapshot.data?.id ?? null;
+  const reportIsCurrent = Boolean(
+    latest.record &&
+      currentSnapshotId &&
+      latest.record.confirmedSnapshotId === currentSnapshotId &&
+      latest.record.reportContractVersion === PERSONAL_REPORT_CONTRACT_VERSION &&
+      latest.record.engineVersion === ENGINE_VERSION &&
+      latest.record.promptVersion === PERSONAL_REPORT_EXTRACTION_VERSION,
+  );
+  if (reportIsCurrent && !parsed.data.force) {
+    return NextResponse.json({
+      applicationId,
+      queued: false,
+      cached: true,
+      reportV2: latest.record!.reportV2,
+      versionId: latest.record!.id,
+      generatedAt: latest.record!.generatedAt,
+      trigger: latest.record!.trigger,
+      confirmed: true,
+      confirmedSnapshotId: currentSnapshotId,
+      stale: false,
+      generation: publicGeneration(currentGeneration.job),
+    });
+  }
+
   if (
     currentGeneration.job &&
     ['pending', 'processing', 'retry'].includes(currentGeneration.job.status) &&
