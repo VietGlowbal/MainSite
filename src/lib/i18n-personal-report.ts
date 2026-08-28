@@ -1,6 +1,7 @@
 export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Open Matching Report': 'Mở Báo cáo Độ phù hợp',
   'More evidence needed': 'Cần thêm bằng chứng',
+  'No current priority in this quadrant.': 'Chưa có ưu tiên hiện tại trong nhóm này.',
   'Add another activity or achievement': 'Thêm một hoạt động hoặc thành tích khác',
   'Add more detail to your existing activities (context, action, outcome)':
     'Bổ sung chi tiết cho các hoạt động đã có (bối cảnh, hành động, kết quả)',

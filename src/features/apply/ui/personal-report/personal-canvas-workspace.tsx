@@ -463,7 +463,7 @@ export function PersonalCanvasWorkspace({
           label={`${activeSpec.label} details`}
           className="max-w-4xl overflow-hidden p-0"
         >
-          <div className="flex max-h-[85vh] min-h-0 flex-col">
+          <div className="flex max-h-[85vh] min-h-0 flex-col" data-report-auto-translate>
               <header className="shrink-0 border-b border-line bg-surface px-gb-xl pt-gb-xl">
                 <div className="flex items-start justify-between gap-gb-lg">
                   <div className="min-w-0">

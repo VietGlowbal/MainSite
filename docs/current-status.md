@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-08-28 (report rendering/localisation): Personal, Matching,
+and Strategy report roots now explicitly opt into AI-backed DOM translation when
+Vietnamese is selected; the Personal Canvas body-level modal is covered too.
+Private-page content outside those roots remains dictionary-only and is not sent
+to `/api/translate`. Empty growth-matrix quadrants now show an explicit
+translated empty state instead of looking broken. Measured: report/translation
+Vitest 24/24, `npm run typecheck`, targeted ESLint, `node scripts/check-i18n.mjs
+--all`, `npm run build`, and `git diff --check` pass. Build retains three
+pre-existing dynamic-filesystem tracing warnings in `src/lib/geo-content.ts`.
+
 Working tree 2026-08-28: production retry reached `gpt-5.6-luna`, but the
 Personal Report provider rejected the legacy `max_tokens` parameter and then
 the custom `temperature` parameter (`max_completion_tokens` is required and

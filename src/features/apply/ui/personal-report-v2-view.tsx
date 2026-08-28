@@ -264,7 +264,7 @@ export function PersonalReportV2View({
       };
 
   return (
-    <div className="flex flex-col gap-gb-3xl">
+    <div className="flex flex-col gap-gb-3xl" data-report-auto-translate>
       <header className="flex flex-col gap-gb-lg">
         <div className="flex flex-wrap items-center gap-gb-sm">
           <Badge variant="brand-subtle">{t('Personal Report')}</Badge>

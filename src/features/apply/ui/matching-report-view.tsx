@@ -165,7 +165,7 @@ export function MatchingReportView({
     }[v2.snapshot.fitLabel];
 
     return (
-      <div className="flex flex-col gap-gb-4xl" data-no-auto-translate>
+      <div className="flex flex-col gap-gb-4xl" data-no-auto-translate data-report-auto-translate>
         <ReportHeader
           data={data}
           summary={summary}
@@ -338,7 +338,7 @@ export function MatchingReportView({
   const unchecked = rows.filter((row) => !row.assessed);
 
   return (
-    <div className="flex flex-col gap-gb-4xl" data-no-auto-translate>
+    <div className="flex flex-col gap-gb-4xl" data-no-auto-translate data-report-auto-translate>
       <ReportHeader
         data={data}
         summary={summary}

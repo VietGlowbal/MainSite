@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/lib/i18n';
 import type { PersonalReportV2, ProofCard, ReportConfidence } from '../../domain';
 import { Badge, HorizontalBarChart, RadarChart } from '@/shared/ui';
 
@@ -328,11 +329,17 @@ function growthItems(report: PersonalReportV2): GrowthItem[] {
 }
 
 function MatrixQuadrant({ title, subtitle, items }: { title: string; subtitle: string; items: GrowthItem[] }) {
+  const t = useT();
   return (
     <div className="min-h-40 rounded-gb-xl border border-line bg-surface p-gb-lg">
       <p className="text-gb-sm font-semibold text-fg">{title}</p>
       <p className="text-gb-xs text-fg-muted">{subtitle}</p>
       <div className="mt-gb-md flex flex-col gap-gb-sm">
+        {items.length === 0 ? (
+          <p className="rounded-gb-md bg-surface-muted px-gb-md py-gb-sm text-gb-xs text-fg-muted">
+            {t('No current priority in this quadrant.')}
+          </p>
+        ) : null}
         {items.map((item) => (
           <div key={item.id} className="rounded-gb-md bg-surface-muted px-gb-md py-gb-sm">
             <p className="text-gb-sm font-medium text-fg">{item.title}</p>
