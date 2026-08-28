@@ -1,12 +1,13 @@
 # Current project status
 
 Working tree 2026-08-28: production retry reached `gpt-5.6-luna`, but the
-Personal Report provider rejected the legacy `max_tokens` request parameter
-(`max_completion_tokens` is required). `openAiJsonCompletion` now sends the
-model-compatible parameter and has a regression test; the retry queue also
-runs forced retries immediately from the initial Create Report action. Focused
-Vitest 21/21, base TypeScript, scoped ESLint, and `git diff --check` pass.
-Production must redeploy this latest fix before the next report retry.
+Personal Report provider rejected the legacy `max_tokens` parameter and then
+the custom `temperature` parameter (`max_completion_tokens` is required and
+Luna only supports its default temperature). `openAiJsonCompletion` now sends
+the compatible token parameter and omits temperature for GPT-5 models, with
+regression tests; forced retries also run immediately from Create Report.
+Focused Vitest 22/22, base TypeScript, scoped ESLint, and `git diff --check`
+pass. Production must redeploy this latest fix before the next report retry.
 
 Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
 planning-owned student guidance, shown immediately in the hierarchical List

@@ -71,6 +71,7 @@ export async function openAiJsonCompletion(args: {
   const timeout = setTimeout(() => controller.abort(), args.timeoutMs ?? 45_000);
 
   try {
+    const usesDefaultTemperature = /^gpt-5(?:[.-]|$)/i.test(args.model);
     const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: 'POST',
       headers: {
@@ -81,7 +82,7 @@ export async function openAiJsonCompletion(args: {
       body: JSON.stringify({
         model: args.model,
         messages: args.messages,
-        temperature: args.temperature,
+        ...(usesDefaultTemperature ? {} : { temperature: args.temperature }),
         max_completion_tokens: args.maxTokens,
         response_format: { type: 'json_object' },
       }),
