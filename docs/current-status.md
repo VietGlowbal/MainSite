@@ -1,5 +1,11 @@
 # Current project status
 
+Working tree 2026-08-28 (CI strict typecheck repair): `buildPersonalReport`
+now omits the optional `reflectionAnswerSignals` property when it is undefined,
+which satisfies `exactOptionalPropertyTypes` without changing report output.
+Measured: `npm run typecheck:strict`, the Personal Report domain suite (16/16),
+and `npm run test:ci` pass. This fixes CI #540's TS2379 failure.
+
 Working tree 2026-08-28 (Personal Report architecture alignment): confirmed
 snapshot reconstruction now preserves activity/achievement metadata,
 reflection/reflectionCard, and canonical direction aliases; Q1-Q7 route to

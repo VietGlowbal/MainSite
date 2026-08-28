@@ -1269,7 +1269,9 @@ export function buildPersonalReport(args: {
     personalPositioning,
     proofOfMe,
     intendedDirection,
-    reflectionAnswerSignals: evaluation.reflectionAnswerSignals,
+    ...(evaluation.reflectionAnswerSignals !== undefined
+      ? { reflectionAnswerSignals: evaluation.reflectionAnswerSignals }
+      : {}),
     ...(evidenceBank ? { evidenceBank } : {}),
   });
 
