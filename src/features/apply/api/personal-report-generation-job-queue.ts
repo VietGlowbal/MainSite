@@ -73,11 +73,19 @@ export async function enqueueApplicationPersonalReportGeneration(
   ) return current;
   if (current.job && ACTIVE.has(current.job.status)) {
     if (!args.force || current.job.force_requested) return current;
+    const now = new Date().toISOString();
+    const isWaitingToRun = current.job.status === 'pending' || current.job.status === 'retry';
     const { data, error } = await supabase.from(TABLE).update({
-      force_requested: true,
+      force_requested: !isWaitingToRun,
+      ...(isWaitingToRun ? {
+        status: 'pending',
+        next_attempt_at: now,
+        error_code: null,
+        error_message: null,
+      } : {}),
       idempotency_key: args.idempotencyKey ?? current.job.idempotency_key,
       trigger: args.trigger,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
       .eq('id', current.job.id).select().single();
     if (error) return { job: null, migrationMissing: isPersonalReportGenerationJobsMigrationMissing(error) };
@@ -91,7 +99,9 @@ export async function enqueueApplicationPersonalReportGeneration(
     status: 'pending' as const,
     trigger: args.trigger,
     idempotency_key: args.idempotencyKey ?? null,
-    force_requested: Boolean(args.force),
+    // `force_requested` is only a concurrent rerun marker for a processing job.
+    // A newly queued job must be completable by the worker.
+    force_requested: false,
     attempts: 0,
     next_attempt_at: now,
     locked_at: null,

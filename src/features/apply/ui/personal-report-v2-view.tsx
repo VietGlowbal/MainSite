@@ -240,7 +240,7 @@ export function PersonalReportV2View({
         {error ? <p className="max-w-xl text-gb-sm text-fg-error">{error}</p> : null}
         <Button
           size="lg"
-          onClick={() => void generate()}
+          onClick={() => void generate('manual', true)}
           disabled={
             busy ||
             migrationMissing ||

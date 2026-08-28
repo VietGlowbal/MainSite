@@ -76,6 +76,20 @@ describe('personal-report-generation-job-queue', () => {
     expect(mocks.write).toHaveBeenCalledOnce();
   });
 
+  it('runs a forced retry immediately instead of preserving its backoff', async () => {
+    const retry = { ...JOB, status: 'retry', next_attempt_at: '2099-01-01T00:00:00.000Z' };
+    mocks.read.mockResolvedValue({ data: retry, error: null });
+    const result = await enqueueApplicationPersonalReportGeneration(client() as never, {
+      userId: 'user-1', applicationId: 'app-1', trigger: 'manual', force: true,
+    });
+
+    expect(result.job).toEqual(JOB);
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'pending', force_requested: false, next_attempt_at: expect.any(String),
+      error_code: null, error_message: null,
+    }));
+  });
+
   it('clears the lease and schedules retry after an AI failure', async () => {
     await retryApplicationPersonalReportGeneration('job-1', 2, 'AI_FAILED', 'Model response was invalid.');
 
