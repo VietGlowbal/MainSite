@@ -49,10 +49,10 @@ const narrativeSectionSchema = z.object({
 });
 
 const snapshotSchema = z.object({
-  summary: z.string().min(1).max(1600).refine(
-    (value) => value.trim().split(/\s+/).length >= 150 && value.trim().split(/\s+/).length <= 200,
-    'snapshot.summary must contain 150-200 words',
-  ),
+  // The model is asked for a 150-200 word summary, but a shorter grounded
+  // response must not discard the complete report. The deterministic snapshot
+  // remains available when the optional AI summary is omitted.
+  summary: z.string().min(1).max(1600),
 });
 
 const synthesisResponseSchema = z.object({
@@ -100,6 +100,17 @@ export type PersonalReportNarrativeGrounding = {
   evaluation: ProfileEvaluation;
   evidenceBank: EvidenceBank | null;
 };
+
+export type PersonalReportNarrativeFailureCode =
+  | 'invalid_json'
+  | 'schema_snapshot_summary'
+  | 'schema_response'
+  | 'missing_sections'
+  | 'invalid_evidence_ids'
+  | 'output_truncated'
+  | 'timeout'
+  | 'provider_error'
+  | 'unknown';
 
 // Prompt text and its version live in the shared registry (Task 2).
 const { systemPrompt: SYSTEM_PROMPT } = getReportPrompt('report_narrative_synthesis');
@@ -295,12 +306,59 @@ function hydrate(ids: readonly string[], allowed: ReadonlyMap<string, EvidenceRe
   return refs;
 }
 
+function normalizeEmptyOptionalSections(
+  value: Record<string, unknown>,
+  sectionInput: SynthesisSectionInput,
+): Record<string, unknown> {
+  const normalized = { ...value };
+  for (const key of [
+    'coreIdentity',
+    'drivingForce',
+    'signaturePattern',
+    'emergingThemes',
+    'personalPositioning',
+    'proofOfMe',
+  ] as const) {
+    const section = normalized[key];
+    if (!sectionInput[key] && section && typeof section === 'object') normalized[key] = null;
+  }
+  for (const key of ['overview', 'overallSummary'] as const) {
+    const section = normalized[key];
+    if (
+      section &&
+      typeof section === 'object' &&
+      Array.isArray((section as { evidenceIds?: unknown }).evidenceIds) &&
+      (section as { evidenceIds: unknown[] }).evidenceIds.length === 0
+    ) {
+      normalized[key] = null;
+    }
+  }
+  return normalized;
+}
+
+function failureCode(error: unknown): PersonalReportNarrativeFailureCode {
+  if (error instanceof SyntaxError) return 'invalid_json';
+  if (error instanceof z.ZodError) {
+    return error.issues.some((issue) => issue.path.join('.') === 'snapshot.summary')
+      ? 'schema_snapshot_summary'
+      : 'schema_response';
+  }
+  const message = error instanceof Error ? error.message : '';
+  if (/cover every available report section/i.test(message)) return 'missing_sections';
+  if (/cited evidence outside its section/i.test(message)) return 'invalid_evidence_ids';
+  if (/exceeded the token limit/i.test(message)) return 'output_truncated';
+  if (/request timed out/i.test(message)) return 'timeout';
+  if (/OpenAI request failed/i.test(message)) return 'provider_error';
+  return 'unknown';
+}
+
 export async function synthesizePersonalReportNarrative(args: {
   report: PersonalReportV2;
   intendedDirection: string | null;
   apiKey: string;
   model: string;
   grounding: PersonalReportNarrativeGrounding;
+  onFailure?: (code: PersonalReportNarrativeFailureCode) => void;
 }): Promise<PersonalReportNarrativeSynthesis | null> {
   const { report, intendedDirection, apiKey, model } = args;
   const sectionInput = synthesisInputFromReport(report, intendedDirection);
@@ -347,7 +405,8 @@ export async function synthesizePersonalReportNarrative(args: {
     });
 
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const parsed = synthesisResponseSchema.parse(JSON.parse(cleaned));
+    const raw = JSON.parse(cleaned) as Record<string, unknown>;
+    const parsed = synthesisResponseSchema.parse(normalizeEmptyOptionalSections(raw, sectionInput));
 
     if (
       Boolean(parsed.coreIdentity) !== Boolean(sectionInput.coreIdentity) ||
@@ -456,8 +515,10 @@ export async function synthesizePersonalReportNarrative(args: {
       overallSummary,
     };
   } catch (error) {
+    const code = failureCode(error);
+    args.onFailure?.(code);
     console.error('[personal-report-narrative-synthesis] failed, falling back to deterministic copy', {
-      code: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      code,
     });
     return null;
   }

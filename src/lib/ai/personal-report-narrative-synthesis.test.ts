@@ -316,6 +316,75 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.proofOfMe?.paragraphs).toHaveLength(1);
   });
 
+  it('keeps a grounded short snapshot and ignores unsupported optional summaries', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      chatResponse(
+        JSON.stringify(
+          completeSynthesisResponse({
+            snapshot: { summary: 'A concise grounded snapshot.' },
+            overview: { summary: 'No cited overview.', evidenceIds: [] },
+            overallSummary: { paragraphs: ['No cited overall summary.'], evidenceIds: [] },
+          }),
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.snapshot?.summary).toBe('A concise grounded snapshot.');
+    expect(result?.overview).toBeNull();
+    expect(result?.overallSummary).toBeNull();
+    expect(result?.coreIdentity).not.toBeNull();
+  });
+
+  it('normalizes empty objects for unavailable canonical sections to null', async () => {
+    const report = fullReport({
+      signaturePattern: {
+        ...fullReport().signaturePattern,
+        available: false,
+        steps: [],
+        evidenceRefs: [],
+        insufficientData: NOT_AVAILABLE_INSUFFICIENT,
+      },
+      emergingThemes: {
+        ...fullReport().emergingThemes,
+        available: false,
+        themes: [],
+        insufficientData: NOT_AVAILABLE_INSUFFICIENT,
+      },
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      chatResponse(
+        JSON.stringify(
+          completeSynthesisResponse({
+            signaturePattern: { paragraphs: [], evidenceIds: [] },
+            emergingThemes: { paragraphs: [], evidenceIds: [] },
+          }),
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report,
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.signaturePattern).toBeNull();
+    expect(result?.emergingThemes).toBeNull();
+    expect(result?.coreIdentity).not.toBeNull();
+  });
+
   it('rejects a response that omits prose for an available report section', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
@@ -429,6 +498,7 @@ describe('synthesizePersonalReportNarrative', () => {
   it('falls back to null when the response is not valid JSON matching the schema', async () => {
     const fetchMock = vi.fn().mockResolvedValue(chatResponse('not json at all'));
     vi.stubGlobal('fetch', fetchMock);
+    let failureCode: string | null = null;
 
     const result = await synthesizePersonalReportNarrative({
       report: fullReport(),
@@ -436,9 +506,13 @@ describe('synthesizePersonalReportNarrative', () => {
       apiKey: 'test-key',
       model: 'gpt-4o',
       grounding: narrativeGrounding(),
+      onFailure: (code) => {
+        failureCode = code;
+      },
     });
 
     expect(result).toBeNull();
+    expect(failureCode).toBe('invalid_json');
   });
 
   it('sends the complete structured grounding bundle and section-scoped evidence ids', async () => {

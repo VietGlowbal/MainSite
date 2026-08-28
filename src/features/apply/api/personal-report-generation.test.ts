@@ -425,12 +425,15 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
-  it('keeps the prior report and does not persist a deterministic fallback when narrative synthesis fails', async () => {
+  it('keeps the prior report and records the narrative validation failure without persisting a deterministic fallback', async () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
     mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT, limitations: [] });
-    mocks.synthesizePersonalReportNarrative.mockResolvedValue(null);
+    mocks.synthesizePersonalReportNarrative.mockImplementation(async (args: { onFailure?: (code: string) => void }) => {
+      args.onFailure?.('invalid_evidence_ids');
+      return null;
+    });
     mocks.createPersonalReportV2Version.mockResolvedValue({
       record: { id: 'application-v1', generatedAt: '2026-08-26T00:00:00.000Z' },
       error: null,
@@ -443,6 +446,7 @@ describe('regeneratePersonalReport', () => {
     process.env.OPENAI_API_KEY = originalKey;
 
     expect(result.status).toBe('error');
+    expect(result.status === 'error' && result.message).toContain('invalid_evidence_ids');
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 

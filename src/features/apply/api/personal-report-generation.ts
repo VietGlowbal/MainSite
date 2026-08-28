@@ -402,17 +402,21 @@ async function regenerateApplicationPersonalReport(
   const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };
+  let narrativeFailure = 'unknown';
   const synthesis = await synthesizePersonalReportNarrative({
     report: deterministicReport,
     intendedDirection: evaluationInput.intendedDirection,
     apiKey,
     model: modelName,
     grounding: { evaluationInput, evaluation, evidenceBank },
+    onFailure: (code) => {
+      narrativeFailure = code;
+    },
   });
   if (!synthesis) {
     return {
       status: 'error',
-      message: 'The AI could not produce a complete evidence-grounded report. Generation will retry automatically.',
+      message: `Personal Report narrative generation failed (${narrativeFailure}). Generation will retry automatically.`,
       record: current,
     };
   }
