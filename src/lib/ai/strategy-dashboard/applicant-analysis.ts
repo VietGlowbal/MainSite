@@ -15,6 +15,7 @@
 // feat/strategy-* branches use instead.
 // ============================================================================
 
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 import type {
   ApplicantAnalysisInputsPresent,
   NarrativeProfile,
@@ -184,8 +185,7 @@ export async function analyzeApplicant(args: {
         { role: 'system', content: buildSystemPrompt() },
         { role: 'user', content: buildUserPrompt(profile, achievements, activities) },
       ],
-      temperature: 0.4,
-      max_tokens: 1400,
+      ...openAiCompletionParameters({ model, temperature: 0.4, maxTokens: 1400 }),
       response_format: { type: 'json_object' },
     }),
   });

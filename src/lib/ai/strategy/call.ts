@@ -1,4 +1,4 @@
-import { isOpenAIConfigured, openai } from '@/lib/ai/openai-client';
+import { isOpenAIConfigured, openai, openAiCompletionParameters } from '@/lib/ai/openai-client';
 
 /**
  * The one place a Feature 2 model call happens.
@@ -58,8 +58,11 @@ export async function callStrategyModel(args: AiCallArgs): Promise<AiCallResult>
           { role: 'system', content: args.system },
           { role: 'user', content: args.user },
         ],
-        temperature: args.temperature ?? 0.2,
-        max_tokens: args.maxTokens ?? 4000,
+        ...openAiCompletionParameters({
+          model,
+          temperature: args.temperature ?? 0.2,
+          maxTokens: args.maxTokens ?? 4000,
+        }),
         response_format: { type: 'json_object' },
       },
       { timeout: TIMEOUT_MS },

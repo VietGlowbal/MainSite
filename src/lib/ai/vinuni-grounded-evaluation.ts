@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { openAiCompletionParameters } from './openai-client';
 
 export type AaccPillarKey = 'ability' | 'aspirations' | 'creativity' | 'commitment';
 
@@ -1185,8 +1186,11 @@ export async function openAiCompletion(
     body: JSON.stringify({
       model: request.model,
       messages: request.messages,
-      temperature: request.temperature,
-      max_tokens: request.maxTokens,
+      ...openAiCompletionParameters({
+        model: request.model,
+        temperature: request.temperature,
+        maxTokens: request.maxTokens,
+      }),
       response_format: { type: 'json_object' },
     }),
   });
@@ -1264,8 +1268,11 @@ export async function* streamOpenAIText(
           messages: request.messages,
           stream: true,
           stream_options: { include_usage: true },
-          temperature: request.temperature,
-          max_tokens: request.maxTokens,
+          ...openAiCompletionParameters({
+            model: request.model,
+            temperature: request.temperature,
+            maxTokens: request.maxTokens,
+          }),
         }),
       });
       if (!response.ok && (response.status === 429 || response.status >= 500) && attempt < 2) {

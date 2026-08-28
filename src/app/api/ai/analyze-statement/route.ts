@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 import { z } from 'zod';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import {
@@ -391,8 +392,7 @@ Respond with JSON only.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: isLor ? 0.2 : 0.7,
-        max_tokens: maxTokens,
+        ...openAiCompletionParameters({ model, temperature: isLor ? 0.2 : 0.7, maxTokens }),
         response_format: { type: 'json_object' },
       }),
     });

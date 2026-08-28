@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 
 /**
  * Machine-translation endpoint used for *dynamic* content that can't live in
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: JSON.stringify(missTexts) },
         ],
-        temperature: 0.2,
+        ...openAiCompletionParameters({ model, temperature: 0.2 }),
         response_format: { type: 'json_object' },
       }),
     });

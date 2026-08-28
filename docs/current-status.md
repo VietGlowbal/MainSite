@@ -5,9 +5,12 @@ Personal Report provider rejected the legacy `max_tokens` parameter and then
 the custom `temperature` parameter (`max_completion_tokens` is required and
 Luna only supports its default temperature). `openAiJsonCompletion` now sends
 the compatible token parameter and omits temperature for GPT-5 models, with
-regression tests; forced retries also run immediately from Create Report.
-Focused Vitest 22/22, base TypeScript, scoped ESLint, and `git diff --check`
-pass. Production must redeploy this latest fix before the next report retry.
+regression tests. The same compatibility helper now covers the Matching
+structured-generation path and every remaining direct Chat Completions call;
+no production source occurrence of `max_tokens` remains. Forced retries also
+run immediately from Create Report. Focused Vitest 88/88, base TypeScript,
+scoped ESLint, and `git diff --check` pass. Production must redeploy this
+latest fix before the next report retry.
 
 Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
 planning-owned student guidance, shown immediately in the hierarchical List

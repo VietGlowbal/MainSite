@@ -9,6 +9,8 @@
 // hard failure" contract as analyzeApplicant/analyzeCourseMatchInsights.
 // ============================================================================
 
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
+
 export type CoachMessageInput = {
   role: 'user' | 'assistant';
   content: string;
@@ -55,8 +57,7 @@ export async function generateCoachReply(args: {
     body: JSON.stringify({
       model,
       messages: [{ role: 'system', content: buildSystemPrompt(context) }, ...history],
-      temperature: 0.6,
-      max_tokens: 500,
+      ...openAiCompletionParameters({ model, temperature: 0.6, maxTokens: 500 }),
     }),
   });
 

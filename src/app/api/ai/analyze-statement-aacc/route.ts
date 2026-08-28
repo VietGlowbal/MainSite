@@ -14,6 +14,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 import {
   streamOpenAIText,
   streamVinUniEvaluation,
@@ -339,8 +340,7 @@ Respond with JSON only.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.4,
-        max_tokens: 2200,
+        ...openAiCompletionParameters({ model, temperature: 0.4, maxTokens: 2200 }),
         response_format: { type: 'json_object' },
       }),
     });

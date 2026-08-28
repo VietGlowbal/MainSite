@@ -204,7 +204,7 @@ describe('POST /api/ai/analyze-statement', () => {
     );
     expect(requestBody).toMatchObject({
       model: 'gpt-4o',
-      max_tokens: 1200,
+      max_completion_tokens: 1200,
     });
   });
 
@@ -340,7 +340,7 @@ describe('POST /api/ai/analyze-statement', () => {
     expect(prompt).not.toContain('Private profile summary');
     expect(fromMock).not.toHaveBeenCalledWith('uploaded_documents');
     expect(profileSelectMock).toHaveBeenCalledWith('plus_status, plus_expires_at, sop_analyses_used');
-    expect(requestBody.max_tokens).toBe(3500);
+    expect(requestBody.max_completion_tokens).toBe(3500);
     expect(await response.json()).toMatchObject({
       rawScore: 71,
       score: 84,

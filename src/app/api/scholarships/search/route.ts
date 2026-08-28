@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 
 /**
  * POST /api/scholarships/search
@@ -133,8 +134,7 @@ Return JSON only: { "scholarships": [...] }`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.5,
-        max_tokens: 4000,
+        ...openAiCompletionParameters({ model, temperature: 0.5, maxTokens: 4000 }),
       }),
     });
 

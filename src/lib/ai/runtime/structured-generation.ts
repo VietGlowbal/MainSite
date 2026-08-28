@@ -1,5 +1,5 @@
 import { ZodError, type ZodType } from 'zod';
-import { getOpenAIClient, defaultOpenAIModel } from '../openai-client';
+import { getOpenAIClient, defaultOpenAIModel, openAiCompletionParameters } from '../openai-client';
 
 /**
  * One structured provider call with schema validation and a single repair
@@ -86,7 +86,7 @@ export type StructuredProviderClient = {
           model: string;
           messages: ChatMessage[];
           temperature?: number;
-          max_tokens?: number;
+          max_completion_tokens?: number;
           response_format?: Record<string, unknown>;
         },
         options?: { signal?: AbortSignal },
@@ -194,8 +194,7 @@ export async function generateStructured<T>(args: {
         {
           model,
           messages,
-          temperature,
-          max_tokens: maxTokens,
+          ...openAiCompletionParameters({ model, temperature, maxTokens }),
           ...(jsonSchemaFormat ? { response_format: jsonSchemaFormat } : {}),
         },
         // Abort lives in the SDK's options argument so the 55s budget truly

@@ -52,6 +52,23 @@ export function defaultOpenAIModel(): string {
   return process.env.OPENAI_MODEL || 'gpt-4o';
 }
 
+export function isGpt5Model(model: string): boolean {
+  return /^gpt-5(?:[.-]|$)/i.test(model);
+}
+
+export function openAiCompletionParameters(args: {
+  model: string;
+  temperature?: number;
+  maxTokens?: number;
+}): { temperature?: number; max_completion_tokens?: number } {
+  return {
+    ...(!isGpt5Model(args.model) && args.temperature !== undefined
+      ? { temperature: args.temperature }
+      : {}),
+    ...(args.maxTokens !== undefined ? { max_completion_tokens: args.maxTokens } : {}),
+  };
+}
+
 /**
  * A single non-streaming, JSON-mode chat completion — the shape several
  * routes and `lib/ai/*` modules were built around when they called DeepSeek
@@ -71,7 +88,6 @@ export async function openAiJsonCompletion(args: {
   const timeout = setTimeout(() => controller.abort(), args.timeoutMs ?? 45_000);
 
   try {
-    const usesDefaultTemperature = /^gpt-5(?:[.-]|$)/i.test(args.model);
     const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: 'POST',
       headers: {
@@ -82,8 +98,11 @@ export async function openAiJsonCompletion(args: {
       body: JSON.stringify({
         model: args.model,
         messages: args.messages,
-        ...(usesDefaultTemperature ? {} : { temperature: args.temperature }),
-        max_completion_tokens: args.maxTokens,
+        ...openAiCompletionParameters({
+          model: args.model,
+          temperature: args.temperature,
+          maxTokens: args.maxTokens,
+        }),
         response_format: { type: 'json_object' },
       }),
     });
