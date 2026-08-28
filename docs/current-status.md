@@ -1,5 +1,20 @@
 # Current project status
 
+Working tree 2026-08-28 (Personal Report sample-output UI): the existing report
+contract is now surfaced more completely in the UI. Applicant Snapshot prefers
+the canonical 150–200 word snapshot and shows the overall impression; Core
+Identity shows evidence-backed recurring characteristics; Driving Force exposes
+primary/repeated motivation signals and strategic interpretation; capability
+profiles show an overview and combination note; Social Proof shows activity
+metadata and a grounded numeric conclusion; Positioning labels its profile
+narrative and experience connection; Key Takeaways now renders stored
+structured evidence, confidence, importance, gaps, and directions. Social Proof
+now also surfaces explicit team-member, community-reach, and commitment-year
+figures from the same grounded Proof of Me cards; missing figures are omitted,
+never shown as zero. Measured: focused domain/UI tests (23/23), typecheck,
+ESLint (0 errors, 6 pre-existing warnings), and static i18n audit (0 missing
+keys) pass.
+
 Working tree 2026-08-28 (CI strict typecheck repair): `buildPersonalReport`
 now omits the optional `reflectionAnswerSignals` property when it is undefined,
 which satisfies `exactOptionalPropertyTypes` without changing report output.

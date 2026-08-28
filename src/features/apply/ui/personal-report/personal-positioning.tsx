@@ -42,9 +42,17 @@ export function PersonalPositioningView({
     >
       {section.available ? (
         <div className="flex flex-col gap-gb-xl">
-          <p className="text-gb-md leading-relaxed text-fg" data-no-auto-translate>
-            {section.statement}
-          </p>
+          <div className="rounded-gb-xl bg-surface-muted p-gb-lg" data-no-auto-translate>
+            <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Profile narrative')}</p>
+            <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{section.statement}</p>
+            <p className="mt-gb-sm text-gb-xs text-fg-muted">
+              {t('{count} linked evidence references · {confidenceLabel}: {confidence}', {
+                count: section.evidenceRefs.length,
+                confidenceLabel: t('confidence'),
+                confidence: section.confidence,
+              })}
+            </p>
+          </div>
           {positioningDimensions ? (
             <div className="flex flex-col gap-gb-md">
               <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
@@ -69,7 +77,7 @@ export function PersonalPositioningView({
           </div>
           {section.whyThisFits.length > 0 ? (
             <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Why this fits')}</p>
+              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Experience connection')}</p>
               <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary" data-no-auto-translate>
                 {section.whyThisFits.map((reason) => (
                   <li key={reason}>{reason}</li>

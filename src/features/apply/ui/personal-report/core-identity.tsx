@@ -40,6 +40,33 @@ export function CoreIdentityView({ section, returnTo }: { section: CoreIdentityS
               </ul>
             </div>
           ) : null}
+          {section.recurringBehaviours.length > 0 ? (
+            <div className="flex flex-col gap-gb-md border-t border-line pt-gb-xl">
+              <div>
+                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                  {t('Defining traits / key characteristics')}
+                </p>
+                <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
+                  {t('These characteristics are recurring behaviours extracted from activity evidence, not traits inferred from a single answer.')}
+                </p>
+              </div>
+              <div className="grid gap-gb-md sm:grid-cols-2">
+                {section.recurringBehaviours.slice(0, 5).map((behaviour) => (
+                  <article key={behaviour} className="rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
+                    <h4 className="text-gb-sm font-semibold text-fg">{behaviour}</h4>
+                    <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-tertiary">
+                      <span className="font-semibold text-fg-muted">{t('Evidence')}:</span>{' '}
+                      {section.observations.slice(0, 2).join(' ') || t('Recorded in the activity evidence.')}
+                    </p>
+                    <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-tertiary">
+                      <span className="font-semibold text-fg-muted">{t('Why it matters')}:</span>{' '}
+                      {t('This behaviour recurs in the activity record, so it is used as a pattern signal.')}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {section.stillDeveloping.length > 0 ? (
             <p className="text-gb-xs text-fg-muted">
               {t('Still developing')}: {section.stillDeveloping.join(' ')}

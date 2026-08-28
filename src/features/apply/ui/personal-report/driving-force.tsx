@@ -30,15 +30,29 @@ export function DrivingForceView({
           </div>
           <p className="text-gb-md leading-relaxed text-fg-tertiary">{section.explanation}</p>
           {section.repeatedMotivations.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
-                {t('Repeated motivations')}
-              </p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary">
-                {section.repeatedMotivations.map((motivation) => (
-                  <li key={motivation}>{motivation}</li>
-                ))}
-              </ul>
+            <div className="grid gap-gb-md border-t border-line pt-gb-xl sm:grid-cols-2">
+              <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
+                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                  {t('Primary motivation')}
+                </p>
+                <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg">{section.repeatedMotivations[0]}</p>
+              </div>
+              <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
+                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                  {t('Repeated motivation signals')}
+                </p>
+                <ul className="mt-gb-sm flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm text-fg-tertiary">
+                  {section.repeatedMotivations.map((motivation, index) => (
+                    <li key={`${motivation}-${index}`}>{motivation}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-lg sm:col-span-2">
+                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                  {t('Strategic interpretation')}
+                </p>
+                <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-tertiary">{section.explanation}</p>
+              </div>
             </div>
           ) : null}
           {section.missingPersonalGrounding ? (

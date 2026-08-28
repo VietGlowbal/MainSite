@@ -2,6 +2,7 @@
 
 import { useT } from '@/lib/i18n';
 import type { PersonalReportV2, ProofCard, ReportConfidence } from '../../domain';
+import { derivedSocialProofMetrics } from '../../domain/personal-canvas-details';
 import { Badge, HorizontalBarChart, RadarChart } from '@/shared/ui';
 
 const STRENGTH_POINTS: Record<ProofCard['evidenceStrength'], number> = {
@@ -162,6 +163,7 @@ export function MotivationProfileView({ report }: { report: PersonalReportV2 }) 
 }
 
 export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const capabilities = capabilityInsights(report);
   if (capabilities.length === 0) return null;
 
@@ -170,6 +172,13 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
       <div className="grid gap-gb-xl lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-gb-xl border border-line p-gb-xl">
           <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Capability profile</p>
+          <p className="mt-gb-md text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Capability overview')}</p>
+          <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
+            {t('The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.', {
+              capabilities: capabilities.slice(0, 3).map((capability) => capability.name).join(', '),
+              count: new Set(capabilities.flatMap((capability) => capability.supportingCards.map((card) => card.activityId))).size,
+            })}
+          </p>
           <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
             The strongest named capabilities extracted from your evidence. Scores represent evidence strength, not ability ceilings.
           </p>
@@ -222,6 +231,10 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
           ))}
         </div>
       </div>
+      <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
+        <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('How these capabilities combine')}</p>
+        <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{t('This profile shows how the named capabilities overlap across the same evidence record. The combination is more informative than any single score and remains bounded by the supporting activities shown above.')}</p>
+      </div>
       <p className="text-gb-xs text-fg-muted">
         Rating rule: recurrence + evidence quality + verification + recorded outcomes. One activity cannot receive more than 3 stars; two cannot receive 5 stars.
       </p>
@@ -246,21 +259,38 @@ function socialProofMetrics(report: PersonalReportV2) {
       value: new Set(cards.flatMap((card) => card.competenciesDemonstrated.map(normalise))).size,
       caption: 'Distinct grounded capabilities',
     },
+    ...derivedSocialProofMetrics(cards),
   ];
 }
 
 export function SocialProofSummaryView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const metrics = socialProofMetrics(report);
   if (metrics.every((metric) => metric.value === 0)) return null;
+  const cards = report.proofOfMe.available ? report.proofOfMe.cards : [];
+  const quantified = metrics.find((metric) => metric.label === 'Quantified outcomes')?.value ?? 0;
+  const checkable = metrics.find((metric) => metric.label === 'Checkable evidence')?.value ?? 0;
   return (
-    <div className="grid gap-gb-md sm:grid-cols-2 lg:grid-cols-3">
-      {metrics.map((metric) => (
-        <div key={metric.label} className="rounded-gb-xl border border-line p-gb-lg">
-          <p className="font-display text-gb-display-xs font-semibold text-fg">{metric.value}</p>
-          <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{metric.label}</p>
-          <p className="mt-1 text-gb-xs text-fg-muted">{metric.caption}</p>
-        </div>
-      ))}
+    <div className="flex flex-col gap-gb-xl">
+      <div className="grid gap-gb-md sm:grid-cols-2 lg:grid-cols-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="rounded-gb-xl border border-line p-gb-lg">
+            <p className="font-display text-gb-display-xs font-semibold text-fg">{metric.value}</p>
+            <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{t(metric.label)}</p>
+            <p className="mt-1 text-gb-xs text-fg-muted">{t(metric.caption)}</p>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl" data-no-auto-translate>
+        <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('What the numbers suggest')}</p>
+        <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
+          {t('The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {checkable} are verified or checkable. These counts describe the evidence base, not an admissions prediction.', {
+            activities: cards.length,
+            quantified,
+            checkable,
+          })}
+        </p>
+      </div>
     </div>
   );
 }

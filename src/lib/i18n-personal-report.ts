@@ -37,6 +37,10 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Direction aligned': 'Phù hợp định hướng',
   Credible: 'Đáng tin cậy',
   'What prevents stronger positioning': 'Điều đang cản trở định vị mạnh hơn',
+  'Profile narrative': 'Câu chuyện hồ sơ',
+  'Experience connection': 'Mối liên kết giữa các trải nghiệm',
+  '{count} linked evidence references · {confidenceLabel}: {confidence}':
+    '{count} tham chiếu bằng chứng liên kết · {confidenceLabel}: {confidence}',
   'Proof of Me': 'Bằng chứng về tôi',
   'The evidence behind every claim above': 'Bằng chứng đứng sau từng nhận định ở trên',
   Supports: 'Hỗ trợ',
@@ -87,6 +91,17 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Soft skill': 'Kỹ năng mềm',
   'Meta skill': 'Kỹ năng tự nhận thức',
   'What this report suggests overall': 'Báo cáo này gợi ý điều gì nói chung',
+  'What the numbers suggest': 'Các con số gợi ý điều gì',
+  'The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {verified} are verified or checkable. These counts describe the evidence base, not an admissions prediction.':
+    'Hồ sơ hiện có {activities} trải nghiệm đã ghi nhận; {quantified} có kết quả định lượng và {verified} đã được xác minh hoặc có thể kiểm tra. Các con số này mô tả nền tảng bằng chứng, không phải dự đoán tuyển sinh.',
+  'The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {checkable} are verified or checkable. These counts describe the evidence base, not an admissions prediction.':
+    'Hồ sơ hiện có {activities} trải nghiệm đã ghi nhận; {quantified} có kết quả định lượng và {checkable} đã được xác minh hoặc có thể kiểm tra. Các con số này mô tả nền tảng bằng chứng, không phải dự đoán tuyển sinh.',
+  'Team members led': 'Thành viên đội nhóm đã dẫn dắt',
+  'Largest explicitly quantified team or group': 'Quy mô đội nhóm lớn nhất được nêu rõ bằng số',
+  'Community reach': 'Phạm vi tiếp cận cộng đồng',
+  'Largest explicitly quantified audience or beneficiary group': 'Nhóm người hưởng lợi hoặc khán giả lớn nhất được nêu rõ bằng số',
+  'Years of commitment': 'Số năm cam kết',
+  'Longest explicit activity period recorded': 'Khoảng thời gian hoạt động dài nhất được ghi nhận rõ ràng',
   'No evidence recorded yet.': 'Chưa có bằng chứng nào được ghi nhận.',
   Authenticity: 'Tính chân thực',
   Coherence: 'Tính mạch lạc',
@@ -117,6 +132,13 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.':
     'Hồ sơ về bạn với tư cách ứng viên — được xây dựng từ các trải nghiệm đã tự nhìn nhận, bằng chứng và những mẫu hành vi lặp lại.',
   'Applicant Snapshot': 'Chân dung Ứng viên',
+  'Overall impression': 'Ấn tượng tổng quan',
+  'Defining traits / key characteristics': 'Đặc điểm định hình / nét chính',
+  'These characteristics are recurring behaviours extracted from activity evidence, not traits inferred from a single answer.':
+    'Các đặc điểm này là những hành vi lặp lại được rút ra từ bằng chứng hoạt động, không phải nét tính cách suy ra từ một câu trả lời đơn lẻ.',
+  'Recorded in the activity evidence.': 'Được ghi nhận trong bằng chứng hoạt động.',
+  'This behaviour recurs in the activity record, so it is used as a pattern signal.':
+    'Hành vi này lặp lại trong hồ sơ hoạt động nên được dùng làm tín hiệu mẫu hành vi.',
   'Applicant profile themes': 'Các chủ đề trong hồ sơ ứng viên',
   'Evidence base': 'Nền tảng bằng chứng',
   'Your applicant profile is still taking shape': 'Hồ sơ ứng viên của bạn vẫn đang dần định hình',
@@ -132,6 +154,9 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
   'Keyboard: 1–6 opens a section · Esc closes': 'Bàn phím: 1–6 mở một phần · Esc đóng',
   'Driving Forces': 'Các động lực',
+  'Primary motivation': 'Động lực chính',
+  'Repeated motivation signals': 'Các tín hiệu động lực lặp lại',
+  'Strategic interpretation': 'Diễn giải chiến lược',
   'Proven Capabilities': 'Năng lực đã được chứng minh',
   'Social Proof': 'Bằng chứng xã hội',
   'Areas for Growth': 'Các lĩnh vực cần phát triển',
@@ -206,6 +231,13 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'What Makes You Stand Out': 'Điều khiến bạn nổi bật',
   'Your Competitive Advantage': 'Lợi thế cạnh tranh của bạn',
   'Your Growth Opportunity': 'Cơ hội phát triển của bạn',
+  'Evidence basis': 'Cơ sở bằng chứng',
+  'Recommended direction': 'Hướng đi đề xuất',
+  Repeated: 'Lặp lại',
+  Isolated: 'Đơn lẻ',
+  Insufficient: 'Chưa đủ',
+  '{scope} signal · {count} linked evidence references · {confidence} confidence':
+    'Tín hiệu {scope} · {count} tham chiếu bằng chứng liên kết · độ tin cậy {confidence}',
   'Your strongest differentiator will become clearer as you add more reflected experiences.':
     'Điểm khác biệt mạnh nhất của bạn sẽ rõ hơn khi bạn bổ sung thêm các trải nghiệm đã tự nhìn nhận.',
   'Your competitive advantage is still emerging from the evidence currently available.':
@@ -215,6 +247,12 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
 
   // Pass 2 capability, motivation, proof, growth and pathway analytics.
   'Capability profile': 'Hồ sơ năng lực',
+  'Capability overview': 'Tổng quan năng lực',
+  'The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.':
+    'Các năng lực rõ nét nhất trong ảnh chụp này là {capabilities}. Chúng dựa trên {count} trải nghiệm đã ghi nhận.',
+  'How these capabilities combine': 'Cách các năng lực kết hợp',
+  'This profile shows how the named capabilities overlap across the same evidence record. The combination is more informative than any single score and remains bounded by the supporting activities shown above.':
+    'Hồ sơ này cho thấy các năng lực được nêu tên giao nhau như thế nào trong cùng một tập bằng chứng. Sự kết hợp này có ý nghĩa hơn một điểm số đơn lẻ và vẫn được giới hạn bởi các hoạt động hỗ trợ hiển thị ở trên.',
   'The strongest named capabilities in this report snapshot. Scores represent strength of supporting evidence, not an ability ceiling.':
     'Các năng lực nổi bật nhất được nêu tên trong phiên bản báo cáo này. Điểm số thể hiện độ mạnh của bằng chứng hỗ trợ, không phải giới hạn năng lực.',
   'The strongest named capabilities extracted from your evidence. Scores represent evidence strength, not ability ceilings.':

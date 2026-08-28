@@ -1,12 +1,14 @@
 'use client';
 
-import type { PersonalReportV2 } from '../../domain';
+import type { PersonalReportInsight, PersonalReportV2 } from '../../domain';
+import { useT } from '@/lib/i18n';
 
 function firstUseful(values: Array<string | null | undefined>, fallback: string): string {
   return values.find((value) => Boolean(value?.trim()))?.trim() ?? fallback;
 }
 
-function TakeawayCard({ title, insight }: { title: string; insight: string }) {
+function TakeawayCard({ title, insight, finding }: { title: string; insight: string; finding?: PersonalReportInsight }) {
+  const t = useT();
   return (
     <article className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-gb-xl">
       <div className="flex items-start gap-gb-md">
@@ -16,6 +18,29 @@ function TakeawayCard({ title, insight }: { title: string; insight: string }) {
           <p className="text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
             {insight}
           </p>
+          {finding ? (
+            <div className="flex flex-col gap-gb-xs border-t border-line pt-gb-md text-gb-xs text-fg-muted" data-no-auto-translate>
+              <p>
+                <span className="font-semibold text-fg">{t('Evidence basis')}:</span>{' '}
+                {t('{scope} signal · {count} linked evidence references · {confidence} confidence', {
+                  scope: t(finding.scope === 'repeated' ? 'Repeated' : finding.scope === 'isolated' ? 'Isolated' : 'Insufficient'),
+                  count: finding.evidenceIds.length,
+                  confidence: t(finding.confidence === 'high' ? 'High' : finding.confidence === 'medium' ? 'Medium' : 'Low'),
+                })}
+              </p>
+              {finding.importance || finding.currentGap ? (
+                <p>
+                  <span className="font-semibold text-fg">{t('Why it matters')}:</span>{' '}
+                  {finding.importance ?? finding.currentGap}
+                </p>
+              ) : null}
+              {finding.direction ? (
+                <p>
+                  <span className="font-semibold text-fg">{t('Recommended direction')}:</span> {finding.direction}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </article>
@@ -28,6 +53,7 @@ function TakeawayCard({ title, insight }: { title: string; insight: string }) {
  * conclusions, which keeps older report versions safe and explainable.
  */
 export function KeyTakeawaysView({ report }: { report: PersonalReportV2 }) {
+  const structured = report.keyTakeaways;
   const standOut = firstUseful(
     [report.signaturePattern.distinctiveness, report.coreIdentity.interpretation, report.coreIdentity.headline],
     'Your strongest differentiator will become clearer as you add more reflected experiences.',
@@ -61,9 +87,9 @@ export function KeyTakeawaysView({ report }: { report: PersonalReportV2 }) {
       </div>
 
       <div className="grid gap-gb-lg md:grid-cols-3">
-        <TakeawayCard title="What Makes You Stand Out" insight={standOut} />
-        <TakeawayCard title="Your Competitive Advantage" insight={advantage} />
-        <TakeawayCard title="Your Growth Opportunity" insight={growth} />
+        <TakeawayCard title="What Makes You Stand Out" insight={structured?.whatMakesYouStandOut.statement ?? standOut} finding={structured?.whatMakesYouStandOut} />
+        <TakeawayCard title="Your Competitive Advantage" insight={structured?.competitiveAdvantage.statement ?? advantage} finding={structured?.competitiveAdvantage} />
+        <TakeawayCard title="Your Growth Opportunity" insight={structured?.growthOpportunity.statement ?? growth} finding={structured?.growthOpportunity} />
       </div>
     </section>
   );

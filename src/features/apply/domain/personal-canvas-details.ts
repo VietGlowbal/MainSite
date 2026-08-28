@@ -46,7 +46,10 @@ export type SocialProofMetric = {
     | 'outcomes'
     | 'quantifiedOutcomes'
     | 'capabilityClaims'
-    | 'metadataCoverage';
+    | 'metadataCoverage'
+    | 'teamMembersLed'
+    | 'communityReach'
+    | 'yearsOfCommitment';
   label: string;
   value: number;
   caption: string;
@@ -121,6 +124,112 @@ const VERIFICATION_POINTS: Record<ProofCard['verificationStatus'], number> = {
 function average(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
+  hundred: 100,
+};
+
+const NUMBER_TOKEN = '(?:\\d[\\d,]*(?:\\.\\d+)?|' + Object.keys(NUMBER_WORDS).join('|') + ')';
+
+function parseNumberToken(value: string): number | null {
+  const normalised = value.toLowerCase().replace(/,/g, '').trim();
+  const numeric = Number(normalised);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  return NUMBER_WORDS[normalised] ?? null;
+}
+
+function activityProofText(card: ProofCard): string {
+  return [card.role, card.personalContribution, card.outcome].filter(Boolean).join(' ');
+}
+
+function maxExplicitMatch(cards: readonly ProofCard[], pattern: RegExp): number | null {
+  let maximum: number | null = null;
+  for (const card of cards) {
+    const match = activityProofText(card).match(pattern);
+    const value = match?.[1] ? parseNumberToken(match[1]) : null;
+    if (value !== null) maximum = maximum === null ? value : Math.max(maximum, value);
+  }
+  return maximum;
+}
+
+function yearsFromPeriod(period: string | null | undefined): number | null {
+  if (!period) return null;
+  const duration = period.match(new RegExp(`\\b(${NUMBER_TOKEN})\\s*(?:years?|yrs?)\\b`, 'i'));
+  if (duration?.[1]) return parseNumberToken(duration[1]);
+  const range = period.match(/\b((?:19|20)\d{2})\s*(?:[-–—]|to|through)\s*((?:19|20)\d{2})\b/i);
+  if (!range?.[1] || !range[2]) return null;
+  const start = Number(range[1]);
+  const end = Number(range[2]);
+  return end >= start ? end - start + 1 : null;
+}
+
+/**
+ * Explicit social-proof numbers only. A missing number is omitted rather than
+ * rendered as zero; the underlying Proof of Me cards remain the source.
+ */
+export function derivedSocialProofMetrics(cards: readonly ProofCard[]): SocialProofMetric[] {
+  const teamMembersLed = maxExplicitMatch(
+    cards,
+    new RegExp(`\\b(?:led|managed|coordinated|organised|organized|recruited|supervised)\\b[^.!?]{0,80}\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\b`, 'i'),
+  ) ?? maxExplicitMatch(cards, new RegExp(`\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\s+(?:team|group)\\b`, 'i'));
+
+  let communityReach: number | null = null;
+  const reachPattern = new RegExp(`\\b(?:over|more than|around|nearly)?\\s*(${NUMBER_TOKEN})\\s+(?:students?|people|famil(?:y|ies)|participants?|learners?|children|residents?|households?)\\b`, 'gi');
+  for (const card of cards) {
+    const text = activityProofText(card);
+    for (const match of text.matchAll(reachPattern)) {
+      const prefix = text.slice(Math.max(0, (match.index ?? 0) - 80), match.index ?? 0);
+      if (!/\b(?:reach(?:ed)?|serve(?:d)?|support(?:ed)?|impact(?:ed)?|benefit(?:ed)?|teach(?:ing|taught)?|train(?:ed|ing)?|deliver(?:ed)?|provide(?:d)?|engag(?:ed)?|help(?:ed)?|mentor(?:ed)?|grow|grew|recruit(?:ed)?|enrol(?:led)?|use(?:d)?|test(?:ed)?)\b/i.test(prefix)) continue;
+      const value = parseNumberToken(match[1] ?? '');
+      if (value !== null) communityReach = communityReach === null ? value : Math.max(communityReach, value);
+    }
+  }
+
+  const yearsOfCommitment = cards.reduce<number | null>((maximum, card) => {
+    const value = yearsFromPeriod(card.period);
+    return value === null ? maximum : maximum === null ? value : Math.max(maximum, value);
+  }, null);
+
+  const metrics: Array<SocialProofMetric | null> = [
+    teamMembersLed === null
+      ? null
+      : { key: 'teamMembersLed' as const, label: 'Team members led', value: teamMembersLed, caption: 'Largest explicitly quantified team or group' },
+    communityReach === null
+      ? null
+      : { key: 'communityReach' as const, label: 'Community reach', value: communityReach, caption: 'Largest explicitly quantified audience or beneficiary group' },
+    yearsOfCommitment === null
+      ? null
+      : { key: 'yearsOfCommitment' as const, label: 'Years of commitment', value: yearsOfCommitment, caption: 'Longest explicit activity period recorded' },
+  ];
+  return metrics.filter((metric): metric is SocialProofMetric => metric !== null);
 }
 
 /**
@@ -275,6 +384,7 @@ function buildSocialProof(proofOfMe: ProofOfMeSection): SocialProofMetric[] {
     { key: 'quantifiedOutcomes', label: 'Quantified outcomes', value: quantifiedOutcomes, caption: 'Outcomes containing a measurable result' },
     { key: 'capabilityClaims', label: 'Capabilities evidenced', value: capabilityClaims, caption: 'Distinct grounded capability labels across experiences' },
     { key: 'metadataCoverage', label: 'Evidence metadata captured', value: metadataCoverage, caption: 'Experiences retaining organisation, level, period, competition or verification provenance' },
+    ...derivedSocialProofMetrics(cards),
   ];
 }
 

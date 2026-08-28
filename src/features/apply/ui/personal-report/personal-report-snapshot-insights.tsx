@@ -44,6 +44,7 @@ function Stars({ stars }: { stars: CapabilityRating['stars'] }) {
 }
 
 export function SnapshotCapabilityProfileView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const details = detailsFor(report);
   if (!details) return <LegacyCapabilityProfileView report={report} />;
   if (details.capabilities.length === 0) return null;
@@ -53,6 +54,13 @@ export function SnapshotCapabilityProfileView({ report }: { report: PersonalRepo
       <div className="grid gap-gb-xl lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-gb-xl border border-line p-gb-xl">
           <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Capability profile</p>
+          <p className="mt-gb-md text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Capability overview')}</p>
+          <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
+            {t('The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.', {
+              capabilities: details.capabilities.slice(0, 3).map((capability) => capability.name).join(', '),
+              count: new Set(details.capabilities.flatMap((capability) => capability.supportingEvidence.map((evidence) => evidence.activityId))).size,
+            })}
+          </p>
           <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
             The strongest named capabilities in this report snapshot. Scores represent strength of supporting evidence, not an ability ceiling.
           </p>
@@ -101,6 +109,10 @@ export function SnapshotCapabilityProfileView({ report }: { report: PersonalRepo
           ))}
         </div>
       </div>
+      <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
+        <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('How these capabilities combine')}</p>
+        <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{t('This profile shows how the named capabilities overlap across the same evidence record. The combination is more informative than any single score and remains bounded by the supporting activities shown above.')}</p>
+      </div>
       <p className="text-gb-xs text-fg-muted">
         Rating rule: recurrence + evidence quality + verification + recorded outcomes. One activity cannot receive more than 3 stars; two cannot receive 5 stars.
       </p>
@@ -136,19 +148,35 @@ export function SnapshotMotivationProfileView({ report }: { report: PersonalRepo
 }
 
 export function SnapshotSocialProofSummaryView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const details = detailsFor(report);
   if (!details) return <LegacySocialProofSummaryView report={report} />;
   if (details.socialProof.every((metric) => metric.value === 0)) return null;
 
+  const activities = details.socialProof.find((metric) => metric.key === 'activities')?.value ?? 0;
+  const quantified = details.socialProof.find((metric) => metric.key === 'quantifiedOutcomes')?.value ?? 0;
+  const verified = details.socialProof.find((metric) => metric.key === 'verifiedEvidence')?.value ?? 0;
   return (
-    <div className="grid gap-gb-md sm:grid-cols-2 lg:grid-cols-3">
-      {details.socialProof.map((metric) => (
-        <div key={metric.key} className="rounded-gb-xl border border-line p-gb-lg">
-          <p className="font-display text-gb-display-xs font-semibold text-fg">{metric.value}</p>
-          <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{metric.label}</p>
-          <p className="mt-1 text-gb-xs text-fg-muted">{metric.caption}</p>
-        </div>
-      ))}
+    <div className="flex flex-col gap-gb-xl">
+      <div className="grid gap-gb-md sm:grid-cols-2 lg:grid-cols-3">
+        {details.socialProof.map((metric) => (
+          <div key={metric.key} className="rounded-gb-xl border border-line p-gb-lg">
+            <p className="font-display text-gb-display-xs font-semibold text-fg">{metric.value}</p>
+            <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{t(metric.label)}</p>
+            <p className="mt-1 text-gb-xs text-fg-muted">{t(metric.caption)}</p>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl" data-no-auto-translate>
+        <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('What the numbers suggest')}</p>
+        <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
+          {t('The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {verified} are verified or checkable. These counts describe the evidence base, not an admissions prediction.', {
+            activities,
+            quantified,
+            verified,
+          })}
+        </p>
+      </div>
     </div>
   );
 }

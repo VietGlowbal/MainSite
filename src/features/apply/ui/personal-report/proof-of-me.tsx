@@ -105,6 +105,16 @@ export function ProofOfMeView({
                     {t('Supports')}: {card.supports.join(', ')}
                   </p>
                 ) : null}
+                {[card.organisation, card.level, card.year?.toString(), card.period, card.competition].some(Boolean) || (card.sources?.length ?? 0) > 0 ? (
+                  <div className="grid gap-x-gb-lg gap-y-gb-sm border-t border-line pt-gb-md text-gb-xs text-fg-muted sm:grid-cols-2">
+                    {card.organisation ? <p><span className="font-semibold text-fg">{t('Organisation')}:</span> {card.organisation}</p> : null}
+                    {card.level ? <p><span className="font-semibold text-fg">{t('Level')}:</span> {card.level}</p> : null}
+                    {card.year ? <p><span className="font-semibold text-fg">{t('Year')}:</span> {card.year}</p> : null}
+                    {card.period ? <p><span className="font-semibold text-fg">{t('Period')}:</span> {card.period}</p> : null}
+                    {card.competition ? <p><span className="font-semibold text-fg">{t('Competition')}:</span> {card.competition}</p> : null}
+                    {(card.sources?.length ?? 0) > 0 ? <p><span className="font-semibold text-fg">{t('Supporting documents')}:</span> {card.sources?.length}</p> : null}
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-gb-md border-t border-line pt-gb-md">
                   <Badge variant="neutral-chip">{t(VERIFICATION_LABEL[card.verificationStatus] ?? card.verificationStatus)}</Badge>
                   {card.evidenceSource ? (

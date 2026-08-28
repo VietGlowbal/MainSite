@@ -2,18 +2,19 @@
 
 import type { PersonalReportV2 } from '../../domain';
 import { Badge } from '@/shared/ui';
+import { useT } from '@/lib/i18n';
 
 function unique(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value?.trim())))];
 }
 
 /**
- * Executive summary for the Personal Report. This deliberately reuses the
- * report snapshot's existing grounded findings instead of synthesising new
- * client-side claims. The richer 150–200 word applicant snapshot can later be
- * generated server-side without changing this component's contract.
+ * Executive summary for the Personal Report. `snapshot.summary` is the
+ * canonical 150–200 word contract; the shorter overview is only a legacy
+ * fallback for report versions created before that field existed.
  */
 export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const themes = report.emergingThemes.themes.slice(0, 2).map((theme) => theme.theme);
   const tags = unique([
     report.coreIdentity.recurringRole,
@@ -28,6 +29,7 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
     'Your applicant profile is still taking shape';
 
   const summary =
+    report.snapshot?.summary ??
     report.overview?.summary ??
     report.coreIdentity.interpretation ??
     report.personalPositioning.statement ??
@@ -56,6 +58,15 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
           <p className="text-gb-md leading-relaxed text-fg-tertiary" data-no-auto-translate>
             {summary}
           </p>
+
+          {report.overallSummary?.paragraphs[0] ? (
+            <div className="rounded-gb-xl bg-surface-muted p-gb-lg" data-no-auto-translate>
+              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Overall impression')}</p>
+              <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
+                {report.overallSummary.paragraphs[0]}
+              </p>
+            </div>
+          ) : null}
 
           {tags.length > 0 ? (
             <div className="flex flex-wrap gap-gb-sm" aria-label="Applicant profile themes">

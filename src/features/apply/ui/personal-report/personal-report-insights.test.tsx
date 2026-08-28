@@ -8,6 +8,8 @@ import {
   MotivationProfileView,
   SocialProofSummaryView,
 } from './personal-report-insights';
+import { KeyTakeawaysView } from './key-takeaways';
+import { ProofOfMeView } from './proof-of-me';
 
 const NO_DATA = { reason: 'More evidence needed.', actions: [] };
 
@@ -108,7 +110,9 @@ function report(): PersonalReportV2 {
         proof({
           activityId: 'a1',
           title: 'Tutor platform',
+          personalContribution: 'Led a five-person team',
           outcome: 'Used by 120 students',
+          period: '2023–2025',
           competenciesDemonstrated: ['Leadership', 'Product Design'],
           evidenceStrength: 'strong',
           verificationStatus: 'verified',
@@ -154,6 +158,78 @@ describe('Personal Report Pass 2 insights', () => {
     expect(screen.getByText('Experiences analysed')).toBeInTheDocument();
     expect(screen.getByText('Strong evidence')).toBeInTheDocument();
     expect(screen.getByText('Quantified outcomes')).toBeInTheDocument();
+    expect(screen.getByText('Team members led')).toBeInTheDocument();
+    expect(screen.getByText('Community reach')).toBeInTheDocument();
+    expect(screen.getByText('Years of commitment')).toBeInTheDocument();
+  });
+
+  it('renders the stored key-takeaway reasoning graph instead of hiding its grounding', () => {
+    const current = report();
+    current.keyTakeaways = {
+      whatMakesYouStandOut: {
+        kind: 'takeaway',
+        statement: 'Grounded standout',
+        scope: 'repeated',
+        strength: 'strong',
+        confidence: 'high',
+        evidenceIds: ['e1', 'e2'],
+        limitations: [],
+        importance: 'This matters because it is repeated across activities.',
+      },
+      competitiveAdvantage: {
+        kind: 'competitive_advantage',
+        statement: 'Grounded advantage',
+        scope: 'repeated',
+        strength: 'moderate',
+        confidence: 'medium',
+        evidenceIds: ['e1'],
+        limitations: [],
+      },
+      growthOpportunity: {
+        kind: 'growth_area',
+        statement: 'Grounded growth',
+        scope: 'insufficient',
+        strength: 'weak',
+        confidence: 'low',
+        evidenceIds: [],
+        limitations: ['Needs more evidence.'],
+        currentGap: 'Needs more evidence.',
+        direction: 'Add one specific outcome.',
+      },
+    };
+    render(<KeyTakeawaysView report={current} />);
+    expect(screen.getByText('Grounded standout')).toBeInTheDocument();
+    expect(screen.getAllByText('Evidence basis:').length).toBe(3);
+    expect(screen.getByText('This matters because it is repeated across activities.')).toBeInTheDocument();
+    expect(screen.getByText('Add one specific outcome.')).toBeInTheDocument();
+  });
+
+  it('surfaces social-proof metadata on each evidence card', () => {
+    const current = report();
+    current.proofOfMe.cards[0] = proof({
+      activityId: 'a1',
+      title: 'Tutor platform',
+      organisation: 'Example Org',
+      level: 'National',
+      year: 2024,
+      period: '2023–2024',
+      competition: 'Education Challenge',
+      sources: [{ id: 'doc-1' }],
+    });
+    render(
+      <ProofOfMeView
+        section={current.proofOfMe}
+        evidenceSummary={undefined}
+        overallSummary={null}
+        returnTo={undefined}
+      />,
+    );
+    expect(screen.getByText('Example Org')).toBeInTheDocument();
+    expect(screen.getByText('National')).toBeInTheDocument();
+    expect(screen.getByText('2024')).toBeInTheDocument();
+    expect(screen.getByText('2023–2024')).toBeInTheDocument();
+    expect(screen.getByText('Education Challenge')).toBeInTheDocument();
+    expect(screen.getByText(/Supporting documents:/)).toBeInTheDocument();
   });
 
   it('places existing limitations into an estimated impact-effort growth matrix', () => {

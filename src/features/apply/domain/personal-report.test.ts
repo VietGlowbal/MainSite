@@ -335,6 +335,9 @@ describe('buildPersonalReport', () => {
     });
     expect(canvas.socialProof.find((metric) => metric.key === 'metadataCoverage')?.value).toBeGreaterThan(0);
     expect(canvas.socialProof.find((metric) => metric.key === 'quantifiedOutcomes')?.value).toBeGreaterThan(0);
+    expect(canvas.socialProof.find((metric) => metric.key === 'teamMembersLed')?.value).toBe(20);
+    expect(canvas.socialProof.find((metric) => metric.key === 'communityReach')?.value).toBe(350);
+    expect(canvas.socialProof.find((metric) => metric.key === 'yearsOfCommitment')?.value).toBe(3);
   });
 
   it('routes Q1 into emerging themes and Q3 into positioning as explicitly scoped context', () => {
