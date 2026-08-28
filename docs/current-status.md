@@ -1,5 +1,16 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report narrative batch contract): the prose
+prompt, parser, and optional-section semantics now agree: a batch returns only
+the sections it was asked to write, while omitted or null optional summaries
+(including `snapshot`) are valid. Requested available canonical sections still
+require valid structure, grounded evidence IDs, supported numbers, and
+third-person voice. This fixes the production `schema_response` retry caused
+by an optional `snapshot: null`. Prompt/extraction versions were bumped to
+invalidate stale cached narratives. Measured: narrative synthesis 26/26,
+generation orchestration 13/13, base and strict typecheck, scoped ESLint, and
+`git diff --check` pass.
+
 Working tree 2026-08-28 (Personal Report sample-output UI): the existing report
 contract is now surfaced more completely in the UI. Applicant Snapshot prefers
 the canonical 150–200 word snapshot and shows the overall impression; Core

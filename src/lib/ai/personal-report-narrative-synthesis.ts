@@ -56,31 +56,33 @@ const snapshotSchema = z.object({
 });
 
 const synthesisResponseSchema = z.object({
-  snapshot: snapshotSchema.optional(),
+  // Batches ask the model for only a subset of these sections. Every omitted
+  // key is therefore valid; required canonical coverage is enforced below.
+  snapshot: snapshotSchema.nullish(),
   overview: z
     .object({
       summary: z.string().min(1).max(700),
       evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
     })
-    .nullable(),
-  coreIdentity: textSectionSchema.nullable(),
-  drivingForce: textSectionSchema.nullable(),
-  signaturePattern: narrativeSectionSchema.nullable(),
-  emergingThemes: narrativeSectionSchema.nullable(),
+    .nullish(),
+  coreIdentity: textSectionSchema.nullish(),
+  drivingForce: textSectionSchema.nullish(),
+  signaturePattern: narrativeSectionSchema.nullish(),
+  emergingThemes: narrativeSectionSchema.nullish(),
   personalPositioning: z
     .object({
       statement: z.string().min(1).max(500),
       whyItFits: z.array(z.string().min(1).max(300)).min(1).max(5),
       evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
     })
-    .nullable(),
-  proofOfMe: narrativeSectionSchema.nullable(),
+    .nullish(),
+  proofOfMe: narrativeSectionSchema.nullish(),
   overallSummary: z
     .object({
       paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
       evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
     })
-    .nullable(),
+    .nullish(),
 });
 
 export type PersonalReportNarrativeSynthesis = {
@@ -537,27 +539,6 @@ function parseNarrativeBatch(
   const batchInputValue = batchInput(sectionInput, batch);
   const raw = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()) as Record<string, unknown>;
   const normalized = normalizeEmptyOptionalSections(raw, batchInputValue);
-  // The prompt deliberately allows sparse responses. Zod's `nullable()` still
-  // requires a key, so fill omitted non-requested canonical sections before
-  // validation; requested sections remain subject to the coverage check below.
-  for (const key of [
-    'coreIdentity',
-    'drivingForce',
-    'signaturePattern',
-    'emergingThemes',
-    'personalPositioning',
-    'proofOfMe',
-  ] as const) {
-    if (!(key in normalized)) normalized[key] = null;
-  }
-  for (const key of ['snapshot', 'overview', 'overallSummary'] as const) {
-    if (!(batch.optional as readonly string[]).includes(key)) {
-      if (key === 'snapshot') delete normalized[key];
-      else normalized[key] = null;
-    } else if (key !== 'snapshot' && !(key in normalized)) {
-      normalized[key] = null;
-    }
-  }
   const parsed = synthesisResponseSchema.parse(normalized);
   assertNarrativeNumbersAreGrounded(parsed, batchInputValue);
   assertNarrativeVoice(parsed);

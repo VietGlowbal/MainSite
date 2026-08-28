@@ -352,6 +352,28 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.proofOfMe).not.toBeNull();
   });
 
+  it('accepts a null optional snapshot instead of rejecting the complete batch', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const request = JSON.parse(String(init?.body)) as { requestedSections: string[] };
+      const response = sparseSynthesisResponse(request.requestedSections);
+      if (request.requestedSections.includes('snapshot')) response.snapshot = null;
+      return chatResponse(JSON.stringify(response));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.snapshot).toBeUndefined();
+    expect(result?.coreIdentity).not.toBeNull();
+    expect(result?.proofOfMe).not.toBeNull();
+  });
+
   it('keeps a grounded short snapshot and ignores unsupported optional summaries', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
