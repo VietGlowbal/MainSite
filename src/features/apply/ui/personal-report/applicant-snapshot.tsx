@@ -55,6 +55,7 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
     'Your applicant profile is still taking shape';
 
   const summary =
+    report.narrativeDetails?.snapshot ??
     report.snapshot?.summary ??
     report.overview?.summary ??
     report.coreIdentity.interpretation ??

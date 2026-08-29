@@ -7,6 +7,7 @@ import type {
   EvidenceSourceKind,
   NarrativeActivity,
   ProfileEvaluationInput,
+  ReflectionFinding,
   ReflectionRecord,
   VaguenessField,
 } from '@/shared/evaluation';
@@ -19,7 +20,7 @@ import {
   extractRoleAndTheme,
   type RoleThemeExtractionInput,
 } from './evaluation/narrative-activity-extraction';
-import { extractReflectionSignalSummaries } from './evaluation/reflection-signal-extraction';
+import { extractReflectionFindings } from './evaluation/reflection-signal-extraction';
 
 /**
  * Bump when the semantic extraction/grounding contract changes independently
@@ -27,7 +28,7 @@ import { extractReflectionSignalSummaries } from './evaluation/reflection-signal
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v9-batch-contract';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v11-structured-reflections-activity-evidence';
 
 /** Dynamic report-only evidence rows use this namespace in the supplements table. */
 export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';
@@ -48,6 +49,26 @@ function text(value: unknown): string {
 function textList(value: unknown): string {
   if (Array.isArray(value)) return value.map(text).filter(Boolean).join(', ');
   return text(value);
+}
+
+function explicitFindingText(finding: ReflectionFinding | undefined): string {
+  if (!finding) return '';
+  const values = Object.entries(finding)
+    .filter(([key]) => key !== 'key' && key !== 'summary')
+    .flatMap(([, value]) => {
+      if (typeof value === 'string') return [value];
+      if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
+      if (value && typeof value === 'object') return Object.values(value).flatMap((item) => {
+        if (typeof item === 'string') return [item];
+        return Array.isArray(item) ? item.filter((entry): entry is string => typeof entry === 'string') : [];
+      });
+      return [];
+    });
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))].join('; ');
+}
+
+function normalizedFindingText(signal: { summary?: string; finding?: ReflectionFinding }): string {
+  return signal.summary?.trim() || explicitFindingText(signal.finding);
 }
 
 function normalize(value: string): string {
@@ -441,19 +462,25 @@ export async function buildProfileEvaluationInput(args: {
     freeText: record.freeText,
   }));
 
-  const [rawReflectionRecords, rawCompetencyClaims, roleThemeResults, reflectionSummaries] = await Promise.all([
+  const [rawReflectionRecords, rawCompetencyClaims, roleThemeResults, reflectionFindings] = await Promise.all([
     extractCmcaitfFields({ inputs: cmcaitfInputs, apiKey, model }),
     extractCompetencyClaims({ sources: competencySources, apiKey, model }),
     extractRoleAndTheme({ inputs: roleThemeInputs, apiKey, model }),
-    extractReflectionSignalSummaries({
+    extractReflectionFindings({
       signals: reflectionAnalysis.signals,
       apiKey,
       ...(model ? { model } : {}),
     }),
   ]);
   const reflectionSignals = reflectionAnalysis.signals.map((signal) => {
-    const summary = reflectionSummaries.get(signal.key);
-    return summary ? { ...signal, summary } : signal;
+    const finding = reflectionFindings.get(signal.key);
+    return finding
+      ? {
+          ...signal,
+          finding,
+          ...(finding.summary ? { summary: finding.summary } : {}),
+        }
+      : signal;
   });
 
   const reflectionRecords = rawReflectionRecords.map((record) =>
@@ -496,6 +523,24 @@ export async function buildProfileEvaluationInput(args: {
       domainTheme: roleTheme?.domainTheme ?? null,
       statedMotivation: cmcaitf?.motivation ?? null,
       outcome: cmcaitf?.impact ?? cmcaitf?.transformation ?? null,
+      narrativeEvidence: {
+        context: cmcaitf?.context ?? null,
+        trigger: roleTheme?.trigger ?? cmcaitf?.context ?? null,
+        problem: roleTheme?.problem ?? roleTheme?.domainTheme ?? null,
+        motivation: cmcaitf?.motivation ?? null,
+        challenge: cmcaitf?.challenge ?? null,
+        action: cmcaitf?.action ?? null,
+        ownership: roleTheme?.ownership ?? cmcaitf?.action ?? null,
+        method: roleTheme?.method ?? cmcaitf?.action ?? null,
+        impact: cmcaitf?.impact ?? null,
+        transformation: cmcaitf?.transformation ?? null,
+        future: cmcaitf?.future ?? null,
+        role: roleTheme?.role ?? null,
+        domainTheme: roleTheme?.domainTheme ?? null,
+        candidateCapabilitySignals: competencyClaims
+          .filter((claim) => claim.evidenceRefs.some((ref) => ref.id === record.id))
+          .map((claim) => claim.label),
+      },
       evidenceRefs: [{ id: record.id, kind: evidenceKind, label: record.title }],
     };
   });
@@ -537,16 +582,17 @@ export async function buildProfileEvaluationInput(args: {
   }));
   const reflectionMotivations = reflectionSignals
     .filter((signal) => signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3')
-    .filter((signal) => Boolean(signal.summary?.trim()))
+    .map((signal) => ({ signal, value: normalizedFindingText(signal) }))
+    .filter(({ value }) => Boolean(value))
     .map((signal) => ({
-      id: `profile:reflection_${signal.key}`,
-      label: `Reflection — ${signal.dimension.replaceAll('_', ' ')}`,
-      value: signal.summary!,
+      id: `profile:reflection_${signal.signal.key}`,
+      label: `Reflection — ${signal.signal.dimension.replaceAll('_', ' ')}`,
+      value: signal.value,
     }));
 
   const reflectionDirection = reflectionSignals
     .filter((signal) => signal.key === 'q5' || signal.key === 'q6' || signal.key === 'q7')
-    .map((signal) => signal.summary)
+    .map((signal) => normalizedFindingText(signal))
     .filter(Boolean)
     .join('; ');
   const rawSubjects = profile.target_subjects ?? profile.majors;
@@ -558,10 +604,12 @@ export async function buildProfileEvaluationInput(args: {
     .filter(Boolean)
     .join('; ') || null;
   const directionSignals = {
-    academicDirection:
-      reflectionSignals.find((signal) => signal.key === 'q5')?.summary ?? subjectDirection ?? null,
-    careerDirection: reflectionSignals.find((signal) => signal.key === 'q6')?.summary ?? careerDirection ?? null,
-    preferredEnvironment: reflectionSignals.find((signal) => signal.key === 'q7')?.summary ?? null,
+      academicDirection:
+      normalizedFindingText(reflectionSignals.find((signal) => signal.key === 'q5') ?? {}) || subjectDirection || null,
+    careerDirection:
+      normalizedFindingText(reflectionSignals.find((signal) => signal.key === 'q6') ?? {}) || careerDirection || null,
+    preferredEnvironment:
+      normalizedFindingText(reflectionSignals.find((signal) => signal.key === 'q7') ?? {}) || null,
   };
 
   return {
@@ -575,9 +623,7 @@ export async function buildProfileEvaluationInput(args: {
     reflectionAnswerSignals: reflectionSignals,
     capabilitySignals: q4Signal
       ? [
-          reflectionSummaries.has(q4Signal.key)
-            ? { ...q4Signal, summary: reflectionSummaries.get(q4Signal.key)! }
-            : q4Signal,
+          q4Signal,
         ]
       : [],
     directionSignals,

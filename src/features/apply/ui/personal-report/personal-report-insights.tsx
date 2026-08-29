@@ -174,10 +174,10 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
           <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Capability profile</p>
           <p className="mt-gb-md text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Capability overview')}</p>
           <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
-            {t('The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.', {
-              capabilities: capabilities.slice(0, 3).map((capability) => capability.name).join(', '),
-              count: new Set(capabilities.flatMap((capability) => capability.supportingCards.map((card) => card.activityId))).size,
-            })}
+            {report.narrativeDetails?.provenCapabilities?.overview ?? t('The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.', {
+                capabilities: capabilities.slice(0, 3).map((capability) => capability.name).join(', '),
+                count: new Set(capabilities.flatMap((capability) => capability.supportingCards.map((card) => card.activityId))).size,
+              })}
           </p>
           <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
             The strongest named capabilities extracted from your evidence. Scores represent evidence strength, not ability ceilings.
@@ -205,12 +205,18 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
                 <Stars score={capability.score} />
               </div>
               <p className="text-gb-sm leading-relaxed text-fg-tertiary">
-                {capability.evidenceCount >= 3
+                {report.narrativeDetails?.provenCapabilities?.capabilities.find((item) => item.capability.toLowerCase() === capability.name.toLowerCase())?.howDemonstrated ?? (capability.evidenceCount >= 3
                   ? `Repeated across ${capability.evidenceCount} separate experiences, including ${capability.strongEvidenceCount} strongly supported example${capability.strongEvidenceCount === 1 ? '' : 's'}.`
                   : capability.evidenceCount === 2
                     ? 'Shown in two separate experiences. The pattern is becoming consistent, but needs broader repetition before it is treated as a defining capability.'
-                    : 'Supported by one experience. GlowBal treats this as emerging evidence rather than a recurring strength.'}
+                    : 'Supported by one experience. GlowBal treats this as emerging evidence rather than a recurring strength.')}
               </p>
+              {report.narrativeDetails?.provenCapabilities?.capabilities.find((item) => item.capability.toLowerCase() === capability.name.toLowerCase())?.whyItMatters ? (
+                <p className="text-gb-xs leading-relaxed text-fg-muted">
+                  <span className="font-semibold text-fg">{t('Why it matters')}:</span>{' '}
+                  {report.narrativeDetails.provenCapabilities.capabilities.find((item) => item.capability.toLowerCase() === capability.name.toLowerCase())?.whyItMatters}
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-gb-sm">
                 <Badge variant="neutral-chip">{capability.evidenceCount} experience{capability.evidenceCount === 1 ? '' : 's'}</Badge>
                 <Badge variant="neutral-chip">{confidenceLabel(capability.confidence)}</Badge>
@@ -233,7 +239,7 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
       </div>
       <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
         <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('How these capabilities combine')}</p>
-        <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{t('This profile shows how the named capabilities overlap across the same evidence record. The combination is more informative than any single score and remains bounded by the supporting activities shown above.')}</p>
+        <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{report.narrativeDetails?.provenCapabilities?.combinationInsight ?? t('This profile shows how the named capabilities overlap across the same evidence record. The combination is more informative than any single score and remains bounded by the supporting activities shown above.')}</p>
       </div>
       <p className="text-gb-xs text-fg-muted">
         Rating rule: recurrence + evidence quality + verification + recorded outcomes. One activity cannot receive more than 3 stars; two cannot receive 5 stars.
@@ -284,7 +290,7 @@ export function SocialProofSummaryView({ report }: { report: PersonalReportV2 })
       <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl" data-no-auto-translate>
         <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('What the numbers suggest')}</p>
         <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
-          {t('The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {checkable} are verified or checkable. These counts describe the evidence base, not an admissions prediction.', {
+          {report.narrativeDetails?.socialProof?.conclusion ?? t('The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {checkable} are verified or checkable. These counts describe the evidence base, not an admissions prediction.', {
             activities: cards.length,
             quantified,
             checkable,

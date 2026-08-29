@@ -214,7 +214,7 @@ describe('regeneratePersonalReport', () => {
       expect.objectContaining({
         userId: 'user-1',
         trigger: 'matching_report',
-        inputHash: 'hash-current',
+        inputHash: 'stable-hash',
         reportV2: expect.objectContaining({ canvasDetails }),
       }),
     );

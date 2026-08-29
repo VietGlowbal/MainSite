@@ -214,7 +214,7 @@ function sectionSpecs({
           label: 'Overview',
           content: (
             <div className="flex flex-col gap-gb-lg">
-              <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
+              <CoreIdentityView section={report.coreIdentity} report={report} returnTo={returnTo} />
               <IdentityEvidenceProfileView report={report} />
             </div>
           ),
@@ -247,6 +247,7 @@ function sectionSpecs({
           content: (
             <DrivingForceView
               section={report.drivingForce}
+              report={report}
               returnTo={returnTo}
               onAnswered={onAnswered}
             />
@@ -279,6 +280,7 @@ function sectionSpecs({
           content: (
             <PersonalPositioningView
               section={report.personalPositioning}
+              report={report}
               positioningDimensions={report.analytics?.positioningDimensions}
               returnTo={returnTo}
             />

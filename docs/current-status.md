@@ -1,5 +1,19 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report prompt/spec architecture): the
+Personal Report writer now uses structured Q1–Q7 reflection findings,
+additive narrative activity evidence, exact two-batch section routing,
+section-scoped evidence IDs, numeric/voice/hypothesis guards, and deterministic
+materialization of traits, capabilities, motivation, proof, positioning, and
+takeaways. Narrative detail fields are hydrated by the UI, and extraction plus
+narrative cache identities include their prompt and contract versions. Measured
+locally: focused Personal Report/evaluation/domain/API tests 265/265, UI tests
+29/29, i18n integration 2/2, base and strict typecheck, lint (0 errors; 5
+pre-existing warnings), CI production build (3 pre-existing geo-content
+tracing warnings), and `git diff --check` pass. Full Vitest: 3,496 passed, 6
+failed, 2 todo; failures are existing CV-builder/API timing or stale-job test
+expectations outside this change.
+
 Working tree 2026-08-29 (Personal Report + Matching Report V3 contract repair):
 Target Profile cache identity now includes schema and extraction-prompt
 versions, and the extractor carries source-backed typed university/programme
@@ -10,11 +24,12 @@ mapping. Personal Report cache validation is prompt-aware, stored reports are
 schema-validated, and reflection normalization no longer creates generic prose
 when AI extraction fails. The additive `supabase-target-profile-cache-contract.sql`
 migration is required before deploying the target-profile cache changes.
-Measured locally: full Vitest 370 files / 3,496 tests passed (2 todo),
+Measured locally: full Vitest 370 files / 3,496 passed, 6 failed (2 todo),
 typecheck, lint (0 errors; 5 pre-existing warnings), i18n audit, CI production
 build (3 pre-existing geo-content tracing warnings), and `git diff --check`
-passed. GitNexus change detection reported medium risk across 24 files and 4
-symbols, with the Matching Report UI flow as the affected execution path.
+passed. GitNexus change detection for the current working tree reported low
+risk across 25 changed tracked files, with no graph-mapped symbols or affected
+execution paths.
 
 Working tree 2026-08-29 (Personal Report narrative batch contract): the prose
 prompt, parser, and optional-section semantics now agree: a batch returns only

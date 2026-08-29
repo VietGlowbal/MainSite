@@ -13,7 +13,9 @@ import {
   type IdentityProof,
   type NarrativeActivity,
   type ProfileEvaluation,
+  type ReflectionAnswerKey,
   type ReflectionAnswerSignal,
+  type ReflectionFinding,
   type ThemeMaturityResult,
 } from '@/shared/evaluation';
 import { buildPersonalReportAnalytics, type PersonalReportAnalytics } from './personal-report-analytics';
@@ -849,7 +851,92 @@ export type PersonalReportKeyTakeaways = {
   growthOpportunity: PersonalReportInsight;
 };
 
-export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v3';
+export type PersonalReportNarrativeDetails = {
+  snapshot?: string;
+  coreIdentity?: {
+    identityStatement: string;
+    evidenceIds: string[];
+    definingTraits: Array<{
+      characteristic: string;
+      insight: string;
+      evidenceIds: string[];
+      whyItMatters: string;
+      scope: 'repeated' | 'emerging';
+      confidence: ReportConfidence;
+    }>;
+  };
+  drivingForce?: {
+    primaryMotivation: string;
+    repeatedChoices: string[];
+    recurringProblems: string[];
+    underlyingValues: string[];
+    strategicInterpretation: string;
+    evidenceStrength: 'strong' | 'moderate' | 'limited';
+    isHypothesis: boolean;
+    evidenceIds: string[];
+  };
+  provenCapabilities?: {
+    overview: string;
+    overviewEvidenceIds: string[];
+    capabilities: Array<{
+      capability: string;
+      evidenceIds: string[];
+      supportingActivities: string[];
+      howDemonstrated: string;
+      whyItMatters: string;
+    }>;
+    combinationInsight: string;
+    combinationEvidenceIds: string[];
+  };
+  socialProof?: {
+    conclusion: string;
+    metricKeys: string[];
+    evidenceIds: string[];
+  };
+  profilePositioning?: {
+    experienceConnection: {
+      strongestProfileThread: string;
+      connectionExplanation: string;
+      confidence: ReportConfidence;
+      supportingExperienceCount: number;
+      evidenceIds: string[];
+    };
+    positioningOptions: Array<{
+      title: string;
+      statement: string;
+      supportingEvidenceIds: string[];
+      supportingExperienceTitles: string[];
+    }>;
+    profileNarrative: string;
+    profileNarrativeEvidenceIds: string[];
+  };
+  keyTakeaways?: {
+    whatMakesYouStandOut: {
+      title: string;
+      insight: string;
+      evidencePattern: string;
+      whyItMatters: string;
+      evidenceIds: string[];
+    };
+    competitiveAdvantage: {
+      title: string;
+      advantageStatement: string;
+      supportingEvidence: string;
+      applicationRelevance: string;
+      evidenceIds: string[];
+    };
+    growthOpportunity: {
+      title: string;
+      growthArea: string;
+      currentGap: string;
+      recommendedDirection: string;
+      whyItMatters: string;
+      evidenceIds: string[];
+    };
+  };
+};
+
+export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v4-narrative-details';
 
 function wordCount(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -1259,6 +1346,12 @@ export type PersonalReportV2 = {
   growthAreas?: PersonalReportInsight[];
   competitiveAdvantages?: PersonalReportInsight[];
   keyTakeaways?: PersonalReportKeyTakeaways;
+  /** Structured reflection meaning; raw Q1-Q7 answers are never stored here. */
+  reflectionFindings?: ReflectionFinding[];
+  /** Deterministic repeated/isolated status for each persisted structured finding. */
+  reflectionFindingStatuses?: Partial<Record<ReflectionAnswerKey, 'repeated' | 'isolated'>>;
+  /** Applicant-facing narrative contract; legacy prose fields remain additive. */
+  narrativeDetails?: PersonalReportNarrativeDetails;
   evidenceCoverage?: PersonalReportEvidenceCoverage;
   limitations?: string[];
   canvasDetails?: PersonalCanvasDetails;
@@ -1352,6 +1445,10 @@ export function buildPersonalReport(args: {
         applicationInsights.growthAreas,
       ),
     },
+    reflectionFindings: evaluation.reflectionAnswerSignals?.flatMap((signal) => signal.finding ? [signal.finding] : []) ?? [],
+    reflectionFindingStatuses: Object.fromEntries(
+      (evaluation.reflectionAnswerSignals ?? []).map((signal) => [signal.key, signal.status]),
+    ) as Partial<Record<ReflectionAnswerKey, 'repeated' | 'isolated'>>,
     ...applicationInsights,
     limitations: applicationInsights.growthAreas.flatMap((area) => area.limitations),
   };

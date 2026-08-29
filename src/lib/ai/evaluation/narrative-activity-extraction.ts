@@ -15,18 +15,16 @@ import { sanitizeExtractedField } from './sanitize-extracted-field';
  * and the Personal Report pipeline composes those deterministically rather
  * than asking a model to re-derive fields it has already extracted once.
  *
- * The two fields CMCAITF has no slot for are genuinely new semantic
- * judgements:
+ * The role/theme call also preserves four additive activity-evidence fields
+ * that CMCAITF does not model as separate slots:
  *
- *   role         the capacity the student acted in — "ran weekly sessions
- *                for the club", not a job title like "Leader".
- *   domainTheme  the problem/domain this activity relates to — "education
- *                access", "environmental sustainability" — NEVER a
- *                competency label like "leadership" or "communication"
- *                (see f4-narrative-identity.ts's own warning on this).
+ *   role/domainTheme  the capacity and problem/domain the student explicitly
+ *                   describes; domainTheme is NEVER a competency label.
+ *   trigger/problem/ownership/method  explicit activity evidence content used
+ *                   only by the narrative writer; it never changes F4 scores.
  *
- * This module extracts only those two, from the same free text CMCAITF
- * reads. Grouping activities into theme-maturity buckets (F4.4) and scoring
+ * This module extracts those fields from the same free text CMCAITF reads.
+ * Grouping activities into theme-maturity buckets (F4.4) and scoring
  * pattern consistency (F4.3) stay entirely deterministic, downstream of this
  * extraction, in `src/features/apply/domain/personal-report.ts`.
  */
@@ -35,6 +33,10 @@ const roleThemeItemSchema = z.object({
   activityId: z.string().min(1).max(160),
   role: z.string().min(1).max(200).nullable(),
   domainTheme: z.string().min(1).max(120).nullable(),
+  trigger: z.string().min(1).max(500).nullable().optional(),
+  problem: z.string().min(1).max(500).nullable().optional(),
+  ownership: z.string().min(1).max(500).nullable().optional(),
+  method: z.string().min(1).max(500).nullable().optional(),
 });
 
 const extractionResponseSchema = z.object({
@@ -52,13 +54,17 @@ export type RoleThemeExtractionResult = {
   id: string;
   role: string | null;
   domainTheme: string | null;
+  trigger?: string | null;
+  problem?: string | null;
+  ownership?: string | null;
+  method?: string | null;
 };
 
 // Prompt text and its version live in the shared registry (Task 2).
 const { systemPrompt: SYSTEM_PROMPT } = getReportPrompt('narrative_activity_extraction');
 
 function buildUserPrompt(inputs: readonly RoleThemeExtractionInput[]): string {
-  return `Extract role and domainTheme for each activity below. Respond with JSON only.\n${JSON.stringify(
+  return `Extract the structured activity evidence fields for each activity below. Respond with JSON only.\n${JSON.stringify(
     inputs.map((input) => ({ activityId: input.id, title: input.title, text: input.freeText })),
   )}`;
 }
@@ -101,6 +107,10 @@ export async function extractRoleAndTheme(args: {
       id: input.id,
       role: sanitizeExtractedField(extracted?.role ?? null),
       domainTheme: sanitizeExtractedField(extracted?.domainTheme ?? null),
+      ...(extracted && 'trigger' in extracted ? { trigger: sanitizeExtractedField(extracted.trigger ?? null) } : {}),
+      ...(extracted && 'problem' in extracted ? { problem: sanitizeExtractedField(extracted.problem ?? null) } : {}),
+      ...(extracted && 'ownership' in extracted ? { ownership: sanitizeExtractedField(extracted.ownership ?? null) } : {}),
+      ...(extracted && 'method' in extracted ? { method: sanitizeExtractedField(extracted.method ?? null) } : {}),
     };
   });
 }

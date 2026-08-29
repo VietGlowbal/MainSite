@@ -54,6 +54,7 @@ function TakeawayCard({ title, insight, finding }: { title: string; insight: str
  */
 export function KeyTakeawaysView({ report }: { report: PersonalReportV2 }) {
   const structured = report.keyTakeaways;
+  const narrative = report.narrativeDetails?.keyTakeaways;
   const standOut = firstUseful(
     [report.signaturePattern.distinctiveness, report.coreIdentity.interpretation, report.coreIdentity.headline],
     'Your strongest differentiator will become clearer as you add more reflected experiences.',
@@ -89,17 +90,17 @@ export function KeyTakeawaysView({ report }: { report: PersonalReportV2 }) {
       <div className="grid gap-gb-lg md:grid-cols-3">
         <TakeawayCard
           title="What Makes You Stand Out"
-          insight={structured?.whatMakesYouStandOut.statement ?? standOut}
+          insight={narrative?.whatMakesYouStandOut.insight ?? structured?.whatMakesYouStandOut.statement ?? standOut}
           {...(structured?.whatMakesYouStandOut ? { finding: structured.whatMakesYouStandOut } : {})}
         />
         <TakeawayCard
           title="Your Competitive Advantage"
-          insight={structured?.competitiveAdvantage.statement ?? advantage}
+          insight={narrative?.competitiveAdvantage.advantageStatement ?? structured?.competitiveAdvantage.statement ?? advantage}
           {...(structured?.competitiveAdvantage ? { finding: structured.competitiveAdvantage } : {})}
         />
         <TakeawayCard
           title="Your Growth Opportunity"
-          insight={structured?.growthOpportunity.statement ?? growth}
+          insight={narrative?.growthOpportunity.recommendedDirection ?? structured?.growthOpportunity.statement ?? growth}
           {...(structured?.growthOpportunity ? { finding: structured.growthOpportunity } : {})}
         />
       </div>

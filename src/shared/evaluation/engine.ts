@@ -45,11 +45,64 @@ export const REFLECTION_ANSWER_DIMENSIONS: Record<ReflectionAnswerKey, Reflectio
   q7: 'environment_preference',
 };
 
+export type ReflectionFinding = {
+  key: ReflectionAnswerKey;
+  summary: string | null;
+  q1?: {
+    interests: string[];
+    intellectualCuriosity: string[];
+    problemInterests: string[];
+    themeCandidates: string[];
+  } | null;
+  q2?: {
+    turningPoint: string | null;
+    values: string[];
+    mindsetShift: string | null;
+    personalGrowth: string | null;
+  } | null;
+  q3?: {
+    problemCaredAbout: string | null;
+    affectedGroups: string[];
+    socialConcern: string | null;
+    personalConnection: string | null;
+    ownershipSignal: string | null;
+  } | null;
+  q4?: {
+    builtImprovedSolved: string | null;
+    actions: string[];
+    agencySignals: string[];
+    capabilitySignals: string[];
+    impactSignals: string[];
+  } | null;
+  q5?: {
+    intendedMajor: string | null;
+    academicMotivation: string | null;
+    majorRationale: string | null;
+    intellectualDirection: string | null;
+  } | null;
+  q6?: {
+    futureProblem: string | null;
+    desiredChange: string | null;
+    futureAmbition: string | null;
+    desiredImpact: string | null;
+  } | null;
+  q7?: {
+    learningPreferences: string[];
+    collaborationPreferences: string[];
+    researchProjectPreferences: string[];
+    mentorshipPreferences: string[];
+    extracurricularPreferences: string[];
+    preferredOpportunities: string[];
+  } | null;
+};
+
 export type ReflectionAnswerSignal = {
   key: ReflectionAnswerKey;
   dimension: ReflectionAnswerDimension;
   /** Short AI-normalized finding. Raw `value` remains evidence-only. */
   summary?: string;
+  /** Structured explicit meaning; raw answer text remains in `value` only. */
+  finding?: ReflectionFinding;
   value: string;
   /** repeated = ≥2 independent sources; isolated = this single answer only. */
   status: 'repeated' | 'isolated';

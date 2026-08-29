@@ -128,6 +128,7 @@ export type {
   ReflectionAnswerDimension,
   ReflectionAnswerKey,
   ReflectionAnswerSignal,
+  ReflectionFinding,
 } from './engine';
 
 export { ENGINE_VERSION, shouldRegenerate } from './versioning';

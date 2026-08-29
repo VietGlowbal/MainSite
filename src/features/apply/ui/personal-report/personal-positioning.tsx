@@ -1,7 +1,7 @@
 'use client';
 
 import { useT } from '@/lib/i18n';
-import type { PersonalPositioningSection, PersonalReportAnalytics, PositioningDimensionKey } from '../../domain';
+import type { PersonalPositioningSection, PersonalReportAnalytics, PersonalReportV2, PositioningDimensionKey } from '../../domain';
 import { Badge, RadarChart } from '@/shared/ui';
 import { InsufficientDataCard, SectionShell } from './shared';
 
@@ -25,10 +25,12 @@ function PositioningTrait({ label, value }: { label: string; value: boolean }) {
 
 export function PersonalPositioningView({
   section,
+  report,
   positioningDimensions,
   returnTo,
 }: {
   section: PersonalPositioningSection;
+  report?: PersonalReportV2;
   /** Undefined for a report version generated before analytics existed — see `PersonalReportV2.analytics`. */
   positioningDimensions: PersonalReportAnalytics['positioningDimensions'] | undefined;
   returnTo: string | undefined;
@@ -44,7 +46,17 @@ export function PersonalPositioningView({
         <div className="flex flex-col gap-gb-xl">
           <div className="rounded-gb-xl bg-surface-muted p-gb-lg" data-no-auto-translate>
             <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Profile narrative')}</p>
-            <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{section.statement}</p>
+            <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{report?.narrativeDetails?.profilePositioning?.profileNarrative ?? section.statement}</p>
+            {report?.narrativeDetails?.profilePositioning?.positioningOptions.length ? (
+              <div className="mt-gb-md flex flex-col gap-gb-sm">
+                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Positioning options')}</p>
+                {report.narrativeDetails.profilePositioning.positioningOptions.map((option) => (
+                  <p key={option.title} className="text-gb-xs leading-relaxed text-fg-tertiary">
+                    <span className="font-semibold text-fg">{option.title}:</span> {option.statement}
+                  </p>
+                ))}
+              </div>
+            ) : null}
             <p className="mt-gb-sm text-gb-xs text-fg-muted">
               {t('{count} linked evidence references · {confidenceLabel}: {confidence}', {
                 count: section.evidenceRefs.length,
@@ -75,14 +87,20 @@ export function PersonalPositioningView({
             <PositioningTrait label={t('Direction aligned')} value={section.directionAligned} />
             <PositioningTrait label={t('Credible')} value={section.credible} />
           </div>
-          {section.whyThisFits.length > 0 ? (
+          {section.whyThisFits.length > 0 || report?.narrativeDetails?.profilePositioning?.experienceConnection ? (
             <div className="flex flex-col gap-gb-sm">
               <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Experience connection')}</p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary" data-no-auto-translate>
-                {section.whyThisFits.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
+              {report?.narrativeDetails?.profilePositioning?.experienceConnection ? (
+                <div className="rounded-gb-xl bg-surface-muted p-gb-lg" data-no-auto-translate>
+                  <p className="text-gb-sm font-semibold text-fg">{report.narrativeDetails.profilePositioning.experienceConnection.strongestProfileThread}</p>
+                  <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">{report.narrativeDetails.profilePositioning.experienceConnection.connectionExplanation}</p>
+                  <p className="mt-gb-sm text-gb-xs text-fg-muted">{t('{count} supporting experiences', { count: report.narrativeDetails.profilePositioning.experienceConnection.supportingExperienceCount })}</p>
+                </div>
+              ) : (
+                <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary" data-no-auto-translate>
+                  {section.whyThisFits.map((reason) => <li key={reason}>{reason}</li>)}
+                </ul>
+              )}
             </div>
           ) : null}
           {section.whatPreventsStrongerPositioning.length > 0 ? (

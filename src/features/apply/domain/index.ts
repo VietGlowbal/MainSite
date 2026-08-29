@@ -252,6 +252,7 @@ export type {
   PersonalReportEvidenceCoverage,
   PersonalReportInsight,
   PersonalReportKeyTakeaways,
+  PersonalReportNarrativeDetails,
   PersonalReportVersionSummary,
   PositioningDimensionKey,
   ProofCard,

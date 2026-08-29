@@ -404,6 +404,18 @@ async function regenerateApplicationPersonalReport(
     generatedAt,
     evidenceBank,
   });
+  const canvasDetails = buildPersonalCanvasDetails({
+    activities: evaluationInput.narrativeActivities,
+    coreIdentity: deterministicReport.coreIdentity,
+    drivingForce: deterministicReport.drivingForce,
+    emergingThemes: deterministicReport.emergingThemes,
+    personalPositioning: deterministicReport.personalPositioning,
+    proofOfMe: deterministicReport.proofOfMe,
+    intendedDirection: evaluationInput.intendedDirection,
+    profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
+      .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
+      .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
+  });
   if (
     !deterministicReport.coreIdentity.available &&
     !deterministicReport.drivingForce.available &&
@@ -423,7 +435,7 @@ async function regenerateApplicationPersonalReport(
     intendedDirection: evaluationInput.intendedDirection,
     apiKey,
     model: modelName,
-    grounding: { evaluationInput, evaluation, evidenceBank },
+    grounding: { evaluationInput, evaluation, evidenceBank, canvasDetails },
     onFailure: (code) => {
       narrativeFailure = code;
     },
@@ -439,18 +451,7 @@ async function regenerateApplicationPersonalReport(
 
   reportV2 = {
     ...reportV2,
-    canvasDetails: buildPersonalCanvasDetails({
-      activities: evaluationInput.narrativeActivities,
-      coreIdentity: reportV2.coreIdentity,
-      drivingForce: reportV2.drivingForce,
-      emergingThemes: reportV2.emergingThemes,
-      personalPositioning: reportV2.personalPositioning,
-      proofOfMe: reportV2.proofOfMe,
-      intendedDirection: evaluationInput.intendedDirection,
-      profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
-        .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
-        .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
-    }),
+    canvasDetails,
   } as PersonalReportV2Record['reportV2'];
 
   const inserted = await createPersonalReportV2Version(supabase, {
@@ -540,7 +541,12 @@ async function regenerateLegacyPersonalReport(
   // touch `student_profiles` itself. Hashed as part of the effective
   // context so answering one is enough to trigger a regeneration.
   const context = applyPersonalReportSupplements(rawContext, supplements);
-  const inputHash = candidateContextHash(context);
+  const inputHash = stableHash({
+    contextHash: candidateContextHash(context),
+    extractionPromptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
+    narrativePromptVersion: REPORT_PROMPT_VERSIONS.report_narrative_synthesis,
+    reportContractVersion: PERSONAL_REPORT_CONTRACT_VERSION,
+  });
   const current = latest.record;
   const extractionChanged = Boolean(current && current.promptVersion !== PERSONAL_REPORT_EXTRACTION_VERSION);
   const regenerate =
@@ -589,6 +595,18 @@ async function regenerateLegacyPersonalReport(
       intendedDirection: evaluationInput.intendedDirection,
       generatedAt,
     });
+    const canvasDetails = buildPersonalCanvasDetails({
+      activities: evaluationInput.narrativeActivities,
+      coreIdentity: deterministicReport.coreIdentity,
+      drivingForce: deterministicReport.drivingForce,
+      emergingThemes: deterministicReport.emergingThemes,
+      personalPositioning: deterministicReport.personalPositioning,
+      proofOfMe: deterministicReport.proofOfMe,
+      intendedDirection: evaluationInput.intendedDirection,
+      profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
+        .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
+        .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
+    });
 
     const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
     const synthesis = await synthesizePersonalReportNarrative({
@@ -596,7 +614,7 @@ async function regenerateLegacyPersonalReport(
       intendedDirection: evaluationInput.intendedDirection,
       apiKey,
       model: modelName,
-      grounding: { evaluationInput, evaluation, evidenceBank: null },
+      grounding: { evaluationInput, evaluation, evidenceBank: null, canvasDetails },
     });
     if (!synthesis) {
       return {
@@ -613,18 +631,7 @@ async function regenerateLegacyPersonalReport(
     // stars/bars/pathways that belonged to that snapshot.
     const reportV2 = {
       ...synthesizedReport,
-      canvasDetails: buildPersonalCanvasDetails({
-        activities: evaluationInput.narrativeActivities,
-        coreIdentity: synthesizedReport.coreIdentity,
-        drivingForce: synthesizedReport.drivingForce,
-        emergingThemes: synthesizedReport.emergingThemes,
-        personalPositioning: synthesizedReport.personalPositioning,
-        proofOfMe: synthesizedReport.proofOfMe,
-        intendedDirection: evaluationInput.intendedDirection,
-        profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
-          .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
-          .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
-      }),
+      canvasDetails,
     };
 
     const { record: inserted, error } = await createPersonalReportV2Version(supabase, {

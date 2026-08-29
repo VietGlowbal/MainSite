@@ -51,6 +51,34 @@ describe('extractRoleAndTheme', () => {
     );
   });
 
+  it('preserves additive trigger, problem, ownership, and method evidence fields', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      chatResponse(JSON.stringify({
+        items: [{
+          activityId: 'a1',
+          role: 'Ran weekly tutoring sessions',
+          domainTheme: 'Education access',
+          trigger: 'Noticed younger students lacked support',
+          problem: 'Different skill levels made group teaching difficult',
+          ownership: 'Planned the sessions and adapted the schedule',
+          method: 'Grouped learners by need and reviewed progress weekly',
+        }],
+      })),
+    ));
+
+    const result = await extractRoleAndTheme({
+      inputs: [{ id: 'a1', title: 'Peer tutoring', freeText: 'Ran weekly tutoring at school.' }],
+      apiKey: 'test-key',
+    });
+
+    expect(result[0]).toMatchObject({
+      trigger: 'Noticed younger students lacked support',
+      problem: 'Different skill levels made group teaching difficult',
+      ownership: 'Planned the sessions and adapted the schedule',
+      method: 'Grouped learners by need and reviewed progress weekly',
+    });
+  });
+
   it('leaves both fields null when the model does not support them, rather than inventing a theme', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(JSON.stringify({ items: [{ activityId: 'a1', role: null, domainTheme: null }] })),

@@ -233,6 +233,179 @@ function sparseSynthesisResponse(requestedSections: readonly string[]) {
   return Object.fromEntries(requestedSections.map((key) => [key, complete[key]]));
 }
 
+function repeatedWords(count: number, word: string): string {
+  return Array.from({ length: count }, () => word).join(' ');
+}
+
+function structuredReport(): PersonalReportV2 {
+  return fullReport({
+    reflectionFindings: [],
+    canvasDetails: {
+      capabilities: [{
+        name: 'Leadership',
+        score: 70,
+        stars: 4,
+        band: 'strong',
+        confidence: 'medium',
+        evidenceCount: 1,
+        strongEvidenceCount: 1,
+        verifiedEvidenceCount: 1,
+        why: 'Supported by one recorded activity.',
+        supportingEvidence: [{
+          activityId: 'activity-1',
+          title: 'Coding club',
+          outcome: 'More students learned to code',
+          evidenceStrength: 'strong',
+          verificationStatus: 'verified',
+        }],
+      }],
+      motivations: [],
+      socialProof: [{ key: 'activities', label: 'Experiences analysed', value: 1, caption: 'Report evidence' }],
+      growthPriorities: [],
+      futurePathways: [],
+    },
+  });
+}
+
+function structuredNarrativeDetails(batch: 'a' | 'b') {
+  if (batch === 'a') {
+    return {
+      snapshot: repeatedWords(150, 'grounded'),
+      coreIdentity: {
+        identityStatement: repeatedWords(80, 'identity'),
+        evidenceIds: ['activity-1'],
+        definingTraits: [],
+      },
+      drivingForce: {
+        primaryMotivation: 'An emerging hypothesis about supporting accessible learning.',
+        repeatedChoices: ['organising learning sessions'],
+        recurringProblems: ['access to coding education'],
+        underlyingValues: ['community access'],
+        strategicInterpretation: 'This remains an emerging hypothesis because repeated motivation is not yet fully confirmed.',
+        evidenceStrength: 'moderate',
+        isHypothesis: true,
+        evidenceIds: ['activity-1'],
+      },
+      profilePositioning: {
+        experienceConnection: {
+          strongestProfileThread: 'organising accessible learning',
+          connectionExplanation: 'The available experience shows one coherent thread.',
+          confidence: 'medium',
+          supportingExperienceCount: 1,
+          evidenceIds: ['activity-1'],
+        },
+        positioningOptions: [{
+          title: 'Accessible learning organiser',
+          statement: 'A profile focused on organising accessible coding learning.',
+          supportingEvidenceIds: ['activity-1'],
+          supportingExperienceTitles: ['Coding club'],
+        }],
+        profileNarrative: repeatedWords(100, 'narrative'),
+        profileNarrativeEvidenceIds: ['activity-1'],
+      },
+    };
+  }
+  return {
+    provenCapabilities: {
+      overview: repeatedWords(100, 'cap'),
+      overviewEvidenceIds: ['proof-1'],
+      capabilities: [{
+        capability: 'Leadership',
+        evidenceIds: ['proof-1'],
+        supportingActivities: ['Coding club'],
+        howDemonstrated: 'Coordinated weekly sessions for learners.',
+        whyItMatters: 'It shows an emerging ability to organise people around a shared goal.',
+      }],
+      combinationInsight: 'Leadership is supported by the organising role and the recorded learning outcome; this could become a differentiator with broader evidence.',
+      combinationEvidenceIds: ['proof-1'],
+    },
+    socialProof: {
+      conclusion: 'The evidence base is limited to one recorded experience, so the current social proof is qualitative and early.',
+      metricKeys: ['activities'],
+      evidenceIds: ['proof-1'],
+    },
+    keyTakeaways: {
+      whatMakesYouStandOut: {
+        title: 'Emerging organiser',
+        insight: 'The profile combines organising behaviour with accessible learning.',
+        evidencePattern: 'The activity record links organisation and learning access.',
+        whyItMatters: 'This pattern gives the profile a clear direction for development.',
+        evidenceIds: ['activity-1'],
+      },
+      competitiveAdvantage: {
+        title: 'Grounded initiative',
+        advantageStatement: 'The applicant has a grounded organising capability.',
+        supportingEvidence: 'The coding club record documents the contribution.',
+        applicationRelevance: 'It can support future applications when corroborated.',
+        evidenceIds: ['positioning-1'],
+      },
+      growthOpportunity: {
+        title: 'Broaden evidence',
+        growthArea: 'Broaden the organising pattern.',
+        currentGap: 'Only one supporting experience is recorded.',
+        recommendedDirection: 'Add another concrete experience and outcome.',
+        whyItMatters: 'Repeated evidence would clarify the profile.',
+        evidenceIds: ['activity-1'],
+      },
+    },
+  };
+}
+
+function completeReflectionFindings(): NonNullable<PersonalReportV2['reflectionFindings']> {
+  return [
+    { key: 'q1', summary: 'interest in accessible computing', q1: { interests: ['computing'], intellectualCuriosity: ['how systems work'], problemInterests: ['access to technical education'], themeCandidates: ['accessible computing'] } },
+    { key: 'q2', summary: 'growth through peer learning', q2: { turningPoint: 'A tutoring experience', values: ['access'], mindsetShift: 'Teaching can widen participation', personalGrowth: 'More confident facilitation' } },
+    { key: 'q3', summary: 'concern about unequal access', q3: { problemCaredAbout: 'Unequal access to coding', affectedGroups: ['younger students'], socialConcern: 'Education access', personalConnection: 'Saw classmates left behind', ownershipSignal: 'Chose to organise support' } },
+    { key: 'q4', summary: 'built a learning programme', q4: { builtImprovedSolved: 'A peer-learning programme', actions: ['Planned sessions'], agencySignals: ['Set the schedule'], capabilitySignals: ['Leadership'], impactSignals: ['More students participated'] } },
+    { key: 'q5', summary: 'computer science direction', q5: { intendedMajor: 'Computer science', academicMotivation: 'Understand useful systems', majorRationale: 'Connect computing with access', intellectualDirection: 'Human-centred technology' } },
+    { key: 'q6', summary: 'future access problem', q6: { futureProblem: 'Unequal technical education', desiredChange: 'More inclusive learning', futureAmbition: 'Build accessible tools', desiredImpact: 'Wider participation' } },
+    { key: 'q7', summary: 'collaborative project learning', q7: { learningPreferences: ['Project learning'], collaborationPreferences: ['Small teams'], researchProjectPreferences: ['Applied research'], mentorshipPreferences: ['Regular feedback'], extracurricularPreferences: ['Community projects'], preferredOpportunities: ['Peer teaching'] } },
+  ] as NonNullable<PersonalReportV2['reflectionFindings']>;
+}
+
+function qualityFixtureReport(kind: 'mature' | 'emerging' | 'sparse'): PersonalReportV2 {
+  if (kind === 'sparse') return insufficientReport();
+  const base = fullReport();
+  const activityCount = kind === 'mature' ? 4 : 2;
+  const activityIds = Array.from({ length: activityCount }, (_, index) => `activity-${index + 1}`);
+  const proofCards = activityIds.map((activityId, index) => ({
+    ...base.proofOfMe.cards[0]!,
+    activityId,
+    title: index === 0 ? 'Coding club' : `Community learning project ${index + 1}`,
+    role: 'organiser',
+    personalContribution: index === 0 ? 'Coordinated 12 volunteers and weekly sessions' : 'Adapted learning activities for participants',
+    outcome: index === 0 ? 'Reached 80 students' : 'Improved participation',
+    competenciesDemonstrated: [index % 2 === 0 ? 'Leadership' : 'Analysis'],
+    evidenceStrength: kind === 'mature' ? 'strong' as const : 'limited' as const,
+    verificationStatus: kind === 'mature' ? 'verified' as const : 'stated' as const,
+    evidenceRefs: [{ id: `proof-${index + 1}`, kind: 'activity' as const, label: `Project ${index + 1} proof` }],
+  }));
+  const reportEvidence = activityIds.map((id) => ({ id, kind: 'activity' as const, label: id }));
+  return fullReport({
+    coreIdentity: { ...base.coreIdentity, evidenceRefs: reportEvidence, recurringBehaviours: ['organising peer learning'], observations: activityIds.map((id) => `${id}: organised learning`) },
+    drivingForce: { ...base.drivingForce, isHypothesis: kind !== 'mature', confidence: kind === 'mature' ? 'high' : 'low', evidenceRefs: reportEvidence },
+    signaturePattern: { ...base.signaturePattern, supportingExperienceCount: activityCount, patternStrength: kind === 'mature' ? 'established' : 'emerging', evidenceRefs: reportEvidence },
+    emergingThemes: { ...base.emergingThemes, themes: [{ ...base.emergingThemes.themes[0]!, supportingExperiences: proofCards.map((card) => card.title), evidenceRefs: [...reportEvidence, { id: 'theme-1', kind: 'activity' as const, label: 'Theme evidence' }] }] },
+    personalPositioning: { ...base.personalPositioning, evidenceRefs: [...reportEvidence, { id: 'positioning-1', kind: 'activity' as const, label: 'Positioning evidence' }] },
+    proofOfMe: { ...base.proofOfMe, cards: proofCards },
+    reflectionFindings: kind === 'mature' ? completeReflectionFindings() : [completeReflectionFindings()[0]!],
+    reflectionFindingStatuses: kind === 'mature' ? { q1: 'repeated', q2: 'repeated', q3: 'repeated', q4: 'repeated', q5: 'repeated', q6: 'repeated', q7: 'repeated' } : { q1: 'isolated' },
+    canvasDetails: {
+      capabilities: [{
+        name: 'Leadership', score: kind === 'mature' ? 92 : 45, stars: kind === 'mature' ? 5 : 3, band: kind === 'mature' ? 'very_strong' : 'emerging', confidence: kind === 'mature' ? 'high' : 'low', evidenceCount: activityCount, strongEvidenceCount: kind === 'mature' ? activityCount : 0, verifiedEvidenceCount: kind === 'mature' ? activityCount : 0, why: 'Grounded in recorded organising work.',
+        supportingEvidence: proofCards.map((card) => ({ activityId: card.activityId, title: card.title, outcome: card.outcome, evidenceStrength: card.evidenceStrength, verificationStatus: card.verificationStatus })),
+      }],
+      motivations: [],
+      socialProof: [
+        { key: 'activities', label: 'Experiences analysed', value: activityCount, caption: 'Activities contributing evidence to this report' },
+        ...(kind === 'mature' ? [{ key: 'communityReach' as const, label: 'Community reach', value: 80, caption: 'Largest explicitly quantified audience' }] : []),
+      ],
+      growthPriorities: [],
+      futurePathways: [],
+    },
+  });
+}
+
 function narrativeGrounding(): PersonalReportNarrativeGrounding {
   return {
     evaluationInput: {
@@ -330,7 +503,8 @@ describe('synthesizePersonalReportNarrative', () => {
 
   it('accepts sparse batch responses that omit non-requested canonical sections', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      const request = JSON.parse(String(init?.body)) as { requestedSections: string[] };
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
       return chatResponse(JSON.stringify(sparseSynthesisResponse(request.requestedSections)));
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -354,7 +528,8 @@ describe('synthesizePersonalReportNarrative', () => {
 
   it('accepts a null optional snapshot instead of rejecting the complete batch', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      const request = JSON.parse(String(init?.body)) as { requestedSections: string[] };
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
       const response = sparseSynthesisResponse(request.requestedSections);
       if (request.requestedSections.includes('snapshot')) response.snapshot = null;
       return chatResponse(JSON.stringify(response));
@@ -709,6 +884,95 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(content).not.toContain('Values peer learning');
     expect(content).toContain('"signaturePattern":["activity-1"]');
     expect(content).toContain('"proofOfMe":["proof-1"]');
+  });
+
+  it('accepts the exact structured Personal Report contract in two concurrent batches', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      return chatResponse(JSON.stringify({
+        ...sparseSynthesisResponse(request.requestedSections),
+        narrativeDetails: structuredNarrativeDetails(batch),
+      }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result?.narrativeDetails?.coreIdentity?.identityStatement.split(/\s+/)).toHaveLength(80);
+    expect(result?.narrativeDetails?.provenCapabilities?.capabilities[0]?.capability).toBe('Leadership');
+    expect(result?.narrativeDetails?.socialProof?.metricKeys).toEqual(['activities']);
+  });
+
+  it('rejects a structured contract section outside its exact word range', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const details = structuredNarrativeDetails(request.requestedSections.includes('provenCapabilities') ? 'b' : 'a') as Record<string, unknown>;
+      if (!request.requestedSections.includes('provenCapabilities')) {
+        (details.coreIdentity as Record<string, unknown>).identityStatement = 'too short';
+      }
+      return chatResponse(JSON.stringify({ ...sparseSynthesisResponse(request.requestedSections), narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    let failure: string | null = null;
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+      onFailure: (code) => { failure = code; },
+    });
+
+    expect(result).toBeNull();
+    expect(failure).toBe('invalid_word_length');
+  });
+
+  it('keeps mature, emerging, and sparse quality fixtures grounded', async () => {
+    for (const kind of ['mature', 'emerging', 'sparse'] as const) {
+      const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+        const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+        const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+        const details = structuredNarrativeDetails(batch) as Record<string, unknown>;
+        if (kind === 'mature' && batch === 'a') {
+          const drivingForce = details.drivingForce as Record<string, unknown>;
+          drivingForce.primaryMotivation = 'A confirmed commitment to accessible learning.';
+          drivingForce.strategicInterpretation = 'Repeated choices show a clear commitment to accessible learning.';
+          drivingForce.isHypothesis = false;
+        }
+        return chatResponse(JSON.stringify({ ...sparseSynthesisResponse(request.requestedSections), narrativeDetails: details }));
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await synthesizePersonalReportNarrative({
+        report: qualityFixtureReport(kind),
+        intendedDirection: kind === 'mature' ? 'Computer science' : null,
+        apiKey: 'test-key',
+        model: 'gpt-4o',
+        grounding: narrativeGrounding(),
+      });
+
+      if (kind === 'sparse') {
+        expect(result).toBeNull();
+        expect(fetchMock).not.toHaveBeenCalled();
+      } else {
+        expect(result?.narrativeDetails?.provenCapabilities?.capabilities[0]?.capability).toBe('Leadership');
+        expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+        if (kind === 'emerging') expect(result?.narrativeDetails?.drivingForce?.isHypothesis).toBe(true);
+        if (kind === 'mature') expect(result?.narrativeDetails?.drivingForce?.isHypothesis).toBe(false);
+      }
+    }
   });
 });
 

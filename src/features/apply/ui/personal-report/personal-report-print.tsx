@@ -78,7 +78,7 @@ export function PersonalReportPrintView({
         )}
       >
         <div className="flex flex-col gap-gb-xl">
-          <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
+          <CoreIdentityView section={report.coreIdentity} report={report} returnTo={returnTo} />
           <IdentityEvidenceProfileView report={report} />
           <SignaturePatternView
             section={report.signaturePattern}
@@ -96,7 +96,7 @@ export function PersonalReportPrintView({
         )}
       >
         <div className="flex flex-col gap-gb-xl">
-          <DrivingForceView section={report.drivingForce} returnTo={returnTo} />
+          <DrivingForceView section={report.drivingForce} report={report} returnTo={returnTo} />
           <SnapshotMotivationProfileView report={report} />
         </div>
       </PrintChapter>
@@ -112,6 +112,7 @@ export function PersonalReportPrintView({
           <SnapshotCapabilityProfileView report={report} />
           <PersonalPositioningView
             section={report.personalPositioning}
+            report={report}
             positioningDimensions={report.analytics?.positioningDimensions}
             returnTo={returnTo}
           />

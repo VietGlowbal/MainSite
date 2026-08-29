@@ -48,6 +48,23 @@ export type NarrativeActivity = {
   statedMotivation: string | null;
   /** What changed because of this activity. */
   outcome: string | null;
+  /** Additive extraction bundle for the report writer; deterministic F4 ignores it. */
+  narrativeEvidence?: {
+    context: string | null;
+    trigger: string | null;
+    problem: string | null;
+    motivation: string | null;
+    challenge: string | null;
+    action: string | null;
+    ownership: string | null;
+    method: string | null;
+    impact: string | null;
+    transformation: string | null;
+    future: string | null;
+    role: string | null;
+    domainTheme: string | null;
+    candidateCapabilitySignals: string[];
+  };
   evidenceRefs: EvidenceRef[];
 };
 

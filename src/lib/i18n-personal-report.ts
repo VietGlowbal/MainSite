@@ -38,6 +38,7 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   Credible: 'Đáng tin cậy',
   'What prevents stronger positioning': 'Điều đang cản trở định vị mạnh hơn',
   'Profile narrative': 'Câu chuyện hồ sơ',
+  'Positioning options': 'Các lựa chọn định vị',
   'Experience connection': 'Mối liên kết giữa các trải nghiệm',
   '{count} linked evidence references · {confidenceLabel}: {confidence}':
     '{count} tham chiếu bằng chứng liên kết · {confidenceLabel}: {confidence}',
@@ -156,6 +157,9 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Driving Forces': 'Các động lực',
   'Primary motivation': 'Động lực chính',
   'Repeated motivation signals': 'Các tín hiệu động lực lặp lại',
+  'Repeated choices': 'Các lựa chọn lặp lại',
+  'Underlying values': 'Các giá trị nền tảng',
+  'Recurring problems': 'Các vấn đề lặp lại',
   'Strategic interpretation': 'Diễn giải chiến lược',
   'Proven Capabilities': 'Năng lực đã được chứng minh',
   'Social Proof': 'Bằng chứng xã hội',
