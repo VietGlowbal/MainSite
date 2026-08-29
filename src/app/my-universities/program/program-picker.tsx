@@ -13,6 +13,7 @@ import {
   FOOTER_TAGLINE,
 } from '@/features/marketing/ui';
 import {
+  courseNameFromUrl,
   isCourseUrl,
   optionsForGroup,
   type ProgramChoices,
@@ -186,10 +187,13 @@ export function ProgramPicker({
      * own `official_url` for the programme they picked.
      */
     const programUrl = urlProvided ? url.trim() : chosenOfficialUrl;
+    const programFromUrl = urlProvided
+      ? choices.options.find((option) => option.officialUrl === programUrl)?.name ?? courseNameFromUrl(programUrl)
+      : null;
 
     const { error: updateError } = await supabase
       .from('user_universities')
-      .update({ program, program_url: programUrl })
+      .update({ program: program ?? programFromUrl, program_url: programUrl })
       .eq('id', savedId);
 
     if (updateError) {
