@@ -1376,6 +1376,8 @@ Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/m
 
 2026-08-29 Matching Report validation-log fix (working tree): observability now preserves `StructuredGenerationError.issues` string summaries instead of treating them as Zod issue objects and logging every failure as `root: Invalid`. Added regression coverage for the real cross-reference issue format. Measured: observability suite 27/27, scoped ESLint, base typecheck, and `git diff --check` pass.
 
+2026-08-29 Matching Report evidence-ref mapping fix (working tree): Applicant Matching Context now canonicalizes legacy `achievement:<id>` references from Personal Report output to the matching Evidence Bank claim ID (for example `experience:<id>`), using the claim's source refs; refs with no canonical claim are omitted. This prevents deterministic competitive-advantage candidates from feeding source IDs into V3 summary provenance validation. Measured: matching context/V3 suites 7/7, scoped ESLint, base typecheck, and `git diff --check` pass.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

@@ -100,7 +100,6 @@ export type ApplicantMatchingContext = {
 };
 
 const unique = (values: readonly string[]) => Array.from(new Set(values.filter((value) => value.trim())));
-const refs = (value: { id: string }[] | undefined) => unique((value ?? []).map((item) => item.id));
 
 /**
  * Builds the compact, structured applicant input for V3. Personal Report
@@ -119,12 +118,21 @@ export function buildApplicantMatchingContext(args: {
   const emergingThemes = personalReport.emergingThemes ?? { themes: [] };
   const positioning = personalReport.personalPositioning ?? { statement: null, positioningStatus: 'insufficient_data', whyThisFits: [], whatPreventsStrongerPositioning: [], evidenceRefs: [] };
   const proof = personalReport.proofOfMe?.cards ?? [];
+  const canonicalEvidenceIds = new Set(evidenceBank.claims.map((claim) => claim.id));
+  const evidenceIdBySourceRef = new Map<string, string>();
+  for (const claim of evidenceBank.claims) {
+    for (const sourceRef of claim.sourceRefs) evidenceIdBySourceRef.set(sourceRef, claim.id);
+  }
+  const canonicalizeEvidenceIds = (ids: readonly string[]) => unique(ids)
+    .map((id) => canonicalEvidenceIds.has(id) ? id : evidenceIdBySourceRef.get(id))
+    .filter((id): id is string => Boolean(id));
+  const refs = (value: { id: string }[] | undefined) => canonicalizeEvidenceIds((value ?? []).map((item) => item.id));
   const interpretationsById = new Map(evidenceBank.interpretations.map((item) => [item.id, item]));
   const insight = (personalReport.growthAreas ?? []).map((item) => ({
     statement: item.statement,
     importance: item.importance ?? null,
     direction: item.direction ?? null,
-    evidenceIds: unique(item.evidenceIds),
+    evidenceIds: canonicalizeEvidenceIds(item.evidenceIds),
   }));
 
   return {
@@ -193,14 +201,14 @@ export function buildApplicantMatchingContext(args: {
     growthSignals: insight,
     competitiveAdvantages: (personalReport.competitiveAdvantages ?? []).map((item) => ({
       statement: item.statement,
-      evidenceIds: unique(item.evidenceIds),
+      evidenceIds: canonicalizeEvidenceIds(item.evidenceIds),
     })),
     keyTakeaways: personalReport.keyTakeaways
       ? [
           personalReport.keyTakeaways.whatMakesYouStandOut,
           personalReport.keyTakeaways.competitiveAdvantage,
           personalReport.keyTakeaways.growthOpportunity,
-        ].map((item) => ({ statement: item.statement, evidenceIds: unique(item.evidenceIds) }))
+        ].map((item) => ({ statement: item.statement, evidenceIds: canonicalizeEvidenceIds(item.evidenceIds) }))
       : [],
     futureDirection: {
       intended: state.directionSignals?.intendedDirection ?? null,

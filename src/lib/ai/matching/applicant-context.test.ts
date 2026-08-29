@@ -7,6 +7,13 @@ import { buildApplicantMatchingContext } from './applicant-context';
 
 const state = { academicProfile: { records: [] }, achievements: [], activities: [], evidenceBank: [], metadata: {} } as unknown as ApplicantAIState;
 const evidenceBank: EvidenceBank = { version: 'eb-v1', sources: {}, interpretations: [], claims: [], missingInformation: [] };
+const canonicalEvidenceBank: EvidenceBank = {
+  version: 'eb-v1',
+  sources: { 'achievement:activity-1': { id: 'achievement:activity-1', type: 'achievement', label: 'Activity' } },
+  interpretations: [],
+  claims: [{ id: 'experience:activity-1', category: 'experience', statement: 'Activity evidence', status: 'verified', sourceRefs: ['achievement:activity-1'], interpretationRefs: [], tags: { competencies: [], criteria: [] } }],
+  missingInformation: [],
+};
 
 const report = {
   coreIdentity: { recurringRole: 'organiser', recurringBehaviours: ['coordinating volunteers'], valueOrientation: 'community impact', confidence: 'medium', evidenceRefs: [{ id: 'activity-1' }] },
@@ -25,6 +32,26 @@ const report = {
 } as unknown as PersonalReportV2;
 
 describe('matching context narrative isolation', () => {
+  it('normalizes legacy achievement refs to canonical Evidence Bank claim IDs', () => {
+    const legacyReport = {
+      ...report,
+      coreIdentity: { ...report.coreIdentity, evidenceRefs: [{ id: 'achievement:activity-1' }] },
+      growthAreas: [{ statement: 'Add broader evidence', importance: 'medium', direction: 'Add another experience', evidenceIds: ['achievement:activity-1'] }],
+      competitiveAdvantages: [{ statement: 'Canonical advantage', evidenceIds: ['achievement:activity-1'] }],
+      keyTakeaways: {
+        whatMakesYouStandOut: { statement: 'Canonical standout', evidenceIds: ['achievement:activity-1'] },
+        competitiveAdvantage: { statement: 'Canonical advantage', evidenceIds: ['positioning-1'] },
+        growthOpportunity: { statement: 'Canonical growth', evidenceIds: ['activity-1'] },
+      },
+    } as unknown as PersonalReportV2;
+    const context = buildApplicantMatchingContext({ personalReport: legacyReport, state, evidenceBank: canonicalEvidenceBank });
+
+    expect(context.coreIdentity.evidenceIds).toEqual(['experience:activity-1']);
+    expect(context.growthSignals[0].evidenceIds).toEqual(['experience:activity-1']);
+    expect(context.competitiveAdvantages[0].evidenceIds).toEqual(['experience:activity-1']);
+    expect(context.keyTakeaways[0].evidenceIds).toEqual(['experience:activity-1']);
+  });
+
   it('keeps matching context identical when applicant-facing narrative is added', () => {
     const before = buildApplicantMatchingContext({ personalReport: report, state, evidenceBank });
     const after = buildApplicantMatchingContext({
