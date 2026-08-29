@@ -815,6 +815,12 @@ country-plus-budget 0/6/2, budget-only 0/0/6, and sparse-subject-only 0/0/6
 for top/good/worth. Focused recommendation/domain/API/UI plus i18n tests now
 pass 55/55. No aggregate gate, full Vitest, or production build was run.
 
+Working tree 2026-08-29: the saved-university subject picker restores VinUni's
+typed `vinuni-content.ts` catalogue (4 colleges, 10 programmes). The live
+`catalog_programmes` view currently contains only VinUni's BBA row, so using it
+as the picker source hid the other programmes; other universities continue to
+fall back to `universities.strengths`.
+
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and
 disabled Stripe choice. The vertical slice includes controlled provider UI,
