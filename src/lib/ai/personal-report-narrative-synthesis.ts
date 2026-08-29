@@ -747,6 +747,7 @@ function assertNarrativeNumbersAreGrounded(
   sectionInput: SynthesisSectionInput,
 ): void {
   const inputNumbers = (value: unknown) => new Set(groundedNumbers(value));
+  const allGroundedNumbers = inputNumbers(sectionInput);
   const details = parsed.narrativeDetails;
   const sections: Array<[string, string[], Set<string>]> = [
     ['snapshot', details?.snapshot ? [details.snapshot] : [], inputNumbers({
@@ -788,7 +789,7 @@ function assertNarrativeNumbersAreGrounded(
     })],
   ];
   for (const [section, prose, allowed] of sections) {
-    if (prose.some((value) => narrativeNumbers(value).some((number) => !allowed.has(number)))) {
+    if (prose.some((value) => narrativeNumbers(value).some((number) => !allowed.has(number) && !allGroundedNumbers.has(number)))) {
       throw new Error(`Narrative synthesis introduced an unsupported numeric fact in ${section}.`);
     }
   }
@@ -1078,6 +1079,10 @@ function requireSubset(ids: readonly string[], allowed: ReadonlySet<string>): st
   return [...ids];
 }
 
+function normalizeNarrativeLabel(value: string): string {
+  return value.trim().toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ');
+}
+
 function materializeNarrativeDetails(
   details: ParsedNarrativeDetails,
   batch: NarrativeBatch,
@@ -1125,13 +1130,13 @@ function materializeNarrativeDetails(
     };
   }
   if (requested.has('provenCapabilities') && details.provenCapabilities) {
-    const canonical = new Map(sectionInput.canvasDetails.capabilities.slice(0, 4).map((capability) => [capability.capability.toLowerCase(), capability]));
+    const canonical = new Map(sectionInput.canvasDetails.capabilities.slice(0, 4).map((capability) => [normalizeNarrativeLabel(capability.capability), capability]));
     output.provenCapabilities = {
       overview: details.provenCapabilities.overview,
       overviewEvidenceIds: requireEvidenceIds(details.provenCapabilities.overviewEvidenceIds, allowedBySection.narrativeCapabilities),
-      capabilities: details.provenCapabilities.capabilities.map((capability) => {
-        const match = canonical.get(capability.capability.toLowerCase());
-        if (!match) throw new Error('Narrative synthesis cited an unsupported capability.');
+      capabilities: details.provenCapabilities.capabilities.flatMap((capability) => {
+        const match = canonical.get(normalizeNarrativeLabel(capability.capability));
+        if (!match) return [];
         return {
           ...capability,
           evidenceIds: requireSubset(capability.evidenceIds, new Set(match.evidenceIds)),
@@ -1144,21 +1149,18 @@ function materializeNarrativeDetails(
   }
   if (requested.has('socialProof') && details.socialProof) {
     const metricKeys = new Set(sectionInput.canvasDetails.socialProof.map((metric) => metric.key));
-    if (details.socialProof.metricKeys.some((key) => !metricKeys.has(key))) throw new Error('Narrative synthesis cited an unsupported social-proof metric.');
     output.socialProof = {
       ...details.socialProof,
-      metricKeys: [...details.socialProof.metricKeys],
+      metricKeys: details.socialProof.metricKeys.filter((key) => metricKeys.has(key)),
       evidenceIds: requireEvidenceIds(details.socialProof.evidenceIds, allowedBySection.narrativeSocialProof),
     };
   }
   if (requested.has('profilePositioning') && details.profilePositioning) {
     const supportingExperienceTitles = sectionInput.personalPositioning?.supportingExperienceTitles ?? [];
-    if (details.profilePositioning.experienceConnection.supportingExperienceCount !== supportingExperienceTitles.length) {
-      throw new Error('Narrative synthesis introduced an unsupported numeric fact in profilePositioning.');
-    }
     output.profilePositioning = {
       experienceConnection: {
         ...details.profilePositioning.experienceConnection,
+        supportingExperienceCount: supportingExperienceTitles.length,
         supportingExperienceTitles,
         evidenceIds: requireEvidenceIds(details.profilePositioning.experienceConnection.evidenceIds, allowedBySection.narrativePositioning),
       },

@@ -1,5 +1,12 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report validator tolerance): narrative
+numeric checks now accept values grounded elsewhere in the same deterministic
+input, while unsupported capability/metric labels are dropped and deterministic
+experience counts are restored instead of failing the whole batch. Evidence
+IDs and prose safety guards remain strict. Measured: narrative synthesis
+43/43, base typecheck, scoped ESLint, and `git diff --check` pass.
+
 Working tree 2026-08-29 (Personal Report schema retry fix): deterministic
 `high`/`medium`/`low` evidence confidence is now translated to the narrative
 schema's `strong`/`moderate`/`limited` vocabulary only in the model payload;

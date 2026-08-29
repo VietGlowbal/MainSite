@@ -843,6 +843,57 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failureCode).toBe('unsupported_narrative_fact');
   });
 
+  it('allows a grounded number reused in another narrative section', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      const details = structuredNarrativeDetails(batch);
+      if (batch === 'a') details.coreIdentity!.identityStatement = `${repeatedWords(79, 'identity')} 1`;
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.narrativeDetails?.coreIdentity?.identityStatement).toContain(' 1');
+  });
+
+  it('drops unsupported capability and social-proof labels without rejecting the batch', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      const details = structuredNarrativeDetails(batch);
+      if (batch === 'b') {
+        details.provenCapabilities!.capabilities.push({
+          ...details.provenCapabilities!.capabilities[0]!,
+          capability: 'Unrecorded capability',
+        });
+        details.socialProof!.metricKeys.push('unrecorded_metric');
+      }
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.narrativeDetails?.provenCapabilities?.capabilities).toHaveLength(1);
+    expect(result?.narrativeDetails?.socialProof?.metricKeys).toEqual(['activities']);
+  });
+
   it('rejects first-person prose instead of publishing the applicant voice as report narration', async () => {
     const details = structuredNarrativeDetails('a');
     details.coreIdentity!.identityStatement = `I enjoy building systems ${repeatedWords(77, 'identity')}`;
