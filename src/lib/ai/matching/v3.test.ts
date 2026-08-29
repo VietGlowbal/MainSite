@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { composeMatchingReportV3 } from './report';
-import { generateMatchingV3Summary } from './reasoner';
+import { generateMatchingV3Summary, reasonAboutV3Metrics } from './reasoner';
 import { matchingReportV3Schema } from './domain';
-import { normalizeAcademicRubricScore, weightedScore } from './v3-scoring';
+import { normalizeAcademicRubricScore, UNIVERSITY_FIT_METRICS, weightedScore } from './v3-scoring';
 
 const targetProfile = {
   programme: { id: 'programme-1', name: 'Computer Science', university: 'Example University', level: 'undergraduate', subject: 'computing' },
@@ -66,6 +66,48 @@ const generate = async (args: { moduleId: string; userPrompt: string }) => {
 };
 
 describe('matching report v3', () => {
+  it('sends each metric as a small strict structured batch', async () => {
+    const calls: Array<{ userPrompt: string; jsonSchemaFormat?: Record<string, unknown> }> = [];
+    const result = await reasonAboutV3Metrics({
+      definitions: UNIVERSITY_FIT_METRICS.slice(0, 2),
+      context,
+      targetProfile,
+      previousReport: null,
+      generate: (async (args: { userPrompt: string; jsonSchemaFormat?: Record<string, unknown> }) => {
+        calls.push(args);
+        const input = JSON.parse(args.userPrompt) as { metrics: Array<{ metricId: string; submetrics: Array<{ id: string }> }> };
+        const metric = input.metrics[0];
+        return {
+          data: {
+            results: metric.submetrics.map((submetric) => ({
+              metricId: metric.metricId,
+              submetricId: submetric.id,
+              status: 'assessed',
+              score: 40,
+              confidence: 0.5,
+              reasoning: 'The supplied evidence supports this limited assessment.',
+              applicantEvidenceIds: ['claim-1'],
+              targetSourceRefs: ['source-1'],
+              missingEvidence: [],
+              limitations: [],
+            })),
+          },
+          meta: { attemptCount: 1 },
+        };
+      }) as never,
+    });
+
+    expect(result.metricBatches).toBe(2);
+    expect(calls).toHaveLength(2);
+    expect(calls.every((call) => call.jsonSchemaFormat?.json_schema && (call.jsonSchemaFormat.json_schema as Record<string, unknown>).strict === true)).toBe(true);
+    const schema = (calls[0].jsonSchemaFormat?.json_schema as Record<string, unknown>).schema as Record<string, unknown>;
+    const resultSchema = ((schema.properties as Record<string, unknown>).results as Record<string, unknown>).items as Record<string, unknown>;
+    expect(resultSchema.required).toEqual([
+      'metricId', 'submetricId', 'status', 'score', 'confidence', 'reasoning',
+      'applicantEvidenceIds', 'targetSourceRefs', 'missingEvidence', 'limitations',
+    ]);
+  });
+
   it('renormalizes weighted scores instead of treating missing evidence as zero', () => {
     expect(weightedScore([
       { submetricId: 'a', metricId: 'm', status: 'assessed', score: 80, confidence: 1, reasoning: 'x', applicantEvidenceIds: [], targetSourceRefs: [], missingEvidence: [], limitations: [] },

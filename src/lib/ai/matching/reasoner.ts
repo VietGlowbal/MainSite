@@ -328,7 +328,57 @@ export async function generateMatchingSummary(args: {
   return summary;
 }
 
-const V3_BATCH_SIZE = 6;
+const matchingMetricBatchSchema = z.object({
+  results: z.array(matchingV3MetricResultSchema),
+}).strict();
+
+type JsonSchemaRecord = Record<string, unknown>;
+
+function isJsonSchemaRecord(value: unknown): value is JsonSchemaRecord {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function toOpenAiStrictSchema(input: unknown): JsonSchemaRecord {
+  if (!isJsonSchemaRecord(input)) return {};
+  if (Array.isArray(input.anyOf)) {
+    const branches = input.anyOf.filter(isJsonSchemaRecord);
+    const nonNull = branches.filter((branch) => branch.type !== 'null');
+    if (nonNull.length === 1) {
+      return { anyOf: [toOpenAiStrictSchema(nonNull[0]), { type: 'null' }] };
+    }
+  }
+
+  const output: JsonSchemaRecord = {};
+  if (Array.isArray(input.enum)) output.enum = input.enum;
+  if (input.type === 'object' || isJsonSchemaRecord(input.properties)) {
+    const properties = isJsonSchemaRecord(input.properties) ? input.properties : {};
+    output.type = 'object';
+    output.properties = Object.fromEntries(
+      Object.entries(properties).map(([key, value]) => [key, toOpenAiStrictSchema(value)]),
+    );
+    output.required = Object.keys(properties);
+    output.additionalProperties = false;
+  } else if (input.type === 'array') {
+    output.type = 'array';
+    output.items = toOpenAiStrictSchema(input.items);
+  } else if (typeof input.type === 'string') {
+    output.type = input.type;
+  }
+  return output;
+}
+
+const matchingMetricResponseFormat = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'matching_metric_reasoning_batch',
+    strict: true,
+    schema: toOpenAiStrictSchema(z.toJSONSchema(matchingMetricBatchSchema, {
+      target: 'draft-07',
+      unrepresentable: 'any',
+      reused: 'inline',
+    })),
+  },
+} satisfies Record<string, unknown>;
 
 function targetFactsForMetric(profile: TargetProfile, metricId: string) {
   const targetRefs = targetRefsForMetric(profile, metricId);
@@ -425,26 +475,17 @@ export async function reasonAboutV3Metrics(args: {
     }
   }
   const activeDefinitions = args.definitions.filter((definition) => !unavailable.has(definition.id) && !reusable.has(definition.id));
-  const batches: Array<{ definition: V3MetricDefinition; submetrics: V3MetricDefinition['submetrics'] }> = [];
-  const submetrics = activeDefinitions.flatMap((definition) =>
-    definition.submetrics.map((submetric) => ({ definition, submetric })),
-  );
-  for (let i = 0; i < submetrics.length; i += V3_BATCH_SIZE) {
-    const chunk = submetrics.slice(i, i + V3_BATCH_SIZE);
-    const grouped = new Map<string, { definition: V3MetricDefinition; submetrics: V3MetricDefinition['submetrics'] }>();
-    for (const item of chunk) {
-      const current = grouped.get(item.definition.id) ?? { definition: item.definition, submetrics: [] };
-      current.submetrics.push(item.submetric);
-      grouped.set(item.definition.id, current);
-    }
-    batches.push(...grouped.values());
-  }
+  // One metric (four submetrics) per provider call keeps the response small
+  // and mirrors Personal Report's independent section batches.
+  const batches = activeDefinitions.map((definition) => ({
+    definition,
+    submetrics: definition.submetrics,
+  }));
 
   const results: MatchingV3MetricResult[] = [...unavailable.values(), ...reusable.values()].flat();
-  let providerCalls = 0;
   const evidenceById = new Map(args.context.evidence.map((item) => [item.id, item]));
 
-  for (const batch of batches) {
+  const generatedBatches = await Promise.all(batches.map(async (batch) => {
     const targetRefs = targetRefsForMetric(args.targetProfile, batch.definition.id);
     const batchEvidence = relevantV3Evidence(args.context, [batch.definition]);
     const targetFacts = targetFactsForMetric(args.targetProfile, batch.definition.id);
@@ -462,18 +503,19 @@ export async function reasonAboutV3Metrics(args: {
     const generated = await generate({
       moduleId: 'matching_metric_reasoning',
       promptVersion,
-      schemaVersion: 'matching-metric-v3.1.0',
+      schemaVersion: 'matching-metric-v3.2.0',
       systemPrompt,
       userPrompt: JSON.stringify(input),
-      schema: z.object({ results: z.array(matchingV3MetricResultSchema) }).strict(),
+      schema: matchingMetricBatchSchema,
+      jsonSchemaFormat: matchingMetricResponseFormat,
     });
-    providerCalls += generated.meta.attemptCount;
 
     const expected = new Set(batch.submetrics.map((item) => item.id));
     const seen = new Set<string>();
     if (generated.data.results.length !== expected.size) {
       throw new Error(`Metric batch returned ${generated.data.results.length} results for ${expected.size} submetrics.`);
     }
+    const results: MatchingV3MetricResult[] = [];
     for (const result of generated.data.results) {
       if (result.metricId !== batch.definition.id || !expected.has(result.submetricId)) {
         throw new Error(`Metric batch returned an unknown result: ${result.metricId}/${result.submetricId}`);
@@ -504,7 +546,10 @@ export async function reasonAboutV3Metrics(args: {
           : result,
       );
     }
-  }
+    return { results, providerCalls: generated.meta.attemptCount };
+  }));
+  results.push(...generatedBatches.flatMap((batch) => batch.results));
+  const providerCalls = generatedBatches.reduce((sum, batch) => sum + batch.providerCalls, 0);
   return { results, metricBatches: batches.length, providerCalls, metricInputHashes, reusedMetricIds: [...reusable.keys()] };
 }
 

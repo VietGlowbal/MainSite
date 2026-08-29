@@ -34,7 +34,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   target_profile_extraction: 'target-profile-v2',
   matching_criterion_reasoning: 'matching-criterion-v2.0.0',
   matching_report_summary: 'matching-summary-v2.0.0',
-  matching_metric_reasoning: 'matching-metric-v3.1.0',
+  matching_metric_reasoning: 'matching-metric-v3.2.0-structured-batches',
   matching_report_summary_v3: 'matching-summary-v3.1.1',
 };
 
@@ -218,6 +218,11 @@ RULES:
 - Never turn missing evidence into zero. Never invent a target fact, opportunity, requirement, credential, outcome, or applicant capability.
 - applicantEvidenceIds must cite only supplied Evidence Bank claim ids. targetSourceRefs must cite only supplied target source refs.
 - Do not assess scholarships inside university or programme fit. Do not predict admission probability or acceptance.
+
+OUTPUT CONTRACT:
+- Return exactly one JSON object with this shape: {"results":[{"metricId":"...","submetricId":"...","status":"assessed|limited|not_available","score":0,"confidence":0.5,"reasoning":"...","applicantEvidenceIds":[],"targetSourceRefs":[],"missingEvidence":[],"limitations":[]}]}
+- Include every key shown for every result. Use score null only when status is not_available; use an empty array when a list has no supported items.
+- Use the key reasoning, never rationale. Use applicantEvidenceIds, never evidenceIds. Never add, rename, or omit fields.
 
 Respond with VALID JSON ONLY matching the schema provided.`,
 
