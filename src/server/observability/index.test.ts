@@ -67,6 +67,15 @@ describe('src/server/observability', () => {
       expect(classifyError(err).category).toBe('validation_error');
     });
 
+    it('preserves structured-generation issue strings in validation logs', () => {
+      const classified = classifyError({
+        name: 'StructuredGenerationError',
+        message: 'Structured output still invalid after one repair attempt (schema_validation).',
+        issues: ['keyTakeaways.strongestFit.evidenceIds.0: Unknown evidence id: invented-id'],
+      });
+      expect(classified.message).toBe('Validation failed: keyTakeaways.strongestFit.evidenceIds.0: Unknown evidence id: invented-id');
+    });
+
     it('classifies Rate limit error (429) as rate_limit', () => {
       const err = { status: 429, message: 'Too many requests, slow down.' };
       const classified = classifyError(err);

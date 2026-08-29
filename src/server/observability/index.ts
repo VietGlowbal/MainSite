@@ -194,8 +194,12 @@ export function classifyError(error: unknown): ClassifiedError {
       message.toLowerCase().includes('validation failed')
     ) {
       if (Array.isArray(err['issues']) && err['issues'].length > 0) {
-        const issuesSummary = (err['issues'] as Array<{ path?: (string | number)[]; message?: string }>)
-          .map((i) => `${(i.path ?? []).join('.') || 'root'}: ${i.message ?? 'Invalid'}`)
+        const issuesSummary = (err['issues'] as Array<unknown>)
+          .map((issue) => {
+            if (typeof issue === 'string') return issue;
+            const i = issue as { path?: (string | number)[]; message?: string };
+            return `${(i.path ?? []).join('.') || 'root'}: ${i.message ?? 'Invalid'}`;
+          })
           .slice(0, 5)
           .join('; ');
         message = `Validation failed: ${issuesSummary}`;

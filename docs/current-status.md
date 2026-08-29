@@ -1374,6 +1374,8 @@ Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/m
 
 2026-08-29 Matching Report summary reference fix (working tree): the summary model now receives explicit `evidenceIds`, `targetSourceRefs`, and `metricIds` allowlists, while the same cross-reference checks run inside the Zod schema so the shared one-attempt repair can correct unknown IDs. Previously the prompt omitted those lists and post-generation validation failed with `V3 summary returned an unknown evidence id.` Measured: V3 suite 5/5, scoped ESLint, base typecheck, and `git diff --check` pass.
 
+2026-08-29 Matching Report validation-log fix (working tree): observability now preserves `StructuredGenerationError.issues` string summaries instead of treating them as Zod issue objects and logging every failure as `root: Invalid`. Added regression coverage for the real cross-reference issue format. Measured: observability suite 27/27, scoped ESLint, base typecheck, and `git diff --check` pass.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:
