@@ -35,7 +35,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   matching_criterion_reasoning: 'matching-criterion-v2.0.0',
   matching_report_summary: 'matching-summary-v2.0.0',
   matching_metric_reasoning: 'matching-metric-v3.1.0',
-  matching_report_summary_v3: 'matching-summary-v3.1.0',
+  matching_report_summary_v3: 'matching-summary-v3.1.1',
 };
 
 const PROMPTS: Record<ReportPromptId, string> = {
@@ -230,7 +230,7 @@ RULES:
 - Preserve the distinction between University Fit, Programme Fit, hard requirements, and scholarship alignment.
 - Every reference id must be copied from the supplied candidate lists; never invent or omit provenance.
 - Never use admissions probability, acceptance chance, reach/match/safety, or guaranteed-admission language.
-- A missing evidence item is not proof of inability. Keep limited and not-available findings explicit.
+- A missing evidence item is not proof of inability. Describe evidence limits as “not established from the available evidence”; never describe the applicant or candidate as unable, incapable, or lacking ability.
 - Strongest Fit = core identity, repeated patterns, and positioning.
 - Competitive Advantage = proven capabilities, social proof, and positioning.
 - Critical Gap = capability, evidence, requirement, or positioning gap.

@@ -325,7 +325,7 @@ export type MatchingReportV2 = z.infer<typeof matchingReportV2Schema>;
 // rows and for the older strategy surfaces.
 export const MATCHING_REPORT_V3_CONTRACT_VERSION = 'matching-report-v3' as const;
 export const MATCHING_ENGINE_V3_VERSION = 'matching-v3.1.0' as const;
-export const MATCHING_PROMPT_BUNDLE_V3_VERSION = 'matching-prompts-v3.1.0' as const;
+export const MATCHING_PROMPT_BUNDLE_V3_VERSION = 'matching-prompts-v3.1.1' as const;
 export const MATCHING_FORMULA_V3_VERSION = 'matching-formula-v3.1.0' as const;
 
 export const matchingV3MetricStatusSchema = z.enum(['assessed', 'limited', 'not_available']);

@@ -1378,6 +1378,8 @@ Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/m
 
 2026-08-29 Matching Report evidence-ref mapping fix (working tree): Applicant Matching Context now canonicalizes legacy `achievement:<id>` references from Personal Report output to the matching Evidence Bank claim ID (for example `experience:<id>`), using the claim's source refs; refs with no canonical claim are omitted. This prevents deterministic competitive-advantage candidates from feeding source IDs into V3 summary provenance validation. Measured: matching context/V3 suites 7/7, scoped ESLint, base typecheck, and `git diff --check` pass.
 
+2026-08-29 Matching Report missing-evidence wording fix (working tree): V3 summary validation now blocks only explicit claims that the applicant/candidate/student is unable or incapable, while allowing neutral data-limit wording such as “unable to establish from the available evidence.” The summary prompt states the preferred wording and the V3 prompt/bundle versions are bumped to `3.1.1`. Measured: reasoner/V3 suites 20/20, scoped ESLint, base typecheck, and `git diff --check` pass.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

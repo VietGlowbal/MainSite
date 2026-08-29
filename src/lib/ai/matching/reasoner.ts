@@ -568,7 +568,7 @@ export async function generateMatchingV3Summary(args: {
   if (args.hardRequirements?.some((requirement) => requirement.status === 'not_met') && /(?:all|every)\s+(?:hard\s+)?requirements?\s+(?:are\s+)?met|fully\s+eligible/i.test(copy)) {
     throw new Error('V3 summary contradicts a failed hard requirement.');
   }
-  if (/\b(?:cannot|can\'t|unable to|lacks the ability|not capable of)\b/i.test(copy)) {
+  if (/\b(?:(?:the|an?|this)\s+)?(?:applicant|candidate|student|they|you)\s+(?:cannot|can\'t|(?:is|are)\s+unable\s+to|(?:is|are)\s+not\s+capable\s+of|(?:lack|lacks)\s+the\s+ability\s+to|(?:do|does)\s+not\s+have\s+the\s+ability\s+to)\b/i.test(copy)) {
     throw new Error('V3 summary treats missing evidence as inability.');
   }
   for (const takeaway of Object.values(result.data.keyTakeaways)) {

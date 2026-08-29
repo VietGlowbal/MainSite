@@ -148,7 +148,7 @@ describe('matching report v3', () => {
       keyTakeaways: {
         strongestFit: { title: 'Strongest fit', body: 'The strongest fit is supported by the supplied evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
         competitiveAdvantage: { title: 'Competitive advantage', body: 'The applicant shows a supported analytical strength.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
-        criticalGap: { title: 'Critical gap', body: 'No critical gap is established by the available evidence.', evidenceIds: [], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+        criticalGap: { title: 'Critical gap', body: 'Unable to establish a critical gap from the available evidence.', evidenceIds: [], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
         strategicDirection: { title: 'Strategic direction', body: 'Build on the supported analytical strength with further evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
       },
     };
