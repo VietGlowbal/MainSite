@@ -943,7 +943,7 @@ export type PersonalReportNarrativeDetails = {
   };
 };
 
-export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v5-additive-narrative-details';
+export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v6-required-narrative-repair';
 
 function wordCount(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;

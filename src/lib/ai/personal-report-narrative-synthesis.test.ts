@@ -843,6 +843,30 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failureCode).toBe('unsupported_narrative_fact');
   });
 
+  it('repairs an invalid narrative response before failing the required batch', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[]; invalidResponse?: string; validationErrors?: Array<{ message: string }> };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      const details = structuredNarrativeDetails(batch);
+      if (batch === 'a' && !request.invalidResponse) details.snapshot = 'Too short.';
+      if (batch === 'a' && request.invalidResponse) expect(request.validationErrors?.[0]?.message).toContain('Snapshot word length is 2; expected 150-200');
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.narrativeDetails?.snapshot?.split(/\s+/)).toHaveLength(150);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('allows a grounded number reused in another narrative section', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };

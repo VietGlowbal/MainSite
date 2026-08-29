@@ -175,10 +175,12 @@ export type PersonalReportNarrativeFailureIssue = {
 export type PersonalReportNarrativeFailureContext = {
   batch?: string[];
   issues?: PersonalReportNarrativeFailureIssue[];
+  detail?: string;
 };
 
 // Prompt text and its version live in the shared registry (Task 2).
 const { systemPrompt: SYSTEM_PROMPT } = getReportPrompt('report_narrative_synthesis');
+const REPAIR_SYSTEM_PROMPT = `Repair one invalid JSON response for the applicant-facing Personal Report. Return only a complete JSON object for the requested narrativeDetails sections. Correct every listed validation error, preserve the requested section shape, and use only the supplied input and allowed evidence IDs. Do not add facts, scores, rankings, or unsupported numbers. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130.`;
 
 type SynthesisSectionInput = {
   coreIdentity: {
@@ -820,7 +822,7 @@ function wordCount(value: string): number {
 
 function assertWordRange(value: string, min: number, max: number, section: string): void {
   const count = wordCount(value);
-  if (count < min || count > max) throw new Error(`${section} word length is outside the required range.`);
+  if (count < min || count > max) throw new Error(`${section} word length is ${count}; expected ${min}-${max}.`);
 }
 
 function assertNarrativeDetailsLengths(details: NonNullable<z.infer<typeof synthesisResponseSchema>['narrativeDetails']>): void {
@@ -870,6 +872,18 @@ function failureCode(error: unknown): PersonalReportNarrativeFailureCode {
   if (/request timed out/i.test(message)) return 'timeout';
   if (/OpenAI request failed/i.test(message)) return 'provider_error';
   return 'unknown';
+}
+
+function failureIssues(error: unknown): PersonalReportNarrativeFailureIssue[] {
+  if (error instanceof z.ZodError) {
+    return error.issues.map(({ path, code, message }) => ({ path: path.map(String), code, message }));
+  }
+  const detail = error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240);
+  return [{ path: [], code: failureCode(error), message: detail }];
+}
+
+function isRepairableNarrativeFailure(error: unknown): boolean {
+  return !['provider_error', 'timeout', 'output_truncated', 'unknown'].includes(failureCode(error));
 }
 
 type CanonicalNarrativeSection =
@@ -1065,6 +1079,19 @@ function batchInputForModel(
   };
 }
 
+function narrativeBatchPayload(
+  sectionInput: SynthesisSectionInput,
+  batch: NarrativeBatch,
+  allowed: ReadonlyMap<string, EvidenceRef>,
+  allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
+) {
+  return {
+    input: batchInputForModel(sectionInput, batch),
+    requestedSections: [...batch.structured],
+    allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowed, allowedBySection),
+  };
+}
+
 type ParsedNarrativeDetails = NonNullable<z.infer<typeof synthesisResponseSchema>['narrativeDetails']>;
 
 function requireEvidenceIds(ids: readonly string[], allowed: ReadonlyMap<string, EvidenceRef>): string[] {
@@ -1240,6 +1267,57 @@ function parseNarrativeBatch(
   return materializeBatch(parsed, batch, batchInputValue, allowedBySection);
 }
 
+async function completeNarrativeBatch(args: {
+  apiKey: string;
+  model: string;
+  batch: NarrativeBatch;
+  sectionInput: SynthesisSectionInput;
+  allowed: ReadonlyMap<string, EvidenceRef>;
+  allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>;
+}): Promise<Partial<PersonalReportNarrativeSynthesis>> {
+  const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowed, args.allowedBySection);
+  const content = await openAiJsonCompletion({
+    apiKey: args.apiKey,
+    model: args.model,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: JSON.stringify(payload) },
+    ],
+    temperature: 0.4,
+    maxTokens: args.batch.maxTokens,
+  });
+
+  try {
+    return parseNarrativeBatch(content, args.batch, args.sectionInput, args.allowedBySection);
+  } catch (error) {
+    if (!isRepairableNarrativeFailure(error)) throw error;
+    const issues = failureIssues(error);
+    console.info('[personal-report-narrative-synthesis] repairing', {
+      batch: args.batch.structured,
+      issues,
+      model: args.model,
+    });
+    const repairedContent = await openAiJsonCompletion({
+      apiKey: args.apiKey,
+      model: args.model,
+      messages: [
+        { role: 'system', content: REPAIR_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            ...payload,
+            validationErrors: issues,
+            invalidResponse: content.slice(0, 24_000),
+          }),
+        },
+      ],
+      temperature: 0,
+      maxTokens: args.batch.maxTokens,
+    });
+    return parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection);
+  }
+}
+
 export async function synthesizePersonalReportNarrative(args: {
   report: PersonalReportV2;
   intendedDirection: string | null;
@@ -1285,24 +1363,18 @@ export async function synthesizePersonalReportNarrative(args: {
     const outcomes = await Promise.all(
       batches.map(async (batch) => {
         try {
-          const content = await openAiJsonCompletion({
+          return {
+            batch,
+            value: await completeNarrativeBatch({
             apiKey,
             model,
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              {
-                role: 'user',
-                content: JSON.stringify({
-                  input: batchInputForModel(sectionInput, batch),
-                  requestedSections: [...batch.structured],
-                  allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowed, allowedBySection),
-                }),
-              },
-            ],
-            temperature: 0.4,
-            maxTokens: batch.maxTokens,
-          });
-          return { batch, value: parseNarrativeBatch(content, batch, sectionInput, allowedBySection), error: null };
+            batch,
+            sectionInput,
+            allowed,
+            allowedBySection,
+          }),
+            error: null,
+          };
         } catch (error) {
           return { batch, value: null, error };
         }
@@ -1312,15 +1384,10 @@ export async function synthesizePersonalReportNarrative(args: {
     if (requiredFailure?.error) {
       failureContext = {
         batch: [...requiredFailure.batch.structured],
-        ...(requiredFailure.error instanceof z.ZodError
-          ? {
-              issues: requiredFailure.error.issues.map(({ path, code, message }) => ({
-                path: path.map(String),
-                code,
-                message,
-              })),
-            }
-          : {}),
+        issues: failureIssues(requiredFailure.error),
+        detail: requiredFailure.error instanceof Error
+          ? requiredFailure.error.message.slice(0, 240)
+          : String(requiredFailure.error).slice(0, 240),
       } satisfies PersonalReportNarrativeFailureContext;
       throw requiredFailure.error;
     }
@@ -1344,7 +1411,7 @@ export async function synthesizePersonalReportNarrative(args: {
     console.error('[personal-report-narrative-synthesis] rejected', {
       code,
       ...failureContext,
-      detail: code === 'provider_error' ? detail : undefined,
+      detail,
       model,
     });
     return null;

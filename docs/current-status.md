@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report required narrative repair): narrative
+remains mandatory. Each invalid, model-returned narrative batch now receives
+one constrained JSON repair request with sanitized validator feedback before
+the generation job fails and retries. Word-length feedback includes the actual
+and required counts; diagnostics preserve the affected batch and failure
+detail. Contract version `personal-report-v6-required-narrative-repair`
+invalidates stale report cache entries. Measured: focused narrative and
+generation suites 58/58, base typecheck, scoped ESLint, and `git diff --check`
+pass.
+
 Working tree 2026-08-29 (Personal Report validator tolerance): narrative
 numeric checks now accept values grounded elsewhere in the same deterministic
 input, while unsupported capability/metric labels are dropped and deterministic
