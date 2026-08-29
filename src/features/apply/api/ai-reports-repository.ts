@@ -544,17 +544,22 @@ export async function saveApplicationMatchingAnalysis(
     prompt_version: args.promptVersion,
     analysis_status: 'complete',
 
-    current_match_score: args.legacy.currentMatchScore,
+    // The original table requires these legacy fields even when report_v2 is
+    // the canonical V3 payload. Keep an explicit unassessed compatibility
+    // value; V3 consumers must read report_v2 instead of these fields.
+    profile_version: 1,
+    current_match_score: args.legacy.currentMatchScore ?? 0,
     max_possible_match_score: args.legacy.maxPossibleMatchScore,
     score_label: args.legacy.scoreLabel,
     max_score_label: args.legacy.maxScoreLabel,
     pillars: args.legacy.pillars,
-    confidence_score: args.legacy.confidence,
+    confidence: args.legacy.confidence,
     inputs_present: args.legacy.inputsPresent,
     strengths: args.legacy.strengths,
     weaknesses: args.legacy.weaknesses,
     improvement_actions: args.legacy.improvementActions,
     explanation: args.legacy.explanation,
+    model_name: args.modelName,
 
     fit_dimensions: args.fitDimensions,
     fit_eligibility: args.fitEligibility,
@@ -582,6 +587,12 @@ export async function saveApplicationMatchingAnalysis(
     .single();
 
   if (error) {
+    console.error('[matching-analysis] insert failed', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     if (error.code === '23505') {
       const existing = await getMatchingAnalysisByInputHash(
         supabase,

@@ -1,5 +1,14 @@
 # Current project status
 
+Working tree 2026-08-30 (Matching Report persistence compatibility): production
+Matching Report generation was returning `503` after successful AI output because
+the writer used the nonexistent `confidence_score` column and omitted the
+legacy table's required `profile_version`/`current_match_score` fields. The
+writer now uses the deployed `confidence` column, supplies explicit unassessed
+V3 compatibility values, persists `model_name`, and logs safe database error
+metadata. Measured: matching repository/generation suites 28/28, base
+typecheck, scoped ESLint, and `git diff --check` pass.
+
 Working tree 2026-08-29 (Personal Report retry and word-band guard): the
 confirmed-information progress page now immediately requeues transient
 Personal Report `retry`/`failed` states while polling, with status-transition
