@@ -38,6 +38,10 @@ import { z } from 'zod';
 import { canAddCoursesToApply } from '@/lib/entitlements/entitlement-service';
 import { seedBaselineChecklist, BaselineNotEnabledError } from '@/lib/course-parser/baseline-checklist';
 import { createParseJob } from '@/lib/course-parser/job-queue';
+import {
+  resolveCourseId,
+  type CourseCatalogueCandidate,
+} from '@/lib/course-catalog/course-id';
 import { createClient } from '@/lib/supabase/server';
 
 const requestSchema = z.object({
@@ -175,6 +179,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const { data: catalogueCourses, error: catalogueError } = await supabase
+      .from('courses')
+      .select('id, course_name, course_url, canonical_url')
+      .eq('university_id', universityId);
+    if (catalogueError) {
+      console.warn('from-saved-university: catalogue lookup failed:', catalogueError.message);
+    }
+    const courseId = resolveCourseId(
+      (catalogueCourses ?? []) as CourseCatalogueCandidate[],
+      program,
+      programUrl,
+    );
+
     /*
      * DELIBERATELY NO DEADLINE. `universities.application_deadline` is free
      * prose describing the institution ("UCAS: Jan 15 | Oxford deadline: Oct 15
@@ -188,6 +205,7 @@ export async function POST(request: Request) {
       .from('course_applications')
       .insert({
         user_id: user.id,
+        course_id: courseId,
         university_id: universityId,
         university_name: university.name,
         // The subject IS the course here. No placeholder: unlike the pasted-URL

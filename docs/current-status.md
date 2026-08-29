@@ -1364,6 +1364,8 @@ See [audit-2026-08-03.md](audit-2026-08-03.md) for the point-in-time audit and
 
 Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/matching/target/UI/Strategy suites passed; base and strict typecheck passed; `npm.cmd run lint` passed with 0 errors and 5 existing warnings; `node scripts/check-i18n.mjs --all` reported 0 missing keys, 0 placeholder mismatches, and 0 dynamic catalog misses; `npm.cmd run build:ci` passed 141 static pages with 3 existing `geo-content.ts` tracing warnings; `git diff --check` passed. Personal Report and Matching Report V3 changes are committed together because both are part of this application-report flow.
 
+2026-08-29 course catalogue link fix (working tree): applications created from a saved university or a pasted course URL now resolve an existing `courses.id` by canonical programme URL, then exact programme name, before insertion. This closes the legacy-parser gap where `course_id` stayed null even after parsing, and lets known catalogue data remain usable when the source page is temporarily blocked. The affected VinUniversity application was repaired to catalogue course `c0a00000-0000-4000-a000-000000000004`; its separate page-fetch failure remains honestly marked `parse_status = failed`. Measured: resolver tests 2/2, scoped ESLint, base typecheck, and `git diff --check` pass.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

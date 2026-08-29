@@ -28,6 +28,10 @@ import {
 } from '@/lib/ingestion/ingestion-job-queue';
 import { applyCacheHitToApplication } from '@/lib/ingestion/application-mapping';
 import { canonicalizeOfficialProgrammeUrl } from '@/lib/ingestion/url-utils';
+import {
+  resolveCourseId,
+  type CourseCatalogueCandidate,
+} from '@/lib/course-catalog/course-id';
 
 const requestSchema = z.object({
   courseUrl: z.string().url('Invalid URL format'),
@@ -225,11 +229,31 @@ export async function POST(request: Request) {
       );
     }
 
+    // Resolve known catalogue rows before parsing. Legacy parsing does not
+    // populate course_id after extraction, so do not throw away this link.
+    let courseId: string | null = null;
+    if (universityId) {
+      const { data: catalogueCourses, error: catalogueError } = await supabase
+        .from('courses')
+        .select('id, course_name, course_url, canonical_url')
+        .eq('university_id', universityId);
+      if (catalogueError) {
+        console.warn('from-course-url: catalogue lookup failed:', catalogueError.message);
+      } else {
+        courseId = resolveCourseId(
+          (catalogueCourses ?? []) as CourseCatalogueCandidate[],
+          '',
+          courseUrl,
+        );
+      }
+    }
+
     // 7. Create application row (pending)
     const { data: newApp, error: createError } = await supabase
       .from('course_applications')
       .insert({
         user_id: user.id,
+        course_id: courseId,
         university_id: universityId ?? null,
         university_name: universityName ?? 'Unknown University',
         course_name: 'Loading course details...',
