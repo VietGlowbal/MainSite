@@ -525,17 +525,43 @@ export async function generateMatchingV3Summary(args: {
 }): Promise<{ data: MatchingV3SummaryOutput; providerCalls: number }> {
   const generate = args.generate ?? generateStructured;
   const { systemPrompt, version: promptVersion } = getReportPrompt('matching_report_summary_v3');
+  const evidenceIds = new Set(args.evidenceIds);
+  const targetSourceRefs = new Set(args.targetSourceRefs);
+  const metricIds = new Set(args.metricIds);
+  const summarySchema = v3SummaryOutputSchema.superRefine((value, ctx) => {
+    for (const [takeawayKey, takeaway] of Object.entries(value.keyTakeaways)) {
+      takeaway.evidenceIds.forEach((id, index) => {
+        if (!evidenceIds.has(id)) {
+          ctx.addIssue({ code: 'custom', path: ['keyTakeaways', takeawayKey, 'evidenceIds', index], message: `Unknown evidence id: ${id}` });
+        }
+      });
+      takeaway.targetSourceRefs.forEach((ref, index) => {
+        if (!targetSourceRefs.has(ref)) {
+          ctx.addIssue({ code: 'custom', path: ['keyTakeaways', takeawayKey, 'targetSourceRefs', index], message: `Unknown target source ref: ${ref}` });
+        }
+      });
+      takeaway.metricIds.forEach((id, index) => {
+        if (!metricIds.has(id)) {
+          ctx.addIssue({ code: 'custom', path: ['keyTakeaways', takeawayKey, 'metricIds', index], message: `Unknown metric id: ${id}` });
+        }
+      });
+    }
+  });
   const result = await generate({
     moduleId: 'matching_report_summary_v3',
     promptVersion,
     schemaVersion: 'matching-report-v3.1.0',
     systemPrompt,
-    userPrompt: JSON.stringify(args.candidate),
-    schema: v3SummaryOutputSchema,
+    userPrompt: JSON.stringify({
+      candidate: args.candidate,
+      allowedReferences: {
+        evidenceIds: [...evidenceIds],
+        targetSourceRefs: [...targetSourceRefs],
+        metricIds: [...metricIds],
+      },
+    }),
+    schema: summarySchema,
   });
-  const evidenceIds = new Set(args.evidenceIds);
-  const targetSourceRefs = new Set(args.targetSourceRefs);
-  const metricIds = new Set(args.metricIds);
   const forbidden = /admission\s+(?:chance|probability|likelihood|odds)|(?:chance|probability|likelihood|odds)\s+of\s+(?:being\s+)?admitted|probability\s+of\s+acceptance|guaranteed\s+admission|will\s+be\s+admitted/i;
   const copy = [result.data.summary, ...Object.values(result.data.keyTakeaways).flatMap((takeaway) => [takeaway.title, takeaway.body])].join(' ');
   if (forbidden.test(copy)) throw new Error('V3 summary contains admissions-probability language.');
