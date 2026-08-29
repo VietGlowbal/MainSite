@@ -4,7 +4,7 @@ Working tree 2026-08-29 (saved-program URL handoff): a pasted course URL now
 automatically supplies the saved programme label—using the catalogue match when
 available, otherwise its final URL path—so application planning no longer
 rejects a link-only selection as missing a subject. Measured: focused programme
-domain tests 36/36, scoped ESLint, and `git diff --check` pass.
+domain tests 36/36, production build, scoped ESLint, and `git diff --check` pass.
 
 Working tree 2026-08-29 (Personal Report prompt/spec architecture): the
 Personal Report writer now uses structured Q1–Q7 reflection findings,

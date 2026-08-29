@@ -188,7 +188,7 @@ export function ProgramPicker({
      */
     const programUrl = urlProvided ? url.trim() : chosenOfficialUrl;
     const programFromUrl = urlProvided
-      ? choices.options.find((option) => option.officialUrl === programUrl)?.name ?? courseNameFromUrl(programUrl)
+      ? choices.options.find((option) => option.officialUrl === programUrl)?.name ?? courseNameFromUrl(url.trim())
       : null;
 
     const { error: updateError } = await supabase
