@@ -850,7 +850,11 @@ describe('synthesizePersonalReportNarrative', () => {
       const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
       const details = structuredNarrativeDetails(batch);
       if (batch === 'a' && !request.invalidResponse) details.snapshot = 'Too short.';
-      if (batch === 'a' && request.invalidResponse) expect(request.validationErrors?.[0]?.message).toContain('Snapshot word length is 2; expected 150-200');
+      if (batch === 'a' && request.invalidResponse) {
+        expect(request.validationErrors?.[0]?.message).toContain('Snapshot word length is 2; expected 150-200');
+        expect(body.messages[0]?.content).toContain('every provenCapabilities.capabilities item');
+        expect(body.messages[0]?.content).toContain('overviewEvidenceIds');
+      }
       return chatResponse(JSON.stringify({ narrativeDetails: details }));
     });
     vi.stubGlobal('fetch', fetchMock);

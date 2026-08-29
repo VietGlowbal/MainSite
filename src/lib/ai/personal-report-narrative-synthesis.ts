@@ -180,7 +180,22 @@ export type PersonalReportNarrativeFailureContext = {
 
 // Prompt text and its version live in the shared registry (Task 2).
 const { systemPrompt: SYSTEM_PROMPT } = getReportPrompt('report_narrative_synthesis');
-const REPAIR_SYSTEM_PROMPT = `Repair one invalid JSON response for the applicant-facing Personal Report. Return only a complete JSON object for the requested narrativeDetails sections. Correct every listed validation error, preserve the requested section shape, and use only the supplied input and allowed evidence IDs. Do not add facts, scores, rankings, or unsupported numbers. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130.`;
+const REPAIR_SYSTEM_PROMPT = `${SYSTEM_PROMPT}
+
+REPAIR MODE: Repair one invalid JSON response for the applicant-facing Personal Report. Return only a complete JSON object for the requested narrativeDetails sections. Correct every listed validation error; do not preserve omitted fields from the invalid response. Use only the supplied input and allowed evidence IDs. Do not add facts, scores, rankings, or unsupported numbers.
+
+When a requested section is present, include every field in its contract. Required contracts:
+- provenCapabilities: overview, overviewEvidenceIds, capabilities, combinationInsight, combinationEvidenceIds.
+- every provenCapabilities.capabilities item: capability, evidenceIds, supportingActivities, howDemonstrated, whyItMatters.
+- socialProof: conclusion, metricKeys, evidenceIds.
+- keyTakeaways.whatMakesYouStandOut: title, insight, evidencePattern, whyItMatters, evidenceIds.
+- keyTakeaways.competitiveAdvantage: title, advantageStatement, supportingEvidence, applicationRelevance, evidenceIds.
+- keyTakeaways.growthOpportunity: title, growthArea, currentGap, recommendedDirection, whyItMatters, basis, evidenceIds.
+- coreIdentity: identityStatement, evidenceIds, definingTraits; every definingTraits item: characteristic, insight, evidenceIds, whyItMatters, scope, confidence.
+- drivingForce: primaryMotivation, repeatedChoices, recurringProblems, underlyingValues, strategicInterpretation, evidenceStrength, isHypothesis, evidenceIds.
+- profilePositioning: experienceConnection, positioningOptions, profileNarrative, profileNarrativeEvidenceIds; every experienceConnection item: strongestProfileThread, connectionExplanation, confidence, supportingExperienceCount, evidenceIds; every positioningOptions item: title, statement, supportingEvidenceIds, supportingExperienceTitles.
+
+Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. If an entire optional section is unsupported, return that section as null or omit it. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130.`;
 
 type SynthesisSectionInput = {
   coreIdentity: {
