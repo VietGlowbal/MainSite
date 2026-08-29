@@ -1049,6 +1049,112 @@ function structuredSectionAvailable(key: StructuredNarrativeSection, input: Synt
   );
 }
 
+type JsonSchemaRecord = Record<string, unknown>;
+
+function isJsonSchemaRecord(value: unknown): value is JsonSchemaRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function withNullableType(schema: JsonSchemaRecord): JsonSchemaRecord {
+  if (typeof schema.type === 'string') return { ...schema, type: [schema.type, 'null'] };
+  if (Array.isArray(schema.type)) return { ...schema, type: [...new Set([...schema.type, 'null'])] };
+  return { anyOf: [schema, { type: 'null' }] };
+}
+
+function withoutNullableType(schema: JsonSchemaRecord): JsonSchemaRecord {
+  if (Array.isArray(schema.type)) {
+    const types = schema.type.filter((type): type is string => type !== 'null');
+    if (types.length === 1) return { ...schema, type: types[0] };
+  }
+  if (Array.isArray(schema.anyOf)) {
+    const nonNull = schema.anyOf.filter((item) => isJsonSchemaRecord(item) && item.type !== 'null');
+    if (nonNull.length === 1 && isJsonSchemaRecord(nonNull[0])) return nonNull[0];
+  }
+  return schema;
+}
+
+/** Keep the Zod schema as the source of truth while emitting OpenAI's strict subset. */
+function toOpenAiStrictSchema(input: unknown, nullable = false): JsonSchemaRecord {
+  if (!isJsonSchemaRecord(input)) return {};
+
+  if (Array.isArray(input.anyOf)) {
+    const branches = input.anyOf.filter(isJsonSchemaRecord);
+    const nonNull = branches.filter((branch) => branch.type !== 'null');
+    if (nonNull.length === 1) return toOpenAiStrictSchema(nonNull[0], nullable || nonNull.length !== branches.length);
+  }
+
+  const output: JsonSchemaRecord = {};
+  if (Array.isArray(input.enum)) output.enum = input.enum;
+
+  if (input.type === 'object' || isJsonSchemaRecord(input.properties)) {
+    const sourceProperties = isJsonSchemaRecord(input.properties) ? input.properties : {};
+    const sourceRequired = new Set(
+      Array.isArray(input.required) ? input.required.filter((key): key is string => typeof key === 'string') : [],
+    );
+    const properties: JsonSchemaRecord = {};
+    for (const [key, value] of Object.entries(sourceProperties)) {
+      properties[key] = toOpenAiStrictSchema(value, !sourceRequired.has(key));
+    }
+    output.type = 'object';
+    output.properties = properties;
+    output.required = Object.keys(properties);
+    output.additionalProperties = false;
+  } else if (input.type === 'array') {
+    output.type = 'array';
+    output.items = toOpenAiStrictSchema(input.items);
+  } else if (typeof input.type === 'string') {
+    output.type = input.type;
+  }
+
+  return nullable ? withNullableType(output) : output;
+}
+
+function personalReportNarrativeResponseFormat(
+  batch: NarrativeBatch,
+  sectionInput: SynthesisSectionInput,
+): Record<string, unknown> {
+  const schema = toOpenAiStrictSchema(
+    z.toJSONSchema(synthesisResponseSchema, {
+      target: 'draft-07',
+      unrepresentable: 'any',
+      reused: 'inline',
+    }),
+  );
+  const rootProperties = isJsonSchemaRecord(schema.properties) ? { ...schema.properties } : {};
+  const detailsSchema = isJsonSchemaRecord(rootProperties.narrativeDetails)
+    ? withoutNullableType(rootProperties.narrativeDetails)
+    : { type: 'object' };
+  const detailsProperties = isJsonSchemaRecord(detailsSchema.properties) ? detailsSchema.properties : {};
+  const requested = new Set(batch.structured);
+  const requestedProperties: JsonSchemaRecord = {};
+
+  for (const [key, value] of Object.entries(detailsProperties)) {
+    if (!requested.has(key as StructuredNarrativeSection)) continue;
+    requestedProperties[key] = structuredSectionAvailable(key as StructuredNarrativeSection, sectionInput)
+      ? withoutNullableType(isJsonSchemaRecord(value) ? value : {})
+      : value;
+  }
+
+  rootProperties.narrativeDetails = {
+    ...detailsSchema,
+    type: 'object',
+    properties: requestedProperties,
+    required: Object.keys(requestedProperties),
+    additionalProperties: false,
+  };
+  schema.properties = rootProperties;
+  schema.required = ['narrativeDetails'];
+
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: `personal_report_narrative_batch_${batch === NARRATIVE_BATCHES[0] ? 'a' : 'b'}`,
+      strict: true,
+      schema,
+    },
+  };
+}
+
 function batchAllowedEvidenceIds(
   batch: NarrativeBatch,
   allowed: ReadonlyMap<string, EvidenceRef>,
@@ -1291,6 +1397,7 @@ async function completeNarrativeBatch(args: {
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>;
 }): Promise<Partial<PersonalReportNarrativeSynthesis>> {
   const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowed, args.allowedBySection);
+  const responseFormat = personalReportNarrativeResponseFormat(args.batch, args.sectionInput);
   const content = await openAiJsonCompletion({
     apiKey: args.apiKey,
     model: args.model,
@@ -1300,6 +1407,7 @@ async function completeNarrativeBatch(args: {
     ],
     temperature: 0.4,
     maxTokens: args.batch.maxTokens,
+    responseFormat,
   });
 
   try {
@@ -1328,6 +1436,7 @@ async function completeNarrativeBatch(args: {
       ],
       temperature: 0,
       maxTokens: args.batch.maxTokens,
+      responseFormat,
     });
     return parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection);
   }

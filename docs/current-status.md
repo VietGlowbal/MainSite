@@ -1,5 +1,14 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report Structured Outputs): both primary
+narrative batches and their one repair attempt now send per-batch strict
+`json_schema` response formats. The schema is derived from the Zod contract,
+requires every nested field, makes only unavailable sections nullable, and
+leaves word-count, grounding, and evidence-scope checks in the application
+validator. Existing JSON-mode callers keep their default behavior. Measured:
+focused narrative and generation suites 58/58, base typecheck, scoped ESLint,
+and `git diff --check` pass.
+
 Working tree 2026-08-29 (Personal Report required-field repair): narrative
 remains mandatory. Each invalid model response receives one repair request that
 reuses the full synthesis contract and explicitly requires every nested field,

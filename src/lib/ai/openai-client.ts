@@ -70,11 +70,9 @@ export function openAiCompletionParameters(args: {
 }
 
 /**
- * A single non-streaming, JSON-mode chat completion — the shape several
- * routes and `lib/ai/*` modules were built around when they called DeepSeek
- * directly. Kept as a raw `fetch` (rather than the `openai` SDK) so callers
- * that already hold an explicit `apiKey` (validated earlier in the request)
- * don't need to thread it through a second client construction.
+ * A single non-streaming JSON chat completion. Callers can provide an
+ * OpenAI `response_format` to opt into strict Structured Outputs; existing
+ * callers keep the legacy JSON mode default.
  */
 export async function openAiJsonCompletion(args: {
   apiKey: string;
@@ -83,6 +81,7 @@ export async function openAiJsonCompletion(args: {
   temperature: number;
   maxTokens: number;
   timeoutMs?: number;
+  responseFormat?: Record<string, unknown>;
 }): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), args.timeoutMs ?? 45_000);
@@ -103,7 +102,7 @@ export async function openAiJsonCompletion(args: {
           temperature: args.temperature,
           maxTokens: args.maxTokens,
         }),
-        response_format: { type: 'json_object' },
+        response_format: args.responseFormat ?? { type: 'json_object' },
       }),
     });
 

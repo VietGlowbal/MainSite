@@ -845,9 +845,14 @@ describe('synthesizePersonalReportNarrative', () => {
 
   it('repairs an invalid narrative response before failing the required batch', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const body = JSON.parse(String(init?.body)) as {
+        messages: Array<{ content: string }>;
+        response_format?: { type?: string; json_schema?: { strict?: boolean } };
+      };
+      expect(body.response_format).toMatchObject({ type: 'json_schema', json_schema: { strict: true } });
       const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[]; invalidResponse?: string; validationErrors?: Array<{ message: string }> };
       const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      if (batch === 'b') expect(JSON.stringify(body.response_format)).toContain('supportingActivities');
       const details = structuredNarrativeDetails(batch);
       if (batch === 'a' && !request.invalidResponse) details.snapshot = 'Too short.';
       if (batch === 'a' && request.invalidResponse) {
