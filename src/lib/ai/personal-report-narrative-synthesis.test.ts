@@ -573,6 +573,28 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.narrativeDetails?.profilePositioning?.positioningOptions[0]?.supportingEvidenceIds).toEqual(['activity-1']);
   });
 
+  it('uses the narrative schema vocabulary for model evidence strength', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as {
+        input: { drivingForce?: { evidenceStrength?: string } };
+      };
+      expect(request.input.drivingForce?.evidenceStrength).toBe('moderate');
+      return chatResponse(JSON.stringify({ narrativeDetails: structuredNarrativeDetails('a') }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
   it('accepts two sparse V4 batches with no legacy section keys', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };

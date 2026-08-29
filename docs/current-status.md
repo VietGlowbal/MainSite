@@ -1,5 +1,13 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report schema retry fix): deterministic
+`high`/`medium`/`low` evidence confidence is now translated to the narrative
+schema's `strong`/`moderate`/`limited` vocabulary only in the model payload;
+materialization keeps the canonical confidence mapping. This fixes production
+`schema_response` retries where `medium` reached the strict response enum.
+Measured: narrative synthesis 41/41, base typecheck, scoped ESLint, and
+`git diff --check` pass.
+
 Working tree 2026-08-29 (Personal Report focused cleanup): report-mechanics
 validation now rejects only explicit mechanics phrases, F4 recurring behaviour
 is separate from observed activity behaviour, and Profile Positioning counts

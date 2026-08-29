@@ -1044,6 +1044,26 @@ function batchAllowedEvidenceIds(
   };
 }
 
+function batchInputForModel(
+  sectionInput: SynthesisSectionInput,
+  batch: NarrativeBatch,
+): SynthesisSectionInput {
+  const input = batchInput(sectionInput, batch);
+  if (!input.drivingForce) return input;
+
+  return {
+    ...input,
+    drivingForce: {
+      ...input.drivingForce,
+      evidenceStrength: input.drivingForce.evidenceStrength === 'high'
+        ? 'strong'
+        : input.drivingForce.evidenceStrength === 'medium'
+          ? 'moderate'
+          : 'limited',
+    },
+  };
+}
+
 type ParsedNarrativeDetails = NonNullable<z.infer<typeof synthesisResponseSchema>['narrativeDetails']>;
 
 function requireEvidenceIds(ids: readonly string[], allowed: ReadonlyMap<string, EvidenceRef>): string[] {
@@ -1271,7 +1291,7 @@ export async function synthesizePersonalReportNarrative(args: {
               {
                 role: 'user',
                 content: JSON.stringify({
-                  input: batchInput(sectionInput, batch),
+                  input: batchInputForModel(sectionInput, batch),
                   requestedSections: [...batch.structured],
                   allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowed, allowedBySection),
                 }),
