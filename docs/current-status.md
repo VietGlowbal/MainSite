@@ -1370,6 +1370,8 @@ Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/m
 
 2026-08-29 Matching Report sparse-target fix (working tree): V3 now marks each metric `not_available` without calling the model when its target profile has no source-backed facts. This prevents confident model output with no target grounding from being rejected by the provenance validator, while preserving explicit missing-data state. Measured: matching suite 98/98, V3 regression 4/4, scoped ESLint, and base typecheck pass.
 
+2026-08-29 Matching Report lineage fix (working tree): the application-scoped V3 composer call now receives `targetProfileSchemaVersion` and `personalReportInputHash` at the top level required by its contract; previously they existed only inside `lineage`, causing every production composition to fail before AI generation. Measured: matching generation/V3 suites 24/24, scoped ESLint, base typecheck, and `git diff --check` pass.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

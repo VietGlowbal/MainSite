@@ -215,6 +215,8 @@ export async function generateApplicationMatchingReport(args: {
     evidenceBank: analysis.evidenceBank,
     version: 'v3',
     applicantContext: context,
+    targetProfileSchemaVersion: TARGET_PROFILE_SCHEMA_VERSION,
+    personalReportInputHash: personalRecord.inputHash,
     personalContext: {
       coreIdentity: [],
       motivations: [],

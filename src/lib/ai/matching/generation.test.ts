@@ -117,6 +117,8 @@ describe('generateApplicationMatchingReport', () => {
     expect(result.status).toBe('regenerated');
     expect(mocks.target).toHaveBeenCalledWith(expect.objectContaining({ programmeId: 'course-1' }));
     expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
+      targetProfileSchemaVersion: expect.any(String),
+      personalReportInputHash: 'personal-input-1',
       programmeFitInput: expect.objectContaining({
         academicBand: 'unknown',
         dimensions: expect.objectContaining({
