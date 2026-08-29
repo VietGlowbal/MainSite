@@ -11,7 +11,11 @@ import {
   PERSONAL_REPORT_EXTRACTION_VERSION,
 } from '@/lib/ai/personal-report-v2';
 import { isOpenAIConfigured } from '@/lib/ai/openai-client';
-import { applyNarrativeSynthesis, synthesizePersonalReportNarrative } from '@/lib/ai/personal-report-narrative-synthesis';
+import {
+  applyNarrativeSynthesis,
+  synthesizePersonalReportNarrative,
+  type PersonalReportNarrativeFailureContext,
+} from '@/lib/ai/personal-report-narrative-synthesis';
 import {
   ENGINE_VERSION,
   runProfileEvaluation,
@@ -430,20 +434,27 @@ async function regenerateApplicationPersonalReport(
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };
   let narrativeFailure = 'unknown';
+  let narrativeFailureContext: PersonalReportNarrativeFailureContext | undefined;
   const synthesis = await synthesizePersonalReportNarrative({
     report: deterministicReport,
     intendedDirection: evaluationInput.intendedDirection,
     apiKey,
     model: modelName,
     grounding: { evaluationInput, evaluation, evidenceBank, canvasDetails },
-    onFailure: (code) => {
+    onFailure: (code, context) => {
       narrativeFailure = code;
+      narrativeFailureContext = context;
     },
   });
   if (!synthesis) {
+    const issueSummary = narrativeFailureContext?.issues?.length
+      ? ` Issues: ${narrativeFailureContext.issues
+          .map((issue) => `${issue.path.join('.') || '<root>'} [${issue.code}] ${issue.message}`)
+          .join('; ')}`
+      : '';
     return {
       status: 'error',
-      message: `Personal Report narrative generation failed (${narrativeFailure}). Generation will retry automatically.`,
+      message: `Personal Report narrative generation failed (${narrativeFailure}).${issueSummary} Generation will retry automatically.`,
       record: current,
     };
   }

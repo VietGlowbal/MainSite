@@ -165,6 +165,17 @@ export type PersonalReportNarrativeFailureCode =
   | 'invalid_word_length'
   | 'unknown';
 
+export type PersonalReportNarrativeFailureIssue = {
+  path: string[];
+  code: string;
+  message: string;
+};
+
+export type PersonalReportNarrativeFailureContext = {
+  batch?: string[];
+  issues?: PersonalReportNarrativeFailureIssue[];
+};
+
 // Prompt text and its version live in the shared registry (Task 2).
 const { systemPrompt: SYSTEM_PROMPT } = getReportPrompt('report_narrative_synthesis');
 
@@ -1138,7 +1149,10 @@ export async function synthesizePersonalReportNarrative(args: {
   apiKey: string;
   model: string;
   grounding: PersonalReportNarrativeGrounding;
-  onFailure?: (code: PersonalReportNarrativeFailureCode) => void;
+  onFailure?: (
+    code: PersonalReportNarrativeFailureCode,
+    context?: PersonalReportNarrativeFailureContext,
+  ) => void;
 }): Promise<PersonalReportNarrativeSynthesis | null> {
   const { report, intendedDirection, apiKey, model } = args;
   const sectionInput = synthesisInputFromReport(report, intendedDirection, {
@@ -1162,6 +1176,7 @@ export async function synthesizePersonalReportNarrative(args: {
     return null;
   }
 
+  let failureContext: PersonalReportNarrativeFailureContext | undefined;
   try {
     const hasAvailableSection = (batch: NarrativeBatch) =>
       batch.structured.some((key) => structuredSectionAvailable(key, sectionInput));
@@ -1197,7 +1212,21 @@ export async function synthesizePersonalReportNarrative(args: {
       }),
     );
     const requiredFailure = outcomes.find((outcome) => outcome.batch.required && outcome.error);
-    if (requiredFailure?.error) throw requiredFailure.error;
+    if (requiredFailure?.error) {
+      failureContext = {
+        batch: [...requiredFailure.batch.structured],
+        ...(requiredFailure.error instanceof z.ZodError
+          ? {
+              issues: requiredFailure.error.issues.map(({ path, code, message }) => ({
+                path: path.map(String),
+                code,
+                message,
+              })),
+            }
+          : {}),
+      } satisfies PersonalReportNarrativeFailureContext;
+      throw requiredFailure.error;
+    }
 
     const synthesis: PersonalReportNarrativeSynthesis = {};
     for (const outcome of outcomes) {
@@ -1213,10 +1242,11 @@ export async function synthesizePersonalReportNarrative(args: {
     return synthesis;
   } catch (error) {
     const code = failureCode(error);
-    args.onFailure?.(code);
+    args.onFailure?.(code, failureContext);
     const detail = error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240);
     console.error('[personal-report-narrative-synthesis] rejected', {
       code,
+      ...failureContext,
       detail: code === 'provider_error' ? detail : undefined,
       model,
     });

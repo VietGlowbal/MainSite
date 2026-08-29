@@ -7,7 +7,9 @@ reflection isolation/Q1-Q7 routing, recursive finding sanitisation, exact
 Social Proof provenance, independent takeaway evidence scopes, section-level
 numeric and voice/mechanics guards, two-batch generation, cache-version
 identity, and structured takeaway rendering with legacy fallback. Matching
-context remains canonical-only. Measured: focused Personal Report/evaluation/
+context remains canonical-only. Narrative schema failures now retain the
+affected batch and sanitized Zod issue paths/codes/messages in console and
+generation-job error logs. Measured: focused Personal Report/evaluation/
 domain/API/matching/UI suites 104/104, UI follow-up 8/8, narrative follow-up
 36/36, base and strict typecheck, lint (0 errors; 5 existing warnings), i18n
 checker (0 missing keys), CI production build, and `git diff --check` pass.

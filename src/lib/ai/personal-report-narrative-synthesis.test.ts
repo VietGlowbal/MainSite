@@ -749,6 +749,33 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failureCode).toBe('invalid_json');
   });
 
+  it('reports Zod issue paths for schema responses', async () => {
+    const details = structuredNarrativeDetails('a') as Record<string, unknown>;
+    (details.coreIdentity as Record<string, unknown>).identityStatement = 42;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      chatResponse(JSON.stringify({ narrativeDetails: details })),
+    ));
+    let failureContext: { batch?: string[]; issues?: Array<{ path: Array<string | number>; code: string; message: string }> } | undefined;
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+      onFailure: (_code, context) => {
+        failureContext = context;
+      },
+    });
+
+    expect(result).toBeNull();
+    expect(failureContext?.batch).toEqual(['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning']);
+    expect(failureContext?.issues?.[0]).toMatchObject({
+      path: ['narrativeDetails', 'coreIdentity', 'identityStatement'],
+      code: 'invalid_type',
+    });
+  });
+
   it('rejects prose that invents a numeric outcome not present in structured findings', async () => {
     const details = structuredNarrativeDetails('a');
     details.coreIdentity!.identityStatement = `${repeatedWords(79, 'identity')} 999`;

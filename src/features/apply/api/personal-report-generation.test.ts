@@ -430,8 +430,12 @@ describe('regeneratePersonalReport', () => {
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
     mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT, limitations: [] });
-    mocks.synthesizePersonalReportNarrative.mockImplementation(async (args: { onFailure?: (code: string) => void }) => {
-      args.onFailure?.('invalid_evidence_scope');
+    mocks.synthesizePersonalReportNarrative.mockImplementation(async (args: {
+      onFailure?: (code: string, context?: { issues?: Array<{ path: Array<string | number>; code: string; message: string }> }) => void;
+    }) => {
+      args.onFailure?.('invalid_evidence_scope', {
+        issues: [{ path: ['narrativeDetails', 'coreIdentity', 'evidenceIds'], code: 'too_small', message: 'Array must contain at least 1 element(s)' }],
+      });
       return null;
     });
     mocks.createPersonalReportV2Version.mockResolvedValue({
@@ -447,6 +451,7 @@ describe('regeneratePersonalReport', () => {
 
     expect(result.status).toBe('error');
     expect(result.status === 'error' && result.message).toContain('invalid_evidence_scope');
+    expect(result.status === 'error' && result.message).toContain('narrativeDetails.coreIdentity.evidenceIds');
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
