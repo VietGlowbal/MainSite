@@ -184,7 +184,10 @@ describe('matching report v3', () => {
 
   it('passes and validates the summary reference allowlists', async () => {
     let prompt = '';
-    const received: { schema: { safeParse(input: unknown): { success: boolean } } | null } = { schema: null };
+    const received: {
+      schema: { safeParse(input: unknown): { success: boolean } } | null;
+      jsonSchemaFormat: Record<string, unknown> | null;
+    } = { schema: null, jsonSchemaFormat: null };
     const data = {
       summary: 'The report keeps every conclusion grounded in the supplied applicant and programme evidence.',
       keyTakeaways: {
@@ -199,9 +202,10 @@ describe('matching report v3', () => {
       evidenceIds: ['claim-1'],
       targetSourceRefs: ['source-1'],
       metricIds: ['academicReadiness'],
-      generate: (async (args: { userPrompt: string; schema: typeof received.schema }) => {
+      generate: (async (args: { userPrompt: string; schema: typeof received.schema; jsonSchemaFormat?: Record<string, unknown> }) => {
         prompt = args.userPrompt;
         received.schema = args.schema;
+        received.jsonSchemaFormat = args.jsonSchemaFormat ?? null;
         return { data, meta: { attemptCount: 1 } };
       }) as never,
     });
@@ -215,5 +219,12 @@ describe('matching report v3', () => {
       ...data,
       keyTakeaways: { ...data.keyTakeaways, strongestFit: { ...data.keyTakeaways.strongestFit, evidenceIds: ['invented-id'] } },
     })?.success).toBe(false);
+    const format = received.jsonSchemaFormat?.json_schema as Record<string, unknown>;
+    expect(received.jsonSchemaFormat?.type).toBe('json_schema');
+    expect(format.strict).toBe(true);
+    const summarySchema = format.schema as Record<string, unknown>;
+    const keyTakeawaysSchema = (summarySchema.properties as Record<string, unknown>).keyTakeaways as Record<string, unknown>;
+    const takeawaySchema = (keyTakeawaysSchema.properties as Record<string, unknown>).strongestFit as Record<string, unknown>;
+    expect(takeawaySchema.required).toEqual(['title', 'body', 'evidenceIds', 'targetSourceRefs', 'metricIds']);
   });
 });

@@ -595,7 +595,7 @@ export async function generateMatchingV3Summary(args: {
   const result = await generate({
     moduleId: 'matching_report_summary_v3',
     promptVersion,
-    schemaVersion: 'matching-report-v3.1.0',
+    schemaVersion: 'matching-report-v3.2.0',
     systemPrompt,
     userPrompt: JSON.stringify({
       candidate: args.candidate,
@@ -606,6 +606,19 @@ export async function generateMatchingV3Summary(args: {
       },
     }),
     schema: summarySchema,
+    repairInstruction: 'Return all four canonical takeaway objects and include metricIds as an array in every takeaway, even when it is empty.',
+    jsonSchemaFormat: {
+      type: 'json_schema',
+      json_schema: {
+        name: 'matching_report_summary_v3',
+        strict: true,
+        schema: toOpenAiStrictSchema(z.toJSONSchema(summarySchema, {
+          target: 'draft-07',
+          unrepresentable: 'any',
+          reused: 'inline',
+        })),
+      },
+    },
   });
   const forbidden = /admission\s+(?:chance|probability|likelihood|odds)|(?:chance|probability|likelihood|odds)\s+of\s+(?:being\s+)?admitted|probability\s+of\s+acceptance|guaranteed\s+admission|will\s+be\s+admitted/i;
   const copy = [result.data.summary, ...Object.values(result.data.keyTakeaways).flatMap((takeaway) => [takeaway.title, takeaway.body])].join(' ');

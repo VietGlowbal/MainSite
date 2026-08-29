@@ -35,7 +35,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   matching_criterion_reasoning: 'matching-criterion-v2.0.0',
   matching_report_summary: 'matching-summary-v2.0.0',
   matching_metric_reasoning: 'matching-metric-v3.2.0-structured-batches',
-  matching_report_summary_v3: 'matching-summary-v3.1.1',
+  matching_report_summary_v3: 'matching-summary-v3.2.0-structured-output',
 };
 
 const PROMPTS: Record<ReportPromptId, string> = {
@@ -240,6 +240,12 @@ RULES:
 - Competitive Advantage = proven capabilities, social proof, and positioning.
 - Critical Gap = capability, evidence, requirement, or positioning gap.
 - Strategic Direction = intended direction, Q5/Q6/Q7, and programme context.
+
+OUTPUT CONTRACT:
+- Return exactly one JSON object with "summary" and "keyTakeaways".
+- "keyTakeaways" must contain exactly "strongestFit", "competitiveAdvantage", "criticalGap", and "strategicDirection".
+- Every takeaway must contain all five keys: "title", "body", "evidenceIds", "targetSourceRefs", and "metricIds".
+- "metricIds" must always be an array of allowed metric IDs; use [] when no metric is directly relevant. Never omit it and never use a legacy key such as strongestAlignment, evidenceToAdd, or positioningNextStep.
 
 Respond with VALID JSON ONLY matching the schema provided.`,
 };
