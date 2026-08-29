@@ -192,8 +192,8 @@ describe('AnalysisWorkspace', () => {
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') {
         matchingAttempt += 1;
-        return matchingAttempt === 1
-          ? jsonResponse({ error: 'AI service not configured' })
+        return matchingAttempt <= 2
+          ? jsonResponse({ error: 'AI service not configured' }, false, 502)
           : jsonResponse({ analysis: { id: 'm1' } });
       }
       throw new Error(`unexpected fetch ${url}`);
@@ -212,6 +212,27 @@ describe('AnalysisWorkspace', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(screen.getAllByRole('link', { name: 'Open report' })).toHaveLength(2));
+  });
+
+  it('retries Matching Report immediately after a failed generation', async () => {
+    let matchingAttempt = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') {
+        matchingAttempt += 1;
+        return matchingAttempt === 1
+          ? jsonResponse({ error: 'Temporary failure' }, false, 502)
+          : jsonResponse({ analysis: { id: 'm1' } });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(matchingAttempt).toBe(2);
   });
 
   it('fails Personal Report visibly if the canonical report generation fails', async () => {

@@ -10,6 +10,7 @@ type ReportStatus = 'generating' | 'complete' | 'failed';
 type ReportState = { status: ReportStatus; error?: string | undefined };
 
 const PERSONAL_REPORT_POLL_MS = 2_000;
+const MATCHING_GENERATION_ATTEMPTS = 2;
 
 function waitForNextPersonalReportPoll() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, PERSONAL_REPORT_POLL_MS));
@@ -98,22 +99,35 @@ async function fetchOrGenerateMatching(
   applicationId: string,
   errorMessages: { generic: string; rateLimit: string; unavailable: string },
 ): Promise<ReportState> {
-  try {
-    const existing = await fetch(`/api/applications/${applicationId}/strategy/course-match`);
-    const existingBody = await existing.json().catch(() => ({}));
-    if (existingBody.analysis) return { status: 'complete' };
+  let lastFailure: ReportState = { status: 'failed', error: errorMessages.generic };
 
-    const created = await fetch(`/api/applications/${applicationId}/match-insights`, { method: 'POST' });
-    const createdBody = await created.json().catch(() => ({}));
-    if (!created.ok || createdBody.error) {
-      if (created.status === 429) return { status: 'failed', error: errorMessages.rateLimit };
-      if (created.status === 503) return { status: 'failed', error: errorMessages.unavailable };
-      return { status: 'failed', error: createdBody.error || errorMessages.generic };
+  for (let attempt = 0; attempt < MATCHING_GENERATION_ATTEMPTS; attempt += 1) {
+    try {
+      const existing = await fetch(`/api/applications/${applicationId}/strategy/course-match`);
+      const existingBody = await existing.json().catch(() => ({}));
+      if (existingBody.analysis) return { status: 'complete' };
+
+      const created = await fetch(`/api/applications/${applicationId}/match-insights`, { method: 'POST' });
+      const createdBody = await created.json().catch(() => ({}));
+      if (!created.ok || createdBody.error) {
+        lastFailure = {
+          status: 'failed',
+          error:
+            created.status === 429
+              ? errorMessages.rateLimit
+              : created.status === 503
+                ? errorMessages.unavailable
+                : createdBody.error || errorMessages.generic,
+        };
+        continue;
+      }
+      return { status: 'complete' };
+    } catch {
+      // Retry the complete read/create cycle immediately for transient failures.
     }
-    return { status: 'complete' };
-  } catch {
-    return { status: 'failed', error: errorMessages.generic };
   }
+
+  return lastFailure;
 }
 
 export function AnalysisWorkspace({

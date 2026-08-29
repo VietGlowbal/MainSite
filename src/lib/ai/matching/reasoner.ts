@@ -330,6 +330,31 @@ export async function generateMatchingSummary(args: {
 
 const V3_BATCH_SIZE = 6;
 
+function targetFactsForMetric(profile: TargetProfile, metricId: string) {
+  const targetRefs = targetRefsForMetric(profile, metricId);
+  return [
+    ...profile.requirements
+      .filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref)))
+      .map((item) => ({ id: item.id, label: item.label, detail: item.detail, sourceRefs: item.sourceRefs })),
+    ...targetStructuredFacts(profile).filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref))),
+  ];
+}
+
+function unavailableMetricResults(definition: V3MetricDefinition): MatchingV3MetricResult[] {
+  return definition.submetrics.map((submetric) => ({
+    metricId: definition.id,
+    submetricId: submetric.id,
+    status: 'not_available' as const,
+    score: null,
+    confidence: 0,
+    reasoning: `No source-backed target data was available to assess ${submetric.label}.`,
+    applicantEvidenceIds: [],
+    targetSourceRefs: [],
+    missingEvidence: [`Source-backed target information for ${submetric.label}.`],
+    limitations: ['The programme or university source data is not available in the catalogue.'],
+  }));
+}
+
 function relevantV3Evidence(context: ApplicantMatchingContext, definitions: readonly V3MetricDefinition[]) {
   const tokens = new Set(
     definitions
@@ -367,22 +392,23 @@ export async function reasonAboutV3Metrics(args: {
   const { systemPrompt, version: promptVersion } = getReportPrompt('matching_metric_reasoning');
   const metricInputHashes: Record<string, string> = {};
   const reusable = new Map<string, MatchingV3MetricResult[]>();
+  const unavailable = new Map<string, MatchingV3MetricResult[]>();
   for (const definition of args.definitions) {
     const targetRefs = targetRefsForMetric(args.targetProfile, definition.id);
+    const targetFacts = targetFactsForMetric(args.targetProfile, definition.id);
     const input = {
       definition,
       applicantContext: args.context,
       evidence: relevantV3Evidence(args.context, [definition]),
       targetSourceRefs: targetRefs,
-      targetFacts: [
-        ...args.targetProfile.requirements
-        .filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref)))
-        .map((item) => ({ id: item.id, label: item.label, detail: item.detail, sourceRefs: item.sourceRefs })),
-        ...targetStructuredFacts(args.targetProfile).filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref))),
-      ],
+      targetFacts,
     };
     const inputHash = stableHash({ input, promptVersion });
     metricInputHashes[definition.id] = inputHash;
+    if (targetFacts.length === 0) {
+      unavailable.set(definition.id, unavailableMetricResults(definition));
+      continue;
+    }
     const previousFit = args.previousReport
       ? UNIVERSITY_FIT_METRICS.some((item) => item.id === definition.id)
         ? args.previousReport.universityFit
@@ -398,7 +424,7 @@ export async function reasonAboutV3Metrics(args: {
       reusable.set(definition.id, previousMetric.submetrics);
     }
   }
-  const activeDefinitions = args.definitions.filter((definition) => !reusable.has(definition.id));
+  const activeDefinitions = args.definitions.filter((definition) => !unavailable.has(definition.id) && !reusable.has(definition.id));
   const batches: Array<{ definition: V3MetricDefinition; submetrics: V3MetricDefinition['submetrics'] }> = [];
   const submetrics = activeDefinitions.flatMap((definition) =>
     definition.submetrics.map((submetric) => ({ definition, submetric })),
@@ -414,13 +440,14 @@ export async function reasonAboutV3Metrics(args: {
     batches.push(...grouped.values());
   }
 
-  const results: MatchingV3MetricResult[] = [...reusable.values()].flat();
+  const results: MatchingV3MetricResult[] = [...unavailable.values(), ...reusable.values()].flat();
   let providerCalls = 0;
   const evidenceById = new Map(args.context.evidence.map((item) => [item.id, item]));
 
   for (const batch of batches) {
     const targetRefs = targetRefsForMetric(args.targetProfile, batch.definition.id);
     const batchEvidence = relevantV3Evidence(args.context, [batch.definition]);
+    const targetFacts = targetFactsForMetric(args.targetProfile, batch.definition.id);
     const input = {
       metrics: [{
         metricId: batch.definition.id,
@@ -429,12 +456,7 @@ export async function reasonAboutV3Metrics(args: {
       }],
       applicantContext: args.context,
       evidence: batchEvidence,
-      targetFacts: [
-        ...args.targetProfile.requirements
-        .filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref)))
-        .map((item) => ({ id: item.id, label: item.label, detail: item.detail, sourceRefs: item.sourceRefs })),
-        ...targetStructuredFacts(args.targetProfile).filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref))),
-      ],
+      targetFacts,
       targetSourceRefs: targetRefs,
     };
     const generated = await generate({

@@ -36,6 +36,12 @@ const evidenceBank = {
   missingInformation: [],
 };
 
+const sparseTargetProfile = {
+  ...targetProfile,
+  requirements: [],
+  sources: [],
+};
+
 const generate = async (args: { moduleId: string; userPrompt: string }) => {
   if (args.moduleId === 'matching_metric_reasoning') {
     const input = JSON.parse(args.userPrompt) as { metrics: Array<{ metricId: string; submetrics: Array<{ id: string }> }> };
@@ -90,5 +96,46 @@ describe('matching report v3', () => {
     expect(report.programmeFit.score).toBe(80);
     expect(report.scholarshipAlignment).toBeNull();
     expect(report.metadata.aiCallCount.summary).toBe(1);
+  });
+
+  it('marks metrics unavailable when the target profile has no source-backed facts', async () => {
+    let metricCalls = 0;
+    let summaryCalls = 0;
+    const report = await composeMatchingReportV3({
+      targetProfile: sparseTargetProfile,
+      academicProfile: { records: [] },
+      evidenceBank,
+      applicantContext: context,
+      previousReport: null,
+      lineage: {
+        targetProfileVersionId: 'tp-sparse', targetProfileSchemaVersion: 'tp-v1', personalReportVersionId: 'pr-1', personalReportInputHash: 'pr-hash', sourceAnalysisVersionId: 'sa-1', confirmedSnapshotId: 'snapshot-1', evidenceBankVersion: 'eb-v1',
+      },
+      generate: (async (args: { moduleId: string }) => {
+        if (args.moduleId === 'matching_metric_reasoning') {
+          metricCalls += 1;
+          throw new Error('metric generation should be skipped');
+        }
+        summaryCalls += 1;
+        return {
+          data: {
+            summary: 'No source-backed target facts were available, so the report keeps fit metrics explicitly unassessed.',
+            keyTakeaways: {
+              strongestFit: { title: 'Strongest fit is not available', body: 'No target facts were available.', evidenceIds: [], targetSourceRefs: [], metricIds: [] },
+              competitiveAdvantage: { title: 'Competitive advantage', body: 'No target facts were available.', evidenceIds: [], targetSourceRefs: [], metricIds: [] },
+              criticalGap: { title: 'Critical gap is not available', body: 'No target facts were available.', evidenceIds: [], targetSourceRefs: [], metricIds: [] },
+              strategicDirection: { title: 'Strategic direction', body: 'Add source-backed programme facts before interpreting fit.', evidenceIds: [], targetSourceRefs: [], metricIds: [] },
+            },
+          },
+          meta: { attemptCount: 1 },
+        };
+      }) as never,
+      modelName: 'test-model',
+    });
+
+    expect(metricCalls).toBe(0);
+    expect(summaryCalls).toBe(1);
+    expect(report.universityFit.metrics.academicReadiness.status).toBe('not_available');
+    expect(report.universityFit.metrics.academicReadiness.score).toBeNull();
+    expect(report.metadata.aiCallCount.metricBatches).toBe(0);
   });
 });
