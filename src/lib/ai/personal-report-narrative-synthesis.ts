@@ -129,7 +129,8 @@ const narrativeDetailsSchema = z.object({
       currentGap: z.string().min(1).max(500),
       recommendedDirection: z.string().min(1).max(500),
       whyItMatters: z.string().min(1).max(500),
-      evidenceIds: evidenceIdsSchema,
+      basis: z.enum(['evidence', 'missing_information']),
+      evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
     }),
   }).nullish(),
 }).partial();
@@ -186,6 +187,7 @@ type SynthesisSectionInput = {
     valueOrientation: string | null;
     observations: string[];
     recurringBehaviours: string[];
+    observedBehaviours: string[];
     corroboratedReflections: ReflectionFindingWithStatus[];
     drivingForceStatus: string;
     signaturePattern: Array<{ key: SignaturePatternStepKey; label: string; description: string }>;
@@ -200,7 +202,7 @@ type SynthesisSectionInput = {
     missingPersonalGrounding: string | null;
     reflectionFindings: ReflectionFindingWithStatus[];
     cmcaitfMotivations: string[];
-    repeatedActivityChoices: string[];
+    activityChoices: string[];
     domainThemes: string[];
     actions: string[];
     motivationStatus: string;
@@ -234,6 +236,7 @@ type SynthesisSectionInput = {
     credible: boolean;
     patternMaturity: string;
     strongestTheme: string | null;
+    supportingExperienceTitles: string[];
     evidenceIds: string[];
   } | null;
   proofOfMe: {
@@ -296,10 +299,10 @@ type SynthesisSectionInput = {
     competitiveAdvantages: Array<{ statement: string; evidenceIds: string[] }>;
     positioningDimensions: Record<string, boolean>;
   };
-  deterministicTakeaways: {
-    standOut: { statement: string; evidenceIds: string[] };
-    competitiveAdvantage: { statement: string; evidenceIds: string[] };
-    growthOpportunity: { statement: string; evidenceIds: string[] };
+  takeawayFacts: {
+    standOut: { identity: SynthesisSectionInput['coreIdentity']; repeatedPattern: SynthesisSectionInput['signaturePattern']; positioning: SynthesisSectionInput['personalPositioning']; evidenceIds: string[] };
+    competitiveAdvantage: { capabilities: SynthesisSectionInput['canvasDetails']['capabilities']; socialProof: SynthesisSectionInput['canvasDetails']['socialProof']; positioning: SynthesisSectionInput['personalPositioning']; evidenceIds: string[] };
+    growthOpportunity: { gaps: SynthesisSectionInput['canvasDetails']['growthAreas']; intendedDirection: string | null; q5: ReflectionFindingWithStatus | undefined; q6: ReflectionFindingWithStatus | undefined; q7: ReflectionFindingWithStatus | undefined; missingInformation: string[]; evidenceIds: string[] };
   };
   intendedDirection: string | null;
   structuredContractReady: boolean;
@@ -393,9 +396,34 @@ export function synthesisInputFromReport(
   const repeated = findingsWithStatus.filter(({ status }) => status === 'repeated');
   const corroborated = repeated.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key));
   const reportReflectionFindings = Object.fromEntries(findingsWithStatus.map((item) => [item.finding.key, item])) as Partial<Record<ReflectionAnswerKey, ReflectionFindingWithStatus>>;
-  const deterministicStandOut = report.keyTakeaways?.whatMakesYouStandOut;
-  const deterministicAdvantage = report.keyTakeaways?.competitiveAdvantage;
-  const deterministicGrowth = report.keyTakeaways?.growthOpportunity;
+  const supportingExperienceTitles = report.proofOfMe.cards
+    .filter((card) => report.coreIdentity.evidenceRefs.some((ref) =>
+      ref.id === card.activityId || card.evidenceRefs.some((cardRef) => cardRef.id === ref.id),
+    ))
+    .map((card) => card.title);
+  const growthAreas = (report.growthAreas ?? []).map((area) => ({
+    title: area.statement,
+    gap: area.currentGap ?? area.statement,
+    direction: area.direction ?? '',
+    evidenceIds: area.evidenceIds,
+  }));
+  const standOutEvidenceIds = [...new Set([
+    ...report.coreIdentity.evidenceRefs.map((ref) => ref.id),
+    ...report.signaturePattern.evidenceRefs.map((ref) => ref.id),
+    ...report.emergingThemes.themes.flatMap((theme) => theme.evidenceRefs.map((ref) => ref.id)),
+  ])];
+  const competitiveEvidenceIds = [...new Set([
+    ...report.proofOfMe.cards.flatMap((card) => card.evidenceRefs.map((ref) => ref.id)),
+    ...report.personalPositioning.evidenceRefs.map((ref) => ref.id),
+    ...socialProof.flatMap((metric) => metric.evidenceIds),
+  ])];
+  const growthEvidenceIds = [...new Set(growthAreas.flatMap((area) => area.evidenceIds))];
+  const missingGrowthInformation = [
+    ...(!intendedDirection ? ['intended direction'] : []),
+    ...(['q5', 'q6', 'q7'] as const)
+      .filter((key) => !reportReflectionFindings[key])
+      .map((key) => `Personal Reflection ${key.toUpperCase()}`),
+  ];
   return {
     coreIdentity: report.coreIdentity.available
       ? {
@@ -404,6 +432,7 @@ export function synthesisInputFromReport(
           valueOrientation: report.coreIdentity.valueOrientation,
           observations: report.coreIdentity.observations,
           recurringBehaviours: report.coreIdentity.recurringBehaviours,
+          observedBehaviours: report.coreIdentity.observedBehaviours ?? [],
           corroboratedReflections: corroborated,
           drivingForceStatus: report.drivingForce.isHypothesis ? 'hypothesis' : report.drivingForce.available ? 'confirmed_or_stated' : 'insufficient',
           signaturePattern: report.signaturePattern.steps,
@@ -420,7 +449,7 @@ export function synthesisInputFromReport(
           missingPersonalGrounding: report.drivingForce.missingPersonalGrounding,
           reflectionFindings: findingsWithStatus.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key)),
           cmcaitfMotivations: activityEvidence.map((activity) => activity.motivation).filter((value): value is string => Boolean(value)),
-          repeatedActivityChoices: activityEvidence.map((activity) => activity.title),
+          activityChoices: activityEvidence.map((activity) => activity.title),
           domainThemes: activityEvidence.map((activity) => activity.domainTheme).filter((value): value is string => Boolean(value)),
           actions: activityEvidence.map((activity) => activity.action).filter((value): value is string => Boolean(value)),
           motivationStatus: report.drivingForce.isHypothesis ? 'hypothesis' : report.drivingForce.available ? 'confirmed_or_stated' : 'insufficient',
@@ -469,6 +498,7 @@ export function synthesisInputFromReport(
           credible: report.personalPositioning.credible,
           patternMaturity: report.signaturePattern.patternStrength,
           strongestTheme: report.emergingThemes.themes[0]?.theme ?? null,
+          supportingExperienceTitles,
           evidenceIds: report.personalPositioning.evidenceRefs.map((ref) => ref.id),
         }
       : null,
@@ -495,12 +525,7 @@ export function synthesisInputFromReport(
     canvasDetails: {
       capabilities,
       socialProof,
-      growthAreas: (report.growthAreas ?? []).map((area) => ({
-        title: area.statement,
-        gap: area.currentGap ?? area.statement,
-        direction: area.direction ?? '',
-        evidenceIds: area.evidenceIds,
-      })),
+      growthAreas,
       competitiveAdvantages: (report.competitiveAdvantages ?? []).map((advantage) => ({
         statement: advantage.statement,
         evidenceIds: advantage.evidenceIds,
@@ -513,10 +538,50 @@ export function synthesisInputFromReport(
         credibility: report.personalPositioning.credible,
       },
     },
-    deterministicTakeaways: {
-      standOut: { statement: deterministicStandOut?.statement ?? report.coreIdentity.interpretation ?? '', evidenceIds: deterministicStandOut?.evidenceIds ?? report.coreIdentity.evidenceRefs.map((ref) => ref.id) },
-      competitiveAdvantage: { statement: deterministicAdvantage?.statement ?? report.personalPositioning.statement ?? '', evidenceIds: deterministicAdvantage?.evidenceIds ?? report.personalPositioning.evidenceRefs.map((ref) => ref.id) },
-      growthOpportunity: { statement: deterministicGrowth?.statement ?? report.growthAreas?.[0]?.statement ?? '', evidenceIds: deterministicGrowth?.evidenceIds ?? report.growthAreas?.[0]?.evidenceIds ?? [] },
+    takeawayFacts: {
+      standOut: { identity: report.coreIdentity.available ? {
+        recurringRole: report.coreIdentity.recurringRole,
+        recurringBehaviour: report.coreIdentity.recurringBehaviours[0] ?? null,
+        valueOrientation: report.coreIdentity.valueOrientation,
+        observations: report.coreIdentity.observations,
+        recurringBehaviours: report.coreIdentity.recurringBehaviours,
+        observedBehaviours: report.coreIdentity.observedBehaviours ?? [],
+        corroboratedReflections: corroborated,
+        drivingForceStatus: report.drivingForce.isHypothesis ? 'hypothesis' : report.drivingForce.available ? 'confirmed_or_stated' : 'insufficient',
+        signaturePattern: report.signaturePattern.steps,
+        patternMaturity: report.signaturePattern.patternStrength,
+        evidenceIds: report.coreIdentity.evidenceRefs.map((ref) => ref.id),
+        traitCandidates,
+      } : null, repeatedPattern: report.signaturePattern.available ? {
+        patternStrength: report.signaturePattern.patternStrength === 'established' ? 'established' : 'emerging',
+        steps: report.signaturePattern.steps,
+      } : null, positioning: null, evidenceIds: standOutEvidenceIds },
+      competitiveAdvantage: { capabilities, socialProof, positioning: report.personalPositioning.available ? {
+        identity: report.coreIdentity.recurringBehaviours[0] ?? report.coreIdentity.recurringRole,
+        motivations: report.drivingForce.repeatedMotivations,
+        capabilities: Array.from(new Set(report.proofOfMe.cards.flatMap((card) => card.competenciesDemonstrated))),
+        signatureStrength: report.signaturePattern.steps.find((step) => step.key === 'method')?.description ?? null,
+        theme: report.emergingThemes.themes[0]?.theme ?? null,
+        intendedDirection,
+        authentic: report.personalPositioning.authentic,
+        differentiated: report.personalPositioning.differentiated,
+        coherent: report.personalPositioning.coherent,
+        directionAligned: report.personalPositioning.directionAligned,
+        credible: report.personalPositioning.credible,
+        patternMaturity: report.signaturePattern.patternStrength,
+        strongestTheme: report.emergingThemes.themes[0]?.theme ?? null,
+        supportingExperienceTitles,
+        evidenceIds: report.personalPositioning.evidenceRefs.map((ref) => ref.id),
+      } : null, evidenceIds: competitiveEvidenceIds },
+      growthOpportunity: {
+        gaps: growthAreas,
+        intendedDirection,
+        q5: reportReflectionFindings.q5,
+        q6: reportReflectionFindings.q6,
+        q7: reportReflectionFindings.q7,
+        missingInformation: missingGrowthInformation,
+        evidenceIds: growthEvidenceIds,
+      },
     },
     intendedDirection,
     structuredContractReady: report.reflectionFindings !== undefined || report.canvasDetails !== undefined,
@@ -742,7 +807,7 @@ function assertNarrativeVoice(parsed: z.infer<typeof synthesisResponseSchema>): 
 }
 
 function assertReportMechanicsProse(parsed: z.infer<typeof synthesisResponseSchema>): void {
-  const mechanics = /\b(?:report|system|framework|evidence framework|generation process|confirmed snapshot|verification methodology)\b/i;
+  const mechanics = /\b(?:this|the) report\b|\breporting system\b|\bevidence framework\b|\bconfirmed snapshot\b|\bgeneration process\b|\bverification methodology\b/i;
   if (narrativeDetailsProse(parsed.narrativeDetails).some((value) => mechanics.test(value))) {
     throw new Error('Narrative synthesis used report mechanics prose.');
   }
@@ -910,10 +975,10 @@ function batchInput(
     reflectionFindings,
     activityEvidence,
     canvasDetails,
-    deterministicTakeaways: structured.has('keyTakeaways') || wantsSnapshot ? sectionInput.deterministicTakeaways : {
-      standOut: { statement: '', evidenceIds: [] },
-      competitiveAdvantage: { statement: '', evidenceIds: [] },
-      growthOpportunity: { statement: '', evidenceIds: [] },
+    takeawayFacts: structured.has('keyTakeaways') || wantsSnapshot ? sectionInput.takeawayFacts : {
+      standOut: { identity: null, repeatedPattern: null, positioning: null, evidenceIds: [] },
+      competitiveAdvantage: { capabilities: [], socialProof: [], positioning: null, evidenceIds: [] },
+      growthOpportunity: { gaps: [], intendedDirection: null, q5: undefined, q6: undefined, q7: undefined, missingInformation: [], evidenceIds: [] },
     },
     intendedDirection: structured.has('profilePositioning') || structured.has('keyTakeaways') || wantsSnapshot ? sectionInput.intendedDirection : null,
     structuredContractReady: sectionInput.structuredContractReady,
@@ -947,7 +1012,11 @@ function structuredSectionAvailable(key: StructuredNarrativeSection, input: Synt
   if (key === 'profilePositioning') return Boolean(input.personalPositioning);
   if (key === 'provenCapabilities') return input.canvasDetails.capabilities.length > 0;
   if (key === 'socialProof') return input.canvasDetails.socialProof.some((metric) => metric.value > 0 && metric.evidenceIds.length > 0);
-  return Boolean(input.deterministicTakeaways.standOut.statement || input.deterministicTakeaways.competitiveAdvantage.statement || input.deterministicTakeaways.growthOpportunity.statement);
+  return Boolean(
+    input.takeawayFacts.standOut.evidenceIds.length ||
+    input.takeawayFacts.competitiveAdvantage.evidenceIds.length ||
+    input.takeawayFacts.growthOpportunity.gaps.length,
+  );
 }
 
 function batchAllowedEvidenceIds(
@@ -1063,12 +1132,14 @@ function materializeNarrativeDetails(
     };
   }
   if (requested.has('profilePositioning') && details.profilePositioning) {
-    if (details.profilePositioning.experienceConnection.supportingExperienceCount !== sectionInput.activityEvidence.length) {
+    const supportingExperienceTitles = sectionInput.personalPositioning?.supportingExperienceTitles ?? [];
+    if (details.profilePositioning.experienceConnection.supportingExperienceCount !== supportingExperienceTitles.length) {
       throw new Error('Narrative synthesis introduced an unsupported numeric fact in profilePositioning.');
     }
     output.profilePositioning = {
       experienceConnection: {
         ...details.profilePositioning.experienceConnection,
+        supportingExperienceTitles,
         evidenceIds: requireEvidenceIds(details.profilePositioning.experienceConnection.evidenceIds, allowedBySection.narrativePositioning),
       },
       positioningOptions: details.profilePositioning.positioningOptions.map((option) => ({
@@ -1081,6 +1152,10 @@ function materializeNarrativeDetails(
     };
   }
   if (requested.has('keyTakeaways') && details.keyTakeaways) {
+    const growth = details.keyTakeaways.growthOpportunity;
+    if ((growth.basis === 'missing_information') !== (growth.evidenceIds.length === 0)) {
+      throw new Error('Narrative synthesis used an invalid growth evidence basis.');
+    }
     output.keyTakeaways = {
       whatMakesYouStandOut: {
         ...details.keyTakeaways.whatMakesYouStandOut,
@@ -1091,8 +1166,8 @@ function materializeNarrativeDetails(
         evidenceIds: requireEvidenceIds(details.keyTakeaways.competitiveAdvantage.evidenceIds, allowedBySection.narrativeKeyTakeaways.competitiveAdvantage),
       },
       growthOpportunity: {
-        ...details.keyTakeaways.growthOpportunity,
-        evidenceIds: requireEvidenceIds(details.keyTakeaways.growthOpportunity.evidenceIds, allowedBySection.narrativeKeyTakeaways.growthOpportunity),
+        ...growth,
+        evidenceIds: requireEvidenceIds(growth.evidenceIds, allowedBySection.narrativeKeyTakeaways.growthOpportunity),
       },
     };
   }

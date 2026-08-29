@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report focused cleanup): report-mechanics
+validation now rejects only explicit mechanics phrases, F4 recurring behaviour
+is separate from observed activity behaviour, and Profile Positioning counts
+only canonical supporting experiences. Key Takeaways now receive structured
+fact bundles rather than deterministic takeaway prose; Growth may explicitly
+use a `missing_information` basis with no fabricated evidence ID. The V4
+`narrativeDetails` contract, additive application, Evidence Bank, two-batch
+writer, and Matching isolation remain intact. Measured: focused suites 75/75,
+base typecheck, lint, production build, and `git diff --check` pass.
+
 Working tree 2026-08-29 (Personal Report post-review fix plan): completed the
 V4 `narrativeDetails`-only writer contract, additive report application,
 canonical activity-dimension grounding, full activity Evidence Bank lineage,

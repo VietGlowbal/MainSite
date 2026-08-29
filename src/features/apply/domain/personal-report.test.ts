@@ -119,6 +119,10 @@ describe('buildPersonalReport', () => {
 
     expect(result.coreIdentity.available).toBe(true);
     expect(result.coreIdentity.recurringRole).toBe('organiser');
+    expect(result.coreIdentity.recurringBehaviours).toEqual([
+      'built a structured weekly programme from scratch',
+    ]);
+    expect(result.coreIdentity.observedBehaviours).toHaveLength(3);
     expect(result.signaturePattern.available).toBe(true);
     expect(result.signaturePattern.patternStrength).toBe('established');
     expect(result.emergingThemes.available).toBe(true);

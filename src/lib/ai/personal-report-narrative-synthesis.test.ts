@@ -345,6 +345,7 @@ function structuredNarrativeDetails(batch: 'a' | 'b') {
         currentGap: 'Only one supporting experience is recorded.',
         recommendedDirection: 'Add another concrete experience and outcome.',
         whyItMatters: 'Repeated evidence would clarify the profile.',
+        basis: 'evidence',
         evidenceIds: ['activity-1'],
       },
     },
@@ -500,6 +501,28 @@ describe('synthesisInputFromReport', () => {
       role: null,
       domainTheme: null,
     });
+  });
+
+  it('uses only F4 identity evidence as canonical profile-thread support', () => {
+    const base = fullReport();
+    const input = synthesisInputFromReport(fullReport({
+      coreIdentity: {
+        ...base.coreIdentity,
+        evidenceRefs: [
+          { id: 'activity-1', kind: 'activity', label: 'Coding club' },
+          { id: 'activity-2', kind: 'activity', label: 'Mentoring project' },
+        ],
+      },
+      proofOfMe: {
+        ...base.proofOfMe,
+        cards: [
+          ...base.proofOfMe.cards,
+          { ...base.proofOfMe.cards[0]!, activityId: 'activity-2', title: 'Mentoring project', evidenceRefs: [{ id: 'activity-2', kind: 'activity', label: 'Mentoring project' }] },
+        ],
+      },
+    }), null);
+
+    expect(input.personalPositioning?.supportingExperienceTitles).toEqual(['Coding club', 'Mentoring project']);
   });
 });
 
@@ -758,7 +781,7 @@ describe('synthesizePersonalReportNarrative', () => {
     let failureContext: { batch?: string[]; issues?: Array<{ path: Array<string | number>; code: string; message: string }> } | undefined;
 
     const result = await synthesizePersonalReportNarrative({
-      report: fullReport(),
+      report: structuredReport(),
       intendedDirection: null,
       apiKey: 'test-key',
       model: 'gpt-4o',
@@ -903,6 +926,8 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(content).not.toContain('Coding club attendance record');
     expect(content).not.toContain('Values peer learning');
     expect(content).toContain('"narrativeDetails"');
+    expect(content).toContain('"takeawayFacts"');
+    expect(content).not.toContain('"deterministicTakeaways"');
     expect(content).not.toContain('"canonical"');
   });
 
@@ -1007,6 +1032,56 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failure).toBe('report_mechanics_prose');
   });
 
+  it('allows technical prose that uses generic system and framework terms', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const details = structuredNarrativeDetails(request.requestedSections.includes('provenCapabilities') ? 'b' : 'a');
+      if (details.snapshot) details.snapshot = `${repeatedWords(147, 'grounded')} AI system framework`;
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    }));
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.narrativeDetails?.snapshot).toContain('AI system framework');
+  });
+
+  it('accepts a missing-information growth takeaway without fake evidence', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const details = structuredNarrativeDetails(request.requestedSections.includes('provenCapabilities') ? 'b' : 'a');
+      if (details.keyTakeaways) {
+        details.keyTakeaways.growthOpportunity = {
+          ...details.keyTakeaways.growthOpportunity,
+          basis: 'missing_information',
+          evidenceIds: [],
+        };
+      }
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.narrativeDetails?.keyTakeaways?.growthOpportunity).toMatchObject({
+      basis: 'missing_information',
+      evidenceIds: [],
+    });
+  });
+
   it('rejects hypothesis promotion with its dedicated failure code', async () => {
     const details = structuredNarrativeDetails('a');
     details.drivingForce!.isHypothesis = false;
@@ -1039,6 +1114,10 @@ describe('synthesizePersonalReportNarrative', () => {
           drivingForce.primaryMotivation = 'A confirmed commitment to accessible learning.';
           drivingForce.strategicInterpretation = 'Repeated choices show a clear commitment to accessible learning.';
           drivingForce.isHypothesis = false;
+        }
+        if (batch === 'a') {
+          ((details.profilePositioning as Record<string, Record<string, unknown>>).experienceConnection)
+            .supportingExperienceCount = kind === 'mature' ? 4 : 2;
         }
         return chatResponse(JSON.stringify({ ...sparseSynthesisResponse(request.requestedSections), narrativeDetails: details }));
       });

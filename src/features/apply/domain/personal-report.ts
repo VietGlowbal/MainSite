@@ -129,6 +129,8 @@ export type CoreIdentitySection = {
   interpretation: string | null;
   recurringRole: string | null;
   recurringBehaviours: string[];
+  /** All observed activity behaviours; unlike recurringBehaviours, these are not an F4 recurrence claim. */
+  observedBehaviours?: string[];
   valueOrientation: string | null;
   observations: string[];
   evidenceRefs: EvidenceRef[];
@@ -142,10 +144,11 @@ function buildCoreIdentity(evaluation: ProfileEvaluation, activities: readonly N
   const { recurringRole, recurringBehaviour, valueOrientation } = identity;
   const available = Boolean(recurringRole || recurringBehaviour || valueOrientation);
 
-  const recurringBehaviours = activities
+  const observedBehaviours = activities
     .map((activity) => activity.behaviour)
     .filter((behaviour): behaviour is string => Boolean(behaviour))
     .slice(0, 4);
+  const recurringBehaviours = recurringBehaviour ? [recurringBehaviour] : [];
 
   const observations = activities
     .filter((activity) => activity.behaviour || activity.role)
@@ -163,6 +166,7 @@ function buildCoreIdentity(evaluation: ProfileEvaluation, activities: readonly N
       interpretation: null,
       recurringRole: null,
       recurringBehaviours: [],
+      observedBehaviours,
       valueOrientation: null,
       observations,
       evidenceRefs: identity.evidenceRefs,
@@ -201,6 +205,7 @@ function buildCoreIdentity(evaluation: ProfileEvaluation, activities: readonly N
     interpretation: interpretationParts.join(' '),
     recurringRole,
     recurringBehaviours,
+    observedBehaviours,
     valueOrientation,
     observations,
     evidenceRefs: identity.evidenceRefs,
@@ -899,6 +904,7 @@ export type PersonalReportNarrativeDetails = {
       connectionExplanation: string;
       confidence: ReportConfidence;
       supportingExperienceCount: number;
+      supportingExperienceTitles?: string[];
       evidenceIds: string[];
     };
     positioningOptions: Array<{
@@ -931,6 +937,7 @@ export type PersonalReportNarrativeDetails = {
       currentGap: string;
       recommendedDirection: string;
       whyItMatters: string;
+      basis?: 'evidence' | 'missing_information';
       evidenceIds: string[];
     };
   };
