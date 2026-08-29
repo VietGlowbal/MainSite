@@ -19,6 +19,7 @@ import {
 import {
   extractRoleAndTheme,
   type RoleThemeExtractionInput,
+  type RoleThemeExtractionResult,
 } from './evaluation/narrative-activity-extraction';
 import { extractReflectionFindings } from './evaluation/reflection-signal-extraction';
 
@@ -28,7 +29,7 @@ import { extractReflectionFindings } from './evaluation/reflection-signal-extrac
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v11-structured-reflections-activity-evidence';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v12-grounded-activity-evidence';
 
 /** Dynamic report-only evidence rows use this namespace in the supplements table. */
 export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';
@@ -169,6 +170,22 @@ export function isGroundedInSource(
   const required =
     candidateTokens.length <= 3 ? 1 : Math.ceil(candidateTokens.length * threshold);
   return matched >= required;
+}
+
+const ROLE_THEME_FACTUAL_FIELDS = ['trigger', 'problem', 'ownership', 'method'] as const;
+
+export function groundRoleThemeEvidence(
+  results: readonly RoleThemeExtractionResult[],
+  sourcesById: ReadonlyMap<string, { freeText: string }>,
+): RoleThemeExtractionResult[] {
+  return results.map((result) => {
+    const source = sourcesById.get(result.id)?.freeText ?? '';
+    const grounded = { ...result };
+    for (const field of ROLE_THEME_FACTUAL_FIELDS) {
+      grounded[field] = isGroundedInSource(result[field], source, 0.8) ? result[field] : null;
+    }
+    return grounded;
+  });
 }
 
 /**
@@ -462,7 +479,7 @@ export async function buildProfileEvaluationInput(args: {
     freeText: record.freeText,
   }));
 
-  const [rawReflectionRecords, rawCompetencyClaims, roleThemeResults, reflectionFindings] = await Promise.all([
+  const [rawReflectionRecords, rawCompetencyClaims, rawRoleThemeResults, reflectionFindings] = await Promise.all([
     extractCmcaitfFields({ inputs: cmcaitfInputs, apiKey, model }),
     extractCompetencyClaims({ sources: competencySources, apiKey, model }),
     extractRoleAndTheme({ inputs: roleThemeInputs, apiKey, model }),
@@ -487,6 +504,7 @@ export async function buildProfileEvaluationInput(args: {
     groundCmcaitf(record, sourceById.get(record.id)?.freeText ?? ''),
   );
   const competencyClaims = groundCompetencies(rawCompetencyClaims, sourceById);
+  const roleThemeResults = groundRoleThemeEvidence(rawRoleThemeResults, sourceById);
   const cmcaitfById = new Map(
     reflectionRecords.map((record) => [record.id, record.cmcaitf]),
   );
@@ -525,13 +543,13 @@ export async function buildProfileEvaluationInput(args: {
       outcome: cmcaitf?.impact ?? cmcaitf?.transformation ?? null,
       narrativeEvidence: {
         context: cmcaitf?.context ?? null,
-        trigger: roleTheme?.trigger ?? cmcaitf?.context ?? null,
-        problem: roleTheme?.problem ?? roleTheme?.domainTheme ?? null,
+        trigger: roleTheme?.trigger ?? null,
+        problem: roleTheme?.problem ?? null,
         motivation: cmcaitf?.motivation ?? null,
         challenge: cmcaitf?.challenge ?? null,
         action: cmcaitf?.action ?? null,
-        ownership: roleTheme?.ownership ?? cmcaitf?.action ?? null,
-        method: roleTheme?.method ?? cmcaitf?.action ?? null,
+        ownership: roleTheme?.ownership ?? null,
+        method: roleTheme?.method ?? null,
         impact: cmcaitf?.impact ?? null,
         transformation: cmcaitf?.transformation ?? null,
         future: cmcaitf?.future ?? null,

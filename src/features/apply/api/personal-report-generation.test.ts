@@ -431,7 +431,7 @@ describe('regeneratePersonalReport', () => {
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
     mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT, limitations: [] });
     mocks.synthesizePersonalReportNarrative.mockImplementation(async (args: { onFailure?: (code: string) => void }) => {
-      args.onFailure?.('invalid_evidence_ids');
+      args.onFailure?.('invalid_evidence_scope');
       return null;
     });
     mocks.createPersonalReportV2Version.mockResolvedValue({
@@ -446,7 +446,7 @@ describe('regeneratePersonalReport', () => {
     process.env.OPENAI_API_KEY = originalKey;
 
     expect(result.status).toBe('error');
-    expect(result.status === 'error' && result.message).toContain('invalid_evidence_ids');
+    expect(result.status === 'error' && result.message).toContain('invalid_evidence_scope');
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
@@ -468,5 +468,46 @@ describe('regeneratePersonalReport', () => {
     expect(result.status).toBe('error');
     expect(mocks.saveApplicationProfileAnalysis).not.toHaveBeenCalled();
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+});
+
+describe('interpretationsFromEvaluationInput', () => {
+  it('stores the complete narrative activity bundle as an AI interpretation', async () => {
+    const { interpretationsFromEvaluationInput } = await importSubject();
+    const [interpretation] = interpretationsFromEvaluationInput({
+      narrativeActivities: [{
+        id: 'activity:1',
+        title: 'Peer tutoring',
+        role: 'organiser',
+        behaviour: 'planned sessions',
+        domainTheme: 'education access',
+        statedMotivation: 'help learners',
+        outcome: 'more participation',
+        narrativeEvidence: {
+          context: 'school setting',
+          trigger: 'noticed a gap',
+          problem: 'learners lacked support',
+          motivation: 'help learners',
+          challenge: 'different levels',
+          action: 'planned sessions',
+          ownership: 'set the schedule',
+          method: 'grouped learners',
+          impact: 'more participation',
+          transformation: null,
+          future: 'build better tools',
+          role: 'organiser',
+          domainTheme: 'education access',
+          candidateCapabilitySignals: ['Leadership'],
+        },
+        evidenceRefs: [{ id: 'activity:1', kind: 'activity', label: 'Peer tutoring' }],
+      }],
+    } as never);
+
+    expect(interpretation).toMatchObject({
+      origin: 'ai_extraction',
+      module: 'narrative_activity_extraction',
+      sourceRefs: ['activity:1'],
+      payload: { narrativeEvidence: { trigger: 'noticed a gap', ownership: 'set the schedule', candidateCapabilitySignals: ['Leadership'] } },
+    });
   });
 });

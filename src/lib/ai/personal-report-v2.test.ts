@@ -111,7 +111,15 @@ describe('buildProfileEvaluationInput', () => {
       return Promise.resolve(
         chatResponse({
           items: [
-            { activityId: 'achievement:careerbridge', role: 'founder', domainTheme: 'education access' },
+            {
+              activityId: 'achievement:careerbridge',
+              role: 'founder',
+              domainTheme: 'education access',
+              trigger: 'The source never says this trigger.',
+              problem: 'The source never says this problem.',
+              ownership: 'Founded a 12-person team.',
+              method: 'The source never says this method.',
+            },
             { activityId: 'activity:data', role: 'researcher', domainTheme: 'education access' },
           ],
         }),
@@ -133,6 +141,12 @@ describe('buildProfileEvaluationInput', () => {
     expect(careerbridge?.domainTheme).toBe('education access');
     expect(careerbridge?.behaviour).toBe('Founded a 12-person team to run the programme.');
     expect(careerbridge?.outcome).toBe('Reached 350 students.');
+    expect(careerbridge?.narrativeEvidence).toMatchObject({
+      trigger: null,
+      problem: null,
+      ownership: 'Founded a 12-person team.',
+      method: null,
+    });
     expect(careerbridge).toMatchObject({
       organisation: 'CareerBridge',
       level: 'National',

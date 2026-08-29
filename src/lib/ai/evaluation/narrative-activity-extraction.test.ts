@@ -25,7 +25,7 @@ describe('extractRoleAndTheme', () => {
     });
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(result).toEqual([{ id: 'a1', role: null, domainTheme: null }]);
+    expect(result).toEqual([{ id: 'a1', role: null, domainTheme: null, trigger: null, problem: null, ownership: null, method: null }]);
   });
 
   it('maps the model output back onto the matching activity id', async () => {
@@ -103,6 +103,6 @@ describe('extractRoleAndTheme', () => {
       apiKey: 'test-key',
     });
 
-    expect(result[0]).toEqual({ id: 'a1', role: null, domainTheme: null });
+    expect(result[0]).toEqual({ id: 'a1', role: null, domainTheme: null, trigger: null, problem: null, ownership: null, method: null });
   });
 });

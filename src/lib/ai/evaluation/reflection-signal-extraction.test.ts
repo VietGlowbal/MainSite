@@ -55,6 +55,30 @@ describe('reflection signal normalization guard', () => {
     });
   });
 
+  it('removes only near-verbatim fields while preserving meaningful sibling fields', async () => {
+    const raw = 'I enjoy helping younger students through computing and making technical spaces more welcoming.';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify({ signals: [{
+        key: 'q1',
+        summary: raw,
+        q1: {
+          interests: ['computing'],
+          intellectualCuriosity: [],
+          problemInterests: [],
+          themeCandidates: [],
+        },
+      }] }) } }] }),
+    }));
+
+    const findings = await extractReflectionFindings({
+      apiKey: 'test-key',
+      signals: [{ key: 'q1', dimension: 'interests_motivations', value: raw, status: 'isolated' }],
+    });
+
+    expect(findings.get('q1')).toMatchObject({ key: 'q1', summary: null, q1: { interests: ['computing'] } });
+  });
+
   it('does not create a generic normalized finding when the structured call fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     const findings = await extractReflectionFindings({

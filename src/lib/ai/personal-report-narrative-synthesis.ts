@@ -45,26 +45,7 @@ import { getReportPrompt } from './runtime/prompt-registry';
  * doesn't, so there is no partial-acceptance path.
  */
 
-const MAX_PARAGRAPHS = 3;
 const MAX_EVIDENCE_IDS = 12;
-
-const textSectionSchema = z.object({
-  headline: z.string().min(1).max(200),
-  paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
-  evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
-});
-
-const narrativeSectionSchema = z.object({
-  paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
-  evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
-});
-
-const snapshotSchema = z.object({
-  // The model is asked for a 150-200 word summary, but a shorter grounded
-  // response must not discard the complete report. The deterministic snapshot
-  // remains available when the optional AI summary is omitted.
-  summary: z.string().min(1).max(1600),
-});
 
 const evidenceIdsSchema = z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS);
 const traitSchema = z.object({
@@ -154,46 +135,10 @@ const narrativeDetailsSchema = z.object({
 }).partial();
 
 const synthesisResponseSchema = z.object({
-  // Batches ask the model for only a subset of these sections. Every omitted
-  // key is therefore valid; required canonical coverage is enforced below.
-  snapshot: snapshotSchema.nullish(),
-  overview: z
-    .object({
-      summary: z.string().min(1).max(700),
-      evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
-    })
-    .nullish(),
-  coreIdentity: textSectionSchema.nullish(),
-  drivingForce: textSectionSchema.nullish(),
-  signaturePattern: narrativeSectionSchema.nullish(),
-  emergingThemes: narrativeSectionSchema.nullish(),
-  personalPositioning: z
-    .object({
-      statement: z.string().min(1).max(500),
-      whyItFits: z.array(z.string().min(1).max(300)).min(1).max(5),
-      evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
-    })
-    .nullish(),
-  proofOfMe: narrativeSectionSchema.nullish(),
-  overallSummary: z
-    .object({
-      paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
-      evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
-    })
-    .nullish(),
   narrativeDetails: narrativeDetailsSchema.nullish(),
 });
 
 export type PersonalReportNarrativeSynthesis = {
-  snapshot?: { summary: string };
-  overview: { summary: string; evidenceRefs: EvidenceRef[] } | null;
-  coreIdentity: { headline: string; paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
-  drivingForce: { headline: string; paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
-  signaturePattern: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
-  emergingThemes: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
-  personalPositioning: { statement: string; whyItFits: string[]; evidenceRefs: EvidenceRef[] } | null;
-  proofOfMe: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
-  overallSummary: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
   narrativeDetails?: PersonalReportNarrativeDetails;
 };
 
@@ -209,12 +154,14 @@ export type PersonalReportNarrativeFailureCode =
   | 'schema_snapshot_summary'
   | 'schema_response'
   | 'missing_sections'
-  | 'invalid_evidence_ids'
+  | 'invalid_evidence_scope'
   | 'output_truncated'
   | 'timeout'
   | 'provider_error'
   | 'unsupported_narrative_fact'
   | 'unsupported_narrative_voice'
+  | 'hypothesis_promotion'
+  | 'report_mechanics_prose'
   | 'invalid_word_length'
   | 'unknown';
 
@@ -228,7 +175,7 @@ type SynthesisSectionInput = {
     valueOrientation: string | null;
     observations: string[];
     recurringBehaviours: string[];
-    corroboratedReflections: ReflectionFinding[];
+    corroboratedReflections: ReflectionFindingWithStatus[];
     drivingForceStatus: string;
     signaturePattern: Array<{ key: SignaturePatternStepKey; label: string; description: string }>;
     patternMaturity: string;
@@ -240,7 +187,7 @@ type SynthesisSectionInput = {
     isHypothesis: boolean;
     repeatedMotivations: string[];
     missingPersonalGrounding: string | null;
-    reflectionFindings: ReflectionFinding[];
+    reflectionFindings: ReflectionFindingWithStatus[];
     cmcaitfMotivations: string[];
     repeatedActivityChoices: string[];
     domainThemes: string[];
@@ -295,9 +242,9 @@ type SynthesisSectionInput = {
     evidenceItemCount: number;
   };
   reflectionFindings: {
-    repeated: ReflectionFinding[];
-    corroborated: ReflectionFinding[];
-    byKey: Partial<Record<ReflectionAnswerKey, ReflectionFinding>>;
+    repeated: ReflectionFindingWithStatus[];
+    corroborated: ReflectionFindingWithStatus[];
+    byKey: Partial<Record<ReflectionAnswerKey, ReflectionFindingWithStatus>>;
   };
   activityEvidence: Array<{
     id: string;
@@ -347,6 +294,11 @@ type SynthesisSectionInput = {
   structuredContractReady: boolean;
 };
 
+type ReflectionFindingWithStatus = {
+  finding: ReflectionFinding;
+  status: 'repeated' | 'isolated';
+};
+
 /** Everything the deterministic report already decided, reduced to what the synthesis stage is allowed to see. */
 export function synthesisInputFromReport(
   report: PersonalReportV2,
@@ -364,18 +316,18 @@ export function synthesisInputFromReport(
     id: activity.id,
     title: activity.title,
     context: activity.narrativeEvidence?.context ?? null,
-    trigger: activity.narrativeEvidence?.trigger ?? activity.domainTheme,
-    problem: activity.narrativeEvidence?.problem ?? activity.domainTheme,
-    motivation: activity.narrativeEvidence?.motivation ?? activity.statedMotivation,
+    trigger: activity.narrativeEvidence?.trigger ?? null,
+    problem: activity.narrativeEvidence?.problem ?? null,
+    motivation: activity.narrativeEvidence?.motivation ?? null,
     challenge: activity.narrativeEvidence?.challenge ?? null,
-    action: activity.narrativeEvidence?.action ?? activity.behaviour,
-    ownership: activity.narrativeEvidence?.ownership ?? activity.behaviour,
-    method: activity.narrativeEvidence?.method ?? activity.behaviour,
-    impact: activity.narrativeEvidence?.impact ?? activity.outcome,
+    action: activity.narrativeEvidence?.action ?? null,
+    ownership: activity.narrativeEvidence?.ownership ?? null,
+    method: activity.narrativeEvidence?.method ?? null,
+    impact: activity.narrativeEvidence?.impact ?? null,
     transformation: activity.narrativeEvidence?.transformation ?? null,
     future: activity.narrativeEvidence?.future ?? null,
-    role: activity.narrativeEvidence?.role ?? activity.role,
-    domainTheme: activity.narrativeEvidence?.domainTheme ?? activity.domainTheme,
+    role: activity.narrativeEvidence?.role ?? null,
+    domainTheme: activity.narrativeEvidence?.domainTheme ?? null,
     candidateCapabilitySignals: activity.narrativeEvidence?.candidateCapabilitySignals ?? [],
     evidenceIds: (activity.evidenceRefs ?? []).map((ref) => ref.id),
   }));
@@ -417,27 +369,19 @@ export function synthesisInputFromReport(
       maturity: capability.band,
     }];
   }).map((capability, index) => ({ ...capability, rank: index + 1 }));
-  const metricEvidenceIds = (key: string): string[] => report.proofOfMe.cards
-    .filter((card) => {
-      if (key === 'strongEvidence') return card.evidenceStrength === 'strong';
-      if (key === 'verifiedEvidence') return card.verificationStatus === 'verified' || card.verificationStatus === 'attributable';
-      if (key === 'outcomes') return Boolean(card.outcome?.trim());
-      if (key === 'quantifiedOutcomes') return /\d/.test(card.outcome ?? '');
-      if (key === 'capabilityClaims') return card.competenciesDemonstrated.length > 0;
-      if (key === 'metadataCoverage') return Boolean(card.organisation || card.level || card.year || card.period || card.competition || card.evidenceKey || card.sources?.length);
-      if (key === 'teamMembersLed' || key === 'communityReach') return /\d/.test([card.role, card.personalContribution, card.outcome].filter(Boolean).join(' '));
-      if (key === 'yearsOfCommitment') return Boolean(card.period);
-      return true;
-    })
-    .flatMap((card) => card.evidenceRefs.map((ref) => ref.id));
   const socialProof = (canvas?.socialProof ?? []).map((metric) => ({
     key: metric.key,
     value: metric.value,
     label: metric.label,
-    evidenceIds: [...new Set(metricEvidenceIds(metric.key))],
+    evidenceIds: [...new Set(metric.evidenceIds)],
   }));
-  const reportReflectionFindings = Object.fromEntries(reflectionFindings.map((finding) => [finding.key, finding])) as Partial<Record<ReflectionAnswerKey, ReflectionFinding>>;
-  const repeated = reflectionFindings.filter((finding) => signalStatus.get(finding.key) === 'repeated');
+  const findingsWithStatus = reflectionFindings.map((finding) => ({
+    finding,
+    status: signalStatus.get(finding.key) ?? 'isolated',
+  } satisfies ReflectionFindingWithStatus));
+  const repeated = findingsWithStatus.filter(({ status }) => status === 'repeated');
+  const corroborated = repeated.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key));
+  const reportReflectionFindings = Object.fromEntries(findingsWithStatus.map((item) => [item.finding.key, item])) as Partial<Record<ReflectionAnswerKey, ReflectionFindingWithStatus>>;
   const deterministicStandOut = report.keyTakeaways?.whatMakesYouStandOut;
   const deterministicAdvantage = report.keyTakeaways?.competitiveAdvantage;
   const deterministicGrowth = report.keyTakeaways?.growthOpportunity;
@@ -449,7 +393,7 @@ export function synthesisInputFromReport(
           valueOrientation: report.coreIdentity.valueOrientation,
           observations: report.coreIdentity.observations,
           recurringBehaviours: report.coreIdentity.recurringBehaviours,
-          corroboratedReflections: reflectionFindings.filter((finding) => ['q1', 'q2', 'q3'].includes(finding.key)),
+          corroboratedReflections: corroborated,
           drivingForceStatus: report.drivingForce.isHypothesis ? 'hypothesis' : report.drivingForce.available ? 'confirmed_or_stated' : 'insufficient',
           signaturePattern: report.signaturePattern.steps,
           patternMaturity: report.signaturePattern.patternStrength,
@@ -463,7 +407,7 @@ export function synthesisInputFromReport(
           isHypothesis: report.drivingForce.isHypothesis,
           repeatedMotivations: report.drivingForce.repeatedMotivations,
           missingPersonalGrounding: report.drivingForce.missingPersonalGrounding,
-          reflectionFindings: reflectionFindings.filter((finding) => ['q1', 'q2', 'q3'].includes(finding.key)),
+          reflectionFindings: findingsWithStatus.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key)),
           cmcaitfMotivations: activityEvidence.map((activity) => activity.motivation).filter((value): value is string => Boolean(value)),
           repeatedActivityChoices: activityEvidence.map((activity) => activity.title),
           domainThemes: activityEvidence.map((activity) => activity.domainTheme).filter((value): value is string => Boolean(value)),
@@ -535,7 +479,7 @@ export function synthesisInputFromReport(
       themes: report.emergingThemes.themes.map((theme) => theme.theme),
       evidenceItemCount: report.proofOfMe.cards.length,
     },
-    reflectionFindings: { repeated, corroborated: repeated, byKey: reportReflectionFindings },
+    reflectionFindings: { repeated, corroborated, byKey: reportReflectionFindings },
     activityEvidence,
     canvasDetails: {
       capabilities,
@@ -586,6 +530,7 @@ function evidenceMap(refs: readonly EvidenceRef[]): Map<string, EvidenceRef> {
 }
 
 function allowedEvidenceIdsBySection(report: PersonalReportV2, sectionInput?: SynthesisSectionInput) {
+  const all = allowedEvidenceIdsFor(report);
   const proofIds = report.proofOfMe.cards.flatMap((card) => card.evidenceRefs);
   const coreIdentityNarrative = [...report.coreIdentity.evidenceRefs, ...report.signaturePattern.evidenceRefs];
   const positioningNarrative = [
@@ -595,18 +540,28 @@ function allowedEvidenceIdsBySection(report: PersonalReportV2, sectionInput?: Sy
     ...proofIds,
   ];
   const socialProofNarrative = (sectionInput?.canvasDetails.socialProof ?? []).flatMap((metric) =>
-    metric.evidenceIds.map((id) => ({ id, kind: 'activity' as const, label: id })),
+    metric.evidenceIds.map((id) => all.get(id)).filter((ref): ref is EvidenceRef => Boolean(ref)),
   );
-  const keyTakeawayNarrative = [
-    ...((report.keyTakeaways && Object.values(report.keyTakeaways).flatMap((item) => item.evidenceIds)) ?? []),
+  const refsForIds = (ids: readonly string[]) => ids.map((id) => all.get(id)).filter((ref): ref is EvidenceRef => Boolean(ref));
+  const keyTakeaways = report.keyTakeaways;
+  const standOutIds = [
+    ...(keyTakeaways?.whatMakesYouStandOut.evidenceIds ?? []),
+    ...report.coreIdentity.evidenceRefs.map((ref) => ref.id),
+    ...report.signaturePattern.evidenceRefs.map((ref) => ref.id),
+    ...report.emergingThemes.themes.flatMap((theme) => theme.evidenceRefs.map((ref) => ref.id)),
+  ];
+  const competitiveIds = [
+    ...(keyTakeaways?.competitiveAdvantage.evidenceIds ?? []),
+    ...proofIds.map((ref) => ref.id),
+    ...report.personalPositioning.evidenceRefs.map((ref) => ref.id),
+    ...(sectionInput?.canvasDetails.socialProof ?? []).flatMap((metric) => metric.evidenceIds),
+  ];
+  const growthIds = [
+    ...(keyTakeaways?.growthOpportunity.evidenceIds ?? []),
     ...(report.growthAreas ?? []).flatMap((item) => item.evidenceIds),
-    ...(report.competitiveAdvantages ?? []).flatMap((item) => item.evidenceIds),
-    ...(sectionInput ? [
-      ...sectionInput.deterministicTakeaways.standOut.evidenceIds,
-      ...sectionInput.deterministicTakeaways.competitiveAdvantage.evidenceIds,
-      ...sectionInput.deterministicTakeaways.growthOpportunity.evidenceIds,
-    ] : []),
-  ].map((id) => ({ id, kind: 'activity' as const, label: id }));
+    ...report.drivingForce.evidenceRefs.map((ref) => ref.id),
+    ...report.personalPositioning.evidenceRefs.map((ref) => ref.id),
+  ];
   return {
     coreIdentity: evidenceMap(report.coreIdentity.evidenceRefs),
     drivingForce: evidenceMap(report.drivingForce.evidenceRefs),
@@ -619,12 +574,94 @@ function allowedEvidenceIdsBySection(report: PersonalReportV2, sectionInput?: Sy
     narrativeCapabilities: evidenceMap(proofIds),
     narrativeSocialProof: evidenceMap(socialProofNarrative),
     narrativePositioning: evidenceMap(positioningNarrative),
-    narrativeKeyTakeaways: evidenceMap(keyTakeawayNarrative),
+    narrativeKeyTakeaways: {
+      standOut: evidenceMap(refsForIds(standOutIds)),
+      competitiveAdvantage: evidenceMap(refsForIds(competitiveIds)),
+      growthOpportunity: evidenceMap(refsForIds(growthIds)),
+    },
   };
 }
 
 function narrativeNumbers(value: string): string[] {
   return value.match(/\d+(?:[.,]\d+)?/g) ?? [];
+}
+
+function groundedNumbers(value: unknown, key = ''): string[] {
+  if (/(?:evidenceIds?|metricKeys|sourceActivityIds|rank|score)$/i.test(key)) return [];
+  if (typeof value === 'number') return [String(value)];
+  if (typeof value === 'string') return narrativeNumbers(value);
+  if (Array.isArray(value)) return value.flatMap((item) => groundedNumbers(item, key));
+  if (value && typeof value === 'object') {
+    return Object.entries(value).flatMap(([childKey, child]) => groundedNumbers(child, childKey));
+  }
+  return [];
+}
+
+function proseStrings(value: unknown, key = ''): string[] {
+  if (/(?:evidenceIds?|metricKeys|sourceActivityIds)$/i.test(key)) return [];
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap((item) => proseStrings(item, key));
+  if (value && typeof value === 'object') {
+    return Object.entries(value).flatMap(([childKey, child]) => proseStrings(child, childKey));
+  }
+  return [];
+}
+
+function narrativeDetailsProse(details: ParsedNarrativeDetails | null | undefined): string[] {
+  if (!details) return [];
+  const prose: string[] = [];
+  if (details.snapshot) prose.push(details.snapshot);
+  if (details.coreIdentity) {
+    prose.push(details.coreIdentity.identityStatement, ...details.coreIdentity.definingTraits.flatMap((trait) => [trait.characteristic, trait.insight, trait.whyItMatters]));
+  }
+  if (details.drivingForce) {
+    prose.push(
+      details.drivingForce.primaryMotivation,
+      ...details.drivingForce.repeatedChoices,
+      ...details.drivingForce.recurringProblems,
+      ...details.drivingForce.underlyingValues,
+      details.drivingForce.strategicInterpretation,
+    );
+  }
+  if (details.provenCapabilities) {
+    prose.push(
+      details.provenCapabilities.overview,
+      details.provenCapabilities.combinationInsight,
+      ...details.provenCapabilities.capabilities.flatMap((capability) => [
+        capability.capability,
+        capability.howDemonstrated,
+        capability.whyItMatters,
+        ...capability.supportingActivities,
+      ]),
+    );
+  }
+  if (details.socialProof) prose.push(details.socialProof.conclusion);
+  if (details.profilePositioning) {
+    prose.push(
+      details.profilePositioning.experienceConnection.strongestProfileThread,
+      details.profilePositioning.experienceConnection.connectionExplanation,
+      details.profilePositioning.profileNarrative,
+      ...details.profilePositioning.positioningOptions.flatMap((option) => [option.title, option.statement, ...option.supportingExperienceTitles]),
+    );
+  }
+  if (details.keyTakeaways) {
+    prose.push(
+      details.keyTakeaways.whatMakesYouStandOut.title,
+      details.keyTakeaways.whatMakesYouStandOut.insight,
+      details.keyTakeaways.whatMakesYouStandOut.evidencePattern,
+      details.keyTakeaways.whatMakesYouStandOut.whyItMatters,
+      details.keyTakeaways.competitiveAdvantage.title,
+      details.keyTakeaways.competitiveAdvantage.advantageStatement,
+      details.keyTakeaways.competitiveAdvantage.supportingEvidence,
+      details.keyTakeaways.competitiveAdvantage.applicationRelevance,
+      details.keyTakeaways.growthOpportunity.title,
+      details.keyTakeaways.growthOpportunity.growthArea,
+      details.keyTakeaways.growthOpportunity.currentGap,
+      details.keyTakeaways.growthOpportunity.recommendedDirection,
+      details.keyTakeaways.growthOpportunity.whyItMatters,
+    );
+  }
+  return prose;
 }
 
 /** Rejects a prose response that introduces a numeric fact absent from the
@@ -633,54 +670,71 @@ function assertNarrativeNumbersAreGrounded(
   parsed: z.infer<typeof synthesisResponseSchema>,
   sectionInput: SynthesisSectionInput,
 ): void {
-  const allowed = new Set(narrativeNumbers(JSON.stringify(sectionInput)));
-  const prose: string[] = [
-    parsed.snapshot?.summary,
-    parsed.overview?.summary,
-    parsed.coreIdentity?.headline,
-    ...(parsed.coreIdentity?.paragraphs ?? []),
-    parsed.drivingForce?.headline,
-    ...(parsed.drivingForce?.paragraphs ?? []),
-    ...(parsed.signaturePattern?.paragraphs ?? []),
-    ...(parsed.emergingThemes?.paragraphs ?? []),
-    parsed.personalPositioning?.statement,
-    ...(parsed.personalPositioning?.whyItFits ?? []),
-    ...(parsed.proofOfMe?.paragraphs ?? []),
-    ...(parsed.overallSummary?.paragraphs ?? []),
-    ...nestedStrings(parsed.narrativeDetails),
-  ].filter((value): value is string => Boolean(value));
-  if (prose.some((value) => narrativeNumbers(value).some((number) => !allowed.has(number)))) {
-    throw new Error('Narrative synthesis introduced an unsupported numeric fact.');
+  const inputNumbers = (value: unknown) => new Set(groundedNumbers(value));
+  const details = parsed.narrativeDetails;
+  const sections: Array<[string, string[], Set<string>]> = [
+    ['snapshot', details?.snapshot ? [details.snapshot] : [], inputNumbers({
+      coreIdentity: sectionInput.coreIdentity,
+      drivingForce: sectionInput.drivingForce,
+      personalPositioning: sectionInput.personalPositioning,
+      activityEvidence: sectionInput.activityEvidence,
+    })],
+    ['coreIdentity', details?.coreIdentity ? proseStrings(details.coreIdentity) : [], inputNumbers({
+      coreIdentity: sectionInput.coreIdentity,
+      signaturePattern: sectionInput.signaturePattern,
+    })],
+    ['drivingForce', details?.drivingForce ? proseStrings(details.drivingForce) : [], inputNumbers(sectionInput.drivingForce)],
+    ['provenCapabilities', details?.provenCapabilities ? proseStrings(details.provenCapabilities) : [], inputNumbers({
+      capabilities: sectionInput.canvasDetails.capabilities,
+      activityEvidence: sectionInput.activityEvidence,
+    })],
+    ['socialProof', details?.socialProof ? proseStrings(details.socialProof) : [], inputNumbers(sectionInput.canvasDetails.socialProof)],
+    ['profilePositioning', details?.profilePositioning ? proseStrings(details.profilePositioning) : [], inputNumbers({
+      personalPositioning: sectionInput.personalPositioning,
+      activityCount: sectionInput.activityEvidence.length,
+    })],
+    ['standOut', details?.keyTakeaways ? proseStrings(details.keyTakeaways.whatMakesYouStandOut) : [], inputNumbers({
+      coreIdentity: sectionInput.coreIdentity,
+      signaturePattern: sectionInput.signaturePattern,
+      emergingThemes: sectionInput.emergingThemes,
+    })],
+    ['competitiveAdvantage', details?.keyTakeaways ? proseStrings(details.keyTakeaways.competitiveAdvantage) : [], inputNumbers({
+      capabilities: sectionInput.canvasDetails.capabilities,
+      socialProof: sectionInput.canvasDetails.socialProof,
+      personalPositioning: sectionInput.personalPositioning,
+    })],
+    ['growthOpportunity', details?.keyTakeaways ? proseStrings(details.keyTakeaways.growthOpportunity) : [], inputNumbers({
+      growthAreas: sectionInput.canvasDetails.growthAreas,
+      personalPositioning: sectionInput.personalPositioning,
+      q5: sectionInput.reflectionFindings.byKey.q5,
+      q6: sectionInput.reflectionFindings.byKey.q6,
+      q7: sectionInput.reflectionFindings.byKey.q7,
+    })],
+  ];
+  for (const [section, prose, allowed] of sections) {
+    if (prose.some((value) => narrativeNumbers(value).some((number) => !allowed.has(number)))) {
+      throw new Error(`Narrative synthesis introduced an unsupported numeric fact in ${section}.`);
+    }
   }
 }
 
 function assertNarrativeVoice(parsed: z.infer<typeof synthesisResponseSchema>): void {
-  const prose: string[] = [
-    parsed.snapshot?.summary,
-    parsed.overview?.summary,
-    parsed.coreIdentity?.headline,
-    ...(parsed.coreIdentity?.paragraphs ?? []),
-    parsed.drivingForce?.headline,
-    ...(parsed.drivingForce?.paragraphs ?? []),
-    ...(parsed.signaturePattern?.paragraphs ?? []),
-    ...(parsed.emergingThemes?.paragraphs ?? []),
-    parsed.personalPositioning?.statement,
-    ...(parsed.personalPositioning?.whyItFits ?? []),
-    ...(parsed.proofOfMe?.paragraphs ?? []),
-    ...(parsed.overallSummary?.paragraphs ?? []),
-    ...nestedStrings(parsed.narrativeDetails),
-  ].filter((value): value is string => Boolean(value));
+  const prose = narrativeDetailsProse(parsed.narrativeDetails);
   const firstPerson = /(?:^|[\s(])(?:i(?:['’](?:m|ve|d|ll))?|me|my|mine|we(?:['’](?:re|ve))?|our|ours|us|tôi|mình|chúng tôi|của tôi)(?=$|[\s,.;:!?])/iu;
   if (prose.some((value) => firstPerson.test(value))) {
     throw new Error('Narrative synthesis used first-person voice.');
   }
+  const applicantVoice = /\b(?:you|your|yours)\b/gi;
+  const applicantMentions = prose.reduce((count, value) => count + (value.match(applicantVoice)?.length ?? 0), 0);
+  const thirdPersonMentions = prose.reduce((count, value) => count + (value.match(/\b(?:the applicant|the candidate|this applicant|this candidate)\b/gi)?.length ?? 0), 0);
+  if (parsed.narrativeDetails && applicantMentions === 0 && thirdPersonMentions >= 2) throw new Error('Narrative synthesis used dominated third-person voice.');
 }
 
-function nestedStrings(value: unknown): string[] {
-  if (typeof value === 'string') return [value];
-  if (Array.isArray(value)) return value.flatMap(nestedStrings);
-  if (value && typeof value === 'object') return Object.values(value).flatMap(nestedStrings);
-  return [];
+function assertReportMechanicsProse(parsed: z.infer<typeof synthesisResponseSchema>): void {
+  const mechanics = /\b(?:report|system|framework|evidence framework|generation process|confirmed snapshot|verification methodology)\b/i;
+  if (narrativeDetailsProse(parsed.narrativeDetails).some((value) => mechanics.test(value))) {
+    throw new Error('Narrative synthesis used report mechanics prose.');
+  }
 }
 
 function wordCount(value: string): number {
@@ -713,60 +767,28 @@ function assertHypothesisLanguage(
   }
 }
 
-function hydrate(ids: readonly string[], allowed: ReadonlyMap<string, EvidenceRef>): EvidenceRef[] | null {
-  const refs: EvidenceRef[] = [];
-  for (const id of ids) {
-    const ref = allowed.get(id);
-    if (!ref) return null; // an unknown id fails the whole synthesis — see module header.
-    refs.push(ref);
-  }
-  return refs;
-}
-
 function normalizeEmptyOptionalSections(
   value: Record<string, unknown>,
-  sectionInput: SynthesisSectionInput,
 ): Record<string, unknown> {
-  const normalized = { ...value };
-  for (const key of [
-    'coreIdentity',
-    'drivingForce',
-    'signaturePattern',
-    'emergingThemes',
-    'personalPositioning',
-    'proofOfMe',
-  ] as const) {
-    const section = normalized[key];
-    if (!sectionInput[key] && section && typeof section === 'object') normalized[key] = null;
-  }
-  for (const key of ['overview', 'overallSummary'] as const) {
-    const section = normalized[key];
-    if (
-      section &&
-      typeof section === 'object' &&
-      Array.isArray((section as { evidenceIds?: unknown }).evidenceIds) &&
-      (section as { evidenceIds: unknown[] }).evidenceIds.length === 0
-    ) {
-      normalized[key] = null;
-    }
-  }
-  return normalized;
+  return { ...value };
 }
 
 function failureCode(error: unknown): PersonalReportNarrativeFailureCode {
   if (error instanceof SyntaxError) return 'invalid_json';
   if (error instanceof z.ZodError) {
-    return error.issues.some((issue) => issue.path.join('.') === 'snapshot.summary')
+    return error.issues.some((issue) => issue.path.join('.') === 'narrativeDetails.snapshot')
       ? 'schema_snapshot_summary'
       : 'schema_response';
   }
   const message = error instanceof Error ? error.message : '';
   if (/cover every available report section/i.test(message)) return 'missing_sections';
-  if (/cited evidence outside its section/i.test(message)) return 'invalid_evidence_ids';
+  if (/cited evidence outside its section/i.test(message)) return 'invalid_evidence_scope';
+  if (/promoted a hypothesis/i.test(message)) return 'hypothesis_promotion';
+  if (/report mechanics prose/i.test(message)) return 'report_mechanics_prose';
   if (/unsupported capability|unsupported social-proof metric/i.test(message)) return 'unsupported_narrative_fact';
   if (/unsupported numeric fact/i.test(message)) return 'unsupported_narrative_fact';
-  if (/word length|promoted a hypothesis/i.test(message)) return 'invalid_word_length';
-  if (/first-person voice/i.test(message)) return 'unsupported_narrative_voice';
+  if (/word length/i.test(message)) return 'invalid_word_length';
+  if (/first-person voice|dominated third-person voice/i.test(message)) return 'unsupported_narrative_voice';
   if (/exceeded the token limit/i.test(message)) return 'output_truncated';
   if (/request timed out/i.test(message)) return 'timeout';
   if (/OpenAI request failed/i.test(message)) return 'provider_error';
@@ -801,17 +823,17 @@ type NarrativeBatch = {
 // receives only the sections it must write; no raw evidence is duplicated.
 const NARRATIVE_BATCHES: readonly NarrativeBatch[] = [
   {
-    canonical: ['coreIdentity', 'drivingForce', 'signaturePattern'],
+    canonical: [],
     structured: ['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning'],
-    optional: ['snapshot', 'overview'],
-    maxTokens: 1_800,
+    optional: [],
+    maxTokens: 3_000,
     required: true,
   },
   {
-    canonical: ['emergingThemes', 'personalPositioning', 'proofOfMe'],
+    canonical: [],
     structured: ['provenCapabilities', 'socialProof', 'keyTakeaways'],
-    optional: ['overallSummary'],
-    maxTokens: 1_800,
+    optional: [],
+    maxTokens: 3_000,
     required: true,
   },
 ];
@@ -833,11 +855,13 @@ function batchInput(
     batch === NARRATIVE_BATCHES[0] ? ['q1', 'q2', 'q3', 'q5', 'q6'] : ['q4', 'q5', 'q6', 'q7'],
   );
   const byKey = Object.fromEntries(
-    Object.entries(sectionInput.reflectionFindings.byKey).filter(([key]) => reflectionKeys.has(key as ReflectionAnswerKey)),
-  ) as Partial<Record<ReflectionAnswerKey, ReflectionFinding>>;
+    Object.entries(sectionInput.reflectionFindings.byKey)
+      .filter(([key]) => reflectionKeys.has(key as ReflectionAnswerKey))
+      .map(([key, item]) => [key, item]),
+  ) as Partial<Record<ReflectionAnswerKey, ReflectionFindingWithStatus>>;
   const reflectionFindings = {
-    repeated: sectionInput.reflectionFindings.repeated.filter((finding) => reflectionKeys.has(finding.key)),
-    corroborated: sectionInput.reflectionFindings.corroborated.filter((finding) => reflectionKeys.has(finding.key)),
+    repeated: sectionInput.reflectionFindings.repeated.filter(({ finding }) => reflectionKeys.has(finding.key)),
+    corroborated: sectionInput.reflectionFindings.corroborated.filter(({ finding }) => reflectionKeys.has(finding.key)),
     byKey,
   };
   const activityEvidence = sectionInput.activityEvidence.map((activity) => ({
@@ -920,23 +944,22 @@ function batchAllowedEvidenceIds(
   allowed: ReadonlyMap<string, EvidenceRef>,
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
 ) {
-  const requested = new Set(batch.canonical);
   const structuredRequested = new Set(batch.structured);
   return {
     all: [...allowed.keys()],
-    coreIdentity: requested.has('coreIdentity') ? [...allowedBySection.coreIdentity.keys()] : [],
-    drivingForce: requested.has('drivingForce') ? [...allowedBySection.drivingForce.keys()] : [],
-    signaturePattern: requested.has('signaturePattern') ? [...allowedBySection.signaturePattern.keys()] : [],
-    emergingThemes: requested.has('emergingThemes') ? [...allowedBySection.emergingThemes.keys()] : [],
-    personalPositioning: requested.has('personalPositioning') ? [...allowedBySection.personalPositioning.keys()] : [],
-    proofOfMe: requested.has('proofOfMe') ? [...allowedBySection.proofOfMe.keys()] : [],
     narrativeDetails: {
       coreIdentity: structuredRequested.has('coreIdentity') ? [...allowedBySection.narrativeCoreIdentity.keys()] : [],
       drivingForce: structuredRequested.has('drivingForce') ? [...allowedBySection.narrativeDrivingForce.keys()] : [],
       provenCapabilities: structuredRequested.has('provenCapabilities') ? [...allowedBySection.narrativeCapabilities.keys()] : [],
       socialProof: structuredRequested.has('socialProof') ? [...allowedBySection.narrativeSocialProof.keys()] : [],
       profilePositioning: structuredRequested.has('profilePositioning') ? [...allowedBySection.narrativePositioning.keys()] : [],
-      keyTakeaways: structuredRequested.has('keyTakeaways') ? [...allowedBySection.narrativeKeyTakeaways.keys()] : [],
+      keyTakeaways: structuredRequested.has('keyTakeaways')
+        ? {
+            standOut: [...allowedBySection.narrativeKeyTakeaways.standOut.keys()],
+            competitiveAdvantage: [...allowedBySection.narrativeKeyTakeaways.competitiveAdvantage.keys()],
+            growthOpportunity: [...allowedBySection.narrativeKeyTakeaways.growthOpportunity.keys()],
+          }
+        : { standOut: [], competitiveAdvantage: [], growthOpportunity: [] },
     },
   };
 }
@@ -944,12 +967,14 @@ function batchAllowedEvidenceIds(
 type ParsedNarrativeDetails = NonNullable<z.infer<typeof synthesisResponseSchema>['narrativeDetails']>;
 
 function requireEvidenceIds(ids: readonly string[], allowed: ReadonlyMap<string, EvidenceRef>): string[] {
-  if (ids.some((id) => !allowed.has(id))) throw new Error('Narrative synthesis cited evidence outside its section.');
+  const invalid = ids.find((id) => !allowed.has(id));
+  if (invalid) throw new Error('Narrative synthesis cited evidence outside its section.');
   return [...ids];
 }
 
 function requireSubset(ids: readonly string[], allowed: ReadonlySet<string>): string[] {
-  if (ids.some((id) => !allowed.has(id))) throw new Error('Narrative synthesis cited evidence outside its section.');
+  const invalid = ids.find((id) => !allowed.has(id));
+  if (invalid) throw new Error('Narrative synthesis cited evidence outside its section.');
   return [...ids];
 }
 
@@ -1027,6 +1052,9 @@ function materializeNarrativeDetails(
     };
   }
   if (requested.has('profilePositioning') && details.profilePositioning) {
+    if (details.profilePositioning.experienceConnection.supportingExperienceCount !== sectionInput.activityEvidence.length) {
+      throw new Error('Narrative synthesis introduced an unsupported numeric fact in profilePositioning.');
+    }
     output.profilePositioning = {
       experienceConnection: {
         ...details.profilePositioning.experienceConnection,
@@ -1042,19 +1070,18 @@ function materializeNarrativeDetails(
     };
   }
   if (requested.has('keyTakeaways') && details.keyTakeaways) {
-    const allowed = allowedBySection.narrativeKeyTakeaways;
     output.keyTakeaways = {
       whatMakesYouStandOut: {
         ...details.keyTakeaways.whatMakesYouStandOut,
-        evidenceIds: requireEvidenceIds(details.keyTakeaways.whatMakesYouStandOut.evidenceIds, allowed),
+        evidenceIds: requireEvidenceIds(details.keyTakeaways.whatMakesYouStandOut.evidenceIds, allowedBySection.narrativeKeyTakeaways.standOut),
       },
       competitiveAdvantage: {
         ...details.keyTakeaways.competitiveAdvantage,
-        evidenceIds: requireEvidenceIds(details.keyTakeaways.competitiveAdvantage.evidenceIds, allowed),
+        evidenceIds: requireEvidenceIds(details.keyTakeaways.competitiveAdvantage.evidenceIds, allowedBySection.narrativeKeyTakeaways.competitiveAdvantage),
       },
       growthOpportunity: {
         ...details.keyTakeaways.growthOpportunity,
-        evidenceIds: requireEvidenceIds(details.keyTakeaways.growthOpportunity.evidenceIds, allowed),
+        evidenceIds: requireEvidenceIds(details.keyTakeaways.growthOpportunity.evidenceIds, allowedBySection.narrativeKeyTakeaways.growthOpportunity),
       },
     };
   }
@@ -1065,65 +1092,9 @@ function materializeBatch(
   parsed: z.infer<typeof synthesisResponseSchema>,
   batch: NarrativeBatch,
   sectionInput: SynthesisSectionInput,
-  allowed: ReadonlyMap<string, EvidenceRef>,
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
 ): Partial<PersonalReportNarrativeSynthesis> {
   const result: Partial<PersonalReportNarrativeSynthesis> = {};
-  const requested = new Set(batch.canonical);
-  const optional = new Set(batch.optional);
-
-  if (optional.has('snapshot') && parsed.snapshot) result.snapshot = { summary: parsed.snapshot.summary };
-  if (optional.has('overview')) {
-    result.overview = parsed.overview
-      ? (() => {
-          const evidenceRefs = hydrate(parsed.overview.evidenceIds, allowed);
-          return evidenceRefs ? { summary: parsed.overview.summary, evidenceRefs } : null;
-        })()
-      : null;
-  }
-  if (optional.has('overallSummary')) {
-    result.overallSummary = parsed.overallSummary
-      ? (() => {
-          const evidenceRefs = hydrate(parsed.overallSummary.evidenceIds, allowed);
-          return evidenceRefs ? { paragraphs: parsed.overallSummary.paragraphs, evidenceRefs } : null;
-        })()
-      : null;
-  }
-
-  if (requested.has('coreIdentity') && sectionInput.coreIdentity && parsed.coreIdentity) {
-    const evidenceRefs = hydrate(parsed.coreIdentity.evidenceIds, allowedBySection.coreIdentity);
-    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
-    result.coreIdentity = { headline: parsed.coreIdentity.headline, paragraphs: parsed.coreIdentity.paragraphs, evidenceRefs };
-  }
-  if (requested.has('drivingForce') && sectionInput.drivingForce && parsed.drivingForce) {
-    const evidenceRefs = hydrate(parsed.drivingForce.evidenceIds, allowedBySection.drivingForce);
-    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
-    result.drivingForce = { headline: parsed.drivingForce.headline, paragraphs: parsed.drivingForce.paragraphs, evidenceRefs };
-  }
-  if (requested.has('signaturePattern') && sectionInput.signaturePattern && parsed.signaturePattern) {
-    const evidenceRefs = hydrate(parsed.signaturePattern.evidenceIds, allowedBySection.signaturePattern);
-    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
-    result.signaturePattern = { paragraphs: parsed.signaturePattern.paragraphs, evidenceRefs };
-  }
-  if (requested.has('emergingThemes') && sectionInput.emergingThemes && parsed.emergingThemes) {
-    const evidenceRefs = hydrate(parsed.emergingThemes.evidenceIds, allowedBySection.emergingThemes);
-    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
-    result.emergingThemes = { paragraphs: parsed.emergingThemes.paragraphs, evidenceRefs };
-  }
-  if (requested.has('personalPositioning') && sectionInput.personalPositioning && parsed.personalPositioning) {
-    const evidenceRefs = hydrate(parsed.personalPositioning.evidenceIds, allowedBySection.personalPositioning);
-    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
-    result.personalPositioning = {
-      statement: parsed.personalPositioning.statement,
-      whyItFits: parsed.personalPositioning.whyItFits,
-      evidenceRefs,
-    };
-  }
-  if (requested.has('proofOfMe') && sectionInput.proofOfMe && parsed.proofOfMe) {
-    const evidenceRefs = hydrate(parsed.proofOfMe.evidenceIds, allowedBySection.proofOfMe);
-    if (!evidenceRefs) throw new Error('Narrative synthesis cited evidence outside its section.');
-    result.proofOfMe = { paragraphs: parsed.proofOfMe.paragraphs, evidenceRefs };
-  }
   if (parsed.narrativeDetails) {
     result.narrativeDetails = materializeNarrativeDetails(parsed.narrativeDetails, batch, sectionInput, allowedBySection);
   }
@@ -1135,15 +1106,15 @@ function parseNarrativeBatch(
   content: string,
   batch: NarrativeBatch,
   sectionInput: SynthesisSectionInput,
-  allowed: ReadonlyMap<string, EvidenceRef>,
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
 ): Partial<PersonalReportNarrativeSynthesis> {
   const batchInputValue = batchInput(sectionInput, batch);
   const raw = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()) as Record<string, unknown>;
-  const normalized = normalizeEmptyOptionalSections(raw, batchInputValue);
+  const normalized = normalizeEmptyOptionalSections(raw);
   const parsed = synthesisResponseSchema.parse(normalized);
   assertNarrativeNumbersAreGrounded(parsed, batchInputValue);
   assertNarrativeVoice(parsed);
+  assertReportMechanicsProse(parsed);
   if (parsed.narrativeDetails) {
     assertNarrativeDetailsRouting(parsed.narrativeDetails, batch);
     assertNarrativeDetailsLengths(parsed.narrativeDetails);
@@ -1158,12 +1129,7 @@ function parseNarrativeBatch(
     }
   }
 
-  for (const key of batch.canonical) {
-    if (Boolean(parsed[key]) !== Boolean(batchInputValue[key])) {
-      throw new Error('Narrative synthesis must cover every available report section.');
-    }
-  }
-  return materializeBatch(parsed, batch, batchInputValue, allowed, allowedBySection);
+  return materializeBatch(parsed, batch, batchInputValue, allowedBySection);
 }
 
 export async function synthesizePersonalReportNarrative(args: {
@@ -1190,20 +1156,19 @@ export async function synthesizePersonalReportNarrative(args: {
     !sectionInput.signaturePattern &&
     !sectionInput.emergingThemes &&
     !sectionInput.personalPositioning &&
-    !sectionInput.proofOfMe
+    !sectionInput.proofOfMe &&
+    !NARRATIVE_BATCHES.some((batch) => batch.structured.some((key) => structuredSectionAvailable(key, sectionInput)))
   ) {
     return null;
   }
 
   try {
     const hasAvailableSection = (batch: NarrativeBatch) =>
-      batch.canonical.some((key) => Boolean(sectionInput[key])) ||
       batch.structured.some((key) => structuredSectionAvailable(key, sectionInput));
-    const availableCanonical = NARRATIVE_BATCHES.filter((batch) => batch.required).some(hasAvailableSection);
     const batches = NARRATIVE_BATCHES.filter((batch) =>
       batch.required
         ? hasAvailableSection(batch)
-        : availableCanonical,
+        : false,
     );
     const outcomes = await Promise.all(
       batches.map(async (batch) => {
@@ -1217,7 +1182,7 @@ export async function synthesizePersonalReportNarrative(args: {
                 role: 'user',
                 content: JSON.stringify({
                   input: batchInput(sectionInput, batch),
-                   requestedSections: [...new Set([...batch.canonical, ...batch.structured, ...batch.optional])],
+                  requestedSections: [...batch.structured],
                   allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowed, allowedBySection),
                 }),
               },
@@ -1225,7 +1190,7 @@ export async function synthesizePersonalReportNarrative(args: {
             temperature: 0.4,
             maxTokens: batch.maxTokens,
           });
-          return { batch, value: parseNarrativeBatch(content, batch, sectionInput, allowed, allowedBySection), error: null };
+          return { batch, value: parseNarrativeBatch(content, batch, sectionInput, allowedBySection), error: null };
         } catch (error) {
           return { batch, value: null, error };
         }
@@ -1234,20 +1199,10 @@ export async function synthesizePersonalReportNarrative(args: {
     const requiredFailure = outcomes.find((outcome) => outcome.batch.required && outcome.error);
     if (requiredFailure?.error) throw requiredFailure.error;
 
-    const synthesis: PersonalReportNarrativeSynthesis = {
-      overview: null,
-      coreIdentity: null,
-      drivingForce: null,
-      signaturePattern: null,
-      emergingThemes: null,
-      personalPositioning: null,
-      proofOfMe: null,
-      overallSummary: null,
-    };
+    const synthesis: PersonalReportNarrativeSynthesis = {};
     for (const outcome of outcomes) {
       if (!outcome.value) continue;
-      const { narrativeDetails, ...legacySections } = outcome.value;
-      Object.assign(synthesis, legacySections);
+      const { narrativeDetails } = outcome.value;
       if (narrativeDetails) {
         synthesis.narrativeDetails = {
           ...(synthesis.narrativeDetails ?? {}),
@@ -1280,69 +1235,12 @@ export function applyNarrativeSynthesis(
   report: PersonalReportV2,
   synthesis: PersonalReportNarrativeSynthesis | null,
 ): PersonalReportV2 {
-  if (!synthesis) return report;
-
-  const details = synthesis.narrativeDetails;
-  const positioningNarrative = details?.profilePositioning;
-  const positioningStatement = positioningNarrative?.profileNarrative ?? positioningNarrative?.positioningOptions[0]?.statement;
-
+  if (!synthesis?.narrativeDetails || Object.keys(synthesis.narrativeDetails).length === 0) return report;
   return {
     ...report,
-    ...(details?.snapshot
-      ? { snapshot: { summary: details.snapshot } }
-      : synthesis.snapshot
-        ? { snapshot: synthesis.snapshot }
-        : {}),
-    ...(details ? { narrativeDetails: details } : {}),
-    overview: synthesis.overview ?? report.overview ?? null,
-    coreIdentity:
-      (details?.coreIdentity || synthesis.coreIdentity) && report.coreIdentity.available
-        ? {
-            ...report.coreIdentity,
-            headline: details?.coreIdentity?.identityStatement ?? synthesis.coreIdentity?.headline ?? report.coreIdentity.headline,
-            interpretation:
-              details?.coreIdentity?.identityStatement ?? synthesis.coreIdentity?.paragraphs.join('\n\n') ?? report.coreIdentity.interpretation,
-          }
-        : report.coreIdentity,
-    drivingForce:
-      (details?.drivingForce || synthesis.drivingForce) && report.drivingForce.available
-        ? {
-            ...report.drivingForce,
-            headline: details?.drivingForce?.primaryMotivation ?? synthesis.drivingForce?.headline ?? report.drivingForce.headline,
-            explanation:
-              details?.drivingForce?.strategicInterpretation ?? synthesis.drivingForce?.paragraphs.join('\n\n') ?? report.drivingForce.explanation,
-          }
-        : report.drivingForce,
-    signaturePattern:
-      synthesis.signaturePattern && report.signaturePattern.available
-        ? {
-            ...report.signaturePattern,
-            distinctiveness: synthesis.signaturePattern.paragraphs.join('\n\n'),
-          }
-        : report.signaturePattern,
-    emergingThemes:
-      synthesis.emergingThemes && report.emergingThemes.available
-        ? {
-            ...report.emergingThemes,
-            narrative: synthesis.emergingThemes.paragraphs.join('\n\n'),
-          }
-        : report.emergingThemes,
-    personalPositioning:
-      (positioningStatement || synthesis.personalPositioning) && report.personalPositioning.available
-        ? {
-            ...report.personalPositioning,
-            statement: positioningStatement ?? synthesis.personalPositioning?.statement ?? report.personalPositioning.statement,
-            whyThisFits:
-              positioningNarrative?.positioningOptions.map((option) => option.statement) ?? synthesis.personalPositioning?.whyItFits ?? report.personalPositioning.whyThisFits,
-          }
-        : report.personalPositioning,
-    proofOfMe:
-      synthesis.proofOfMe && report.proofOfMe.available
-        ? {
-            ...report.proofOfMe,
-            narrative: synthesis.proofOfMe.paragraphs.join('\n\n'),
-          }
-        : report.proofOfMe,
-    overallSummary: synthesis.overallSummary ?? report.overallSummary ?? null,
+    ...(synthesis.narrativeDetails.snapshot
+      ? { snapshot: { summary: synthesis.narrativeDetails.snapshot } }
+      : {}),
+    narrativeDetails: synthesis.narrativeDetails,
   };
 }

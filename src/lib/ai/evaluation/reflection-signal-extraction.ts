@@ -96,11 +96,33 @@ function emptyFinding(key: ReflectionAnswerKey, summary: string | null): Reflect
   return finding;
 }
 
-function stringValues(value: unknown): string[] {
-  if (typeof value === 'string') return [value];
-  if (Array.isArray(value)) return value.flatMap(stringValues);
-  if (value && typeof value === 'object') return Object.values(value).flatMap(stringValues);
-  return [];
+function meaningful(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.some(meaningful);
+  if (value && typeof value === 'object') {
+    return Object.entries(value).some(([key, child]) => key !== 'key' && meaningful(child));
+  }
+  return false;
+}
+
+function sanitizeValue(value: unknown, raw: string): unknown {
+  if (typeof value === 'string') return isNearVerbatimReflectionSummary(value, raw) ? null : value;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizeValue(item, raw))
+      .filter((item) => item !== null && meaningful(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, key === 'key' ? child : sanitizeValue(child, raw)]),
+    );
+  }
+  return value;
+}
+
+export function sanitizeReflectionFinding(finding: ReflectionFinding, raw: string): ReflectionFinding | null {
+  const sanitized = sanitizeValue(finding, raw) as ReflectionFinding;
+  return meaningful(sanitized) ? sanitized : null;
 }
 
 const { systemPrompt: SYSTEM_PROMPT } = getReportPrompt('reflection_signal_extraction');
@@ -136,8 +158,8 @@ export async function extractReflectionFindings(args: {
       const candidate = emptyFinding(item.key, item.summary?.trim() || null);
       const section = item[item.key];
       if (section !== undefined) Object.assign(candidate, { [item.key]: section });
-      if (stringValues(candidate).some((value) => isNearVerbatimReflectionSummary(value, raw))) continue;
-      findings.set(item.key, candidate);
+      const sanitized = sanitizeReflectionFinding(candidate, raw);
+      if (sanitized) findings.set(item.key, sanitized);
     }
   } catch {
     // Raw answers remain source evidence; a failed normalization creates no

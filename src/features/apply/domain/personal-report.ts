@@ -936,7 +936,7 @@ export type PersonalReportNarrativeDetails = {
   };
 };
 
-export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v4-narrative-details';
+export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v5-additive-narrative-details';
 
 function wordCount(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -985,14 +985,14 @@ function snapshotSummary(
     'more specific evidence',
   );
   const sentences = [
-    `This snapshot describes a candidate whose clearest identity signal is ${identity}.`,
-    `The available activities and achievements point toward ${motivation}, while the current record shows ${pattern}.`,
-    `The report is grounded in ${evidence} and keeps repeated signals separate from isolated observations.`,
-    `It treats a recurring pattern as stronger when more than one independent record supports it, and it labels unsupported conclusions as insufficient rather than filling the gap with assumptions.`,
-    `The strongest current material should be read alongside its evidence references, because a stated activity, an attached document, and an extracted interpretation do not carry the same verification status.`,
+    `Your clearest identity signal is ${identity}.`,
+    `Your activities and achievements point toward ${motivation}, while your current record shows ${pattern}.`,
+    `You have ${evidence}, with repeated signals kept separate from isolated observations.`,
+    `A recurring pattern is stronger when more than one independent record supports it, while unsupported conclusions remain open rather than becoming assumptions.`,
+    `Your strongest material combines stated activities, attached documents, and extracted interpretations with different levels of verification.`,
     `The main development opportunity is ${gap}.`,
-    `This is a description of the confirmed candidate snapshot only: it does not assess external selection decisions.`,
-    `As the candidate adds concrete outcomes, ownership details, reflection, or documents, the report can replace an isolated signal with a better-supported pattern while preserving the earlier snapshot as history.`,
+    `This view describes your current profile and does not assess external selection decisions.`,
+    `As you add concrete outcomes, ownership details, reflection, or documents, an isolated signal can become a better-supported pattern while the earlier view remains part of your history.`,
   ];
   const padding =
     ' Every limitation is retained so the reader can see what the current evidence supports, what it merely suggests, and what still needs to be established.';

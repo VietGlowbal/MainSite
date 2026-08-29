@@ -260,7 +260,7 @@ function structuredReport(): PersonalReportV2 {
         }],
       }],
       motivations: [],
-      socialProof: [{ key: 'activities', label: 'Experiences analysed', value: 1, caption: 'Report evidence' }],
+      socialProof: [{ key: 'activities', label: 'Experiences analysed', value: 1, caption: 'Report evidence', evidenceIds: ['activity-1'] }],
       growthPriorities: [],
       futurePathways: [],
     },
@@ -322,7 +322,7 @@ function structuredNarrativeDetails(batch: 'a' | 'b') {
     socialProof: {
       conclusion: 'The evidence base is limited to one recorded experience, so the current social proof is qualitative and early.',
       metricKeys: ['activities'],
-      evidenceIds: ['proof-1'],
+      evidenceIds: ['activity-1'],
     },
     keyTakeaways: {
       whatMakesYouStandOut: {
@@ -397,8 +397,8 @@ function qualityFixtureReport(kind: 'mature' | 'emerging' | 'sparse'): PersonalR
       }],
       motivations: [],
       socialProof: [
-        { key: 'activities', label: 'Experiences analysed', value: activityCount, caption: 'Activities contributing evidence to this report' },
-        ...(kind === 'mature' ? [{ key: 'communityReach' as const, label: 'Community reach', value: 80, caption: 'Largest explicitly quantified audience' }] : []),
+        { key: 'activities', label: 'Experiences analysed', value: activityCount, caption: 'Activities contributing evidence to this report', evidenceIds: activityIds },
+        ...(kind === 'mature' ? [{ key: 'communityReach' as const, label: 'Community reach', value: 80, caption: 'Largest explicitly quantified audience', evidenceIds: ['proof-1'] }] : []),
       ],
       growthPriorities: [],
       futurePathways: [],
@@ -443,6 +443,64 @@ describe('synthesisInputFromReport', () => {
     const input = synthesisInputFromReport(fullReport(), null);
     expect(input.drivingForce?.isHypothesis).toBe(true);
   });
+
+  it('passes only repeated Q1-Q3 findings to identity and preserves typed status', () => {
+    const findings = completeReflectionFindings();
+    const input = synthesisInputFromReport(fullReport({
+      reflectionFindings: [findings[0]!, findings[3]!],
+      reflectionFindingStatuses: { q1: 'repeated', q4: 'isolated' },
+    }), null);
+
+    expect(input.coreIdentity?.corroboratedReflections.map(({ finding }) => finding.key)).toEqual(['q1']);
+    expect(input.drivingForce?.reflectionFindings.map(({ finding }) => finding.key)).toEqual(['q1']);
+    expect(input.reflectionFindings.byKey.q1?.status).toBe('repeated');
+    expect(input.reflectionFindings.byKey.q4?.status).toBe('isolated');
+  });
+
+  it('does not fill unsupported activity dimensions from neighbouring fields', () => {
+    const input = synthesisInputFromReport(fullReport(), null, {
+      evaluationInput: {
+        narrativeActivities: [{
+          id: 'activity-1',
+          title: 'Coding club',
+          role: 'organiser',
+          behaviour: 'coordinated volunteers',
+          domainTheme: 'education access',
+          statedMotivation: 'help learners',
+          outcome: 'more students learned',
+          narrativeEvidence: {
+            context: null,
+            trigger: null,
+            problem: null,
+            motivation: null,
+            challenge: null,
+            action: null,
+            ownership: null,
+            method: null,
+            impact: null,
+            transformation: null,
+            future: null,
+            role: null,
+            domainTheme: null,
+            candidateCapabilitySignals: [],
+          },
+          evidenceRefs: [{ id: 'activity-1', kind: 'activity', label: 'Coding club' }],
+        }],
+      } as never,
+    });
+
+    expect(input.activityEvidence[0]).toMatchObject({
+      trigger: null,
+      problem: null,
+      motivation: null,
+      action: null,
+      ownership: null,
+      method: null,
+      impact: null,
+      role: null,
+      domainTheme: null,
+    });
+  });
 });
 
 describe('allowedEvidenceIdsFor', () => {
@@ -472,45 +530,37 @@ describe('synthesizePersonalReportNarrative', () => {
   });
 
   it('hydrates a response that only cites known evidence ids', async () => {
-    const snapshotSummary = Array.from({ length: 150 }, () => 'word').join(' ');
-    const fetchMock = vi.fn().mockResolvedValue(
-      chatResponse(
-        JSON.stringify({
-          snapshot: { summary: snapshotSummary },
-          ...completeSynthesisResponse(),
-        }),
-      ),
-    );
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      return chatResponse(JSON.stringify({ narrativeDetails: structuredNarrativeDetails(batch) }));
+    });
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await synthesizePersonalReportNarrative({
-      report: fullReport(),
+      report: structuredReport(),
       intendedDirection: null,
       apiKey: 'test-key',
       model: 'gpt-4o',
       grounding: narrativeGrounding(),
     });
 
-    expect(result?.coreIdentity?.headline).toBe('A natural organiser');
-    expect(result?.snapshot?.summary).toBe(snapshotSummary);
-    expect(result?.coreIdentity?.evidenceRefs).toEqual([
-      { id: 'activity-1', kind: 'activity', label: 'Coding club' },
-    ]);
-    expect(result?.signaturePattern?.paragraphs).toHaveLength(1);
-    expect(result?.emergingThemes?.paragraphs).toHaveLength(1);
-    expect(result?.proofOfMe?.paragraphs).toHaveLength(1);
+    expect(result?.narrativeDetails?.coreIdentity?.identityStatement.split(/\s+/)).toHaveLength(80);
+    expect(result?.narrativeDetails?.profilePositioning?.positioningOptions[0]?.supportingEvidenceIds).toEqual(['activity-1']);
   });
 
-  it('accepts sparse batch responses that omit non-requested canonical sections', async () => {
+  it('accepts two sparse V4 batches with no legacy section keys', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
       const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
-      return chatResponse(JSON.stringify(sparseSynthesisResponse(request.requestedSections)));
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      return chatResponse(JSON.stringify({ narrativeDetails: structuredNarrativeDetails(batch) }));
     });
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await synthesizePersonalReportNarrative({
-      report: fullReport(),
+      report: structuredReport(),
       intendedDirection: null,
       apiKey: 'test-key',
       model: 'gpt-4o',
@@ -518,126 +568,88 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(result?.coreIdentity).not.toBeNull();
-    expect(result?.drivingForce).not.toBeNull();
-    expect(result?.signaturePattern).not.toBeNull();
-    expect(result?.emergingThemes).not.toBeNull();
-    expect(result?.personalPositioning).not.toBeNull();
-    expect(result?.proofOfMe).not.toBeNull();
+    expect(result?.narrativeDetails?.coreIdentity).not.toBeNull();
+    expect(result?.narrativeDetails?.provenCapabilities).not.toBeNull();
+    const bodies = fetchMock.mock.calls.map((call) => JSON.parse(call?.[1]?.body as string));
+    const requested = bodies.map((body) => JSON.parse(body.messages[1].content).requestedSections as string[]);
+    expect(requested.flat()).not.toContain('signaturePattern');
+    expect(requested.flat()).not.toContain('proofOfMe');
   });
 
-  it('accepts a null optional snapshot instead of rejecting the complete batch', async () => {
+  it('rejects a missing available structured snapshot', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
       const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
-      const response = sparseSynthesisResponse(request.requestedSections);
-      if (request.requestedSections.includes('snapshot')) response.snapshot = null;
-      return chatResponse(JSON.stringify(response));
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      const details = structuredNarrativeDetails(batch) as Record<string, unknown>;
+      if (batch === 'a') details.snapshot = null;
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
     });
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await synthesizePersonalReportNarrative({
-      report: fullReport(),
+      report: structuredReport(),
       intendedDirection: null,
       apiKey: 'test-key',
       model: 'gpt-4o',
       grounding: narrativeGrounding(),
     });
 
-    expect(result?.snapshot).toBeUndefined();
-    expect(result?.coreIdentity).not.toBeNull();
-    expect(result?.proofOfMe).not.toBeNull();
+    expect(result).toBeNull();
   });
 
-  it('keeps a grounded short snapshot and ignores unsupported optional summaries', async () => {
+  it('rejects a snapshot outside its contract word range', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify(
-          completeSynthesisResponse({
-            snapshot: { summary: 'A concise grounded snapshot.' },
-            overview: { summary: 'No cited overview.', evidenceIds: [] },
-            overallSummary: { paragraphs: ['No cited overall summary.'], evidenceIds: [] },
-          }),
+          { narrativeDetails: { ...structuredNarrativeDetails('a'), snapshot: 'A concise grounded snapshot.' } },
         ),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await synthesizePersonalReportNarrative({
-      report: fullReport(),
+      report: structuredReport(),
       intendedDirection: null,
       apiKey: 'test-key',
       model: 'gpt-4o',
       grounding: narrativeGrounding(),
     });
 
-    expect(result?.snapshot?.summary).toBe('A concise grounded snapshot.');
-    expect(result?.overview).toBeNull();
-    expect(result?.overallSummary).toBeNull();
-    expect(result?.coreIdentity).not.toBeNull();
+    expect(result).toBeNull();
   });
 
-  it('normalizes empty objects for unavailable canonical sections to null', async () => {
-    const report = fullReport({
-      signaturePattern: {
-        ...fullReport().signaturePattern,
-        available: false,
-        steps: [],
-        evidenceRefs: [],
-        insufficientData: NOT_AVAILABLE_INSUFFICIENT,
-      },
-      emergingThemes: {
-        ...fullReport().emergingThemes,
-        available: false,
-        themes: [],
-        insufficientData: NOT_AVAILABLE_INSUFFICIENT,
-      },
-    });
+  it('rejects a structured response that omits an available section', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
-        JSON.stringify(
-          completeSynthesisResponse({
-            signaturePattern: { paragraphs: [], evidenceIds: [] },
-            emergingThemes: { paragraphs: [], evidenceIds: [] },
-          }),
-        ),
+        JSON.stringify({ narrativeDetails: {} }),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await synthesizePersonalReportNarrative({
-      report,
+      report: structuredReport(),
       intendedDirection: null,
       apiKey: 'test-key',
       model: 'gpt-4o',
       grounding: narrativeGrounding(),
     });
 
-    expect(result?.signaturePattern).toBeNull();
-    expect(result?.emergingThemes).toBeNull();
-    expect(result?.coreIdentity).not.toBeNull();
+    expect(result).toBeNull();
   });
 
   it('rejects a response that omits prose for an available report section', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify({
-          overview: null,
-          coreIdentity: {
-            headline: 'A natural organiser',
-            paragraphs: ['The candidate repeatedly steps into an organising role.'],
-            evidenceIds: ['activity-1'],
-          },
-          drivingForce: null,
-          personalPositioning: null,
-          overallSummary: null,
+          narrativeDetails: {},
         }),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await synthesizePersonalReportNarrative({
-      report: fullReport(),
+      report: structuredReport(),
       intendedDirection: null,
       apiKey: 'test-key',
       model: 'gpt-4o',
@@ -651,13 +663,7 @@ describe('synthesizePersonalReportNarrative', () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify(
-          completeSynthesisResponse({
-            coreIdentity: {
-            headline: 'A natural organiser',
-            paragraphs: ['The candidate repeatedly steps into an organising role.'],
-            evidenceIds: ['activity-1', 'made-up-id'],
-            },
-          }),
+          { narrativeDetails: { ...structuredNarrativeDetails('a'), coreIdentity: { ...structuredNarrativeDetails('a').coreIdentity, evidenceIds: ['activity-1', 'made-up-id'] } } },
         ),
       ),
     );
@@ -678,12 +684,7 @@ describe('synthesizePersonalReportNarrative', () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify(
-          completeSynthesisResponse({
-            signaturePattern: {
-              paragraphs: ['This must not cite the positioning-only evidence.'],
-              evidenceIds: ['positioning-1'],
-            },
-          }),
+          { narrativeDetails: { ...structuredNarrativeDetails('a'), coreIdentity: { ...structuredNarrativeDetails('a').coreIdentity, evidenceIds: ['proof-1'] } } },
         ),
       ),
     );
@@ -702,7 +703,7 @@ describe('synthesizePersonalReportNarrative', () => {
 
   it('rejects an available section with no evidence citation', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      chatResponse(JSON.stringify(completeSynthesisResponse({ proofOfMe: { paragraphs: ['Ungrounded.'], evidenceIds: [] } }))),
+      chatResponse(JSON.stringify({ narrativeDetails: { ...structuredNarrativeDetails('a'), coreIdentity: { ...structuredNarrativeDetails('a').coreIdentity, evidenceIds: [] } } })),
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -749,13 +750,9 @@ describe('synthesizePersonalReportNarrative', () => {
   });
 
   it('rejects prose that invents a numeric outcome not present in structured findings', async () => {
-    const response = completeSynthesisResponse({
-      coreIdentity: {
-        headline: 'A natural organiser',
-        paragraphs: ['The candidate led a 999-person team.'],
-        evidenceIds: ['activity-1'],
-      },
-    });
+    const details = structuredNarrativeDetails('a');
+    details.coreIdentity!.identityStatement = `${repeatedWords(79, 'identity')} 999`;
+    const response = { narrativeDetails: details };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(chatResponse(JSON.stringify(response))));
     let failureCode: string | null = null;
 
@@ -775,13 +772,9 @@ describe('synthesizePersonalReportNarrative', () => {
   });
 
   it('rejects first-person prose instead of publishing the applicant voice as report narration', async () => {
-    const response = completeSynthesisResponse({
-      coreIdentity: {
-        headline: 'I enjoy building systems',
-        paragraphs: ['I enjoy building systems and helping people.'],
-        evidenceIds: ['activity-1'],
-      },
-    });
+    const details = structuredNarrativeDetails('a');
+    details.coreIdentity!.identityStatement = `I enjoy building systems ${repeatedWords(77, 'identity')}`;
+    const response = { narrativeDetails: details };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(chatResponse(JSON.stringify(response))));
     let failureCode: string | null = null;
 
@@ -800,14 +793,10 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failureCode).toBe('unsupported_narrative_voice');
   });
 
-  it('does not keep a first-person optional snapshot when canonical prose is valid', async () => {
+  it('rejects first-person snapshot prose', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
-        JSON.stringify(
-          completeSynthesisResponse({
-            snapshot: { summary: 'I enjoy building systems and helping people.' },
-          }),
-        ),
+        JSON.stringify({ narrativeDetails: { ...structuredNarrativeDetails('a'), snapshot: 'I enjoy building systems and helping people.' } }),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -820,8 +809,7 @@ describe('synthesizePersonalReportNarrative', () => {
       grounding: narrativeGrounding(),
     });
 
-    expect(result?.snapshot).toBeUndefined();
-    expect(result?.coreIdentity).not.toBeNull();
+    expect(result).toBeNull();
   });
 
   it('never sends raw first-person claim statements to the prose model', async () => {
@@ -861,11 +849,16 @@ describe('synthesizePersonalReportNarrative', () => {
   });
 
   it('sends deterministic findings and section-scoped evidence ids, never raw extraction input', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(chatResponse(JSON.stringify(completeSynthesisResponse())));
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      return chatResponse(JSON.stringify({ narrativeDetails: structuredNarrativeDetails(batch) }));
+    });
     vi.stubGlobal('fetch', fetchMock);
 
     await synthesizePersonalReportNarrative({
-      report: fullReport(),
+      report: structuredReport(),
       intendedDirection: 'Computer science at university',
       apiKey: 'test-key',
       model: 'gpt-4o',
@@ -875,15 +868,15 @@ describe('synthesizePersonalReportNarrative', () => {
     const bodies = fetchMock.mock.calls.map((call) =>
       JSON.parse(call?.[1]?.body as string),
     );
-    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([1800, 1800]);
+    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([3000, 3000]);
     const content = bodies.map((body) => body.messages[1].content).join('\n');
     expect(content).toContain('"input"');
     expect(content).toContain('coordinating volunteers');
     expect(content).not.toContain('I organise coding workshops for younger students.');
     expect(content).not.toContain('Coding club attendance record');
     expect(content).not.toContain('Values peer learning');
-    expect(content).toContain('"signaturePattern":["activity-1"]');
-    expect(content).toContain('"proofOfMe":["proof-1"]');
+    expect(content).toContain('"narrativeDetails"');
+    expect(content).not.toContain('"canonical"');
   });
 
   it('accepts the exact structured Personal Report contract in two concurrent batches', async () => {
@@ -938,6 +931,75 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failure).toBe('invalid_word_length');
   });
 
+  it.each([
+    ['stand out', 'whatMakesYouStandOut', 'proof-1'],
+    ['competitive advantage', 'competitiveAdvantage', 'theme-1'],
+    ['growth opportunity', 'growthOpportunity', 'proof-1'],
+  ] as const)('rejects %s evidence outside its independent scope', async (_label, key, invalidId) => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      const details = structuredNarrativeDetails(batch) as Record<string, unknown>;
+      if (batch === 'b') {
+        const keyTakeaways = details.keyTakeaways as Record<string, Record<string, unknown>>;
+        keyTakeaways[key].evidenceIds = [invalidId];
+      }
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    let failure: string | null = null;
+
+    await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+      onFailure: (code) => { failure = code; },
+    });
+
+    expect(failure).toBe('invalid_evidence_scope');
+  });
+
+  it('rejects report-mechanics prose with its dedicated failure code', async () => {
+    const details = structuredNarrativeDetails('a');
+    details.snapshot = `${repeatedWords(148, 'grounded')} the report`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(chatResponse(JSON.stringify({ narrativeDetails: details }))));
+    let failure: string | null = null;
+
+    await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+      onFailure: (code) => { failure = code; },
+    });
+
+    expect(failure).toBe('report_mechanics_prose');
+  });
+
+  it('rejects hypothesis promotion with its dedicated failure code', async () => {
+    const details = structuredNarrativeDetails('a');
+    details.drivingForce!.isHypothesis = false;
+    details.drivingForce!.primaryMotivation = 'A confirmed motivation.';
+    details.drivingForce!.strategicInterpretation = 'Repeated choices confirm this motivation.';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(chatResponse(JSON.stringify({ narrativeDetails: details }))));
+    let failure: string | null = null;
+
+    await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+      onFailure: (code) => { failure = code; },
+    });
+
+    expect(failure).toBe('hypothesis_promotion');
+  });
+
   it('keeps mature, emerging, and sparse quality fixtures grounded', async () => {
     for (const kind of ['mature', 'emerging', 'sparse'] as const) {
       const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -982,88 +1044,79 @@ describe('applyNarrativeSynthesis', () => {
     expect(applyNarrativeSynthesis(report, null)).toBe(report);
   });
 
-  it('overlays prose onto an available section without touching its score, confidence, or evidence refs', () => {
-    const report = fullReport();
+  it('stores narrative details additively without touching canonical identity facts', () => {
+    const report = structuredReport();
+    const canonical = {
+      coreIdentity: report.coreIdentity,
+      drivingForce: report.drivingForce,
+      signaturePattern: report.signaturePattern,
+      emergingThemes: report.emergingThemes,
+      personalPositioning: report.personalPositioning,
+      proofOfMe: report.proofOfMe,
+      keyTakeaways: report.keyTakeaways,
+      canvasDetails: report.canvasDetails,
+    };
     const applied = applyNarrativeSynthesis(report, {
-      overview: null,
-      coreIdentity: {
-        headline: 'A natural organiser',
-        paragraphs: ['Better-written paragraph.'],
-        evidenceRefs: [{ id: 'activity-1', kind: 'activity', label: 'Coding club' }],
-      },
-      drivingForce: null,
-      signaturePattern: null,
-      emergingThemes: null,
-      personalPositioning: null,
-      proofOfMe: null,
-      overallSummary: null,
+      narrativeDetails: { coreIdentity: {
+        identityStatement: 'Better-written identity statement.',
+        evidenceIds: ['activity-1'],
+        definingTraits: [],
+      } },
     });
 
-    expect(applied.coreIdentity.headline).toBe('A natural organiser');
-    expect(applied.coreIdentity.interpretation).toBe('Better-written paragraph.');
-    expect(applied.coreIdentity.confidence).toBe(report.coreIdentity.confidence);
-    expect(applied.coreIdentity.evidenceRefs).toBe(report.coreIdentity.evidenceRefs);
+    expect(applied.narrativeDetails?.coreIdentity?.identityStatement).toBe('Better-written identity statement.');
+    expect({
+      coreIdentity: applied.coreIdentity,
+      drivingForce: applied.drivingForce,
+      signaturePattern: applied.signaturePattern,
+      emergingThemes: applied.emergingThemes,
+      personalPositioning: applied.personalPositioning,
+      proofOfMe: applied.proofOfMe,
+      keyTakeaways: applied.keyTakeaways,
+      canvasDetails: applied.canvasDetails,
+    }).toEqual(canonical);
   });
 
-  it('never overlays a section the deterministic report marked unavailable', () => {
+  it('does not apply narrative output without narrativeDetails', () => {
     const report = insufficientReport();
     const applied = applyNarrativeSynthesis(report, {
-      overview: null,
-      coreIdentity: {
-        headline: 'A natural organiser',
-        paragraphs: ['Should never be applied.'],
-        evidenceRefs: [],
-      },
-      drivingForce: null,
-      signaturePattern: null,
-      emergingThemes: null,
-      personalPositioning: null,
-      proofOfMe: null,
-      overallSummary: null,
+      narrativeDetails: {},
     });
 
-    expect(applied.coreIdentity).toBe(report.coreIdentity);
+    expect(applied).toEqual(report);
   });
 
-  it('overwrites whyThisFits with the synthesised whyItFits, leaving the positioning booleans untouched', () => {
+  it('allows snapshot presentation prose while preserving positioning booleans', () => {
     const report = fullReport();
     const applied = applyNarrativeSynthesis(report, {
-      overview: null,
-      coreIdentity: null,
-      drivingForce: null,
-      signaturePattern: null,
-      emergingThemes: null,
-      personalPositioning: {
-        statement: 'A sharper positioning statement.',
-        whyItFits: ['Because of X.', 'Because of Y.'],
-        evidenceRefs: [{ id: 'positioning-1', kind: 'activity', label: 'Coding club positioning' }],
-      },
-      proofOfMe: null,
-      overallSummary: null,
+      narrativeDetails: { snapshot: 'A presentation snapshot.' },
     });
 
-    expect(applied.personalPositioning.statement).toBe('A sharper positioning statement.');
-    expect(applied.personalPositioning.whyThisFits).toEqual(['Because of X.', 'Because of Y.']);
+    expect(applied.snapshot?.summary).toBe('A presentation snapshot.');
     expect(applied.personalPositioning.authentic).toBe(report.personalPositioning.authentic);
     expect(applied.personalPositioning.credible).toBe(report.personalPositioning.credible);
   });
 
-  it('overlays AI prose for the remaining canonical sections without replacing their facts', () => {
+  it('keeps every canonical section unchanged when structured narrative is present', () => {
     const report = fullReport();
     const applied = applyNarrativeSynthesis(report, {
-      overview: null,
-      coreIdentity: null,
-      drivingForce: null,
-      signaturePattern: { paragraphs: ['A recurring pattern.'], evidenceRefs: report.signaturePattern.evidenceRefs },
-      emergingThemes: { paragraphs: ['A recurring theme.'], evidenceRefs: report.emergingThemes.themes[0]!.evidenceRefs },
-      personalPositioning: null,
-      proofOfMe: { paragraphs: ['A verified proof.'], evidenceRefs: report.proofOfMe.cards[0]!.evidenceRefs },
-      overallSummary: null,
+      narrativeDetails: {
+        drivingForce: {
+          primaryMotivation: 'A clearer motivation.',
+          repeatedChoices: [],
+          recurringProblems: [],
+          underlyingValues: [],
+          strategicInterpretation: 'A careful interpretation.',
+          evidenceStrength: 'moderate',
+          isHypothesis: true,
+          evidenceIds: ['activity-1'],
+        },
+      },
     });
 
-    expect(applied.signaturePattern.distinctiveness).toBe('A recurring pattern.');
-    expect(applied.emergingThemes.narrative).toBe('A recurring theme.');
-    expect(applied.proofOfMe.narrative).toBe('A verified proof.');
-    expect(applied.proofOfMe.cards).toBe(report.proofOfMe.cards);
+    expect(applied.drivingForce).toEqual(report.drivingForce);
+    expect(applied.signaturePattern).toEqual(report.signaturePattern);
+    expect(applied.emergingThemes).toEqual(report.emergingThemes);
+    expect(applied.proofOfMe).toEqual(report.proofOfMe);
   });
 });

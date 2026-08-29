@@ -8,7 +8,7 @@ import {
 import { buildEvidenceBank } from '@/shared/evidence/build-evidence-bank';
 import type { EvidenceBank } from '@/shared/evidence/domain';
 import { buildPersonalReport } from './personal-report';
-import { buildPersonalCanvasDetails } from './personal-canvas-details';
+import { buildPersonalCanvasDetails, derivedSocialProofMetrics } from './personal-canvas-details';
 
 const TUTOR: NarrativeActivity = {
   id: 'tutor',
@@ -342,9 +342,23 @@ describe('buildPersonalReport', () => {
     });
     expect(canvas.socialProof.find((metric) => metric.key === 'metadataCoverage')?.value).toBeGreaterThan(0);
     expect(canvas.socialProof.find((metric) => metric.key === 'quantifiedOutcomes')?.value).toBeGreaterThan(0);
-    expect(canvas.socialProof.find((metric) => metric.key === 'teamMembersLed')?.value).toBe(20);
-    expect(canvas.socialProof.find((metric) => metric.key === 'communityReach')?.value).toBe(350);
-    expect(canvas.socialProof.find((metric) => metric.key === 'yearsOfCommitment')?.value).toBe(3);
+    expect(canvas.socialProof.find((metric) => metric.key === 'teamMembersLed')).toMatchObject({ value: 20, evidenceIds: ['coding'], sourceActivityIds: ['coding'] });
+    expect(canvas.socialProof.find((metric) => metric.key === 'communityReach')).toMatchObject({ value: 350, evidenceIds: ['careerbridge'], sourceActivityIds: ['careerbridge'] });
+    expect(canvas.socialProof.find((metric) => metric.key === 'yearsOfCommitment')).toMatchObject({ value: 3, evidenceIds: ['coding'], sourceActivityIds: ['coding'] });
+  });
+
+  it('omits derived numeric Social Proof when no number is explicitly present', () => {
+    const metrics = derivedSocialProofMetrics([{
+      activityId: 'qualitative',
+      title: 'Qualitative project',
+      role: 'organiser',
+      personalContribution: 'Supported a small group',
+      outcome: 'Participants felt more confident',
+      period: null,
+      evidenceRefs: [{ id: 'qualitative', kind: 'activity', label: 'Qualitative project' }],
+    }] as never);
+
+    expect(metrics).toEqual([]);
   });
 
   it('routes Q1 into emerging themes and Q3 into positioning as explicitly scoped context', () => {

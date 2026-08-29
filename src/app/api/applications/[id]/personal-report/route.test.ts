@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { personalReportLimiter } from '@/lib/rate-limiter';
 import { PERSONAL_REPORT_EXTRACTION_VERSION } from '@/lib/ai/personal-report-v2';
+import { PERSONAL_REPORT_CONTRACT_VERSION } from '@/features/apply/domain';
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -135,7 +136,7 @@ describe('application Personal Report route', () => {
         id: 'report-1',
         reportV2: { coreIdentity: {} },
         confirmedSnapshotId: 'snapshot-1',
-        reportContractVersion: 'personal-report-v3',
+        reportContractVersion: PERSONAL_REPORT_CONTRACT_VERSION,
         engineVersion: '1.1.0',
         promptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
         generatedAt: '2026-08-28T00:00:00Z',

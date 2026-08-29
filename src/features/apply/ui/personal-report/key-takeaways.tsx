@@ -7,7 +7,14 @@ function firstUseful(values: Array<string | null | undefined>, fallback: string)
   return values.find((value) => Boolean(value?.trim()))?.trim() ?? fallback;
 }
 
-function TakeawayCard({ title, insight, finding }: { title: string; insight: string; finding?: PersonalReportInsight }) {
+type TakeawayDetail = { label: string; value: string };
+
+function TakeawayCard({
+  title,
+  insight,
+  details = [],
+  finding,
+}: { title: string; insight: string; details?: TakeawayDetail[]; finding?: PersonalReportInsight }) {
   const t = useT();
   return (
     <article className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-gb-xl">
@@ -15,9 +22,19 @@ function TakeawayCard({ title, insight, finding }: { title: string; insight: str
         <span aria-hidden="true" className="text-gb-xl leading-none text-fg-brand">★</span>
         <div className="flex flex-col gap-gb-sm">
           <h3 className="font-display text-gb-lg font-semibold text-fg">{title}</h3>
-          <p className="text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
-            {insight}
-          </p>
+          {details.length > 0 ? (
+            <div className="flex flex-col gap-gb-sm text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
+              {details.map((detail) => (
+                <p key={detail.label}>
+                  <span className="font-semibold text-fg">{detail.label}:</span> {detail.value}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
+              {insight}
+            </p>
+          )}
           {finding ? (
             <div className="flex flex-col gap-gb-xs border-t border-line pt-gb-md text-gb-xs text-fg-muted" data-no-auto-translate>
               <p>
@@ -28,13 +45,13 @@ function TakeawayCard({ title, insight, finding }: { title: string; insight: str
                   confidence: t(finding.confidence === 'high' ? 'High' : finding.confidence === 'medium' ? 'Medium' : 'Low'),
                 })}
               </p>
-              {finding.importance || finding.currentGap ? (
+              {details.length === 0 && (finding.importance || finding.currentGap) ? (
                 <p>
                   <span className="font-semibold text-fg">{t('Why it matters')}:</span>{' '}
                   {finding.importance ?? finding.currentGap}
                 </p>
               ) : null}
-              {finding.direction ? (
+              {details.length === 0 && finding.direction ? (
                 <p>
                   <span className="font-semibold text-fg">{t('Recommended direction')}:</span> {finding.direction}
                 </p>
@@ -53,6 +70,7 @@ function TakeawayCard({ title, insight, finding }: { title: string; insight: str
  * conclusions, which keeps older report versions safe and explainable.
  */
 export function KeyTakeawaysView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const structured = report.keyTakeaways;
   const narrative = report.narrativeDetails?.keyTakeaways;
   const standOut = firstUseful(
@@ -89,18 +107,40 @@ export function KeyTakeawaysView({ report }: { report: PersonalReportV2 }) {
 
       <div className="grid gap-gb-lg md:grid-cols-3">
         <TakeawayCard
-          title="What Makes You Stand Out"
-          insight={narrative?.whatMakesYouStandOut.insight ?? structured?.whatMakesYouStandOut.statement ?? standOut}
+          title={narrative?.whatMakesYouStandOut.title ?? 'What Makes You Stand Out'}
+          insight={structured?.whatMakesYouStandOut.statement ?? standOut}
+          {...(narrative?.whatMakesYouStandOut ? {
+            details: [
+              { label: 'Insight', value: narrative.whatMakesYouStandOut.insight },
+              { label: t('Evidence pattern'), value: narrative.whatMakesYouStandOut.evidencePattern },
+              { label: 'Why it matters', value: narrative.whatMakesYouStandOut.whyItMatters },
+            ],
+          } : {})}
           {...(structured?.whatMakesYouStandOut ? { finding: structured.whatMakesYouStandOut } : {})}
         />
         <TakeawayCard
-          title="Your Competitive Advantage"
-          insight={narrative?.competitiveAdvantage.advantageStatement ?? structured?.competitiveAdvantage.statement ?? advantage}
+          title={narrative?.competitiveAdvantage.title ?? 'Your Competitive Advantage'}
+          insight={structured?.competitiveAdvantage.statement ?? advantage}
+          {...(narrative?.competitiveAdvantage ? {
+            details: [
+              { label: t('Advantage'), value: narrative.competitiveAdvantage.advantageStatement },
+              { label: 'Supporting evidence', value: narrative.competitiveAdvantage.supportingEvidence },
+              { label: t('Application relevance'), value: narrative.competitiveAdvantage.applicationRelevance },
+            ],
+          } : {})}
           {...(structured?.competitiveAdvantage ? { finding: structured.competitiveAdvantage } : {})}
         />
         <TakeawayCard
-          title="Your Growth Opportunity"
-          insight={narrative?.growthOpportunity.recommendedDirection ?? structured?.growthOpportunity.statement ?? growth}
+          title={narrative?.growthOpportunity.title ?? 'Your Growth Opportunity'}
+          insight={structured?.growthOpportunity.statement ?? growth}
+          {...(narrative?.growthOpportunity ? {
+            details: [
+              { label: t('Growth area'), value: narrative.growthOpportunity.growthArea },
+              { label: t('Current gap'), value: narrative.growthOpportunity.currentGap },
+              { label: 'Recommended direction', value: narrative.growthOpportunity.recommendedDirection },
+              { label: 'Why it matters', value: narrative.growthOpportunity.whyItMatters },
+            ],
+          } : {})}
           {...(structured?.growthOpportunity ? { finding: structured.growthOpportunity } : {})}
         />
       </div>

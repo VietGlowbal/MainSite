@@ -1,5 +1,21 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report post-review fix plan): completed the
+V4 `narrativeDetails`-only writer contract, additive report application,
+canonical activity-dimension grounding, full activity Evidence Bank lineage,
+reflection isolation/Q1-Q7 routing, recursive finding sanitisation, exact
+Social Proof provenance, independent takeaway evidence scopes, section-level
+numeric and voice/mechanics guards, two-batch generation, cache-version
+identity, and structured takeaway rendering with legacy fallback. Matching
+context remains canonical-only. Measured: focused Personal Report/evaluation/
+domain/API/matching/UI suites 104/104, UI follow-up 8/8, narrative follow-up
+36/36, base and strict typecheck, lint (0 errors; 5 existing warnings), i18n
+checker (0 missing keys), CI production build, and `git diff --check` pass.
+One full Vitest run measured 3,510 passed, 6 failed, and 2 todo; it was before
+the final i18n-label follow-up and included that now-fixed checker failure plus
+five unrelated API timing/parallel-test failures. The
+Personal Report route suite passes 7/7 in isolation.
+
 Working tree 2026-08-29 (saved-program URL handoff): a pasted course URL now
 automatically supplies the saved programme label—using the catalogue match when
 available, otherwise its final URL path—so application planning no longer

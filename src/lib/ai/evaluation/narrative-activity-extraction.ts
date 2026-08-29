@@ -54,10 +54,10 @@ export type RoleThemeExtractionResult = {
   id: string;
   role: string | null;
   domainTheme: string | null;
-  trigger?: string | null;
-  problem?: string | null;
-  ownership?: string | null;
-  method?: string | null;
+  trigger: string | null;
+  problem: string | null;
+  ownership: string | null;
+  method: string | null;
 };
 
 // Prompt text and its version live in the shared registry (Task 2).
@@ -83,7 +83,7 @@ export async function extractRoleAndTheme(args: {
 
   const withText = inputs.filter((input) => input.freeText.trim().length > 0);
   if (withText.length === 0) {
-    return inputs.map((input) => ({ id: input.id, role: null, domainTheme: null }));
+    return inputs.map((input) => ({ id: input.id, role: null, domainTheme: null, trigger: null, problem: null, ownership: null, method: null }));
   }
 
   const content = await openAiJsonCompletion({
@@ -107,10 +107,10 @@ export async function extractRoleAndTheme(args: {
       id: input.id,
       role: sanitizeExtractedField(extracted?.role ?? null),
       domainTheme: sanitizeExtractedField(extracted?.domainTheme ?? null),
-      ...(extracted && 'trigger' in extracted ? { trigger: sanitizeExtractedField(extracted.trigger ?? null) } : {}),
-      ...(extracted && 'problem' in extracted ? { problem: sanitizeExtractedField(extracted.problem ?? null) } : {}),
-      ...(extracted && 'ownership' in extracted ? { ownership: sanitizeExtractedField(extracted.ownership ?? null) } : {}),
-      ...(extracted && 'method' in extracted ? { method: sanitizeExtractedField(extracted.method ?? null) } : {}),
+      trigger: sanitizeExtractedField(extracted?.trigger ?? null),
+      problem: sanitizeExtractedField(extracted?.problem ?? null),
+      ownership: sanitizeExtractedField(extracted?.ownership ?? null),
+      method: sanitizeExtractedField(extracted?.method ?? null),
     };
   });
 }

@@ -185,7 +185,7 @@ function stateEvidenceBank(
   });
 }
 
-function interpretationsFromEvaluationInput(
+export function interpretationsFromEvaluationInput(
   input: ProfileEvaluationInput,
 ): EvidenceBank['interpretations'] {
   return [
@@ -207,7 +207,7 @@ function interpretationsFromEvaluationInput(
       id: `narrative:${activity.id}`,
       origin: 'ai_extraction' as const,
       module: 'narrative_activity_extraction',
-      payload: { role: activity.role, domainTheme: activity.domainTheme },
+      payload: activity,
       sourceRefs: [activity.id],
     })),
   ];

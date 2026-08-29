@@ -53,6 +53,8 @@ export type SocialProofMetric = {
   label: string;
   value: number;
   caption: string;
+  evidenceIds: string[];
+  sourceActivityIds?: string[];
 };
 
 export type GrowthPriority = {
@@ -170,12 +172,23 @@ function activityProofText(card: ProofCard): string {
   return [card.role, card.personalContribution, card.outcome].filter(Boolean).join(' ');
 }
 
-function maxExplicitMatch(cards: readonly ProofCard[], pattern: RegExp): number | null {
-  let maximum: number | null = null;
+function metricEvidence(cards: readonly ProofCard[]) {
+  return {
+    evidenceIds: [...new Set(cards.flatMap((card) => card.evidenceRefs.map((ref) => ref.id)))],
+    sourceActivityIds: [...new Set(cards.map((card) => card.activityId))],
+  };
+}
+
+function maxExplicitMatch(cards: readonly ProofCard[], patterns: readonly RegExp[]): { value: number; cards: ProofCard[] } | null {
+  let maximum: { value: number; cards: ProofCard[] } | null = null;
   for (const card of cards) {
-    const match = activityProofText(card).match(pattern);
-    const value = match?.[1] ? parseNumberToken(match[1]) : null;
-    if (value !== null) maximum = maximum === null ? value : Math.max(maximum, value);
+    for (const pattern of patterns) {
+      const match = activityProofText(card).match(pattern);
+      const value = match?.[1] ? parseNumberToken(match[1]) : null;
+      if (value === null) continue;
+      if (!maximum || value > maximum.value) maximum = { value, cards: [card] };
+      else if (value === maximum.value && !maximum.cards.includes(card)) maximum.cards.push(card);
+    }
   }
   return maximum;
 }
@@ -198,10 +211,14 @@ function yearsFromPeriod(period: string | null | undefined): number | null {
 export function derivedSocialProofMetrics(cards: readonly ProofCard[]): SocialProofMetric[] {
   const teamMembersLed = maxExplicitMatch(
     cards,
-    new RegExp(`\\b(?:led|managed|coordinated|organised|organized|recruited|supervised)\\b[^.!?]{0,80}\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\b`, 'i'),
-  ) ?? maxExplicitMatch(cards, new RegExp(`\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\s+(?:team|group)\\b`, 'i'));
+    [
+      new RegExp(`\\b(?:led|managed|coordinated|organised|organized|recruited|supervised)\\b[^.!?]{0,80}\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\b`, 'i'),
+      new RegExp(`\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\s+(?:team|group)\\b`, 'i'),
+    ],
+  );
 
   let communityReach: number | null = null;
+  let communityCards: ProofCard[] = [];
   const reachPattern = new RegExp(`\\b(?:over|more than|around|nearly)?\\s*(${NUMBER_TOKEN})\\s+(?:students?|people|famil(?:y|ies)|participants?|learners?|children|residents?|households?)\\b`, 'gi');
   for (const card of cards) {
     const text = activityProofText(card);
@@ -209,25 +226,35 @@ export function derivedSocialProofMetrics(cards: readonly ProofCard[]): SocialPr
       const prefix = text.slice(Math.max(0, (match.index ?? 0) - 80), match.index ?? 0);
       if (!/\b(?:reach(?:ed)?|serve(?:d)?|support(?:ed)?|impact(?:ed)?|benefit(?:ed)?|teach(?:ing|taught)?|train(?:ed|ing)?|deliver(?:ed)?|provide(?:d)?|engag(?:ed)?|help(?:ed)?|mentor(?:ed)?|grow|grew|recruit(?:ed)?|enrol(?:led)?|use(?:d)?|test(?:ed)?)\b/i.test(prefix)) continue;
       const value = parseNumberToken(match[1] ?? '');
-      if (value !== null) communityReach = communityReach === null ? value : Math.max(communityReach, value);
+      if (value === null) continue;
+      if (communityReach === null || value > communityReach) {
+        communityReach = value;
+        communityCards = [card];
+      } else if (value === communityReach && !communityCards.includes(card)) communityCards.push(card);
     }
   }
 
-  const yearsOfCommitment = cards.reduce<number | null>((maximum, card) => {
+  let yearsOfCommitment: number | null = null;
+  let yearsCards: ProofCard[] = [];
+  for (const card of cards) {
     const value = yearsFromPeriod(card.period);
-    return value === null ? maximum : maximum === null ? value : Math.max(maximum, value);
-  }, null);
+    if (value === null) continue;
+    if (yearsOfCommitment === null || value > yearsOfCommitment) {
+      yearsOfCommitment = value;
+      yearsCards = [card];
+    } else if (value === yearsOfCommitment && !yearsCards.includes(card)) yearsCards.push(card);
+  }
 
   const metrics: Array<SocialProofMetric | null> = [
     teamMembersLed === null
       ? null
-      : { key: 'teamMembersLed' as const, label: 'Team members led', value: teamMembersLed, caption: 'Largest explicitly quantified team or group' },
+      : { key: 'teamMembersLed' as const, label: 'Team members led', value: teamMembersLed.value, caption: 'Largest explicitly quantified team or group', ...metricEvidence(teamMembersLed.cards) },
     communityReach === null
       ? null
-      : { key: 'communityReach' as const, label: 'Community reach', value: communityReach, caption: 'Largest explicitly quantified audience or beneficiary group' },
+      : { key: 'communityReach' as const, label: 'Community reach', value: communityReach, caption: 'Largest explicitly quantified audience or beneficiary group', ...metricEvidence(communityCards) },
     yearsOfCommitment === null
       ? null
-      : { key: 'yearsOfCommitment' as const, label: 'Years of commitment', value: yearsOfCommitment, caption: 'Longest explicit activity period recorded' },
+      : { key: 'yearsOfCommitment' as const, label: 'Years of commitment', value: yearsOfCommitment, caption: 'Longest explicit activity period recorded', ...metricEvidence(yearsCards) },
   ];
   return metrics.filter((metric): metric is SocialProofMetric => metric !== null);
 }
@@ -375,15 +402,22 @@ function buildSocialProof(proofOfMe: ProofOfMeSection): SocialProofMetric[] {
           card.sources?.length,
       ),
   ).length;
+  const metric = (key: SocialProofMetric['key'], label: string, value: number, caption: string, sourceCards = cards) => ({
+    key,
+    label,
+    value,
+    caption,
+    ...metricEvidence(sourceCards),
+  });
 
   return [
-    { key: 'activities', label: 'Experiences analysed', value: cards.length, caption: 'Activities contributing evidence to this report' },
-    { key: 'strongEvidence', label: 'Strong evidence items', value: strongEvidence, caption: 'Experiences with evidence, outcomes and demonstrated capability' },
-    { key: 'verifiedEvidence', label: 'Checkable evidence', value: verifiedEvidence, caption: 'Verified or attributable evidence sources' },
-    { key: 'outcomes', label: 'Recorded outcomes', value: outcomes, caption: 'Experiences with a stated result or change' },
-    { key: 'quantifiedOutcomes', label: 'Quantified outcomes', value: quantifiedOutcomes, caption: 'Outcomes containing a measurable result' },
-    { key: 'capabilityClaims', label: 'Capabilities evidenced', value: capabilityClaims, caption: 'Distinct grounded capability labels across experiences' },
-    { key: 'metadataCoverage', label: 'Evidence metadata captured', value: metadataCoverage, caption: 'Experiences retaining organisation, level, period, competition or verification provenance' },
+    metric('activities', 'Experiences analysed', cards.length, 'Activities contributing evidence to this report'),
+    metric('strongEvidence', 'Strong evidence items', strongEvidence, 'Experiences with evidence, outcomes and demonstrated capability', cards.filter((card) => card.evidenceStrength === 'strong')),
+    metric('verifiedEvidence', 'Checkable evidence', verifiedEvidence, 'Verified or attributable evidence sources', cards.filter((card) => card.verificationStatus === 'verified' || card.verificationStatus === 'attributable')),
+    metric('outcomes', 'Recorded outcomes', outcomes, 'Experiences with a stated result or change', cards.filter((card) => Boolean(card.outcome?.trim()))),
+    metric('quantifiedOutcomes', 'Quantified outcomes', quantifiedOutcomes, 'Outcomes containing a measurable result', cards.filter((card) => /\d/.test(card.outcome ?? ''))),
+    metric('capabilityClaims', 'Capabilities evidenced', capabilityClaims, 'Distinct grounded capability labels across experiences', cards.filter((card) => card.competenciesDemonstrated.length > 0)),
+    metric('metadataCoverage', 'Evidence metadata captured', metadataCoverage, 'Experiences retaining organisation, level, period, competition or verification provenance', cards.filter((card) => Boolean(card.organisation || card.level || card.year || card.period || card.competition || card.evidenceKey || card.sources?.length))),
     ...derivedSocialProofMetrics(cards),
   ];
 }

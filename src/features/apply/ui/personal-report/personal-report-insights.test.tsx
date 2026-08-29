@@ -204,6 +204,44 @@ describe('Personal Report Pass 2 insights', () => {
     expect(screen.getByText('Add one specific outcome.')).toBeInTheDocument();
   });
 
+  it('renders every structured AI takeaway field without mixing in legacy prose', () => {
+    const current = report();
+    current.narrativeDetails = {
+      keyTakeaways: {
+        whatMakesYouStandOut: {
+          title: 'Structured standout title',
+          insight: 'Structured standout insight',
+          evidencePattern: 'Structured standout evidence pattern',
+          whyItMatters: 'Structured standout importance',
+          evidenceIds: ['e1'],
+        },
+        competitiveAdvantage: {
+          title: 'Structured advantage title',
+          advantageStatement: 'Structured advantage statement',
+          supportingEvidence: 'Structured advantage evidence',
+          applicationRelevance: 'Structured advantage relevance',
+          evidenceIds: ['e1'],
+        },
+        growthOpportunity: {
+          title: 'Structured growth title',
+          growthArea: 'Structured growth area',
+          currentGap: 'Structured current gap',
+          recommendedDirection: 'Structured recommendation',
+          whyItMatters: 'Structured growth importance',
+          evidenceIds: ['e1'],
+        },
+      },
+    };
+
+    render(<KeyTakeawaysView report={current} />);
+    for (const text of [
+      'Structured standout insight', 'Structured standout evidence pattern', 'Structured standout importance',
+      'Structured advantage statement', 'Structured advantage evidence', 'Structured advantage relevance',
+      'Structured growth area', 'Structured current gap', 'Structured recommendation', 'Structured growth importance',
+    ]) expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByText('Grounded standout')).not.toBeInTheDocument();
+  });
+
   it('surfaces social-proof metadata on each evidence card', () => {
     const current = report();
     current.proofOfMe.cards[0] = proof({
