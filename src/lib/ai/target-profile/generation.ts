@@ -159,10 +159,20 @@ function fieldText(value: unknown): string | null {
 /** Field names that map deterministically onto profile slots. */
 const DEADLINE_FIELDS = /deadline|due_date|closing/i;
 const SCHOLARSHIP_FIELDS = /scholarship|bursary|funding|merit/i;
-const VALUE_FIELDS = /value|mission|ethos|culture/i;
+const VALUE_FIELDS = /value|mission|ethos|culture|specific_insight|best_for|strength|weakness|notes/i;
 const THEME_FIELDS = /theme|focus|specialis|description|overview/i;
-const LEARNING_FIELDS = /teach|pedagog|class|interdiscip|experiential|research|entrepreneur|mentor|community_programme/i;
-const PROGRAMME_PROFILE_FIELDS = /curriculum|module|coursework|outcome|graduate|career|pathway|employ|opportun|competenc|skill|quality/i;
+const LEARNING_FIELDS = /teach|pedagog|class|interdiscip|experiential|research|entrepreneur|mentor|community_programme|international_environment|study_mode/i;
+const PROGRAMME_PROFILE_FIELDS = /curriculum|module|coursework|outcome|graduate|career|pathway|employ|opportun|competenc|skill|quality|intern|industry|connection/i;
+
+function hasSourceBackedTargetData(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasSourceBackedTargetData);
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  if (Array.isArray(record['sourceRefs']) && record['sourceRefs'].some((ref) => typeof ref === 'string' && ref.length > 0)) {
+    return true;
+  }
+  return Object.values(record).some(hasSourceBackedTargetData);
+}
 
 export async function resolveTargetProfile(args: {
   supabase: import('@supabase/supabase-js').SupabaseClient;
@@ -193,7 +203,8 @@ export async function resolveTargetProfile(args: {
     cached &&
     cached.sourceFingerprint === fingerprint &&
     cached.schemaVersion === TARGET_PROFILE_SCHEMA_VERSION &&
-    cached.extractionPromptVersion === REPORT_PROMPT_VERSIONS.target_profile_extraction
+    cached.extractionPromptVersion === REPORT_PROMPT_VERSIONS.target_profile_extraction &&
+    hasSourceBackedTargetData(cached.profile)
   ) {
     return { status: 'cached', versionId: cached.id, profile: cached.profile };
   }
@@ -245,13 +256,18 @@ export async function resolveTargetProfile(args: {
     const documentType = String(row['document_type'] ?? 'requirement');
     const runRef = typeof row['source_run_id'] === 'string' ? row['source_run_id'] : '';
     const sourceRefs = runRef && knownSourceRefs.has(runRef) ? [runRef] : [];
+    const suppliedCategory = row['category'];
+    const category: TargetRequirement['category'] =
+      suppliedCategory === 'academic' || suppliedCategory === 'competency' || suppliedCategory === 'selection' || suppliedCategory === 'scholarship' || suppliedCategory === 'application'
+        ? suppliedCategory
+        : /english|ielts|toefl|test|gpa|transcript|academic/i.test(documentType)
+          ? 'academic'
+          : 'application';
     requirements.push({
       id: `adm:${documentType}`,
-      category: /english|ielts|toefl|test|gpa|transcript|academic/i.test(documentType)
-        ? 'academic'
-        : 'application',
+      category,
       label: documentType.replace(/_/g, ' '),
-      detail: row['required_count'] != null ? `${row['required_count']} document(s)` : null,
+      detail: fieldText(row['detail']) ?? (row['required_count'] != null ? `${row['required_count']} document(s)` : null),
       status: (row['requirement_status'] as TargetRequirement['status']) ?? 'unknown',
       sourceRefs,
       missingInformation: sourceRefs.length ? null : 'No valid ingest provenance recorded for this requirement.',
@@ -283,7 +299,10 @@ export async function resolveTargetProfile(args: {
     if (LEARNING_FIELDS.test(fieldName)) {
       const fact = runRef && knownSourceRefs.has(runRef) ? { value: text.slice(0, 2_000), sourceRefs: [runRef] } : null;
       if (!fact) missingInformation.push({ area: fieldName, note: 'Learning-environment fact lacks valid ingest provenance.' });
-      else if (/teach|pedagog/i.test(fieldName)) learningEnvironment.teachingModel = fact;
+      else if (/teach|pedagog/i.test(fieldName)) {
+        learningEnvironment.teachingModel = fact;
+        if (!runRef.startsWith('catalogue:university:')) programmeProfile.teachingStyle = fact;
+      }
       else if (/experiential|project|practice/i.test(fieldName)) learningEnvironment.experientialLearning.push(fact);
       else if (/class/i.test(fieldName)) learningEnvironment.classStructure = fact;
       else if (/interdiscip/i.test(fieldName)) learningEnvironment.interdisciplinary = fact;
@@ -294,14 +313,19 @@ export async function resolveTargetProfile(args: {
       continue;
     }
     if (VALUE_FIELDS.test(fieldName)) {
-      universityValues.push(text.slice(0, 200));
       if (runRef && knownSourceRefs.has(runRef)) {
         const fact = { value: text.slice(0, 2_000), sourceRefs: [runRef] };
-        universityValueFacts.push(fact);
-        if (/mission/i.test(fieldName)) universityMission = fact;
-        if (/ethos|culture|philosophy/i.test(fieldName)) educationalPhilosophy = fact;
+        if (/student|best_for/i.test(fieldName)) {
+          universityStudentProfile = fact;
+        } else {
+          universityValues.push(text.slice(0, 200));
+          universityValueFacts.push(fact);
+          if (/mission/i.test(fieldName)) universityMission = fact;
+          if (/ethos|culture|philosophy/i.test(fieldName)) educationalPhilosophy = fact;
+        }
+      } else {
+        missingInformation.push({ area: fieldName, note: 'Structured university value lacks ingest provenance.' });
       }
-      else missingInformation.push({ area: fieldName, note: 'Structured university value lacks ingest provenance.' });
       continue;
     }
     if (THEME_FIELDS.test(fieldName)) {
@@ -421,10 +445,20 @@ export async function resolveTargetProfile(args: {
       preferredCompetencies: requirements
         .filter((requirement) => requirement.category === 'competency' && requirement.sourceRefs.length > 0)
         .map((requirement) => ({ value: requirement.label, sourceRefs: requirement.sourceRefs })),
-      teachingStyle: null,
+      teachingStyle: programmeProfile.teachingStyle,
     },
     scholarshipProfile: null,
   });
+
+  if (!hasSourceBackedTargetData(profile)) {
+    console.warn('[target-profile] no source-backed target facts found', { programmeId: args.programmeId });
+    return {
+      status: 'not_ready',
+      versionId: null,
+      profile: null,
+      reason: 'Catalogue contains no source-backed target facts.',
+    };
+  }
 
   const { versionId } = await createTargetProfileVersion(args.supabase, {
     userId: args.userId,

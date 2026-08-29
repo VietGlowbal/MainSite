@@ -4,7 +4,7 @@ import { z } from 'zod';
 /**
  * Target Profile — the reusable, PROGRAMME-level picture of what a programme
  * and its university look for (Task 4). Built ONLY from already-ingested
- * catalogue data (`courses`, `course_admission_requirements`,
+ * catalogue data (`courses`, `universities`, `course_admission_requirements`,
  * `course_field_values`, `crawl_sources`); never crawled on demand.
  *
  * EVERY requirement carries source references back to the ingested rows it

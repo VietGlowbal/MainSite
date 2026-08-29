@@ -40,6 +40,28 @@ function toRows(result: unknown): Array<Record<string, unknown>> {
   return data ?? [];
 }
 
+function textValue(value: unknown): string | null {
+  if (typeof value === 'string') return value.trim() || null;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value && typeof value === 'object') {
+    const text = (value as Record<string, unknown>)['text'];
+    if (typeof text === 'string') return text.trim() || null;
+    try {
+      const json = JSON.stringify(value);
+      return json === '{}' ? null : json;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function urlValue(value: unknown): string | null {
+  const text = textValue(value);
+  if (!text) return null;
+  return /^https?:\/\//i.test(text) ? text : `https://${text}`;
+}
+
 export async function loadProgrammeCatalogue(
   supabase: SupabaseClient,
   programmeId: string,
@@ -55,7 +77,21 @@ export async function loadProgrammeCatalogue(
   if (programmeSelect.error && !isSchemaGap(programmeSelect.error)) {
     console.error('[target-profile] programme read failed', programmeSelect.error);
   }
-  const programme = (programmeSelect.data ?? null) as CatalogueProjection['programme'];
+  let programme = (programmeSelect.data ?? null) as CatalogueProjection['programme'];
+  if (programme) {
+    // The narrow read keeps this path compatible with older schemas. The full
+    // row supplies the public catalogue columns that were already imported but
+    // were previously invisible to Target Profile generation.
+    const detailSelect = await supabase
+      .from('courses')
+      .select('*')
+      .eq('id', programmeId)
+      .maybeSingle();
+    if (detailSelect.data) programme = detailSelect.data as CatalogueProjection['programme'];
+    else if (detailSelect.error && !isSchemaGap(detailSelect.error)) {
+      console.error('[target-profile] programme detail read failed', detailSelect.error);
+    }
+  }
 
   const [admissionRequirements, fieldValues] = await Promise.all([
     supabase
@@ -100,24 +136,124 @@ export async function loadProgrammeCatalogue(
     if (!byRun.has(runId)) byRun.set(runId, row);
   }
 
+  const sources: CatalogueProjection['sources'] = runIds
+    .filter((runId) => byRun.has(runId))
+    .map((runId) => {
+      const row = byRun.get(runId)!;
+      return {
+        ref: runId,
+        url: (row.url as string | null) ?? null,
+        title: (row.title as string | null) ?? null,
+        retrievedAt: (row.retrieved_at as string | null) ?? null,
+        contentHash: (row.content_hash as string | null) ?? null,
+      };
+    });
+
+  const programmeRow = programme as Record<string, unknown> | null;
+  const universityId = programmeRow?.['university_id'];
+  const universitySelect = universityId != null
+    ? await supabase
+        .from('universities')
+        .select('*')
+        .eq('id', universityId)
+        .maybeSingle()
+    : null;
+  if (universitySelect?.error && !isSchemaGap(universitySelect.error)) {
+    console.error('[target-profile] university read failed', universitySelect.error);
+  }
+  const university = (universitySelect?.data ?? null) as Record<string, unknown> | null;
+
+  const programmeRef = `catalogue:course:${programmeId}`;
+  const universityRef = universityId != null ? `catalogue:university:${String(universityId)}` : null;
+  const addSource = (ref: string, row: Record<string, unknown> | null, fallbackTitle: string) => {
+    if (!row || sources.some((source) => source.ref === ref)) return;
+    sources.push({
+      ref,
+      url: urlValue(row['canonical_url']) ?? urlValue(row['course_url']) ?? urlValue(row['official_url']) ?? urlValue(row['primary_domain']),
+      title: textValue(row['course_name']) ?? textValue(row['name']) ?? fallbackTitle,
+      retrievedAt: textValue(row['source_retrieved_at']) ?? textValue(row['updated_at']) ?? null,
+      contentHash: null,
+    });
+  };
+  addSource(programmeRef, programmeRow, 'Course catalogue record');
+  if (universityRef) addSource(universityRef, university, 'University catalogue record');
+
+  const allAdmissionRequirements = [...admissionRequirements];
+  const allFieldValues = [...fieldValues];
+  const addRequirement = (ref: string, fieldName: string, value: unknown, category: 'academic' | 'application' | 'scholarship' = 'academic') => {
+    const detail = textValue(value);
+    if (!detail || allAdmissionRequirements.some((row) => row.document_type === fieldName && row.source_run_id === ref)) return;
+    allAdmissionRequirements.push({
+      course_id: programmeId,
+      document_type: fieldName,
+      requirement_status: 'unknown',
+      required_count: null,
+      application_stage: null,
+      display_mode: 'catalogue',
+      source_run_id: ref,
+      source_retrieved_at: null,
+      updated_at: null,
+      category,
+      detail,
+    });
+  };
+  const addField = (ref: string, fieldName: string, value: unknown, retrievedAt: string | null) => {
+    const text = textValue(value);
+    if (!text || allFieldValues.some((row) => row.field_name === fieldName && row.source_run_id === ref)) return;
+    allFieldValues.push({
+      id: `${ref}:${fieldName}`,
+      field_name: fieldName,
+      value: text,
+      verification_status: 'CATALOGUE',
+      retrieved_at: retrievedAt,
+      confidence: 1,
+      audience: 'public',
+      academic_cycle: null,
+      source_run_id: ref,
+    });
+  };
+
+  if (programmeRow) {
+    const courseRetrievedAt = textValue(programmeRow['source_retrieved_at']) ?? textValue(programmeRow['updated_at']);
+    addRequirement(programmeRef, 'academic_entry_requirement', programmeRow['entry_requirements_summary']);
+    addRequirement(programmeRef, 'entry_requirement_details', programmeRow['entry_requirements']);
+    addRequirement(programmeRef, 'english_requirement', programmeRow['english_requirements_summary']);
+    addField(programmeRef, 'programme_description', programmeRow['description'] ?? programmeRow['course_description'], courseRetrievedAt);
+    addField(programmeRef, 'programme_curriculum', programmeRow['curriculum'] ?? programmeRow['modules'], courseRetrievedAt);
+    addField(programmeRef, 'programme_outcomes', programmeRow['outcomes'] ?? programmeRow['learning_outcomes'], courseRetrievedAt);
+    addField(programmeRef, 'programme_opportunities', programmeRow['career_opportunities'] ?? programmeRow['career_pathways'], courseRetrievedAt);
+    addField(programmeRef, 'teaching_style', programmeRow['teaching_style'], courseRetrievedAt);
+    addField(programmeRef, 'study_mode', programmeRow['study_mode'], courseRetrievedAt);
+    addRequirement(programmeRef, 'application_method', programmeRow['application_method'], 'application');
+  }
+
+  if (university && universityRef) {
+    const universityRetrievedAt = textValue(university['updated_at']);
+    addRequirement(universityRef, 'university_gpa_range', university['gpa_range']);
+    addRequirement(universityRef, 'university_english_requirement', university['english_requirement']);
+    addRequirement(universityRef, 'standardized_test', university['standardized_test'], 'application');
+    addRequirement(universityRef, 'special_test', university['special_test'], 'application');
+    addRequirement(universityRef, 'scholarship_information', university['scholarship'], 'scholarship');
+    addField(universityRef, 'university_mission', university['mission'], universityRetrievedAt);
+    addField(universityRef, 'university_values', university['values'], universityRetrievedAt);
+    addField(universityRef, 'specific_insight', university['specific_insight'], universityRetrievedAt);
+    addField(universityRef, 'best_for', university['best_for'], universityRetrievedAt);
+    addField(universityRef, 'teaching_style', university['teaching_style'], universityRetrievedAt);
+    addField(universityRef, 'international_environment', university['international_environment'], universityRetrievedAt);
+    addField(universityRef, 'industry_connections', university['industry_connections'], universityRetrievedAt);
+    addField(universityRef, 'internship_coop', university['internship_coop'], universityRetrievedAt);
+    addField(universityRef, 'strengths', university['strengths'], universityRetrievedAt);
+    addField(universityRef, 'weaknesses', university['weaknesses'], universityRetrievedAt);
+    addField(universityRef, 'university_notes', university['notes'], universityRetrievedAt);
+  }
+
   return {
     complete: Boolean(programme),
     projection: {
       programme,
-      admissionRequirements,
-      fieldValues,
-      sources: runIds
-        .filter((runId) => byRun.has(runId))
-        .map((runId) => {
-          const row = byRun.get(runId)!;
-          return {
-            ref: runId,
-            url: (row.url as string | null) ?? null,
-            title: (row.title as string | null) ?? null,
-            retrievedAt: (row.retrieved_at as string | null) ?? null,
-            contentHash: (row.content_hash as string | null) ?? null,
-          };
-        }),
+      admissionRequirements: allAdmissionRequirements,
+      fieldValues: allFieldValues,
+      sources,
     },
   };
 }
