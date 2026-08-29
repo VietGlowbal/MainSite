@@ -195,7 +195,7 @@ When a requested section is present, include every field in its contract. Requir
 - drivingForce: primaryMotivation, repeatedChoices, recurringProblems, underlyingValues, strategicInterpretation, evidenceStrength, isHypothesis, evidenceIds.
 - profilePositioning: experienceConnection, positioningOptions, profileNarrative, profileNarrativeEvidenceIds; every experienceConnection item: strongestProfileThread, connectionExplanation, confidence, supportingExperienceCount, evidenceIds; every positioningOptions item: title, statement, supportingEvidenceIds, supportingExperienceTitles.
 
-Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. If an entire optional section is unsupported, return that section as null or omit it. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130.`;
+Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. If an entire optional section is unsupported, return that section as null or omit it. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130. For any word-length repair, count whitespace-separated words and target the safe middle instead of the lower boundary: snapshot 165-180, core identity 90-105, capability overview 110-118, profile narrative 110-125. If below minimum, add a grounded sentence using only supplied facts.`;
 
 type SynthesisSectionInput = {
   coreIdentity: {

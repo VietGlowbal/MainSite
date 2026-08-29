@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-08-29 (Personal Report retry and word-band guard): the
+confirmed-information progress page now immediately requeues transient
+Personal Report `retry`/`failed` states while polling, with status-transition
+deduplication. Narrative prompts now target safe middle word bands and perform
+a whitespace-count self-check, preventing boundary failures such as a 149-word
+Snapshot against the 150-word minimum; narrative prompt version bumped to
+`report-synthesis-v13-safe-word-bands`. Measured: focused Personal Report,
+generation, and progress-page suites 69/69, typecheck, scoped ESLint, and
+`git diff --check` pass.
+
 Working tree 2026-08-29 (Personal Report Structured Outputs): both primary
 narrative batches and their one repair attempt now send per-batch strict
 `json_schema` response formats. The schema is derived from the Zod contract,
@@ -819,7 +829,9 @@ Working tree 2026-08-29: the saved-university subject picker restores VinUni's
 typed `vinuni-content.ts` catalogue (4 colleges, 10 programmes). The live
 `catalog_programmes` view currently contains only VinUni's BBA row, so using it
 as the picker source hid the other programmes; other universities continue to
-fall back to `universities.strengths`.
+fall back to `universities.strengths`. The picker presentation also restores the
+2026-07-30 navigation and compact subject/paste-link UI while retaining the
+current same-origin return path and saved programme URL behavior.
 
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and

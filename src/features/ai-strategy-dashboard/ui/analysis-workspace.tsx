@@ -19,21 +19,37 @@ async function waitForPersonalReport(
   applicationId: string,
   errorMessages: { generic: string; rateLimit: string; unavailable: string },
 ): Promise<ReportState> {
+  let lastGenerationStatus: string | null = null;
+
   for (;;) {
     try {
       const response = await fetch(`/api/applications/${applicationId}/personal-report`);
       const body = await response.json().catch(() => ({}));
 
       if (response.ok) {
+        const generationStatus = body.generation?.status ?? null;
         // A report can be saved by a direct/manual generation while an older
         // queue row is still active. The current snapshot is authoritative;
         // do not hold Matching behind that stale row.
         if (body.reportV2 && body.stale !== true) {
           return { status: 'complete' };
         }
-        if (body.generation?.status === 'blocked') {
+        if (generationStatus === 'blocked') {
           return { status: 'failed', error: errorMessages.generic };
         }
+        if (
+          (generationStatus === 'retry' || generationStatus === 'failed') &&
+          lastGenerationStatus !== generationStatus
+        ) {
+          // The durable worker's normal retry backoff is useful for cron, but
+          // this page can safely requeue the single owner-scoped job now.
+          await fetch(`/api/applications/${applicationId}/personal-report`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: true, trigger: 'manual' }),
+          });
+        }
+        lastGenerationStatus = generationStatus;
       } else if (response.status !== 503) {
         if (response.status === 429) return { status: 'failed', error: errorMessages.rateLimit };
         return { status: 'failed', error: body.error || errorMessages.generic };

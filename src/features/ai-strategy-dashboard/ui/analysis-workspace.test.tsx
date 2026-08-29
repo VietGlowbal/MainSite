@@ -103,6 +103,34 @@ describe('AnalysisWorkspace', () => {
     ]);
   });
 
+  it('requeues a failed Personal Report immediately while polling', async () => {
+    let personalPoll = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') {
+        return jsonResponse({ queued: true }, true, 202);
+      }
+      if (url === PERSONAL_POST && !init) {
+        personalPoll += 1;
+        return personalPoll === 1
+          ? jsonResponse({ generation: { status: 'retry' }, reportV2: null })
+          : jsonResponse({ generation: { status: 'complete' }, reportV2: { coreIdentity: {} } });
+      }
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument(), { timeout: 5_000 });
+    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: true, trigger: 'manual' }),
+    });
+  });
+
   it('uses a current Personal Report even when an old queue row is still active', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') {
