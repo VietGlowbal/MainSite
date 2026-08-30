@@ -100,10 +100,33 @@ describe('AnalysisWorkspace', () => {
     const urls = fetchMock.mock.calls.map(([url]) => url);
     expect(urls.indexOf(STRATEGY_GET)).toBeGreaterThan(urls.indexOf(MATCHING_POST));
     expect(urls.indexOf(STRATEGY_POST)).toBeGreaterThan(urls.indexOf(MATCHING_POST));
-    expect(screen.getByRole('link', { name: 'Open my Strategy Report' })).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: 'Open my Strategy Report' })[0]).toHaveAttribute(
       'href',
       '/ai-strategy/app-1/strategy-report',
     );
+  });
+
+  it('retries Strategy Report generation immediately after a failed attempt', async () => {
+    let strategyAttempt = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: null });
+      if (url === STRATEGY_POST && init?.method === 'POST') {
+        strategyAttempt += 1;
+        return strategyAttempt === 1
+          ? jsonResponse({ error: 'Temporary failure' }, false, 502)
+          : jsonResponse({ reportV3: { id: 's1' } });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(strategyAttempt).toBe(2);
   });
 
   it('waits for queued Personal Report generation before starting Matching Report generation', async () => {

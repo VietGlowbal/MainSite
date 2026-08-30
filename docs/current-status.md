@@ -1,5 +1,14 @@
 # Current project status
 
+Working tree 2026-08-30 (Strategy Report generation wiring): the analysis gate
+now starts Strategy Report generation immediately after the current Personal
+Report and Matching Report complete. It shows Strategy as the third report,
+checks the existing Strategy cache first, retries failed generation immediately,
+and exposes Strategy-specific status/retry/open-report actions. Measured:
+focused Analysis/Strategy suite 21/21, base typecheck, and scoped ESLint pass.
+The full i18n audit still reports 71 pre-existing missing Matching UI keys; no
+new Strategy key is missing.
+
 Working tree 2026-08-30 (Matching Report output quality): V3 evidence labels now
 use the canonical raw-source titles instead of generic claim categories. Programme
 gap text is bounded at a sentence boundary, strategic interpretation is rebuilt

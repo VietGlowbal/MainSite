@@ -90,9 +90,9 @@ export default async function StrategyAnalysisPage({
   const matchingSubtitle =
     universityName && courseName ? `${universityName} — ${courseName}` : undefined;
 
-  // Generates whichever of the two analyses is missing, then hands off to
-  // `analysis/portrait`. The reports themselves are server-rendered pages —
-  // see analysis-workspace.tsx on why generation stays in one place.
+  // Generates Personal + Matching, then starts Strategy once both inputs are
+  // complete. The reports themselves are server-rendered pages — see
+  // analysis-workspace.tsx on why generation stays in one place.
   return (
     <AnalysisWorkspace
       applicationId={applicationId}
