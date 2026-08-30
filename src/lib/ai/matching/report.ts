@@ -276,6 +276,70 @@ function refsForMetric(metric: MatchingV3Metric) {
   };
 }
 
+function boundedNarrative(value: string, maxLength: number): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+
+  const available = normalized.slice(0, Math.max(1, maxLength - 1));
+  const sentenceBoundary = Math.max(
+    available.lastIndexOf('. '),
+    available.lastIndexOf('! '),
+    available.lastIndexOf('? '),
+    available.lastIndexOf('.'),
+    available.lastIndexOf('!'),
+    available.lastIndexOf('?'),
+  );
+  if (sentenceBoundary >= Math.floor(maxLength * 0.5)) {
+    return available.slice(0, sentenceBoundary + 1).trim();
+  }
+  const cut = available.lastIndexOf(' ');
+  return `${available.slice(0, cut > 0 ? cut : available.length).trim()}…`;
+}
+
+function distinctNarrativeFragments(values: Array<string | null>): string[] {
+  const seen = new Set<string>();
+  return values
+    .flatMap((value) => value ? value.split(/[;\n]+/) : [])
+    .map((value) => value.replace(/\s+/g, ' ').trim().replace(/[.;]+$/, ''))
+    .filter((value) => {
+      const key = value.toLowerCase();
+      if (!value || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function buildStrategicInterpretation(args: {
+  applicantContext: ApplicantMatchingContext;
+  targetProfile: TargetProfile;
+}): string | null {
+  const positioning = distinctNarrativeFragments([args.applicantContext.personalPositioning.statement]);
+  const positioningKeys = new Set(positioning.map((value) => value.toLowerCase()));
+  const direction = distinctNarrativeFragments([
+    args.applicantContext.futureDirection.intended,
+    args.applicantContext.futureDirection.academic,
+    args.applicantContext.futureDirection.career,
+  ]).filter((value) => !positioningKeys.has(value.toLowerCase()));
+  const target = [args.targetProfile.programme.name, args.targetProfile.programme.university]
+    .filter(Boolean)
+    .join(' at ');
+  const paragraphs = [
+    positioning.length > 0 ? `The applicant's current positioning is: ${positioning.join('. ')}.` : null,
+    direction.length > 0 ? `The stated future direction is: ${direction.join(', ')}.` : null,
+    target
+      ? `This report compares that profile with ${target}. Any difference between the applicant's direction and the target programme remains an alignment question, not a fact about the programme.`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+  return paragraphs.length > 0 ? boundedNarrative(paragraphs.join(' '), 2_000) : null;
+}
+
+function evidenceIndexLabel(item: ReturnType<typeof toMatchingEvidence>[number], evidenceBank: EvidenceBank): string {
+  const sourceLabel = item.sourceRefs
+    .map((ref) => evidenceBank.sources[ref]?.label)
+    .find((label): label is string => Boolean(label?.trim()));
+  return boundedNarrative(sourceLabel ?? item.statement, 300);
+}
+
 function deterministicTakeawayCandidates(args: {
   universityFit: MatchingReportV3['universityFit'];
   programmeFit: MatchingReportV3['programmeFit'];
@@ -361,17 +425,20 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
   const programmeFit = {
     ...v3Fit(PROGRAMME_FIT_METRICS, programmeMetrics, 'Programme alignment is weighted across interest, capability, experience and future direction.'),
     strongestAlignment: Object.values(programmeMetrics).filter((metric) => metric.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3).map((metric) => metric.id),
-    potentialGap: Object.values(programmeMetrics).filter((metric) => metric.score !== null).sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0]?.summary.slice(0, 1_000) ?? null,
-    strategicInterpretation: [
-      args.applicantContext.personalPositioning.statement,
-      args.applicantContext.futureDirection.intended,
-      args.applicantContext.futureDirection.academic,
-      args.applicantContext.futureDirection.career,
-    ].filter(Boolean).join(' ') || null,
+    potentialGap: (() => {
+      const weakest = Object.values(programmeMetrics)
+        .filter((metric) => metric.score !== null)
+        .sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0];
+      return weakest ? boundedNarrative(weakest.summary, 1_000) : null;
+    })(),
+    strategicInterpretation: buildStrategicInterpretation({
+      applicantContext: args.applicantContext,
+      targetProfile: args.targetProfile,
+    }),
   } as unknown as MatchingReportV3['programmeFit'];
   const evidenceIndex: MatchingReportV3['evidenceIndex'] = toMatchingEvidence(args.evidenceBank).map((item) => ({
     id: item.id,
-    label: item.category,
+    label: evidenceIndexLabel(item, args.evidenceBank),
     statement: item.statement,
     kind: 'applicant' as const,
     status: item.status,
@@ -428,7 +495,16 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
   ));
   const candidates = deterministicTakeawayCandidates({ universityFit, programmeFit, hardRequirements, strengths, gaps, context: args.applicantContext });
   const summaryResult = await generateMatchingV3Summary({
-    candidate: { universityFit, programmeFit, hardRequirements, strengths, gaps, positioningOpportunities, candidates },
+    candidate: {
+      targetProgramme: args.targetProfile.programme,
+      universityFit,
+      programmeFit,
+      hardRequirements,
+      strengths,
+      gaps,
+      positioningOpportunities,
+      candidates,
+    },
     evidenceIds: evidenceIndex.map((item) => item.id),
     targetSourceRefs: [...nonScholarshipSourceRefs],
     metricIds: metricValues.map((item) => item.id),

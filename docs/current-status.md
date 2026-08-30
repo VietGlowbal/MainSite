@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-08-30 (Matching Report output quality): V3 evidence labels now
+use the canonical raw-source titles instead of generic claim categories. Programme
+gap text is bounded at a sentence boundary, strategic interpretation is rebuilt
+as coherent target-aware prose, and metric/summary prompts receive the canonical
+target programme so an applicant subject cannot rename the target. The report
+footer now labels its coverage as overall, and empty strategic interpretation
+renders as not assessed. Measured: focused Matching/UI suite 20/20, base
+TypeScript, i18n, full lint (0 errors, 4 existing warnings), and production build
+pass; existing Edge-runtime and dynamic filesystem tracing warnings remain.
+
 Working tree 2026-08-30 (Personal Report narrative fail-safe): narrative
 synthesis is now optional presentation prose. Invalid or oversized narrative
 output rejects only its batch; valid sibling batches are retained, and when all

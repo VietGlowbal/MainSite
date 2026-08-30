@@ -2371,6 +2371,7 @@ export const translations: Record<string, string> = {
     'Hồ sơ này chưa có học bổng được chọn theo nguồn chuẩn, nên chưa đánh giá mức độ phù hợp với học bổng.',
   'Scores describe alignment with the supplied evidence and target sources. They do not predict admission decisions.':
     'Điểm số mô tả mức độ phù hợp dựa trên bằng chứng đã cung cấp và nguồn thông tin mục tiêu. Điểm số không dự đoán quyết định tuyển sinh.',
+  'Overall evidence coverage': 'Độ phủ dẫn chứng tổng thể',
   'Target source': 'Nguồn mục tiêu',
   // "Why this university", "Admission requirements", "Costs and scholarships"
   // and "Scholarships" are already translated above for the university detail

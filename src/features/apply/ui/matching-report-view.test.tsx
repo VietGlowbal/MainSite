@@ -373,6 +373,7 @@ describe('MatchingReportView', () => {
     expect(screen.getAllByText(/Programme page/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Verified project/).length).toBeGreaterThan(0);
     expect(screen.getByText(/scholarship alignment was not assessed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Overall evidence coverage/)).toBeInTheDocument();
     expect(screen.getAllByText('Not assessed').length).toBeGreaterThan(0);
     expect(screen.getByText(/do not predict admission decisions/i)).toBeInTheDocument();
     expect(screen.queryByText(/^0%$/)).not.toBeInTheDocument();

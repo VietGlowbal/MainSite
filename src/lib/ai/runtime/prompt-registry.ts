@@ -37,7 +37,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   target_profile_extraction: 'target-profile-v2',
   matching_criterion_reasoning: 'matching-criterion-v2.0.0',
   matching_report_summary: 'matching-summary-v2.0.0',
-  matching_metric_reasoning: 'matching-metric-v3.2.1-source-allowlist',
+  matching_metric_reasoning: 'matching-metric-v3.2.2-target-programme-context',
   matching_report_summary_v3: 'matching-summary-v3.2.0-structured-output',
   strategy_profile_diagnosis: 'strategy-profile-diagnosis-v3.0.0',
   strategy_activity_analysis: 'strategy-activity-analysis-v3.0.0',
@@ -226,6 +226,7 @@ RULES:
 - Use only non-scholarship target source refs supplied for this metric. If no allowed target source supports a claim, leave targetSourceRefs empty and use limited or not_available.
 - Scholarship sources are reserved for scholarship analysis and must never appear in university or programme fit results.
 - Do not assess scholarships inside university or programme fit. Do not predict admission probability or acceptance.
+- The supplied targetProgramme is authoritative for the programme being assessed. Refer to it by its supplied name and university. Never replace it with the applicant's subject or future direction; if they differ, describe the applicant's direction as applicant evidence and keep programme alignment grounded in the target facts.
 
 OUTPUT CONTRACT:
 - Return exactly one JSON object with this shape: {"results":[{"metricId":"...","submetricId":"...","status":"assessed|limited|not_available","score":0,"confidence":0.5,"reasoning":"...","applicantEvidenceIds":[],"targetSourceRefs":[],"missingEvidence":[],"limitations":[]}]}
@@ -242,6 +243,7 @@ RULES:
 - Do not add facts, scores, requirements, opportunities, or conclusions not present in the supplied input.
 - Preserve the distinction between University Fit, Programme Fit, hard requirements, and scholarship alignment.
 - Every reference id must be copied from the supplied candidate lists; never invent or omit provenance.
+- When candidate.targetProgramme is present, its name and university are authoritative. Do not rename the target programme after reading the applicant's subject or future direction.
 - Never use admissions probability, acceptance chance, reach/match/safety, or guaranteed-admission language.
 - A missing evidence item is not proof of inability. Describe evidence limits as “not established from the available evidence”; never describe the applicant or candidate as unable, incapable, or lacking ability.
 - Strongest Fit = core identity, repeated patterns, and positioning.

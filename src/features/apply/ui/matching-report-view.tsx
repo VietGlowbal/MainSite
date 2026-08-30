@@ -1085,7 +1085,7 @@ function V3ReportView({
           </div>
           <div className="border-t border-line pt-gb-sm">
             <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Strategic interpretation')}</p>
-            <p className="text-gb-sm leading-relaxed text-fg-secondary">{report.programmeFit.strategicInterpretation}</p>
+            <p className="text-gb-sm leading-relaxed text-fg-secondary">{report.programmeFit.strategicInterpretation ?? t('Not assessed')}</p>
           </div>
         </Panel>
       </section>
@@ -1129,7 +1129,7 @@ function V3ReportView({
       </section>
 
       <aside className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface-subtle p-gb-lg text-gb-xs text-fg-muted">
-        <p>{t('Evidence coverage')}: {report.overall.evidenceCoverage}% · {t('Confidence')}: {Math.round(report.overall.confidence * 100)}%</p>
+        <p>{t('Overall evidence coverage')}: {report.overall.evidenceCoverage}% · {t('Confidence')}: {Math.round(report.overall.confidence * 100)}%</p>
         <p>{t('Last analysed')}: {new Date(report.generatedAt).toLocaleString('vi-VN')}</p>
         <p>{t('Scores describe alignment with the supplied evidence and target sources. They do not predict admission decisions.')}</p>
       </aside>

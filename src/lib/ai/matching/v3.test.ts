@@ -43,6 +43,11 @@ const sparseTargetProfile = {
   sources: [],
 };
 
+const businessTargetProfile = {
+  ...targetProfile,
+  programme: { ...targetProfile.programme, name: 'Bachelor of Business Administration', university: 'VinUniversity', subject: 'business' },
+};
+
 const mixedSourceTargetProfile = {
   ...targetProfile,
   requirements: [
@@ -109,6 +114,7 @@ describe('matching report v3', () => {
 
     expect(result.metricBatches).toBe(2);
     expect(calls).toHaveLength(2);
+    expect((JSON.parse(calls[0].userPrompt) as { targetProgramme: unknown }).targetProgramme).toEqual(targetProfile.programme);
     expect(calls.every((call) => call.jsonSchemaFormat?.json_schema && (call.jsonSchemaFormat.json_schema as Record<string, unknown>).strict === true)).toBe(true);
     const schema = (calls[0].jsonSchemaFormat?.json_schema as Record<string, unknown>).schema as Record<string, unknown>;
     const resultSchema = ((schema.properties as Record<string, unknown>).results as Record<string, unknown>).items as Record<string, unknown>;
@@ -148,7 +154,32 @@ describe('matching report v3', () => {
     expect(report.universityFit.score).toBe(79);
     expect(report.programmeFit.score).toBe(80);
     expect(report.scholarshipAlignment).toBeNull();
+    expect(report.evidenceIndex.find((item) => item.id === 'claim-1')?.label).toBe('Project');
     expect(report.metadata.aiCallCount.summary).toBe(1);
+  });
+
+  it('builds a coherent target-aware strategic interpretation', async () => {
+    const report = await composeMatchingReportV3({
+      targetProfile: businessTargetProfile,
+      academicProfile: { records: [] },
+      evidenceBank,
+      applicantContext: {
+        ...context,
+        personalPositioning: { ...context.personalPositioning, statement: 'Builds AI systems; Computer Science; Computer Science' },
+        futureDirection: { intended: 'Computer Science', academic: 'Computer Science', career: 'Build a global AI career' },
+      },
+      previousReport: null,
+      lineage: {
+        targetProfileVersionId: 'tp-1', targetProfileSchemaVersion: 'tp-v1', personalReportVersionId: 'pr-1', personalReportInputHash: 'pr-hash', sourceAnalysisVersionId: 'sa-1', confirmedSnapshotId: 'snapshot-1', evidenceBankVersion: 'eb-v1',
+      },
+      generate: generate as never,
+      modelName: 'test-model',
+    });
+
+    expect(report.programmeFit.strategicInterpretation).toContain("The applicant's current positioning is: Builds AI systems. Computer Science.");
+    expect(report.programmeFit.strategicInterpretation).toContain('This report compares that profile with Bachelor of Business Administration at VinUniversity.');
+    expect(report.programmeFit.strategicInterpretation).not.toContain(';');
+    expect(report.programmeFit.strategicInterpretation).not.toContain('Computer Science, Computer Science');
   });
 
   it('marks metrics unavailable when the target profile has no source-backed facts', async () => {
@@ -235,6 +266,7 @@ describe('matching report v3', () => {
     expect(metricInputs.flatMap((input) => [...input.targetSourceRefs, ...input.targetFacts.flatMap((fact) => fact.sourceRefs)])).not.toContain('scholarship-1');
     expect(summaryInput?.allowedReferences.targetSourceRefs).toEqual(['source-1']);
     expect(report.programmeFit.potentialGap?.length).toBeLessThanOrEqual(1_000);
+    expect(report.programmeFit.potentialGap).toMatch(/[.!?]$/);
     expect(report.overall.summaryTargetSourceRefs).not.toContain('scholarship-1');
   });
 

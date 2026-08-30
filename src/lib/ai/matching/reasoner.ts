@@ -456,6 +456,7 @@ export async function reasonAboutV3Metrics(args: {
     const input = {
       definition,
       applicantContext: args.context,
+      targetProgramme: args.targetProfile.programme,
       evidence: relevantV3Evidence(args.context, [definition]),
       targetSourceRefs: targetRefs,
       targetFacts,
@@ -503,6 +504,7 @@ export async function reasonAboutV3Metrics(args: {
         submetrics: batch.submetrics,
       }],
       applicantContext: args.context,
+      targetProgramme: args.targetProfile.programme,
       evidence: batchEvidence,
       targetFacts,
       targetSourceRefs: targetRefs,
