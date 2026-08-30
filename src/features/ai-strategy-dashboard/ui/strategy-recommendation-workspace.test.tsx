@@ -17,9 +17,9 @@ vi.mock('./strategy-recommendation-report', () => ({ StrategyRecommendationRepor
 afterEach(() => vi.unstubAllGlobals());
 
 describe('StrategyRecommendationWorkspace', () => {
-  it('does not render a stale GET V3 row before POST verifies the current cache/lineage', async () => {
+  it('renders an existing V3 report without POSTing again on reload', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
-      if (!init) return Promise.resolve({ ok: true, json: () => Promise.resolve({ reportV3: { marker: 'stale' } }) } as Response);
+      if (init) throw new Error(`unexpected generation request ${url}`);
       return Promise.resolve({ ok: true, json: () => Promise.resolve({ reportV3: { marker: 'current' } }) } as Response);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -27,8 +27,7 @@ describe('StrategyRecommendationWorkspace', () => {
     render(<StrategyRecommendationWorkspace applicationId="app-1" />);
 
     await waitFor(() => expect(screen.getByText('current')).toBeInTheDocument());
-    expect(screen.queryByText('stale')).not.toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/applications/app-1/strategy/recommendation', { method: 'POST' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('shows the legacy fallback after one failed Strategy V3 generation', async () => {

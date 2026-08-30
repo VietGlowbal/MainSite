@@ -82,9 +82,17 @@ export function StrategyRecommendationWorkspace({
           reportV2?: StrategyReportV2 | null;
           reportV3?: StrategyReportV3 | null;
         };
-        // GET is only a legacy/fallback read. POST recomputes the exact
-        // current lineage/hash and returns the cache hit or a fresh report;
-        // rendering GET's V3 row would display stale strategy input.
+        // A stored V3 report is the completed page state. Do not POST on
+        // reload: POST can legitimately miss its recomputed hash when an
+        // upstream row changed shape, which would regenerate the report.
+        if (existingRes.ok && existing.reportV3) {
+          setReportV3(existing.reportV3);
+          setState('ready');
+          return;
+        }
+
+        // Legacy rows still go through POST once so they can be upgraded to
+        // the canonical V3 report.
         setState('generating');
         let generatedRes: Response | null = null;
         let generated: {

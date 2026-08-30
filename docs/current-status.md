@@ -13,6 +13,13 @@ focused report/queue suites 106/106, base typecheck, scoped ESLint, and
 `git diff --check` pass. The updated SQL still needs to be applied to Supabase
 before its database guard is active.
 
+Working tree 2026-08-30 (Strategy Report reload deduplication): the direct
+Strategy Report workspace now renders an existing V3 row returned by GET
+without issuing the generation POST. This prevents F5 from creating another
+report when a report already exists; legacy-only rows still POST once for V3
+upgrade. Measured: strategy workspace 2/2, base typecheck, scoped ESLint, and
+`git diff --check` pass.
+
 Commit 7c82a55f (2026-08-30, Strategy analysis reload idempotency): the loading
 workspace now reads the current Personal Report before POSTing generation, so
 reloads reuse an existing non-stale Personal, Matching, and Strategy report;
