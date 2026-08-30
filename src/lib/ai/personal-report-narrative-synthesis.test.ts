@@ -621,7 +621,7 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(requested.flat()).not.toContain('proofOfMe');
   });
 
-  it('rejects a missing available structured snapshot', async () => {
+  it('keeps the remaining narrative sections when an optional section is omitted', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
       const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
@@ -640,7 +640,8 @@ describe('synthesizePersonalReportNarrative', () => {
       grounding: narrativeGrounding(),
     });
 
-    expect(result).toBeNull();
+    expect(result?.narrativeDetails?.snapshot).toBeUndefined();
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
   });
 
   it('rejects a snapshot outside its contract word range', async () => {
@@ -1085,7 +1086,7 @@ describe('synthesizePersonalReportNarrative', () => {
       onFailure: (code) => { failure = code; },
     });
 
-    expect(result).toBeNull();
+    expect(result?.narrativeDetails?.provenCapabilities).toBeTruthy();
     expect(failure).toBe('invalid_word_length');
   });
 

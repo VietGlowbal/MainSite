@@ -425,7 +425,7 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
-  it('keeps the prior report and records the narrative validation failure without persisting a deterministic fallback', async () => {
+  it('persists the deterministic report when narrative validation fails', async () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
@@ -449,10 +449,11 @@ describe('regeneratePersonalReport', () => {
     const result = await regeneratePersonalReport({ supabase: {} as never, userId: 'user-1', applicationId: 'app-a', trigger: 'manual' });
     process.env.OPENAI_API_KEY = originalKey;
 
-    expect(result.status).toBe('error');
-    expect(result.status === 'error' && result.message).toContain('invalid_evidence_scope');
-    expect(result.status === 'error' && result.message).toContain('narrativeDetails.coreIdentity.evidenceIds');
-    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+    expect(result.status).toBe('regenerated');
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ reportV2: expect.objectContaining({ canvasDetails: expect.anything() }) }),
+    );
   });
 
   it('keeps the previous report and writes no analysis when an extractor fails', async () => {

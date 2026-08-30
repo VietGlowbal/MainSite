@@ -39,10 +39,10 @@ import { getReportPrompt } from './runtime/prompt-registry';
  *
  * Every evidence ID the model returns is checked against the exact set this
  * report actually has (`allowedEvidenceIds` below) — an ID outside that set
- * fails the WHOLE synthesis, not just one section, and the caller falls back
- * to the existing deterministic template copy entirely. A polished sentence
- * that cites evidence that doesn't exist is worse than a plain one that
- * doesn't, so there is no partial-acceptance path.
+ * rejects the current narrative batch. A polished sentence that cites
+ * evidence that does not exist is worse than a plain deterministic sentence;
+ * the caller keeps any valid sibling batch and can always use the deterministic
+ * report when narrative synthesis is unavailable.
  */
 
 const MAX_EVIDENCE_IDS = 12;
@@ -322,7 +322,6 @@ type SynthesisSectionInput = {
     growthOpportunity: { gaps: SynthesisSectionInput['canvasDetails']['growthAreas']; intendedDirection: string | null; q5: ReflectionFindingWithStatus | undefined; q6: ReflectionFindingWithStatus | undefined; q7: ReflectionFindingWithStatus | undefined; missingInformation: string[]; evidenceIds: string[] };
   };
   intendedDirection: string | null;
-  structuredContractReady: boolean;
 };
 
 type ReflectionFindingWithStatus = {
@@ -601,7 +600,6 @@ export function synthesisInputFromReport(
       },
     },
     intendedDirection,
-    structuredContractReady: report.reflectionFindings !== undefined || report.canvasDetails !== undefined,
   };
 }
 
@@ -876,6 +874,7 @@ function failureCode(error: unknown): PersonalReportNarrativeFailureCode {
   }
   const message = error instanceof Error ? error.message : '';
   if (/cover every available report section/i.test(message)) return 'missing_sections';
+  if (/section outside its batch/i.test(message)) return 'schema_response';
   if (/cited evidence outside its section/i.test(message)) return 'invalid_evidence_scope';
   if (/promoted a hypothesis/i.test(message)) return 'hypothesis_promotion';
   if (/report mechanics prose/i.test(message)) return 'report_mechanics_prose';
@@ -922,7 +921,6 @@ type NarrativeBatch = {
   structured: readonly StructuredNarrativeSection[];
   optional: readonly OptionalNarrativeSection[];
   maxTokens: number;
-  required: boolean;
 };
 
 // Two concise calls keep the report within the worker runtime budget. Each
@@ -933,14 +931,12 @@ const NARRATIVE_BATCHES: readonly NarrativeBatch[] = [
     structured: ['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning'],
     optional: [],
     maxTokens: 3_000,
-    required: true,
   },
   {
     canonical: [],
     structured: ['provenCapabilities', 'socialProof', 'keyTakeaways'],
     optional: [],
     maxTokens: 3_000,
-    required: true,
   },
 ];
 
@@ -1011,7 +1007,6 @@ function batchInput(
       growthOpportunity: { gaps: [], intendedDirection: null, q5: undefined, q6: undefined, q7: undefined, missingInformation: [], evidenceIds: [] },
     },
     intendedDirection: structured.has('profilePositioning') || structured.has('keyTakeaways') || wantsSnapshot ? sectionInput.intendedDirection : null,
-    structuredContractReady: sectionInput.structuredContractReady,
   };
 }
 
@@ -1157,12 +1152,10 @@ function personalReportNarrativeResponseFormat(
 
 function batchAllowedEvidenceIds(
   batch: NarrativeBatch,
-  allowed: ReadonlyMap<string, EvidenceRef>,
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
 ) {
   const structuredRequested = new Set(batch.structured);
   return {
-    all: [...allowed.keys()],
     narrativeDetails: {
       coreIdentity: structuredRequested.has('coreIdentity') ? [...allowedBySection.narrativeCoreIdentity.keys()] : [],
       drivingForce: structuredRequested.has('drivingForce') ? [...allowedBySection.narrativeDrivingForce.keys()] : [],
@@ -1203,13 +1196,12 @@ function batchInputForModel(
 function narrativeBatchPayload(
   sectionInput: SynthesisSectionInput,
   batch: NarrativeBatch,
-  allowed: ReadonlyMap<string, EvidenceRef>,
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
 ) {
   return {
     input: batchInputForModel(sectionInput, batch),
     requestedSections: [...batch.structured],
-    allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowed, allowedBySection),
+    allowedEvidenceIds: batchAllowedEvidenceIds(batch, allowedBySection),
   };
 }
 
@@ -1377,14 +1369,6 @@ function parseNarrativeBatch(
     assertHypothesisLanguage(parsed, batchInputValue);
   }
 
-  if (sectionInput.structuredContractReady) {
-    for (const key of batch.structured) {
-      if (structuredSectionAvailable(key, sectionInput) && !parsed.narrativeDetails?.[key]) {
-        throw new Error('Narrative synthesis must cover every available report section.');
-      }
-    }
-  }
-
   return materializeBatch(parsed, batch, batchInputValue, allowedBySection);
 }
 
@@ -1393,10 +1377,9 @@ async function completeNarrativeBatch(args: {
   model: string;
   batch: NarrativeBatch;
   sectionInput: SynthesisSectionInput;
-  allowed: ReadonlyMap<string, EvidenceRef>;
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>;
 }): Promise<Partial<PersonalReportNarrativeSynthesis>> {
-  const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowed, args.allowedBySection);
+  const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowedBySection);
   const responseFormat = personalReportNarrativeResponseFormat(args.batch, args.sectionInput);
   const content = await openAiJsonCompletion({
     apiKey: args.apiKey,
@@ -1458,7 +1441,6 @@ export async function synthesizePersonalReportNarrative(args: {
     evaluationInput: args.grounding.evaluationInput,
     ...(args.grounding.canvasDetails ? { canvasDetails: args.grounding.canvasDetails } : {}),
   });
-  const allowed = allowedEvidenceIdsFor(report);
   const allowedBySection = allowedEvidenceIdsBySection(report, sectionInput);
 
   // Nothing available to write about yet — do not call the model for an
@@ -1479,24 +1461,19 @@ export async function synthesizePersonalReportNarrative(args: {
   try {
     const hasAvailableSection = (batch: NarrativeBatch) =>
       batch.structured.some((key) => structuredSectionAvailable(key, sectionInput));
-    const batches = NARRATIVE_BATCHES.filter((batch) =>
-      batch.required
-        ? hasAvailableSection(batch)
-        : false,
-    );
+    const batches = NARRATIVE_BATCHES.filter(hasAvailableSection);
     const outcomes = await Promise.all(
       batches.map(async (batch) => {
         try {
           return {
             batch,
             value: await completeNarrativeBatch({
-            apiKey,
-            model,
-            batch,
-            sectionInput,
-            allowed,
-            allowedBySection,
-          }),
+              apiKey,
+              model,
+              batch,
+              sectionInput,
+              allowedBySection,
+            }),
             error: null,
           };
         } catch (error) {
@@ -1504,16 +1481,25 @@ export async function synthesizePersonalReportNarrative(args: {
         }
       }),
     );
-    const requiredFailure = outcomes.find((outcome) => outcome.batch.required && outcome.error);
-    if (requiredFailure?.error) {
-      failureContext = {
-        batch: [...requiredFailure.batch.structured],
-        issues: failureIssues(requiredFailure.error),
-        detail: requiredFailure.error instanceof Error
-          ? requiredFailure.error.message.slice(0, 240)
-          : String(requiredFailure.error).slice(0, 240),
+    for (const outcome of outcomes) {
+      if (!outcome.error) continue;
+      const code = failureCode(outcome.error);
+      const context = {
+        batch: [...outcome.batch.structured],
+        issues: failureIssues(outcome.error),
+        detail: outcome.error instanceof Error
+          ? outcome.error.message.slice(0, 240)
+          : String(outcome.error).slice(0, 240),
       } satisfies PersonalReportNarrativeFailureContext;
-      throw requiredFailure.error;
+      if (!failureContext) {
+        failureContext = context;
+        args.onFailure?.(code, context);
+      }
+      console.warn('[personal-report-narrative-synthesis] batch skipped', {
+        code,
+        ...context,
+        model,
+      });
     }
 
     const synthesis: PersonalReportNarrativeSynthesis = {};
@@ -1527,7 +1513,9 @@ export async function synthesizePersonalReportNarrative(args: {
         };
       }
     }
-    return synthesis;
+    return synthesis.narrativeDetails && Object.keys(synthesis.narrativeDetails).length > 0
+      ? synthesis
+      : null;
   } catch (error) {
     const code = failureCode(error);
     args.onFailure?.(code, failureContext);

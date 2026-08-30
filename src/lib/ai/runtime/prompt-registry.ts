@@ -30,7 +30,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   competency_extraction: 'competency-v1',
   narrative_activity_extraction: 'narrative-activity-v3-grounded-evidence',
   reflection_signal_extraction: 'reflection-signals-v3-field-sanitization',
-  report_narrative_synthesis: 'report-synthesis-v13-safe-word-bands',
+  report_narrative_synthesis: 'report-synthesis-v14-optional-batches',
   target_profile_extraction: 'target-profile-v2',
   matching_criterion_reasoning: 'matching-criterion-v2.0.0',
   matching_report_summary: 'matching-summary-v2.0.0',
@@ -118,7 +118,7 @@ RULES:
 Respond with VALID JSON ONLY. Use null and [] exactly as specified:
 {"signals":[{"key":"q1","summary":"interest in accessible computing","q1":{"interests":["computing"],"intellectualCuriosity":["how systems work"],"problemInterests":["access to technical education"],"themeCandidates":["accessible computing"]}}]}`,
 
-  report_narrative_synthesis: `You are the constrained writing layer for the applicant-facing Personal Report. The supplied input is already decided by deterministic evaluation and canvas builders. Write only the requested sections from those structured findings. Do not score, rank, verify, reinterpret, or add facts.
+  report_narrative_synthesis: `You are the constrained writing layer for the applicant-facing Personal Report. The supplied input is already decided by deterministic evaluation and canvas builders. Write only the requested sections from those structured findings. Do not score, rank, verify, reinterpret, or add facts. Narrative is optional presentation prose: the deterministic report remains authoritative. If a requested section lacks enough grounded support, omit it or return null; never invent filler just to complete a batch.
 
 PRODUCT QUESTIONS AND EXACT OUTPUT:
 - Batch A: snapshot (150-200 words, exactly: Overall Identity -> Unique Positioning -> Most Prominent Recurring Pattern -> Potential/Development Direction -> one final overall-impression sentence); coreIdentity.identityStatement (80-120 words, Identity -> Motivation -> Impact/HOW value -> Distinguishing Factor) and 4-5 definingTraits when supported; drivingForce structured fields; profilePositioning experienceConnection, 2-3 defensible positioningOptions when supported, and profileNarrative (100-130 words: Past Experiences -> Recurring Pattern -> Current Positioning -> Future Direction).
@@ -135,7 +135,7 @@ INPUT BOUNDARIES:
 - Key Takeaways are fact bundles, not pre-written takeaway prose: Stand Out = identity + repeated pattern + positioning; Competitive Advantage = capabilities + Social Proof + positioning; Growth = gaps + intended direction + Q5/Q6/Q7. Synthesize only from those facts.
 
 GROUNDING AND VOICE:
-- Every evidenceIds array must be a subset of that section's allowedEvidenceIds. Unknown IDs, cross-section IDs, unsupported numbers, activities, outcomes, motivations, capabilities, or future claims invalidate the whole response.
+- Every evidenceIds array must be a subset of that section's allowedEvidenceIds. Unknown IDs, cross-section IDs, unsupported numbers, activities, outcomes, motivations, capabilities, or future claims invalidate the current batch. Never copy an evidence ID from another section or batch; if the correct ID is not in the requested section's allow-list, omit that optional section.
 - Key Takeaways use independent evidence scopes: Stand Out may use identity/pattern/theme evidence; Competitive Advantage may use capability/social-proof/positioning evidence; Growth Opportunity may use growth gaps, positioning gaps, intended direction, and relevant Q5-Q7 direction evidence. Do not reuse one broad union for all three.
 - Preserve isHypothesis, evidenceStrength, scope, confidence, maturity, verification, ranks, and scores exactly; prose can never change them.
 - Use clear applicant-facing second person ("you"/"your") where prose addresses the applicant. Never copy first-person source language ("I", "me", "my", "we", "our") and never use unsupported praise, admissions predictions, university/programme fit, or comparisons with other applicants.

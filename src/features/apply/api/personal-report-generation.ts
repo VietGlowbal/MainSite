@@ -446,17 +446,20 @@ async function regenerateApplicationPersonalReport(
       narrativeFailureContext = context;
     },
   });
-  if (!synthesis) {
-    const issueSummary = narrativeFailureContext?.issues?.length
-      ? ` Issues: ${narrativeFailureContext.issues
-          .map((issue) => `${issue.path.join('.') || '<root>'} [${issue.code}] ${issue.message}`)
-          .join('; ')}`
-      : '';
-    return {
-      status: 'error',
-      message: `Personal Report narrative generation failed (${narrativeFailure}).${issueSummary} Generation will retry automatically.`,
-      record: current,
-    };
+  if (narrativeFailure !== 'unknown') {
+    logger.warn('personal_report_generate', {
+      userId,
+      applicationId,
+      trigger,
+      stage: 'generated',
+      outcome: 'success',
+      metadata: {
+        narrativeOutcome: synthesis ? 'partial_narrative' : 'deterministic_fallback',
+        narrativeFailure,
+        narrativeFailureContext,
+      },
+      durationMs: getElapsed(),
+    });
   }
   let reportV2 = applyNarrativeSynthesis(deterministicReport, synthesis);
 
@@ -620,19 +623,32 @@ async function regenerateLegacyPersonalReport(
     });
 
     const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
+    let narrativeFailure = 'unknown';
+    let narrativeFailureContext: PersonalReportNarrativeFailureContext | undefined;
     const synthesis = await synthesizePersonalReportNarrative({
       report: deterministicReport,
       intendedDirection: evaluationInput.intendedDirection,
       apiKey,
       model: modelName,
       grounding: { evaluationInput, evaluation, evidenceBank: null, canvasDetails },
+      onFailure: (code, context) => {
+        narrativeFailure = code;
+        narrativeFailureContext = context;
+      },
     });
-    if (!synthesis) {
-      return {
-        status: 'error',
-        message: 'The AI could not produce a complete evidence-grounded report.',
-        record: current,
-      };
+    if (narrativeFailure !== 'unknown') {
+      logger.warn('personal_report_generate', {
+        userId,
+        trigger,
+        stage: 'generated',
+        outcome: 'success',
+        metadata: {
+          narrativeOutcome: synthesis ? 'partial_narrative' : 'deterministic_fallback',
+          narrativeFailure,
+          narrativeFailureContext,
+        },
+        durationMs: getElapsed(),
+      });
     }
     const synthesizedReport = applyNarrativeSynthesis(deterministicReport, synthesis);
 
