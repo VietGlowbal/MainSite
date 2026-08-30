@@ -96,7 +96,7 @@ export async function generateStrategyReportV3(args: {
       targetSourceRefs: context.targetSourceIndex.map((item) => item.ref),
       metricIds: matchingMetricIds(context),
       gapIds: context.matching.gaps.map((gap) => gap.id),
-      requirementIds: context.matching.hardRequirements.map((requirement) => requirement.id),
+      requirementIds: strategyRequirementIds(context),
     });
   } catch (error) {
     if (error instanceof StrategyGenerationError) throw error;
@@ -165,7 +165,7 @@ function validateProfile(areas: ProfileAreaDiagnosis[], context: StrategyInputCo
   validateRefs(areas.flatMap((area) => area.evidenceIds), context.evidenceIndex.map((item) => item.id), 'evidence');
   validateRefs(areas.flatMap((area) => area.targetSourceRefs), context.targetSourceIndex.map((item) => item.ref), 'target source');
   validateRefs(areas.flatMap((area) => area.metricIds), matchingMetricIds(context), 'metric');
-  validateRefs(areas.flatMap((area) => area.requirementIds), context.matching.hardRequirements.map((requirement) => requirement.id), 'requirement');
+  validateRefs(areas.flatMap((area) => area.requirementIds), strategyRequirementIds(context), 'requirement');
 }
 
 function matchingMetricIds(context: StrategyInputContext): string[] {
@@ -173,6 +173,16 @@ function matchingMetricIds(context: StrategyInputContext): string[] {
     ...Object.values(context.matching.universityFit?.metrics ?? {}).map((metric) => metric.id),
     ...Object.values(context.matching.programmeFit?.metrics ?? {}).map((metric) => metric.id),
   ];
+}
+
+function strategyRequirementIds(context: StrategyInputContext): string[] {
+  return unique([
+    ...context.matching.hardRequirements.map((requirement) => requirement.id),
+    ...context.target.requirements.flatMap((requirement) => {
+      const id = record(requirement).id;
+      return typeof id === 'string' && id.trim() ? [id.trim()] : [];
+    }),
+  ]);
 }
 
 function validateActivities(analyses: ActivityStrategyAnalysis[], context: StrategyInputContext): ActivityStrategyAnalysis[] {

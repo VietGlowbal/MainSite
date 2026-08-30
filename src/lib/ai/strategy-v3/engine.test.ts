@@ -30,7 +30,7 @@ function context(overrides: Partial<StrategyInputContext> = {}): StrategyInputCo
 }
 
 function area(category: 'academic' | 'experience' | 'differentiation' | 'evidence', status: 'maintain' | 'develop' | 'consolidate' | 'build' = 'maintain') {
-  return { key: category, category, label: category, status, diagnosis: 'Diagnosis.', whyItMatters: 'Why.', suggestedDirection: 'Direction.', evidenceIds: [], metricIds: [], requirementIds: [], targetSourceRefs: [] };
+  return { key: category, category, label: category, status, diagnosis: 'Diagnosis.', whyItMatters: 'Why.', suggestedDirection: 'Direction.', evidenceIds: [] as string[], metricIds: [] as string[], requirementIds: [] as string[], targetSourceRefs: [] as string[] };
 }
 
 function synthesis() {
@@ -55,6 +55,26 @@ describe('Strategy V3 engine', () => {
     expect(mocks.openAiJsonCompletion).toHaveBeenCalledTimes(2);
     expect(report.metadata.aiCallCount).toBe(2);
     expect(report.strategicRoadmap.map((phase) => phase.phaseKey)).toEqual(['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise']);
+  });
+
+  it('accepts target-profile requirement IDs in profile provenance', async () => {
+    const requirementId = 'adm:academic_entry_requirement';
+    const areas = ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never));
+    areas[0] = { ...areas[0], requirementIds: [requirementId] };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({
+      context: context({
+        target: { university: {}, programme: {}, requirements: [{ id: requirementId }], opportunities: [], scholarship: null, sources: [] },
+      }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'academic')?.requirementIds).toEqual([requirementId]);
   });
 
   it('ranks hard requirements and caps the deterministic result at three', () => {
