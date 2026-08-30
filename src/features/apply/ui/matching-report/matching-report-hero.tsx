@@ -78,10 +78,10 @@ export function MatchingReportHero({
   const displayGapDesc = criticalGapDescription || t('Main area to strengthen for this profile.');
 
   return (
-    <div className="flex flex-col gap-gb-xl rounded-gb-2xl border border-line bg-surface p-gb-xl sm:p-gb-2xl shadow-xs transition-all duration-200">
-      <div className="grid grid-cols-1 gap-gb-xl lg:grid-cols-12 lg:items-center">
+    <div className="flex flex-col gap-gb-lg rounded-gb-2xl border border-line bg-surface p-gb-lg shadow-gb-xs sm:p-gb-xl transition-all duration-200">
+      <div className="grid grid-cols-1 gap-gb-lg lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)] lg:items-start">
         {/* Left: Graphic + Title + Description */}
-        <div className="flex flex-col gap-gb-lg sm:flex-row sm:items-start lg:col-span-6 xl:col-span-7 min-w-0">
+        <div className="flex min-w-0 flex-col gap-gb-md sm:flex-row sm:items-start">
           {/* Target / Bullseye SVG Icon */}
           <div className="relative flex shrink-0 items-center justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50/80 sm:h-20 sm:w-20">
@@ -136,7 +136,17 @@ export function MatchingReportHero({
                 'This report evaluates how well your profile aligns with the target university and programme based on academic, experiential, and strategic factors.',
               )}
             </p>
-            {overallSummary ? <p className="text-gb-sm leading-relaxed text-fg-secondary">{overallSummary}</p> : null}
+            {overallSummary ? (
+              <details className="group rounded-gb-lg border border-line/70 bg-surface-subtle/40 px-gb-md py-gb-sm">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-gb-sm text-gb-xs font-semibold text-fg [&::-webkit-details-marker]:hidden">
+                  <span>{t('Summary')}</span>
+                  <span className="text-brand transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                </summary>
+                <p className="mt-gb-sm border-t border-line/60 pt-gb-sm text-gb-xs leading-relaxed text-fg-secondary">
+                  {overallSummary}
+                </p>
+              </details>
+            ) : null}
             {overallAlignmentScore !== undefined ? (
               <p className="text-gb-xs font-semibold text-brand">
                 {t('Overall alignment')}: {overallAlignmentScore === null ? t('Not assessed') : `${Math.round(overallAlignmentScore)}%`}
@@ -149,9 +159,9 @@ export function MatchingReportHero({
         </div>
 
         {/* Right: 3 Key Metric Blocks */}
-        <div className="grid grid-cols-1 gap-gb-md sm:grid-cols-3 lg:col-span-6 xl:col-span-5">
+        <div className="grid grid-cols-1 gap-gb-sm sm:grid-cols-3">
           {/* 1. University Fit */}
-          <div className="flex min-h-[140px] flex-col justify-between rounded-gb-xl border border-line/70 bg-surface-subtle/50 p-gb-lg transition-all hover:border-line-strong">
+          <div className="flex min-h-[132px] flex-col justify-between rounded-gb-xl border border-line/70 bg-surface-subtle/50 p-gb-md transition-all hover:border-line-strong">
             <div className="flex flex-col gap-gb-2xs">
               <span className="text-gb-xs font-semibold text-fg-muted">{t('University Fit')}</span>
               <div className="flex items-baseline gap-gb-xs">
@@ -173,7 +183,7 @@ export function MatchingReportHero({
           </div>
 
           {/* 2. Programme Fit */}
-          <div className="flex min-h-[140px] flex-col justify-between rounded-gb-xl border border-line/70 bg-surface-subtle/50 p-gb-lg transition-all hover:border-line-strong">
+          <div className="flex min-h-[132px] flex-col justify-between rounded-gb-xl border border-line/70 bg-surface-subtle/50 p-gb-md transition-all hover:border-line-strong">
             <div className="flex flex-col gap-gb-2xs">
               <span className="text-gb-xs font-semibold text-fg-muted">{t('Programme Fit')}</span>
               <div className="flex items-baseline gap-gb-xs">
@@ -195,7 +205,7 @@ export function MatchingReportHero({
           </div>
 
           {/* 3. Critical Gap */}
-          <div className="flex min-h-[140px] flex-col justify-between rounded-gb-xl border border-line/70 bg-surface-subtle/50 p-gb-lg transition-all hover:border-line-strong">
+          <div className="flex min-h-[132px] flex-col justify-between rounded-gb-xl border border-line/70 bg-surface-subtle/50 p-gb-md transition-all hover:border-line-strong">
             <div className="flex flex-col gap-gb-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-gb-xs font-semibold text-fg-muted">{t('Critical Gap')}</span>

@@ -56,7 +56,7 @@ export function KeyTakeawaysGrid({
   const title4 = cleanTitle(t('Strategic Direction'), strategicDirection.title);
 
   return (
-    <div className="grid grid-cols-1 gap-gb-md lg:grid-cols-12 lg:items-stretch">
+    <div className="grid grid-cols-1 items-start gap-gb-md lg:grid-cols-12">
       {/* Left (8 Cols): 2x2 Strategy Grid with spacious breathing room */}
       <div className="grid grid-cols-1 gap-gb-md sm:grid-cols-2 lg:col-span-8 min-w-0">
         {/* 1. Strongest Fit */}
@@ -189,7 +189,7 @@ export function KeyTakeawaysGrid({
       </div>
 
       {/* Right (4 Cols): Evidence Snapshot Card */}
-      <div className="flex flex-col justify-between rounded-gb-2xl border border-line bg-surface p-gb-xl shadow-xs lg:col-span-4 min-w-0">
+      <div className="flex h-fit flex-col justify-between rounded-gb-2xl border border-line bg-surface p-gb-xl shadow-gb-xs lg:col-span-4 min-w-0">
         <div className="flex flex-col gap-gb-xs">
           <div className="flex items-center justify-between">
             <h4 className="text-gb-sm font-bold text-fg">{t('Evidence Snapshot')}</h4>

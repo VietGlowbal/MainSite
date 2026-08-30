@@ -75,15 +75,15 @@ export function UniversityFitCard({
     t('Strengthen research exposure to match the expectations of research-active institutions.');
 
   return (
-    <div className="flex flex-col gap-gb-xl rounded-gb-2xl border border-line bg-surface p-gb-xl sm:p-gb-2xl shadow-xs">
-      <div className="grid grid-cols-1 gap-gb-2xl lg:grid-cols-12 lg:items-stretch">
+    <div className="flex flex-col gap-gb-lg rounded-gb-2xl border border-line bg-surface p-gb-lg shadow-gb-xs sm:p-gb-xl">
+      <div className="grid grid-cols-1 gap-gb-xl lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
         {/* Column 1: Overall University Fit (Donut Gauge) */}
-        <div className="flex flex-col items-center justify-between border-b border-line/60 pb-gb-xl text-center lg:col-span-3 min-w-0 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-gb-xl">
+        <div className="flex min-w-0 flex-col items-center border-b border-line/60 pb-gb-xl text-center lg:border-b-0 lg:border-r lg:pb-0 lg:pr-gb-xl">
           <div className="flex flex-col items-center gap-gb-2xs">
             <h3 className="text-gb-sm font-bold text-fg">{t('Overall University Fit')}</h3>
           </div>
 
-          <div className="my-auto flex flex-col items-center py-gb-md">
+          <div className="mt-gb-md flex flex-col items-center py-gb-md">
             <div className="relative flex items-center justify-center">
               <svg
                 width={size}
@@ -157,7 +157,7 @@ export function UniversityFitCard({
         </div>
 
         {/* Column 2: What Drives Your Fit */}
-        <div className="flex flex-col justify-between border-b border-line/60 pb-gb-xl lg:col-span-5 min-w-0 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-gb-xl">
+        <div className="flex min-w-0 flex-col border-b border-line/60 pb-gb-xl lg:border-b-0 lg:pb-0">
           <div className="flex flex-col gap-gb-2xs">
             <h3 className="text-gb-sm font-bold text-fg">{t('What Drives Your Fit')}</h3>
             <p className="text-gb-xs leading-relaxed text-fg-tertiary">
@@ -224,7 +224,7 @@ export function UniversityFitCard({
         </div>
 
         {/* Column 3: Insight Box */}
-        <div className="flex flex-col justify-between gap-gb-md lg:col-span-4 min-w-0">
+        <div className="flex min-w-0 flex-col gap-gb-md border-t border-line/60 pt-gb-lg lg:col-span-2">
           <div className="flex flex-col gap-gb-sm">
             <div className="flex items-center gap-gb-xs text-brand">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -232,12 +232,18 @@ export function UniversityFitCard({
               </svg>
               <h3 className="text-gb-sm font-bold text-fg">{t('Insight')}</h3>
             </div>
-            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
-              {defaultInsight}
-            </p>
+            <details className="group rounded-gb-lg border border-line/70 bg-surface-subtle/40 px-gb-md py-gb-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-gb-sm text-gb-xs font-semibold text-fg [&::-webkit-details-marker]:hidden">
+                <span>{t('Summary')}</span>
+                <span className="text-brand transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+              </summary>
+              <p className="mt-gb-sm border-t border-line/60 pt-gb-sm text-gb-xs leading-relaxed text-fg-secondary break-words">
+                {defaultInsight}
+              </p>
+            </details>
           </div>
 
-          <div className="flex flex-col gap-gb-sm border-t border-line/60 pt-gb-md">
+          <div className="grid grid-cols-1 gap-gb-md border-t border-line/60 pt-gb-md sm:grid-cols-2">
             {/* Strongest Alignment */}
             <div className="flex flex-col gap-gb-2xs">
               <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700">
@@ -246,7 +252,7 @@ export function UniversityFitCard({
                 </svg>
                 <span>{t('Strongest Alignment')}</span>
               </div>
-              <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
+              <p className="line-clamp-4 text-gb-xs leading-relaxed text-fg-secondary break-words" title={defaultStrongest}>
                 {defaultStrongest}
               </p>
             </div>
@@ -259,7 +265,7 @@ export function UniversityFitCard({
                 </svg>
                 <span>{t('Primary Opportunity')}</span>
               </div>
-              <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
+              <p className="line-clamp-4 text-gb-xs leading-relaxed text-fg-secondary break-words" title={defaultOpportunity}>
                 {defaultOpportunity}
               </p>
             </div>

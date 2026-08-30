@@ -86,12 +86,15 @@ export function EvidenceStrengthBanner({
       </div>
 
       {evidenceIndex.length > 0 || targetSourceIndex.length > 0 ? (
-        <div className="border-t border-line/60 pt-gb-md">
-          <div className="mb-gb-sm flex flex-wrap items-center justify-between gap-gb-xs">
-            <h4 className="text-gb-sm font-bold text-fg">{t('Evidence records and target sources')}</h4>
-            <span className="text-[11px] text-fg-muted">{evidenceIndex.length} {t('evidence records')} · {targetSourceIndex.length} {t('target sources')}</span>
-          </div>
-          <div className="grid grid-cols-1 gap-gb-md lg:grid-cols-2">
+        <details className="group border-t border-line/60 pt-gb-md">
+          <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-gb-xs [&::-webkit-details-marker]:hidden">
+            <span className="text-gb-sm font-bold text-fg">{t('Evidence records and target sources')}</span>
+            <span className="flex items-center gap-gb-sm text-[11px] text-fg-muted">
+              {evidenceIndex.length} {t('evidence records')} · {targetSourceIndex.length} {t('target sources')}
+              <span className="text-brand transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+            </span>
+          </summary>
+          <div className="mt-gb-md grid grid-cols-1 gap-gb-md lg:grid-cols-2">
             <div className="max-h-72 overflow-auto rounded-gb-lg border border-line/70 bg-surface-subtle/30 p-gb-sm">
               <h5 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{t('Applicant evidence')}</h5>
               <div className="mt-gb-xs flex flex-col gap-gb-sm">
@@ -123,7 +126,7 @@ export function EvidenceStrengthBanner({
               </div>
             </div>
           </div>
-        </div>
+        </details>
       ) : null}
     </div>
   );

@@ -87,13 +87,13 @@ export function ProgrammeFitCard({
     );
 
   return (
-    <div className="flex flex-col gap-gb-xl rounded-gb-2xl border border-line bg-surface p-gb-xl sm:p-gb-2xl shadow-xs">
-      <div className="grid grid-cols-1 gap-gb-2xl lg:grid-cols-12 lg:items-stretch">
+    <div className="flex flex-col gap-gb-lg rounded-gb-2xl border border-line bg-surface p-gb-lg shadow-gb-xs sm:p-gb-xl">
+      <div className="grid grid-cols-1 gap-gb-xl lg:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.1fr)] lg:items-start">
         {/* Column 1: Programme Fit Overview + Unclipped Radar Chart */}
-        <div className="flex flex-col items-center justify-between border-b border-line/60 pb-gb-xl lg:col-span-4 min-w-0 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-gb-xl">
+        <div className="flex min-w-0 flex-col items-center border-b border-line/60 pb-gb-xl lg:border-b-0 lg:border-r lg:pb-0 lg:pr-gb-xl">
           <div className="flex flex-col gap-gb-2xs text-left w-full">
             <h3 className="text-gb-sm font-bold text-fg">{t('Programme Fit Overview')}</h3>
-            <p className="text-gb-xs leading-relaxed text-fg-tertiary">
+            <p className="line-clamp-3 text-gb-xs leading-relaxed text-fg-tertiary" title={fitSummary || undefined}>
               {fitSummary || t('Your alignment with the {course} programme based on curriculum, skills, experience, and career goals.', {
                   course: courseName,
                 })}
@@ -109,7 +109,7 @@ export function ProgrammeFitCard({
           </div>
 
           {/* SVG Radar Chart with generous bounds */}
-          <div className="my-auto flex w-full flex-col items-center py-gb-xs">
+          <div className="mt-gb-md flex w-full flex-col items-center py-gb-xs">
             {hasShape ? (
               <div className="w-full max-w-[340px] flex items-center justify-center">
                 <svg
@@ -274,7 +274,7 @@ export function ProgrammeFitCard({
         </div>
 
         {/* Column 2: Dimension Summary (Horizontal Bars) */}
-        <div className="flex flex-col justify-between border-b border-line/60 pb-gb-xl lg:col-span-4 min-w-0 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-gb-xl">
+        <div className="flex min-w-0 flex-col border-b border-line/60 pb-gb-xl lg:border-b-0 lg:pb-0">
           <div className="flex flex-col gap-gb-2xs">
             <h3 className="text-gb-sm font-bold text-fg">{t('Dimension Summary')}</h3>
             <p className="text-gb-xs text-fg-tertiary">
@@ -327,9 +327,9 @@ export function ProgrammeFitCard({
         </div>
 
         {/* Column 3: Strategic Insights Callouts */}
-        <div className="flex flex-col justify-between gap-gb-md lg:col-span-4 min-w-0">
+        <div className="grid min-w-0 grid-cols-1 gap-gb-md border-t border-line/60 pt-gb-lg sm:grid-cols-3 lg:col-span-2">
           {/* 1. Strongest Fit */}
-          <div className="flex flex-col gap-gb-2xs">
+          <div className="flex flex-col gap-gb-2xs rounded-gb-xl bg-surface-subtle/40 p-gb-md">
             <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700">
               <svg className="h-3.5 w-3.5 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -342,7 +342,7 @@ export function ProgrammeFitCard({
           </div>
 
           {/* 2. Potential Gap */}
-          <div className="flex flex-col gap-gb-2xs border-t border-line/60 pt-gb-sm">
+          <div className="flex flex-col gap-gb-2xs rounded-gb-xl bg-surface-subtle/40 p-gb-md sm:border-l sm:border-line/60 sm:pl-gb-lg">
             <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-700">
               <svg className="h-3.5 w-3.5 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -355,7 +355,7 @@ export function ProgrammeFitCard({
           </div>
 
           {/* 3. Recommendation */}
-          <div className="flex flex-col gap-gb-2xs border-t border-line/60 pt-gb-sm">
+          <div className="flex flex-col gap-gb-2xs rounded-gb-xl bg-surface-subtle/40 p-gb-md sm:border-l sm:border-line/60 sm:pl-gb-lg">
             <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-700">
               <svg className="h-3.5 w-3.5 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
