@@ -232,15 +232,9 @@ export function UniversityFitCard({
               </svg>
               <h3 className="text-gb-sm font-bold text-fg">{t('Insight')}</h3>
             </div>
-            <details className="group/insight rounded-gb-lg border border-line/70 bg-surface-subtle/40 px-gb-md py-gb-sm">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-gb-sm text-gb-xs font-semibold text-fg [&::-webkit-details-marker]:hidden">
-                <span>{t('Summary')}</span>
-                <span className="text-brand transition-transform group-open/insight:rotate-180" aria-hidden="true">⌄</span>
-              </summary>
-              <p className="mt-gb-sm border-t border-line/60 pt-gb-sm text-gb-xs leading-relaxed text-fg-secondary break-words">
-                {defaultInsight}
-              </p>
-            </details>
+            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
+              {defaultInsight}
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-gb-md border-t border-line/60 pt-gb-md sm:grid-cols-2">

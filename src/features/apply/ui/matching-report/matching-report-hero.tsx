@@ -137,15 +137,9 @@ export function MatchingReportHero({
               )}
             </p>
             {overallSummary ? (
-              <details className="group/hero rounded-gb-lg border border-line/70 bg-surface-subtle/40 px-gb-md py-gb-sm">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-gb-sm text-gb-xs font-semibold text-fg [&::-webkit-details-marker]:hidden">
-                  <span>{t('Summary')}</span>
-                  <span className="text-brand transition-transform group-open/hero:rotate-180" aria-hidden="true">⌄</span>
-                </summary>
-                <p className="mt-gb-sm border-t border-line/60 pt-gb-sm text-gb-xs leading-relaxed text-fg-secondary">
-                  {overallSummary}
-                </p>
-              </details>
+              <p className="text-gb-sm leading-relaxed text-fg-secondary">
+                {overallSummary}
+              </p>
             ) : null}
             {overallAlignmentScore !== undefined ? (
               <p className="text-gb-xs font-semibold text-brand">
