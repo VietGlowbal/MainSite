@@ -79,6 +79,30 @@ describe('Strategy V3 canonical context', () => {
     );
   });
 
+  it('derives experience provenance from canonical activities when Evidence Bank is incomplete', () => {
+    const context = buildStrategyInputContext({
+      applicationId: 'app-1',
+      application: {},
+      personalReport: {} as never,
+      matching: { evidenceIndex: [], targetSourceIndex: [], hardRequirements: [], gaps: [], metadata: {} } as never,
+      snapshotState: {
+        snapshotId: 'snap-1',
+        achievements: [],
+        activities: [{ id: 'activity:2b18eff6-d87c-4c59-b661-c0ad501f1839', title: 'Research project' }],
+        evidenceBank: [],
+        directionSignals: {},
+        metadata: {},
+      } as never,
+      sourceAnalysis: null,
+      targetProfile: null,
+    });
+
+    expect(context.evidenceIndex.find((item) => item.id === 'experience:2b18eff6-d87c-4c59-b661-c0ad501f1839')).toMatchObject({
+      status: 'report_only',
+      direct: false,
+    });
+  });
+
   it('preserves verification status instead of promoting snapshot reflections to verified evidence', () => {
     const state = stateFromSnapshotRow({
       id: 'snap-1', user_id: 'user-1', application_id: 'app-1',

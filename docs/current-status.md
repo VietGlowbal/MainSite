@@ -1,5 +1,13 @@
 # Current project status
 
+Working tree 2026-08-30 (Strategy Report experience provenance fallback):
+Strategy V3 now derives canonical `experience:<id>` evidence aliases directly
+from snapshot achievements and activities, including already-prefixed IDs, so
+an incomplete snapshot Evidence Bank cannot reject valid activity references.
+Validation remains fail-closed for genuinely unknown references. Added a
+regression test for the production UUID failure. Measured: context/engine
+suite 12/12, route suite 8/8, base typecheck, and `git diff --check` pass.
+
 Working tree 2026-08-30 (Strategy Report evidence provenance fix): Strategy V3
 now carries the current Personal Report's evidence references into its own
 allowlist as report-only inputs after snapshot, Matching, and source-analysis

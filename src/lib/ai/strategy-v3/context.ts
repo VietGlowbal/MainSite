@@ -212,14 +212,22 @@ function buildEvidenceIndex(
     const id = stringValue(item.id);
     if (id) addReportOnly({ id, label: stringValue(item.label) ?? stringValue(item.statement) ?? id });
   }
+  for (const item of [...state.achievements, ...state.activities]) {
+    addReportOnly({ id: experienceEvidenceId(item.id), label: item.title });
+  }
   for (const item of state.evidenceBank) {
-    const [kind, ...parts] = item.id.split(':');
-    if ((kind === 'achievement' || kind === 'activity') && parts.length > 0) {
-      addReportOnly({ id: `experience:${parts.join(':')}`, label: item.label });
+    if (item.kind === 'achievement' || item.kind === 'activity') {
+      addReportOnly({ id: experienceEvidenceId(item.id), label: item.label });
     }
   }
   addPersonalReportEvidence(personalReport, addReportOnly);
   return items;
+}
+
+function experienceEvidenceId(id: string): string {
+  const parts = id.split(':');
+  while (parts.length > 1 && ['achievement', 'activity', 'experience'].includes(parts[0] ?? '')) parts.shift();
+  return `experience:${parts.join(':')}`;
 }
 
 function addPersonalReportEvidence(
