@@ -113,7 +113,7 @@ export function KeyTakeawaysGrid({
   metricLabels,
 }: KeyTakeawaysGridProps) {
   const t = useT();
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(0);
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
 
   const title1 = cleanTitle(t('Strongest Fit'), strongestFit.title);
   const title2 = cleanTitle(t('Competitive Advantage'), competitiveAdvantage.title);
@@ -163,253 +163,256 @@ export function KeyTakeawaysGrid({
     },
   ];
 
+  const activeItem = items[selectedIndex] ?? items[0];
+  const ActiveIcon = activeItem.icon;
+
   const getTitlePosition = (angle: number) => {
-    if (angle === -90) return 'bottom-full mb-3 left-1/2 -translate-x-1/2 text-center';
-    if (angle === 0) return 'left-full ml-4 top-1/2 -translate-y-1/2 text-left';
-    if (angle === 90) return 'top-full mt-3 left-1/2 -translate-x-1/2 text-center';
-    if (angle === 180) return 'right-full mr-4 top-1/2 -translate-y-1/2 text-right';
+    if (angle === -90) return 'bottom-full mb-2.5 left-1/2 -translate-x-1/2 text-center';
+    if (angle === 0) return 'left-full ml-3 top-1/2 -translate-y-1/2 text-left';
+    if (angle === 90) return 'top-full mt-2.5 left-1/2 -translate-x-1/2 text-center';
+    if (angle === 180) return 'right-full mr-3 top-1/2 -translate-y-1/2 text-right';
     return '';
   };
 
-  const radius = 230; // Radius matching 8-col desktop card container
+  const radius = 175; // Radius for compact side-by-side wheel
 
   return (
-    <div className="grid grid-cols-1 items-stretch gap-gb-md lg:grid-cols-12">
-      {/* Left (8 Cols): Orbital Takeaway Hub */}
-      <div className="flex flex-col justify-between overflow-hidden rounded-gb-2xl border border-line bg-surface p-gb-lg shadow-gb-xs lg:col-span-8 min-w-0">
-        {/* Desktop Interactive Circular Layout */}
-        <div className="hidden md:flex relative w-full h-[620px] items-center justify-center">
-          {/* Dynamic Glowing Aura when Node Hovered/Active */}
-          <div
-            className={cn(
-              'absolute w-[460px] h-[460px] rounded-full transition-all duration-500 pointer-events-none',
-              selectedIndex !== null
-                ? 'bg-[#EE0033]/[0.06] scale-105 shadow-[0_0_60px_rgba(238,0,51,0.18)]'
-                : 'bg-red-50/30'
-            )}
-          />
-
-          {/* Static outer guide circle */}
-          <div className="absolute w-[460px] h-[460px] rounded-full border-2 border-red-100 border-dashed pointer-events-none" />
-
-          {/* Animated spinning highlighted red dashed circle */}
-          <div
-            className={cn(
-              'absolute w-[460px] h-[460px] rounded-full border-2 border-dashed border-transparent transition-all duration-300 pointer-events-none',
-              selectedIndex !== null
-                ? 'border-t-[#EE0033] border-r-[#EE0033] border-b-[#EE0033]/60 shadow-[0_0_25px_rgba(238,0,51,0.25)]'
-                : 'border-t-[#EE0033] border-r-[#EE0033]/50'
-            )}
-            style={{
-              animation: selectedIndex !== null ? 'spin 12s linear infinite' : 'spin 25s linear infinite',
-            }}
-          />
-
-          {/* Inner decorative circle */}
-          <div className="absolute w-[320px] h-[320px] rounded-full border border-red-100/80 pointer-events-none" />
-
-          {/* Center Display Card (300px x 300px) */}
-          <div className="absolute z-20 w-[300px] h-[300px]">
-            {/* Default State (When no node is selected) */}
-            <div
-              className={cn(
-                'absolute inset-0 rounded-full flex flex-col items-center justify-center p-6 text-center transition-all duration-500',
-                'bg-white shadow-xl border-4 border-red-50',
-                selectedIndex !== null ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'
-              )}
-            >
-              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center text-[#EE0033] mb-3 border-2 border-red-100 shadow-md animate-pulse">
-                <ShieldCheckIcon className="h-9 w-9 text-[#EE0033]" />
-              </div>
-              <h3 className="text-xl font-black text-gray-900 leading-tight tracking-tight">
-                <span className="text-[#EE0033]">{t('KEY TAKEAWAYS')}</span><br />{t('& STRATEGY')}
-              </h3>
-            </div>
-
-            {/* Selected State Cards - Brand Red Glassmorphism Showcase */}
+    <div className="flex flex-col gap-gb-md">
+      {/* Top Section: Side-by-Side (Left: Interactive Orbit Navigator, Right: Full Detail Panel) */}
+      <div className="grid grid-cols-1 items-stretch gap-gb-md lg:grid-cols-12">
+        {/* Left Column (5 Cols): Interactive Orbital Wheel */}
+        <div className="flex flex-col items-center justify-center overflow-hidden rounded-gb-2xl border border-line bg-surface p-gb-md shadow-gb-xs lg:col-span-5 min-w-0">
+          {/* Mobile Tab Selector (< md) */}
+          <div className="grid w-full grid-cols-2 gap-2 md:hidden">
             {items.map((item, index) => {
-              const Icon = item.icon;
               const isSelected = selectedIndex === index;
+              const Icon = item.icon;
               return (
-                <div
-                  key={`center-${item.key}`}
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setSelectedIndex(index)}
                   className={cn(
-                    'absolute inset-0 rounded-full flex flex-col items-center justify-center p-6 text-center transition-all duration-500 overflow-hidden',
-                    'bg-[#EE0033] text-white shadow-[0_0_50px_rgba(238,0,51,0.35)] border-4 border-white',
-                    isSelected ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-110 pointer-events-none -z-10'
+                    'flex items-center gap-2 rounded-xl p-2.5 text-left text-xs font-semibold transition-all',
+                    isSelected
+                      ? 'bg-[#EE0033] text-white shadow-md shadow-red-200'
+                      : 'border border-line/80 bg-surface-subtle/50 text-fg-secondary hover:bg-surface-subtle'
                   )}
                 >
-                  {/* Glowing Icon Container */}
-                  <div className="w-12 h-12 rounded-full bg-white/20 border border-white/40 flex items-center justify-center text-white mb-1.5 shadow-inner -mt-2">
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
+                  <Icon className={cn('h-4 w-4 shrink-0', isSelected ? 'text-white' : 'text-[#EE0033]')} />
+                  <span className="truncate">{item.badge}</span>
+                </button>
+              );
+            })}
+          </div>
 
-                  {/* Badge */}
-                  <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-3 py-0.5 rounded-full border border-white/30 mb-1.5 shadow-sm">
-                    {item.badge}
-                  </span>
+          {/* Desktop Circular Wheel (md+) */}
+          <div className="hidden md:flex relative h-[420px] w-full items-center justify-center">
+            {/* Dynamic Glowing Aura */}
+            <div
+              className={cn(
+                'absolute h-[350px] w-[350px] rounded-full transition-all duration-500 pointer-events-none',
+                'bg-[#EE0033]/[0.06] scale-105 shadow-[0_0_60px_rgba(238,0,51,0.18)]'
+              )}
+            />
 
-                  {/* Description */}
-                  <div className="max-h-28 overflow-y-auto px-2 text-[12px] text-white/95 leading-relaxed font-medium">
-                    {item.description}
-                  </div>
+            {/* Static outer guide circle */}
+            <div className="absolute h-[350px] w-[350px] rounded-full border-2 border-red-100 border-dashed pointer-events-none" />
 
-                  {/* Bottom Highlight Tag */}
-                  <div className="mt-2">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-[#EE0033] bg-white px-3 py-1 rounded-full shadow-sm">
-                      <CheckCircle2Icon className="h-3 w-3 text-[#EE0033]" />
-                      <span>{item.highlight}</span>
-                    </span>
+            {/* Animated spinning highlighted red dashed circle */}
+            <div
+              className="absolute h-[350px] w-[350px] rounded-full border-2 border-dashed border-transparent transition-all duration-300 pointer-events-none border-t-[#EE0033] border-r-[#EE0033] border-b-[#EE0033]/60 shadow-[0_0_25px_rgba(238,0,51,0.25)]"
+              style={{ animation: 'spin 14s linear infinite' }}
+            />
+
+            {/* Inner decorative circle */}
+            <div className="absolute h-[240px] w-[240px] rounded-full border border-red-100/80 pointer-events-none" />
+
+            {/* Center Display Badge (200px x 200px) */}
+            <div className="absolute z-20 flex h-[200px] w-[200px] flex-col items-center justify-center rounded-full border-4 border-red-50 bg-white p-4 text-center shadow-xl transition-all duration-500">
+              <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full border-2 border-red-100 bg-red-50 text-[#EE0033] shadow-md transition-transform duration-300">
+                <ActiveIcon className="h-6 w-6 text-[#EE0033]" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#EE0033]">
+                {activeItem.badge}
+              </span>
+              <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                {t('Click node to explore')}
+              </p>
+            </div>
+
+            {/* 4 Radial Nodes */}
+            {items.map((item, index) => {
+              const rad = (item.angle * Math.PI) / 180;
+              const x = Math.cos(rad) * radius;
+              const y = Math.sin(rad) * radius;
+
+              const isSelected = selectedIndex === index;
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={`node-${item.key}`}
+                  className="absolute z-30"
+                  style={{
+                    transform: `translate(${x}px, ${y}px)`,
+                  }}
+                >
+                  <div
+                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                    onClick={() => setSelectedIndex(index)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                  >
+                    {/* Node Button (52px x 52px) */}
+                    <div
+                      className={cn(
+                        'flex h-13 w-13 items-center justify-center rounded-full border-2 transition-all duration-300 relative z-10',
+                        isSelected
+                          ? 'scale-120 border-white bg-[#EE0033] text-white shadow-[0_0_25px_rgba(238,0,51,0.5)]'
+                          : 'border-red-100 bg-white text-gray-700 shadow-md group-hover:scale-110 group-hover:border-[#EE0033] group-hover:text-[#EE0033]'
+                      )}
+                    >
+                      <Icon className={cn('h-5 w-5', isSelected ? 'text-white' : 'text-gray-700 group-hover:text-[#EE0033]')} />
+                    </div>
+
+                    {/* Node Title Label */}
+                    <div
+                      className={cn(
+                        'absolute whitespace-nowrap transition-all duration-300 pointer-events-none',
+                        getTitlePosition(item.angle),
+                        isSelected ? 'scale-105 font-black text-xs text-[#EE0033]' : 'font-bold text-xs text-gray-800'
+                      )}
+                    >
+                      {item.badge}
+                    </div>
+
+                    {/* Laser Connecting Line */}
+                    <svg
+                      className={cn(
+                        'absolute left-1/2 top-1/2 -z-10 pointer-events-none transition-all duration-300',
+                        isSelected ? 'opacity-100' : 'opacity-0'
+                      )}
+                      style={{
+                        transformOrigin: '0% 50%',
+                        transform: `translate(0, -50%) rotate(${item.angle + 180}deg)`,
+                        width: `${radius - 100}px`,
+                        height: '4px',
+                        overflow: 'visible',
+                      }}
+                    >
+                      <line
+                        x1="26"
+                        y1="2"
+                        x2="100%"
+                        y2="2"
+                        stroke="#EE0033"
+                        strokeWidth="2.5"
+                        strokeDasharray="5 5"
+                        className="animate-[dash_0.6s_linear_infinite]"
+                        style={{ filter: 'drop-shadow(0 0 3px #EE0033)' }}
+                      />
+                    </svg>
                   </div>
                 </div>
               );
             })}
           </div>
-
-          {/* 4 Radial Node Items */}
-          {items.map((item, index) => {
-            const rad = (item.angle * Math.PI) / 180;
-            const x = Math.cos(rad) * radius;
-            const y = Math.sin(rad) * radius;
-
-            const isSelected = selectedIndex === index;
-            const Icon = item.icon;
-
-            return (
-              <div
-                key={`node-${item.key}`}
-                className="absolute z-30"
-                style={{
-                  transform: `translate(${x}px, ${y}px)`,
-                }}
-              >
-                <div
-                  className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                  onClick={() => setSelectedIndex(index)}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                >
-                  {/* Node Button Container (56px x 56px) */}
-                  <div
-                    className={cn(
-                      'w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 relative z-10 border-2',
-                      isSelected
-                        ? 'bg-[#EE0033] text-white border-white scale-125 shadow-[0_0_25px_rgba(238,0,51,0.5)]'
-                        : 'bg-white text-gray-700 border-red-100 shadow-md group-hover:text-[#EE0033] group-hover:border-[#EE0033] group-hover:scale-110'
-                    )}
-                  >
-                    <Icon className={cn('h-6 w-6', isSelected ? 'text-white' : 'text-gray-700 group-hover:text-[#EE0033]')} />
-                  </div>
-
-                  {/* Node Title Label */}
-                  <div
-                    className={cn(
-                      'absolute whitespace-nowrap transition-all duration-300 pointer-events-none',
-                      getTitlePosition(item.angle),
-                      isSelected ? 'text-[#EE0033] font-black text-xs scale-105' : 'text-gray-800 font-bold text-xs'
-                    )}
-                  >
-                    {item.title}
-                  </div>
-
-                  {/* Laser Connecting Line */}
-                  <svg
-                    className={cn(
-                      'absolute top-1/2 left-1/2 -z-10 pointer-events-none transition-all duration-300',
-                      isSelected ? 'opacity-100' : 'opacity-0'
-                    )}
-                    style={{
-                      transformOrigin: '0% 50%',
-                      transform: `translate(0, -50%) rotate(${item.angle + 180}deg)`,
-                      width: `${radius - 150}px`,
-                      height: '4px',
-                      overflow: 'visible',
-                    }}
-                  >
-                    <line
-                      x1="28"
-                      y1="2"
-                      x2="100%"
-                      y2="2"
-                      stroke="#EE0033"
-                      strokeWidth="2.5"
-                      strokeDasharray="5 5"
-                      className="animate-[dash_0.6s_linear_infinite]"
-                      style={{ filter: 'drop-shadow(0 0 3px #EE0033)' }}
-                    />
-                  </svg>
-                </div>
-              </div>
-            );
-          })}
         </div>
 
-        {/* References Footer for the active takeaway item */}
-        {selectedIndex !== null && items[selectedIndex] ? (
-          <div className="mt-4 border-t border-line/60 pt-3">
+        {/* Right Column (7 Cols): Rich Strategic Detail Panel */}
+        <div className="flex flex-col justify-between rounded-gb-2xl border border-rose-200/80 bg-white p-gb-lg lg:p-gb-xl shadow-gb-xs lg:col-span-7 min-w-0 transition-all duration-300">
+          <div className="flex flex-col">
+            {/* Top Badge & Selector Indicator */}
+            <div className="flex items-center justify-between gap-gb-sm border-b border-line/60 pb-gb-sm">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-700">
+                  {activeItem.badge}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted">
+                  <CheckCircle2Icon className="h-3.5 w-3.5 text-[#EE0033]" />
+                  <span>{activeItem.highlight}</span>
+                </span>
+              </div>
+              <span className="text-xs font-mono font-bold text-fg-muted">
+                0{selectedIndex + 1} / 0{items.length}
+              </span>
+            </div>
+
+            {/* Headline Title */}
+            <h3 className="mt-gb-md text-gb-md font-bold text-fg">
+              {activeItem.title}
+            </h3>
+
+            {/* Takeaway Narrative Body */}
+            <div className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary break-words whitespace-pre-line">
+              {activeItem.description}
+            </div>
+          </div>
+
+          {/* Bottom References & Switcher */}
+          <div className="mt-gb-lg border-t border-line/60 pt-gb-sm">
             <V3ReferenceList
-              evidenceIds={items[selectedIndex].data.evidenceIds}
-              targetSourceRefs={items[selectedIndex].data.targetSourceRefs}
-              metricIds={items[selectedIndex].data.metricIds}
+              evidenceIds={activeItem.data.evidenceIds}
+              targetSourceRefs={activeItem.data.targetSourceRefs}
+              metricIds={activeItem.data.metricIds}
               metricLabels={metricLabels}
               evidenceIndex={evidenceIndex}
               targetSourceIndex={targetSourceIndex}
             />
-          </div>
-        ) : null}
 
-        {/* Mobile Grid Fallback Layout */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
-          {items.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={`mobile-${item.key}`}
-                className="bg-white rounded-2xl p-4 border border-red-100 shadow-sm flex flex-col justify-between"
+            {/* Quick Switcher Buttons */}
+            <div className="mt-gb-md flex items-center justify-between gap-2 border-t border-line/40 pt-gb-sm">
+              <button
+                type="button"
+                onClick={() => setSelectedIndex((prev) => (prev - 1 + items.length) % items.length)}
+                className="rounded-lg border border-line/80 px-3 py-1 text-xs font-semibold text-fg-secondary hover:bg-surface-subtle transition-colors"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-red-50 text-[#EE0033] flex items-center justify-center border border-red-100">
-                      <Icon className="h-5 w-5 text-[#EE0033]" />
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 text-[#EE0033] border border-red-100">
-                      {item.badge}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1.5">{item.title}</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">{item.description}</p>
-                </div>
-                <div className="mt-3 pt-2 border-t border-gray-100">
-                  <V3ReferenceList
-                    evidenceIds={item.data.evidenceIds}
-                    targetSourceRefs={item.data.targetSourceRefs}
-                    metricIds={item.data.metricIds}
-                    metricLabels={metricLabels}
-                    evidenceIndex={evidenceIndex}
-                    targetSourceIndex={targetSourceIndex}
+                ← {t('Previous')}
+              </button>
+              <div className="flex items-center gap-1.5">
+                {items.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedIndex(idx)}
+                    className={cn(
+                      'h-2 rounded-full transition-all duration-300',
+                      selectedIndex === idx ? 'w-5 bg-[#EE0033]' : 'w-2 bg-rose-200 hover:bg-rose-300'
+                    )}
+                    aria-label={`Go to item ${idx + 1}`}
                   />
-                </div>
+                ))}
               </div>
-            );
-          })}
+              <button
+                type="button"
+                onClick={() => setSelectedIndex((prev) => (prev + 1) % items.length)}
+                className="rounded-lg border border-line/80 px-3 py-1 text-xs font-semibold text-fg-secondary hover:bg-surface-subtle transition-colors"
+              >
+                {t('Next')} →
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Right (4 Cols): Evidence Snapshot Card */}
-      <div className="flex h-full flex-col justify-between rounded-gb-2xl border border-line bg-surface p-gb-lg shadow-gb-xs lg:col-span-4 min-w-0">
+      {/* Bottom Section (12 Cols): Evidence Snapshot Graph Card */}
+      <div className="flex flex-col justify-between rounded-gb-2xl border border-line bg-surface p-gb-lg shadow-gb-xs">
         <div className="flex flex-col gap-gb-xs">
           <div className="flex items-center justify-between">
-            <h4 className="text-gb-sm font-bold text-fg">{t('Evidence Snapshot')}</h4>
-            <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase text-fg-muted">
+            <div className="flex items-center gap-2">
+              <h4 className="text-gb-sm font-bold text-fg">{t('Evidence Snapshot')}</h4>
+              <span className="text-xs text-fg-muted">· {t('Key Dimension Highlights')}</span>
+            </div>
+            <span className="rounded-full bg-surface-subtle px-2.5 py-0.5 text-[10px] font-semibold uppercase text-fg-muted">
               {t('Summary')}
             </span>
           </div>
-          <p className="text-gb-xs text-fg-muted">{t('Key Dimension Highlights')}</p>
 
-          <div className="mt-gb-md flex flex-col gap-gb-md">
+          <div className="mt-gb-md grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gb-md">
             {evidenceSnapshot.map((item) => {
               const val = item.score !== null ? Math.max(0, Math.min(100, Math.round(item.score))) : null;
               return (
-                <div key={item.id} className="flex flex-col gap-gb-2xs">
+                <div key={item.id} className="flex flex-col gap-gb-2xs rounded-xl border border-line/70 bg-surface-subtle/30 p-3">
                   <div className="flex items-center justify-between text-gb-xs">
                     <span className="truncate pr-2 font-medium text-fg-secondary">{t(item.label)}</span>
                     <span className="shrink-0 font-bold text-fg">
@@ -430,7 +433,7 @@ export function KeyTakeawaysGrid({
           </div>
         </div>
 
-        <div className="mt-gb-lg border-t border-line/60 pt-gb-sm text-[11px] text-fg-tertiary">
+        <div className="mt-gb-md border-t border-line/60 pt-gb-xs text-[11px] text-fg-tertiary">
           <p>{t('Dimensional scores reflect evidence verified in your profile.')}</p>
         </div>
       </div>

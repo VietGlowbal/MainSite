@@ -1518,4 +1518,4 @@ After material work, update this file in the same change:
 - Root cause: target-profile requirements use canonical IDs such as `adm:academic_entry_requirement`, while Matching V3 exposes transformed criterion IDs in `matching.hardRequirements`; Strategy V3 validated only the latter even though the model receives the former in `target.requirements`.
 - Fix: profile and final Strategy report validation now use a strict union of target requirement IDs and Matching hard-requirement IDs. Arbitrary model-generated IDs remain rejected.
 - Regression coverage: `src/lib/ai/strategy-v3/engine.test.ts` verifies the reported target requirement ID passes profile provenance validation.
-- Measured checks: pending for this change.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 13 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/strategy-v3/context.ts src/lib/ai/strategy-v3/context.test.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
