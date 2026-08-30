@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { CatalogueProjection, TargetProfile } from './domain';
+import { targetProfileSchema, type CatalogueProjection, type TargetProfile } from './domain';
 
 /**
  * Catalogue reads for Target Profile generation (Task 4). Reads ONLY the
@@ -305,6 +305,32 @@ export async function getLatestTargetProfileVersion(
     schemaVersion: data.schema_version as string,
     extractionPromptVersion: data.extraction_prompt_version as string,
     profile: data.profile as TargetProfile,
+    createdAt: data.created_at as string,
+  };
+}
+
+/** Reads one exact programme profile version; never substitutes a newer row. */
+export async function getTargetProfileVersion(
+  supabase: SupabaseClient,
+  args: { programmeId: string; versionId: string },
+): Promise<StoredTargetProfileVersion | null> {
+  const { data, error } = await supabase
+    .from('programme_target_profile_versions')
+    .select('id, source_fingerprint, schema_version, extraction_prompt_version, profile, created_at')
+    .eq('programme_id', args.programmeId)
+    .eq('id', args.versionId)
+    .maybeSingle();
+  const parsed = data?.profile ? targetProfileSchema.safeParse(data.profile) : null;
+  if (error || !data || !parsed?.success) {
+    if (error && !isSchemaGap(error)) console.error('[target-profile] exact version lookup failed', error);
+    return null;
+  }
+  return {
+    id: data.id as string,
+    sourceFingerprint: data.source_fingerprint as string,
+    schemaVersion: data.schema_version as string,
+    extractionPromptVersion: data.extraction_prompt_version as string,
+    profile: parsed.data,
     createdAt: data.created_at as string,
   };
 }

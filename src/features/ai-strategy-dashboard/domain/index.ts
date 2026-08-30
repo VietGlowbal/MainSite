@@ -30,6 +30,7 @@ export {
   sortByPriority,
   taskCounts,
 } from './recommendation';
+export { recommendationsFromStrategyReportV3 } from './strategy-v3-planner';
 export type {
   ExistingRecommendation,
   ProgressStatus,
@@ -41,6 +42,26 @@ export type {
   RecommendationStatusPatch,
   RecommendationUpdate,
 } from './recommendation';
+export type {
+  ActivityStrategyAnalysis,
+  ActivityStrategyClassification,
+  ProfileAreaDiagnosis,
+  ProfileStrategyStatus,
+  StrategicPriority,
+  StrategyInterventionKind,
+  StrategyPriorityFactors,
+  StrategyReportV3,
+} from '@/lib/ai/strategy-v3/domain';
+export {
+  STRATEGY_ACTIVITY_BATCH_SIZE,
+  STRATEGY_ENGINE_V3_VERSION,
+  STRATEGY_PHASE_KEYS,
+  STRATEGY_PRIORITY_FORMULA_VERSION,
+  STRATEGY_REPORT_V3_CONTRACT_VERSION,
+  assertStrategyReportV3,
+  strategyReportV3FromRow,
+  strategyReportV3Schema,
+} from '@/lib/ai/strategy-v3/domain';
 
 export {
   KANBAN_COLUMNS,

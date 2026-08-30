@@ -3,8 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { StrategyRecommendationRecord, StrategyReportV2 } from '../domain';
+import type { StrategyReportV3 } from '@/lib/ai/strategy-v3/domain';
 import { StrategyRecommendationReport } from './strategy-recommendation-report';
 import { StrategyReportV2View } from './strategy-report-v2-view';
+import { StrategyReportV3View } from './strategy-report-v3-view';
 import { Button, usePrefersReducedMotion } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 
@@ -49,6 +51,7 @@ export function StrategyRecommendationWorkspace({
   const [state, setState] = useState<LoadState>('checking');
   const [recommendation, setRecommendation] = useState<StrategyRecommendationRecord | null>(null);
   const [reportV2, setReportV2] = useState<StrategyReportV2 | null>(null);
+  const [reportV3, setReportV3] = useState<StrategyReportV3 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
   const ran = useRef(false);
@@ -76,7 +79,13 @@ export function StrategyRecommendationWorkspace({
         const existing = (await existingRes.json()) as {
           recommendation?: StrategyRecommendationRecord | null;
           reportV2?: StrategyReportV2 | null;
+          reportV3?: StrategyReportV3 | null;
         };
+        if (existing.reportV3) {
+          setReportV3(existing.reportV3);
+          setState('ready');
+          return;
+        }
         if (existing.reportV2) {
           setReportV2(existing.reportV2);
           setState('ready');
@@ -95,6 +104,7 @@ export function StrategyRecommendationWorkspace({
         const generated = (await generatedRes.json()) as {
           recommendation?: StrategyRecommendationRecord | null;
           reportV2?: StrategyReportV2 | null;
+          reportV3?: StrategyReportV3 | null;
           error?: string;
           needsInputs?: boolean;
         };
@@ -104,7 +114,7 @@ export function StrategyRecommendationWorkspace({
           return;
         }
 
-        if (!generatedRes.ok || (!generated.recommendation && !generated.reportV2)) {
+        if (!generatedRes.ok || (!generated.recommendation && !generated.reportV2 && !generated.reportV3)) {
           setError(generated.error || t('Something went wrong. Please try again.'));
           setState('error');
           return;
@@ -112,6 +122,7 @@ export function StrategyRecommendationWorkspace({
 
         setRecommendation(generated.recommendation ?? null);
         setReportV2(generated.reportV2 ?? null);
+        setReportV3(generated.reportV3 ?? null);
         setState('ready');
       } catch {
         setError(t('Something went wrong. Please try again.'));
@@ -119,6 +130,10 @@ export function StrategyRecommendationWorkspace({
       }
     }
   }, [applicationId, router, t]);
+
+  if (state === 'ready' && reportV3) {
+    return <StrategyReportV3View applicationId={applicationId} report={reportV3} />;
+  }
 
   if (state === 'ready' && reportV2) {
     return <StrategyReportV2View applicationId={applicationId} report={reportV2} />;

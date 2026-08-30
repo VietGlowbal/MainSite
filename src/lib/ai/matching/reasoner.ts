@@ -385,8 +385,15 @@ function targetFactsForMetric(profile: TargetProfile, metricId: string) {
   return [
     ...profile.requirements
       .filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref)))
-      .map((item) => ({ id: item.id, label: item.label, detail: item.detail, sourceRefs: item.sourceRefs })),
-    ...targetStructuredFacts(profile).filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref))),
+      .map((item) => ({
+        id: item.id,
+        label: item.label,
+        detail: item.detail,
+        sourceRefs: item.sourceRefs.filter((ref) => targetRefs.includes(ref)),
+      })),
+    ...targetStructuredFacts(profile)
+      .filter((item) => item.sourceRefs.some((ref) => targetRefs.includes(ref)))
+      .map((item) => ({ ...item, sourceRefs: item.sourceRefs.filter((ref) => targetRefs.includes(ref)) })),
   ];
 }
 

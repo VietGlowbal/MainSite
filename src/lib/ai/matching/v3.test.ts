@@ -43,6 +43,16 @@ const sparseTargetProfile = {
   sources: [],
 };
 
+const mixedSourceTargetProfile = {
+  ...targetProfile,
+  requirements: [
+    ...targetProfile.requirements,
+    { id: 'req-scholarship', category: 'scholarship' as const, label: 'Scholarship criterion', detail: 'Merit based', status: 'optional' as const, sourceRefs: ['scholarship-1'], missingInformation: null },
+    { id: 'req-mixed', category: 'academic' as const, label: 'Mixed-source academic detail', detail: 'Source contains academic and scholarship sections', status: 'required' as const, sourceRefs: ['source-1', 'scholarship-1'], missingInformation: null },
+  ],
+  sources: [...targetProfile.sources, { ref: 'scholarship-1', url: 'https://example.edu/scholarship', title: 'Scholarship page', retrievedAt: null }],
+};
+
 const generate = async (args: { moduleId: string; userPrompt: string }) => {
   if (args.moduleId === 'matching_metric_reasoning') {
     const input = JSON.parse(args.userPrompt) as { metrics: Array<{ metricId: string; submetrics: Array<{ id: string }> }> };
@@ -180,6 +190,52 @@ describe('matching report v3', () => {
     expect(report.universityFit.metrics.academicReadiness.status).toBe('not_available');
     expect(report.universityFit.metrics.academicReadiness.score).toBeNull();
     expect(report.metadata.aiCallCount.metricBatches).toBe(0);
+  });
+
+  it('keeps scholarship refs out of metric facts and summary allowlists', async () => {
+    const metricInputs: Array<{ metrics: Array<{ metricId: string; submetrics: Array<{ id: string }> }>; targetFacts: Array<{ sourceRefs: string[] }>; targetSourceRefs: string[] }> = [];
+    let summaryInput: { allowedReferences: { targetSourceRefs: string[] } } | undefined;
+    const longReasoning = 'The supplied evidence and target source support this alignment. '.repeat(40);
+    const report = await composeMatchingReportV3({
+      targetProfile: mixedSourceTargetProfile,
+      academicProfile: { records: [] },
+      evidenceBank,
+      applicantContext: context,
+      previousReport: null,
+      lineage: {
+        targetProfileVersionId: 'tp-mixed', targetProfileSchemaVersion: 'tp-v1', personalReportVersionId: 'pr-1', personalReportInputHash: 'pr-hash', sourceAnalysisVersionId: 'sa-1', confirmedSnapshotId: 'snapshot-1', evidenceBankVersion: 'eb-v1',
+      },
+      generate: (async (args: { moduleId: string; userPrompt: string }) => {
+        if (args.moduleId === 'matching_metric_reasoning') {
+          const input = JSON.parse(args.userPrompt) as typeof metricInputs[number];
+          metricInputs.push(input);
+          return {
+            data: { results: input.metrics[0].submetrics.map((submetric) => ({ metricId: input.metrics[0].metricId, submetricId: submetric.id, status: 'assessed', score: 80, confidence: 0.8, reasoning: longReasoning, applicantEvidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], missingEvidence: [], limitations: [] })) },
+            meta: { attemptCount: 1 },
+          };
+        }
+        summaryInput = JSON.parse(args.userPrompt) as NonNullable<typeof summaryInput>;
+        return {
+          data: {
+            summary: 'The report finds grounded alignment across the assessed university and programme dimensions while keeping evidence limits visible.',
+            keyTakeaways: {
+              strongestFit: { title: 'Strongest fit', body: 'The strongest fit is supported by the supplied evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+              competitiveAdvantage: { title: 'Competitive advantage', body: 'The applicant shows a supported analytical strength.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+              criticalGap: { title: 'Critical gap', body: 'Unable to establish a critical gap from the available evidence.', evidenceIds: [], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+              strategicDirection: { title: 'Strategic direction', body: 'Build on the supported analytical strength with further evidence.', evidenceIds: ['claim-1'], targetSourceRefs: ['source-1'], metricIds: ['academicReadiness'] },
+            },
+          },
+          meta: { attemptCount: 1 },
+        };
+      }) as never,
+      modelName: 'test-model',
+    });
+
+    expect(metricInputs.length).toBeGreaterThan(0);
+    expect(metricInputs.flatMap((input) => [...input.targetSourceRefs, ...input.targetFacts.flatMap((fact) => fact.sourceRefs)])).not.toContain('scholarship-1');
+    expect(summaryInput?.allowedReferences.targetSourceRefs).toEqual(['source-1']);
+    expect(report.programmeFit.potentialGap?.length).toBeLessThanOrEqual(1_000);
+    expect(report.overall.summaryTargetSourceRefs).not.toContain('scholarship-1');
   });
 
   it('passes and validates the summary reference allowlists', async () => {

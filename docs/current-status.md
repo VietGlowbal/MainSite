@@ -1,5 +1,79 @@
 # Current project status
 
+Working tree 2026-08-30 (Personal Report narrative fail-safe): narrative
+synthesis is now optional presentation prose. Invalid or oversized narrative
+output rejects only its batch; valid sibling batches are retained, and when all
+narrative batches fail both application and legacy generation persist the
+deterministic report instead of returning an AI generation error. Removed the
+broad evidence-id union from the model payload, relaxed mandatory section
+coverage, added explicit fallback telemetry, and bumped the narrative prompt
+version to `report-synthesis-v14-optional-batches`. Measured: narrative suite
+44/44, generation suite 14/14, base typecheck, scoped ESLint, and production
+build pass; build retains the existing Edge-runtime and dynamic filesystem
+tracing warnings. Repository-wide `git diff --check` still reports a
+pre-existing blank line at EOF in `src/features/apply/ui/personal-report/identity-evidence-profile.tsx`.
+
+Working tree 2026-08-30 (Strategy Report V3 flow alignment): implemented the
+snapshot-only Strategy V3 pipeline with exact Personal Report/Matching/Target
+lineage, fail-closed persistence, exact-hash caching, deterministic Top 3
+priorities, four canonical roadmap phases, V3-first reading/Planner handoff,
+and the four-section dashboard with accessible activity filters and overrides.
+Measured: Strategy-focused suite 16/16, base and strict typecheck, i18n check,
+`build:ci`, and full lint (0 errors) pass. Full repository suite: 3,531 passed,
+4 existing timeout/idempotency failures in three unrelated route test files;
+full lint retains 4 existing warnings.
+
+Working tree 2026-08-30 (Matching V3 source and programme-gap validation):
+metric target facts now retain only refs allowed for each metric, scholarship
+refs are excluded from the summary and overall source allowlists, and
+`programmeFit.potentialGap` is capped at 1,000 characters before report parse.
+Added a mixed programme/scholarship source regression test. Measured: matching
+suite 102/102, base typecheck, and scoped ESLint pass; production build also
+passes with the existing Edge-runtime and dynamic filesystem tracing warnings.
+
+Working tree 2026-08-30 (Matching V3 source guard and bounded programme gap):
+metric facts and summary allowlists now exclude scholarship refs, mixed-source
+facts are reduced to only the refs allowed for that metric, and programme
+potential gaps are capped at the schema's 1,000 characters. Added a regression
+test for mixed scholarship/programme sources.
+
+Working tree 2026-08-30 (Matching V3 summary structured output): the final
+Matching summary now uses strict `json_schema` output and explicitly requires
+all four canonical takeaways plus `metricIds` on every takeaway. The summary
+prompt/schema versions are `matching-summary-v3.2.0-structured-output` and
+`matching-report-v3.2.0`, preventing the production failure caused by omitted
+metric ID arrays. Measured: matching suite 101/101, base typecheck, scoped
+ESLint, and production build pass; existing build warnings remain unchanged.
+
+Working tree 2026-08-30 (Matching V3 metric batching and structured output):
+Matching metric reasoning now sends one metric/four-submetric batch per
+parallel provider call, mirroring Personal Report's independent batches.
+The metric prompt and repair path use a strict `json_schema` contract with all
+required fields (`reasoning`, `applicantEvidenceIds`, `missingEvidence`, and
+`limitations` included), preventing legacy `rationale` output from reaching
+validation. Prompt/schema versions are `matching-metric-v3.2.0` and
+`matching-metric-v3.2.0-structured-batches`, invalidating stale metric reuse.
+Measured: matching V3/reasoner 21/21, base typecheck, scoped ESLint, and
+production build pass; build retains the existing Edge-runtime and dynamic
+filesystem tracing warnings.
+
+Working tree 2026-08-30 (Personal Canvas Report modal UI & readability fix):
+Personal Canvas detail modal has been upgraded to `w-[95vw] max-w-6xl` with `max-h-[90vh]`.
+`SnapshotCapabilityProfileView` converted to a spacious 12-column responsive layout,
+preventing narrow capability card wrapping (>340px width per card), styling Why it matters
+as a clear highlighted callout, improving Star badge pills, and upgrading typography/spacing
+across Core Identity, Driving Forces, Positioning, Growth Matrix, and Proof of Me.
+Measured: personal canvas suite 14/14, ESLint passes with 0 errors.
+
+Working tree 2026-08-30 (Target Profile catalogue fallback): Target Profile
+generation now reads the full `courses` row and its linked `universities` row,
+projects public requirements and programme/university facts with catalogue
+provenance refs, and rejects empty source-less cached profiles. Matching can
+therefore use the existing VinUniversity catalogue data without crawling on
+demand. Measured: target-profile and matching suites 109/109, base typecheck,
+scoped ESLint (0 errors), production build, and `git diff --check` pass. The
+build retains the existing Edge-runtime and dynamic filesystem tracing warnings.
+
 Working tree 2026-08-30 (Matching Report persistence compatibility): production
 Matching Report generation was returning `503` after successful AI output because
 the writer used the nonexistent `confidence_score` column and omitted the

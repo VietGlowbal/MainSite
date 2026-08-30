@@ -17,6 +17,7 @@ import { FIELD_OF_STUDY_TRANSLATIONS } from './fields-of-study';
  * Do NOT translate brand names (GLOWBAL) or university names.
  */
 export const translations: Record<string, string> = {
+  'Cannot find the subject you want? Paste a link to it': 'Không tìm thấy ngành học bạn muốn? Hãy dán liên kết vào đây',
   // The comprehensive academic-profile subject taxonomy lives beside its
   // canonical values. Entries declared later in this object deliberately win
   // when an established product translation already exists for the same word.

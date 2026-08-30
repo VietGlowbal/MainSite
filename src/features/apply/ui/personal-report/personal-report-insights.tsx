@@ -169,20 +169,22 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
 
   return (
     <div className="flex flex-col gap-gb-2xl">
-      <div className="grid gap-gb-xl lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-gb-xl border border-line p-gb-xl">
-          <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Capability profile</p>
-          <p className="mt-gb-md text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Capability overview')}</p>
-          <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
-            {report.narrativeDetails?.provenCapabilities?.overview ?? t('The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.', {
-                capabilities: capabilities.slice(0, 3).map((capability) => capability.name).join(', '),
-                count: new Set(capabilities.flatMap((capability) => capability.supportingCards.map((card) => card.activityId))).size,
-              })}
-          </p>
-          <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
-            The strongest named capabilities extracted from your evidence. Scores represent evidence strength, not ability ceilings.
-          </p>
-          <div className="mt-gb-lg">
+      <div className="grid gap-gb-2xl lg:grid-cols-12">
+        <div className="flex flex-col justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface p-6 sm:p-7 shadow-xs lg:col-span-5">
+          <div>
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Capability profile')}</p>
+            <h3 className="mt-gb-xs text-gb-lg sm:text-gb-xl font-bold text-fg">{t('Capability overview')}</h3>
+            <p className="mt-gb-sm text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+              {report.narrativeDetails?.provenCapabilities?.overview ?? t('The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.', {
+                  capabilities: capabilities.slice(0, 3).map((capability) => capability.name).join(', '),
+                  count: new Set(capabilities.flatMap((capability) => capability.supportingCards.map((card) => card.activityId))).size,
+                })}
+            </p>
+            <p className="mt-gb-sm text-gb-xs sm:text-gb-sm leading-relaxed text-fg-tertiary">
+              {t('The strongest named capabilities extracted from your evidence. Scores represent evidence strength, not ability ceilings.')}
+            </p>
+          </div>
+          <div className="flex justify-center py-gb-sm">
             <RadarChart
               ariaLabel="Named capability evidence profile"
               data={capabilities.map((capability) => ({
@@ -194,9 +196,9 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
           </div>
         </div>
 
-        <div className="grid gap-gb-md sm:grid-cols-2">
+        <div className="grid gap-gb-lg sm:grid-cols-1 xl:grid-cols-2 lg:col-span-7">
           {capabilities.map((capability) => (
-            <article key={capability.name} className="flex flex-col gap-gb-md rounded-gb-xl border border-line p-gb-lg">
+            <article key={capability.name} className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
               <div className="flex items-start justify-between gap-gb-md">
                 <div>
                   <h3 className="text-gb-md font-semibold text-fg">{capability.name}</h3>
@@ -378,8 +380,8 @@ function MatrixQuadrant({ title, subtitle, items }: { title: string; subtitle: s
         ) : null}
         {items.map((item) => (
           <div key={item.id} className="rounded-gb-md bg-surface-muted px-gb-md py-gb-sm">
-            <p className="text-gb-sm font-medium text-fg">{item.title}</p>
-            <p className="text-gb-xs text-fg-muted">{item.source} signal</p>
+            <p className="text-gb-sm font-medium text-fg">{t(item.title)}</p>
+            <p className="text-gb-xs text-fg-muted">{t(item.source)} {t('signal')}</p>
           </div>
         ))}
       </div>
@@ -388,34 +390,35 @@ function MatrixQuadrant({ title, subtitle, items }: { title: string; subtitle: s
 }
 
 export function GrowthMatrixView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const items = growthItems(report);
   if (items.length === 0) return null;
   return (
     <div className="flex flex-col gap-gb-xl rounded-gb-xl border border-line p-gb-xl">
       <div>
-        <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Growth priority matrix</p>
-        <h3 className="mt-gb-xs text-gb-lg font-semibold text-fg">Where additional evidence could strengthen your profile</h3>
+        <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Growth priority matrix')}</p>
+        <h3 className="mt-gb-xs text-gb-lg font-semibold text-fg">{t('Where additional evidence could strengthen your profile')}</h3>
         <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
-          Impact reflects how central the current gap is to your personal profile. Effort is an estimate based on whether the gap can be fixed by clarifying existing evidence or requires new experiences.
+          {t('Impact reflects how central the current gap is to your personal profile. Effort is an estimate based on whether the gap can be fixed by clarifying existing evidence or requires new experiences.')}
         </p>
       </div>
       <div className="grid gap-gb-md md:grid-cols-2">
-        <MatrixQuadrant title="Quick wins" subtitle="High impact · Low/medium effort" items={items.filter((item) => item.impact === 'High' && item.effort !== 'High')} />
-        <MatrixQuadrant title="Major investments" subtitle="High impact · High effort" items={items.filter((item) => item.impact === 'High' && item.effort === 'High')} />
-        <MatrixQuadrant title="Useful additions" subtitle="Medium impact · Low/medium effort" items={items.filter((item) => item.impact === 'Medium' && item.effort !== 'High')} />
-        <MatrixQuadrant title="Longer-term depth" subtitle="Medium impact · High effort" items={items.filter((item) => item.impact === 'Medium' && item.effort === 'High')} />
+        <MatrixQuadrant title={t('Quick wins')} subtitle={t('High impact · Low/medium effort')} items={items.filter((item) => item.impact === 'High' && item.effort !== 'High')} />
+        <MatrixQuadrant title={t('Major investments')} subtitle={t('High impact · High effort')} items={items.filter((item) => item.impact === 'High' && item.effort === 'High')} />
+        <MatrixQuadrant title={t('Useful additions')} subtitle={t('Medium impact · Low/medium effort')} items={items.filter((item) => item.impact === 'Medium' && item.effort !== 'High')} />
+        <MatrixQuadrant title={t('Longer-term depth')} subtitle={t('Medium impact · High effort')} items={items.filter((item) => item.impact === 'Medium' && item.effort === 'High')} />
       </div>
       <div className="grid gap-gb-md sm:grid-cols-2">
         {items.map((item) => (
           <article key={item.id} className="rounded-gb-xl bg-surface-muted p-gb-lg">
             <div className="flex flex-wrap items-center gap-gb-sm">
-              <Badge variant="neutral-chip">{item.impact} impact</Badge>
-              <Badge variant="neutral-chip">{item.effort} effort</Badge>
+              <Badge variant="neutral-chip">{item.impact === 'High' ? t('High impact') : t('Medium impact')}</Badge>
+              <Badge variant="neutral-chip">{item.effort === 'High' ? t('High effort') : t('Medium effort')}</Badge>
             </div>
-            <h4 className="mt-gb-md text-gb-sm font-semibold text-fg">{item.title}</h4>
+            <h4 className="mt-gb-md text-gb-sm font-semibold text-fg">{t(item.title)}</h4>
             <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>{item.gap}</p>
-            <p className="mt-gb-md text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Suggested direction</p>
-            <p className="mt-gb-xs text-gb-sm text-fg-tertiary">{item.direction}</p>
+            <p className="mt-gb-md text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Suggested direction')}</p>
+            <p className="mt-gb-xs text-gb-sm text-fg-tertiary">{t(item.direction)}</p>
           </article>
         ))}
       </div>

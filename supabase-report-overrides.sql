@@ -16,11 +16,11 @@ CREATE TABLE IF NOT EXISTS public.application_report_overrides (
   user_id       UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   application_id UUID NOT NULL REFERENCES course_applications(id) ON DELETE CASCADE,
 
-  -- Which report family this belongs to ('strategy_f8' today; namespaced so a
-  -- future editable report does not collide).
+  -- Which report family this belongs to ('strategy_f8' or 'strategy_v3';
+  -- namespaced so future editable reports do not collide).
   report_kind   TEXT NOT NULL DEFAULT 'strategy_f8',
 
-  -- Stable semantic identity of the edited item (e.g. priorityTable row key)
+  -- Stable semantic identity of the edited item (e.g. a V3 priority key)
   -- plus the field within it. Never an array index.
   item_key      TEXT NOT NULL,
   field         TEXT NOT NULL,

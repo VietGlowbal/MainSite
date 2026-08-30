@@ -16,11 +16,21 @@ export const STRATEGY_REPORT_TRANSLATIONS: Record<string, string> = {
   // Section 1 — overview
   'Where you are, and where this takes you': 'Bạn đang ở đâu, và chiến lược này đưa bạn tới đâu',
   'Current position': 'Vị trí hiện tại',
+  'Key challenge': 'Thách thức chính',
+  'Strategic opportunity': 'Cơ hội chiến lược',
   'Strongest dimension': 'Khía cạnh mạnh nhất',
   'Biggest challenge': 'Thách thức lớn nhất',
   'Strategic goal': 'Mục tiêu chiến lược',
   'Top priorities': 'Những ưu tiên hàng đầu',
   'Expected outcome': 'Kết quả kỳ vọng',
+  'Activity-level analysis': 'Phân tích theo từng hoạt động',
+  'Filter activity analysis': 'Lọc phân tích hoạt động',
+  'No activities match this filter.': 'Không có hoạt động nào khớp bộ lọc này.',
+  maintain: 'Duy trì',
+  develop: 'Phát triển',
+  consolidate: 'Củng cố',
+  reposition: 'Định vị lại',
+  deprioritize: 'Giảm ưu tiên',
   'This is not the highest-scoring option, and that is deliberate':
     'Đây không phải phương án có điểm cao nhất, và đó là lựa chọn có chủ đích',
 
@@ -48,11 +58,26 @@ export const STRATEGY_REPORT_TRANSLATIONS: Record<string, string> = {
 
   // Section 4 — narrative
   'The story your application should tell': 'Câu chuyện mà hồ sơ của bạn nên kể',
+  'Core narrative direction': 'Định hướng câu chuyện cốt lõi',
+  'Origin / trigger': 'Nguồn gốc / động lực khởi phát',
+  'Recurring motivation': 'Động lực lặp lại',
+  'Capabilities developed': 'Năng lực đã phát triển',
+  'Emerging direction': 'Định hướng đang hình thành',
+  'Not established from the available evidence.': 'Chưa được xác lập từ bằng chứng hiện có.',
+  'Supporting themes': 'Các chủ đề hỗ trợ',
+  'Narrative tension / gap': 'Căng thẳng / khoảng trống trong câu chuyện',
+  'Narrative options': 'Các phương án câu chuyện',
+  'Strategic fit': 'Mức độ phù hợp chiến lược',
   'How you read now': 'Hồ sơ của bạn hiện được đọc như thế nào',
   'How you could read': 'Hồ sơ của bạn có thể được đọc như thế nào',
 
   // Section 5 — roadmap
   'Your roadmap': 'Lộ trình của bạn',
+  'Strategic Roadmap': 'Lộ trình chiến lược',
+  Goal: 'Mục tiêu',
+  'Recommended move': 'Hướng xử lý đề xuất',
+  'Adds one trackable Planner task for each roadmap deliverable and preserves completed work when the report regenerates.':
+    'Thêm một nhiệm vụ Planner có thể theo dõi cho mỗi đầu ra của lộ trình và giữ lại các việc đã hoàn thành khi báo cáo được tạo lại.',
   Prioritise: 'Ưu tiên làm',
   Avoid: 'Nên tránh',
 };

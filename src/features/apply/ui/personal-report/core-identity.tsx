@@ -17,64 +17,72 @@ export function CoreIdentityView({ section, report, returnTo }: { section: CoreI
   return (
     <SectionShell eyebrow={t('Core Identity')} title={t('Who they consistently are')} confidence={section.confidence}>
       {section.available ? (
-        <div className="flex flex-col gap-gb-lg" data-no-auto-translate>
-          <h3 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
-            {section.headline}
-          </h3>
-          <p className="text-gb-md leading-relaxed text-fg-tertiary">{narrative?.identityStatement ?? section.interpretation}</p>
-          <div className="grid gap-gb-lg sm:grid-cols-3">
-            {section.recurringRole ? (
-              <div>
-                <p className="text-gb-xs text-fg-muted">{t('Recurring role')}</p>
-                <p className="text-gb-sm text-fg">{section.recurringRole}</p>
-              </div>
-            ) : null}
-            {section.valueOrientation ? (
-              <div>
-                <p className="text-gb-xs text-fg-muted">{t('Value orientation')}</p>
-                <p className="text-gb-sm text-fg">{section.valueOrientation}</p>
-              </div>
-            ) : null}
+        <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
+          <div>
+            <h3 className="font-display text-gb-display-xs sm:text-gb-display-sm font-bold tracking-gb-display-tight text-fg">
+              {section.headline}
+            </h3>
+            <p className="mt-gb-sm text-gb-base sm:text-gb-md leading-relaxed text-fg-secondary">{narrative?.identityStatement ?? section.interpretation}</p>
           </div>
+
+          {(section.recurringRole || section.valueOrientation) ? (
+            <div className="grid gap-gb-lg rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:grid-cols-2">
+              {section.recurringRole ? (
+                <div>
+                  <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Recurring role')}</p>
+                  <p className="mt-1 text-gb-base font-semibold text-fg">{section.recurringRole}</p>
+                </div>
+              ) : null}
+              {section.valueOrientation ? (
+                <div>
+                  <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Value orientation')}</p>
+                  <p className="mt-1 text-gb-base font-semibold text-fg">{section.valueOrientation}</p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {traits.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+            <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
                 {t('What GlowBal observed')}
               </p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary">
+              <ul className="flex list-disc flex-col gap-gb-sm pl-gb-xl text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
                 {section.observations.map((observation) => (
                   <li key={observation}>{observation}</li>
                 ))}
               </ul>
             </div>
           ) : null}
+
           {traits.length > 0 ? (
-            <div className="flex flex-col gap-gb-md border-t border-line pt-gb-xl">
+            <div className="flex flex-col gap-gb-lg border-t border-line pt-gb-xl">
               <div>
-                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
                   {t('Defining traits / key characteristics')}
                 </p>
-                <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
+                <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
                   {t('These characteristics are recurring behaviours extracted from activity evidence, not traits inferred from a single answer.')}
                 </p>
               </div>
-              <div className="grid gap-gb-md sm:grid-cols-2">
+              <div className="grid gap-gb-lg sm:grid-cols-2">
                 {traits.slice(0, 5).map((trait) => (
-                  <article key={trait.characteristic} className="rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
-                    <h4 className="text-gb-sm font-semibold text-fg">{trait.characteristic}</h4>
-                    <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-tertiary">
-                      <span className="font-semibold text-fg-muted">{t('Evidence')}:</span>{' '}{trait.insight}
+                  <article key={trait.characteristic} className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+                    <h4 className="text-gb-base font-bold text-fg">{trait.characteristic}</h4>
+                    <p className="text-gb-sm leading-relaxed text-fg-secondary">
+                      <span className="font-semibold text-fg">{t('Evidence')}:</span>{' '}{trait.insight}
                     </p>
-                    <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-tertiary">
-                      <span className="font-semibold text-fg-muted">{t('Why it matters')}:</span>{' '}{trait.whyItMatters}
-                    </p>
+                    <div className="mt-auto rounded-gb-lg border border-line/60 bg-surface-muted/70 p-gb-md text-gb-xs sm:text-gb-sm text-fg-secondary">
+                      <span className="font-bold text-fg-brand">{t('Why it matters')}:</span>{' '}{trait.whyItMatters}
+                    </div>
                   </article>
                 ))}
               </div>
             </div>
           ) : null}
+
           {section.stillDeveloping.length > 0 ? (
-            <p className="text-gb-xs text-fg-muted">
+            <p className="text-gb-xs sm:text-gb-sm text-fg-muted">
               {t('Still developing')}: {section.stillDeveloping.join(' ')}
             </p>
           ) : null}

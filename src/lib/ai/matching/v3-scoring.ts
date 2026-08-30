@@ -173,7 +173,7 @@ export function targetRefsForMetric(profile: TargetProfile, metricId: string): s
     if (sourceKind(profile, source.ref) !== 'scholarship') refs.add(source.ref);
   }
   const known = new Set(profile.sources.map((source) => source.ref));
-  return [...refs].filter((ref) => known.has(ref));
+  return [...refs].filter((ref) => known.has(ref) && sourceKind(profile, ref) !== 'scholarship');
 }
 
 export function targetStructuredFacts(profile: TargetProfile): Array<{ id: string; label: string; value: string; sourceRefs: string[] }> {

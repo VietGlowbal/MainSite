@@ -361,7 +361,7 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
   const programmeFit = {
     ...v3Fit(PROGRAMME_FIT_METRICS, programmeMetrics, 'Programme alignment is weighted across interest, capability, experience and future direction.'),
     strongestAlignment: Object.values(programmeMetrics).filter((metric) => metric.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3).map((metric) => metric.id),
-    potentialGap: Object.values(programmeMetrics).filter((metric) => metric.score !== null).sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0]?.summary ?? null,
+    potentialGap: Object.values(programmeMetrics).filter((metric) => metric.score !== null).sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0]?.summary.slice(0, 1_000) ?? null,
     strategicInterpretation: [
       args.applicantContext.personalPositioning.statement,
       args.applicantContext.futureDirection.intended,
@@ -392,6 +392,7 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
     }
   }
   const sourceIndex = targetSourceIndex(args.targetProfile);
+  const nonScholarshipSourceRefs = new Set(sourceIndex.filter((item) => item.kind !== 'scholarship').map((item) => item.ref));
   const metricValues = [...Object.values(universityMetrics), ...Object.values(programmeMetrics)];
   const metricStrengths = metricValues
     .filter((metric) => metric.score !== null && metric.score >= 65)
@@ -429,7 +430,7 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
   const summaryResult = await generateMatchingV3Summary({
     candidate: { universityFit, programmeFit, hardRequirements, strengths, gaps, positioningOpportunities, candidates },
     evidenceIds: evidenceIndex.map((item) => item.id),
-    targetSourceRefs: sourceIndex.map((item) => item.ref),
+    targetSourceRefs: [...nonScholarshipSourceRefs],
     metricIds: metricValues.map((item) => item.id),
     hardRequirements,
     generate: args.generate,
@@ -450,7 +451,7 @@ export async function composeMatchingReportV3(args: MatchingV3ComposeArgs): Prom
       strongestAlignment: [...metricValues].filter((metric) => metric.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3).map((metric) => metric.id),
       criticalGaps: gaps.map((item) => item.id),
       summaryEvidenceIds: [...new Set(allResults.flatMap((result) => result.applicantEvidenceIds))].slice(0, 30),
-      summaryTargetSourceRefs: [...new Set(allResults.flatMap((result) => result.targetSourceRefs))].filter((ref) => sourceIndex.some((item) => item.ref === ref)).slice(0, 30),
+      summaryTargetSourceRefs: [...new Set(allResults.flatMap((result) => result.targetSourceRefs))].filter((ref) => nonScholarshipSourceRefs.has(ref)).slice(0, 30),
     },
     universityFit,
     programmeFit,

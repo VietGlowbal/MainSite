@@ -12,20 +12,23 @@ import { createClient } from '@/lib/supabase/server';
  * only validates shape and scopes every read to the signed-in user.
  */
 
-const KINDS = ['strategy_f8'] as const;
+const KINDS = ['strategy_f8', 'strategy_v3'] as const;
 const FIELDS = [
   'title',
   'currentSituation',
   'whyItMatters',
   'recommendedActions',
   'expectedImpact',
+  'why',
+  'suggestedDirection',
   'level',
 ] as const;
 
 const putSchema = z.object({
-  itemKey: z.string().regex(/^[a-z][a-z0-9_-]{2,60}$/),
+  itemKey: z.string().regex(/^[a-z][a-z0-9:_-]{2,120}$/),
   field: z.enum(FIELDS),
   value: z.unknown(),
+  kind: z.enum(KINDS).optional(),
 });
 
 export const runtime = 'nodejs';
@@ -78,13 +81,13 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid override payload' }, { status: 400 });
   }
-  const { itemKey, field, value } = parsed.data;
+  const { itemKey, field, value, kind = 'strategy_f8' } = parsed.data;
 
   const { error } = await supabase.from('application_report_overrides').upsert(
     {
       user_id: user.id,
       application_id: applicationId,
-      report_kind: 'strategy_f8',
+      report_kind: kind,
       item_key: itemKey,
       field,
       value: value === undefined ? null : value,

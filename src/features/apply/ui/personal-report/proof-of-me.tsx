@@ -71,28 +71,28 @@ export function ProofOfMeView({
       {section.available ? (
         <div className="flex flex-col gap-gb-2xl">
           {section.narrative ? (
-            <p className="text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
+            <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary" data-no-auto-translate>
               {section.narrative}
             </p>
           ) : null}
           <div className="grid gap-gb-lg sm:grid-cols-2">
             {section.cards.map((card) => (
-              <div key={card.activityId} className="flex flex-col gap-gb-md rounded-gb-xl border border-line p-gb-lg" data-no-auto-translate>
+              <div key={card.activityId} className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-6 shadow-xs" data-no-auto-translate>
                 <div className="flex flex-wrap items-start justify-between gap-gb-md">
-                  <div>
-                    <h3 className="text-gb-md font-semibold text-fg">{card.title}</h3>
-                    {card.role ? <p className="text-gb-xs text-fg-muted">{card.role}</p> : null}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-gb-base sm:text-gb-md font-bold text-fg leading-snug">{card.title}</h3>
+                    {card.role ? <p className="mt-0.5 text-gb-xs font-medium text-fg-muted">{card.role}</p> : null}
                   </div>
                   <Badge variant={card.evidenceStrength === 'strong' ? 'safe-chip' : 'neutral-chip'}>
                     {t('Evidence')}: {card.evidenceStrength}
                   </Badge>
                 </div>
                 {card.personalContribution ? (
-                  <p className="text-gb-sm text-fg-tertiary">{card.personalContribution}</p>
+                  <p className="text-gb-sm leading-relaxed text-fg-secondary">{card.personalContribution}</p>
                 ) : null}
-                {card.outcome ? <p className="text-gb-sm font-medium text-fg">{card.outcome}</p> : null}
+                {card.outcome ? <p className="text-gb-sm font-semibold text-fg">{card.outcome}</p> : null}
                 {card.competenciesDemonstrated.length > 0 ? (
-                  <div className="flex flex-wrap gap-gb-sm">
+                  <div className="flex flex-wrap gap-gb-xs">
                     {card.competenciesDemonstrated.map((competency) => (
                       <Badge key={competency} variant="brand-chip">
                         {competency}
@@ -102,11 +102,11 @@ export function ProofOfMeView({
                 ) : null}
                 {card.supports.length > 0 ? (
                   <p className="text-gb-xs text-fg-muted">
-                    {t('Supports')}: {card.supports.join(', ')}
+                    <span className="font-semibold text-fg">{t('Supports')}:</span> {card.supports.join(', ')}
                   </p>
                 ) : null}
                 {[card.organisation, card.level, card.year?.toString(), card.period, card.competition].some(Boolean) || (card.sources?.length ?? 0) > 0 ? (
-                  <div className="grid gap-x-gb-lg gap-y-gb-sm border-t border-line pt-gb-md text-gb-xs text-fg-muted sm:grid-cols-2">
+                  <div className="grid gap-x-gb-lg gap-y-gb-xs border-t border-line/60 pt-gb-sm text-gb-xs text-fg-secondary sm:grid-cols-2">
                     {card.organisation ? <p><span className="font-semibold text-fg">{t('Organisation')}:</span> {card.organisation}</p> : null}
                     {card.level ? <p><span className="font-semibold text-fg">{t('Level')}:</span> {card.level}</p> : null}
                     {card.year ? <p><span className="font-semibold text-fg">{t('Year')}:</span> {card.year}</p> : null}
@@ -115,10 +115,10 @@ export function ProofOfMeView({
                     {(card.sources?.length ?? 0) > 0 ? <p><span className="font-semibold text-fg">{t('Supporting documents')}:</span> {card.sources?.length}</p> : null}
                   </div>
                 ) : null}
-                <div className="flex items-center justify-between gap-gb-md border-t border-line pt-gb-md">
+                <div className="mt-auto flex items-center justify-between gap-gb-md border-t border-line/60 pt-gb-sm">
                   <Badge variant="neutral-chip">{t(VERIFICATION_LABEL[card.verificationStatus] ?? card.verificationStatus)}</Badge>
                   {card.evidenceSource ? (
-                    <span className="text-gb-xs text-fg-muted">{card.evidenceSource}</span>
+                    <span className="text-gb-xs font-medium text-fg-muted">{card.evidenceSource}</span>
                   ) : null}
                 </div>
               </div>
@@ -128,12 +128,12 @@ export function ProofOfMeView({
           {evidenceSummary ? <EvidenceSummaryCharts evidenceSummary={evidenceSummary} /> : null}
 
           {overallSummary && overallSummary.paragraphs.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm border-t border-line pt-gb-xl" data-no-auto-translate>
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+            <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:p-7" data-no-auto-translate>
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
                 {t('What this report suggests overall')}
               </p>
               {overallSummary.paragraphs.map((paragraph) => (
-                <p key={paragraph} className="text-gb-sm leading-relaxed text-fg-tertiary">
+                <p key={paragraph} className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
                   {paragraph}
                 </p>
               ))}

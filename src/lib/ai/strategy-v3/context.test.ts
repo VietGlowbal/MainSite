@@ -1,0 +1,32 @@
+import { describe, expect, it } from 'vitest';
+import { stateFromSnapshotRow } from '@/lib/ai/applicant-state/context-builder';
+import { buildStrategyInputContext } from './context';
+
+describe('Strategy V3 canonical context', () => {
+  it('reconstructs activities from the confirmed snapshot and excludes narrativeDetails', () => {
+    const state = stateFromSnapshotRow({
+      id: 'snap-1', user_id: 'user-1', application_id: 'app-1',
+      payload: {
+        reflection: {
+          achievements: [{ id: 'achievement-1', title: 'Award', detail: 'Won it.' }],
+          activities: [{ id: 'activity-1', title: 'Club', description: 'Ran sessions.' }],
+          goals: 'Study data science',
+        },
+      },
+    });
+    const context = buildStrategyInputContext({
+      applicationId: 'app-1',
+      application: { course_id: 'course-1', course_name: 'Data Science', university_name: 'University', deadline: '2027-01-01', status: 'draft' },
+      personalReport: { narrativeDetails: { unsupported: 'do not use' }, coreIdentity: {}, drivingForce: {}, signaturePattern: {}, emergingThemes: {}, personalPositioning: {}, proofOfMe: {}, overallEvidenceConfidence: 'high', generatedAt: '2026-08-30' } as never,
+      matching: { contractVersion: 'matching-report-v3', metadata: { matchingEngineVersion: 'matching-v3', selectedScholarshipVersionId: null }, evidenceIndex: [], targetSourceIndex: [], hardRequirements: [], gaps: [] } as never,
+      snapshotState: state,
+      sourceAnalysis: null,
+      targetProfile: null,
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+    expect(context.activities.map((activity) => activity.activityId)).toEqual(['achievement:achievement-1', 'activity:activity-1']);
+    expect(context.applicant.personalReport).not.toHaveProperty('narrativeDetails');
+    expect(context.evidenceIndex.map((item) => item.id)).toEqual(expect.arrayContaining(['achievement:achievement-1', 'activity:activity-1', 'profile:goals']));
+    expect(context.application.daysUntilDeadline).toBe(124);
+  });
+});
