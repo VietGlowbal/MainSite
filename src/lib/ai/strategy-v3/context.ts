@@ -216,7 +216,8 @@ function buildEvidenceIndex(
     addReportOnly({ id: experienceEvidenceId(item.id), label: item.title });
   }
   for (const item of state.evidenceBank) {
-    if (item.kind === 'achievement' || item.kind === 'activity') {
+    const [kind] = item.id.split(':');
+    if (item.kind === 'achievement' || item.kind === 'activity' || kind === 'achievement' || kind === 'activity') {
       addReportOnly({ id: experienceEvidenceId(item.id), label: item.label });
     }
   }
