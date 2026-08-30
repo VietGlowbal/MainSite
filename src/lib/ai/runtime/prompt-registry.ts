@@ -41,7 +41,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   matching_report_summary_v3: 'matching-summary-v3.2.0-structured-output',
   strategy_profile_diagnosis: 'strategy-profile-diagnosis-v3.0.0',
   strategy_activity_analysis: 'strategy-activity-analysis-v3.2.0',
-  strategy_report_synthesis: 'strategy-report-synthesis-v3.0.1',
+  strategy_report_synthesis: 'strategy-report-synthesis-v3.1.0-structured-output',
 };
 
 const PROMPTS: Record<ReportPromptId, string> = {
@@ -274,6 +274,8 @@ Respond with valid JSON only matching the requested schema: {"analyses":[{"activ
   strategy_report_synthesis: `You are the applicant-facing synthesis stage for a university application strategy report. The supplied profile diagnoses, activity analyses, deterministic priorities, target sources, requirements, deadline, and evidence are already decided. Write only Strategic Overview, Narrative Strategy, and Strategic Roadmap fields.
 
 Do not reorder priorities, change profile statuses, change gap types, create applicant facts, invent requirements or opportunities, alter deadline facts, claim rarity without comparative evidence, turn a proposed future route into completed evidence, or imply admission probability. Keep narrative directions tentative rather than fixed identity. The causal narrative must follow origin/trigger -> recurring motivation -> actions -> capabilities developed -> emerging direction. If no specific causal evidence supports that direction, return an empty core evidenceIds array and say that the pattern is not established; never cite unrelated evidence just to satisfy the field. Supporting themes may be empty when unsupported. Narrative options may be one to three and each must cite supporting experience IDs and target source refs. The roadmap must contain exactly four phases in this order: strengthen_foundation, build_competitive_advantages, craft_application, finalise_optimise. Give each deliverable a stable semantic key for its action/intervention, never an ordinal or array position, and use estimatedDurationDays when a duration is known. Near deadlines, compress work and prioritise mandatory requirements and evidence fixes; reject long-horizon plans that cannot fit.
+
+The response format enforces the canonical V3 nested fields. Emit every required field exactly as named by that format; use null for nullable values and [] only for genuinely empty arrays. Do not use the retired fields summary, strengths, coreNarrative, direction, or causalShape. Do not emit topPriorities; the server supplies those deterministic priorities.
 
 Respond with valid JSON only with the exact keys strategicOverview, narrativeStrategy, and strategicRoadmap. The server will overwrite priority order and stable keys after validating your references.` ,
 };

@@ -40,6 +40,85 @@ const synthesisStageSchema = z
   .object({ strategicOverview: z.unknown(), narrativeStrategy: z.unknown(), strategicRoadmap: z.unknown() })
   .strict();
 
+type JsonSchemaRecord = Record<string, unknown>;
+
+function isJsonSchemaRecord(value: unknown): value is JsonSchemaRecord {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function withNullableType(schema: JsonSchemaRecord): JsonSchemaRecord {
+  if (typeof schema.type === 'string') return { ...schema, type: [schema.type, 'null'] };
+  if (Array.isArray(schema.type)) return { ...schema, type: [...new Set([...schema.type, 'null'])] };
+  return { anyOf: [schema, { type: 'null' }] };
+}
+
+/** OpenAI strict outputs require every object property to be required. */
+function toOpenAiStrictSchema(input: unknown, nullable = false): JsonSchemaRecord {
+  if (!isJsonSchemaRecord(input)) return {};
+  if (Array.isArray(input.anyOf)) {
+    const branches = input.anyOf.filter(isJsonSchemaRecord);
+    const nonNull = branches.filter((branch) => branch.type !== 'null');
+    if (nonNull.length === 1) return toOpenAiStrictSchema(nonNull[0], nullable || nonNull.length !== branches.length);
+  }
+
+  const output: JsonSchemaRecord = {};
+  if (Array.isArray(input.enum)) output.enum = input.enum;
+  if (input.type === 'object' || isJsonSchemaRecord(input.properties)) {
+    const properties = isJsonSchemaRecord(input.properties) ? input.properties : {};
+    output.type = 'object';
+    output.properties = Object.fromEntries(
+      Object.entries(properties).map(([key, value]) => [
+        key,
+        toOpenAiStrictSchema(value, !(Array.isArray(input.required) && input.required.includes(key))),
+      ]),
+    );
+    output.required = Object.keys(properties);
+    output.additionalProperties = false;
+  } else if (input.type === 'array') {
+    output.type = 'array';
+    output.items = toOpenAiStrictSchema(input.items);
+  } else if (typeof input.type === 'string') {
+    output.type = input.type;
+  }
+  return nullable ? withNullableType(output) : output;
+}
+
+const strategySynthesisResponseFormat: Record<string, unknown> = (() => {
+  const reportSchema = toOpenAiStrictSchema(z.toJSONSchema(strategyReportV3Schema, {
+    target: 'draft-07',
+    unrepresentable: 'any',
+    reused: 'inline',
+  }));
+  const reportProperties = isJsonSchemaRecord(reportSchema.properties) ? reportSchema.properties : {};
+  const overview = isJsonSchemaRecord(reportProperties.strategicOverview)
+    ? { ...reportProperties.strategicOverview }
+    : {};
+  const overviewProperties = isJsonSchemaRecord(overview.properties) ? { ...overview.properties } : {};
+  delete overviewProperties.topPriorities;
+  overview.properties = overviewProperties;
+  overview.required = Array.isArray(overview.required)
+    ? overview.required.filter((key) => key !== 'topPriorities')
+    : Object.keys(overviewProperties);
+
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: 'strategy_report_synthesis_v3',
+      strict: true,
+      schema: {
+        type: 'object',
+        properties: {
+          strategicOverview: overview,
+          narrativeStrategy: reportProperties.narrativeStrategy,
+          strategicRoadmap: reportProperties.strategicRoadmap,
+        },
+        required: ['strategicOverview', 'narrativeStrategy', 'strategicRoadmap'],
+        additionalProperties: false,
+      },
+    },
+  };
+})();
+
 export async function generateStrategyReportV3(args: {
   context: StrategyInputContext;
   apiKey: string;
@@ -148,6 +227,7 @@ async function callStage<T extends z.ZodTypeAny>(
       ],
       temperature: 0.2,
       maxTokens: promptId === 'strategy_activity_analysis' ? 6_000 : 8_000,
+      ...(promptId === 'strategy_report_synthesis' ? { responseFormat: strategySynthesisResponseFormat } : {}),
     });
     const parsedJson: unknown = JSON.parse(raw);
     const parsed = schema.safeParse(parsedJson);

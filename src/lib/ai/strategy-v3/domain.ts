@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const STRATEGY_REPORT_V3_CONTRACT_VERSION = 'strategy-report-v3' as const;
-export const STRATEGY_ENGINE_V3_VERSION = 'strategy-v3.1.0' as const;
+export const STRATEGY_ENGINE_V3_VERSION = 'strategy-v3.1.1' as const;
 export const STRATEGY_PRIORITY_FORMULA_VERSION =
   'impact-relevance-evidence-gap-feasibility-urgency-v2' as const;
 export const STRATEGY_ACTIVITY_BATCH_SIZE = 6 as const;

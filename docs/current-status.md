@@ -1,5 +1,14 @@
 # Current project status
 
+Working tree 2026-08-30 (Strategy synthesis structured output): a live
+Supabase read of the newest Strategy row passed V3 schema, lineage, reference,
+and activity-cardinality checks, but its empty narrative/roadmap showed the
+model had fallen back from the legacy synthesis shape. Strategy synthesis now
+uses a strict JSON Schema derived from the canonical Zod contract, excludes
+server-owned priorities, and bumps the prompt/engine versions to invalidate the
+fallback cache. Measured: Strategy/route/planning tests 52/52, base typecheck,
+scoped ESLint, and `git diff --check` pass.
+
 Working tree 2026-08-30 (Strategy Report retry gate): the analysis flow no
 longer treats legacy `reportV2`/recommendation rows as a completed Strategy V3
 report, and the direct Strategy Report page retries a failed generation before

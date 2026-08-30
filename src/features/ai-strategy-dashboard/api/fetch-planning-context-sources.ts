@@ -59,7 +59,7 @@ import {
 // this local to avoid importing the model-generation module into the context
 // compiler (which creates a runtime cycle under test).
 const CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION = 'strategy-report-f8-v3';
-const CURRENT_STRATEGY_REPORT_V3_PROMPT_VERSION = 'strategy-report-synthesis-v3.0.1';
+const CURRENT_STRATEGY_REPORT_V3_PROMPT_VERSION = 'strategy-report-synthesis-v3.1.0-structured-output';
 
 // ─── Fatal error ──────────────────────────────────────────────────────────────
 

@@ -396,7 +396,7 @@ const VALID_V3_STRATEGY_ROW: MockTable = {
   source_match_analysis_id: 'match-1',
   input_hash: 'strategy-v3-hash',
   model_name: 'gpt-5.6-luna',
-  prompt_version: 'strategy-report-synthesis-v3.0.1',
+      prompt_version: 'strategy-report-synthesis-v3.1.0-structured-output',
   created_at: '2025-01-04T00:00:00Z',
   report_v2: {
     contractVersion: 'strategy-report-v3',
@@ -461,7 +461,7 @@ const VALID_V3_STRATEGY_ROW: MockTable = {
       reportContractVersion: 'strategy-report-v3',
       profileDiagnosisPromptVersion: 'strategy-profile-diagnosis-v3.0.0',
       activityAnalysisPromptVersion: 'strategy-activity-analysis-v3.2.0',
-      synthesisPromptVersion: 'strategy-report-synthesis-v3.0.1',
+      synthesisPromptVersion: 'strategy-report-synthesis-v3.1.0-structured-output',
       priorityFormulaVersion: 'impact-relevance-evidence-gap-feasibility-urgency-v1',
       personalReportVersionId: 'report-1',
       personalReportInputHash: 'hash-abc',

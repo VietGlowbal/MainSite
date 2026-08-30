@@ -171,6 +171,23 @@ describe('Strategy V3 engine', () => {
     expect(report.strategicRoadmap).toHaveLength(4);
   });
 
+  it('constrains synthesis to the canonical V3 schema at the provider boundary', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-5.6-luna', now: new Date('2026-08-30T00:00:00Z') });
+
+    const synthesisRequest = mocks.openAiJsonCompletion.mock.calls[1]?.[0] as { responseFormat?: Record<string, unknown> };
+    expect(synthesisRequest.responseFormat).toMatchObject({
+      type: 'json_schema',
+      json_schema: { name: 'strategy_report_synthesis_v3', strict: true },
+    });
+    const schema = (synthesisRequest.responseFormat?.json_schema as { schema?: { properties?: Record<string, unknown> } }).schema;
+    expect(Object.keys(schema?.properties ?? {})).toEqual(['strategicOverview', 'narrativeStrategy', 'strategicRoadmap']);
+  });
+
   it('sends each activity batch as the only canonical activity scope', async () => {
     mocks.openAiJsonCompletion.mockReset();
     const activities = Array.from({ length: 7 }, (_, index) => ({

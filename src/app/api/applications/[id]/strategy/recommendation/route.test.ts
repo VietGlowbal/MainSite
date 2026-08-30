@@ -262,7 +262,7 @@ describe('/api/applications/[id]/strategy/recommendation V3', () => {
     expect(json.reportV2).toBeNull();
     expect(mocks.generateStrategyReportV3).toHaveBeenCalledTimes(1);
     expect(mocks.stableHash).toHaveBeenCalledWith(expect.objectContaining({
-      strategyEngineVersion: 'strategy-v3.1.0',
+      strategyEngineVersion: 'strategy-v3.1.1',
       reportContractVersion: 'strategy-report-v3',
       priorityFormulaVersion: 'impact-relevance-evidence-gap-feasibility-urgency-v2',
     }));
