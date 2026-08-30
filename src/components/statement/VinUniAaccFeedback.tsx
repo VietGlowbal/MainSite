@@ -291,7 +291,7 @@ function TypingBullet({
       id={isReviewClaim(item) ? reviewClaimElementId(item) : undefined}
       hidden={!started}
       className={`flex gap-3 rounded-xl text-sm leading-6 text-slate-700 transition ${
-        active ? 'bg-pink-50 px-3 py-2 ring-2 ring-pink-300' : ''
+        active ? 'bg-rose-50 px-3 py-2 ring-2 ring-rose-300' : ''
       }`}
     >
       <span className={`mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full ${marker}`} aria-hidden />
@@ -301,7 +301,7 @@ function TypingBullet({
           aria-label={text}
           data-active={active ? 'true' : 'false'}
           onClick={() => evidence.onSelect?.(item)}
-          className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
+          className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
         >
           <TypingText text={text} animate={animate} onStart={show} />
           <span className="mt-1 flex flex-wrap gap-1.5" aria-label={t('Evidence sources')}>
@@ -350,7 +350,7 @@ function BulletList({
     default: 'bg-slate-400',
     positive: 'bg-emerald-500',
     warning: 'bg-amber-500',
-    idea: 'bg-pink-500',
+    idea: 'bg-rose-600',
   }[tone];
   return (
     <ul className="space-y-2.5">
@@ -384,8 +384,8 @@ const DIAGNOSTIC_META: Array<{
   {
     key: 'detail',
     label: 'Detail',
-    color: '#cf86b5',
-    track: '#f8e9f2',
+    color: '#e11d48',
+    track: '#ffe4e6',
     definition:
       'Assesses the specificity of evidence: actions, context, numbers, reactions, and details that keep the story from becoming generic.',
   },
@@ -713,14 +713,14 @@ function DiagnosticRadar({
           <polygon
             data-testid="diagnostic-radar-current"
             points={radarPoints(current)}
-            fill="#ec489944"
-            stroke="#ec4899"
+            fill="#e11d4833"
+            stroke="#e11d48"
             strokeWidth="3"
             strokeLinejoin="round"
           />
           {radarPoints(current).split(' ').map((point) => {
             const [cx, cy] = point.split(',');
-            return <circle key={point} cx={cx} cy={cy} r="3.5" fill="#fff" stroke="#ec4899" strokeWidth="2.5" />;
+            return <circle key={point} cx={cx} cy={cy} r="3.5" fill="#fff" stroke="#e11d48" strokeWidth="2.5" />;
           })}
         </svg>
 
@@ -740,10 +740,10 @@ function DiagnosticRadar({
               onMouseEnter={() => onActivate(key)}
               onFocus={() => onActivate(key)}
               onClick={() => onActivate(key)}
-              className={`absolute rounded-lg border bg-white/95 px-2 py-1 text-center shadow-xs transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 ${RADAR_LABEL_POSITIONS[index]} ${
+              className={`absolute rounded-lg border bg-white/95 px-2 py-1 text-center shadow-xs transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 ${RADAR_LABEL_POSITIONS[index]} ${
                 active === key
-                  ? 'border-pink-300 text-pink-700'
-                  : 'border-slate-200 text-slate-600 hover:border-pink-200'
+                  ? 'border-rose-300 text-rose-700 bg-rose-50/50'
+                  : 'border-slate-200 text-slate-600 hover:border-rose-200'
               }`}
             >
               <span className="block text-[10px] font-semibold uppercase tracking-wide">{labelText}</span>
@@ -756,7 +756,7 @@ function DiagnosticRadar({
       </div>
       <div className="mt-1 flex justify-center gap-4 text-[11px] font-medium text-slate-600">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-5 rounded-full bg-pink-500" /> {t('Current')}
+          <span className="h-2.5 w-5 rounded-full bg-rose-600" /> {t('Current')}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-5 rounded-full bg-violet-600" /> {t('Potential')}
@@ -785,10 +785,10 @@ function WritingSignals({ diagnostics }: { diagnostics?: EssayDiagnostics }) {
               <span className="text-xs font-semibold text-slate-600">{t(meta.label)}</span>
               <span className="relative block h-2.5 rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200">
                 <span className="absolute inset-y-0 left-0 rounded-full bg-slate-700" style={{ width: `${score.current * 10}%` }} />
-                <span className="absolute -top-1 h-4 w-1 rounded-full bg-pink-500" style={{ left: `${score.potential * 10}%` }} />
+                <span className="absolute -top-1 h-4 w-1 rounded-full bg-rose-600" style={{ left: `${score.potential * 10}%` }} />
               </span>
               <span className="text-right text-xs font-semibold tabular-nums text-slate-700">
-                {score.current} → <span className="text-pink-700">{score.potential}</span>
+                {score.current} → <span className="text-rose-700">{score.potential}</span>
               </span>
             </div>
           );
@@ -796,7 +796,7 @@ function WritingSignals({ diagnostics }: { diagnostics?: EssayDiagnostics }) {
       </div>
       <figcaption className="mt-4 flex gap-4 border-t border-slate-100 pt-3 text-[10px] font-medium text-slate-500">
           <span className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-slate-700" /> {t('Current')}</span>
-          <span className="flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-pink-500" /> {t('Potential')}</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-rose-600" /> {t('Potential')}</span>
       </figcaption>
     </figure>
   );
@@ -848,7 +848,7 @@ function NarrativeJourneyChart({
     >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 px-6 py-6 md:px-8">
         <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-pink-600">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-rose-600">
           {t('Essay rhythm')}
         </p>
         <h3 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-slate-950">
@@ -863,7 +863,7 @@ function NarrativeJourneyChart({
         <div className="grid grid-cols-5 gap-2 text-center">
           {stages.map(({ label }, index) => (
             <div key={label} className="min-w-0">
-              <span className="mx-auto grid h-8 w-8 place-items-center rounded-full border border-pink-200 bg-pink-50 text-[10px] font-bold text-pink-700">
+              <span className="mx-auto grid h-8 w-8 place-items-center rounded-full border border-rose-200 bg-rose-50 text-[10px] font-bold text-rose-700">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <span className="mt-2 block text-[10px] font-semibold leading-4 text-slate-700 sm:text-sm">
@@ -884,8 +884,8 @@ function NarrativeJourneyChart({
           >
           <defs>
             <linearGradient id="narrative-area" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#f472b6" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="#fdf2f8" stopOpacity="0" />
+              <stop offset="0%" stopColor="#fb7185" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="#fff1f2" stopOpacity="0" />
             </linearGradient>
           </defs>
           {[50, 130, 210].map((y) => (
@@ -907,7 +907,7 @@ function NarrativeJourneyChart({
           <path
             d={line}
             fill="none"
-            stroke="#ec4899"
+            stroke="#e11d48"
             strokeLinecap="round"
             strokeWidth="4"
             vectorEffect="non-scaling-stroke"
@@ -917,7 +917,7 @@ function NarrativeJourneyChart({
             <span
               key={stages[index].label}
               data-testid="narrative-stage-marker"
-              className="absolute grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-pink-500 bg-white text-base font-bold tabular-nums text-pink-700 shadow-[0_8px_22px_rgba(236,72,153,0.28)]"
+              className="absolute grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-rose-500 bg-white text-base font-bold tabular-nums text-rose-700 shadow-[0_8px_22px_rgba(225,29,72,0.2)]"
               style={{
                 left: `${(point.x / 1000) * 100}%`,
                 top: `${(point.y / 230) * 100}%`,
@@ -982,12 +982,12 @@ function AaccBulletChart({
         return (
           <div
             key={pillar.key}
-            className="grid gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 transition-colors duration-200 hover:border-pink-200 lg:grid-cols-[150px_minmax(180px,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:items-center"
+            className="grid gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 transition-colors duration-200 hover:border-rose-200 lg:grid-cols-[150px_minmax(180px,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:items-center"
           >
             <div>
               <p className="text-sm font-semibold text-slate-900">{pillar.nameVi}</p>
               <p className="text-xs tabular-nums text-slate-500">
-                {current.toFixed(1)} → <span className="font-semibold text-pink-700">{potential.toFixed(1)}</span>
+                {current.toFixed(1)} → <span className="font-semibold text-rose-700">{potential.toFixed(1)}</span>
               </p>
             </div>
             <span
@@ -999,7 +999,7 @@ function AaccBulletChart({
               className="relative block h-2.5 rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200"
             >
               <span className="absolute inset-y-0 left-0 rounded-full bg-slate-700" style={{ width: `${current * 10}%` }} />
-              <span className="absolute -top-1 h-4 w-1 rounded-full bg-pink-500" style={{ left: `${potential * 10}%` }} />
+              <span className="absolute -top-1 h-4 w-1 rounded-full bg-rose-600" style={{ left: `${potential * 10}%` }} />
             </span>
             <p className="text-xs leading-5 text-slate-600">
               <span className="font-semibold text-emerald-700">{t('Proven:')}</span>{' '}
@@ -1047,7 +1047,7 @@ function PriorityRoadmap({
               {t(lane.label)}
             </span>
             <div className="min-w-0"><BulletList items={[item]} animate={animate} /></div>
-            <span className="text-right text-sm font-semibold tabular-nums text-pink-600">
+            <span className="text-right text-sm font-semibold tabular-nums text-rose-600">
               {isReviewClaim(item) ? `+${IMPACT_GAIN[priority].toFixed(1)}` : `0${index + 1}`}
             </span>
           </li>
@@ -1080,13 +1080,13 @@ function ScoreBridge({
             <span className="text-xs text-slate-500">{t('Current')}</span>
           </span>
         </div>
-        <div className="relative grid gap-2 before:absolute before:left-3 before:right-3 before:top-1/2 before:border-t before:border-dashed before:border-pink-300">
+        <div className="relative grid gap-2 before:absolute before:left-3 before:right-3 before:top-1/2 before:border-t before:border-dashed before:border-rose-300">
           {issues.slice(0, 4).map((issue) => (
             <div
               key={isReviewClaim(issue) ? reviewClaimKey(issue) : issue}
-              className="relative z-10 grid grid-cols-[52px_1fr] items-center gap-3 rounded-xl border border-pink-100 bg-pink-50/80 p-2.5"
+              className="relative z-10 grid grid-cols-[52px_1fr] items-center gap-3 rounded-xl border border-rose-100 bg-rose-50/80 p-2.5"
             >
-              <span className="rounded-lg bg-white px-2 py-1 text-center text-xs font-semibold text-pink-700 shadow-sm">
+              <span className="rounded-lg bg-white px-2 py-1 text-center text-xs font-semibold text-rose-700 shadow-sm">
                 {isReviewClaim(issue)
                   ? `+${IMPACT_GAIN[issue.priority].toFixed(1)}`
                   : '—'}
@@ -1097,10 +1097,10 @@ function ScoreBridge({
             </div>
           ))}
         </div>
-        <div className="grid h-24 w-24 place-items-center rounded-full border border-pink-300 bg-pink-50 text-center">
+        <div className="grid h-24 w-24 place-items-center rounded-full border border-rose-300 bg-rose-50 text-center">
           <span>
-            <strong className="block text-3xl tabular-nums text-pink-700">{potential.toFixed(1)}</strong>
-            <span className="text-xs text-pink-700">{t('Potential')}</span>
+            <strong className="block text-3xl tabular-nums text-rose-700">{potential.toFixed(1)}</strong>
+            <span className="text-xs text-rose-700">{t('Potential')}</span>
           </span>
         </div>
       </div>
@@ -1135,16 +1135,16 @@ function EssayDiagnosticBoard({
       className="overflow-hidden rounded-[2rem] border border-line bg-surface shadow-xs"
     >
       <header className="relative flex flex-wrap items-end justify-between gap-5 overflow-hidden border-b border-slate-200 bg-white px-6 py-6 md:px-8">
-        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#ffffff_100%)]" />
+        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#e11d48_0%,#fb7185_44%,#ffffff_100%)]" />
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-pink-600">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600">
             {t('Essay diagnostic')}
           </p>
           <h2 className="mt-1 text-3xl font-semibold tracking-[-0.035em] text-slate-950">
             {t('Scored essay')}
           </h2>
         </div>
-        <div className="flex items-end gap-3 border-l-2 border-pink-400 pl-5">
+        <div className="flex items-end gap-3 border-l-2 border-rose-400 pl-5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               {t('Current AACC')}
@@ -1153,12 +1153,12 @@ function EssayDiagnosticBoard({
               {currentScore.toFixed(1)}
             </p>
           </div>
-          <span className="pb-1 text-lg text-pink-500" aria-hidden>→</span>
+          <span className="pb-1 text-lg text-rose-500" aria-hidden>→</span>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-pink-700">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-700">
               {t('After priorities')}
             </p>
-            <p className="text-2xl font-semibold tabular-nums text-pink-700">
+            <p className="text-2xl font-semibold tabular-nums text-rose-700">
               {potentialScore.toFixed(1)}
             </p>
           </div>
@@ -1226,7 +1226,7 @@ function EssayDiagnosticSkeleton({ manuscript }: { manuscript: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-[1.75rem] border border-line bg-surface shadow-xs">
       <header className="border-b border-slate-200 bg-white px-6 py-5 md:px-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-pink-600">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600">
           {t('Essay diagnostic')}
         </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
@@ -1248,15 +1248,15 @@ function EssayDiagnosticSkeleton({ manuscript }: { manuscript: ReactNode }) {
               <polygon
                 key={level}
                 points={radarPoints(Array(6).fill(level))}
-                fill={level === 6 ? '#fdf2f8' : 'none'}
+                fill={level === 6 ? '#fff1f2' : 'none'}
                 stroke="#e2e8f0"
                 strokeWidth="2"
               />
             ))}
             <polygon
               points={radarPoints([6, 7, 5, 8, 6, 7])}
-              fill="#fce7f3"
-              stroke="#f9a8d4"
+              fill="#ffe4e6"
+              stroke="#fda4af"
               strokeWidth="3"
             />
           </svg>
@@ -1377,8 +1377,8 @@ export function VinUniAaccFeedback({
         className="relative overflow-hidden rounded-[2rem] border border-line bg-surface shadow-xs"
       >
       <header className="relative overflow-hidden border-b border-slate-200 bg-white px-6 py-8 text-slate-950 md:px-10 md:py-10">
-        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#ffffff_100%)]" />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-pink-600">
+        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#e11d48_0%,#fb7185_44%,#ffffff_100%)]" />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-600">
           {t('Evidence-based analysis')}
         </p>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-6">
@@ -1393,7 +1393,7 @@ export function VinUniAaccFeedback({
               · {t('Not an admissions decision')}
             </p>
           </div>
-          <div className="min-w-32 border-l-2 border-pink-400 pl-5 text-left">
+          <div className="min-w-32 border-l-2 border-rose-400 pl-5 text-left">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('Overall score')}</p>
             <p className="mt-1 text-4xl font-semibold tracking-[-0.05em] tabular-nums">
               {loading && analysis.overall.score === 0
@@ -1447,7 +1447,7 @@ export function VinUniAaccFeedback({
           <ProgressiveChapter letter="B" title="Ideas and structure" animate={streaming}>
           <IdeasComparison strengths={ideas.strengths} weaknesses={ideas.weaknesses} />
           <details className="group rounded-[1.5rem] border border-slate-200 bg-white">
-          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500">
             <DisclosureLabel closedText="View full analysis" openText="Collapse analysis" />
           </summary>
           <div className="border-t border-slate-200 p-5">
@@ -1467,8 +1467,8 @@ export function VinUniAaccFeedback({
               </div>
             ) : null}
             {ideas.suggestions.length ? (
-              <div className="rounded-2xl border border-pink-200 bg-pink-50/70 p-5">
-                <h4 className="flex items-center gap-2 text-sm font-semibold text-pink-800">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-5">
+                <h4 className="flex items-center gap-2 text-sm font-semibold text-rose-800">
                   <StatusIcon kind="review" /> {t('Improvement ideas')}
                 </h4>
                 <div className="mt-3">
@@ -1528,7 +1528,7 @@ export function VinUniAaccFeedback({
           <ProgressiveChapter letter="D" title="AACC assessment" animate={streaming}>
           <AaccBulletChart analysis={analysis} review={review} />
           <details className="group rounded-[1.5rem] border border-slate-200 bg-white">
-          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500">
             <DisclosureLabel closedText="View full AACC analysis" openText="Collapse AACC analysis" />
           </summary>
           <div className="grid gap-4 lg:grid-cols-2">
@@ -1553,7 +1553,7 @@ export function VinUniAaccFeedback({
                       </p>
                       <h4 className="mt-1 font-semibold text-slate-950">{pillar.nameVi}</h4>
                     </div>
-                    <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700">
+                    <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
                       {loading && result.score === 0
                         ? '…'
                         : `${(result.score / 10).toFixed(1).replace('.0', '')}/10`}
@@ -1592,7 +1592,7 @@ export function VinUniAaccFeedback({
 
         {scoreReady ? (
           <ProgressiveChapter letter="F" title="AACC score" animate={streaming}>
-          <aside aria-label={t('Overall AACC score')} className="rounded-[1.75rem] bg-pink-50/70 p-1">
+          <aside aria-label={t('Overall AACC score')} className="rounded-[1.75rem] bg-rose-50/70 p-1">
             <ScoreBridge
               current={improvementProjection.current}
               potential={improvementProjection.potential}
@@ -1607,7 +1607,7 @@ export function VinUniAaccFeedback({
             data-testid="feedback-skeleton"
             className="flex items-center gap-3 border-t border-slate-200 py-6 text-sm text-slate-500"
           >
-            <span className="h-2 w-2 animate-pulse rounded-full bg-pink-400" aria-hidden />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-rose-400" aria-hidden />
             {t('Analysing the next section…')}
           </div>
         ) : null}
@@ -1616,13 +1616,13 @@ export function VinUniAaccFeedback({
           <button
             type="button"
             onClick={onTryAgain}
-            className="inline-flex h-11 items-center justify-center rounded-full border-2 border-pink-500 px-6 text-sm font-semibold text-pink-600 transition hover:bg-pink-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
+            className="inline-flex h-11 items-center justify-center rounded-full border-2 border-rose-600 px-6 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
           >
             {t('Edit and analyse again')}
           </button>
           <Link
             href="/advisors"
-            className="inline-flex h-11 items-center justify-center rounded-full border-2 border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:bg-pink-50 hover:text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
+            className="inline-flex h-11 items-center justify-center rounded-full border-2 border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
           >
             {t('Talk with a VinUni advisor')}
           </Link>

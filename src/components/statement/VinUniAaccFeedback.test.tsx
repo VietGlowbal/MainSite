@@ -134,7 +134,7 @@ describe('VinUniAaccFeedback', () => {
 
     expect(container.querySelectorAll('[class*="bg-slate-950"]')).toHaveLength(0);
     expect(container.querySelector('header')).toHaveClass('text-slate-950');
-    expect(screen.getByLabelText('Điểm AACC tổng')).toHaveClass('bg-pink-50/70');
+    expect(screen.getByLabelText('Điểm AACC tổng')).toHaveClass('bg-rose-50/70');
     expect(screen.getAllByRole('progressbar')).toHaveLength(4);
   });
 

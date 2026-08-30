@@ -876,7 +876,7 @@ export function StatementWriter({
           <button
             type="button"
             onClick={() => setReviewEditing((current) => !current)}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition duration-300 hover:border-pink-300 hover:text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition duration-300 hover:border-rose-300 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
           >
             {reviewEditing ? t('View highlights') : t('Edit essay')}
           </button>
@@ -884,7 +884,7 @@ export function StatementWriter({
             type="button"
             onClick={() => void handleAnalyze()}
             disabled={status === 'analyzing' || text.trim().length < minimumAnalysisLength}
-            className="rounded-full bg-pink-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition duration-300 hover:bg-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition duration-300 hover:bg-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === 'analyzing' ? t('Analysing…') : t('Analyse again')}
           </button>
@@ -956,7 +956,7 @@ export function StatementWriter({
               <select
                 value={docType}
                 onChange={(e) => setDocType(e.target.value as DocType)}
-                className={isLor ? 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-pink-300 focus:outline-none' : 'rounded-full border-0 bg-rose-50 px-4 py-1 text-sm font-medium text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600'}
+                className={isLor ? 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-rose-300 focus:outline-none' : 'rounded-full border-0 bg-rose-50 px-4 py-1 text-sm font-medium text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600'}
               >
                 <option value="personal_statement">Personal Statement</option>
                 <option value="statement_of_purpose">Statement of Purpose</option>
@@ -1067,7 +1067,7 @@ export function StatementWriter({
         {isVinUni && !vinUniAnalysis ? (
           <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-4 py-3 text-[11px] font-semibold text-slate-600">
             <span className="rounded-full border border-slate-200 px-3 py-1.5">Essay</span>
-            <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">VinUni AACC</span>
+            <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">VinUni AACC</span>
             <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">{t('Programme · server confirmed')}</span>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">{t('Profile · if available')}</span>
           </div>
@@ -1085,7 +1085,7 @@ export function StatementWriter({
 
         {status === 'analyzing' && !vinUniAnalysis && (
           <div className="flex flex-1 flex-col items-center justify-center p-8">
-            <div className="mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-pink-200 border-t-pink-500" />
+            <div className="mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-rose-200 border-t-rose-600" />
             <h2 className="text-base font-semibold text-slate-600">
               {isLor ? 'Reviewing the recommendation letter…' : 'Reading like an admissions officer…'}
             </h2>
@@ -1096,9 +1096,9 @@ export function StatementWriter({
         {vinUniStatus ? (
           <div
             role="status"
-            className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-pink-200 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+            className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-medium text-slate-700"
           >
-            <span className="h-2 w-2 animate-pulse rounded-full bg-pink-500" aria-hidden />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-rose-600" aria-hidden />
             {vinUniStatus}
           </div>
         ) : null}
@@ -1129,7 +1129,7 @@ export function StatementWriter({
             {'context' in vinUniAnalysis ? (
               <div className="mb-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
                 <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5">Essay</span>
-                <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">VinUni AACC</span>
+                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">VinUni AACC</span>
                 <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">
                   Programme · {vinUniAnalysis.context.programmeName ?? 'VinUni chung'}
                 </span>
@@ -1169,13 +1169,13 @@ export function StatementWriter({
                   onClick={() => setActiveTab(tab)}
                   className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-semibold capitalize transition ${
                     activeTab === tab
-                      ? 'border-pink-500 text-pink-600'
+                      ? 'border-rose-600 text-rose-600'
                       : 'border-transparent text-slate-400 hover:text-slate-600'
                   }`}
                 >
                   {tab}
                   {tab === 'suggestions' && analysis.suggestions.length > 0 && (
-                    <span className="rounded-full bg-pink-100 px-1.5 py-0.5 text-[10px] text-pink-600">
+                    <span className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] text-rose-600">
                       {analysis.suggestions.length}
                     </span>
                   )}
@@ -1206,8 +1206,8 @@ export function StatementWriter({
                   </div>
                   {isLor && isLorReview(analysis) ? (
                     <>
-                      <div className="rounded-xl border border-pink-200 bg-pink-50 p-5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-pink-600">
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-rose-600">
                           Overall quality
                         </p>
                         <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
@@ -1231,7 +1231,7 @@ export function StatementWriter({
                                 <p className="text-sm font-semibold text-slate-800">
                                   {dimension.label}
                                 </p>
-                                <span className="shrink-0 font-mono text-xs font-bold text-pink-600">
+                                <span className="shrink-0 font-mono text-xs font-bold text-rose-600">
                                   {dimension.score}/{dimension.maxScore}
                                 </span>
                               </div>
@@ -1292,7 +1292,7 @@ export function StatementWriter({
                             <article key={item.trait} className="rounded-lg bg-slate-50 p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <h4 className="text-sm font-semibold text-slate-900">{item.trait}</h4>
-                                <span className="text-xs font-semibold text-pink-600">
+                                <span className="text-xs font-semibold text-rose-600">
                                   {formatCoverageStatus(item.status)}
                                 </span>
                               </div>
@@ -1364,7 +1364,7 @@ export function StatementWriter({
                               type="button"
                               onClick={() => acceptSuggestion(sug)}
                               disabled={!canApply}
-                              className="mt-3 w-full rounded-lg border border-pink-300 bg-white py-2 text-xs font-semibold text-pink-600 transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                              className="mt-3 w-full rounded-lg border border-rose-300 bg-white py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                             >
                               {canApply ? 'Apply change' : 'Manual edit required'}
                             </button>

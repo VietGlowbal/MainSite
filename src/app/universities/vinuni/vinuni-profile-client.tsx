@@ -43,9 +43,9 @@ const SECTIONS = [
 
 const ACCENT_STYLES: Record<College['accent'], { ring: string; chip: string; bar: string }> = {
   pink: {
-    ring: 'ring-pink-200',
-    chip: 'bg-pink-50 text-pink-600 border-pink-200',
-    bar: 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)]',
+    ring: 'ring-rose-200',
+    chip: 'bg-rose-50 text-rose-600 border-rose-200',
+    bar: 'bg-[linear-gradient(135deg,#e11d48,#fb7185)]',
   },
   cyan: {
     ring: 'ring-cyan-200',
@@ -55,7 +55,7 @@ const ACCENT_STYLES: Record<College['accent'], { ring: string; chip: string; bar
   purple: {
     ring: 'ring-purple-200',
     chip: 'bg-purple-50 text-purple-700 border-purple-200',
-    bar: 'bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)]',
+    bar: 'bg-[linear-gradient(135deg,#7B2FBE,#e11d48)]',
   },
   emerald: {
     ring: 'ring-emerald-200',
@@ -104,7 +104,7 @@ function SectionNav() {
       <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-3 md:gap-2 md:px-6">
         <Link
           href="/universities"
-          className="mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-pink-300 hover:text-pink-600"
+          className="mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-rose-300 hover:text-rose-600"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -115,7 +115,7 @@ function SectionNav() {
           <a
             key={s.id}
             href={`#${s.id}`}
-            className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-pink-50 hover:text-pink-600"
+            className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
           >
             {s.label}
           </a>
@@ -153,7 +153,7 @@ function Hero({
           <Image src={cover} alt="" fill priority className="object-cover" sizes="100vw" />
         </div>
       ) : null}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_20%,rgba(255,77,140,0.25),transparent_55%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_20%,rgba(225,29,72,0.25),transparent_55%)]" />
 
       <div className="relative mx-auto max-w-6xl px-4 pt-12 pb-16 md:px-6 md:pt-20 md:pb-24">
         <div className="flex flex-col items-start gap-6">
@@ -163,11 +163,11 @@ function Hero({
               {logo ? (
                 <Image src={logo} alt="VinUniversity logo" width={56} height={56} className="object-contain" />
               ) : (
-                <span className="text-2xl font-bold text-pink-600">VU</span>
+                <span className="text-2xl font-bold text-rose-600">VU</span>
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-200/80">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-200/80">
                 {vinuniHero.campusLocation}
               </p>
               <h1 className="text-3xl font-semibold tracking-tight text-white md:text-5xl">
@@ -209,7 +209,7 @@ function Hero({
               href={vinuniHero.applyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(255,77,140,0.35)] transition hover:-translate-y-0.5"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#e11d48,#fb7185)] px-6 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(225,29,72,0.35)] transition hover:-translate-y-0.5"
             >
               Apply to VinUni
               <ArrowRight />
@@ -225,7 +225,7 @@ function Hero({
               onClick={() => setSaved((s) => !s)}
               aria-label={saved ? 'Remove from saved' : 'Save VinUniversity'}
               className={`inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/40 backdrop-blur transition ${
-                saved ? 'bg-white text-pink-600' : 'bg-white/10 text-white hover:bg-white/20'
+                saved ? 'bg-white text-rose-600' : 'bg-white/10 text-white hover:bg-white/20'
               }`}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -253,7 +253,7 @@ function HeroBadge({ label, highlight = false }: { label: string; highlight?: bo
     <span
       className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur ${
         highlight
-          ? 'border-pink-200/80 bg-pink-500/30 text-white'
+          ? 'border-rose-200/80 bg-rose-500/30 text-white'
           : 'border-white/30 bg-white/10 text-white/90'
       }`}
     >
@@ -358,13 +358,13 @@ function CollegeCard({ college }: { college: College }) {
                 ) : null}
               </div>
               {p.accreditation ? (
-                <p className="mt-2 text-xs font-semibold text-pink-600">{p.accreditation}</p>
+                <p className="mt-2 text-xs font-semibold text-rose-600">{p.accreditation}</p>
               ) : null}
               {p.curriculumHighlights?.length ? (
                 <ul className="mt-3 space-y-1.5">
                   {p.curriculumHighlights.map((h) => (
                     <li key={h} className="flex items-start gap-2 text-sm text-slate-600">
-                      <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-pink-400" />
+                      <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
                       <span>{h}</span>
                     </li>
                   ))}
@@ -470,10 +470,10 @@ function CostTile({
 }) {
   const bg =
     accent === 'pink'
-      ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)]'
+      ? 'bg-[linear-gradient(135deg,#e11d48,#fb7185)]'
       : accent === 'cyan'
       ? 'bg-[linear-gradient(135deg,#00C2FF,#90e0ef)]'
-      : 'bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)]';
+      : 'bg-[linear-gradient(135deg,#7B2FBE,#e11d48)]';
   return (
     <div className={`rounded-2xl ${bg} p-6 text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)]`}>
       <p className="text-xs font-semibold uppercase tracking-wider text-white/80">{label}</p>
@@ -491,7 +491,7 @@ function ScholarshipTable({
   scholarships: Scholarship[];
   accent: 'pink' | 'cyan';
 }) {
-  const accentColor = accent === 'pink' ? 'text-pink-600' : 'text-cyan-700';
+  const accentColor = accent === 'pink' ? 'text-rose-600' : 'text-cyan-700';
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
       <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
@@ -574,13 +574,13 @@ function AdmissionsSection() {
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {vinuniAdmissions.deadlines.map((d) => (
               <div key={d.round} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-pink-600">{d.round}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-rose-600">{d.round}</p>
                 <p className="mt-2 text-sm font-semibold text-slate-900">Deadline: {d.deadline}</p>
                 <p className="mt-1 text-xs text-slate-600">Notify: {d.notify}</p>
               </div>
             ))}
           </div>
-          <p className="mt-4 rounded-xl border border-pink-200 bg-pink-50/70 p-3 text-xs text-pink-700">
+          <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50/70 p-3 text-xs text-rose-700">
             {vinuniAdmissions.scholarshipDeadlineNote}
           </p>
         </div>
@@ -654,7 +654,7 @@ function CareerSection() {
             <p className="mt-3 text-sm text-slate-700">{vinuniCareer.alumniNetworkSummary}</p>
             <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/70 p-4">
               <p className="text-sm italic text-slate-700">“{vinuniCareer.testimonial.quote}”</p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-pink-600">
+              <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-rose-600">
                 — {vinuniCareer.testimonial.author}
               </p>
             </div>
@@ -707,13 +707,13 @@ function CampusLifeSection() {
         <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-base font-semibold text-slate-900">Clubs & community</h3>
-            <span className="text-xs font-semibold text-pink-600">
+            <span className="text-xs font-semibold text-rose-600">
               {vinuniCampusLife.internationalStudentPercent}% international
             </span>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {vinuniCampusLife.clubs.map((c) => (
-              <span key={c} className="rounded-full border border-pink-100 bg-pink-50/70 px-3 py-1 text-xs font-semibold text-pink-700">
+              <span key={c} className="rounded-full border border-rose-100 bg-rose-50/70 px-3 py-1 text-xs font-semibold text-rose-700">
                 {c}
               </span>
             ))}
@@ -803,7 +803,7 @@ function FaqItem({ question, answer, defaultOpen }: { question: string; answer: 
 function BottomCta({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,#FF3D9A_0%,#7B2FBE_55%,#0F1745_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,#e11d48_0%,#7B2FBE_55%,#0F1745_100%)]" />
       <div className="relative mx-auto max-w-5xl px-4 py-16 text-center md:px-6 md:py-20">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
           Ready to start?
@@ -820,7 +820,7 @@ function BottomCta({ isLoggedIn }: { isLoggedIn: boolean }) {
             href={vinuniHero.applyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-pink-600 shadow-[0_10px_28px_rgba(255,77,140,0.35)] transition hover:-translate-y-0.5"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-rose-600 shadow-[0_10px_28px_rgba(225,29,72,0.35)] transition hover:-translate-y-0.5"
           >
             Apply on VinUni site
             <ArrowRight />
@@ -863,7 +863,7 @@ function SectionHeading({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">{eyebrow}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">{eyebrow}</p>
       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
       {subtitle ? <p className="mt-3 max-w-2xl text-sm text-slate-600 md:text-base">{subtitle}</p> : null}
     </div>
@@ -903,15 +903,15 @@ const VERDICT_LABEL: Record<AaccAnalysis['overall']['verdict'], { label: string;
 
 const PILLAR_ACCENT: Record<AaccPillarKey, { ring: string; chip: string; bar: string; text: string }> = {
   ability: {
-    ring: 'ring-pink-200',
-    chip: 'bg-pink-50 text-pink-700 border-pink-200',
-    bar: 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)]',
-    text: 'text-pink-700',
+    ring: 'ring-rose-200',
+    chip: 'bg-rose-50 text-rose-700 border-rose-200',
+    bar: 'bg-[linear-gradient(135deg,#e11d48,#fb7185)]',
+    text: 'text-rose-700',
   },
   aspirations: {
     ring: 'ring-purple-200',
     chip: 'bg-purple-50 text-purple-700 border-purple-200',
-    bar: 'bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)]',
+    bar: 'bg-[linear-gradient(135deg,#7B2FBE,#e11d48)]',
     text: 'text-purple-700',
   },
   creativity: {
@@ -930,22 +930,6 @@ const PILLAR_ACCENT: Record<AaccPillarKey, { ring: string; chip: string; bar: st
 
 const MIN_SOP_CHARS = 200;
 
-/**
- * ⚠️ EXPORTED, and it is the only reason this file still exists.
- *
- * /universities/vinuni now redirects to /universities/97, which renders the
- * shared design (Figma 375:10629). Everything else in this file is superseded
- * by that page; this section is not, because it is a FEATURE — the AACC
- * statement analyser, calling /api/ai/analyze-statement-aacc — that happened to
- * be parked on a university page. It is re-rendered inside VinUni's extras so
- * the redirect loses nothing.
- *
- * TODO: lift this and its helpers (SopBackToggle, PillarGuideAccordion,
- * AaccSkeleton, AaccResult, PillarResultCard, ScoreDial) into their own module
- * and delete the rest of this file. It belongs with /ai-strategy — see
- * docs/redesign-status.md. Until then the dead components below still ship in
- * whatever chunk imports this one.
- */
 export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
   const t = useT();
   const [mode, setMode] = useState<'idle' | 'yes' | 'no'>('idle');
@@ -1004,7 +988,7 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
               <button
                 type="button"
                 onClick={() => setMode('yes')}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-7 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(255,77,140,0.32)] transition hover:-translate-y-0.5"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#e11d48,#fb7185)] px-7 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(225,29,72,0.32)] transition hover:-translate-y-0.5"
               >
                 Yes — analyze it
                 <ArrowRight />
@@ -1025,14 +1009,14 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
           <div className="mt-10 space-y-6">
             <SopBackToggle onChange={setMode} />
             {!isLoggedIn ? (
-              <div className="rounded-3xl border border-pink-200 bg-pink-50/60 p-8 text-center shadow-[0_10px_28px_rgba(255,77,140,0.12)]">
+              <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-8 text-center shadow-[0_10px_28px_rgba(225,29,72,0.12)]">
                 <h3 className="text-lg font-semibold text-slate-900">Sign in to analyze your SOP</h3>
                 <p className="mt-2 text-sm text-slate-700">
                   Analysis runs against your private account. Sign in to securely send your draft to the AACC reviewer.
                 </p>
                 <Link
                   href="/auth?redirect=/universities/vinuni"
-                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
+                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#e11d48,#fb7185)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(225,29,72,0.28)] transition hover:-translate-y-0.5"
                 >
                   Sign in to continue
                   <ArrowRight />
@@ -1055,7 +1039,7 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
                     value={sopText}
                     onChange={(e) => setSopText(e.target.value)}
                     placeholder="Paste your full SOP here…"
-                    className="mt-4 block min-h-[280px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800 outline-none transition focus:border-pink-300 focus:bg-white focus:ring-4 focus:ring-pink-100"
+                    className="mt-4 block min-h-[280px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800 outline-none transition focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
                   />
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
                     <span>
@@ -1066,7 +1050,7 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
                       type="button"
                       onClick={handleAnalyze}
                       disabled={!canAnalyze}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.28)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#e11d48)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.28)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
                     >
                       {loading ? 'Analyzing…' : 'Analyze with AACC'}
                       {!loading ? <ArrowRight /> : null}
@@ -1093,7 +1077,7 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
             <SopBackToggle onChange={setMode} />
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:p-8">
               <p className="text-sm text-slate-700 md:text-base">{vinuniSopGuidance.intro}</p>
-              <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-pink-600">
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-rose-600">
                 {vinuniSopGuidance.lengthGuide}
               </p>
             </div>
@@ -1103,7 +1087,7 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
               <ol className="mt-4 space-y-2.5">
                 {vinuniSopGuidance.structure.map((s, i) => (
                   <li key={s} className="flex items-start gap-3 text-sm text-slate-700">
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-pink-100 text-xs font-semibold text-pink-700">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-rose-100 text-xs font-semibold text-rose-700">
                       {i + 1}
                     </span>
                     <span>{s}</span>
@@ -1118,7 +1102,7 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
               ))}
             </div>
 
-            <div className="rounded-3xl border border-pink-200 bg-pink-50/60 p-6 text-center md:p-8">
+            <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-6 text-center md:p-8">
               <h3 className="text-lg font-semibold text-slate-900">Drafted something already?</h3>
               <p className="mt-2 text-sm text-slate-700">
                 Run it through the AACC analyzer whenever you’re ready.
@@ -1126,7 +1110,7 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
               <button
                 type="button"
                 onClick={() => setMode('yes')}
-                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
+                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#e11d48,#fb7185)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
               >
                 I have a draft — analyze it
                 <ArrowRight />
@@ -1144,7 +1128,7 @@ function SopBackToggle({ onChange }: { onChange: (mode: 'idle' | 'yes' | 'no') =
     <button
       type="button"
       onClick={() => onChange('idle')}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-pink-600"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-rose-600"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -1343,13 +1327,13 @@ function AaccResult({ analysis, onTryAgain }: { analysis: AaccAnalysis; onTryAga
         <button
           type="button"
           onClick={onTryAgain}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border-2 border-pink-500 bg-white px-6 text-sm font-semibold text-pink-600 transition hover:bg-pink-50"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border-2 border-rose-600 bg-white px-6 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
         >
           Edit & re-analyze
         </button>
         <Link
           href="/advisors"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.28)] transition hover:-translate-y-0.5"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#e11d48)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.28)] transition hover:-translate-y-0.5"
         >
           Book a VinUni advisor to deepen this
           <ArrowRight />
@@ -1464,7 +1448,7 @@ function ScoreDial({ value, label }: { value: number; label: string }) {
           />
           <defs>
             <linearGradient id="aacc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#FF3D9A" />
+              <stop offset="0%" stopColor="#e11d48" />
               <stop offset="100%" stopColor="#7B2FBE" />
             </linearGradient>
           </defs>
