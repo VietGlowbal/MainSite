@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { formatUiDate } from '@/shared/lib';
 import type {
@@ -19,6 +19,8 @@ import {
   VersionHistoryPicker,
   withReturn,
 } from './personal-report';
+
+const PERSONAL_REPORT_MAX_POLLS = 150;
 
 /**
  * Canonical user-level Personal Report.
@@ -62,6 +64,7 @@ export function PersonalReportV2View({
   const [busy, setBusy] = useState(false);
   const [waitingForGeneration, setWaitingForGeneration] = useState(false);
   const [versionLoading, setVersionLoading] = useState(false);
+  const generationInFlightRef = useRef(false);
   const reportEndpoint = applicationId
     ? `/api/applications/${applicationId}/personal-report`
     : '/api/ai-strategy/personal-report';
@@ -100,10 +103,12 @@ export function PersonalReportV2View({
   }
 
   async function generate(trigger: PersonalReportTrigger = 'manual', force = false) {
+    if (generationInFlightRef.current || busy || waitingForGeneration) return;
     if (applicationId && applicationConfirmed === false) {
       setError(t('Confirm Candidate Information before generating this report.'));
       return;
     }
+    generationInFlightRef.current = true;
     setBusy(true);
     setError(null);
 
@@ -146,6 +151,7 @@ export function PersonalReportV2View({
         requestError instanceof Error ? requestError.message : t('Could not create the report.'),
       );
     } finally {
+      generationInFlightRef.current = false;
       if (!queued) setBusy(false);
     }
   }
@@ -153,7 +159,15 @@ export function PersonalReportV2View({
   useEffect(() => {
     if (!waitingForGeneration) return;
     let cancelled = false;
+    let pollCount = 0;
     const poll = async () => {
+      if (pollCount >= PERSONAL_REPORT_MAX_POLLS) {
+        setError(t('Could not create the report.'));
+        setWaitingForGeneration(false);
+        setBusy(false);
+        return;
+      }
+      pollCount += 1;
       try {
         const response = await fetch(reportEndpoint);
         const body = await response.json().catch(() => ({}));

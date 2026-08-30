@@ -4,6 +4,7 @@ import { logger, startTimer } from '@/server/observability';
 import { getLatestApplicationMatchingAnalysis } from '@/features/apply/api';
 import { generateApplicationMatchingReport } from '@/lib/ai/matching/generation';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
+import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -53,6 +54,9 @@ export async function POST(
     latestV2 && !isPlus && Number.isFinite(latestCreatedAt)
       ? new Date(latestCreatedAt + COOLDOWN_MS).toISOString()
       : undefined;
+
+  const limited = applyRateLimit(strategyAiLimiter, userId, 'Matching Report generation');
+  if (limited) return limited;
 
   try {
     const result = await generateApplicationMatchingReport({

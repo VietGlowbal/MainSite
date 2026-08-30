@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { matchingReportV3Schema } from '@/lib/ai/matching/domain';
+import { strategyAiLimiter } from '@/lib/rate-limiter';
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -211,6 +212,7 @@ async function importRoute() { return import('./route'); }
 
 describe('/api/applications/[id]/strategy/recommendation V3', () => {
   beforeEach(() => {
+    strategyAiLimiter.resetAll();
     process.env.OPENAI_API_KEY = 'test-key';
     matchingReportForTest = MATCHING_REPORT;
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });

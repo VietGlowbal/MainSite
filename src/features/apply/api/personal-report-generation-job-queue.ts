@@ -35,6 +35,9 @@ const TABLE = 'application_personal_report_generation_jobs';
 const ACTIVE = new Set<ApplicationPersonalReportGenerationJobStatus>(['pending', 'processing', 'retry']);
 const RETRY_BASE_MS = 5 * 60 * 1000;
 const MAX_RETRY_MS = 6 * 60 * 60 * 1000;
+/** One initial run plus at most five automatic retries. */
+export const MAX_AUTOMATIC_RETRIES = 5;
+const MAX_ATTEMPTS = MAX_AUTOMATIC_RETRIES + 1;
 
 export function isPersonalReportGenerationJobsMigrationMissing(error: { code?: string; message?: string } | null | undefined): boolean {
   return Boolean(error && (error.code === '42P01' || /application_personal_report_generation_jobs/i.test(error.message ?? '')));
@@ -162,6 +165,25 @@ export async function markApplicationPersonalReportGenerationComplete(
   }
 }
 
+/** Consume the force marker belonging to this claim without losing a newer request. */
+export async function consumeApplicationPersonalReportGenerationForce(
+  job: Pick<ApplicationPersonalReportGenerationJob, 'id' | 'status' | 'force_requested' | 'updated_at' | 'locked_by'>,
+): Promise<void> {
+  if (!job.force_requested) return;
+
+  const now = new Date().toISOString();
+  let query = createAdminClient()
+    .from(TABLE)
+    .update({ force_requested: false, updated_at: now })
+    .eq('id', job.id)
+    .eq('status', 'processing')
+    .eq('force_requested', true)
+    .eq('updated_at', job.updated_at);
+  if (job.locked_by) query = query.eq('locked_by', job.locked_by);
+  const { error } = await query;
+  if (error) throw error;
+}
+
 export async function blockApplicationPersonalReportGeneration(
   jobId: string,
   errorCode: string,
@@ -169,7 +191,7 @@ export async function blockApplicationPersonalReportGeneration(
 ): Promise<void> {
   const now = new Date().toISOString();
   const { error } = await createAdminClient().from(TABLE).update({
-    status: 'blocked', error_code: errorCode, error_message: errorMessage,
+    status: 'blocked', force_requested: false, error_code: errorCode, error_message: errorMessage,
     locked_at: null, locked_by: null, completed_at: now, updated_at: now,
   }).eq('id', jobId);
   if (error) throw error;
@@ -180,13 +202,20 @@ export async function retryApplicationPersonalReportGeneration(
   attempts: number,
   errorCode: string,
   errorMessage: string,
-): Promise<void> {
+): Promise<'retry' | 'blocked'> {
+  const exhausted = attempts >= MAX_ATTEMPTS;
   const delay = Math.min(Math.max(attempts, 1) ** 2 * RETRY_BASE_MS, MAX_RETRY_MS);
   const now = new Date().toISOString();
   const { error } = await createAdminClient().from(TABLE).update({
-    status: 'retry', next_attempt_at: new Date(Date.now() + delay).toISOString(),
-    error_code: errorCode, error_message: errorMessage.slice(0, 1_000),
+    status: exhausted ? 'blocked' : 'retry',
+    next_attempt_at: exhausted ? now : new Date(Date.now() + delay).toISOString(),
+    error_code: exhausted ? 'MAX_RETRIES_EXCEEDED' : errorCode,
+    error_message: (exhausted
+      ? `Automatic retry limit (${MAX_AUTOMATIC_RETRIES}) reached. Last error: ${errorMessage}`
+      : errorMessage).slice(0, 1_000),
     locked_at: null, locked_by: null, updated_at: now,
+    ...(exhausted ? { force_requested: false, completed_at: now } : {}),
   }).eq('id', jobId);
   if (error) throw error;
+  return exhausted ? 'blocked' : 'retry';
 }

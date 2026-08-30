@@ -11,7 +11,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: mocks.admin }));
 
 import {
+  consumeApplicationPersonalReportGenerationForce,
   enqueueApplicationPersonalReportGeneration,
+  MAX_AUTOMATIC_RETRIES,
   markApplicationPersonalReportGenerationComplete,
   retryApplicationPersonalReportGeneration,
 } from './personal-report-generation-job-queue';
@@ -91,7 +93,7 @@ describe('personal-report-generation-job-queue', () => {
   });
 
   it('clears the lease and schedules retry after an AI failure', async () => {
-    await retryApplicationPersonalReportGeneration('job-1', 2, 'AI_FAILED', 'Model response was invalid.');
+    await expect(retryApplicationPersonalReportGeneration('job-1', 2, 'AI_FAILED', 'Model response was invalid.')).resolves.toBe('retry');
 
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
       status: 'retry', locked_at: null, locked_by: null, error_code: 'AI_FAILED',
@@ -138,5 +140,35 @@ describe('personal-report-generation-job-queue', () => {
 
     expect(mocks.update).toHaveBeenCalledTimes(2);
     expect(mocks.update.mock.calls[1]![0]).toMatchObject({ status: 'pending', completed_at: null });
+  });
+
+  it('blocks after five automatic retries', async () => {
+    await expect(retryApplicationPersonalReportGeneration(
+      'job-1',
+      MAX_AUTOMATIC_RETRIES + 1,
+      'AI_FAILED',
+      'Model response was invalid.',
+    )).resolves.toBe('blocked');
+
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'blocked',
+      force_requested: false,
+      error_code: 'MAX_RETRIES_EXCEEDED',
+      completed_at: expect.any(String),
+    }));
+  });
+
+  it('consumes a forced run marker before generation', async () => {
+    await consumeApplicationPersonalReportGenerationForce({
+      ...JOB,
+      status: 'processing',
+      force_requested: true,
+      locked_by: 'worker-1',
+    });
+
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      force_requested: false,
+      updated_at: expect.any(String),
+    }));
   });
 });

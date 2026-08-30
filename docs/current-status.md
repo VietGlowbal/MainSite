@@ -1,5 +1,18 @@
 # Current project status
 
+Working tree 2026-08-30 (AI report retry/cost circuit breakers): the durable
+Personal Report queue now allows one initial run plus at most five automatic
+retries, then blocks the job. Force requests are consumed at claim time so a
+successful forced run cannot requeue itself indefinitely; the SQL claim guard
+also blocks jobs already over the limit. The loading UI no longer auto-retries
+Matching/Strategy or force-requeues Personal while polling, and its generation
+effect is guarded against reruns. Direct Strategy, Matching, and legacy
+applicant-analysis POST routes now share an 8-request/minute per-user AI guard.
+The production runaway job was manually blocked at 470 attempts. Measured:
+focused report/queue suites 106/106, base typecheck, scoped ESLint, and
+`git diff --check` pass. The updated SQL still needs to be applied to Supabase
+before its database guard is active.
+
 Commit 7c82a55f (2026-08-30, Strategy analysis reload idempotency): the loading
 workspace now reads the current Personal Report before POSTing generation, so
 reloads reuse an existing non-stale Personal, Matching, and Strategy report;
@@ -17,10 +30,10 @@ scoped ESLint, and `git diff --check` pass.
 
 Working tree 2026-08-30 (Strategy Report retry gate): the analysis flow no
 longer treats legacy `reportV2`/recommendation rows as a completed Strategy V3
-report, and the direct Strategy Report page retries a failed generation before
-showing a legacy fallback. Measured: the two Strategy UI suites 17/17, Strategy
-V3 plus route suites 23/23, base typecheck, scoped ESLint, and `git diff --check`
-pass.
+report. The direct Strategy Report page performs one automatic generation
+request, then shows the legacy fallback instead of retrying a failed AI call.
+Measured: the two Strategy UI suites 18/18, Strategy V3 plus route suites
+23/23, base typecheck, scoped ESLint, and `git diff --check` pass.
 
 Working tree 2026-08-30 (Strategy Report legacy synthesis containment): after
 reference containment, production reached synthesis and exposed a second
@@ -70,8 +83,9 @@ warnings remain.
 Working tree 2026-08-30 (Strategy Report generation wiring): the analysis gate
 now starts Strategy Report generation immediately after the current Personal
 Report and Matching Report complete. It shows Strategy as the third report,
-checks the existing Strategy cache first, retries failed generation immediately,
-and exposes Strategy-specific status/retry/open-report actions. Measured:
+checks the existing Strategy cache first, and leaves failed generation for an
+explicit retry, and exposes Strategy-specific status/retry/open-report actions.
+Measured:
 focused Analysis/Strategy suite 21/21, base typecheck, and scoped ESLint pass.
 The full i18n audit still reports 71 pre-existing missing Matching UI keys; no
 new Strategy key is missing.

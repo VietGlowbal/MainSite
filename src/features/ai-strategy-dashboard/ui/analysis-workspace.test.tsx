@@ -126,7 +126,7 @@ describe('AnalysisWorkspace', () => {
     );
   });
 
-  it('retries Strategy Report generation immediately after a failed attempt', async () => {
+  it('does not retry Strategy Report automatically after a failed attempt', async () => {
     let strategyAttempt = 0;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
@@ -145,8 +145,8 @@ describe('AnalysisWorkspace', () => {
 
     render(<AnalysisWorkspace applicationId="app-1" />);
 
-    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
-    expect(strategyAttempt).toBe(2);
+    await waitFor(() => expect(screen.getByText(FRIENDLY_REPORT_ERROR)).toBeInTheDocument());
+    expect(strategyAttempt).toBe(1);
   });
 
   it('does not let a legacy Strategy row suppress V3 generation', async () => {
@@ -203,7 +203,7 @@ describe('AnalysisWorkspace', () => {
     ]);
   });
 
-  it('requeues a failed Personal Report immediately while polling', async () => {
+  it('does not requeue a failed Personal Report from the polling client', async () => {
     let initialRead = true;
     let personalPoll = 0;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
@@ -230,11 +230,9 @@ describe('AnalysisWorkspace', () => {
     render(<AnalysisWorkspace applicationId="app-1" />);
 
     await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument(), { timeout: 5_000 });
-    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ force: true, trigger: 'manual' }),
-    });
+    const personalPosts = fetchMock.mock.calls.filter(([url, init]) => url === PERSONAL_POST && init?.method === 'POST');
+    expect(personalPosts).toHaveLength(1);
+    expect(personalPosts.some(([, init]) => String(init?.body).includes('"force":true'))).toBe(false);
   });
 
   it('uses a current Personal Report even when an old queue row is still active', async () => {
@@ -299,7 +297,7 @@ describe('AnalysisWorkspace', () => {
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') {
         matchingAttempt += 1;
-        return matchingAttempt <= 2
+        return matchingAttempt <= 1
           ? jsonResponse({ error: 'AI service not configured' }, false, 502)
           : jsonResponse({ analysis: { id: 'm1' } });
       }
@@ -322,7 +320,7 @@ describe('AnalysisWorkspace', () => {
     await waitFor(() => expect(screen.getAllByRole('link', { name: 'Open report' })).toHaveLength(2));
   });
 
-  it('retries Matching Report immediately after a failed generation', async () => {
+  it('does not retry Matching Report automatically after a failed generation', async () => {
     let matchingAttempt = 0;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
@@ -340,8 +338,8 @@ describe('AnalysisWorkspace', () => {
 
     render(<AnalysisWorkspace applicationId="app-1" />);
 
-    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
-    expect(matchingAttempt).toBe(2);
+    await waitFor(() => expect(screen.getByText(FRIENDLY_REPORT_ERROR)).toBeInTheDocument());
+    expect(matchingAttempt).toBe(1);
   });
 
   it('fails Personal Report visibly if the canonical report generation fails', async () => {

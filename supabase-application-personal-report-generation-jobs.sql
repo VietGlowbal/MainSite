@@ -33,6 +33,21 @@ create index if not exists idx_application_personal_report_generation_jobs_claim
   on public.application_personal_report_generation_jobs(next_attempt_at, created_at)
   where status in ('pending', 'retry');
 
+-- One initial run plus at most five automatic retries. Make old runaway rows
+-- terminal before the claim RPC can see them.
+update public.application_personal_report_generation_jobs
+set
+  status = 'blocked',
+  force_requested = false,
+  locked_at = null,
+  locked_by = null,
+  error_code = 'MAX_RETRIES_EXCEEDED',
+  error_message = 'Automatic retry limit (5) reached.',
+  completed_at = coalesce(completed_at, now()),
+  updated_at = now()
+where status in ('pending', 'processing', 'retry')
+  and attempts >= 6;
+
 alter table public.application_personal_report_generation_jobs enable row level security;
 
 drop policy if exists "application_personal_report_generation_jobs_select_own" on public.application_personal_report_generation_jobs;
@@ -95,8 +110,11 @@ begin
   where id in (
     select id
     from public.application_personal_report_generation_jobs
-    where (status in ('pending', 'retry') and next_attempt_at <= now())
+    where (
+      (status in ('pending', 'retry') and next_attempt_at <= now())
       or (status = 'processing' and locked_at < now() - interval '10 minutes')
+    )
+      and attempts < 6
     order by next_attempt_at asc, created_at asc
     limit p_batch_size
     for update skip locked

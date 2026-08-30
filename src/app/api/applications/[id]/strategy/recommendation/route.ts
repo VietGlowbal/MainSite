@@ -17,6 +17,7 @@ import {
   strategyReportV3FromRow,
 } from '@/lib/ai/strategy-v3/domain';
 import { generateStrategyReportV3, StrategyGenerationError } from '@/lib/ai/strategy-v3/engine';
+import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
 
@@ -231,6 +232,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     });
     return NextResponse.json({ reportV3: strategyReportV3FromRow(cached), reportV2: null, recommendation: null, cached: true });
   }
+
+  const limited = applyRateLimit(strategyAiLimiter, user.id, 'Strategy Report generation');
+  if (limited) return limited;
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {

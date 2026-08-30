@@ -38,6 +38,7 @@ function publicGeneration(job: Awaited<ReturnType<typeof getApplicationPersonalR
     'NOT_CONFIGURED',
     'AI_GENERATION_FAILED',
     'WORKER_ERROR',
+    'MAX_RETRIES_EXCEEDED',
   ]);
   return {
     status: job.status,

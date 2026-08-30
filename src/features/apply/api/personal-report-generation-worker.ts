@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import {
   blockApplicationPersonalReportGeneration,
   claimApplicationPersonalReportGenerations,
+  consumeApplicationPersonalReportGenerationForce,
+  MAX_AUTOMATIC_RETRIES,
   markApplicationPersonalReportGenerationComplete,
   retryApplicationPersonalReportGeneration,
   type ApplicationPersonalReportGenerationJob,
@@ -14,12 +16,23 @@ export const MAX_PERSONAL_REPORT_GENERATION_BATCH = 5;
 
 async function processJob(job: ApplicationPersonalReportGenerationJob) {
   try {
+    if (job.attempts > MAX_AUTOMATIC_RETRIES + 1) {
+      await blockApplicationPersonalReportGeneration(
+        job.id,
+        'MAX_RETRIES_EXCEEDED',
+        `Automatic retry limit (${MAX_AUTOMATIC_RETRIES}) reached before this job was claimed.`,
+      );
+      return 'blocked' as const;
+    }
+
+    const force = job.force_requested;
+    await consumeApplicationPersonalReportGenerationForce(job);
     const result = await regeneratePersonalReport({
       supabase: createAdminClient(),
       userId: job.user_id,
       applicationId: job.application_id,
       trigger: job.trigger,
-      force: job.force_requested,
+      force,
     });
     if (result.status === 'cached' || result.status === 'regenerated') {
       await markApplicationPersonalReportGenerationComplete(job.id, {
@@ -46,16 +59,14 @@ async function processJob(job: ApplicationPersonalReportGenerationJob) {
       );
       return 'blocked' as const;
     }
-    await retryApplicationPersonalReportGeneration(job.id, job.attempts, 'AI_GENERATION_FAILED', result.message);
-    return 'retry' as const;
+    return retryApplicationPersonalReportGeneration(job.id, job.attempts, 'AI_GENERATION_FAILED', result.message);
   } catch (error) {
-    await retryApplicationPersonalReportGeneration(
+    return retryApplicationPersonalReportGeneration(
       job.id,
       job.attempts,
       'WORKER_ERROR',
       error instanceof Error ? error.message : 'Unknown worker failure.',
     );
-    return 'retry' as const;
   }
 }
 

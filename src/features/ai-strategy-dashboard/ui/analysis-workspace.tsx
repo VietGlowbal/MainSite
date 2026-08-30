@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ICONS, KitIcon, Panel, ProgressBar, usePrefersReducedMotion } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 import { formatUiDateTime } from '@/shared/lib';
@@ -10,8 +10,9 @@ type ReportStatus = 'waiting' | 'generating' | 'complete' | 'failed';
 type ReportState = { status: ReportStatus; error?: string | undefined };
 
 const PERSONAL_REPORT_POLL_MS = 2_000;
-const MATCHING_GENERATION_ATTEMPTS = 2;
-const STRATEGY_GENERATION_ATTEMPTS = 2;
+const PERSONAL_REPORT_MAX_POLLS = 150;
+const MATCHING_GENERATION_ATTEMPTS = 1;
+const STRATEGY_GENERATION_ATTEMPTS = 1;
 
 function waitForNextPersonalReportPoll() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, PERSONAL_REPORT_POLL_MS));
@@ -21,9 +22,7 @@ async function waitForPersonalReport(
   applicationId: string,
   errorMessages: { generic: string; rateLimit: string; unavailable: string },
 ): Promise<ReportState> {
-  let lastGenerationStatus: string | null = null;
-
-  for (;;) {
+  for (let poll = 0; poll < PERSONAL_REPORT_MAX_POLLS; poll += 1) {
     try {
       const response = await fetch(`/api/applications/${applicationId}/personal-report`);
       const body = await response.json().catch(() => ({}));
@@ -39,19 +38,6 @@ async function waitForPersonalReport(
         if (generationStatus === 'blocked') {
           return { status: 'failed', error: errorMessages.generic };
         }
-        if (
-          (generationStatus === 'retry' || generationStatus === 'failed') &&
-          lastGenerationStatus !== generationStatus
-        ) {
-          // The durable worker's normal retry backoff is useful for cron, but
-          // this page can safely requeue the single owner-scoped job now.
-          await fetch(`/api/applications/${applicationId}/personal-report`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ force: true, trigger: 'manual' }),
-          });
-        }
-        lastGenerationStatus = generationStatus;
       } else if (response.status !== 503) {
         if (response.status === 429) return { status: 'failed', error: errorMessages.rateLimit };
         return { status: 'failed', error: body.error || errorMessages.generic };
@@ -61,6 +47,8 @@ async function waitForPersonalReport(
     }
     await waitForNextPersonalReportPoll();
   }
+
+  return { status: 'failed', error: errorMessages.unavailable };
 }
 
 /**
@@ -202,6 +190,7 @@ export function AnalysisWorkspace({
   const [personal, setPersonal] = useState<ReportState>({ status: 'generating' });
   const [matching, setMatching] = useState<ReportState>({ status: 'generating' });
   const [strategy, setStrategy] = useState<ReportState>({ status: 'waiting' });
+  const startedApplicationRef = useRef<string | null>(null);
 
   const personalHref = `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}`;
   const matchingHref = `/ai-strategy/${applicationId}/matching-report`;
@@ -219,6 +208,8 @@ export function AnalysisWorkspace({
   }, []);
 
   useEffect(() => {
+    if (startedApplicationRef.current === applicationId) return;
+    startedApplicationRef.current = applicationId;
     let active = true;
     async function loadReports() {
       const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages);

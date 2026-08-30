@@ -17,7 +17,7 @@ const LOADING_MESSAGES = [
   'Evaluating your portfolio...',
   'Building your roadmap...',
 ] as const;
-const STRATEGY_GENERATION_ATTEMPTS = 2;
+const STRATEGY_GENERATION_ATTEMPTS = 1;
 
 type LoadState = 'checking' | 'generating' | 'ready' | 'error';
 
