@@ -129,6 +129,27 @@ describe('AnalysisWorkspace', () => {
     expect(strategyAttempt).toBe(2);
   });
 
+  it('does not let a legacy Strategy row suppress V3 generation', async () => {
+    let strategyPostCalls = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: null, reportV2: { legacy: true } });
+      if (url === STRATEGY_POST && init?.method === 'POST') {
+        strategyPostCalls += 1;
+        return jsonResponse({ reportV3: { id: 's1' } });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(strategyPostCalls).toBe(1);
+  });
+
   it('waits for queued Personal Report generation before starting Matching Report generation', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') {

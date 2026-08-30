@@ -17,6 +17,7 @@ const LOADING_MESSAGES = [
   'Evaluating your portfolio...',
   'Building your roadmap...',
 ] as const;
+const STRATEGY_GENERATION_ATTEMPTS = 2;
 
 type LoadState = 'checking' | 'generating' | 'ready' | 'error';
 
@@ -85,23 +86,39 @@ export function StrategyRecommendationWorkspace({
         // current lineage/hash and returns the cache hit or a fresh report;
         // rendering GET's V3 row would display stale strategy input.
         setState('generating');
-        const generatedRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`, {
-          method: 'POST',
-        });
-        const generated = (await generatedRes.json()) as {
+        let generatedRes: Response | null = null;
+        let generated: {
           recommendation?: StrategyRecommendationRecord | null;
           reportV2?: StrategyReportV2 | null;
           reportV3?: StrategyReportV3 | null;
           error?: string;
           needsInputs?: boolean;
-        };
+        } = {};
+        let requestError: unknown = null;
+
+        for (let attempt = 0; attempt < STRATEGY_GENERATION_ATTEMPTS; attempt += 1) {
+          try {
+            generatedRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`, {
+              method: 'POST',
+            });
+            generated = (await generatedRes.json()) as typeof generated;
+            requestError = null;
+            if (generated.needsInputs || (generatedRes.ok && (generated.recommendation || generated.reportV2 || generated.reportV3))) {
+              break;
+            }
+          } catch (caught) {
+            requestError = caught;
+          }
+        }
+
+        if (!generatedRes && requestError) throw requestError;
 
         if (generated.needsInputs) {
           router.replace(`/ai-strategy/${applicationId}/strategy/analysis`);
           return;
         }
 
-        if (!generatedRes.ok || (!generated.recommendation && !generated.reportV2 && !generated.reportV3)) {
+        if (!generatedRes || !generatedRes.ok || (!generated.recommendation && !generated.reportV2 && !generated.reportV3)) {
           if (!existing.reportV3 && existing.reportV2) {
             setReportV2(existing.reportV2);
             setState('ready');

@@ -1,5 +1,12 @@
 # Current project status
 
+Working tree 2026-08-30 (Strategy Report retry gate): the analysis flow no
+longer treats legacy `reportV2`/recommendation rows as a completed Strategy V3
+report, and the direct Strategy Report page retries a failed generation before
+showing a legacy fallback. Measured: the two Strategy UI suites 17/17, Strategy
+V3 plus route suites 23/23, base typecheck, scoped ESLint, and `git diff --check`
+pass.
+
 Working tree 2026-08-30 (Strategy Report legacy synthesis containment): after
 reference containment, production reached synthesis and exposed a second
 contract failure: the model returned the retired Strategy shape

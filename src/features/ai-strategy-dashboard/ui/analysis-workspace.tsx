@@ -141,7 +141,9 @@ async function fetchOrGenerateStrategy(
     try {
       const existing = await fetch(`/api/applications/${applicationId}/strategy/recommendation`);
       const existingBody = await existing.json().catch(() => ({}));
-      if (existing.ok && (existingBody.reportV3 || existingBody.reportV2 || existingBody.recommendation)) {
+      // This flow generates V3. Legacy rows are only a read fallback and must
+      // not make a failed/missing V3 generation look complete.
+      if (existing.ok && existingBody.reportV3) {
         return { status: 'complete' };
       }
 

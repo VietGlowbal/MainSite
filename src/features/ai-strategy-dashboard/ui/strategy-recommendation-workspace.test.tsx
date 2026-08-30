@@ -30,4 +30,23 @@ describe('StrategyRecommendationWorkspace', () => {
     expect(screen.queryByText('stale')).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/applications/app-1/strategy/recommendation', { method: 'POST' });
   });
+
+  it('retries a failed Strategy V3 generation before showing a legacy fallback', async () => {
+    let postCalls = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (!init) return Promise.resolve({ ok: true, json: () => Promise.resolve({ reportV2: { legacy: true } }) } as Response);
+      if (init.method !== 'POST') throw new Error(`unexpected fetch ${url}`);
+      postCalls += 1;
+      return postCalls === 1
+        ? Promise.resolve({ ok: false, status: 502, json: () => Promise.resolve({ error: 'temporary failure' }) } as Response)
+        : Promise.resolve({ ok: true, json: () => Promise.resolve({ reportV3: { marker: 'retried' } }) } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<StrategyRecommendationWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('retried')).toBeInTheDocument());
+    expect(postCalls).toBe(2);
+    expect(screen.queryByText('legacy-v2')).not.toBeInTheDocument();
+  });
 });
