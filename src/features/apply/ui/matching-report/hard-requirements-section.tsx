@@ -11,14 +11,14 @@ export type RequirementItem = {
   statusLabel?: string;
   explanation?: string | null;
   blocking?: boolean;
-  kind?: string;
-  deadlineStatus?: 'open' | 'passed' | 'unknown';
-  applicantValue?: string | number | null;
-  requiredValue?: string | number | null;
-  evidenceIds?: string[];
-  targetSourceRefs?: string[];
-  evidenceIndex?: V3EvidenceItem[];
-  targetSourceIndex?: V3TargetSource[];
+  kind?: string | undefined;
+  deadlineStatus?: 'open' | 'passed' | 'unknown' | undefined;
+  applicantValue?: string | number | null | undefined;
+  requiredValue?: string | number | null | undefined;
+  evidenceIds?: string[] | undefined;
+  targetSourceRefs?: string[] | undefined;
+  evidenceIndex?: V3EvidenceItem[] | undefined;
+  targetSourceIndex?: V3TargetSource[] | undefined;
 };
 
 type HardRequirementsSectionProps = {

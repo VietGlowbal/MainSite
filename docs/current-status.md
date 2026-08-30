@@ -1482,6 +1482,8 @@ Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/m
 
 2026-08-29 Matching Report missing-evidence wording fix (working tree): V3 summary validation now blocks only explicit claims that the applicant/candidate/student is unable or incapable, while allowing neutral data-limit wording such as “unable to establish from the available evidence.” The summary prompt states the preferred wording and the V3 prompt/bundle versions are bumped to `3.1.1`. Measured: reasoner/V3 suites 20/20, scoped ESLint, base typecheck, and `git diff --check` pass.
 
+2026-08-30 Matching Report V3 UI detail fix (working tree): the canonical V3 page now renders the four canonical Programme Fit metrics without duplicating University Academic Readiness, uses report-generated summaries/alignment instead of hardcoded copy, exposes metric status/coverage/confidence and expandable submetrics with reasoning, shows strengths/gaps/positioning opportunities, scholarship alignment, evidence/source records, and hard-requirement applicant/required values plus deadline status. V2 and legacy callers retain the existing optional-prop behavior. Measured: Matching UI/AI suites 11 files / 116 tests passed, base and strict typecheck passed, scoped ESLint passed, and `npm.cmd run build:ci` passed with the existing 3 `geo-content.ts` tracing warnings. The i18n audit currently reports 79 static missing Matching keys (dynamic catalog misses: 0); the newly added V3 keys are cataloged.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

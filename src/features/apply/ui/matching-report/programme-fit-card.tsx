@@ -17,13 +17,13 @@ type ProgrammeFitCardProps = {
   strongestFit?: string;
   potentialGap?: string;
   recommendation?: string;
-  fitScore?: number | null;
-  fitStatus?: MatchingV3MetricStatus;
-  fitCoverage?: number;
-  fitConfidence?: number;
-  fitSummary?: string;
-  evidenceIndex?: V3EvidenceItem[];
-  targetSourceIndex?: V3TargetSource[];
+  fitScore?: number | null | undefined;
+  fitStatus?: MatchingV3MetricStatus | undefined;
+  fitCoverage?: number | undefined;
+  fitConfidence?: number | undefined;
+  fitSummary?: string | undefined;
+  evidenceIndex?: V3EvidenceItem[] | undefined;
+  targetSourceIndex?: V3TargetSource[] | undefined;
 };
 
 const VIEWBOX_W = 400;

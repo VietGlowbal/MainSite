@@ -23,9 +23,9 @@ type KeyTakeawaysGridProps = {
   criticalGap: TakeawayItem;
   strategicDirection: TakeawayItem;
   evidenceSnapshot: EvidenceSnapshotItem[];
-  evidenceIndex?: V3EvidenceItem[];
-  targetSourceIndex?: V3TargetSource[];
-  metricLabels?: Record<string, string>;
+  evidenceIndex?: V3EvidenceItem[] | undefined;
+  targetSourceIndex?: V3TargetSource[] | undefined;
+  metricLabels?: Record<string, string> | undefined;
 };
 
 function cleanTitle(badgeName: string, title?: string): string | null {

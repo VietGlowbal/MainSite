@@ -21,11 +21,11 @@ type UniversityFitCardProps = {
   insightSummary?: string;
   strongestAlignment?: string;
   primaryOpportunity?: string;
-  fitStatus?: MatchingV3MetricStatus;
-  fitCoverage?: number;
-  fitConfidence?: number;
-  evidenceIndex?: V3EvidenceItem[];
-  targetSourceIndex?: V3TargetSource[];
+  fitStatus?: MatchingV3MetricStatus | undefined;
+  fitCoverage?: number | undefined;
+  fitConfidence?: number | undefined;
+  evidenceIndex?: V3EvidenceItem[] | undefined;
+  targetSourceIndex?: V3TargetSource[] | undefined;
 };
 
 export function UniversityFitCard({

@@ -387,6 +387,31 @@ describe('MatchingReportView', () => {
     expect(screen.getByText(/do not predict admission decisions/i)).toBeInTheDocument();
     expect(screen.queryByText(/^0\/100$/)).not.toBeInTheDocument();
   });
+
+  it('renders selected scholarship alignment as a separate report section', () => {
+    renderReport({
+      analysis: {
+        ...data.analysis!,
+        reportV2: null,
+        reportV3: {
+          ...V3_REPORT,
+          metadata: { ...V3_REPORT.metadata, selectedScholarshipKey: 'merit-scholarship' },
+          scholarshipAlignment: {
+            score: 74,
+            status: 'limited',
+            confidence: 0.7,
+            coverage: 80,
+            summary: 'Scholarship fit summary.',
+            metrics: { academicReadiness: v3Metric('academicReadiness', 74, 'limited') },
+          },
+        },
+      },
+    });
+
+    expect(screen.getByText(/5\. Scholarship Alignment/)).toBeInTheDocument();
+    expect(screen.getByText('merit-scholarship')).toBeInTheDocument();
+    expect(screen.getByText('Scholarship fit summary.')).toBeInTheDocument();
+  });
 });
 
 

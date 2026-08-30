@@ -61,12 +61,12 @@ export function V3ReferenceList({
   evidenceIndex = [],
   targetSourceIndex = [],
 }: {
-  evidenceIds?: string[];
-  targetSourceRefs?: string[];
-  metricIds?: string[];
-  metricLabels?: Record<string, string>;
-  evidenceIndex?: V3EvidenceItem[];
-  targetSourceIndex?: V3TargetSource[];
+  evidenceIds?: string[] | undefined;
+  targetSourceRefs?: string[] | undefined;
+  metricIds?: string[] | undefined;
+  metricLabels?: Record<string, string> | undefined;
+  evidenceIndex?: V3EvidenceItem[] | undefined;
+  targetSourceIndex?: V3TargetSource[] | undefined;
 }) {
   const t = useT();
   const evidenceById = new Map(evidenceIndex.map((item) => [item.id, item]));
@@ -143,8 +143,8 @@ export function V3MetricDetails({
 }: {
   label: string;
   metric: MatchingV3Metric;
-  evidenceIndex?: V3EvidenceItem[];
-  targetSourceIndex?: V3TargetSource[];
+  evidenceIndex?: V3EvidenceItem[] | undefined;
+  targetSourceIndex?: V3TargetSource[] | undefined;
 }) {
   const t = useT();
   const score = metric.score === null ? null : Math.round(metric.score);
