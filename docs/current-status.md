@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-08-30 (Strategy Report legacy synthesis containment): after
+reference containment, production reached synthesis and exposed a second
+contract failure: the model returned the retired Strategy shape
+(`summary/strengths/coreNarrative`) instead of V3's nested schema. The engine
+now shape-gates synthesis output and uses a deterministic, evidence-empty V3
+scaffold for legacy/incomplete or schema-invalid synthesis; genuinely
+infeasible deadline plans still fail closed. Added a regression for the exact
+legacy payload. Measured: Strategy V3 plus route suites 23/23, base typecheck,
+scoped ESLint, and `git diff --check` pass.
+
 Working tree 2026-08-30 (Strategy Report model-reference containment): a live
 read of the failing application's snapshot, Personal Report, Matching Report,
 and source analysis confirmed that the rejected `experience:*` UUID exists in

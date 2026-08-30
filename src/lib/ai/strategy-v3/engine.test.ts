@@ -146,6 +146,31 @@ describe('Strategy V3 engine', () => {
     expect(analysis.dimensions.relevance).toMatchObject({ status: 'limited', targetSourceRefs: [] });
   });
 
+  it('returns a valid report when synthesis responds with the legacy strategy shape', async () => {
+    const legacySynthesis = {
+      strategicOverview: {
+        summary: 'Legacy summary.',
+        strengths: ['Legacy strength.'],
+        strategicPriorities: ['Legacy priority.'],
+        centralConstraint: 'Legacy constraint.',
+        overallLimitations: ['Legacy limitation.'],
+      },
+      narrativeStrategy: {
+        coreNarrative: 'Legacy narrative.',
+        narrativeOptions: [{ status: 'strong', direction: 'Legacy direction.', causalShape: 'Legacy shape.', caution: 'Legacy caution.' }],
+      },
+      strategicRoadmap: [{}, {}, {}, {}],
+    };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(legacySynthesis));
+
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+
+    expect(report.strategicOverview.currentPosition.summary).toBeTruthy();
+    expect(report.strategicRoadmap).toHaveLength(4);
+  });
+
   it('sends each activity batch as the only canonical activity scope', async () => {
     mocks.openAiJsonCompletion.mockReset();
     const activities = Array.from({ length: 7 }, (_, index) => ({

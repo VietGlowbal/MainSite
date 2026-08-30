@@ -78,7 +78,7 @@ export async function generateStrategyReportV3(args: {
   const activities = validateActivities(normalizeActivityClaimSupport(activityResults.flatMap((result) => result.analyses)), context);
 
   const priorities = selectTopPriorities(context, profile.areas, activities);
-  const synthesis = sanitizeGeneratedReferences(await callStage(
+  const synthesisCandidate = sanitizeGeneratedReferences(await callStage(
     'strategy_report_synthesis',
     synthesisStageSchema,
     {
@@ -91,19 +91,36 @@ export async function generateStrategyReportV3(args: {
     model,
     'synthesis_failed',
   ), referenceAllowlist(context, priorities), 'synthesis');
+  const fallbackSynthesis = deterministicSynthesis(priorities);
+  const synthesis = isCanonicalSynthesis(synthesisCandidate) ? synthesisCandidate : fallbackSynthesis;
+  if (synthesis === fallbackSynthesis) {
+    console.warn('[strategy-v3] using deterministic synthesis fallback', { reason: 'legacy_or_incomplete_output' });
+  }
 
-  let report: unknown;
-  try {
-    report = assembleReport({ context, profile: profile.areas, activities, priorities, synthesis, model, now });
-    return assertStrategyReportV3(report, {
+  const assembleAndValidate = (candidate: z.infer<typeof synthesisStageSchema>) => assertStrategyReportV3(
+    assembleReport({ context, profile: profile.areas, activities, priorities, synthesis: candidate, model, now }),
+    {
       activityIds: context.activities.map((activity) => activity.activityId),
       evidenceIds: context.evidenceIndex.map((item) => item.id),
       targetSourceRefs: context.targetSourceIndex.map((item) => item.ref),
       metricIds: matchingMetricIds(context),
       gapIds: context.matching.gaps.map((gap) => gap.id),
       requirementIds: strategyRequirementIds(context),
-    });
+    },
+  );
+
+  try {
+    return assembleAndValidate(synthesis);
   } catch (error) {
+    const deadlineInfeasible = error instanceof StrategyGenerationError && error.code === 'deadline_infeasible';
+    if (synthesis !== fallbackSynthesis && !deadlineInfeasible) {
+      console.warn('[strategy-v3] using deterministic synthesis fallback', { reason: 'schema_validation_failed' });
+      try {
+        return assembleAndValidate(fallbackSynthesis);
+      } catch {
+        // Preserve the original error when the deterministic fallback also fails.
+      }
+    }
     if (error instanceof StrategyGenerationError) throw error;
     throw new StrategyGenerationError(
       error instanceof Error ? error.message : 'Strategy synthesis produced invalid output.',
@@ -272,6 +289,66 @@ function normalizeActivityClaimSupport(analyses: ActivityStrategyAnalysis[]): Ac
       return [key, dimension];
     })) as ActivityStrategyAnalysis['dimensions'],
   }));
+}
+
+function isCanonicalSynthesis(value: unknown): value is z.infer<typeof synthesisStageSchema> {
+  const synthesis = record(value);
+  const overview = record(synthesis.strategicOverview);
+  const position = record(overview.currentPosition);
+  const narrative = record(synthesis.narrativeStrategy);
+  return Boolean(
+    Object.keys(position).length > 0 &&
+    record(overview.strategicOpportunity).statement &&
+    record(overview.strategicGoal).directionOfImprovement &&
+    typeof overview.expectedOutcome === 'string' &&
+    record(narrative.coreNarrativeDirection).insight &&
+    Array.isArray(narrative.supportingThemes) &&
+    Array.isArray(narrative.narrativeOptions) &&
+    Array.isArray(synthesis.strategicRoadmap) &&
+    synthesis.strategicRoadmap.length === STRATEGY_PHASE_KEYS.length,
+  );
+}
+
+function deterministicSynthesis(priorities: StrategicPriority[]): z.infer<typeof synthesisStageSchema> {
+  const focus = priorities[0]?.title ?? 'the highest-priority evidence and requirement gaps';
+  return {
+    strategicOverview: {
+      currentPosition: {
+        summary: 'The confirmed applicant profile is ready for evidence-led planning.',
+        profileStrength: { statement: 'Build from confirmed applicant evidence and stated direction.', evidenceIds: [], metricIds: [] },
+        keyChallenge: { statement: `Focus first on ${focus}.`, gapIds: [], requirementIds: [] },
+        unclearArea: null,
+        differentiatedPotential: null,
+      },
+      strategicOpportunity: { statement: `Prioritise ${focus} before adding new work.`, priorityKeys: [] },
+      strategicGoal: { directionOfImprovement: 'Strengthen the application through focused, evidence-led progress.', communicationGoal: 'Present a clear and credible application story.' },
+      expectedOutcome: 'A more focused, evidence-led application plan.',
+    },
+    narrativeStrategy: {
+      coreNarrativeDirection: {
+        originTrigger: null,
+        recurringMotivation: null,
+        actions: [],
+        capabilitiesDeveloped: [],
+        emergingDirection: null,
+        insight: 'No additional causal narrative is established from the supplied evidence.',
+        evidenceIds: [],
+      },
+      supportingThemes: [],
+      narrativeTension: null,
+      narrativeOptions: [],
+    },
+    strategicRoadmap: STRATEGY_PHASE_KEYS.map((phaseKey) => ({
+      phaseKey,
+      name: phaseKey.replaceAll('_', ' '),
+      goal: 'Complete the next evidence-led step for this phase.',
+      keyActions: [],
+      deliverables: [],
+      successCriteria: [],
+      estimatedTimeline: 'Review after the preceding phase.',
+      linkedPriorityKeys: [],
+    })),
+  };
 }
 
 function validateActivities(analyses: ActivityStrategyAnalysis[], context: StrategyInputContext): ActivityStrategyAnalysis[] {
