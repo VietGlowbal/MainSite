@@ -4630,9 +4630,11 @@ export const translations: Record<string, string> = {
   'Report generation progress': 'Tiến trình tạo báo cáo',
   'Personal Report is ready.': 'Báo cáo cá nhân đã sẵn sàng.',
   'Matching Report is ready.': 'Báo cáo phù hợp đã sẵn sàng.',
+  'Strategy Report is ready.': 'Báo cáo chiến lược đã sẵn sàng.',
   'A complete overview of your profile, strengths, achievements and academic background.':
     'Tổng quan đầy đủ về hồ sơ, thế mạnh, thành tích và nền tảng học vấn của bạn.',
   'Generating…': 'Đang tạo…',
+  'Waiting for Personal and Matching Reports…': 'Đang chờ Báo cáo cá nhân và Báo cáo phù hợp…',
   "We couldn't finish this report. We'll retry it using your confirmed information.":
     'Chúng tôi chưa hoàn thành báo cáo này. Chúng tôi sẽ thử lại bằng thông tin đã xác nhận của bạn.',
   'Open report': 'Mở báo cáo',

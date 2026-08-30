@@ -6,11 +6,12 @@ import { Button, ICONS, KitIcon, Panel, ProgressBar, usePrefersReducedMotion } f
 import { useLanguage } from '@/lib/i18n';
 import { formatUiDateTime } from '@/shared/lib';
 
-type ReportStatus = 'generating' | 'complete' | 'failed';
+type ReportStatus = 'waiting' | 'generating' | 'complete' | 'failed';
 type ReportState = { status: ReportStatus; error?: string | undefined };
 
 const PERSONAL_REPORT_POLL_MS = 2_000;
 const MATCHING_GENERATION_ATTEMPTS = 2;
+const STRATEGY_GENERATION_ATTEMPTS = 2;
 
 function waitForNextPersonalReportPoll() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, PERSONAL_REPORT_POLL_MS));
@@ -130,6 +131,43 @@ async function fetchOrGenerateMatching(
   return lastFailure;
 }
 
+async function fetchOrGenerateStrategy(
+  applicationId: string,
+  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+): Promise<ReportState> {
+  let lastFailure: ReportState = { status: 'failed', error: errorMessages.generic };
+
+  for (let attempt = 0; attempt < STRATEGY_GENERATION_ATTEMPTS; attempt += 1) {
+    try {
+      const existing = await fetch(`/api/applications/${applicationId}/strategy/recommendation`);
+      const existingBody = await existing.json().catch(() => ({}));
+      if (existing.ok && (existingBody.reportV3 || existingBody.reportV2 || existingBody.recommendation)) {
+        return { status: 'complete' };
+      }
+
+      const created = await fetch(`/api/applications/${applicationId}/strategy/recommendation`, { method: 'POST' });
+      const createdBody = await created.json().catch(() => ({}));
+      if (!created.ok || (!createdBody.reportV3 && !createdBody.reportV2 && !createdBody.recommendation)) {
+        lastFailure = {
+          status: 'failed',
+          error:
+            created.status === 429
+              ? errorMessages.rateLimit
+              : created.status === 503
+                ? errorMessages.unavailable
+                : createdBody.error || errorMessages.generic,
+        };
+        continue;
+      }
+      return { status: 'complete' };
+    } catch {
+      // Retry the complete read/create cycle immediately for transient failures.
+    }
+  }
+
+  return lastFailure;
+}
+
 export function AnalysisWorkspace({
   applicationId,
   confirmedAt,
@@ -142,6 +180,7 @@ export function AnalysisWorkspace({
   const { t, lang } = useLanguage();
   const [personal, setPersonal] = useState<ReportState>({ status: 'generating' });
   const [matching, setMatching] = useState<ReportState>({ status: 'generating' });
+  const [strategy, setStrategy] = useState<ReportState>({ status: 'waiting' });
 
   const personalHref = `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}`;
   const matchingHref = `/ai-strategy/${applicationId}/matching-report`;
@@ -174,6 +213,10 @@ export function AnalysisWorkspace({
       const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
       if (!active) return;
       setMatching(matchingState);
+      if (matchingState.status !== 'complete') return;
+      setStrategy({ status: 'generating' });
+      const strategyState = await fetchOrGenerateStrategy(applicationId, errorMessages);
+      if (active) setStrategy(strategyState);
     }
     void loadReports();
     return () => {
@@ -184,6 +227,7 @@ export function AnalysisWorkspace({
   const retryPersonal = useCallback(async () => {
     setPersonal({ status: 'generating' });
     setMatching({ status: 'generating' });
+    setStrategy({ status: 'waiting' });
     const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages);
     setPersonal(personalState);
     if (personalState.status !== 'complete') {
@@ -195,6 +239,9 @@ export function AnalysisWorkspace({
     }
     const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
     setMatching(matchingState);
+    if (matchingState.status !== 'complete') return;
+    setStrategy({ status: 'generating' });
+    setStrategy(await fetchOrGenerateStrategy(applicationId, errorMessages));
   }, [applicationId, errorMessages]);
 
   const retryMatching = useCallback(() => {
@@ -203,12 +250,27 @@ export function AnalysisWorkspace({
       return;
     }
     setMatching({ status: 'generating' });
-    void fetchOrGenerateMatching(applicationId, errorMessages).then(setMatching);
+    setStrategy({ status: 'waiting' });
+    void fetchOrGenerateMatching(applicationId, errorMessages).then(async (matchingState) => {
+      setMatching(matchingState);
+      if (matchingState.status !== 'complete') return;
+      setStrategy({ status: 'generating' });
+      setStrategy(await fetchOrGenerateStrategy(applicationId, errorMessages));
+    });
   }, [applicationId, errorMessages, personal.status, retryPersonal]);
 
-  const completeCount = [personal, matching].filter((report) => report.status === 'complete').length;
-  const allComplete = completeCount === 2;
-  const anyFailed = personal.status === 'failed' || matching.status === 'failed';
+  const retryStrategy = useCallback(() => {
+    if (personal.status !== 'complete' || matching.status !== 'complete') {
+      void retryMatching();
+      return;
+    }
+    setStrategy({ status: 'generating' });
+    void fetchOrGenerateStrategy(applicationId, errorMessages).then(setStrategy);
+  }, [applicationId, errorMessages, matching.status, personal.status, retryMatching]);
+
+  const completeCount = [personal, matching, strategy].filter((report) => report.status === 'complete').length;
+  const allComplete = completeCount === 3;
+  const anyFailed = [personal, matching, strategy].some((report) => report.status === 'failed');
   const confirmedDate = confirmedAt
     ? formatUiDateTime(confirmedAt, lang, {
         day: 'numeric',
@@ -247,10 +309,10 @@ export function AnalysisWorkspace({
           <div className="flex w-full max-w-xs flex-col items-center gap-gb-md text-center sm:items-start sm:text-left">
             <p className="text-gb-lg font-semibold text-fg">{t('Building your personalised reports')}</p>
             <p className="text-gb-sm text-fg-tertiary">
-              {t('{count} of {total} reports complete', { count: completeCount, total: 2 })}
+              {t('{count} of {total} reports complete', { count: completeCount, total: 3 })}
             </p>
             <ProgressBar
-              value={(completeCount / 2) * 100}
+              value={(completeCount / 3) * 100}
               label={t('Report generation progress')}
               className="w-full"
             />
@@ -261,6 +323,7 @@ export function AnalysisWorkspace({
       <div aria-live="polite" className="sr-only">
         {personal.status === 'complete' ? t('Personal Report is ready.') : ''}
         {matching.status === 'complete' ? t('Matching Report is ready.') : ''}
+        {strategy.status === 'complete' ? t('Strategy Report is ready.') : ''}
       </div>
 
       <ul className="flex flex-col gap-gb-lg">
@@ -288,6 +351,18 @@ export function AnalysisWorkspace({
           viewHref={matchingHref}
           viewLabel={t('Open report')}
         />
+        <ReportRow
+          title={t('Strategy Report')}
+          description={t('Your Strategy Report turns these findings into a prioritised plan and a set of tasks you can work through.')}
+          state={strategy}
+          waitingLabel={t('Waiting for Personal and Matching Reports…')}
+          generatingLabel={t('Generating…')}
+          failedLabel={t("We couldn't finish this report. We'll retry it using your confirmed information.")}
+          retryLabel={t('Try again')}
+          onRetry={retryStrategy}
+          viewHref={`/ai-strategy/${applicationId}/strategy-report`}
+          viewLabel={t('Open my Strategy Report')}
+        />
       </ul>
 
       {anyFailed ? (
@@ -308,6 +383,9 @@ export function AnalysisWorkspace({
           </Button>
           <Button href={matchingHref} variant="secondary" size="lg">
             {t('Open Matching Report')}
+          </Button>
+          <Button href={`/ai-strategy/${applicationId}/strategy-report`} variant="secondary" size="lg">
+            {t('Open my Strategy Report')}
           </Button>
           <Button href="/apply" variant="secondary" size="lg">
             {t('Go to My Portal')}
@@ -341,6 +419,7 @@ function ReportRow({
   title,
   description,
   state,
+  waitingLabel,
   generatingLabel,
   failedLabel,
   retryLabel,
@@ -351,6 +430,7 @@ function ReportRow({
   title: string;
   description: string;
   state: ReportState;
+  waitingLabel?: string;
   generatingLabel: string;
   failedLabel: string;
   retryLabel: string;
@@ -366,6 +446,9 @@ function ReportRow({
         <p className="text-gb-sm text-fg-tertiary">{description}</p>
         {state.status === 'generating' ? (
           <p className="text-gb-sm font-medium text-fg-brand">{generatingLabel}</p>
+        ) : null}
+        {state.status === 'waiting' && waitingLabel ? (
+          <p className="text-gb-sm text-fg-tertiary">{waitingLabel}</p>
         ) : null}
         {state.status === 'failed' ? (
           <div className="flex flex-wrap items-center gap-gb-md">
@@ -404,13 +487,21 @@ function StatusGlyph({ status }: { status: ReportStatus }) {
       />
     );
   }
+  if (status === 'generating') {
+    return (
+      <span
+        aria-hidden="true"
+        className="mt-gb-xxs flex size-6 shrink-0 items-center justify-center rounded-gb-full border-2 border-line-strong"
+      >
+        <span className="size-2.5 animate-pulse rounded-gb-full bg-brand" />
+      </span>
+    );
+  }
   return (
     <span
       aria-hidden="true"
       className="mt-gb-xxs flex size-6 shrink-0 items-center justify-center rounded-gb-full border-2 border-line-strong"
-    >
-      <span className="size-2.5 animate-pulse rounded-gb-full bg-brand" />
-    </span>
+    />
   );
 }
 

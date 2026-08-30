@@ -6,6 +6,8 @@ import { AnalysisWorkspace } from './analysis-workspace';
 const PERSONAL_POST = '/api/applications/app-1/personal-report';
 const MATCHING_GET = '/api/applications/app-1/strategy/course-match';
 const MATCHING_POST = '/api/applications/app-1/match-insights';
+const STRATEGY_GET = '/api/applications/app-1/strategy/recommendation';
+const STRATEGY_POST = '/api/applications/app-1/strategy/recommendation';
 const FRIENDLY_REPORT_ERROR = "We couldn't finish this report. We'll retry it using your confirmed information.";
 
 function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 500) {
@@ -27,6 +29,7 @@ describe('AnalysisWorkspace', () => {
       }
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -52,6 +55,7 @@ describe('AnalysisWorkspace', () => {
       if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -78,6 +82,30 @@ describe('AnalysisWorkspace', () => {
     expect(screen.queryByText('Generating…')).not.toBeInTheDocument();
   });
 
+  it('starts Strategy Report generation only after Personal and Matching Reports complete', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: null });
+      if (url === STRATEGY_POST && init?.method === 'POST') return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledWith(STRATEGY_POST, { method: 'POST' });
+    const urls = fetchMock.mock.calls.map(([url]) => url);
+    expect(urls.indexOf(STRATEGY_GET)).toBeGreaterThan(urls.indexOf(MATCHING_POST));
+    expect(urls.indexOf(STRATEGY_POST)).toBeGreaterThan(urls.indexOf(MATCHING_POST));
+    expect(screen.getByRole('link', { name: 'Open my Strategy Report' })).toHaveAttribute(
+      'href',
+      '/ai-strategy/app-1/strategy-report',
+    );
+  });
+
   it('waits for queued Personal Report generation before starting Matching Report generation', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') {
@@ -88,6 +116,7 @@ describe('AnalysisWorkspace', () => {
       }
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -100,6 +129,7 @@ describe('AnalysisWorkspace', () => {
       PERSONAL_POST,
       MATCHING_GET,
       MATCHING_POST,
+      STRATEGY_GET,
     ]);
   });
 
@@ -117,6 +147,7 @@ describe('AnalysisWorkspace', () => {
       }
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -145,6 +176,7 @@ describe('AnalysisWorkspace', () => {
       }
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -157,6 +189,7 @@ describe('AnalysisWorkspace', () => {
       PERSONAL_POST,
       MATCHING_GET,
       MATCHING_POST,
+      STRATEGY_GET,
     ]);
   });
 
@@ -196,6 +229,7 @@ describe('AnalysisWorkspace', () => {
           ? jsonResponse({ error: 'AI service not configured' }, false, 502)
           : jsonResponse({ analysis: { id: 'm1' } });
       }
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -225,6 +259,7 @@ describe('AnalysisWorkspace', () => {
           ? jsonResponse({ error: 'Temporary failure' }, false, 502)
           : jsonResponse({ analysis: { id: 'm1' } });
       }
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
