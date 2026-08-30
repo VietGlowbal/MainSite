@@ -71,7 +71,7 @@ export function buildStrategyInputContext(args: {
 }): StrategyInputContext {
   const { application, personalReport, matching, snapshotState, sourceAnalysis, targetProfile } = args;
   const activities = [...snapshotState.achievements, ...snapshotState.activities].map(activityContext);
-  const evidenceIndex = buildEvidenceIndex(snapshotState, sourceAnalysis, matching);
+  const evidenceIndex = buildEvidenceIndex(snapshotState, sourceAnalysis, matching, personalReport);
   const targetSourceIndex = buildTargetSourceIndex(targetProfile?.profile, matching);
   const deadline = stringValue(application.deadline);
   const daysUntilDeadline = deadline ? daysBetween(args.now ?? new Date(), deadline) : null;
@@ -164,6 +164,7 @@ function buildEvidenceIndex(
   state: ApplicantAIState,
   sourceAnalysis: StoredApplicationProfileAnalysis | null,
   matching: MatchingReportV3,
+  personalReport: PersonalReportV2,
 ): StrategyEvidenceIndexItem[] {
   const items: StrategyEvidenceIndexItem[] = state.evidenceBank.map((item) => ({
     id: item.id,
@@ -196,7 +197,41 @@ function buildEvidenceIndex(
     const id = stringValue(item.id);
     if (id) addReportOnly({ id, label: stringValue(item.label) ?? id });
   }
+  addPersonalReportEvidence(personalReport, addReportOnly);
   return items;
+}
+
+function addPersonalReportEvidence(
+  report: PersonalReportV2,
+  add: (item: { id: string; label: string }) => void,
+): void {
+  const visit = (value: unknown, field?: string): void => {
+    if (Array.isArray(value)) {
+      if (field === 'evidenceRefs') {
+        for (const raw of value) {
+          if (!raw || typeof raw !== 'object') continue;
+          const item = raw as Record<string, unknown>;
+          const id = stringValue(item.id);
+          if (id) add({ id, label: stringValue(item.label) ?? id });
+        }
+        return;
+      }
+      if (field === 'evidenceIds' || field?.endsWith('EvidenceIds')) {
+        for (const raw of value) {
+          if (typeof raw === 'string' && raw.trim()) add({ id: raw.trim(), label: raw.trim() });
+        }
+        return;
+      }
+      for (const item of value) visit(item, field);
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      if (key !== 'narrativeDetails') visit(item, key);
+    }
+  };
+
+  visit(report);
 }
 
 function buildTargetSourceIndex(

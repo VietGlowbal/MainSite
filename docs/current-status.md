@@ -1,5 +1,21 @@
 # Current project status
 
+Working tree 2026-08-30 (Strategy Report evidence provenance fix): Strategy V3
+now carries the current Personal Report's evidence references into its own
+allowlist as report-only inputs after snapshot, Matching, and source-analysis
+evidence. This closes the camelCase snapshot vs canonical report-ID gap that
+rejected valid refs such as `profile:study_motivation`. Added a regression
+test. Measured: Strategy V3 and route suite 12/12, base typecheck, scoped
+ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-30 (Matching → Strategy handoff): V2 and V3 Matching
+Reports now end with a clear Strategy Report CTA pointing to the canonical
+application strategy route. The analysis loading screen already auto-generates
+Personal, Matching, then Strategy in order. Measured: focused Matching and
+Analysis workspace suites 27/27, scoped ESLint, strict typecheck, and CI
+production build pass; existing Vite, Edge-runtime, and filesystem tracing
+warnings remain.
+
 Working tree 2026-08-30 (Strategy Report generation wiring): the analysis gate
 now starts Strategy Report generation immediately after the current Personal
 Report and Matching Report complete. It shows Strategy as the third report,

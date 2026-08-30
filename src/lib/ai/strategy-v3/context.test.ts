@@ -29,4 +29,31 @@ describe('Strategy V3 canonical context', () => {
     expect(context.evidenceIndex.map((item) => item.id)).toEqual(expect.arrayContaining(['achievement:achievement-1', 'activity:activity-1', 'profile:goals']));
     expect(context.application.daysUntilDeadline).toBe(124);
   });
+
+  it('adds Personal Report provenance to the Strategy evidence allowlist', () => {
+    const state = stateFromSnapshotRow({
+      id: 'snap-1', user_id: 'user-1', application_id: 'app-1',
+      payload: { reflection: { studyMotivation: 'I enjoy solving practical problems.' } },
+    });
+    const context = buildStrategyInputContext({
+      applicationId: 'app-1',
+      application: { deadline: '2027-01-01' },
+      personalReport: {
+        coreIdentity: {
+          evidenceRefs: [{ id: 'profile:reflection_q1', kind: 'profile_reflection', label: 'Interests' }],
+        },
+        drivingForce: {
+          evidenceRefs: [{ id: 'profile:study_motivation', kind: 'profile', label: 'Study motivation' }],
+        },
+      } as never,
+      matching: { evidenceIndex: [], targetSourceIndex: [], hardRequirements: [], gaps: [], metadata: {} } as never,
+      snapshotState: state,
+      sourceAnalysis: null,
+      targetProfile: null,
+    });
+
+    expect(context.evidenceIndex.map((item) => item.id)).toEqual(
+      expect.arrayContaining(['profile:study_motivation', 'profile:reflection_q1']),
+    );
+  });
 });
