@@ -2,7 +2,7 @@
 
 import { useT } from '@/lib/i18n';
 import type { MatchingV3Metric, MatchingV3MetricStatus } from '@/lib/ai/matching/domain';
-import { V3MetricDetails, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
+import { FormattedInsightText, V3MetricDetails, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
 
 export type ProgrammeDimension = {
   id: string;
@@ -336,9 +336,7 @@ export function ProgrammeFitCard({
               </svg>
               <span>{t('Strongest Fit')}</span>
             </div>
-            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
-              {defaultStrongest}
-            </p>
+            <FormattedInsightText text={defaultStrongest} />
           </div>
 
           {/* 2. Potential Gap */}
@@ -349,9 +347,7 @@ export function ProgrammeFitCard({
               </svg>
               <span>{t('Potential Gap')}</span>
             </div>
-            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
-              {defaultGap}
-            </p>
+            <FormattedInsightText text={defaultGap} />
           </div>
 
           {/* 3. Recommendation */}
@@ -362,9 +358,7 @@ export function ProgrammeFitCard({
               </svg>
               <span>{t('Recommendation')}</span>
             </div>
-            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
-              {defaultRecommendation}
-            </p>
+            <FormattedInsightText text={defaultRecommendation} />
           </div>
         </div>
       </div>

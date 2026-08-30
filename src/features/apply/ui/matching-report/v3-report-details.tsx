@@ -53,6 +53,60 @@ export function v3EvidenceStatusLabel(status: V3EvidenceItem['status'], t: Trans
   }
 }
 
+export function FormattedInsightText({ text }: { text: string }) {
+  if (!text) return null;
+
+  // Split by middle dot '·' or explicit double newline
+  const rawSegments = text
+    .split(/\s*·\s*|\n\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (rawSegments.length === 1 && !rawSegments[0].includes(':')) {
+    return (
+      <div className="max-h-72 overflow-y-auto pr-1">
+        <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
+          {rawSegments[0]}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
+      {rawSegments.map((segment, idx) => {
+        const colonIdx = segment.indexOf(':');
+        if (colonIdx > 0 && colonIdx < 50) {
+          const dimensionTitle = segment.slice(0, colonIdx).trim();
+          const dimensionBody = segment.slice(colonIdx + 1).trim();
+          return (
+            <div
+              key={idx}
+              className="flex flex-col gap-1 rounded-gb-lg border border-line/60 bg-surface-subtle/50 p-2.5 transition-colors hover:bg-surface-subtle"
+            >
+              <span className="text-[11px] font-bold text-fg tracking-tight">
+                {dimensionTitle}
+              </span>
+              <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
+                {dimensionBody}
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={idx}
+            className="rounded-gb-lg border border-line/60 bg-surface-subtle/50 p-2.5 text-gb-xs leading-relaxed text-fg-secondary break-words"
+          >
+            {segment}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function V3ReferenceList({
   evidenceIds = [],
   targetSourceRefs = [],

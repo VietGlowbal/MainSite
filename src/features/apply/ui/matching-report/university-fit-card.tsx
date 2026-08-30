@@ -3,7 +3,7 @@
 import { useT } from '@/lib/i18n';
 import type { MatchingV3Metric, MatchingV3MetricStatus } from '@/lib/ai/matching/domain';
 import { getScoreFitBadge } from './matching-report-hero';
-import { V3MetricDetails, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
+import { FormattedInsightText, V3MetricDetails, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
 
 export type UniversityDimension = {
   id: string;
@@ -246,9 +246,7 @@ export function UniversityFitCard({
                 </svg>
                 <span>{t('Strongest Alignment')}</span>
               </div>
-              <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
-                {defaultStrongest}
-              </p>
+              <FormattedInsightText text={defaultStrongest} />
             </div>
 
             {/* Primary Opportunity */}
@@ -259,9 +257,7 @@ export function UniversityFitCard({
                 </svg>
                 <span>{t('Primary Opportunity')}</span>
               </div>
-              <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
-                {defaultOpportunity}
-              </p>
+              <FormattedInsightText text={defaultOpportunity} />
             </div>
           </div>
         </div>
