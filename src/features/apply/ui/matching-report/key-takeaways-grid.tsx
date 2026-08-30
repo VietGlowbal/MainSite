@@ -166,22 +166,14 @@ export function KeyTakeawaysGrid({
   const activeItem = items[selectedIndex] ?? items[0];
   const ActiveIcon = activeItem.icon;
 
-  const getTitlePosition = (angle: number) => {
-    if (angle === -90) return 'bottom-full mb-2.5 left-1/2 -translate-x-1/2 text-center';
-    if (angle === 0) return 'left-full ml-3 top-1/2 -translate-y-1/2 text-left';
-    if (angle === 90) return 'top-full mt-2.5 left-1/2 -translate-x-1/2 text-center';
-    if (angle === 180) return 'right-full mr-3 top-1/2 -translate-y-1/2 text-right';
-    return '';
-  };
-
-  const radius = 175; // Radius for compact side-by-side wheel
+  const radius = 125; // Compact radius perfectly suited for 5-col container without clipping
 
   return (
     <div className="flex flex-col gap-gb-md">
       {/* Top Section: Side-by-Side (Left: Interactive Orbit Navigator, Right: Full Detail Panel) */}
       <div className="grid grid-cols-1 items-stretch gap-gb-md lg:grid-cols-12">
         {/* Left Column (5 Cols): Interactive Orbital Wheel */}
-        <div className="flex flex-col items-center justify-center overflow-hidden rounded-gb-2xl border border-line bg-surface p-gb-md shadow-gb-xs lg:col-span-5 min-w-0">
+        <div className="flex flex-col items-center justify-center rounded-gb-2xl border border-line bg-surface p-gb-sm sm:p-gb-md shadow-gb-xs lg:col-span-5 min-w-0">
           {/* Mobile Tab Selector (< md) */}
           <div className="grid w-full grid-cols-2 gap-2 md:hidden">
             {items.map((item, index) => {
@@ -211,33 +203,33 @@ export function KeyTakeawaysGrid({
             {/* Dynamic Glowing Aura */}
             <div
               className={cn(
-                'absolute h-[350px] w-[350px] rounded-full transition-all duration-500 pointer-events-none',
-                'bg-[#EE0033]/[0.06] scale-105 shadow-[0_0_60px_rgba(238,0,51,0.18)]'
+                'absolute h-[280px] w-[280px] rounded-full transition-all duration-500 pointer-events-none',
+                'bg-[#EE0033]/[0.06] scale-105 shadow-[0_0_50px_rgba(238,0,51,0.18)]'
               )}
             />
 
             {/* Static outer guide circle */}
-            <div className="absolute h-[350px] w-[350px] rounded-full border-2 border-red-100 border-dashed pointer-events-none" />
+            <div className="absolute h-[250px] w-[250px] rounded-full border-2 border-red-100 border-dashed pointer-events-none" />
 
             {/* Animated spinning highlighted red dashed circle */}
             <div
-              className="absolute h-[350px] w-[350px] rounded-full border-2 border-dashed border-transparent transition-all duration-300 pointer-events-none border-t-[#EE0033] border-r-[#EE0033] border-b-[#EE0033]/60 shadow-[0_0_25px_rgba(238,0,51,0.25)]"
+              className="absolute h-[250px] w-[250px] rounded-full border-2 border-dashed border-transparent transition-all duration-300 pointer-events-none border-t-[#EE0033] border-r-[#EE0033] border-b-[#EE0033]/60 shadow-[0_0_20px_rgba(238,0,51,0.25)]"
               style={{ animation: 'spin 14s linear infinite' }}
             />
 
             {/* Inner decorative circle */}
-            <div className="absolute h-[240px] w-[240px] rounded-full border border-red-100/80 pointer-events-none" />
+            <div className="absolute h-[180px] w-[180px] rounded-full border border-red-100/80 pointer-events-none" />
 
-            {/* Center Display Badge (200px x 200px) */}
-            <div className="absolute z-20 flex h-[200px] w-[200px] flex-col items-center justify-center rounded-full border-4 border-red-50 bg-white p-4 text-center shadow-xl transition-all duration-500">
-              <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full border-2 border-red-100 bg-red-50 text-[#EE0033] shadow-md transition-transform duration-300">
-                <ActiveIcon className="h-6 w-6 text-[#EE0033]" />
+            {/* Center Display Badge (140px x 140px) */}
+            <div className="absolute z-20 flex h-[140px] w-[140px] flex-col items-center justify-center rounded-full border-4 border-red-50 bg-white p-2.5 text-center shadow-xl transition-all duration-500">
+              <div className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full border border-red-100 bg-red-50 text-[#EE0033] shadow-xs transition-transform duration-300">
+                <ActiveIcon className="h-5 w-5 text-[#EE0033]" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#EE0033]">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#EE0033] line-clamp-1 px-1">
                 {activeItem.badge}
               </span>
-              <p className="mt-1 text-[11px] font-semibold text-gray-500">
-                {t('Click node to explore')}
+              <p className="mt-0.5 text-[9px] font-semibold text-gray-400">
+                {t('Click node')}
               </p>
             </div>
 
@@ -263,24 +255,25 @@ export function KeyTakeawaysGrid({
                     onClick={() => setSelectedIndex(index)}
                     onMouseEnter={() => setSelectedIndex(index)}
                   >
-                    {/* Node Button (52px x 52px) */}
+                    {/* Node Button (44px x 44px) */}
                     <div
                       className={cn(
-                        'flex h-13 w-13 items-center justify-center rounded-full border-2 transition-all duration-300 relative z-10',
+                        'flex h-11 w-11 items-center justify-center rounded-full border-2 transition-all duration-300 relative z-10',
                         isSelected
-                          ? 'scale-120 border-white bg-[#EE0033] text-white shadow-[0_0_25px_rgba(238,0,51,0.5)]'
-                          : 'border-red-100 bg-white text-gray-700 shadow-md group-hover:scale-110 group-hover:border-[#EE0033] group-hover:text-[#EE0033]'
+                          ? 'scale-115 border-white bg-[#EE0033] text-white shadow-[0_0_20px_rgba(238,0,51,0.5)]'
+                          : 'border-red-100 bg-white text-gray-700 shadow-md group-hover:scale-105 group-hover:border-[#EE0033] group-hover:text-[#EE0033]'
                       )}
                     >
-                      <Icon className={cn('h-5 w-5', isSelected ? 'text-white' : 'text-gray-700 group-hover:text-[#EE0033]')} />
+                      <Icon className={cn('h-4.5 w-4.5', isSelected ? 'text-white' : 'text-gray-700 group-hover:text-[#EE0033]')} />
                     </div>
 
-                    {/* Node Title Label */}
+                    {/* Node Title Label Badge below button */}
                     <div
                       className={cn(
-                        'absolute whitespace-nowrap transition-all duration-300 pointer-events-none',
-                        getTitlePosition(item.angle),
-                        isSelected ? 'scale-105 font-black text-xs text-[#EE0033]' : 'font-bold text-xs text-gray-800'
+                        'absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] transition-all duration-300 pointer-events-none',
+                        isSelected
+                          ? 'bg-[#EE0033] text-white font-bold shadow-xs scale-105 z-20'
+                          : 'bg-white/95 border border-red-100/90 text-gray-700 font-semibold shadow-xs'
                       )}
                     >
                       {item.badge}
@@ -295,13 +288,13 @@ export function KeyTakeawaysGrid({
                       style={{
                         transformOrigin: '0% 50%',
                         transform: `translate(0, -50%) rotate(${item.angle + 180}deg)`,
-                        width: `${radius - 100}px`,
+                        width: `${radius - 70}px`,
                         height: '4px',
                         overflow: 'visible',
                       }}
                     >
                       <line
-                        x1="26"
+                        x1="22"
                         y1="2"
                         x2="100%"
                         y2="2"
