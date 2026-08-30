@@ -1484,6 +1484,8 @@ Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/m
 
 2026-08-30 Matching Report V3 UI detail fix (working tree): the canonical V3 page now renders the four canonical Programme Fit metrics without duplicating University Academic Readiness, uses report-generated summaries/alignment instead of hardcoded copy, exposes metric status/coverage/confidence and expandable submetrics with reasoning, shows strengths/gaps/positioning opportunities, scholarship alignment, evidence/source records, and hard-requirement applicant/required values plus deadline status. V2 and legacy callers retain the existing optional-prop behavior. Measured: Matching UI/AI suites 11 files / 116 tests passed, base and strict typecheck passed, scoped ESLint passed, and `npm.cmd run build:ci` passed with the existing 3 `geo-content.ts` tracing warnings. The i18n audit currently reports 79 static missing Matching keys (dynamic catalog misses: 0); the newly added V3 keys are cataloged.
 
+2026-08-30 Matching Report UI density pass (`4f231c71`): redesigned the V3 fit cards into compact score/metric layouts with insights below, removed equal-height column stretching that created large blank areas, and collapsed long report summaries, evidence records, and insight descriptions behind accessible disclosures while keeping full content available. Measured: Matching UI/AI suites 11 files / 116 tests passed, strict typecheck passed, scoped ESLint passed, and `npm.cmd run build:ci` passed with the existing 3 `geo-content.ts` tracing warnings. No data or report-generation behavior changed.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

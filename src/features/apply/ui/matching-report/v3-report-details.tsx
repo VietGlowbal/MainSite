@@ -76,12 +76,12 @@ export function V3ReferenceList({
   if (!hasReferences) return null;
 
   return (
-    <details className="group mt-gb-sm rounded-gb-lg border border-line/70 bg-surface-subtle/40 px-gb-sm py-gb-xs">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-gb-sm text-gb-xs font-semibold text-brand [&::-webkit-details-marker]:hidden">
+    <details className="group/refs mt-gb-xs rounded-gb-md border border-line/70 bg-surface-subtle/40 px-gb-sm py-gb-xs">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-gb-sm text-[11px] font-semibold text-brand [&::-webkit-details-marker]:hidden">
         <span>{t('Evidence references')} ({evidenceIds.length}) · {t('Programme source references')} ({targetSourceRefs.length})</span>
-        <span className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+        <span className="shrink-0 transition-transform group-open/refs:rotate-180" aria-hidden="true">⌄</span>
       </summary>
-      <div className="mt-gb-sm flex flex-col gap-gb-sm text-[11px] text-fg-secondary">
+      <div className="mt-gb-xs flex flex-col gap-gb-xs border-t border-line/60 pt-gb-xs text-[11px] text-fg-secondary">
         {metricIds.length > 0 ? (
           <div>
             <p className="font-semibold text-fg">{t('Linked metrics')}</p>
@@ -151,7 +151,7 @@ export function V3MetricDetails({
   const score = metric.score === null ? null : Math.round(metric.score);
 
   return (
-    <details className="group rounded-gb-lg border border-line/70 bg-surface p-gb-sm">
+    <details className="group/metric rounded-gb-lg border border-line/70 bg-surface p-gb-sm">
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-gb-xs [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 font-semibold text-fg">{t(label)}</span>
         <span className="flex items-center gap-1.5 text-[11px]">
@@ -159,7 +159,7 @@ export function V3MetricDetails({
           <span className="rounded-full bg-surface-subtle px-2 py-0.5 font-semibold text-fg-muted">
             {v3MetricStatusLabel(metric.status, t)}
           </span>
-          <span className="text-brand transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+          <span className="text-brand transition-transform group-open/metric:rotate-180" aria-hidden="true">⌄</span>
         </span>
       </summary>
 
@@ -170,41 +170,55 @@ export function V3MetricDetails({
         </div>
         {metric.summary ? <p className="text-gb-xs leading-relaxed text-fg-secondary">{metric.summary}</p> : null}
 
-        <div className="flex flex-col gap-gb-xs">
-          <h5 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{t('Submetrics')}</h5>
-          {metric.submetrics.map((submetric) => {
-            const subScore = submetric.score === null ? null : Math.round(submetric.score);
-            return (
-              <div key={submetric.submetricId} className="rounded-gb-md border border-line/60 bg-surface-subtle/30 p-gb-sm">
-                <div className="flex flex-wrap items-center justify-between gap-gb-xs">
-                  <span className="font-semibold text-fg">{formatV3Identifier(submetric.submetricId)}</span>
-                  <span className="text-[11px] font-semibold text-fg-muted">
-                    {subScore === null ? t('Not assessed') : `${subScore}/100`} · {v3MetricStatusLabel(submetric.status, t)}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] leading-relaxed text-fg-secondary">
-                  <strong className="text-fg">{t('Reasoning')}:</strong> {submetric.reasoning}
-                </p>
-                {submetric.missingEvidence.length > 0 ? (
-                  <div className="mt-1 text-[11px] text-amber-800">
-                    <strong>{t('Missing evidence')}:</strong> {submetric.missingEvidence.join(' · ')}
+        {metric.submetrics.length > 0 ? (
+          <div className="flex flex-col gap-gb-xs">
+            <h5 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{t('Submetrics')}</h5>
+            {metric.submetrics.map((submetric) => {
+              const subScore = submetric.score === null ? null : Math.round(submetric.score);
+              return (
+                <details
+                  key={submetric.submetricId}
+                  className="group/submetric rounded-gb-md border border-line/60 bg-surface-subtle/30 p-gb-sm transition-colors hover:bg-surface-subtle/50"
+                >
+                  <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-gb-xs [&::-webkit-details-marker]:hidden">
+                    <span className="font-semibold text-fg text-gb-xs">{formatV3Identifier(submetric.submetricId)}</span>
+                    <span className="flex items-center gap-1.5 text-[11px]">
+                      <span className="font-semibold text-fg">
+                        {subScore === null ? t('Not assessed') : `${subScore}/100`}
+                      </span>
+                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-fg-muted">
+                        {v3MetricStatusLabel(submetric.status, t)}
+                      </span>
+                      <span className="text-brand text-xs transition-transform group-open/submetric:rotate-180" aria-hidden="true">⌄</span>
+                    </span>
+                  </summary>
+
+                  <div className="mt-gb-xs flex flex-col gap-gb-xs border-t border-line/60 pt-gb-xs">
+                    <p className="text-[11px] leading-relaxed text-fg-secondary">
+                      <strong className="text-fg">{t('Reasoning')}:</strong> {submetric.reasoning}
+                    </p>
+                    {submetric.missingEvidence.length > 0 ? (
+                      <div className="text-[11px] text-amber-800">
+                        <strong>{t('Missing evidence')}:</strong> {submetric.missingEvidence.join(' · ')}
+                      </div>
+                    ) : null}
+                    {submetric.limitations.length > 0 ? (
+                      <div className="text-[11px] text-fg-muted">
+                        <strong>{t('Limitations')}:</strong> {submetric.limitations.join(' · ')}
+                      </div>
+                    ) : null}
+                    <V3ReferenceList
+                      evidenceIds={submetric.applicantEvidenceIds}
+                      targetSourceRefs={submetric.targetSourceRefs}
+                      evidenceIndex={evidenceIndex}
+                      targetSourceIndex={targetSourceIndex}
+                    />
                   </div>
-                ) : null}
-                {submetric.limitations.length > 0 ? (
-                  <div className="mt-1 text-[11px] text-fg-muted">
-                    <strong>{t('Limitations')}:</strong> {submetric.limitations.join(' · ')}
-                  </div>
-                ) : null}
-                <V3ReferenceList
-                  evidenceIds={submetric.applicantEvidenceIds}
-                  targetSourceRefs={submetric.targetSourceRefs}
-                  evidenceIndex={evidenceIndex}
-                  targetSourceIndex={targetSourceIndex}
-                />
-              </div>
-            );
-          })}
-        </div>
+                </details>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </details>
   );
@@ -250,13 +264,13 @@ export function V3InsightSections({
               <div className="flex flex-col gap-gb-xs">
                 {group.items.map((item) => (
                   <article key={item.id} className="rounded-gb-lg border border-line/70 bg-surface-subtle/30 p-gb-sm">
-                    <details className="group">
+                    <details className="group/insight">
                       <summary className="flex cursor-pointer list-none items-start justify-between gap-gb-sm [&::-webkit-details-marker]:hidden">
                         <span className="min-w-0">
                           <span className="block text-gb-xs font-semibold text-fg">{item.title}</span>
-                          <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-fg-secondary group-open:hidden">{item.description}</span>
+                          <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-fg-secondary group-open/insight:hidden">{item.description}</span>
                         </span>
-                        <span className="shrink-0 text-xs text-brand transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                        <span className="shrink-0 text-xs text-brand transition-transform group-open/insight:rotate-180" aria-hidden="true">⌄</span>
                       </summary>
                       <div className="mt-gb-sm border-t border-line/60 pt-gb-sm">
                         <p className="text-gb-xs leading-relaxed text-fg-secondary">{item.description}</p>

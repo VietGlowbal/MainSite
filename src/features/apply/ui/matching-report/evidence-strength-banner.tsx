@@ -86,12 +86,12 @@ export function EvidenceStrengthBanner({
       </div>
 
       {evidenceIndex.length > 0 || targetSourceIndex.length > 0 ? (
-        <details className="group border-t border-line/60 pt-gb-md">
+        <details className="group/banner border-t border-line/60 pt-gb-md">
           <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-gb-xs [&::-webkit-details-marker]:hidden">
             <span className="text-gb-sm font-bold text-fg">{t('Evidence records and target sources')}</span>
             <span className="flex items-center gap-gb-sm text-[11px] text-fg-muted">
               {evidenceIndex.length} {t('evidence records')} · {targetSourceIndex.length} {t('target sources')}
-              <span className="text-brand transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+              <span className="text-brand transition-transform group-open/banner:rotate-180" aria-hidden="true">⌄</span>
             </span>
           </summary>
           <div className="mt-gb-md grid grid-cols-1 gap-gb-md lg:grid-cols-2">
