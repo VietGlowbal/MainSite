@@ -1,5 +1,16 @@
 # Current project status
 
+Working tree 2026-08-30 (Strategy Report model-reference containment): a live
+read of the failing application's snapshot, Personal Report, Matching Report,
+and source analysis confirmed that the rejected `experience:*` UUID exists in
+none of them; the model mutated an opaque ID. Strategy now strips only unknown
+generated references at every profile, activity, and synthesis boundary,
+emits count-only telemetry, and downgrades activity claims that lose required
+support. Strict validation remains as the final guard. Added regressions for
+the reported UUID across profile, activity, and synthesis output. Measured:
+Strategy V3 plus route suites 22/22, engine suite 9/9, base typecheck, scoped
+ESLint, and `git diff --check` pass.
+
 Working tree 2026-08-30 (Strategy Report experience provenance fallback):
 Strategy V3 now derives canonical `experience:<id>` evidence aliases directly
 from snapshot achievements and activities, including already-prefixed IDs, so

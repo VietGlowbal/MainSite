@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { StrategyInputContext } from './context';
+import type { ActivityStrategyAnalysis } from './domain';
 import {
   calculateStrategyPriorityFactors,
   generateStrategyReportV3,
@@ -46,15 +47,26 @@ function synthesis(deliverables: unknown[] = []) {
   };
 }
 
-function activityAnalysis(activityId: string) {
-  const dimensions = Object.fromEntries(
-    ['relevance', 'responsibility', 'depth', 'progression', 'impact', 'evidence', 'reflection', 'futurePotential']
-      .map((key) => [key, { status: ['responsibility', 'progression', 'futurePotential'].includes(key) ? 'not_established' : 'limited', statement: 'Not established beyond the supplied activity record.', evidenceIds: [], targetSourceRefs: [] }]),
-  );
+function activityAnalysis(activityId: string): ActivityStrategyAnalysis {
+  const dimension = (status: ActivityStrategyAnalysis['dimensions']['relevance']['status']): ActivityStrategyAnalysis['dimensions']['relevance'] => ({
+    status,
+    statement: 'Not established beyond the supplied activity record.',
+    evidenceIds: [],
+    targetSourceRefs: [],
+  });
   return {
     activityId,
     title: 'Activity',
-    dimensions,
+    dimensions: {
+      relevance: dimension('limited'),
+      responsibility: dimension('not_established'),
+      depth: dimension('limited'),
+      progression: dimension('not_established'),
+      impact: dimension('limited'),
+      evidence: dimension('limited'),
+      reflection: dimension('limited'),
+      futurePotential: dimension('not_established'),
+    },
     classification: 'maintain',
     diagnosis: 'The activity is recorded but has limited strategy evidence.',
     recommendedMove: 'Keep the activity concise and evidence-led.',
@@ -94,7 +106,48 @@ describe('Strategy V3 engine', () => {
     expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'academic')?.requirementIds).toEqual([requirementId]);
   });
 
+  it('removes unknown model evidence references instead of failing generation', async () => {
+    const invalidEvidenceId = 'experience:2b18eff6-d87c-4c59-b661-c0ad501f1839';
+    const areas = ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never));
+    areas[1] = { ...areas[1], evidenceIds: ['evidence-1', invalidEvidenceId] };
+    const generatedSynthesis = synthesis();
+    generatedSynthesis.narrativeStrategy.coreNarrativeDirection.evidenceIds = ['evidence-1', invalidEvidenceId];
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas }))
+      .mockResolvedValueOnce(JSON.stringify(generatedSynthesis));
+
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+
+    expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'experience')?.evidenceIds).toEqual(['evidence-1']);
+    expect(report.narrativeStrategy.coreNarrativeDirection.evidenceIds).toEqual(['evidence-1']);
+  });
+
+  it('downgrades unsupported activity claims after removing unknown model references', async () => {
+    const invalidEvidenceId = 'experience:2b18eff6-d87c-4c59-b661-c0ad501f1839';
+    const activity = activityAnalysis('activity:1');
+    activity.evidenceIds = [invalidEvidenceId];
+    activity.dimensions.responsibility = { ...activity.dimensions.responsibility, status: 'strong', evidenceIds: [invalidEvidenceId] };
+    activity.dimensions.relevance = { ...activity.dimensions.relevance, status: 'strong', targetSourceRefs: ['source:unknown'] };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: [activity] }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({
+      context: context({ activities: [{ activityId: 'activity:1', title: 'Activity', category: null, organisation: null, level: null, period: null, description: null, reflection: null, evidenceIds: [] }] }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    const analysis = report.profileDevelopmentStrategy.activityAnalyses[0]!;
+    expect(analysis.evidenceIds).toEqual([]);
+    expect(analysis.dimensions.responsibility).toMatchObject({ status: 'not_established', evidenceIds: [] });
+    expect(analysis.dimensions.relevance).toMatchObject({ status: 'limited', targetSourceRefs: [] });
+  });
+
   it('sends each activity batch as the only canonical activity scope', async () => {
+    mocks.openAiJsonCompletion.mockReset();
     const activities = Array.from({ length: 7 }, (_, index) => ({
       activityId: `activity:${index + 1}`,
       title: `Activity ${index + 1}`,

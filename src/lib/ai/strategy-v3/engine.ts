@@ -51,9 +51,9 @@ export async function generateStrategyReportV3(args: {
   if (context.application.daysUntilDeadline !== null && context.application.daysUntilDeadline < 0) {
     throw new StrategyGenerationError('Application deadline has passed.', 'deadline_infeasible');
   }
-  const profileResult = await callStage('strategy_profile_diagnosis', profileStageSchema, {
+  const profileResult = sanitizeGeneratedReferences(await callStage('strategy_profile_diagnosis', profileStageSchema, {
     context: modelContext(context),
-  }, apiKey, model, 'profile_failed');
+  }, apiKey, model, 'profile_failed'), referenceAllowlist(context), 'profile');
   const profile = { areas: profileResult.areas.map((area) => ({ ...area, key: area.category })) };
   validateProfile(profile.areas, context);
 
@@ -61,7 +61,7 @@ export async function generateStrategyReportV3(args: {
   const activityResults: z.infer<typeof activityStageSchema>[] = [];
   for (const batch of batches) {
     activityResults.push(
-      await callStage(
+      sanitizeGeneratedReferences(await callStage(
         'strategy_activity_analysis',
         activityStageSchema,
         {
@@ -72,13 +72,13 @@ export async function generateStrategyReportV3(args: {
         apiKey,
         model,
         'activity_failed',
-      ),
+      ), referenceAllowlist(context), 'activity'),
     );
   }
-  const activities = validateActivities(activityResults.flatMap((result) => result.analyses), context);
+  const activities = validateActivities(normalizeActivityClaimSupport(activityResults.flatMap((result) => result.analyses)), context);
 
   const priorities = selectTopPriorities(context, profile.areas, activities);
-  const synthesis = await callStage(
+  const synthesis = sanitizeGeneratedReferences(await callStage(
     'strategy_report_synthesis',
     synthesisStageSchema,
     {
@@ -90,7 +90,7 @@ export async function generateStrategyReportV3(args: {
     apiKey,
     model,
     'synthesis_failed',
-  );
+  ), referenceAllowlist(context, priorities), 'synthesis');
 
   let report: unknown;
   try {
@@ -215,6 +215,63 @@ function strategyRequirementIds(context: StrategyInputContext): string[] {
       return typeof id === 'string' && id.trim() ? [id.trim()] : [];
     }),
   ]);
+}
+
+type ReferenceField = 'evidenceIds' | 'targetSourceRefs' | 'metricIds' | 'gapIds' | 'requirementIds' | 'basisRefs' | 'supportingExperienceIds' | 'priorityKeys' | 'linkedPriorityKeys';
+
+function referenceAllowlist(context: StrategyInputContext, priorities: StrategicPriority[] = []): Record<ReferenceField, Set<string>> {
+  const evidenceIds = new Set(context.evidenceIndex.map((item) => item.id));
+  const targetSourceRefs = new Set(context.targetSourceIndex.map((item) => item.ref));
+  const metricIds = new Set(matchingMetricIds(context));
+  const gapIds = new Set(context.matching.gaps.map((gap) => gap.id));
+  const requirementIds = new Set(strategyRequirementIds(context));
+  const activityIds = new Set(context.activities.map((activity) => activity.activityId));
+  return {
+    evidenceIds,
+    targetSourceRefs,
+    metricIds,
+    gapIds,
+    requirementIds,
+    basisRefs: new Set([...activityIds, ...evidenceIds, ...targetSourceRefs, ...metricIds, ...gapIds, ...requirementIds]),
+    supportingExperienceIds: activityIds,
+    priorityKeys: new Set(priorities.map((priority) => priority.key)),
+    linkedPriorityKeys: new Set(priorities.map((priority) => priority.key)),
+  };
+}
+
+function sanitizeGeneratedReferences<T>(value: T, allowed: Record<ReferenceField, Set<string>>, stage: 'profile' | 'activity' | 'synthesis'): T {
+  const removed: Partial<Record<ReferenceField, number>> = {};
+  const visit = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(visit);
+    if (!item || typeof item !== 'object') return item;
+    return Object.fromEntries(Object.entries(item as Record<string, unknown>).map(([key, child]) => {
+      const refs = allowed[key as ReferenceField];
+      if (refs && Array.isArray(child)) {
+        const valid = child.filter((ref): ref is string => typeof ref === 'string' && refs.has(ref));
+        if (valid.length !== child.length) removed[key as ReferenceField] = (removed[key as ReferenceField] ?? 0) + child.length - valid.length;
+        return [key, valid];
+      }
+      return [key, visit(child)];
+    }));
+  };
+  const sanitized = visit(value) as T;
+  if (Object.keys(removed).length > 0) console.warn('[strategy-v3] removed unknown model references', { stage, removed });
+  return sanitized;
+}
+
+function normalizeActivityClaimSupport(analyses: ActivityStrategyAnalysis[]): ActivityStrategyAnalysis[] {
+  return analyses.map((analysis) => ({
+    ...analysis,
+    dimensions: Object.fromEntries(Object.entries(analysis.dimensions).map(([key, dimension]) => {
+      if (['responsibility', 'progression'].includes(key) && dimension.status !== 'not_established' && dimension.evidenceIds.length === 0) {
+        return [key, { ...dimension, status: 'not_established', statement: 'Not established from the supplied evidence.' }];
+      }
+      if (key === 'relevance' && dimension.status === 'strong' && dimension.targetSourceRefs.length === 0) {
+        return [key, { ...dimension, status: 'limited', statement: 'Limited by the supplied target-source evidence.' }];
+      }
+      return [key, dimension];
+    })) as ActivityStrategyAnalysis['dimensions'],
+  }));
 }
 
 function validateActivities(analyses: ActivityStrategyAnalysis[], context: StrategyInputContext): ActivityStrategyAnalysis[] {
