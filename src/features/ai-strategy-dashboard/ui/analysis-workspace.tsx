@@ -71,6 +71,25 @@ async function fetchOrGeneratePersonal(
   errorMessages: { generic: string; rateLimit: string; unavailable: string },
 ): Promise<ReportState> {
   try {
+    try {
+      const existing = await fetch(`/api/applications/${applicationId}/personal-report`);
+      const existingBody = await existing.json().catch(() => ({}));
+      if (existing.ok && existingBody.reportV2 && existingBody.stale !== true) {
+        return { status: 'complete' };
+      }
+      if (!existing.ok && existing.status !== 503) {
+        return {
+          status: 'failed',
+          error:
+            existing.status === 429
+              ? errorMessages.rateLimit
+              : existingBody.error || errorMessages.generic,
+        };
+      }
+    } catch {
+      // Continue to the idempotent POST when the read itself is unavailable.
+    }
+
     const canonical = await fetch(`/api/applications/${applicationId}/personal-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

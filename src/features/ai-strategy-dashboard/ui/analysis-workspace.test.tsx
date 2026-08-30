@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnalysisWorkspace } from './analysis-workspace';
 
 const PERSONAL_POST = '/api/applications/app-1/personal-report';
+const PERSONAL_GET = '/api/applications/app-1/personal-report';
 const MATCHING_GET = '/api/applications/app-1/strategy/course-match';
 const MATCHING_POST = '/api/applications/app-1/match-insights';
 const STRATEGY_GET = '/api/applications/app-1/strategy/recommendation';
@@ -19,6 +20,25 @@ afterEach(() => {
 });
 
 describe('AnalysisWorkspace', () => {
+  it('reuses all existing reports after reload without starting generation', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, stale: false });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock.mock.calls.map(([url, init]) => [url, init?.method ?? 'GET'])).toEqual([
+      [PERSONAL_GET, 'GET'],
+      [MATCHING_GET, 'GET'],
+      [STRATEGY_GET, 'GET'],
+    ]);
+  });
+
   it('does not start Matching Report generation until Personal Report completes', async () => {
     let resolvePersonal: (() => void) | undefined;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
@@ -151,11 +171,16 @@ describe('AnalysisWorkspace', () => {
   });
 
   it('waits for queued Personal Report generation before starting Matching Report generation', async () => {
+    let initialRead = true;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') {
         return jsonResponse({ queued: true }, true, 202);
       }
       if (url === PERSONAL_POST && !init) {
+        if (initialRead) {
+          initialRead = false;
+          return jsonResponse({ generation: { status: 'pending' }, reportV2: null });
+        }
         return jsonResponse({ generation: { status: 'complete' }, reportV2: { coreIdentity: {} } });
       }
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
@@ -171,6 +196,7 @@ describe('AnalysisWorkspace', () => {
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       PERSONAL_POST,
       PERSONAL_POST,
+      PERSONAL_POST,
       MATCHING_GET,
       MATCHING_POST,
       STRATEGY_GET,
@@ -178,12 +204,17 @@ describe('AnalysisWorkspace', () => {
   });
 
   it('requeues a failed Personal Report immediately while polling', async () => {
+    let initialRead = true;
     let personalPoll = 0;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') {
         return jsonResponse({ queued: true }, true, 202);
       }
       if (url === PERSONAL_POST && !init) {
+        if (initialRead) {
+          initialRead = false;
+          return jsonResponse({ generation: { status: 'pending' }, reportV2: null });
+        }
         personalPoll += 1;
         return personalPoll === 1
           ? jsonResponse({ generation: { status: 'retry' }, reportV2: null })
@@ -229,8 +260,7 @@ describe('AnalysisWorkspace', () => {
 
     await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      PERSONAL_POST,
-      PERSONAL_POST,
+      PERSONAL_GET,
       MATCHING_GET,
       MATCHING_POST,
       STRATEGY_GET,

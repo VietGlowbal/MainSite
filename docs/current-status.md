@@ -1,5 +1,11 @@
 # Current project status
 
+Commit 7c82a55f (2026-08-30, Strategy analysis reload idempotency): the loading
+workspace now reads the current Personal Report before POSTing generation, so
+reloads reuse an existing non-stale Personal, Matching, and Strategy report;
+generation remains available when Personal is missing/stale or its read is
+temporarily unavailable. Measured: analysis-workspace 16/16 passed.
+
 Working tree 2026-08-30 (Strategy synthesis structured output): a live
 Supabase read of the newest Strategy row passed V3 schema, lineage, reference,
 and activity-cardinality checks, but its empty narrative/roadmap showed the
