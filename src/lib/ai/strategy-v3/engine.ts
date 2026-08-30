@@ -63,7 +63,11 @@ export async function generateStrategyReportV3(args: {
       callStage(
         'strategy_activity_analysis',
         activityStageSchema,
-        { context: modelContext(context), activities: batch },
+        {
+          context: modelContext({ ...context, activities: batch }),
+          activities: batch,
+          requiredActivityIds: batch.map((activity) => activity.activityId),
+        },
         apiKey,
         model,
         'activity_failed',

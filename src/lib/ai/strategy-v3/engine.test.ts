@@ -46,6 +46,23 @@ function synthesis() {
   };
 }
 
+function activityAnalysis(activityId: string) {
+  const dimensions = Object.fromEntries(
+    ['relevance', 'responsibility', 'depth', 'progression', 'impact', 'evidence', 'reflection', 'futurePotential']
+      .map((key) => [key, { status: ['responsibility', 'progression', 'futurePotential'].includes(key) ? 'not_established' : 'limited', statement: 'Not established beyond the supplied activity record.', evidenceIds: [], targetSourceRefs: [] }]),
+  );
+  return {
+    activityId,
+    title: 'Activity',
+    dimensions,
+    classification: 'maintain',
+    diagnosis: 'The activity is recorded but has limited strategy evidence.',
+    recommendedMove: 'Keep the activity concise and evidence-led.',
+    evidenceIds: [],
+    targetSourceRefs: [],
+  };
+}
+
 describe('Strategy V3 engine', () => {
   it('makes exactly one profile and one synthesis call when there are no activities', async () => {
     mocks.openAiJsonCompletion
@@ -75,6 +92,43 @@ describe('Strategy V3 engine', () => {
     });
 
     expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'academic')?.requirementIds).toEqual([requirementId]);
+  });
+
+  it('sends each activity batch as the only canonical activity scope', async () => {
+    const activities = Array.from({ length: 7 }, (_, index) => ({
+      activityId: `activity:${index + 1}`,
+      title: `Activity ${index + 1}`,
+      category: null,
+      organisation: null,
+      level: null,
+      period: null,
+      description: `Description ${index + 1}`,
+      reflection: null,
+      evidenceIds: [],
+    }));
+    const areas = ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never));
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: activities.slice(0, 6).map(({ activityId }) => activityAnalysis(activityId)) }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: [activityAnalysis(activities[6].activityId)] }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({
+      context: context({ activities }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    const batchInputs = mocks.openAiJsonCompletion.mock.calls
+      .map(([request]) => JSON.parse(request.messages[1].content) as { activities?: unknown[]; context?: { activities?: unknown[] }; requiredActivityIds?: string[] })
+      .filter((input) => input.requiredActivityIds);
+    expect(batchInputs).toHaveLength(2);
+    for (const input of batchInputs) {
+      expect(input.requiredActivityIds).toEqual(input.activities?.map((activity) => (activity as { activityId: string }).activityId));
+      expect(input.context?.activities?.map((activity) => (activity as { activityId: string }).activityId)).toEqual(input.requiredActivityIds);
+    }
+    expect(report.profileDevelopmentStrategy.activityAnalyses).toHaveLength(7);
   });
 
   it('ranks hard requirements and caps the deterministic result at three', () => {

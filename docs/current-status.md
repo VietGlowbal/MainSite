@@ -1526,3 +1526,10 @@ After material work, update this file in the same change:
 - Fix: Strategy context now reads stored Evidence Bank `claims` and derives canonical experience aliases from the confirmed snapshot. The existing strict reference validation remains in place.
 - Regression coverage: `src/lib/ai/strategy-v3/context.test.ts` verifies both stored claims and snapshot experience aliases.
 - Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 14 tests passed); `npx eslint src/lib/ai/strategy-v3/context.ts src/lib/ai/strategy-v3/context.test.ts src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-08-30 — Strategy V3 scopes activity analysis per batch
+
+- Root cause: each activity request contained all canonical activities inside `context.activities` plus the current batch in a second field, leaving the model with two competing scopes and causing missing or duplicate analyses.
+- Fix: each activity request now sends only its batch in both context and activity fields, includes an explicit `requiredActivityIds` checklist, and updates the activity prompt version.
+- Regression coverage: `src/lib/ai/strategy-v3/engine.test.ts` verifies multi-batch generation and that both activity scopes match the required IDs.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 15 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/runtime/prompt-registry.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
