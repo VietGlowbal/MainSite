@@ -1,11 +1,14 @@
 'use client';
 
 import { useT } from '@/lib/i18n';
+import type { MatchingV3Metric, MatchingV3MetricStatus } from '@/lib/ai/matching/domain';
+import { V3MetricDetails, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
 
 export type ProgrammeDimension = {
   id: string;
   label: string;
   score: number | null;
+  metric?: MatchingV3Metric;
 };
 
 type ProgrammeFitCardProps = {
@@ -14,6 +17,13 @@ type ProgrammeFitCardProps = {
   strongestFit?: string;
   potentialGap?: string;
   recommendation?: string;
+  fitScore?: number | null;
+  fitStatus?: MatchingV3MetricStatus;
+  fitCoverage?: number;
+  fitConfidence?: number;
+  fitSummary?: string;
+  evidenceIndex?: V3EvidenceItem[];
+  targetSourceIndex?: V3TargetSource[];
 };
 
 const VIEWBOX_W = 400;
@@ -45,6 +55,13 @@ export function ProgrammeFitCard({
   strongestFit,
   potentialGap,
   recommendation,
+  fitScore,
+  fitStatus,
+  fitCoverage,
+  fitConfidence,
+  fitSummary,
+  evidenceIndex,
+  targetSourceIndex,
 }: ProgrammeFitCardProps) {
   const t = useT();
 
@@ -77,10 +94,18 @@ export function ProgrammeFitCard({
           <div className="flex flex-col gap-gb-2xs text-left w-full">
             <h3 className="text-gb-sm font-bold text-fg">{t('Programme Fit Overview')}</h3>
             <p className="text-gb-xs leading-relaxed text-fg-tertiary">
-              {t('Your alignment with the {course} programme based on curriculum, skills, experience, and career goals.', {
-                course: courseName,
-              })}
+              {fitSummary || t('Your alignment with the {course} programme based on curriculum, skills, experience, and career goals.', {
+                  course: courseName,
+                })}
             </p>
+            {fitScore !== undefined ? (
+              <div className="mt-gb-sm flex flex-wrap gap-x-gb-sm gap-y-1 text-[10px] text-fg-muted">
+                <span>{t('Match score')}: {fitScore === null ? t('Not assessed') : `${Math.round(fitScore)}/100`}</span>
+                {fitStatus ? <span>{t('Evidence status')}: {t(fitStatus === 'limited' ? 'Limited evidence' : fitStatus === 'not_available' ? 'Not available' : 'Assessed')}</span> : null}
+                {fitCoverage !== undefined ? <span>{t('Evidence coverage')}: {fitCoverage}%</span> : null}
+                {fitConfidence !== undefined ? <span>{t('Confidence')}: {Math.round(fitConfidence * 100)}%</span> : null}
+              </div>
+            ) : null}
           </div>
 
           {/* SVG Radar Chart with generous bounds */}
@@ -99,7 +124,7 @@ export function ProgrammeFitCard({
                       key={fraction}
                       points={pointsAttr(dimensions.map((_, index) => pointFor(index, count, fraction)))}
                       fill="none"
-                      stroke="var(--color-gb-neutral-200, #e5e7eb)"
+                      stroke="var(--color-gb-neutral-200)"
                       strokeWidth={1}
                     />
                   ))}
@@ -114,7 +139,7 @@ export function ProgrammeFitCard({
                         y1={RADAR_CENTER_Y}
                         x2={p.x}
                         y2={p.y}
-                        stroke="var(--color-gb-neutral-200, #e5e7eb)"
+                        stroke="var(--color-gb-neutral-200)"
                         strokeWidth={1}
                       />
                     );
@@ -259,6 +284,17 @@ export function ProgrammeFitCard({
 
           <div className="mt-gb-md flex flex-col gap-gb-md">
             {dimensions.map((dim) => {
+              if (dim.metric) {
+                return (
+                  <V3MetricDetails
+                    key={dim.id}
+                    label={dim.label}
+                    metric={dim.metric}
+                    evidenceIndex={evidenceIndex}
+                    targetSourceIndex={targetSourceIndex}
+                  />
+                );
+              }
               const val = dim.score !== null ? Math.max(0, Math.min(100, Math.round(dim.score))) : null;
               return (
                 <div key={dim.id} className="flex flex-col gap-gb-2xs">

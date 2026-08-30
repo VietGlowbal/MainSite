@@ -91,7 +91,7 @@ function Chapter({
     >
       <div
         aria-hidden
-        className="relative z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-900 bg-white text-sm font-semibold text-slate-950 shadow-[0_0_0_6px_#f8f6f3]"
+        className="relative z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-900 bg-white text-sm font-semibold text-slate-950 shadow-[0_0_0_6px_white]"
       >
         {letter}
       </div>
@@ -514,7 +514,7 @@ function EvidenceCoverageMap({
     <figure
       role="img"
       aria-label={t('Evidence coverage map')}
-      className="mb-6 grid gap-6 rounded-[1.75rem] border border-slate-200 bg-[#fbfbfd] p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_280px] lg:p-6"
+      className="mb-6 grid gap-6 rounded-[1.75rem] border border-line bg-surface p-5 shadow-xs lg:grid-cols-[minmax(0,1fr)_280px] lg:p-6"
     >
       <div className="min-w-0 overflow-x-auto">
         <div
@@ -645,7 +645,7 @@ const RADAR_LABEL_POSITIONS = [
   'left-0 top-[18%]',
 ] as const;
 
-function radarPoints(values: number[], radius = 88) {
+function radarPoints(values: number[], radius = 80) {
   return values
     .map((value, index) => {
       const angle = -Math.PI / 2 + index * (Math.PI / 3);
@@ -671,12 +671,12 @@ function DiagnosticRadar({
 
   return (
     <>
-      <div className="relative mx-auto aspect-square w-full max-w-[310px]">
+      <div className="relative mx-auto aspect-square w-full max-w-[270px]">
         <svg
           data-testid="diagnostic-radar"
           role="img"
           aria-label={t('Radar chart comparing current and potential scores')}
-          className="h-full w-full"
+          className="h-full w-full select-none"
           viewBox="0 0 300 300"
         >
           {[2, 4, 6, 8, 10].map((level) => (
@@ -740,7 +740,7 @@ function DiagnosticRadar({
               onMouseEnter={() => onActivate(key)}
               onFocus={() => onActivate(key)}
               onClick={() => onActivate(key)}
-              className={`absolute rounded-lg border bg-white/95 px-2 py-1 text-center shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 ${RADAR_LABEL_POSITIONS[index]} ${
+              className={`absolute rounded-lg border bg-white/95 px-2 py-1 text-center shadow-xs transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 ${RADAR_LABEL_POSITIONS[index]} ${
                 active === key
                   ? 'border-pink-300 text-pink-700'
                   : 'border-slate-200 text-slate-600 hover:border-pink-200'
@@ -754,7 +754,7 @@ function DiagnosticRadar({
           );
         })}
       </div>
-      <div className="mt-1 flex justify-center gap-5 text-[11px] font-medium text-slate-600">
+      <div className="mt-1 flex justify-center gap-4 text-[11px] font-medium text-slate-600">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-5 rounded-full bg-pink-500" /> {t('Current')}
         </span>
@@ -774,7 +774,7 @@ function WritingSignals({ diagnostics }: { diagnostics?: EssayDiagnostics }) {
     <figure
       role="img"
       aria-label={t('Writing, Detail, and Voice signals')}
-      className="mb-5 rounded-[1.75rem] border border-slate-200 bg-[#fbfbfd] p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
+      className="mb-5 rounded-[1.75rem] border border-line bg-surface p-5 shadow-xs"
     >
       <div className="space-y-4">
         {keys.map((key) => {
@@ -782,7 +782,7 @@ function WritingSignals({ diagnostics }: { diagnostics?: EssayDiagnostics }) {
           const score = diagnostics.achievability!.dimensions[key];
           return (
             <div key={key} className="grid gap-2 sm:grid-cols-[90px_1fr_68px] sm:items-center">
-              <span className="text-xs font-semibold text-slate-600">{meta.label}</span>
+              <span className="text-xs font-semibold text-slate-600">{t(meta.label)}</span>
               <span className="relative block h-2.5 rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200">
                 <span className="absolute inset-y-0 left-0 rounded-full bg-slate-700" style={{ width: `${score.current * 10}%` }} />
                 <span className="absolute -top-1 h-4 w-1 rounded-full bg-pink-500" style={{ left: `${score.potential * 10}%` }} />
@@ -929,7 +929,7 @@ function NarrativeJourneyChart({
         </div>
       </div>
       {strength || gap ? (
-        <div className="grid gap-4 border-t border-slate-100 bg-[#fbfbfd] p-5 md:grid-cols-2 md:p-6">
+        <div className="grid gap-4 border-t border-slate-100 bg-surface p-5 md:grid-cols-2 md:p-6">
           {strength ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
               <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
@@ -967,7 +967,7 @@ function AaccBulletChart({
     <figure
       role="img"
       aria-label={t('AACC score and potential')}
-      className="mb-5 space-y-2 rounded-[1.75rem] border border-slate-200 bg-[#f7f7fa] p-2 shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
+      className="mb-5 space-y-2 rounded-[1.75rem] border border-line bg-surface-subtle p-2 shadow-xs"
     >
       {VINUNI_AACC_PILLARS.map((pillar) => {
         const current = analysis.pillars[pillar.key].score / 10;
@@ -1132,10 +1132,10 @@ function EssayDiagnosticBoard({
     <section
       aria-label={t('Essay diagnostic')}
       data-visual-style="editorial-diagnostic"
-      className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[#f8f6f3] shadow-[0_24px_70px_rgba(15,23,42,0.08)]"
+      className="overflow-hidden rounded-[2rem] border border-line bg-surface shadow-xs"
     >
       <header className="relative flex flex-wrap items-end justify-between gap-5 overflow-hidden border-b border-slate-200 bg-white px-6 py-6 md:px-8">
-        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#f8f6f3_100%)]" />
+        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#ffffff_100%)]" />
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-pink-600">
             {t('Essay diagnostic')}
@@ -1166,17 +1166,17 @@ function EssayDiagnosticBoard({
       </header>
 
       <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:p-6">
-        <div className="grid gap-5 rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)] lg:col-start-2 lg:row-start-1">
+        <div className="grid gap-3 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-[0_16px_42px_rgba(15,23,42,0.05)] lg:col-start-2 lg:row-start-1">
           <DiagnosticRadar
             diagnostics={diagnostics}
             active={activeDefinition}
             onActivate={setActiveDefinition}
           />
-          <div className="min-h-36 border-t border-slate-200 pt-4">
+          <div className="border-t border-slate-200 pt-3">
             <h3 className="font-semibold text-slate-950">
               {t(DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.label)}
             </h3>
-            <p className="mt-1 text-sm leading-5 text-slate-700">
+            <p className="mt-1 text-xs leading-5 text-slate-700">
               {t(DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.definition)}
             </p>
           </div>
@@ -1224,7 +1224,7 @@ function EssayDiagnosticBoard({
 function EssayDiagnosticSkeleton({ manuscript }: { manuscript: ReactNode }) {
   const t = useT();
   return (
-    <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#f4f4fa] shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
+    <section className="overflow-hidden rounded-[1.75rem] border border-line bg-surface shadow-xs">
       <header className="border-b border-slate-200 bg-white px-6 py-5 md:px-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-pink-600">
           {t('Essay diagnostic')}
@@ -1374,10 +1374,10 @@ export function VinUniAaccFeedback({
       ) : null}
       <div
         data-visual-style="editorial-diagnostic"
-        className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-[#f8f6f3] shadow-[0_24px_70px_rgba(15,23,42,0.08)]"
+        className="relative overflow-hidden rounded-[2rem] border border-line bg-surface shadow-xs"
       >
       <header className="relative overflow-hidden border-b border-slate-200 bg-white px-6 py-8 text-slate-950 md:px-10 md:py-10">
-        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#f8f6f3_100%)]" />
+        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#ffffff_100%)]" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-pink-600">
           {t('Evidence-based analysis')}
         </p>

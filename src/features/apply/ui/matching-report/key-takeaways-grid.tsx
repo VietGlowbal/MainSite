@@ -1,10 +1,14 @@
 'use client';
 
 import { useT } from '@/lib/i18n';
+import { V3ReferenceList, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
 
 export type TakeawayItem = {
   title: string;
   body: string;
+  evidenceIds?: string[];
+  targetSourceRefs?: string[];
+  metricIds?: string[];
 };
 
 export type EvidenceSnapshotItem = {
@@ -19,6 +23,9 @@ type KeyTakeawaysGridProps = {
   criticalGap: TakeawayItem;
   strategicDirection: TakeawayItem;
   evidenceSnapshot: EvidenceSnapshotItem[];
+  evidenceIndex?: V3EvidenceItem[];
+  targetSourceIndex?: V3TargetSource[];
+  metricLabels?: Record<string, string>;
 };
 
 function cleanTitle(badgeName: string, title?: string): string | null {
@@ -37,6 +44,9 @@ export function KeyTakeawaysGrid({
   criticalGap,
   strategicDirection,
   evidenceSnapshot,
+  evidenceIndex,
+  targetSourceIndex,
+  metricLabels,
 }: KeyTakeawaysGridProps) {
   const t = useT();
 
@@ -70,6 +80,14 @@ export function KeyTakeawaysGrid({
             >
               {strongestFit.body}
             </p>
+            <V3ReferenceList
+              evidenceIds={strongestFit.evidenceIds}
+              targetSourceRefs={strongestFit.targetSourceRefs}
+              metricIds={strongestFit.metricIds}
+              metricLabels={metricLabels}
+              evidenceIndex={evidenceIndex}
+              targetSourceIndex={targetSourceIndex}
+            />
           </div>
         </div>
 
@@ -94,6 +112,14 @@ export function KeyTakeawaysGrid({
             >
               {competitiveAdvantage.body}
             </p>
+            <V3ReferenceList
+              evidenceIds={competitiveAdvantage.evidenceIds}
+              targetSourceRefs={competitiveAdvantage.targetSourceRefs}
+              metricIds={competitiveAdvantage.metricIds}
+              metricLabels={metricLabels}
+              evidenceIndex={evidenceIndex}
+              targetSourceIndex={targetSourceIndex}
+            />
           </div>
         </div>
 
@@ -118,6 +144,14 @@ export function KeyTakeawaysGrid({
             >
               {criticalGap.body}
             </p>
+            <V3ReferenceList
+              evidenceIds={criticalGap.evidenceIds}
+              targetSourceRefs={criticalGap.targetSourceRefs}
+              metricIds={criticalGap.metricIds}
+              metricLabels={metricLabels}
+              evidenceIndex={evidenceIndex}
+              targetSourceIndex={targetSourceIndex}
+            />
           </div>
         </div>
 
@@ -142,6 +176,14 @@ export function KeyTakeawaysGrid({
             >
               {strategicDirection.body}
             </p>
+            <V3ReferenceList
+              evidenceIds={strategicDirection.evidenceIds}
+              targetSourceRefs={strategicDirection.targetSourceRefs}
+              metricIds={strategicDirection.metricIds}
+              metricLabels={metricLabels}
+              evidenceIndex={evidenceIndex}
+              targetSourceIndex={targetSourceIndex}
+            />
           </div>
         </div>
       </div>

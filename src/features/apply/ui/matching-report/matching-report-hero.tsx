@@ -4,8 +4,6 @@ import { useT } from '@/lib/i18n';
 import { MATCH_SCORE_DISCLAIMER } from '../../domain';
 
 type HeroProps = {
-  universityName: string;
-  courseName: string;
   universityFitScore: number | null;
   universityFitLabel?: string;
   universityTrend?: string | null;
@@ -14,6 +12,8 @@ type HeroProps = {
   programmeTrend?: string | null;
   criticalGapTitle?: string | null;
   criticalGapDescription?: string | null;
+  overallAlignmentScore?: number | null;
+  overallSummary?: string | null;
 };
 
 export function getScoreFitBadge(score: number | null) {
@@ -53,8 +53,6 @@ export function getScoreFitBadge(score: number | null) {
 }
 
 export function MatchingReportHero({
-  universityName,
-  courseName,
   universityFitScore,
   universityFitLabel,
   universityTrend,
@@ -63,6 +61,8 @@ export function MatchingReportHero({
   programmeTrend,
   criticalGapTitle,
   criticalGapDescription,
+  overallAlignmentScore,
+  overallSummary,
 }: HeroProps) {
   const t = useT();
 
@@ -136,6 +136,12 @@ export function MatchingReportHero({
                 'This report evaluates how well your profile aligns with the target university and programme based on academic, experiential, and strategic factors.',
               )}
             </p>
+            {overallSummary ? <p className="text-gb-sm leading-relaxed text-fg-secondary">{overallSummary}</p> : null}
+            {overallAlignmentScore !== undefined ? (
+              <p className="text-gb-xs font-semibold text-brand">
+                {t('Overall alignment')}: {overallAlignmentScore === null ? t('Not assessed') : `${Math.round(overallAlignmentScore)}%`}
+              </p>
+            ) : null}
             <p className="text-gb-xs italic text-fg-muted">
               {t(MATCH_SCORE_DISCLAIMER)}
             </p>

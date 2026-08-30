@@ -1,13 +1,16 @@
 'use client';
 
 import { useT } from '@/lib/i18n';
+import type { MatchingV3Metric, MatchingV3MetricStatus } from '@/lib/ai/matching/domain';
 import { getScoreFitBadge } from './matching-report-hero';
+import { V3MetricDetails, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
 
 export type UniversityDimension = {
   id: string;
   label: string;
   score: number | null;
   status?: string;
+  metric?: MatchingV3Metric;
 };
 
 type UniversityFitCardProps = {
@@ -18,6 +21,11 @@ type UniversityFitCardProps = {
   insightSummary?: string;
   strongestAlignment?: string;
   primaryOpportunity?: string;
+  fitStatus?: MatchingV3MetricStatus;
+  fitCoverage?: number;
+  fitConfidence?: number;
+  evidenceIndex?: V3EvidenceItem[];
+  targetSourceIndex?: V3TargetSource[];
 };
 
 export function UniversityFitCard({
@@ -28,12 +36,22 @@ export function UniversityFitCard({
   insightSummary,
   strongestAlignment,
   primaryOpportunity,
+  fitStatus,
+  fitCoverage,
+  fitConfidence,
+  evidenceIndex,
+  targetSourceIndex,
 }: UniversityFitCardProps) {
   const t = useT();
 
   const pct = score !== null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
-  const isAssessed = score !== null;
+  const isAssessed = score !== null && fitStatus !== 'not_available';
   const fitInfo = getScoreFitBadge(score);
+  const fitStatusLabel = fitStatus === 'limited'
+    ? 'Limited evidence'
+    : fitStatus === 'not_available'
+      ? 'Not available'
+      : statusLabel || fitInfo.label;
 
   // Donut Gauge geometry
   const size = 160;
@@ -113,7 +131,7 @@ export function UniversityFitCard({
                       {pct}%
                     </span>
                     <span className="text-gb-xs font-bold text-brand">
-                      {t(statusLabel || fitInfo.label)}
+                      {t(fitStatusLabel)}
                     </span>
                   </>
                 ) : (
@@ -127,6 +145,12 @@ export function UniversityFitCard({
             {trend ? (
               <div className="mt-gb-md inline-flex items-center gap-1 rounded-full bg-emerald-50 px-gb-md py-gb-2xs text-gb-xs font-semibold text-emerald-700">
                 <span>{trend}</span>
+              </div>
+            ) : null}
+            {fitCoverage !== undefined || fitConfidence !== undefined ? (
+              <div className="mt-gb-sm flex flex-wrap justify-center gap-x-gb-sm gap-y-1 text-[10px] text-fg-muted">
+                {fitCoverage !== undefined ? <span>{t('Evidence coverage')}: {fitCoverage}%</span> : null}
+                {fitConfidence !== undefined ? <span>{t('Confidence')}: {Math.round(fitConfidence * 100)}%</span> : null}
               </div>
             ) : null}
           </div>
@@ -145,6 +169,17 @@ export function UniversityFitCard({
 
           <div className="mt-gb-md flex flex-col gap-gb-sm">
             {dimensions.map((dim) => {
+              if (dim.metric) {
+                return (
+                  <V3MetricDetails
+                    key={dim.id}
+                    label={dim.label}
+                    metric={dim.metric}
+                    evidenceIndex={evidenceIndex}
+                    targetSourceIndex={targetSourceIndex}
+                  />
+                );
+              }
               const dScore = dim.score !== null ? Math.round(dim.score) : null;
               const isPositive = dScore !== null && dScore >= 60;
               return (

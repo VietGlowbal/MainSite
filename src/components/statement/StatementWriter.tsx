@@ -895,7 +895,7 @@ export function StatementWriter({
           aria-label={t('Edit essay')}
           value={text}
           onChange={(event) => setText(event.target.value)}
-          className="min-h-[520px] w-full resize-y rounded-xl border border-slate-200 bg-white p-4 text-base leading-8 text-slate-700 outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100"
+          className="min-h-[520px] w-full resize-y rounded-xl border border-line bg-surface p-4 text-base leading-8 text-fg outline-none transition focus:border-brand-subtle focus:ring-2 focus:ring-brand-subtle"
         />
       ) : (
         renderVinUniEvidence()
@@ -910,15 +910,15 @@ export function StatementWriter({
       viewMode === 'review',
   );
   const outerClass = vinUniWorkspaceReview
-    ? 'block min-h-0 flex-1 overflow-y-auto bg-slate-50'
+    ? 'block min-h-0 flex-1 overflow-y-auto bg-surface'
     : embedded
-      ? 'flex min-h-0 min-w-0 w-full flex-1 flex-col gap-10 bg-[#FAFAFA] lg:flex-row'
-      : 'flex min-w-0 w-full flex-1 flex-col gap-10 overflow-hidden bg-[#FAFAFA] lg:flex-row';
+      ? 'flex min-h-0 min-w-0 w-full flex-1 flex-col gap-gb-xl bg-surface lg:flex-row'
+      : 'flex min-w-0 w-full flex-1 flex-col gap-gb-xl overflow-hidden bg-surface lg:flex-row';
 
   return (
     <div className={outerClass}>
       {workspace && !vinUniWorkspaceReview && (
-        <div className="grid shrink-0 grid-cols-2 rounded-lg border border-neutral-200 bg-white p-2 lg:hidden">
+        <div className="grid shrink-0 grid-cols-2 rounded-lg border border-line bg-surface p-2 lg:hidden">
           {[
             ['essay', isLor ? 'Recommendation letter' : 'Essay'],
             ['feedback', 'Feedback'],
@@ -929,8 +929,8 @@ export function StatementWriter({
               onClick={() => setWorkspacePane(pane as 'essay' | 'feedback')}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                 workspacePane === pane
-                  ? 'bg-pink-50 text-pink-600'
-                  : 'text-slate-500 hover:bg-slate-50'
+                  ? 'bg-brand-subtle text-brand'
+                  : 'text-fg-muted hover:bg-surface-subtle'
               }`}
             >
               {t(label)}
@@ -941,7 +941,7 @@ export function StatementWriter({
       {/* ── Left: Editor ── */}
       {!vinUniWorkspaceReview ? <section
         aria-label={isLor ? t('Recommendation letter') : t('Essay')}
-        className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
+        className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-gb-2xl border border-line bg-surface lg:basis-0`}
       >
         <div className="flex shrink-0 flex-col items-stretch gap-4 px-4 pt-6 md:px-6">
           <h2 className="font-display text-2xl font-medium leading-8 text-neutral-900">
@@ -1056,8 +1056,8 @@ export function StatementWriter({
       <section
         aria-label={t('Feedback')}
         className={vinUniWorkspaceReview
-          ? 'block w-full bg-slate-50'
-          : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
+          ? 'block w-full bg-surface'
+          : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-gb-2xl border border-line bg-surface lg:basis-0`}
       >
         {!vinUniWorkspaceReview && (
           <h2 className="px-4 pt-6 font-display text-2xl font-medium leading-8 text-neutral-900 md:px-6">

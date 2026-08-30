@@ -8,7 +8,6 @@ import { useT } from '@/lib/i18n';
 import { withReturn } from './personal-report/shared';
 import type { MatchingReportPageData } from '../domain';
 import {
-  MATCH_SCORE_DISCLAIMER,
   eligibilityRows,
   fitRows,
   matchSummary,
@@ -28,6 +27,9 @@ import {
   KeyTakeawaysGrid,
   EvidenceStrengthBanner,
   HardRequirementsSection,
+  V3InsightSections,
+  V3ReferenceList,
+  V3ScholarshipAlignment,
   type UniversityDimension,
   type ProgrammeDimension,
   type RequirementItem,
@@ -246,64 +248,65 @@ function V3ReportView({
   nextAt: string | null;
   t: Translate;
 }) {
-  const evidence = new Map(report.evidenceIndex.map((item) => [item.id, item]));
-  const sources = new Map(report.targetSourceIndex.map((item) => [item.ref, item]));
-
   // University Fit Dimensions
   const universityDimensions: UniversityDimension[] = [
     {
       id: 'academicReadiness',
       label: 'Academic Readiness',
       score: report.universityFit.metrics.academicReadiness.score,
+      metric: report.universityFit.metrics.academicReadiness,
     },
     {
       id: 'valuesAlignment',
       label: 'Values Alignment',
       score: report.universityFit.metrics.valuesAlignment.score,
+      metric: report.universityFit.metrics.valuesAlignment,
     },
     {
       id: 'communityContribution',
       label: 'Community & Contribution',
       score: report.universityFit.metrics.communityContribution.score,
+      metric: report.universityFit.metrics.communityContribution,
     },
     {
       id: 'learningEnvironment',
       label: 'Learning Environment',
       score: report.universityFit.metrics.learningEnvironment.score,
+      metric: report.universityFit.metrics.learningEnvironment,
     },
     {
       id: 'distinctiveOpportunity',
       label: 'Distinctive Opportunity',
       score: report.universityFit.metrics.distinctiveOpportunity.score,
+      metric: report.universityFit.metrics.distinctiveOpportunity,
     },
   ];
 
-  // Programme Fit Dimensions (5 items for pentagon radar & bars)
+  // Programme Fit has four canonical V3 metrics.
   const programmeDimensions: ProgrammeDimension[] = [
     {
       id: 'interestMotivation',
       label: 'Interest & Motivation',
       score: report.programmeFit.metrics.interestMotivation.score,
+      metric: report.programmeFit.metrics.interestMotivation,
     },
     {
       id: 'capability',
       label: 'Capability',
       score: report.programmeFit.metrics.capability.score,
+      metric: report.programmeFit.metrics.capability,
     },
     {
       id: 'experienceExposure',
       label: 'Experience & Exposure',
       score: report.programmeFit.metrics.experienceExposure.score,
+      metric: report.programmeFit.metrics.experienceExposure,
     },
     {
       id: 'careerFutureDirection',
       label: 'Career & Future Direction',
       score: report.programmeFit.metrics.careerFutureDirection.score,
-    },
-    {
-      id: 'academicReadiness',
-      label: 'Academic Readiness',
-      score: report.universityFit.metrics.academicReadiness.score,
+      metric: report.programmeFit.metrics.careerFutureDirection,
     },
   ];
 
@@ -316,12 +319,25 @@ function V3ReportView({
 
   // Critical Gap from takeaways or overall
   const criticalGapObj = report.keyTakeaways.criticalGap;
-  const criticalGapTitle = criticalGapObj?.title || report.gaps[0]?.title || t('Research Exposure');
-  const criticalGapBody = criticalGapObj?.body || report.gaps[0]?.description || t('Main area to strengthen for this profile.');
+  const overallCriticalGap = report.gaps.find((gap) => report.overall.criticalGaps.includes(gap.id));
+  const criticalGapTitle = criticalGapObj?.title || overallCriticalGap?.title || report.gaps[0]?.title || t('Profile Alignment & Evidence');
+  const criticalGapBody = criticalGapObj?.body || overallCriticalGap?.description || report.gaps[0]?.description || report.overall.summary;
 
-  const strongestAlignmentLabels = report.programmeFit.strongestAlignment.length > 0
-    ? report.programmeFit.strongestAlignment.map((id) => t(V3_METRIC_LABELS[id] ?? id)).join(' · ')
-    : t('Interest & Motivation and academic preparedness');
+  const metricSummary = (id: string) => {
+    const metric = report.universityFit.metrics[id as keyof typeof report.universityFit.metrics]
+      ?? report.programmeFit.metrics[id as keyof typeof report.programmeFit.metrics];
+    const label = t(V3_METRIC_LABELS[id] ?? id);
+    return metric?.summary ? `${label}: ${metric.summary}` : label;
+  };
+  const strongestUniversityAlignment = report.overall.strongestAlignment.length > 0
+    ? report.overall.strongestAlignment.map(metricSummary).join(' · ')
+    : report.universityFit.summary;
+  const strongestProgrammeAlignment = report.programmeFit.strongestAlignment.length > 0
+    ? report.programmeFit.strongestAlignment.map(metricSummary).join(' · ')
+    : report.programmeFit.summary;
+  const primaryOpportunity = report.positioningOpportunities[0]?.description
+    || report.gaps[0]?.description
+    || report.universityFit.summary;
 
   const hardRequirementsList: RequirementItem[] = report.hardRequirements.map((req) => ({
     id: req.id,
@@ -330,6 +346,14 @@ function V3ReportView({
     statusLabel: req.status === 'met' ? 'Met' : req.status === 'not_met' ? 'Not met' : 'We could not check this',
     explanation: req.explanation,
     blocking: req.status === 'not_met',
+    kind: req.kind,
+    deadlineStatus: req.deadlineStatus,
+    applicantValue: req.applicantValue,
+    requiredValue: req.requiredValue,
+    evidenceIds: req.evidenceIds,
+    targetSourceRefs: req.targetSourceRefs,
+    evidenceIndex: report.evidenceIndex,
+    targetSourceIndex: report.targetSourceIndex,
   }));
 
   return (
@@ -346,12 +370,20 @@ function V3ReportView({
 
       {/* Hero Banner: Applicant–Target Matching */}
       <MatchingReportHero
-        universityName={data.universityName}
-        courseName={data.courseName}
         universityFitScore={report.universityFit.score}
         programmeFitScore={report.programmeFit.score}
         criticalGapTitle={criticalGapTitle}
         criticalGapDescription={criticalGapBody}
+        overallAlignmentScore={report.overall.overallAlignmentScore}
+        overallSummary={report.overall.summary}
+      />
+      <V3ReferenceList
+        evidenceIds={report.overall.summaryEvidenceIds}
+        targetSourceRefs={report.overall.summaryTargetSourceRefs}
+        metricIds={report.overall.strongestAlignment}
+        metricLabels={V3_METRIC_LABELS}
+        evidenceIndex={report.evidenceIndex}
+        targetSourceIndex={report.targetSourceIndex}
       />
 
       {/* Section 1: 🏛️ 1. UNIVERSITY FIT */}
@@ -366,8 +398,13 @@ function V3ReportView({
           score={report.universityFit.score}
           dimensions={universityDimensions}
           insightSummary={report.universityFit.summary}
-          strongestAlignment={t('Academic preparedness and alignment with the learning culture.')}
-          primaryOpportunity={t('Strengthen research exposure to match the expectations of research-active institutions.')}
+          strongestAlignment={strongestUniversityAlignment}
+          primaryOpportunity={primaryOpportunity}
+          fitStatus={report.universityFit.status}
+          fitCoverage={report.universityFit.coverage}
+          fitConfidence={report.universityFit.confidence}
+          evidenceIndex={report.evidenceIndex}
+          targetSourceIndex={report.targetSourceIndex}
         />
       </section>
 
@@ -382,9 +419,16 @@ function V3ReportView({
         <ProgrammeFitCard
           courseName={data.courseName}
           dimensions={programmeDimensions}
-          strongestFit={t('Your motivations and career direction align strongly with what this programme offers and where it can take you.')}
-          potentialGap={report.programmeFit.potentialGap || t('Research exposure is the key area to deepen. Consider projects, independent research, or publications to strengthen this dimension.')}
-          recommendation={report.programmeFit.strategicInterpretation || t('Highlight analytical projects, case competitions, or research initiatives in your applications and interviews.')}
+          strongestFit={strongestProgrammeAlignment}
+          potentialGap={report.programmeFit.potentialGap || report.gaps[0]?.description || report.programmeFit.summary}
+          recommendation={report.programmeFit.strategicInterpretation || report.positioningOpportunities[0]?.description || report.programmeFit.summary}
+          fitScore={report.programmeFit.score}
+          fitStatus={report.programmeFit.status}
+          fitCoverage={report.programmeFit.coverage}
+          fitConfidence={report.programmeFit.confidence}
+          fitSummary={report.programmeFit.summary}
+          evidenceIndex={report.evidenceIndex}
+          targetSourceIndex={report.targetSourceIndex}
         />
       </section>
 
@@ -400,22 +444,52 @@ function V3ReportView({
           strongestFit={{
             title: report.keyTakeaways.strongestFit.title || t('Strongest fit'),
             body: report.keyTakeaways.strongestFit.body,
+            evidenceIds: report.keyTakeaways.strongestFit.evidenceIds,
+            targetSourceRefs: report.keyTakeaways.strongestFit.targetSourceRefs,
+            metricIds: report.keyTakeaways.strongestFit.metricIds,
           }}
           competitiveAdvantage={{
             title: report.keyTakeaways.competitiveAdvantage.title || t('Competitive advantage'),
             body: report.keyTakeaways.competitiveAdvantage.body,
+            evidenceIds: report.keyTakeaways.competitiveAdvantage.evidenceIds,
+            targetSourceRefs: report.keyTakeaways.competitiveAdvantage.targetSourceRefs,
+            metricIds: report.keyTakeaways.competitiveAdvantage.metricIds,
           }}
           criticalGap={{
             title: report.keyTakeaways.criticalGap.title || t('Critical gap'),
             body: report.keyTakeaways.criticalGap.body,
+            evidenceIds: report.keyTakeaways.criticalGap.evidenceIds,
+            targetSourceRefs: report.keyTakeaways.criticalGap.targetSourceRefs,
+            metricIds: report.keyTakeaways.criticalGap.metricIds,
           }}
           strategicDirection={{
             title: report.keyTakeaways.strategicDirection.title || t('Strategic direction'),
             body: report.keyTakeaways.strategicDirection.body,
+            evidenceIds: report.keyTakeaways.strategicDirection.evidenceIds,
+            targetSourceRefs: report.keyTakeaways.strategicDirection.targetSourceRefs,
+            metricIds: report.keyTakeaways.strategicDirection.metricIds,
           }}
           evidenceSnapshot={evidenceSnapshot}
+          evidenceIndex={report.evidenceIndex}
+          targetSourceIndex={report.targetSourceIndex}
+          metricLabels={V3_METRIC_LABELS}
         />
       </section>
+
+      <V3InsightSections
+        strengths={report.strengths}
+        gaps={report.gaps}
+        positioningOpportunities={report.positioningOpportunities}
+        evidenceIndex={report.evidenceIndex}
+        targetSourceIndex={report.targetSourceIndex}
+      />
+
+      <V3ScholarshipAlignment
+        fit={report.scholarshipAlignment}
+        selectedScholarshipKey={report.metadata.selectedScholarshipKey}
+        evidenceIndex={report.evidenceIndex}
+        targetSourceIndex={report.targetSourceIndex}
+      />
 
       {/* Semantic Accessible Labels for Tests */}
       <div className="sr-only">
@@ -428,23 +502,14 @@ function V3ReportView({
         <span>{t('Strategic interpretation')}</span>
         <span>{report.programmeFit.potentialGap}</span>
         <span>{report.programmeFit.strategicInterpretation}</span>
-        {Array.from(sources.values()).map((s) => (
-          <span key={s.ref}>{s.title || s.label}</span>
-        ))}
-        {Array.from(evidence.values()).map((e) => (
-          <span key={e.id}>{e.label}</span>
-        ))}
-        <span>
-          {report.scholarshipAlignment
-            ? t('Scholarship alignment is shown separately from programme fit.')
-            : t('No selected scholarship was available for this application, so scholarship alignment was not assessed.')}
-        </span>
-      </div>
+       </div>
 
       {/* Section 4: 📑 Evidence Behind the Fit */}
       <EvidenceStrengthBanner
         coverage={report.overall.evidenceCoverage}
         confidence={report.overall.confidence}
+        evidenceIndex={report.evidenceIndex}
+        targetSourceIndex={report.targetSourceIndex}
       />
 
       {/* Hard Requirements & Eligibility Section */}
@@ -551,8 +616,6 @@ function V2ReportView({
       ) : null}
 
       <MatchingReportHero
-        universityName={data.universityName}
-        courseName={data.courseName}
         universityFitScore={score}
         programmeFitScore={Math.min(99, score + 2)}
         criticalGapTitle={strongestGap?.title || t('Research Exposure')}
@@ -750,8 +813,6 @@ function LegacyF5ReportView({
 
       {/* Hero Banner */}
       <MatchingReportHero
-        universityName={data.universityName}
-        courseName={data.courseName}
         universityFitScore={matchScore}
         universityFitLabel={summary.label}
         programmeFitScore={matchScore}

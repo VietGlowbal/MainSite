@@ -11,3 +11,4 @@ export * from './programme-fit-card';
 export * from './key-takeaways-grid';
 export * from './evidence-strength-banner';
 export * from './hard-requirements-section';
+export * from './v3-report-details';

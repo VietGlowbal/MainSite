@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MatchingReportPageData } from '../domain';
 import type { MatchingReportV3 } from '@/lib/ai/matching/domain';
@@ -374,9 +374,18 @@ describe('MatchingReportView', () => {
     expect(screen.getAllByText(/Verified project/).length).toBeGreaterThan(0);
     expect(screen.getByText(/scholarship alignment was not assessed/i)).toBeInTheDocument();
     expect(screen.getByText(/Overall evidence coverage/)).toBeInTheDocument();
+    expect(screen.getByText('Grounded alignment summary.')).toBeInTheDocument();
+    expect(screen.getByText(/Supporting Insights/)).toBeInTheDocument();
+    expect(screen.getByText('Evidence records and target sources')).toBeInTheDocument();
+    expect(screen.getByText(/Applicant value/)).toBeInTheDocument();
+    expect(screen.getByText('IELTS 6.5')).toBeInTheDocument();
+    expect(screen.getAllByText('Submetrics').length).toBeGreaterThan(0);
+    const programmeSection = screen.getByRole('heading', { name: /2\. Programme Fit/ }).closest('section');
+    expect(programmeSection).not.toBeNull();
+    expect(within(programmeSection as HTMLElement).queryByText('Academic Readiness')).not.toBeInTheDocument();
     expect(screen.getAllByText('Not assessed').length).toBeGreaterThan(0);
     expect(screen.getByText(/do not predict admission decisions/i)).toBeInTheDocument();
-    expect(screen.queryByText(/^0%$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^0\/100$/)).not.toBeInTheDocument();
   });
 });
 

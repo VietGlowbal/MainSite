@@ -2,6 +2,7 @@
 
 import { useT } from '@/lib/i18n';
 import { Badge } from '@/shared/ui';
+import { V3ReferenceList, formatV3Identifier, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
 
 export type RequirementItem = {
   id: string;
@@ -10,6 +11,14 @@ export type RequirementItem = {
   statusLabel?: string;
   explanation?: string | null;
   blocking?: boolean;
+  kind?: string;
+  deadlineStatus?: 'open' | 'passed' | 'unknown';
+  applicantValue?: string | number | null;
+  requiredValue?: string | number | null;
+  evidenceIds?: string[];
+  targetSourceRefs?: string[];
+  evidenceIndex?: V3EvidenceItem[];
+  targetSourceIndex?: V3TargetSource[];
 };
 
 type HardRequirementsSectionProps = {
@@ -66,9 +75,29 @@ export function HardRequirementsSection({
                 {t(req.statusLabel || (req.status === 'met' ? 'Met' : req.status === 'not_met' ? 'Not met' : 'We could not check this'))}
               </Badge>
             </div>
+            {req.kind || req.deadlineStatus || req.applicantValue !== undefined || req.requiredValue !== undefined ? (
+              <div className="grid grid-cols-1 gap-1 text-[11px] text-fg-secondary">
+                {req.kind ? <span><strong className="text-fg">{t('Requirement type')}:</strong> {formatV3Identifier(req.kind)}</span> : null}
+                {req.applicantValue !== undefined ? (
+                  <span><strong className="text-fg">{t('Applicant value')}:</strong> {req.applicantValue === null ? t('Not provided') : String(req.applicantValue)}</span>
+                ) : null}
+                {req.requiredValue !== undefined ? (
+                  <span><strong className="text-fg">{t('Required value')}:</strong> {req.requiredValue === null ? t('Not specified') : String(req.requiredValue)}</span>
+                ) : null}
+                {req.deadlineStatus ? (
+                  <span><strong className="text-fg">{t('Deadline status')}:</strong> {t(req.deadlineStatus === 'open' ? 'Open' : req.deadlineStatus === 'passed' ? 'Passed' : 'Unknown')}</span>
+                ) : null}
+              </div>
+            ) : null}
             {req.explanation ? (
               <p className="text-[11px] leading-relaxed text-fg-secondary">{req.explanation}</p>
             ) : null}
+            <V3ReferenceList
+              evidenceIds={req.evidenceIds}
+              targetSourceRefs={req.targetSourceRefs}
+              evidenceIndex={req.evidenceIndex}
+              targetSourceIndex={req.targetSourceIndex}
+            />
           </div>
         ))}
       </div>
