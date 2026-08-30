@@ -349,11 +349,7 @@ function V3ReportView({
         universityName={data.universityName}
         courseName={data.courseName}
         universityFitScore={report.universityFit.score}
-        universityFitLabel="Strong Fit"
-        universityTrend="↑ 4% vs last run"
         programmeFitScore={report.programmeFit.score}
-        programmeFitLabel="Strong Fit"
-        programmeTrend="↑ 3% vs last run"
         criticalGapTitle={criticalGapTitle}
         criticalGapDescription={criticalGapBody}
       />
@@ -368,8 +364,6 @@ function V3ReportView({
         </div>
         <UniversityFitCard
           score={report.universityFit.score}
-          statusLabel="Strong Fit"
-          trend="↑ 4% vs last run"
           dimensions={universityDimensions}
           insightSummary={report.universityFit.summary}
           strongestAlignment={t('Academic preparedness and alignment with the learning culture.')}
@@ -560,11 +554,7 @@ function V2ReportView({
         universityName={data.universityName}
         courseName={data.courseName}
         universityFitScore={score}
-        universityFitLabel="Strong Fit"
-        universityTrend="↑ 4% vs last run"
         programmeFitScore={Math.min(99, score + 2)}
-        programmeFitLabel="Strong Fit"
-        programmeTrend="↑ 3% vs last run"
         criticalGapTitle={strongestGap?.title || t('Research Exposure')}
         criticalGapDescription={strongestGap?.description || t('Main area to strengthen for this profile.')}
       />
@@ -579,8 +569,6 @@ function V2ReportView({
         </div>
         <UniversityFitCard
           score={score}
-          statusLabel="Strong Fit"
-          trend="↑ 4% vs last run"
           dimensions={universityDimensions}
           insightSummary={v2.snapshot.summary}
           strongestAlignment={strongestArea?.title || t('Academic preparedness and alignment with learning culture.')}
@@ -766,10 +754,8 @@ function LegacyF5ReportView({
         courseName={data.courseName}
         universityFitScore={matchScore}
         universityFitLabel={summary.label}
-        universityTrend="↑ 4% vs last run"
         programmeFitScore={matchScore}
         programmeFitLabel={summary.label}
-        programmeTrend="↑ 3% vs last run"
         criticalGapTitle={firstCritical?.dimension ? t(firstCritical.dimension) : t('Research Exposure')}
         criticalGapDescription={firstCritical?.text || t('Main area to strengthen for this profile.')}
       />
@@ -785,7 +771,6 @@ function LegacyF5ReportView({
         <UniversityFitCard
           score={matchScore}
           statusLabel={summary.label}
-          trend="↑ 4% vs last run"
           dimensions={universityDimensions}
           insightSummary={t(summary.meaning)}
           strongestAlignment={t('Academic preparedness and alignment with the learning culture.')}
