@@ -389,6 +389,97 @@ const VALID_F8_STRATEGY_ROW: MockTable = {
   },
 };
 
+const VALID_V3_STRATEGY_ROW: MockTable = {
+  id: 'strategy-v3-1',
+  application_id: 'app-1',
+  source_analysis_id: 'analysis-1',
+  source_match_analysis_id: 'match-1',
+  input_hash: 'strategy-v3-hash',
+  model_name: 'gpt-5.6-luna',
+  prompt_version: 'strategy-report-synthesis-v3.0.1',
+  created_at: '2025-01-04T00:00:00Z',
+  report_v2: {
+    contractVersion: 'strategy-report-v3',
+    generatedAt: '2025-01-04T00:00:00Z',
+    strategicOverview: {
+      currentPosition: {
+        summary: 'Current profile.',
+        profileStrength: { statement: 'Strength.', evidenceIds: [], metricIds: [] },
+        keyChallenge: { statement: 'Challenge.', gapIds: [], requirementIds: [] },
+        unclearArea: null,
+        differentiatedPotential: null,
+      },
+      strategicOpportunity: { statement: 'Opportunity.', priorityKeys: [] },
+      strategicGoal: { directionOfImprovement: 'Improve.', communicationGoal: 'Communicate.' },
+      topPriorities: [],
+      expectedOutcome: 'A clearer application.',
+    },
+    profileDevelopmentStrategy: {
+      areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => ({
+        key: category,
+        category,
+        label: category,
+        status: 'maintain',
+        diagnosis: 'Stable.',
+        whyItMatters: 'It matters.',
+        suggestedDirection: 'Maintain it.',
+        evidenceIds: [],
+        metricIds: [],
+        requirementIds: [],
+        targetSourceRefs: [],
+      })),
+      activityAnalyses: [],
+    },
+    narrativeStrategy: {
+      coreNarrativeDirection: {
+        originTrigger: null,
+        recurringMotivation: null,
+        actions: [],
+        capabilitiesDeveloped: [],
+        emergingDirection: null,
+        insight: 'No pattern established.',
+        evidenceIds: [],
+      },
+      supportingThemes: [],
+      narrativeTension: null,
+      narrativeOptions: [],
+    },
+    strategicRoadmap: ['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise'].map((phaseKey) => ({
+      phaseKey,
+      name: phaseKey,
+      goal: 'Continue.',
+      keyActions: [],
+      deliverables: [],
+      successCriteria: [],
+      estimatedTimeline: 'As needed.',
+      linkedPriorityKeys: [],
+    })),
+    evidenceIndex: [],
+    targetSourceIndex: [],
+    metadata: {
+      strategyEngineVersion: 'strategy-v3.0.0',
+      reportContractVersion: 'strategy-report-v3',
+      profileDiagnosisPromptVersion: 'strategy-profile-diagnosis-v3.0.0',
+      activityAnalysisPromptVersion: 'strategy-activity-analysis-v3.2.0',
+      synthesisPromptVersion: 'strategy-report-synthesis-v3.0.1',
+      priorityFormulaVersion: 'impact-relevance-evidence-gap-feasibility-urgency-v1',
+      personalReportVersionId: 'report-1',
+      personalReportInputHash: 'hash-abc',
+      sourceAnalysisVersionId: 'analysis-1',
+      confirmedSnapshotId: 'snapshot-1',
+      matchingReportId: 'match-1',
+      matchingInputHash: 'match-hash',
+      matchingContractVersion: 'matching-report-v3',
+      matchingEngineVersion: 'matching-v3.1.0',
+      targetProfileVersionId: null,
+      selectedScholarshipVersionId: null,
+      applicationDeadlineEvaluatedAt: '2025-01-04T00:00:00Z',
+      model: 'gpt-5.6-luna',
+      aiCallCount: 2,
+    },
+  },
+};
+
 const VALID_PROFILE: MockTable = {
   budget_range: '20000-30000',
   tuition_budget_usd: null,
@@ -735,6 +826,24 @@ describe('fetchPlanningContextSources', () => {
       kind: 'f8',
       provenance: { id: 'strategy-f8-1', inputHash: 'strategy-f8-hash' },
       data: { executionRoadmap: { phases: [{ phaseKey: 'strengthen_foundation' }] } },
+    });
+    expect(result.strategyRecommendation).toBeNull();
+  });
+
+  it('selects a validated Strategy V3 roadmap before F8/F7 compatibility fallbacks', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_V3_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({
+      kind: 'v3',
+      provenance: {
+        id: 'strategy-v3-1',
+        inputHash: 'strategy-v3-hash',
+        engineVersion: 'strategy-v3.0.0',
+      },
     });
     expect(result.strategyRecommendation).toBeNull();
   });

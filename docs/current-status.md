@@ -1533,3 +1533,18 @@ After material work, update this file in the same change:
 - Fix: each activity request now sends only its batch in both context and activity fields, includes an explicit `requiredActivityIds` checklist, and updates the activity prompt version.
 - Regression coverage: `src/lib/ai/strategy-v3/engine.test.ts` verifies multi-batch generation and that both activity scopes match the required IDs.
 - Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 15 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/runtime/prompt-registry.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-08-30 — Strategy V3 lineage, Planner, grounding, and runtime hardening (working tree)
+
+- Strategy UI now ensures the current POST/hash lineage before rendering; the API fails closed with `strategy_v3_stale_inputs` when Matching declares an unavailable target-profile version, and cache hits require the complete current lineage plus engine/contract/formula/prompt/model inputs.
+- Strategy V3 is now a first-class Core 3 Planner source. Its semantic deliverable IDs flow through the existing reconciliation layer, which preserves student execution fields, avoids duplicate syncs, updates same-key wording, and archives removed nodes; F8/F7 remain fallback sources.
+- Evidence status follows the canonical Evidence Bank distinction (document-backed/test-backed vs applicant-stated/report-only). Deterministic priorities now use structured references, consolidate overlapping candidates, validate structured durations, and emit stable non-positional deliverable keys. Sparse core narratives may have empty evidence IDs when no causal evidence exists.
+- Override PUT failures now rollback optimistic edits and show an explicit error; `Editable` synchronizes incoming values in an effect; internal `rawPriority` is hidden from the applicant UI.
+- Measured checks: Strategy/Planner/UI scope 13 files / 90 tests passed; `npm.cmd run typecheck` passed; `npm.cmd run build:ci` passed (141 static pages, existing Edge/dynamic-filesystem warnings); `git diff --check` passed with only LF/CRLF warnings. Full `npm.cmd test` returned 3542 passed, 2 todo, 8 failures outside this change's files (including existing UI/i18n/auth test timeout/assertion failures). Full `npm.cmd run lint` returned 15 existing raw-hex errors in `src/features/apply/ui/matching-report/key-takeaways-grid.tsx` plus 5 warnings; touched Strategy files pass targeted ESLint.
+
+## 2026-08-30 — Strategy V3 limits activity-stage token bursts (working tree)
+
+- Root cause: activity batches were sent concurrently and each repeated the full Strategy context, so concurrent GPT-5.6 Luna requests exhausted the organization TPM limit and returned 429.
+- Fix: activity batches now run sequentially, send a compact batch-only model context, and use a 6,000-token completion budget; strict one-result-per-canonical-activity and reference validation remain unchanged.
+- Regression coverage: the multi-batch engine test now verifies batch scoping, compact context, and the activity token budget.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 15 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/runtime/prompt-registry.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.

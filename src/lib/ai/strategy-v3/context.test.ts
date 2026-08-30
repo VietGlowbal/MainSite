@@ -78,4 +78,30 @@ describe('Strategy V3 canonical context', () => {
       expect.arrayContaining(['experience:activity-1', 'academic:english_test:ielts-1']),
     );
   });
+
+  it('preserves verification status instead of promoting snapshot reflections to verified evidence', () => {
+    const state = stateFromSnapshotRow({
+      id: 'snap-1', user_id: 'user-1', application_id: 'app-1',
+      payload: {
+        reflection: {
+          achievements: [{ id: 'achievement-1', title: 'Award', detail: 'Won it.', evidenceKey: 'award.pdf' }],
+          activities: [{ id: 'activity-1', title: 'Club', description: 'Ran sessions.' }],
+        },
+        documents: [{ id: 'doc-1', fileName: 'award.pdf' }],
+      },
+    });
+    const context = buildStrategyInputContext({
+      applicationId: 'app-1',
+      application: {},
+      personalReport: {} as never,
+      matching: { evidenceIndex: [], targetSourceIndex: [], hardRequirements: [], gaps: [], metadata: {} } as never,
+      snapshotState: state,
+      sourceAnalysis: null,
+      targetProfile: null,
+    });
+
+    expect(context.evidenceIndex.find((item) => item.id === 'achievement:achievement-1')).toMatchObject({ status: 'verified', direct: true });
+    expect(context.evidenceIndex.find((item) => item.id === 'activity:activity-1')).toMatchObject({ status: 'unverified', direct: false });
+    expect(context.evidenceIndex.find((item) => item.id === 'document:doc-1')).toMatchObject({ status: 'verified', direct: true });
+  });
 });

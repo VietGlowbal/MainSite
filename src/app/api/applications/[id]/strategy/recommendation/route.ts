@@ -12,6 +12,7 @@ import { getTargetProfileVersion } from '@/lib/ai/target-profile/repository';
 import { buildStrategyInputContext, withStrategyLineage } from '@/lib/ai/strategy-v3/context';
 import {
   STRATEGY_ENGINE_V3_VERSION,
+  STRATEGY_PRIORITY_FORMULA_VERSION,
   STRATEGY_REPORT_V3_CONTRACT_VERSION,
   strategyReportV3FromRow,
 } from '@/lib/ai/strategy-v3/domain';
@@ -151,12 +152,16 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     return missingInputs(applicationId, user.id, getElapsed());
   }
   const programmeId = stringValue(application.course_id) ?? stringValue(record(application.courses).id);
-  const targetProfile = matching.report.metadata.targetProfileVersionId && programmeId
-    ? await getTargetProfileVersion(supabase, {
-        programmeId,
-        versionId: matching.report.metadata.targetProfileVersionId,
-      })
+  const targetProfileVersionId = stringValue(matching.report.metadata.targetProfileVersionId);
+  if (targetProfileVersionId && !programmeId) {
+    return staleInputs(applicationId, user.id, getElapsed(), 'Matching declares a target profile but the application has no programme.');
+  }
+  const targetProfile = targetProfileVersionId
+    ? await getTargetProfileVersion(supabase, { programmeId: programmeId!, versionId: targetProfileVersionId })
     : null;
+  if (targetProfileVersionId && (!targetProfile || targetProfile.id !== targetProfileVersionId)) {
+    return staleInputs(applicationId, user.id, getElapsed(), 'The target profile version referenced by Matching is unavailable.');
+  }
 
   const baseContext = buildStrategyInputContext({
     applicationId,
@@ -176,7 +181,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     matchingInputHash: stringValue(matching.row.input_hash),
     matchingContractVersion: matching.report.contractVersion,
     matchingEngineVersion: matching.report.metadata.matchingEngineVersion,
-    targetProfileVersionId: targetProfile?.id ?? matching.report.metadata.targetProfileVersionId ?? null,
+    targetProfileVersionId: targetProfile?.id ?? null,
     selectedScholarshipVersionId: matching.report.metadata.selectedScholarshipVersionId ?? null,
   });
   const modelName = process.env.OPENAI_MODEL || defaultOpenAIModel();
@@ -185,17 +190,33 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     getReportPrompt('strategy_activity_analysis').version,
     getReportPrompt('strategy_report_synthesis').version,
   ];
-  const inputHash = stableHash({ context: contextWithLineage, model: modelName, promptVersions });
+  const inputHash = stableHash({
+    context: contextWithLineage,
+    model: modelName,
+    promptVersions,
+    strategyEngineVersion: STRATEGY_ENGINE_V3_VERSION,
+    reportContractVersion: STRATEGY_REPORT_V3_CONTRACT_VERSION,
+    priorityFormulaVersion: STRATEGY_PRIORITY_FORMULA_VERSION,
+  });
 
   // Exact V3 cache resolution deliberately happens before API-key validation.
   const strategyRows = await loadStrategyRows(supabase, applicationId);
   const cached = strategyRows.find((row) => {
     const report = strategyReportV3FromRow(row);
+    const lineage = contextWithLineage.lineage;
     return Boolean(
       report &&
         row.input_hash === inputHash &&
         report.metadata.personalReportVersionId === personalRecord.id &&
-        report.metadata.matchingReportId === String(matching.row.id),
+        report.metadata.personalReportInputHash === lineage.personalReportInputHash &&
+        report.metadata.sourceAnalysisVersionId === lineage.sourceAnalysisVersionId &&
+        report.metadata.confirmedSnapshotId === lineage.confirmedSnapshotId &&
+        report.metadata.matchingReportId === lineage.matchingReportId &&
+        report.metadata.matchingInputHash === lineage.matchingInputHash &&
+        report.metadata.matchingContractVersion === lineage.matchingContractVersion &&
+        report.metadata.matchingEngineVersion === lineage.matchingEngineVersion &&
+        report.metadata.targetProfileVersionId === lineage.targetProfileVersionId &&
+        report.metadata.selectedScholarshipVersionId === lineage.selectedScholarshipVersionId,
     );
   });
   if (cached) {
@@ -304,6 +325,21 @@ function missingInputs(applicationId: string, userId: string, durationMs: number
       code: 'strategy_v3_missing_inputs',
     },
     { status: 422 },
+  );
+}
+
+function staleInputs(applicationId: string, userId: string, durationMs: number, message: string) {
+  logger.warn('strategy_recommendation_generate', {
+    userId,
+    applicationId,
+    stage: 'validated',
+    outcome: 'validation_failed',
+    metadata: { message },
+    durationMs,
+  });
+  return NextResponse.json(
+    { error: message, code: 'strategy_v3_stale_inputs' },
+    { status: 409 },
   );
 }
 

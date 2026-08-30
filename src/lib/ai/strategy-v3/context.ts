@@ -166,15 +166,23 @@ function buildEvidenceIndex(
   matching: MatchingReportV3,
   personalReport: PersonalReportV2,
 ): StrategyEvidenceIndexItem[] {
-  const items: StrategyEvidenceIndexItem[] = state.evidenceBank.map((item) => ({
-    id: item.id,
-    label: item.label,
-    statement: item.label,
-    kind: 'applicant',
-    status: 'verified',
-    sourceRefs: [item.id],
-    direct: true,
-  }));
+  const items: StrategyEvidenceIndexItem[] = state.evidenceBank.map((item) => {
+    const raw = record(item.raw);
+    const hasDocument = item.kind === 'document' ||
+      (item.kind === 'achievement' && (
+        stringValue(raw.evidenceKey ?? raw.evidence_key) !== null ||
+        ['uploaded_document', 'document'].includes(stringValue(raw.sourceType ?? raw.source_type) ?? '')
+      ));
+    return {
+      id: item.id,
+      label: item.label,
+      statement: item.label,
+      kind: 'applicant',
+      status: hasDocument ? 'verified' : 'unverified',
+      sourceRefs: [item.id],
+      direct: hasDocument,
+    };
+  });
   const known = new Set(items.map((item) => item.id));
   const addReportOnly = (item: { id: string; label: string; sourceRefs?: string[]; kind?: string }) => {
     if (known.has(item.id)) return;
@@ -269,6 +277,12 @@ function buildTargetSourceIndex(
 
 function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
 }
 
 function daysBetween(now: Date, deadline: string): number | null {

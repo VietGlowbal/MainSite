@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, CheckItem, CheckList, Panel, Textarea, Badge } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 import type {
@@ -24,11 +24,16 @@ export function StrategyReportV3View({ applicationId, report }: { applicationId:
   const { t } = useLanguage();
   const [overrides, setOverrides] = useState<Overrides>({});
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
+  const [overrideError, setOverrideError] = useState(false);
+  const saveSequence = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/applications/${applicationId}/report-overrides?kind=strategy_v3`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('Override load failed');
+        return res.json();
+      })
       .then((body: { overrides?: Overrides }) => {
         if (!cancelled && body.overrides) setOverrides(body.overrides);
       })
@@ -39,11 +44,25 @@ export function StrategyReportV3View({ applicationId, report }: { applicationId:
   }, [applicationId]);
 
   const saveOverride = (itemKey: string, field: 'title' | 'why' | 'suggestedDirection', value: string) => {
+    const requestId = ++saveSequence.current;
+    const previous = overrides[itemKey]?.[field];
+    setOverrideError(false);
     setOverrides((current) => ({ ...current, [itemKey]: { ...current[itemKey], [field]: value } }));
     void fetch(`/api/applications/${applicationId}/report-overrides`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kind: 'strategy_v3', itemKey, field, value }),
+    }).then((res) => {
+      if (!res.ok) throw new Error('Override save failed');
+    }).catch(() => {
+      if (requestId !== saveSequence.current) return;
+      setOverrides((current) => {
+        const item = { ...(current[itemKey] ?? {}) };
+        if (previous === undefined) delete item[field];
+        else item[field] = previous;
+        return { ...current, [itemKey]: item };
+      });
+      setOverrideError(true);
     });
   };
 
@@ -58,6 +77,7 @@ export function StrategyReportV3View({ applicationId, report }: { applicationId:
           {t('Strategic Overview')}
         </h2>
         <Panel className="flex flex-col gap-gb-xl">
+          {overrideError ? <p role="alert" className="text-gb-sm text-fg-error">{t('Could not save this edit. Please try again.')}</p> : null}
           <div className="grid gap-gb-lg md:grid-cols-3">
             <OverviewBlock label={t('Profile strength')} value={report.strategicOverview.currentPosition.profileStrength.statement} />
             <OverviewBlock label={t('Key challenge')} value={report.strategicOverview.currentPosition.keyChallenge.statement} />
@@ -210,16 +230,15 @@ function OverviewBlock({ label, value }: { label: string; value: string }) {
 
 function PriorityCard({ priority, overrides, onSave }: { priority: StrategyReportV3['strategicOverview']['topPriorities'][number]; overrides: Overrides; onSave: (key: string, field: 'title' | 'why' | 'suggestedDirection', value: string) => void }) {
   const values = overrides[priority.key] ?? {};
-  return <div className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="mb-gb-md flex flex-wrap items-center gap-gb-sm"><Badge variant="brand-subtle">#{priority.rank}</Badge><span className="text-gb-xs text-fg-muted">{priority.factors.rawPriority}</span></div><div className="grid gap-gb-md md:grid-cols-3"><Editable label="Priority" value={stringOverride(values.title) ?? priority.title} onSave={(value) => onSave(priority.key, 'title', value)} /><Editable label="Why" value={stringOverride(values.why) ?? priority.why} onSave={(value) => onSave(priority.key, 'why', value)} multiline /><Editable label="Suggested direction" value={stringOverride(values.suggestedDirection) ?? priority.suggestedDirection} onSave={(value) => onSave(priority.key, 'suggestedDirection', value)} multiline /></div><div className="mt-gb-md flex flex-wrap gap-gb-xs text-gb-xxs text-fg-muted">{Object.entries(priority.factors).map(([key, value]) => <span key={key} className="rounded-gb-md bg-surface-muted px-gb-xs py-gb-xxs">{key}: {value}</span>)}</div></div>;
+  return <div className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="mb-gb-md flex flex-wrap items-center gap-gb-sm"><Badge variant="brand-subtle">#{priority.rank}</Badge></div><div className="grid gap-gb-md md:grid-cols-3"><Editable label="Priority" value={stringOverride(values.title) ?? priority.title} onSave={(value) => onSave(priority.key, 'title', value)} /><Editable label="Why" value={stringOverride(values.why) ?? priority.why} onSave={(value) => onSave(priority.key, 'why', value)} multiline /><Editable label="Suggested direction" value={stringOverride(values.suggestedDirection) ?? priority.suggestedDirection} onSave={(value) => onSave(priority.key, 'suggestedDirection', value)} multiline /></div><div className="mt-gb-md flex flex-wrap gap-gb-xs text-gb-xxs text-fg-muted">{Object.entries(priority.factors).filter(([key]) => key !== 'rawPriority').map(([key, value]) => <span key={key} className="rounded-gb-md bg-surface-muted px-gb-xs py-gb-xxs">{key}: {value}</span>)}</div></div>;
 }
 
 function Editable({ label, value, onSave, multiline = false }: { label: string; value: string; onSave: (value: string) => void; multiline?: boolean }) {
   const [draft, setDraft] = useState(value);
-  const [lastSynced, setLastSynced] = useState(value);
-  if (value !== lastSynced) {
-    setLastSynced(value);
-    setDraft(value);
-  }
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDraft(value), 0);
+    return () => window.clearTimeout(timer);
+  }, [value]);
   return <label className="flex flex-col gap-gb-xxs"><span className="text-gb-xs font-medium text-fg-muted">{label}</span>{multiline ? <Textarea name={`strategy-${label}`} rows={3} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (draft !== value) onSave(draft); }} className="resize-none" /> : <input name={`strategy-${label}`} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (draft !== value) onSave(draft); }} className="rounded-gb-md border border-line bg-surface px-gb-sm py-gb-xxs text-gb-sm text-fg" />}</label>;
 }
 

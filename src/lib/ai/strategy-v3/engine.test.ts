@@ -33,7 +33,7 @@ function area(category: 'academic' | 'experience' | 'differentiation' | 'evidenc
   return { key: category, category, label: category, status, diagnosis: 'Diagnosis.', whyItMatters: 'Why.', suggestedDirection: 'Direction.', evidenceIds: [] as string[], metricIds: [] as string[], requirementIds: [] as string[], targetSourceRefs: [] as string[] };
 }
 
-function synthesis() {
+function synthesis(deliverables: unknown[] = []) {
   return {
     strategicOverview: {
       currentPosition: { summary: 'Current.', profileStrength: { statement: 'Strength.', evidenceIds: [], metricIds: [] }, keyChallenge: { statement: 'Challenge.', gapIds: [], requirementIds: [] }, unclearArea: null, differentiatedPotential: null },
@@ -42,7 +42,7 @@ function synthesis() {
       expectedOutcome: 'Outcome.',
     },
     narrativeStrategy: { coreNarrativeDirection: { originTrigger: null, recurringMotivation: null, actions: [], capabilitiesDeveloped: [], emergingDirection: null, insight: 'No pattern.', evidenceIds: ['evidence-1'] }, supportingThemes: [], narrativeTension: null, narrativeOptions: [] },
-    strategicRoadmap: ['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise'].map((phaseKey) => ({ phaseKey, name: phaseKey, goal: 'Goal.', keyActions: [], deliverables: [], successCriteria: [], estimatedTimeline: 'As needed.', linkedPriorityKeys: [] })),
+    strategicRoadmap: ['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise'].map((phaseKey, index) => ({ phaseKey, name: phaseKey, goal: 'Goal.', keyActions: [], deliverables: index === 0 ? deliverables : [], successCriteria: [], estimatedTimeline: 'As needed.', linkedPriorityKeys: [] })),
   };
 }
 
@@ -121,12 +121,24 @@ describe('Strategy V3 engine', () => {
     });
 
     const batchInputs = mocks.openAiJsonCompletion.mock.calls
-      .map(([request]) => JSON.parse(request.messages[1].content) as { activities?: unknown[]; context?: { activities?: unknown[] }; requiredActivityIds?: string[] })
+      .map(([request]) => ({
+        ...JSON.parse(request.messages[1].content) as {
+          activities?: unknown[];
+          context?: { activities?: unknown[]; applicant?: unknown; lineage?: unknown; personalReport?: unknown; sourceAnalysis?: unknown };
+          requiredActivityIds?: string[];
+        },
+        maxTokens: request.maxTokens,
+      }))
       .filter((input) => input.requiredActivityIds);
     expect(batchInputs).toHaveLength(2);
     for (const input of batchInputs) {
       expect(input.requiredActivityIds).toEqual(input.activities?.map((activity) => (activity as { activityId: string }).activityId));
       expect(input.context?.activities?.map((activity) => (activity as { activityId: string }).activityId)).toEqual(input.requiredActivityIds);
+      expect(input.context?.applicant).toEqual({ directionSignals: {} });
+      expect(input.context).not.toHaveProperty('lineage');
+      expect(input.context).not.toHaveProperty('personalReport');
+      expect(input.context).not.toHaveProperty('sourceAnalysis');
+      expect(input.maxTokens).toBe(6_000);
     }
     expect(report.profileDevelopmentStrategy.activityAnalyses).toHaveLength(7);
   });
@@ -143,5 +155,52 @@ describe('Strategy V3 engine', () => {
   it('caps a new missing dimension when the deadline is close', () => {
     const candidate: StrategyInterventionCandidate = { candidateId: 'profile:academic', title: 'Academic', why: 'Why.', suggestedDirection: 'Build.', kind: 'build_missing_dimension', evidenceIds: [], gapIds: [], requirementIds: [], targetSourceRefs: ['source-1'] };
     expect(calculateStrategyPriorityFactors(candidate, context({ application: { status: 'draft', deadline: '2026-09-05', daysUntilDeadline: 6, intake: null } })).feasibility).toBe(1);
+  });
+
+  it('consolidates profile candidates that share a canonical metric', () => {
+    const ranked = selectTopPriorities(
+      context(),
+      [
+        { ...area('academic', 'develop'), metricIds: ['metric-1'] },
+        { ...area('experience', 'consolidate'), metricIds: ['metric-1'] },
+        area('differentiation'),
+        area('evidence'),
+      ],
+      [],
+    );
+
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]?.basisRefs).toContain('metric-1');
+  });
+
+  it('uses semantic deliverable identity instead of array position and enforces duration feasibility', async () => {
+    const deliverables = [
+      { key: 'research-evidence', label: 'Collect research evidence', kind: 'evidence', linkedPriorityKeys: [], tool: null, basisRefs: [], estimatedDurationDays: 5 },
+      { key: 'test-booking', label: 'Book language test', kind: 'requirement', linkedPriorityKeys: [], tool: null, basisRefs: [], estimatedDurationDays: 4 },
+    ];
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis(deliverables)));
+    const first = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+    const firstKeys = first.strategicRoadmap[0]!.deliverables.map((deliverable) => deliverable.key);
+
+    mocks.openAiJsonCompletion.mockReset();
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis([...deliverables].reverse())));
+    const reordered = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+    expect(reordered.strategicRoadmap[0]!.deliverables.map((deliverable) => deliverable.key).sort()).toEqual([...firstKeys].sort());
+    expect(reordered.strategicRoadmap[0]!.deliverables.find((deliverable) => deliverable.label === 'Collect research evidence')?.estimatedDurationDays).toBe(5);
+
+    mocks.openAiJsonCompletion.mockReset();
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis([{ ...deliverables[0], estimatedDurationDays: 15 }])));
+    await expect(generateStrategyReportV3({
+      context: context({ application: { status: 'draft', deadline: '2026-09-09', daysUntilDeadline: 10, intake: null } }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    })).rejects.toMatchObject({ code: 'deadline_infeasible' });
   });
 });

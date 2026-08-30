@@ -35,6 +35,7 @@ import { matchingReportV3Schema } from '@/lib/ai/matching/domain';
 import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
 import { recommendationFromRow } from '../domain/recommendation';
 import { strategyRecommendationFromRow, strategyReportV2FromRow } from '../domain/strategy-recommendation';
+import { strategyReportV3FromRow } from '@/lib/ai/strategy-v3/domain';
 import type {
   DeadlineAuthority,
   DeadlineCandidate,
@@ -58,6 +59,7 @@ import {
 // this local to avoid importing the model-generation module into the context
 // compiler (which creates a runtime cycle under test).
 const CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION = 'strategy-report-f8-v3';
+const CURRENT_STRATEGY_REPORT_V3_PROMPT_VERSION = 'strategy-report-synthesis-v3.0.1';
 
 // ─── Fatal error ──────────────────────────────────────────────────────────────
 
@@ -624,9 +626,47 @@ export async function fetchPlanningContextSources(
   let strategyRecommendation: PlanningContextSources['strategyRecommendation'] = null;
   let strategyRoadmap: NonNullable<PlanningContextSources['strategyRoadmap']> | null = null;
 
-  // F8 is the canonical shape. Query it first so an older F7 row cannot
+  // Strategy V3 is the canonical shape. Query it first so an older F8/F7 row cannot
+  // displace the current report by created_at alone.
+  const { data: v3Rows } = await supabase
+    .from('application_strategy_recommendations')
+    .select(
+      'id,source_analysis_id,source_match_analysis_id,report_v2,input_hash,' +
+      'model_name,prompt_version,created_at',
+    )
+    .eq('application_id', applicationId)
+    .eq('prompt_version', CURRENT_STRATEGY_REPORT_V3_PROMPT_VERSION)
+    .not('report_v2', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  const v3Row = (Array.isArray(v3Rows) ? v3Rows : v3Rows ? [v3Rows] : [])
+    .map((candidate) => candidate as unknown as Record<string, unknown>)
+    .find((candidate) => Boolean(strategyReportV3FromRow(candidate)));
+
+  if (v3Row) {
+    const row = v3Row as unknown as Record<string, unknown>;
+    const reportV3 = strategyReportV3FromRow(row);
+    if (reportV3) {
+      strategyRoadmap = {
+        kind: 'v3',
+        data: { strategicRoadmap: reportV3.strategicRoadmap },
+        provenance: {
+          id: typeof row.id === 'string' ? row.id : '',
+          generatedAt: typeof row.created_at === 'string' ? row.created_at : reportV3.generatedAt,
+          inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+          promptVersion: reportV3.metadata.synthesisPromptVersion,
+          engineVersion: reportV3.metadata.strategyEngineVersion,
+          modelName: reportV3.metadata.model,
+          sourceAnalysisId: reportV3.metadata.sourceAnalysisVersionId,
+          sourceMatchAnalysisId: reportV3.metadata.matchingReportId,
+        },
+      };
+    }
+  }
+
+  // F8 is the compatibility shape. Query it only when V3 is unavailable so an older F8/F7 row cannot
   // displace the current report_v2 roadmap by created_at alone.
-  const { data: f8Row } = await supabase
+  const f8Row = strategyRoadmap ? null : (await supabase
     .from('application_strategy_recommendations')
     .select(
       'id,source_analysis_id,source_match_analysis_id,report_v2,input_hash,' +
@@ -637,7 +677,7 @@ export async function fetchPlanningContextSources(
     .not('report_v2', 'is', null)
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle()).data;
 
   if (f8Row) {
     const row = f8Row as unknown as Record<string, unknown>;
@@ -735,7 +775,7 @@ export async function fetchPlanningContextSources(
       provenance: strategyRecommendation.provenance,
     };
   }
-  if (strategyRoadmap?.kind === 'f8') {
+  if (strategyRoadmap?.kind === 'f8' || strategyRoadmap?.kind === 'v3') {
     strategyRecommendation = null;
     const diagnosticIndex = diagnostics.findIndex((diagnostic) => diagnostic.source === 'application_strategy_recommendations');
     const diagnostic = { source: 'application_strategy_recommendations', status: 'present' as const };

@@ -81,22 +81,9 @@ export function StrategyRecommendationWorkspace({
           reportV2?: StrategyReportV2 | null;
           reportV3?: StrategyReportV3 | null;
         };
-        if (existing.reportV3) {
-          setReportV3(existing.reportV3);
-          setState('ready');
-          return;
-        }
-        if (existing.reportV2) {
-          setReportV2(existing.reportV2);
-          setState('ready');
-          return;
-        }
-        if (existing.recommendation) {
-          setRecommendation(existing.recommendation);
-          setState('ready');
-          return;
-        }
-
+        // GET is only a legacy/fallback read. POST recomputes the exact
+        // current lineage/hash and returns the cache hit or a fresh report;
+        // rendering GET's V3 row would display stale strategy input.
         setState('generating');
         const generatedRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`, {
           method: 'POST',
@@ -115,6 +102,16 @@ export function StrategyRecommendationWorkspace({
         }
 
         if (!generatedRes.ok || (!generated.recommendation && !generated.reportV2 && !generated.reportV3)) {
+          if (!existing.reportV3 && existing.reportV2) {
+            setReportV2(existing.reportV2);
+            setState('ready');
+            return;
+          }
+          if (!existing.reportV3 && existing.recommendation) {
+            setRecommendation(existing.recommendation);
+            setState('ready');
+            return;
+          }
           setError(generated.error || t('Something went wrong. Please try again.'));
           setState('error');
           return;

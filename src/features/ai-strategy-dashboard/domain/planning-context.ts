@@ -29,6 +29,7 @@ import type {
   StrategyRoadmap,
 } from './strategy-recommendation';
 import type { Recommendation, StrategyReportV2 } from './recommendation';
+import type { StrategyReportV3 } from '@/lib/ai/strategy-v3/domain';
 import type {
   ApplicationRequirement,
   ApplicationStage,
@@ -489,8 +490,13 @@ export type PlanningStrategy = {
   // Provenance lives in PlanningProvenance.strategy — not embedded here.
 };
 
-/** The current F8 roadmap, or the older F7 roadmap when F8 is unavailable. */
+/** The current V3 roadmap, or the F8/F7 compatibility roadmap when unavailable. */
 export type PlanningStrategyRoadmap =
+  | {
+    kind: 'v3';
+    data: Pick<StrategyReportV3, 'strategicRoadmap'>;
+    provenance: SourceProvenance;
+  }
   | {
     kind: 'f8';
     data: Pick<StrategyReportV2, 'executionRoadmap'>;

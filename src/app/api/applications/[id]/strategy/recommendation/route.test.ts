@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getApplicationProfileAnalysisVersion: vi.fn(),
   buildApplicantStateFromSnapshot: vi.fn(),
   getTargetProfileVersion: vi.fn(),
+  stableHash: vi.fn(),
   buildStrategyInputContext: vi.fn(),
   generateStrategyReportV3: vi.fn(),
 }));
@@ -15,7 +16,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: async () => supabaseMock
 vi.mock('@/features/apply/api', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatestApplicationPersonalReportV2,
   getApplicationProfileAnalysisVersion: mocks.getApplicationProfileAnalysisVersion,
-  stableHash: () => 'test-input-hash',
+  stableHash: mocks.stableHash,
 }));
 vi.mock('@/lib/ai/applicant-state/context-builder', () => ({
   buildApplicantStateFromSnapshot: mocks.buildApplicantStateFromSnapshot,
@@ -216,7 +217,8 @@ describe('/api/applications/[id]/strategy/recommendation V3', () => {
     mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({ record: PERSONAL_RECORD, migrationMissing: false });
     mocks.buildApplicantStateFromSnapshot.mockResolvedValue({ snapshotId: 'snap-1', achievements: [], activities: [], evidenceBank: [], directionSignals: {}, metadata: {} });
     mocks.getApplicationProfileAnalysisVersion.mockResolvedValue({ analysis: { id: 'analysis-1', inputHash: 'analysis-hash', moduleVersions: {}, structuredOutputs: {}, evidenceBank: null, confirmedSnapshotId: 'snap-1', createdAt: '2026-08-30' }, migrationMissing: false });
-    mocks.getTargetProfileVersion.mockResolvedValue(null);
+    mocks.getTargetProfileVersion.mockResolvedValue({ id: 'tp-1', profile: {} });
+    mocks.stableHash.mockReturnValue('test-input-hash');
     mocks.buildStrategyInputContext.mockReturnValue({ lineage: {}, applicant: {}, activities: [], matching: matchingReportForTest, target: {}, application: {}, evidenceIndex: [], targetSourceIndex: [] });
     mocks.generateStrategyReportV3.mockResolvedValue(GENERATED_REPORT);
     strategyRows = [];
@@ -240,6 +242,16 @@ describe('/api/applications/[id]/strategy/recommendation V3', () => {
     expect(response.status).toBe(422);
   });
 
+  it('fails closed when Matching references an unavailable target profile version', async () => {
+    mocks.getTargetProfileVersion.mockResolvedValue(null);
+    setupSupabase();
+    const { POST } = await importRoute();
+    const response = await POST(new Request('http://localhost', { method: 'POST' }), { params: Promise.resolve({ id: 'app-1' }) });
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('strategy_v3_stale_inputs');
+    expect(mocks.generateStrategyReportV3).not.toHaveBeenCalled();
+  });
+
   it('generates and persists only Strategy V3 without touching mutable activity tables', async () => {
     setupSupabase();
     const { POST } = await importRoute();
@@ -249,6 +261,11 @@ describe('/api/applications/[id]/strategy/recommendation V3', () => {
     expect(json.reportV3.contractVersion).toBe('strategy-report-v3');
     expect(json.reportV2).toBeNull();
     expect(mocks.generateStrategyReportV3).toHaveBeenCalledTimes(1);
+    expect(mocks.stableHash).toHaveBeenCalledWith(expect.objectContaining({
+      strategyEngineVersion: 'strategy-v3.1.0',
+      reportContractVersion: 'strategy-report-v3',
+      priorityFormulaVersion: 'impact-relevance-evidence-gap-feasibility-urgency-v2',
+    }));
   });
 
   it('serves an exact V3 cache hit before requiring the API key', async () => {

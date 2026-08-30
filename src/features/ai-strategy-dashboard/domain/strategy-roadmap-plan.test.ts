@@ -24,6 +24,38 @@ const F8_REPORT = {
   },
 } as StrategyReportV2;
 
+const V3_ROADMAP = {
+  strategicRoadmap: [
+    {
+      phaseKey: 'strengthen_foundation',
+      name: 'Strengthen foundation',
+      goal: 'Build the evidence required for the application.',
+      keyActions: ['Book the English test'],
+      deliverables: [{
+        key: 'strategy-deliverable::strengthen_foundation::language::requirement',
+        label: 'IELTS booking confirmation',
+        kind: 'requirement' as const,
+        linkedPriorityKeys: [],
+        tool: null,
+        basisRefs: [],
+      }],
+      successCriteria: ['The test is booked.'],
+      estimatedTimeline: 'Before submitting the application',
+      linkedPriorityKeys: [],
+    },
+    ...(['build_competitive_advantages', 'craft_application', 'finalise_optimise'] as const).map((phaseKey) => ({
+      phaseKey,
+      name: phaseKey,
+      goal: 'Continue the application strategy.',
+      keyActions: [],
+      deliverables: [],
+      successCriteria: [],
+      estimatedTimeline: 'As needed.',
+      linkedPriorityKeys: [],
+    })),
+  ],
+};
+
 function f8Context(overrides: Record<string, unknown> = {}) {
   return {
     strategyRoadmap: {
@@ -136,6 +168,61 @@ describe('mergeStrategyRoadmapPlan', () => {
     expect(microStep).not.toHaveProperty('deadline');
   });
 
+  it('maps V3 deliverables into the same canonical node IDs used by reconciliation', () => {
+    const plan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: {
+        kind: 'v3' as const,
+        data: V3_ROADMAP,
+        provenance: f8Context().strategyRoadmap.provenance,
+      },
+    }));
+
+    expect(plan.phases[0]).toMatchObject({ id: 'phase:strategy-roadmap:strengthen_foundation' });
+    expect(plan.phases[0]?.steps[0]?.microSteps[0]).toMatchObject({
+      id: 'micro-step:strategy-roadmap:strengthen_foundation:strategy-deliverable::strengthen_foundation::language::requirement',
+      title: 'IELTS booking confirmation',
+    });
+  });
+
+  it('reconciles V3 deliverables idempotently and archives removed nodes without overwriting completion', () => {
+    const firstPlan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: {
+        kind: 'v3' as const,
+        data: V3_ROADMAP,
+        provenance: f8Context().strategyRoadmap.provenance,
+      },
+    }));
+    const firstMicroStep = firstPlan.phases[0]!.steps[0]!.microSteps[0]!;
+    const existing = persistedFor(firstPlan, firstMicroStep.id);
+
+    expect(reconcilePlan('app-1', firstPlan, existing).operations).toEqual([]);
+
+    const revisedRoadmap = structuredClone(V3_ROADMAP);
+    revisedRoadmap.strategicRoadmap[0]!.deliverables[0]!.label = 'Updated IELTS booking confirmation';
+    const revisedPlan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: {
+        kind: 'v3' as const,
+        data: revisedRoadmap,
+        provenance: f8Context().strategyRoadmap.provenance,
+      },
+    }));
+    const update = reconcilePlan('app-1', revisedPlan, existing).operations.find((operation) => operation.kind === 'update_micro_step');
+
+    expect(update).toMatchObject({ id: 'db-micro-0-0-0', fields: { domainNodeId: firstMicroStep.id, title: 'Updated IELTS booking confirmation' } });
+    expect(update?.fields).not.toHaveProperty('status');
+    expect(update?.fields).not.toHaveProperty('contentValue');
+
+    revisedRoadmap.strategicRoadmap[0]!.deliverables = [];
+    const removedPlan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: {
+        kind: 'v3' as const,
+        data: revisedRoadmap,
+        provenance: f8Context().strategyRoadmap.provenance,
+      },
+    }));
+    expect(reconcilePlan('app-1', removedPlan, existing).operations).toContainEqual({ kind: 'archive_micro_step', id: 'db-micro-0-0-0' });
+  });
+
   it('does not invent availability when no explicit availability input exists', () => {
     const plan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
       plannerInputs: [{
@@ -203,3 +290,54 @@ describe('mergeStrategyRoadmapPlan', () => {
     expect(update?.fields).not.toHaveProperty('executionEvidence');
   });
 });
+
+function persistedFor(plan: PlanResult, completedMicroStepId: string): ExistingPersistedPlan {
+  const planId = 'db-plan';
+  const phases = plan.phases.map((phase, phaseIndex) => ({
+    id: `db-phase-${phaseIndex}`,
+    planId,
+    domainNodeId: phase.id,
+    title: phase.title,
+    objective: phase.objective,
+    order: phase.order,
+    sourceDecisionIds: [],
+    sourceProvenances: phase.sourceProvenances,
+    archivedAt: null,
+  }));
+  const steps = plan.phases.flatMap((phase, phaseIndex) => phase.steps.map((step, stepIndex) => ({
+    id: `db-step-${phaseIndex}-${stepIndex}`,
+    planId,
+    phaseId: phases[phaseIndex]!.id,
+    domainNodeId: step.id,
+    title: step.title,
+    objective: step.objective,
+    order: step.order,
+    sourceDecisionIds: [],
+    sourceProvenances: step.sourceProvenances,
+    archivedAt: null,
+  })));
+  const microSteps = plan.phases.flatMap((phase, phaseIndex) => phase.steps.flatMap((step, stepIndex) => step.microSteps.map((microStep, microIndex) => ({
+    id: `db-micro-${phaseIndex}-${stepIndex}-${microIndex}`,
+    planId,
+    stepId: steps.find((candidate) => candidate.domainNodeId === step.id)!.id,
+    domainNodeId: microStep.id,
+    title: microStep.title,
+    guidance: microStep.guidance,
+    order: microStep.order,
+    readiness: microStep.readiness,
+    contentSchema: microStep.contentSchema ?? null,
+    status: microStep.id === completedMicroStepId ? 'completed' : 'pending',
+    deadline: null,
+    contentValue: null,
+    executionEvidence: [],
+    sourceDecisionIds: [],
+    sourceProvenances: microStep.sourceProvenances,
+    archivedAt: null,
+  }))));
+  return {
+    plan: { id: planId, applicationId: 'app-1', producer: CORE3_PLAN_PRODUCER, domainPlanId: plan.id, readiness: plan.readiness, archivedAt: null },
+    phases,
+    steps,
+    microSteps,
+  };
+}

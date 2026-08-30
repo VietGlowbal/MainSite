@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const STRATEGY_REPORT_V3_CONTRACT_VERSION = 'strategy-report-v3' as const;
-export const STRATEGY_ENGINE_V3_VERSION = 'strategy-v3.0.0' as const;
+export const STRATEGY_ENGINE_V3_VERSION = 'strategy-v3.1.0' as const;
 export const STRATEGY_PRIORITY_FORMULA_VERSION =
-  'impact-relevance-evidence-gap-feasibility-urgency-v1' as const;
+  'impact-relevance-evidence-gap-feasibility-urgency-v2' as const;
 export const STRATEGY_ACTIVITY_BATCH_SIZE = 6 as const;
 
 export const STRATEGY_PHASE_KEYS = [
@@ -171,7 +171,7 @@ const narrativeStrategySchema = z
         capabilitiesDeveloped: z.array(text).max(12),
         emergingDirection: text.nullable(),
         insight: text,
-        evidenceIds: refs.min(1),
+        evidenceIds: refs,
       })
       .strict(),
     supportingThemes: z
@@ -217,12 +217,13 @@ const narrativeStrategySchema = z
 
 const roadmapDeliverableSchema = z
   .object({
-    key: z.string().regex(/^strategy-deliverable::[a-z_]+::[a-z0-9:_-]+::[a-z_]+(?:-[0-9]+)?$/),
+    key: z.string().regex(/^strategy-deliverable::[a-z_]+::[a-z0-9:_-]+::[a-z0-9:_-]+$/),
     label: z.string().min(1).max(300),
     kind: z.enum(['profile_build', 'evidence', 'requirement', 'narrative', 'application', 'other']),
     linkedPriorityKeys: z.array(z.string().regex(/^strategy-priority::/)).max(3),
     tool: z.enum(['personal_canvas', 'cv_builder', 'statement_writer']).nullable(),
     basisRefs: refs,
+    estimatedDurationDays: z.number().int().min(0).max(3_650).nullable().optional(),
   })
   .strict();
 
