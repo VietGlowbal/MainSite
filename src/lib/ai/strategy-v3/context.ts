@@ -190,12 +190,25 @@ function buildEvidenceIndex(
     known.add(item.id);
   };
   for (const item of matching.evidenceIndex) addReportOnly(item);
-  const analysisEvidence = Array.isArray(sourceAnalysis?.evidenceBank) ? sourceAnalysis.evidenceBank : [];
+  const storedEvidenceBank = sourceAnalysis?.evidenceBank;
+  const analysisEvidence = Array.isArray(storedEvidenceBank)
+    ? storedEvidenceBank
+    : storedEvidenceBank && typeof storedEvidenceBank === 'object' && !Array.isArray(storedEvidenceBank)
+      ? Array.isArray((storedEvidenceBank as Record<string, unknown>).claims)
+        ? ((storedEvidenceBank as Record<string, unknown>).claims as unknown[])
+        : []
+      : [];
   for (const raw of analysisEvidence) {
     if (!raw || typeof raw !== 'object') continue;
     const item = raw as Record<string, unknown>;
     const id = stringValue(item.id);
-    if (id) addReportOnly({ id, label: stringValue(item.label) ?? id });
+    if (id) addReportOnly({ id, label: stringValue(item.label) ?? stringValue(item.statement) ?? id });
+  }
+  for (const item of state.evidenceBank) {
+    const [kind, ...parts] = item.id.split(':');
+    if ((kind === 'achievement' || kind === 'activity') && parts.length > 0) {
+      addReportOnly({ id: `experience:${parts.join(':')}`, label: item.label });
+    }
   }
   addPersonalReportEvidence(personalReport, addReportOnly);
   return items;

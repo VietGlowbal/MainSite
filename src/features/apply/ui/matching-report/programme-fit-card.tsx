@@ -336,7 +336,7 @@ export function ProgrammeFitCard({
               </svg>
               <span>{t('Strongest Fit')}</span>
             </div>
-            <p className="line-clamp-4 text-gb-xs leading-relaxed text-fg-secondary break-words" title={defaultStrongest}>
+            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
               {defaultStrongest}
             </p>
           </div>
@@ -349,7 +349,7 @@ export function ProgrammeFitCard({
               </svg>
               <span>{t('Potential Gap')}</span>
             </div>
-            <p className="line-clamp-4 text-gb-xs leading-relaxed text-fg-secondary break-words" title={defaultGap}>
+            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
               {defaultGap}
             </p>
           </div>
@@ -362,7 +362,7 @@ export function ProgrammeFitCard({
               </svg>
               <span>{t('Recommendation')}</span>
             </div>
-            <p className="line-clamp-4 text-gb-xs leading-relaxed text-fg-secondary break-words" title={defaultRecommendation}>
+            <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
               {defaultRecommendation}
             </p>
           </div>

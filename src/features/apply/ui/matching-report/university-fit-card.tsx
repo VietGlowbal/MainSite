@@ -246,7 +246,7 @@ export function UniversityFitCard({
                 </svg>
                 <span>{t('Strongest Alignment')}</span>
               </div>
-              <p className="line-clamp-4 text-gb-xs leading-relaxed text-fg-secondary break-words" title={defaultStrongest}>
+              <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
                 {defaultStrongest}
               </p>
             </div>
@@ -259,7 +259,7 @@ export function UniversityFitCard({
                 </svg>
                 <span>{t('Primary Opportunity')}</span>
               </div>
-              <p className="line-clamp-4 text-gb-xs leading-relaxed text-fg-secondary break-words" title={defaultOpportunity}>
+              <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
                 {defaultOpportunity}
               </p>
             </div>

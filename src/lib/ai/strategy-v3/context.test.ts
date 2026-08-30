@@ -56,4 +56,26 @@ describe('Strategy V3 canonical context', () => {
       expect.arrayContaining(['profile:study_motivation', 'profile:reflection_q1']),
     );
   });
+
+  it('keeps canonical Evidence Bank claims available when Matching evidence is incomplete', () => {
+    const state = stateFromSnapshotRow({
+      id: 'snap-1', user_id: 'user-1', application_id: 'app-1',
+      payload: { reflection: { activities: [{ id: 'activity-1', title: 'Club', description: 'Ran sessions.' }] } },
+    });
+    const context = buildStrategyInputContext({
+      applicationId: 'app-1',
+      application: {},
+      personalReport: {} as never,
+      matching: { evidenceIndex: [], targetSourceIndex: [], hardRequirements: [], gaps: [], metadata: {} } as never,
+      snapshotState: state,
+      sourceAnalysis: {
+        evidenceBank: { claims: [{ id: 'academic:english_test:ielts-1', statement: 'IELTS 7.0' }] },
+      } as never,
+      targetProfile: null,
+    });
+
+    expect(context.evidenceIndex.map((item) => item.id)).toEqual(
+      expect.arrayContaining(['experience:activity-1', 'academic:english_test:ielts-1']),
+    );
+  });
 });

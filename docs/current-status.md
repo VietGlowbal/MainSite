@@ -1519,3 +1519,10 @@ After material work, update this file in the same change:
 - Fix: profile and final Strategy report validation now use a strict union of target requirement IDs and Matching hard-requirement IDs. Arbitrary model-generated IDs remain rejected.
 - Regression coverage: `src/lib/ai/strategy-v3/engine.test.ts` verifies the reported target requirement ID passes profile provenance validation.
 - Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 13 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/strategy-v3/context.ts src/lib/ai/strategy-v3/context.test.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-08-30 — Strategy V3 restores canonical Evidence Bank claims
+
+- Root cause: Strategy treated the stored Evidence Bank object as an array, so its canonical `experience:*`, `academic:*`, `follow_up:*`, `supplement:*`, and `competency:*` claims were omitted when the persisted Matching evidence index was incomplete; snapshot activity IDs also lacked the canonical `experience:*` alias.
+- Fix: Strategy context now reads stored Evidence Bank `claims` and derives canonical experience aliases from the confirmed snapshot. The existing strict reference validation remains in place.
+- Regression coverage: `src/lib/ai/strategy-v3/context.test.ts` verifies both stored claims and snapshot experience aliases.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 14 tests passed); `npx eslint src/lib/ai/strategy-v3/context.ts src/lib/ai/strategy-v3/context.test.ts src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
