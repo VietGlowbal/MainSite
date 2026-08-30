@@ -72,12 +72,9 @@ export function KeyTakeawaysGrid({
             </div>
 
             {title1 ? (
-              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg line-clamp-2">{title1}</h4>
+              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg">{title1}</h4>
             ) : null}
-            <p
-              className="mt-gb-2xs line-clamp-5 text-gb-xs leading-relaxed text-fg-secondary break-words"
-              title={strongestFit.body}
-            >
+            <p className="mt-gb-2xs text-gb-xs leading-relaxed text-fg-secondary break-words">
               {strongestFit.body}
             </p>
             <V3ReferenceList
@@ -104,12 +101,9 @@ export function KeyTakeawaysGrid({
             </div>
 
             {title2 ? (
-              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg line-clamp-2">{title2}</h4>
+              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg">{title2}</h4>
             ) : null}
-            <p
-              className="mt-gb-2xs line-clamp-5 text-gb-xs leading-relaxed text-fg-secondary break-words"
-              title={competitiveAdvantage.body}
-            >
+            <p className="mt-gb-2xs text-gb-xs leading-relaxed text-fg-secondary break-words">
               {competitiveAdvantage.body}
             </p>
             <V3ReferenceList
@@ -136,12 +130,9 @@ export function KeyTakeawaysGrid({
             </div>
 
             {title3 ? (
-              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg line-clamp-2">{title3}</h4>
+              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg">{title3}</h4>
             ) : null}
-            <p
-              className="mt-gb-2xs line-clamp-5 text-gb-xs leading-relaxed text-fg-secondary break-words"
-              title={criticalGap.body}
-            >
+            <p className="mt-gb-2xs text-gb-xs leading-relaxed text-fg-secondary break-words">
               {criticalGap.body}
             </p>
             <V3ReferenceList
@@ -168,12 +159,9 @@ export function KeyTakeawaysGrid({
             </div>
 
             {title4 ? (
-              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg line-clamp-2">{title4}</h4>
+              <h4 className="mt-gb-2xs text-gb-sm font-semibold text-fg">{title4}</h4>
             ) : null}
-            <p
-              className="mt-gb-2xs line-clamp-5 text-gb-xs leading-relaxed text-fg-secondary break-words"
-              title={strategicDirection.body}
-            >
+            <p className="mt-gb-2xs text-gb-xs leading-relaxed text-fg-secondary break-words">
               {strategicDirection.body}
             </p>
             <V3ReferenceList

@@ -263,17 +263,18 @@ export function V3InsightSections({
             ) : (
               <div className="flex flex-col gap-gb-xs">
                 {group.items.map((item) => (
-                  <article key={item.id} className="rounded-gb-lg border border-line/70 bg-surface-subtle/30 p-gb-sm">
+                  <article key={item.id} className="rounded-gb-lg border border-line/70 bg-surface-subtle/30 p-gb-sm transition-colors hover:bg-surface-subtle/50">
                     <details className="group/insight">
-                      <summary className="flex cursor-pointer list-none items-start justify-between gap-gb-sm [&::-webkit-details-marker]:hidden">
-                        <span className="min-w-0">
-                          <span className="block text-gb-xs font-semibold text-fg">{item.title}</span>
-                          <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-fg-secondary group-open/insight:hidden">{item.description}</span>
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-gb-sm [&::-webkit-details-marker]:hidden">
+                        <span className="min-w-0 font-semibold text-gb-xs text-fg">
+                          {t(formatV3Identifier(item.title))}
                         </span>
                         <span className="shrink-0 text-xs text-brand transition-transform group-open/insight:rotate-180" aria-hidden="true">⌄</span>
                       </summary>
-                      <div className="mt-gb-sm border-t border-line/60 pt-gb-sm">
-                        <p className="text-gb-xs leading-relaxed text-fg-secondary">{item.description}</p>
+                      <div className="mt-gb-xs flex flex-col gap-gb-xs border-t border-line/60 pt-gb-xs">
+                        <div className="max-h-56 overflow-y-auto pr-1 text-gb-xs leading-relaxed text-fg-secondary">
+                          {item.description}
+                        </div>
                         <V3ReferenceList
                           evidenceIds={item.evidenceIds}
                           targetSourceRefs={item.targetSourceRefs}

@@ -160,6 +160,30 @@ export function MatchingReportView({
 
 type Translate = ReturnType<typeof useT>;
 
+function StrategyReportNextStep({
+  applicationId,
+  t,
+}: {
+  applicationId: string;
+  t: Translate;
+}) {
+  return (
+    <div className="flex flex-col gap-gb-md rounded-gb-2xl border border-rose-200 bg-gradient-to-r from-rose-50/70 via-white to-white p-gb-2xl shadow-xs sm:flex-row sm:items-center sm:justify-between">
+      <div className="max-w-2xl">
+        <p className="text-gb-xs font-semibold uppercase tracking-wide text-brand">
+          {t('Next Best Action')}
+        </p>
+        <p className="mt-1 text-gb-sm text-fg-secondary">
+          {t('Convert these matching insights into a step-by-step personalized strategy and application checklist.')}
+        </p>
+      </div>
+      <Button href={`/ai-strategy/${applicationId}/strategy-report`} variant="primary">
+        {t('Open my Strategy Report')}
+      </Button>
+    </div>
+  );
+}
+
 /**
  * Top App Bar for Matching Report matching the Figma / Mockup design
  */
@@ -520,6 +544,8 @@ function V3ReportView({
         officialCourseUrl={data.courseUrl}
       />
 
+      <StrategyReportNextStep applicationId={data.id} t={t} />
+
       {/* Provenance Footer */}
       <footer className="flex flex-col items-center justify-between gap-gb-sm border-t border-line/60 pt-gb-lg text-center text-gb-xs text-fg-muted sm:flex-row sm:text-left">
         <p>
@@ -707,6 +733,8 @@ function V2ReportView({
         englishRequirementsText={data.course.englishRequirements}
         officialCourseUrl={data.courseUrl}
       />
+
+      <StrategyReportNextStep applicationId={data.id} t={t} />
 
       <footer className="flex flex-col items-center justify-between gap-gb-sm border-t border-line/60 pt-gb-lg text-center text-gb-xs text-fg-muted sm:flex-row sm:text-left">
         <p>

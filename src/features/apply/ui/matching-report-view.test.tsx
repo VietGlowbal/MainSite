@@ -386,6 +386,10 @@ describe('MatchingReportView', () => {
     expect(screen.getAllByText('Not assessed').length).toBeGreaterThan(0);
     expect(screen.getByText(/do not predict admission decisions/i)).toBeInTheDocument();
     expect(screen.queryByText(/^0\/100$/)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open my Strategy Report' })).toHaveAttribute(
+      'href',
+      '/ai-strategy/application-1/strategy-report',
+    );
   });
 
   it('renders selected scholarship alignment as a separate report section', () => {
