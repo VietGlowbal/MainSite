@@ -1635,7 +1635,7 @@ After material work, update this file in the same change:
 - Regression coverage: the multi-batch engine test now verifies batch scoping, compact context, and the activity token budget.
 - Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 15 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/runtime/prompt-registry.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
 
-## 2026-09-02 — Localized route toggle and homepage copy (working tree)
+## 2026-09-02 — Localized route toggle and homepage copy (`5afb60da`)
 
 - Root cause: the language switcher read `window.location` through an empty subscription, so client navigation could leave it on the previous locale; `/vi` also nested a second provider and used replacement homepage copy.
 - Fix: the switcher now follows Next's pathname, the root provider is route-authoritative, the nested Vietnamese provider is removed, and homepage hero copy reuses the established catalog translations (`Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”`).
