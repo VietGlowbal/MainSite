@@ -2,7 +2,7 @@
 
 import { useLanguage } from '@/lib/i18n';
 import Link from 'next/link';
-import { useSyncExternalStore } from 'react';
+import { usePathname } from 'next/navigation';
 import { getLocaleFromPath, getLocaleText, isLocalizedPublicPath, localizePath } from '@/lib/i18n/locale';
 
 /**
@@ -42,7 +42,6 @@ type Props = {
   variant?: 'button' | 'row';
   /** Only meaningful for `button`; the drawer footer is always the light sheet. */
   tone?: 'dark' | 'light';
-  pathname?: string;
 };
 
 /** Same two tones as `TopNav`'s secondary action, for the same reason: a grey
@@ -52,15 +51,11 @@ const BUTTON_TONE: Record<'dark' | 'light', string> = {
   light: 'border-line text-fg-secondary hover:bg-surface-hover',
 };
 
-export function LanguageSwitcher({ variant = 'button', tone = 'light', pathname: routePath }: Props = {}) {
+export function LanguageSwitcher({ variant = 'button', tone = 'light' }: Props = {}) {
   const { lang, setLang, t } = useLanguage();
-  const pathname = useSyncExternalStore(
-    () => () => {},
-    () => `${window.location.pathname}${window.location.search}${window.location.hash}`,
-    () => routePath ?? '/',
-  );
+  const pathname = usePathname();
   const routeLocale = getLocaleFromPath(pathname);
-  const current = routePath !== undefined && isLocalizedPublicPath(pathname) ? routeLocale : lang;
+  const current = isLocalizedPublicPath(pathname) ? routeLocale : lang;
   const next = current === 'en' ? 'vi' : 'en';
   const nextLabel = next === 'en' ? 'English' : 'Vietnamese';
   const currentLabel = current === 'en' ? 'English' : 'Vietnamese';

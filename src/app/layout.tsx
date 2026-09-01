@@ -170,7 +170,7 @@ export default async function RootLayout({
       <body className="min-h-full flow-root overflow-x-clip text-slate-800 glowbal-site-shell">
         <NavigationSessionProvider>
           <NavigationRolesProvider>
-            <LanguageProvider>
+            <LanguageProvider defaultLang={locale}>
               <NavReveal />
           {/* Puts the globe loader up during client-side navigation. Renders
               nothing itself — it only drives the loading store. */}

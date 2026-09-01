@@ -12,9 +12,12 @@ export const homeCopy = {
       'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
   },
   vi: {
-    title: 'GlowBal — Nền tảng du học và học bổng dành cho học sinh Việt Nam',
+    title:
+      translations['The all-in-one solution for scholarship seekers'] ??
+      'The all-in-one solution for scholarship seekers',
     description:
-      'GlowBal giúp bạn tìm trường đại học phù hợp, khám phá học bổng và xây dựng chiến lược du học cá nhân hóa — từ lúc chọn trường đến khi hoàn thiện hồ sơ ứng tuyển.',
+      translations['From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.'] ??
+      'From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.',
     metadataTitle: 'GlowBal Du Học | Tìm Trường, Học Bổng & Chiến Lược Ứng Tuyển',
     metadataDescription:
       'GlowBal là nền tảng giúp học sinh, sinh viên Việt Nam tìm trường đại học quốc tế, khám phá học bổng và xây dựng chiến lược du học, ứng tuyển phù hợp với hồ sơ cá nhân.',

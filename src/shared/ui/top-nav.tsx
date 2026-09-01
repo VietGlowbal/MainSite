@@ -461,7 +461,7 @@ export function TopNav({
               would still take the 24px gap beside it. */}
           <div className="flex shrink-0 items-center gap-gb-lg">
             {utility}
-            <LanguageSwitcher tone={tone} pathname={pathname} />
+            <LanguageSwitcher tone={tone} />
           </div>
 
           <div className="flex shrink-0 items-center gap-gb-lg">

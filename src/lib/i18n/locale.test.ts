@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getLocaleFromPath, localizePath } from './locale';
+import { getLocaleFromPath, homeCopy, localizePath } from './locale';
 
 describe('localizePath', () => {
   it.each([
@@ -25,5 +25,9 @@ describe('localizePath', () => {
   it('detects the route locale', () => {
     expect(getLocaleFromPath('/vi/universities/42')).toBe('vi');
     expect(getLocaleFromPath('/universities/42')).toBe('en');
+  });
+
+  it('uses the established Vietnamese homepage copy', () => {
+    expect(homeCopy.vi.title).toBe('Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”');
   });
 });

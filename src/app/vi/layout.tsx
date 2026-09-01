@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { LanguageProvider } from '@/lib/i18n';
 
 export const metadata: Metadata = {
   openGraph: {
@@ -9,9 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ViLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div lang="vi">
-      <LanguageProvider defaultLang="vi">{children}</LanguageProvider>
-    </div>
-  );
+  return <div lang="vi">{children}</div>;
 }

@@ -1634,3 +1634,10 @@ After material work, update this file in the same change:
 - Fix: activity batches now run sequentially, send a compact batch-only model context, and use a 6,000-token completion budget; strict one-result-per-canonical-activity and reference validation remain unchanged.
 - Regression coverage: the multi-batch engine test now verifies batch scoping, compact context, and the activity token budget.
 - Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 15 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/runtime/prompt-registry.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-09-02 — Localized route toggle and homepage copy (working tree)
+
+- Root cause: the language switcher read `window.location` through an empty subscription, so client navigation could leave it on the previous locale; `/vi` also nested a second provider and used replacement homepage copy.
+- Fix: the switcher now follows Next's pathname, the root provider is route-authoritative, the nested Vietnamese provider is removed, and homepage hero copy reuses the established catalog translations (`Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”`).
+- Regression coverage: route mapping, explicit locale precedence, and the existing reflection switch test.
+- Measured checks: full `npm.cmd run test:ci` passed (379 files, 3576 passed, 2 todo, coverage thresholds passed); `npm.cmd run typecheck:strict` passed; scoped ESLint passed; `npm.cmd run build:ci` passed (141 static pages, 3 existing `geo-content.ts` tracing warnings).

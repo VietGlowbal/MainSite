@@ -38,17 +38,18 @@ function interpolate(value: string, vars?: Record<string, string | number>) {
 
 export function LanguageProvider({
   children,
-  defaultLang = 'en',
+  defaultLang,
 }: {
   children: ReactNode;
   defaultLang?: Lang;
 }) {
   // Always start as defaultLang so server and first client render match
-  const [lang, setLangState] = useState<Lang>(defaultLang);
+  const [lang, setLangState] = useState<Lang>(defaultLang ?? 'en');
 
   useEffect(() => {
-    if (defaultLang === 'vi') {
-      document.documentElement.lang = 'vi';
+    if (defaultLang) {
+      React.startTransition(() => setLangState(defaultLang));
+      document.documentElement.lang = defaultLang;
       return;
     }
     const stored = (localStorage.getItem(STORAGE_KEY) as Lang | null) ?? 'en';
