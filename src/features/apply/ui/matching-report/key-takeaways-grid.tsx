@@ -155,7 +155,7 @@ export function KeyTakeawaysGrid({
     },
   ];
 
-  const activeItem = items[selectedIndex] ?? items[0];
+  const activeItem = items[selectedIndex] ?? items[0]!;
   const ActiveIcon = activeItem.icon;
 
   const radius = 125; // Compact radius perfectly suited for 5-col container without clipping

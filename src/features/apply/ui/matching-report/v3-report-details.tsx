@@ -62,11 +62,12 @@ export function FormattedInsightText({ text }: { text: string }) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  if (rawSegments.length === 1 && !rawSegments[0].includes(':')) {
+  const [firstSegment] = rawSegments;
+  if (firstSegment && rawSegments.length === 1 && !firstSegment.includes(':')) {
     return (
       <div className="max-h-72 overflow-y-auto pr-1">
         <p className="text-gb-xs leading-relaxed text-fg-secondary break-words">
-          {rawSegments[0]}
+          {firstSegment}
         </p>
       </div>
     );

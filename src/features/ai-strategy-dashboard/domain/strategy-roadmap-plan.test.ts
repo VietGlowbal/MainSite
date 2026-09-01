@@ -322,7 +322,7 @@ function persistedFor(plan: PlanResult, completedMicroStepId: string): ExistingP
     stepId: steps.find((candidate) => candidate.domainNodeId === step.id)!.id,
     domainNodeId: microStep.id,
     title: microStep.title,
-    guidance: microStep.guidance,
+    guidance: microStep.guidance ?? null,
     order: microStep.order,
     readiness: microStep.readiness,
     contentSchema: microStep.contentSchema ?? null,
