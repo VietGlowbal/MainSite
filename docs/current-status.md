@@ -1,5 +1,19 @@
 # Current project status
 
+Working tree 2026-09-02 (English/Vietnamese SEO route parity): public
+Vietnamese routes now render independently at `/vi/**` while English URLs stay
+unchanged. Shared marketing sections, navigation, footer, route-aware language
+switching, metadata, canonical/hreflang alternates, sitemap entries, JSON-LD,
+and HTML `lang` semantics are locale-aware. Public entity routes preserve IDs;
+stored university/news prose remains source text unless a reviewed translation
+exists. The remaining strategy/matching-report lint issues are fixed with a
+static icon resolver and semantic design tokens, and the private report UI now
+has dictionary coverage. Measured: full lint, base typecheck, full Vitest
+378/378 files (3,573 passed, 2 todo), i18n audit with 0 missing keys and 0
+placeholder mismatches, production build, `seo:check`, and `git diff --check`
+pass. The build still emits the existing Edge-runtime deprecation and dynamic
+filesystem tracing warnings from `src/lib/geo-content.ts`.
+
 Working tree 2026-08-30 (AI report retry/cost circuit breakers): the durable
 Personal Report queue now allows one initial run plus at most five automatic
 retries, then blocks the job. Force requests are consumed at claim time so a

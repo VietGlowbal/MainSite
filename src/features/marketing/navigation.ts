@@ -4,5 +4,6 @@ export {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
+  getLocalizedFooter,
   MARKETING_NAV_ITEMS,
 } from './ui/nav-items';

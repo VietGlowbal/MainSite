@@ -48,14 +48,6 @@ function CheckCircle2Icon({ className = 'h-4 w-4' }: { className?: string; size?
   );
 }
 
-function ShieldCheckIcon({ className = 'h-8 w-8' }: { className?: string; size?: number }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  );
-}
-
 export type TakeawayItem = {
   title: string;
   body: string;
@@ -187,11 +179,11 @@ export function KeyTakeawaysGrid({
                   className={cn(
                     'flex items-center gap-2 rounded-xl p-2.5 text-left text-xs font-semibold transition-all',
                     isSelected
-                      ? 'bg-[#EE0033] text-white shadow-md shadow-red-200'
+                      ? 'bg-brand text-white shadow-md shadow-red-200'
                       : 'border border-line/80 bg-surface-subtle/50 text-fg-secondary hover:bg-surface-subtle'
                   )}
                 >
-                  <Icon className={cn('h-4 w-4 shrink-0', isSelected ? 'text-white' : 'text-[#EE0033]')} />
+                  <Icon className={cn('h-4 w-4 shrink-0', isSelected ? 'text-white' : 'text-brand')} />
                   <span className="truncate">{item.badge}</span>
                 </button>
               );
@@ -204,7 +196,7 @@ export function KeyTakeawaysGrid({
             <div
               className={cn(
                 'absolute h-[280px] w-[280px] rounded-full transition-all duration-500 pointer-events-none',
-                'bg-[#EE0033]/[0.06] scale-105 shadow-[0_0_50px_rgba(238,0,51,0.18)]'
+                'bg-brand/5 scale-105 shadow-lg'
               )}
             />
 
@@ -213,7 +205,7 @@ export function KeyTakeawaysGrid({
 
             {/* Animated spinning highlighted red dashed circle */}
             <div
-              className="absolute h-[250px] w-[250px] rounded-full border-2 border-dashed border-transparent transition-all duration-300 pointer-events-none border-t-[#EE0033] border-r-[#EE0033] border-b-[#EE0033]/60 shadow-[0_0_20px_rgba(238,0,51,0.25)]"
+              className="absolute h-[250px] w-[250px] rounded-full border-2 border-dashed border-transparent transition-all duration-300 pointer-events-none border-t-brand border-r-brand border-b-brand/60 shadow-lg"
               style={{ animation: 'spin 14s linear infinite' }}
             />
 
@@ -222,10 +214,10 @@ export function KeyTakeawaysGrid({
 
             {/* Center Display Badge (140px x 140px) */}
             <div className="absolute z-20 flex h-[140px] w-[140px] flex-col items-center justify-center rounded-full border-4 border-red-50 bg-white p-2.5 text-center shadow-xl transition-all duration-500">
-              <div className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full border border-red-100 bg-red-50 text-[#EE0033] shadow-xs transition-transform duration-300">
-                <ActiveIcon className="h-5 w-5 text-[#EE0033]" />
+              <div className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full border border-red-100 bg-red-50 text-brand shadow-xs transition-transform duration-300">
+                <ActiveIcon className="h-5 w-5 text-brand" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#EE0033] line-clamp-1 px-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-brand line-clamp-1 px-1">
                 {activeItem.badge}
               </span>
               <p className="mt-0.5 text-[9px] font-semibold text-gray-400">
@@ -260,11 +252,11 @@ export function KeyTakeawaysGrid({
                       className={cn(
                         'flex h-11 w-11 items-center justify-center rounded-full border-2 transition-all duration-300 relative z-10',
                         isSelected
-                          ? 'scale-115 border-white bg-[#EE0033] text-white shadow-[0_0_20px_rgba(238,0,51,0.5)]'
-                          : 'border-red-100 bg-white text-gray-700 shadow-md group-hover:scale-105 group-hover:border-[#EE0033] group-hover:text-[#EE0033]'
+                          ? 'scale-115 border-white bg-brand text-white shadow-lg'
+                          : 'border-red-100 bg-white text-gray-700 shadow-md group-hover:scale-105 group-hover:border-brand group-hover:text-brand'
                       )}
                     >
-                      <Icon className={cn('h-4.5 w-4.5', isSelected ? 'text-white' : 'text-gray-700 group-hover:text-[#EE0033]')} />
+                      <Icon className={cn('h-4.5 w-4.5', isSelected ? 'text-white' : 'text-gray-700 group-hover:text-brand')} />
                     </div>
 
                     {/* Node Title Label Badge below button */}
@@ -272,7 +264,7 @@ export function KeyTakeawaysGrid({
                       className={cn(
                         'absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] transition-all duration-300 pointer-events-none',
                         isSelected
-                          ? 'bg-[#EE0033] text-white font-bold shadow-xs scale-105 z-20'
+                          ? 'bg-brand text-white font-bold shadow-xs scale-105 z-20'
                           : 'bg-white/95 border border-red-100/90 text-gray-700 font-semibold shadow-xs'
                       )}
                     >
@@ -298,11 +290,11 @@ export function KeyTakeawaysGrid({
                         y1="2"
                         x2="100%"
                         y2="2"
-                        stroke="#EE0033"
+                        stroke="var(--gb-brand)"
                         strokeWidth="2.5"
                         strokeDasharray="5 5"
                         className="animate-[dash_0.6s_linear_infinite]"
-                        style={{ filter: 'drop-shadow(0 0 3px #EE0033)' }}
+                        style={{ filter: 'drop-shadow(0 0 3px var(--gb-brand))' }}
                       />
                     </svg>
                   </div>
@@ -322,7 +314,7 @@ export function KeyTakeawaysGrid({
                   {activeItem.badge}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted">
-                  <CheckCircle2Icon className="h-3.5 w-3.5 text-[#EE0033]" />
+                  <CheckCircle2Icon className="h-3.5 w-3.5 text-brand" />
                   <span>{activeItem.highlight}</span>
                 </span>
               </div>
@@ -370,7 +362,7 @@ export function KeyTakeawaysGrid({
                     onClick={() => setSelectedIndex(idx)}
                     className={cn(
                       'h-2 rounded-full transition-all duration-300',
-                      selectedIndex === idx ? 'w-5 bg-[#EE0033]' : 'w-2 bg-rose-200 hover:bg-rose-300'
+                      selectedIndex === idx ? 'w-5 bg-brand' : 'w-2 bg-rose-200 hover:bg-rose-300'
                     )}
                     aria-label={`Go to item ${idx + 1}`}
                   />

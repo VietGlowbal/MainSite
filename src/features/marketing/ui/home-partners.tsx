@@ -4,7 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Button } from '@/shared/ui';
-import { useT } from '@/lib/i18n';
+import { useLanguage } from '@/lib/i18n';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import {
   ORBIT_SAMPLES,
   ORBIT_TOTAL_LENGTH,
@@ -356,8 +357,7 @@ const NODE_CLASSES = [
  * at the end of src/styles/tokens.css, which also explains why the rotation goes
  * the way it does.
  */
-function StudyWord({ word }: { word: string }) {
-  const t = useT();
+function StudyWord({ word, locale }: { word: string; locale: Locale }) {
   /** `nonce` exists to key the two animated spans: React reuses a DOM node when
       only its text changes, and a reused node does not replay a CSS animation.
       Bumping it on every swap forces a fresh element, which is what makes the
@@ -442,7 +442,7 @@ function StudyWord({ word }: { word: string }) {
         {...(shown.word === DEFAULT_STUDY_WORD ? {} : { 'data-no-auto-translate': true })}
         className={`${wordClasses} animate-gb-word-flip-in motion-reduce:animate-none`}
       >
-        {shown.word === DEFAULT_STUDY_WORD ? t(shown.word) : shown.word}
+          {shown.word === DEFAULT_STUDY_WORD ? getLocaleText(locale, shown.word) : shown.word}
       </span>
     </span>
   );
@@ -455,9 +455,12 @@ export type HomePartnersProps = {
    * that logo links to the directory index instead. See this file's header.
    */
   readonly universityIds?: readonly (number | null)[];
+  readonly locale?: Locale;
 };
 
-export function HomePartners({ universityIds }: HomePartnersProps = {}) {
+export function HomePartners({ universityIds, locale }: HomePartnersProps = {}) {
+  const { lang } = useLanguage();
+  const activeLocale = locale ?? lang;
   const stageRef = useRef<HTMLDivElement>(null);
   /** Which logo is hovered, and since when — read every frame by the loop, so
       kept in a ref rather than state (a state update would re-render eleven
@@ -745,14 +748,14 @@ export function HomePartners({ universityIds }: HomePartnersProps = {}) {
             style={{ zIndex: ORBIT_Z_CEILING }}
           >
             <h2 className="pointer-events-none max-w-[620px] text-center font-display text-gb-display-sm font-semibold leading-tight lg:text-[3.5cqw]">
-              Choose from 200+ of the world&apos;s leading universities
+              {getLocaleText(activeLocale, "Choose from 200+ of the world's leading universities")}
             </h2>
             <p className="pointer-events-none text-gb-sm text-white/70 md:text-gb-md">
-              <span>Study</span>{' '}
-              <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} />
+              <span>{getLocaleText(activeLocale, 'Study')}</span>{' '}
+              <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} locale={activeLocale} />
             </p>
-            <Button href="/universities" size="lg" variant="primary-on-dark">
-              Find a university
+            <Button href={localizePath('/universities', activeLocale)} size="lg" variant="primary-on-dark">
+              {getLocaleText(activeLocale, 'Find a university')}
             </Button>
           </div>
 
@@ -774,7 +777,7 @@ export function HomePartners({ universityIds }: HomePartnersProps = {}) {
                       node is `overflow-hidden` for the rounded corners, and an
                       outset ring would be clipped away to nothing. */}
                   <Link
-                    href={universityId === null ? DIRECTORY_HREF : `/universities/${universityId}`}
+                    href={localizePath(universityId === null ? DIRECTORY_HREF : `/universities/${universityId}`, activeLocale)}
                     className="absolute inset-0 block rounded-gb-md focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
                   >
                     <Image

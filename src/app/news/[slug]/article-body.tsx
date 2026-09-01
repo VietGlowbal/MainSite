@@ -2,19 +2,16 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useAutoTranslate } from '@/lib/use-auto-translate';
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');
 }
 
 /**
- * Renders the guide's Markdown body. When the site language is Vietnamese the
- * Markdown is machine-translated (preserving formatting) via /api/translate;
- * in English it renders the source directly.
+ * Renders the guide's Markdown body in its stored language. Editorial prose is
+ * not machine-translated into a Vietnamese SEO page without a reviewed source.
  */
 export function ArticleBody({ content }: { content: string }) {
-  const body = useAutoTranslate(content);
   return (
     <article className="geo-article mt-10">
       <ReactMarkdown
@@ -31,7 +28,7 @@ export function ArticleBody({ content }: { content: string }) {
           ),
         }}
       >
-        {body}
+        {content}
       </ReactMarkdown>
     </article>
   );

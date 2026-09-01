@@ -279,7 +279,7 @@ export function MobileNav({
               {utility}
               {/* After `utility` so the order matches the desktop bar, where
                   SavedNavLink sits left of the switcher. */}
-              <LanguageSwitcher variant="row" />
+              <LanguageSwitcher variant="row" pathname={pathname} />
               {primaryAction || secondaryAction ? (
                 <div className="flex flex-col gap-gb-lg">
                   {primaryAction ? (

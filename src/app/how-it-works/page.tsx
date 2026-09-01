@@ -2,16 +2,13 @@ import type { Metadata } from 'next';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
 import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
+  getLocalizedFooter,
   StrategyGuide,
 } from '@/features/marketing/ui';
 import { GUIDE_STEP_COUNT, STRATEGY_GUIDE } from '@/features/marketing/domain';
 import { createClient } from '@/lib/supabase/server';
 import { Button, Container, Footer, Panel } from '@/shared/ui';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * /how-it-works — the help page for the whole product. Three areas,
@@ -58,39 +55,39 @@ export const metadata: Metadata = {
   alternates: buildLocaleAlternates('/how-it-works'),
 };
 
-export default async function HowItWorksPage() {
+export default async function HowItWorksPage({ locale = 'en' }: { locale?: Locale } = {}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const isSignedIn = Boolean(user);
+  const footer = getLocalizedFooter(locale);
+  const t = (source: string, vars?: Record<string, string | number>) => getLocaleText(locale, source, vars);
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <SiteNavigation tone="light" />
+      <SiteNavigation tone="light" locale={locale} />
 
       <main>
         {/* Hero */}
         <section className="pt-gb-7xl">
           <Container className="flex max-w-3xl flex-col gap-gb-xl">
             <p className="text-gb-sm font-semibold uppercase tracking-wide text-fg-brand">
-              How GlowBal works
+              {t('How GlowBal works')}
             </p>
             <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-              From &ldquo;where do I even start&rdquo; to a plan that gets you in
+              {t('From “where do I even start” to a plan that gets you in')}
             </h1>
             <p className="text-gb-lg text-fg-tertiary">
-              Three stages, {GUIDE_STEP_COUNT} steps. Save the universities worth your time, turn
-              one into a real application plan, then work through a strategy built from your profile
-              and that course&rsquo;s actual requirements &mdash; without leaving GlowBal.
+              {t('Three stages, {count} steps. Save the universities worth your time, turn one into a real application plan, then work through a strategy built from your profile and that course’s actual requirements — without leaving GlowBal.', { count: GUIDE_STEP_COUNT })}
             </p>
             <div className="flex flex-wrap gap-gb-lg">
-              <Button href="/universities" size="lg">
-                Start with universities
+              <Button href={localizePath('/universities', locale)} size="lg">
+                {t('Start with universities')}
               </Button>
-              <Button href="/apply" variant="secondary" size="lg">
-                Go to My Portal
+              <Button href={localizePath('/apply', locale)} variant="secondary" size="lg">
+                {t('Go to My Portal')}
               </Button>
             </div>
           </Container>
@@ -104,11 +101,11 @@ export default async function HowItWorksPage() {
                 <li key={area.id}>
                   <Panel className="flex h-full flex-col gap-gb-lg">
                     <span className="text-gb-sm font-semibold text-fg-brand">
-                      Area {area.number}
+                      {t('Area')} {area.number}
                     </span>
-                    <h2 className="text-gb-lg font-semibold text-fg">{area.title}</h2>
-                    <p className="text-gb-sm text-fg-tertiary">{area.summary}</p>
-                    <p className="mt-auto text-gb-xs text-fg-muted">{area.steps.length} steps</p>
+                    <h2 className="text-gb-lg font-semibold text-fg">{t(area.title)}</h2>
+                    <p className="text-gb-sm text-fg-tertiary">{t(area.summary)}</p>
+                    <p className="mt-auto text-gb-xs text-fg-muted">{area.steps.length} {t('steps')}</p>
                   </Panel>
                 </li>
               ))}
@@ -119,7 +116,7 @@ export default async function HowItWorksPage() {
         {/* The walkthrough itself — all three areas. */}
         <section className="pt-gb-6xl">
           <Container>
-            <StrategyGuide />
+            <StrategyGuide locale={locale} />
           </Container>
         </section>
 
@@ -135,18 +132,17 @@ export default async function HowItWorksPage() {
             <Container>
               <Panel className="flex flex-col items-start gap-gb-lg">
                 <h2 className="font-display text-gb-xl font-semibold text-fg">
-                  Ready to start yours?
+                  {t('Ready to start yours?')}
                 </h2>
                 <p className="max-w-2xl text-gb-md text-fg-tertiary">
-                  Create a free account to save universities, plan an application and build your
-                  first strategy.
+                  {t('Create a free account to save universities, plan an application and build your first strategy.')}
                 </p>
                 <div className="flex flex-wrap gap-gb-lg">
-                  <Button href="/auth" size="lg">
-                    Create an account
+                  <Button href={localizePath('/auth', locale)} size="lg">
+                    {t('Create an account')}
                   </Button>
-                  <Button href="/universities" variant="secondary" size="lg">
-                    Browse universities first
+                  <Button href={localizePath('/universities', locale)} variant="secondary" size="lg">
+                    {t('Browse universities first')}
                   </Button>
                 </div>
               </Panel>
@@ -157,11 +153,11 @@ export default async function HowItWorksPage() {
 
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

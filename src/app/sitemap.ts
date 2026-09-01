@@ -1,11 +1,9 @@
 import type { MetadataRoute } from 'next';
 import { getUniversityQueries } from '@/features/universities/api';
 import { listGeoGuides } from '@/lib/geo-content';
-import { SITE_URL } from '@/lib/site-url';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = SITE_URL;
-
   // 1. Static public marketing pages (both EN canonical and VI localized equivalents with reciprocal alternates)
   const staticPathConfigs = [
     { path: '', priority: 1.0, changeFrequency: 'daily' as const },
@@ -19,14 +17,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = [];
   for (const { path, priority, changeFrequency } of staticPathConfigs) {
-    const enUrl = `${baseUrl}${path}`;
-    const viUrl = `${baseUrl}/vi${path}`;
-    const alternates = {
-      languages: {
-        en: enUrl,
-        vi: viUrl,
-      },
-    };
+    const alternates = { languages: buildLocaleAlternates(path || '/').languages };
+    const enUrl = alternates.languages.en;
+    const viUrl = alternates.languages.vi;
 
     staticRoutes.push({
       url: enUrl,
@@ -49,14 +42,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (guide.status !== 'published') continue;
     const dateStr = guide.updatedAt || guide.publishedAt;
     const lastModified = dateStr ? new Date(dateStr) : undefined;
-    const enUrl = `${baseUrl}/news/${guide.slug}`;
-    const viUrl = `${baseUrl}/vi/news/${guide.slug}`;
-    const alternates = {
-      languages: {
-        en: enUrl,
-        vi: viUrl,
-      },
-    };
+    const alternates = { languages: buildLocaleAlternates(`/news/${guide.slug}`).languages };
+    const enUrl = alternates.languages.en;
+    const viUrl = alternates.languages.vi;
 
     guideRoutes.push({
       url: enUrl,
@@ -84,14 +72,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (let page = 1; ; page += 1) {
       const { items, hasMore } = await queries.list({ page, pageSize: 60 });
       for (const university of items) {
-        const enUrl = `${baseUrl}/universities/${university.id}`;
-        const viUrl = `${baseUrl}/vi/universities/${university.id}`;
-        const alternates = {
-          languages: {
-            en: enUrl,
-            vi: viUrl,
-          },
-        };
+        const alternates = { languages: buildLocaleAlternates(`/universities/${university.id}`).languages };
+        const enUrl = alternates.languages.en;
+        const viUrl = alternates.languages.vi;
         universityRoutes.push({
           url: enUrl,
           changeFrequency: 'weekly',

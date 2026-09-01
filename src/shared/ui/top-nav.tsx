@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import { getLocaleFromPath, getLocaleText, localizePath } from '@/lib/i18n/locale';
 import { Avatar } from './avatar';
 import { Button } from './button';
 import { LanguageSwitcher } from './language-switcher';
@@ -344,6 +345,8 @@ export function TopNav({
 }: Props) {
   const t = useT();
   const pathname = usePathname();
+  const routeLocale = getLocaleFromPath(pathname);
+  const translate = routeLocale === 'vi' ? (label: string) => getLocaleText(routeLocale, label) : t;
   // Destructured rather than held as one object: react-hooks/refs treats a
   // value carrying a ref as a ref itself, and reading `.top` off it during
   // render trips the rule even though `top` is ordinary state.
@@ -387,8 +390,8 @@ export function TopNav({
               opposite approach and its callers wrap the node themselves, so do
               not pass an already-linked node in here or the anchors nest. */}
           <Link
-            href="/"
-            aria-label="GlowBal home"
+            href={localizePath('/', routeLocale)}
+            aria-label={getLocaleText(routeLocale, 'GlowBal home')}
             className="flex shrink-0 items-center rounded-gb-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {logo}
@@ -415,7 +418,7 @@ export function TopNav({
            * on that component before changing either.
            */}
           <nav
-            aria-label={t('Primary')}
+            aria-label={translate('Primary')}
             className="flex min-w-0 items-center gap-gb-md overflow-hidden 2xl:gap-gb-xl"
           >
             {items.map((item) =>
@@ -458,7 +461,7 @@ export function TopNav({
               would still take the 24px gap beside it. */}
           <div className="flex shrink-0 items-center gap-gb-lg">
             {utility}
-            <LanguageSwitcher tone={tone} />
+            <LanguageSwitcher tone={tone} pathname={pathname} />
           </div>
 
           <div className="flex shrink-0 items-center gap-gb-lg">

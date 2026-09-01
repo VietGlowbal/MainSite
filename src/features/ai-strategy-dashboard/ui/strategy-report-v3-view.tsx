@@ -33,6 +33,21 @@ function formatIdentifier(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function ProfileAreaIcon({ category }: { category: string }) {
+  const props = { className: 'h-5 w-5 text-brand' };
+  switch (category.toLowerCase()) {
+    case 'academic':
+      return <AcademicCapIcon {...props} />;
+    case 'experience':
+      return <BriefcaseIcon {...props} />;
+    case 'differentiation':
+      return <SparklesIcon {...props} />;
+    case 'evidence':
+    default:
+      return <DocumentCheckIcon {...props} />;
+  }
+}
+
 /* ──────────────────────────────────────────────────────────────────────────
    Crafted SVG Icons
    ────────────────────────────────────────────────────────────────────────── */
@@ -1015,30 +1030,14 @@ function Editable({
 function ProfileAreaCard({ area }: { area: ProfileAreaDiagnosis }) {
   const { t } = useLanguage();
 
-  const getAreaIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'academic':
-        return AcademicCapIcon;
-      case 'experience':
-        return BriefcaseIcon;
-      case 'differentiation':
-        return SparklesIcon;
-      case 'evidence':
-      default:
-        return DocumentCheckIcon;
-    }
-  };
-
-  const Icon = getAreaIcon(area.category || area.key);
-
   return (
     <div className="flex flex-col justify-between rounded-3xl border border-line bg-surface p-6 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-xs">
       <div className="flex flex-col gap-4">
         {/* Header with Icon & Status */}
         <div className="flex items-center justify-between gap-3 border-b border-line/60 pb-3">
-          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-brand border border-rose-100 shadow-2xs">
-              <Icon className="h-5 w-5 text-brand" />
+              <ProfileAreaIcon category={area.category || area.key} />
             </div>
             <div>
               <h3 className="text-sm font-bold text-fg">{formatIdentifier(area.label)}</h3>
@@ -1227,4 +1226,3 @@ function toolHref(
   if (tool === 'cv_builder') return `/ai-strategy/${applicationId}/cv/target-profile`;
   return `/ai-strategy/${applicationId}/statement`;
 }
-

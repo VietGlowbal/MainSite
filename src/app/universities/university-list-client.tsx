@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useNavigationSession } from '@/components/navigation-session';
 import { useT } from '@/lib/i18n';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Container } from '@/shared/ui/container';
@@ -96,11 +97,15 @@ function IconHeart({ filled }: { filled: boolean }) {
 function UniversityCard({
   uni,
   preloadImage = false,
+  locale = 'en',
 }: {
   uni: ExplorerUniversity;
   preloadImage?: boolean;
+  locale?: Locale;
 }) {
-  const t = useT();
+  const contextT = useT();
+  const t = (source: string, vars?: Record<string, string | number>) =>
+    locale === 'vi' ? getLocaleText(locale, source, vars) : contextT(source, vars);
   const {
     isLoggedIn,
     authPending,
@@ -179,7 +184,7 @@ function UniversityCard({
                * click is intercepted rather than the link being withheld.
                */}
               <Link
-                href={`/universities/${uni.id}`}
+                href={localizePath(`/universities/${uni.id}`, locale)}
                 onClick={(e) => {
                   if (!isLoggedIn) {
                     e.preventDefault();
@@ -215,15 +220,15 @@ function UniversityCard({
             value column is allowed to wrap and stays right-aligned. */}
         <dl className="flex flex-col gap-gb-lg">
           <div className="flex items-start justify-between gap-gb-xl">
-            <dt className="shrink-0 text-gb-lg text-fg-tertiary">QS ranking</dt>
+            <dt className="shrink-0 text-gb-lg text-fg-tertiary">{t('QS ranking')}</dt>
             <dd className="text-right text-gb-lg font-semibold text-fg">{metric(uni.qs_rank)}</dd>
           </div>
           <div className="flex items-start justify-between gap-gb-xl">
-            <dt className="shrink-0 text-gb-lg text-fg-tertiary">Acceptance rate</dt>
+            <dt className="shrink-0 text-gb-lg text-fg-tertiary">{t('Acceptance rate')}</dt>
             <dd className="text-right text-gb-lg font-semibold text-fg">{metric(uni.accept_rate)}</dd>
           </div>
           <div className="flex items-start justify-between gap-gb-xl">
-            <dt className="shrink-0 text-gb-lg text-fg-tertiary">International tuition</dt>
+            <dt className="shrink-0 text-gb-lg text-fg-tertiary">{t('International tuition')}</dt>
             <dd className="text-right text-gb-lg font-semibold text-fg">{metric(uni.tuition_usd)}</dd>
           </div>
         </dl>
@@ -236,7 +241,7 @@ function UniversityCard({
             open();
           }}
         >
-          View profile
+          {t('View profile')}
         </Button>
       </div>
     </div>
@@ -255,6 +260,7 @@ function DirectoryBrowseView({
   busy,
   error,
   onNavigate,
+  locale = 'en',
 }: {
   total: number;
   page: number;
@@ -265,8 +271,12 @@ function DirectoryBrowseView({
   busy: boolean;
   error: string | null;
   onNavigate: (href: string, replace?: boolean) => void;
+  locale?: Locale;
 }) {
   const { universities } = useExplorer();
+  const contextT = useT();
+  const t = (source: string, vars?: Record<string, string | number>) =>
+    locale === 'vi' ? getLocaleText(locale, source, vars) : contextT(source, vars);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [name, setName] = useState(initialSearch);
   const [country, setCountry] = useState(initialCountry);
@@ -279,10 +289,10 @@ function DirectoryBrowseView({
       if (query) params.set('q', query);
       if (country) params.set('country', country);
       const queryString = params.toString();
-      onNavigate(queryString ? `/universities?${queryString}` : '/universities', true);
+      onNavigate(localizePath(queryString ? `/universities?${queryString}` : '/universities', locale), true);
     }, 300);
     return () => window.clearTimeout(timeout);
-  }, [name, initialSearch, country, initialCountry, onNavigate]);
+  }, [name, initialSearch, country, initialCountry, locale, onNavigate]);
 
   function href(nextPage: number) {
     const params = new URLSearchParams();
@@ -291,7 +301,7 @@ function DirectoryBrowseView({
     if (country) params.set('country', country);
     if (nextPage > 1) params.set('page', String(nextPage));
     const queryString = params.toString();
-    return queryString ? `/universities?${queryString}` : '/universities';
+    return localizePath(queryString ? `/universities?${queryString}` : '/universities', locale);
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -314,16 +324,16 @@ function DirectoryBrowseView({
     >
       <div className="flex max-w-gb-width-xl flex-col gap-gb-lg">
         <h1 className="font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
-          Find the university that&apos;s right for you
+          {t("Find the university that's right for you")}
         </h1>
         <p className="text-gb-md text-fg-tertiary md:text-gb-lg">
-          Explore universities worldwide and find your perfect fit.
+          {t('Explore universities worldwide and find your perfect fit.')}
         </p>
         <Link
-          href="/universities/matches"
+          href={localizePath('/universities/matches', locale)}
           className="w-fit text-gb-sm font-medium text-fg-brand hover:underline"
         >
-          View your university matches
+          {t('View your university matches')}
         </Link>
       </div>
 
@@ -336,31 +346,31 @@ function DirectoryBrowseView({
             {...testId(TID.uniSearchInput)}
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Search by university name"
-            aria-label="Search by university name"
+            placeholder={t('Search by university name')}
+            aria-label={t('Search by university name')}
             className="w-full rounded-gb-md border border-line-strong bg-surface py-gb-input-y pl-gb-6xl pr-gb-input-x text-gb-md text-fg shadow-gb-xs placeholder:text-fg-muted focus:outline-2 focus:outline-offset-0 focus:outline-brand"
           />
         </label>
         <Select
           name="country"
-          aria-label="Country"
+          aria-label={t('Country')}
           value={country}
           onChange={(event) => setCountry(event.target.value)}
         >
-          <option value="">All countries</option>
+          <option value="">{t('All countries')}</option>
           {countries.map((value) => (
             <option key={value} value={value}>{value}</option>
           ))}
         </Select>
-        <Button type="submit" size="md">Find universities</Button>
+        <Button type="submit" size="md">{t('Find universities')}</Button>
       </form>
 
       <div ref={resultsRef} className="scroll-mt-gb-9xl">
         {universities.length === 0 ? (
           <div className="rounded-gb-xl border border-line bg-surface-muted px-gb-3xl py-gb-7xl text-center">
-            <p className="text-gb-lg font-semibold text-fg">No universities match your filters</p>
+            <p className="text-gb-lg font-semibold text-fg">{t('No universities match your filters')}</p>
             <p className="mt-gb-sm text-gb-md text-fg-tertiary">
-              Try clearing a filter or searching a different name.
+              {t('Try clearing a filter or searching a different name.')}
             </p>
           </div>
         ) : (
@@ -373,6 +383,7 @@ function DirectoryBrowseView({
                 key={university.id}
                 uni={university}
                 preloadImage={index === 0}
+                locale={locale}
               />
             ))}
           </div>
@@ -389,31 +400,33 @@ function DirectoryBrowseView({
   );
 }
 
-function LoginGateModal() {
+function LoginGateModal({ locale = 'en' }: { locale?: Locale }) {
   const { loginGateOpen, closeLoginGate } = useExplorer();
   const router = useRouter();
+  const contextT = useT();
+  const t = (source: string, vars?: Record<string, string | number>) =>
+    locale === 'vi' ? getLocaleText(locale, source, vars) : contextT(source, vars);
   return (
     <Modal
       open={loginGateOpen}
       onClose={closeLoginGate}
-      label="Log in to continue"
+      label={t('Log in to continue')}
       className="max-w-gb-width-sm p-gb-5xl text-center"
     >
-      <h2 className="text-gb-xl font-semibold text-fg">Log in to keep exploring</h2>
+      <h2 className="text-gb-xl font-semibold text-fg">{t('Log in to keep exploring')}</h2>
       <p className="mt-gb-md text-gb-sm text-fg-tertiary">
-        Create a free account to open full university profiles, discover scholarships and unlock
-        your personalised matches.
+        {t('Create a free account to open full university profiles, discover scholarships and unlock your personalised matches.')}
       </p>
       <div className="mt-gb-3xl flex flex-col items-center gap-gb-md">
         <Button onClick={() => router.push(AUTH_REDIRECT)} size="xl" className="w-full">
-          Log in or sign up
+          {t('Log in or sign up')}
         </Button>
         <button
           type="button"
           onClick={closeLoginGate}
           className="rounded-gb-md px-gb-md py-gb-sm text-gb-sm font-medium text-fg-muted transition-colors hover:text-fg-secondary"
         >
-          Maybe later
+          {t('Maybe later')}
         </button>
       </div>
     </Modal>
@@ -452,7 +465,7 @@ function Toast() {
  * `replace`, not `push`, so Back goes to wherever the reader came from rather
  * than to a URL that immediately redirects again.
  */
-function useLegacyDetailParamRedirect() {
+function useLegacyDetailParamRedirect(locale: Locale) {
   const router = useRouter();
 
   useEffect(() => {
@@ -460,8 +473,8 @@ function useLegacyDetailParamRedirect() {
     if (!param) return;
     const id = Number.parseInt(param, 10);
     if (!Number.isFinite(id)) return;
-    router.replace(`/universities/${id}`);
-  }, [router]);
+    router.replace(localizePath(`/universities/${id}`, locale));
+  }, [locale, router]);
 }
 
 // ── Page chrome + view switch ────────────────────────────────────────────────
@@ -476,6 +489,7 @@ function Chrome({
   busy,
   error,
   onNavigate,
+  locale = 'en',
 }: {
   total: number;
   page: number;
@@ -486,8 +500,9 @@ function Chrome({
   busy: boolean;
   error: string | null;
   onNavigate: (href: string, replace?: boolean) => void;
+  locale?: Locale;
 }) {
-  useLegacyDetailParamRedirect();
+  useLegacyDetailParamRedirect(locale);
 
   return (
     <>
@@ -503,10 +518,11 @@ function Chrome({
           busy={busy}
           error={error}
           onNavigate={onNavigate}
+          locale={locale}
         />
       </main>
 
-      <LoginGateModal />
+      <LoginGateModal locale={locale} />
       <Toast />
     </>
   );
@@ -524,12 +540,13 @@ interface Props {
   countries: string[];
   wikiPairs?: Array<[string, string]>;
   canonicalSearch: string;
+  locale?: Locale;
 }
 
-function universityPrefetchHrefs(data: UniversityDirectoryResponse) {
+function universityPrefetchHrefs(data: UniversityDirectoryResponse, locale: Locale) {
   if (!data.page.hasMore) return [];
   const params = universitySearchParams(data.query, { page: data.page.page + 1 });
-  return [`/universities?${params}`];
+  return [localizePath(`/universities?${params}`, locale)];
 }
 
 export function UniversityListClient({
@@ -542,6 +559,7 @@ export function UniversityListClient({
   countries,
   wikiPairs = [],
   canonicalSearch,
+  locale = 'en',
 }: Props) {
   const navigationSession = useNavigationSession();
   const initialDirectory = useMemo<UniversityDirectoryResponse>(() => ({
@@ -550,9 +568,9 @@ export function UniversityListClient({
     wikiPairs,
     canonicalSearch,
   }), [canonicalSearch, country, page, pageSize, search, total, universities, wikiPairs]);
-  const getPrefetchHrefs = universityPrefetchHrefs;
+  const getPrefetchHrefs = (data: UniversityDirectoryResponse) => universityPrefetchHrefs(data, locale);
   const directory = useDirectoryNavigation({
-    pathname: '/universities',
+    pathname: localizePath('/universities', locale),
     endpoint: '/api/directory/universities',
     initialData: initialDirectory,
     getPrefetchHrefs,
@@ -694,6 +712,7 @@ export function UniversityListClient({
         busy={directory.busy}
         error={directory.error}
         onNavigate={directory.navigate}
+        locale={locale}
       />
     </UniversityExplorerProvider>
   );

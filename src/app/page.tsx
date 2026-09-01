@@ -6,11 +6,6 @@ import { getUniversityQueries } from '@/features/universities/api';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
   HomeContact,
   HomeFaq,
   HomeFeatures,
@@ -24,6 +19,7 @@ import {
   HomeTeam,
   PARTNER_LOGOS,
   type ContactState,
+  getLocalizedFooter,
 } from '@/features/marketing/ui';
 import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
@@ -33,8 +29,9 @@ import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
 import { getTeamMembers } from '@/lib/team';
 import { SITE_URL } from '@/lib/site-url';
-import { serializeJsonLd } from '@/lib/seo/json-ld';
+import { buildOrganizationJsonLd, buildWebSiteJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
+import { homeCopy, type Locale } from '@/lib/i18n/locale';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -48,9 +45,8 @@ const contactLimiter = new RateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 100
  */
 
 export const metadata: Metadata = {
-  title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
-  description:
-    'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+  title: homeCopy.en.metadataTitle,
+  description: homeCopy.en.metadataDescription,
   keywords: [
     'study abroad scholarships',
     'university scholarships',
@@ -66,9 +62,8 @@ export const metadata: Metadata = {
   ],
   alternates: buildLocaleAlternates('/'),
   openGraph: {
-    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
-    description:
-      'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+    title: homeCopy.en.metadataTitle,
+    description: homeCopy.en.metadataDescription,
     url: SITE_URL,
     siteName: 'GlowBal',
     images: [
@@ -83,9 +78,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
-    description:
-      'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+    title: homeCopy.en.metadataTitle,
+    description: homeCopy.en.metadataDescription,
     images: ['/glowbal-logo.png'],
   },
 };
@@ -265,40 +259,20 @@ async function submitContact(
   return { status: 'ok', message: "Thanks — we'll be in touch shortly." };
 }
 
-export default async function Home() {
+export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {}) {
   const [partnerUniversityIds, team, scholarshipSpotlight] = await Promise.all([
     getPartnerUniversityIds(),
     getTeamMembers(),
     getHomeScholarshipSpotlight(),
   ]);
 
+  const copy = homeCopy[locale];
+  const footer = getLocalizedFooter(locale);
   const homeJsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${SITE_URL}/#organization`,
-        name: 'GlowBal Education',
-        alternateName: 'GlowBal',
-        url: SITE_URL,
-        logo: {
-          '@type': 'ImageObject',
-          url: `${SITE_URL}/glowbal-logo.png`,
-        },
-        description:
-          'Student-first global course and university guidance platform helping students find scholarships and build application strategies.',
-      },
-      {
-        '@type': 'WebSite',
-        '@id': `${SITE_URL}/#website`,
-        url: SITE_URL,
-        name: 'GlowBal',
-        description: 'Find Universities, Scholarships & Study Abroad Support',
-        publisher: {
-          '@id': `${SITE_URL}/#organization`,
-        },
-        inLanguage: ['vi', 'en'],
-      },
+      buildOrganizationJsonLd({ description: copy.metadataDescription }),
+      buildWebSiteJsonLd({ description: copy.metadataDescription, inLanguage: [locale] }),
     ],
   };
 
@@ -312,37 +286,42 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd) }}
       />
-      <SiteNavigation tone="dark" />
+      <SiteNavigation tone="dark" locale={locale} />
       {/* TopNav is desktop-only (hidden below md). Without this the landing
           page has NO navigation on a phone at all: "/" is in OWN_CHROME_ROUTES,
           so the legacy mobile nav is suppressed too. `gb-has-mobile-header` on
           the wrapper is what offsets the content past the fixed 64px bar. */}
       <main>
-        <HomeHero />
-        <HomePartners universityIds={partnerUniversityIds} />
-        <HomeMetrics />
+        <HomeHero locale={locale} />
+        <HomePartners universityIds={partnerUniversityIds} locale={locale} />
+        <HomeMetrics locale={locale} />
         <HomeScholarships
           entries={scholarshipSpotlight.entries}
           total={scholarshipSpotlight.total}
+          locale={locale}
         />
-        <HomePainPoints />
-        <HomeHowItWorks />
-        <HomeFeatures />
+        <HomePainPoints locale={locale} />
+        <HomeHowItWorks locale={locale} />
+        <HomeFeatures locale={locale} />
         {/* Testimonials tạm ẩn khỏi "/" theo yêu cầu của chủ dự án (15/08).
             Component `HomeTestimonials` vẫn còn nguyên và vẫn render ở
             `/dev/home` — bật lại chỉ cần import và đặt lại đúng chỗ này. */}
-        <HomeTeam members={team} />
-        <HomeContact action={submitContact} />
-        <HomeFaq />
+        <HomeTeam members={team} locale={locale} />
+        <HomeContact action={submitContact} locale={locale} />
+        <HomeFaq locale={locale} />
       </main>
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );
+}
+
+export default async function Home() {
+  return <MarketingHome locale="en" />;
 }

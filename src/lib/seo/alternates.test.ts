@@ -42,4 +42,13 @@ describe('Locale Alternates (hreflang & canonical)', () => {
     expect(vi.languages.en).toBe(`${SITE_URL}/universities/42`);
     expect(vi.languages.vi).toBe(`${SITE_URL}/vi/universities/42`);
   });
+
+  it('preserves query/hash context without duplicating /vi', () => {
+    expect(buildLocaleAlternates('/news/story/?q=1#faq').languages.vi).toBe(
+      `${SITE_URL}/vi/news/story/?q=1#faq`,
+    );
+    expect(buildViLocaleAlternates('/vi/news/story?q=1').canonical).toBe(
+      `${SITE_URL}/vi/news/story?q=1`,
+    );
+  });
 });

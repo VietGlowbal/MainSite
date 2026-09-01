@@ -11,6 +11,7 @@ import {
 } from '../domain/strategy-guide';
 import { Badge, Button, ICONS, KitIcon, type BadgeVariant } from '@/shared/ui';
 import { T } from '@/lib/i18n';
+import { localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * The `/ai-strategy` explainer — a sticky, scroll-driven walkthrough of the
@@ -305,12 +306,12 @@ function AreaTabs({
  */
 const SEARCH_DESTINATIONS = new Set(['/universities', '/scholarships']);
 
-function StepAction({ step }: { step: GuideStep }) {
+function StepAction({ step, locale = 'en' }: { step: GuideStep; locale?: Locale }) {
   if (step.href === null || step.linkLabel === null) return null;
   const caption = destinationLabel(step.href);
   return (
     <div className="flex flex-col gap-gb-md">
-      <Button href={step.href} size="lg" className="w-full gap-gb-md">
+      <Button href={localizePath(step.href, locale)} size="lg" className="w-full gap-gb-md">
         <KitIcon
           art={SEARCH_DESTINATIONS.has(step.href) ? ICONS.search : ICONS.arrowRight}
           frame={20}
@@ -367,6 +368,7 @@ export function GuidePanel({
   activeIndex,
   onSelect,
   bleedClassName,
+  locale = 'en',
 }: {
   flat: readonly FlatGuideStep[];
   activeIndex: number;
@@ -382,6 +384,7 @@ export function GuidePanel({
    * one that stops short.
    */
   bleedClassName?: string | undefined;
+  locale?: Locale;
 }) {
   const active = flat[activeIndex] ?? flat[0];
   if (active === undefined) return null;
@@ -421,7 +424,7 @@ export function GuidePanel({
             </div>
             <hr className="border-line" />
             <StepDetails step={step} />
-            <StepAction step={step} />
+            <StepAction step={step} locale={locale} />
           </div>
 
           <GuideNav activeIndex={activeIndex} total={flat.length} onSelect={onSelect} />
@@ -433,7 +436,7 @@ export function GuidePanel({
 
 /* ── Desktop: the pinned, scroll-driven pane ─────────────────────────────── */
 
-function GuideScroller({ flat }: { flat: readonly FlatGuideStep[] }) {
+function GuideScroller({ flat, locale = 'en' }: { flat: readonly FlatGuideStep[]; locale?: Locale }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -491,7 +494,7 @@ function GuideScroller({ flat }: { flat: readonly FlatGuideStep[] }) {
     >
       {/* `items-start`, never centred — see the header on layout stability. */}
       <div className="sticky top-gb-6xl flex h-[calc(100vh-8rem)] items-start py-gb-2xl">
-        <GuidePanel flat={flat} activeIndex={activeIndex} onSelect={jumpToStep} />
+        <GuidePanel flat={flat} activeIndex={activeIndex} onSelect={jumpToStep} locale={locale} />
       </div>
     </div>
   );
@@ -499,7 +502,7 @@ function GuideScroller({ flat }: { flat: readonly FlatGuideStep[] }) {
 
 /* ── Mobile / reduced motion: the same steps, stacked ────────────────────── */
 
-function GuideStacked({ areas }: { areas: readonly GuideArea[] }) {
+function GuideStacked({ areas, locale = 'en' }: { areas: readonly GuideArea[]; locale?: Locale }) {
   return (
     <div className="flex flex-col gap-gb-7xl lg:hidden motion-reduce:lg:flex">
       {areas.map((area) => (
@@ -530,7 +533,7 @@ function GuideStacked({ areas }: { areas: readonly GuideArea[] }) {
                   <p className="text-gb-md text-fg-tertiary"><T k={step.summary} /></p>
                   <StepDetails step={step} />
                   {step.href && step.linkLabel ? (
-                    <Button href={step.href} variant="secondary" size="sm" className="self-start">
+                    <Button href={localizePath(step.href, locale)} variant="secondary" size="sm" className="self-start">
                       <T k={step.linkLabel} />
                     </Button>
                   ) : null}
@@ -555,12 +558,12 @@ function GuideStacked({ areas }: { areas: readonly GuideArea[] }) {
  * differently — the failure this whole feature has already had once (see the
  * header of ../domain/strategy-guide.ts).
  */
-export function StrategyGuide({ areas = STRATEGY_GUIDE }: { areas?: readonly GuideArea[] }) {
+export function StrategyGuide({ areas = STRATEGY_GUIDE, locale = 'en' }: { areas?: readonly GuideArea[]; locale?: Locale }) {
   const flat = flattenGuide(areas);
   return (
     <>
-      <GuideScroller flat={flat} />
-      <GuideStacked areas={areas} />
+      <GuideScroller flat={flat} locale={locale} />
+      <GuideStacked areas={areas} locale={locale} />
     </>
   );
 }

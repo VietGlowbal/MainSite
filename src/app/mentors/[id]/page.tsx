@@ -10,6 +10,7 @@ import { SITE_URL } from '@/lib/site-url';
 import { buildAdvisorJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { MentorDetail } from './mentor-detail';
+import type { Locale } from '@/lib/i18n/locale';
 
 /**
  * /mentors/[id] — Figma 375:21633 "Detail cố vấn" (1440x1823).
@@ -69,8 +70,10 @@ export async function generateMetadata({
 
 export default async function MentorDetailPage({
   params,
+  locale = 'en',
 }: {
   params: Promise<{ id: string }>;
+  locale?: Locale;
 }) {
   const { id } = await params;
 
@@ -116,6 +119,7 @@ export default async function MentorDetailPage({
         isSignedIn={!!user}
         userName={userName}
         userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
+        locale={locale}
       />
     </>
   );

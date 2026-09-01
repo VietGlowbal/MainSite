@@ -56,7 +56,7 @@ describe('PersonalReflectionForm', () => {
     expect(screen.getByText('Điều bạn thích khám phá')).toBeInTheDocument();
     expect(screen.getAllByText('Câu trả lời mẫu')).toHaveLength(7);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Switch to English' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Chuyển sang Tiếng Anh' }));
 
     expect(screen.getByText('What You Enjoy Exploring')).toBeInTheDocument();
     expect(screen.getAllByText('Sample answer')).toHaveLength(7);

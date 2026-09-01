@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import UniversitiesPage from '../../universities/page';
+import type { UniversityRawSearchParams } from '@/features/universities/directory-query';
 import { SITE_URL } from '@/lib/site-url';
 import { buildViLocaleAlternates } from '@/lib/seo/alternates';
 
@@ -28,4 +29,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 43200;
 
-export default UniversitiesPage;
+export default async function VietnameseUniversitiesPage({ searchParams }: { searchParams: Promise<UniversityRawSearchParams> }) {
+  return <UniversitiesPage searchParams={searchParams} locale="vi" />;
+}

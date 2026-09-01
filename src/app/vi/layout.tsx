@@ -9,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function ViLayout({ children }: { children: React.ReactNode }) {
-  return <LanguageProvider defaultLang="vi">{children}</LanguageProvider>;
+  return (
+    <div lang="vi">
+      <LanguageProvider defaultLang="vi">{children}</LanguageProvider>
+    </div>
+  );
 }

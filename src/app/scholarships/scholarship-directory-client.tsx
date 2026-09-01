@@ -12,6 +12,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { clearFocusUniversity, getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
 import { TID, testId } from '@/shared/lib/testids';
 import { useLanguage } from '@/lib/i18n';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import {
   FUNDING_TYPES,
@@ -89,6 +90,7 @@ type Props = {
   savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
   canonicalSearch: string;
   isPlus?: boolean;
+  locale?: Locale;
 };
 
 const MAJOR_FILTERS: ReadonlyArray<{ value: ScholarshipMajor; label: string }> = [
@@ -105,18 +107,18 @@ const DEGREE_FILTERS: ReadonlyArray<{ value: ScholarshipDegree; label: string }>
   { value: 'doctoral', label: 'Doctoral / PhD' },
 ];
 
-function scholarshipHref(state: ScholarshipQueryState, patch: Partial<ScholarshipQueryState>) {
+function scholarshipHref(state: ScholarshipQueryState, patch: Partial<ScholarshipQueryState>, locale: Locale = 'en') {
   const params = scholarshipSearchParams(state, patch);
-  return params.size > 0 ? `/scholarships?${params}` : '/scholarships';
+  return localizePath(params.size > 0 ? `/scholarships?${params}` : '/scholarships', locale);
 }
 
-function scholarshipPrefetchHrefs(data: ScholarshipDirectoryResponse) {
+function scholarshipPrefetchHrefs(data: ScholarshipDirectoryResponse, locale: Locale) {
   const hrefs: string[] = [];
   if (data.directoryPage?.hasMore || data.focusPage?.hasMore) {
-    hrefs.push(scholarshipHref(data.query, { page: data.query.page + 1 }));
+    hrefs.push(scholarshipHref(data.query, { page: data.query.page + 1 }, locale));
   }
   if (data.countryPage?.hasMore) {
-    hrefs.push(scholarshipHref(data.query, { countryPage: data.query.countryPage + 1 }));
+    hrefs.push(scholarshipHref(data.query, { countryPage: data.query.countryPage + 1 }, locale));
   }
   return hrefs;
 }
@@ -135,8 +137,12 @@ export function ScholarshipDirectoryClient({
   savedScholarships = [],
   canonicalSearch,
   isPlus: initialIsPlus,
+  locale = 'en',
 }: Props) {
-  const { t } = useLanguage();
+  const { t: contextT } = useLanguage();
+  const t = locale === 'vi'
+    ? (source: string, vars?: Record<string, string | number>) => getLocaleText(locale, source, vars)
+    : contextT;
   const { isPlus } = usePlusStatus(initialIsPlus);
   const router = useRouter();
   const initialDirectory = useMemo<ScholarshipDirectoryResponse>(() => ({
@@ -154,9 +160,9 @@ export function ScholarshipDirectoryClient({
     initialFocusUniversity,
     initialQueryState,
   ]);
-  const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data), []);
+  const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data, locale), [locale]);
   const directory = useDirectoryNavigation({
-    pathname: '/scholarships',
+    pathname: localizePath('/scholarships', locale),
     endpoint: '/api/directory/scholarships',
     initialData: initialDirectory,
     getPrefetchHrefs,
@@ -192,11 +198,11 @@ export function ScholarshipDirectoryClient({
       if (cached) {
         sessionStorage.setItem(RESTORING_FOCUS_KEY, String(cached.id));
         const params = scholarshipSearchParams(queryState, { universityId: cached.id });
-        router.replace(`/scholarships?${params}`);
+        router.replace(localizePath(`/scholarships?${params}`, locale));
       }
     }
     // Run once on mount; the param is fixed for the page's lifetime.
-  }, [focusUniversityProp, queryState, router]);
+  }, [focusUniversityProp, locale, queryState, router]);
 
   // A scholarship is "saved to My Universities" only when it has a concrete
   // destination university. Keeping the destination in state (instead of only
@@ -404,7 +410,7 @@ export function ScholarshipDirectoryClient({
 
   const navigate = useCallback(
     (patch: Partial<ScholarshipQueryState>, replace = true) => {
-      const href = scholarshipHref(queryState, patch);
+      const href = scholarshipHref(queryState, patch, locale);
       const nextView = patch.view ?? queryState.view;
       if (queryState.view === 'ai' || nextView === 'ai') {
         if (replace) router.replace(href);
@@ -413,7 +419,7 @@ export function ScholarshipDirectoryClient({
       }
       directory.navigate(href, replace);
     },
-    [directory, queryState, router],
+    [directory, locale, queryState, router],
   );
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

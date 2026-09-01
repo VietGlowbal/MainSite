@@ -11,6 +11,7 @@ import { buildUniversityJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { UniversityDetail } from './university-detail';
 import { UniversityExtras, extraSectionsFor } from './university-extras';
+import { localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * /universities/[id] — Figma 375:10629, one page for all 97 universities.
@@ -79,29 +80,32 @@ export async function generateMetadata({
 }
 
 /** Anchors for the bar at 375:10665, minus the ones with no section behind them. */
-function sectionsFor(university: University): DetailSection[] {
-  const sections: DetailSection[] = [{ id: 'about', label: 'About' }];
+function sectionsFor(university: University, locale: Locale): DetailSection[] {
+  const vi = locale === 'vi';
+  const sections: DetailSection[] = [{ id: 'about', label: vi ? 'Giới thiệu' : 'About' }];
   // The frame's "Các ngành" anchor. It had no target until `strengths` and
   // `best_for` stopped being prose inside two other sections — see
   // university-detail.tsx. Still conditional: an anchor to an unrendered
   // section scrolls nowhere.
   if (splitList(university.strengths).length > 0 || splitList(university.best_for).length > 0) {
-    sections.push({ id: 'subjects', label: 'Subjects' });
+    sections.push({ id: 'subjects', label: vi ? 'Ngành học' : 'Subjects' });
   }
-  sections.push({ id: 'admissions', label: 'Admissions' });
-  if (university.housing) sections.push({ id: 'location', label: 'Location' });
-  sections.push({ id: 'costs', label: 'Costs & funding' });
-  sections.push({ id: 'careers', label: 'Careers' });
-  sections.push({ id: 'why', label: 'Why this university' });
+  sections.push({ id: 'admissions', label: vi ? 'Tuyển sinh' : 'Admissions' });
+  if (university.housing) sections.push({ id: 'location', label: vi ? 'Địa điểm' : 'Location' });
+  sections.push({ id: 'costs', label: vi ? 'Chi phí & học bổng' : 'Costs & funding' });
+  sections.push({ id: 'careers', label: vi ? 'Cơ hội nghề nghiệp' : 'Careers' });
+  sections.push({ id: 'why', label: vi ? 'Vì sao chọn trường này' : 'Why this university' });
   sections.push(...extraSectionsFor(university.id));
-  sections.push({ id: 'mentors', label: 'Talk to a student' });
+  sections.push({ id: 'mentors', label: vi ? 'Trao đổi với sinh viên' : 'Talk to a student' });
   return sections;
 }
 
 export default async function UniversityDetailPage({
   params,
+  locale = 'en',
 }: {
   params: Promise<{ id: string }>;
+  locale?: Locale;
 }) {
   const university = await loadUniversity((await params).id);
   if (!university) notFound();
@@ -147,7 +151,7 @@ export default async function UniversityDetailPage({
   const officialSite = officialWebsite(university.name);
   const jsonLd = buildUniversityJsonLd({
     name: university.name,
-    url: `${SITE_URL}/universities/${university.id}`,
+    url: `${SITE_URL}${localizePath(`/universities/${university.id}`, locale)}`,
     imageUrl: university.image_url,
     officialWebsite: officialSite,
     description: university.specific_insight ?? null,
@@ -163,13 +167,14 @@ export default async function UniversityDetailPage({
       <UniversityDetail
         university={university}
         scholarships={scholarships}
-        sections={sectionsFor(university)}
+        sections={sectionsFor(university, locale)}
         extras={<UniversityExtras universityId={university.id} isSignedIn={!!user} />}
         officialSite={officialSite}
         isSignedIn={!!user}
         isSaved={isSaved}
         userName={userName}
         userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
+        locale={locale}
       />
     </>
   );

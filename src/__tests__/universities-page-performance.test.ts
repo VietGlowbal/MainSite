@@ -44,7 +44,7 @@ describe('UniversitiesPage performance', () => {
     const navigation = page.props.children[0];
     const client = page.props.children[1];
     expect(navigation.type).toBe(mocks.navigation);
-    expect(navigation.props).toEqual({ tone: 'light', showSaved: true });
+    expect(navigation.props).toEqual({ tone: 'light', showSaved: true, locale: 'en' });
     expect(client.type).toBe(mocks.client);
     expect(client.props.universities).toEqual([]);
   });
@@ -53,7 +53,7 @@ describe('UniversitiesPage performance', () => {
     const page = readFileSync('src/app/universities/page.tsx', 'utf8');
     const client = readFileSync('src/app/universities/university-list-client.tsx', 'utf8');
 
-    expect(page).toContain('<SiteNavigation tone="light" showSaved />');
+    expect(page).toContain('<SiteNavigation tone="light" showSaved locale={locale} />');
     expect(client).not.toContain("from '@/components/site-navigation'");
     expect(client).not.toContain('<SiteNavigation');
   });

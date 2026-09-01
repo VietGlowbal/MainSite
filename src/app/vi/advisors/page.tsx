@@ -27,4 +27,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 300;
 
-export default MentorsBrowsePage;
+export default async function VietnameseAdvisorsPage() {
+  return <MentorsBrowsePage locale="vi" />;
+}

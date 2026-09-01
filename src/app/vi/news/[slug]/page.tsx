@@ -46,4 +46,6 @@ export async function generateMetadata({
   };
 }
 
-export default GuideDetailPage;
+export default async function VietnameseGuidePage({ params }: { params: Promise<{ slug: string }> }) {
+  return <GuideDetailPage params={params} locale="vi" />;
+}

@@ -1,19 +1,21 @@
 import { Button, Section } from '@/shared/ui';
+import { homeCopy, type Locale } from '@/lib/i18n/locale';
 import { HeroGlobe } from './hero-globe';
 
 /** Home hero — Figma 884:12039, with Home.md as the copy source of truth. */
 
-export function HomeHero() {
+export function HomeHero({ locale = 'en' }: { locale?: Locale } = {}) {
+  const copy = homeCopy[locale];
+
   return (
     <Section tone="dark" containerClassName="flex flex-col-reverse items-center gap-gb-6xl lg:flex-row lg:items-center lg:gap-gb-4xl">
       <div className="flex min-w-0 flex-1 flex-col gap-gb-6xl">
         <div className="flex flex-col gap-gb-xl">
           <h1 className="font-display text-gb-display-sm font-medium md:text-gb-display-lg">
-            The all-in-one solution for scholarship seekers
+            {copy.title}
           </h1>
           <p className="max-w-gb-width-xl text-gb-md md:text-gb-xl">
-            From discovering suitable universities and scholarships to building a personalised
-            strategy and tracking your applications, GlowBal supports your entire journey.
+            {copy.description}
           </p>
         </div>
 

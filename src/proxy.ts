@@ -54,6 +54,8 @@ function noindexRedirect(url: URL | string): NextResponse {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const localeHeaders = new Headers(request.headers);
+  localeHeaders.set('x-glowbal-locale', pathname === '/vi' || pathname.startsWith('/vi/') ? 'vi' : 'en');
 
   // ── Pre-launch site lock ────────────────────────────────────────────────
   // See src/lib/site-gate.ts. SITE_LOCK_ENABLED=1 walls the
@@ -86,7 +88,7 @@ export async function proxy(request: NextRequest) {
   // Avoid an auth round trip on every public request; the query-backed
   // university directory is identical for all visitors and safe to edge-cache.
   if (PUBLIC_MARKETING_ROUTES.has(pathname)) {
-    const publicResponse = NextResponse.next();
+    const publicResponse = NextResponse.next({ request: { headers: localeHeaders } });
     if (pathname === '/universities') {
       publicResponse.headers.set(
         'Vercel-CDN-Cache-Control',
@@ -97,9 +99,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Create a Supabase client that can read cookies from the request
-  const response = NextResponse.next({
-    request: { headers: request.headers },
-  });
+  const response = NextResponse.next({ request: { headers: localeHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -30,8 +30,9 @@ const EXACT_ROUTES_WITHOUT_GLOBAL_NAV = new Set([
 
 /** Remove a non-root trailing slash so deployment URL policy cannot duplicate chrome. */
 export function normalizeNavigationPathname(pathname: string): string {
-  if (pathname === '/') return pathname;
-  return pathname.replace(/\/+$/, '') || '/';
+  const withoutLocale = pathname === '/vi' ? '/' : pathname.startsWith('/vi/') ? pathname.slice(3) : pathname;
+  if (withoutLocale === '/') return withoutLocale;
+  return withoutLocale.replace(/\/+$/, '') || '/';
 }
 
 export function suppressesGlobalNavigation(rawPathname: string): boolean {

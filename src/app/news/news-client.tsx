@@ -5,14 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MarketingNavigation } from '@/components/marketing-navigation';
-import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+import { getLocalizedFooter } from '@/features/marketing/ui';
 import type { GeoGuide } from '@/lib/geo-content';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import {
   Badge,
   Button,
@@ -100,11 +95,11 @@ const ALL_TOPICS = 'All topics';
  * while the server rendered the right one, and React would report a hydration
  * mismatch. Anchoring at noon UTC puts every timezone on the same calendar day.
  */
-function formatDate(value: string) {
+function formatDate(value: string, locale: Locale = 'en') {
   const iso = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-GB', {
+  return date.toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -120,12 +115,12 @@ function formatDate(value: string) {
  * distinct duration. Split, the number passes through untouched (DomTranslator
  * skips text with no letters) and "min read" is a free dictionary hit.
  */
-function PostMeta({ guide, className }: { guide: GeoGuide; className?: string }) {
+function PostMeta({ guide, className, locale = 'en' }: { guide: GeoGuide; className?: string; locale?: Locale }) {
   return (
     <span className={className}>
-      {formatDate(guide.publishedAt)}
+      {formatDate(guide.publishedAt, locale)}
       <span aria-hidden="true"> · </span>
-      {guide.readingTimeMinutes} <span>min read</span>
+      {guide.readingTimeMinutes} <span>{getLocaleText(locale, 'min read')}</span>
     </span>
   );
 }
@@ -136,8 +131,8 @@ function PostMeta({ guide, className }: { guide: GeoGuide; className?: string })
  * The cover is square-cornered on purpose — the instance has `overflow-clip`
  * with no radius, unlike every other card in the file.
  */
-function BlogPostCard({ guide }: { guide: GeoGuide }) {
-  const href = `/news/${guide.slug}`;
+function BlogPostCard({ guide, locale = 'en' }: { guide: GeoGuide; locale?: Locale }) {
+  const href = localizePath(`/news/${guide.slug}`, locale);
   return (
     <article className="flex flex-col gap-gb-xl">
       <Link href={href} className="group relative block aspect-[384/256] w-full overflow-clip border-[0.5px] border-line-on-image">
@@ -154,9 +149,9 @@ function BlogPostCard({ guide }: { guide: GeoGuide }) {
           <div className="border-t border-surface-frosted bg-surface-frosted p-gb-2xl backdrop-blur-md">
             <div className="flex items-start justify-between gap-gb-3xl text-gb-sm text-white">
               <div className="flex flex-col">
-                <span className="font-semibold">{formatDate(guide.publishedAt)}</span>
+                <span className="font-semibold">{formatDate(guide.publishedAt, locale)}</span>
                 <span>
-                  {guide.readingTimeMinutes} <span>min read</span>
+                  {guide.readingTimeMinutes} <span>{getLocaleText(locale, 'min read')}</span>
                 </span>
               </div>
               <span className="shrink-0 font-semibold">{guide.topic}</span>
@@ -181,7 +176,7 @@ function BlogPostCard({ guide }: { guide: GeoGuide }) {
           href={href}
           className="inline-flex items-center gap-gb-sm text-gb-md font-semibold text-brand hover:text-brand-hover"
         >
-          Read post
+          {getLocaleText(locale, 'Read post')}
           <KitIcon art={ICONS.arrowUpRight} frame={20} />
         </Link>
       </div>
@@ -197,8 +192,8 @@ function BlogPostCard({ guide }: { guide: GeoGuide }) {
  * up and turned on its side. The frosted strip is dropped here because the
  * facts it carries have room to sit in the text column at this size.
  */
-function FeaturedPost({ guide }: { guide: GeoGuide }) {
-  const href = `/news/${guide.slug}`;
+function FeaturedPost({ guide, locale = 'en' }: { guide: GeoGuide; locale?: Locale }) {
+  const href = localizePath(`/news/${guide.slug}`, locale);
   return (
     <article className="flex flex-col gap-gb-4xl lg:flex-row lg:items-center lg:gap-gb-6xl">
       <Link
@@ -217,7 +212,7 @@ function FeaturedPost({ guide }: { guide: GeoGuide }) {
 
       <div className="flex flex-col gap-gb-2xl lg:w-1/2">
         <div className="flex flex-wrap items-center gap-gb-lg">
-          <Badge variant="brand-chip">Featured</Badge>
+          <Badge variant="brand-chip">{getLocaleText(locale, 'Featured')}</Badge>
           <span className="text-gb-sm font-semibold text-fg-muted">{guide.topic}</span>
         </div>
         <div className="flex flex-col gap-gb-lg">
@@ -228,12 +223,12 @@ function FeaturedPost({ guide }: { guide: GeoGuide }) {
           </h2>
           <p className="line-clamp-3 text-gb-lg text-fg-tertiary">{guide.excerpt}</p>
         </div>
-        <PostMeta guide={guide} className="text-gb-sm text-fg-muted" />
+        <PostMeta guide={guide} locale={locale} className="text-gb-sm text-fg-muted" />
         <Link
           href={href}
           className="inline-flex w-fit items-center gap-gb-sm text-gb-md font-semibold text-brand hover:text-brand-hover"
         >
-          Read post
+          {getLocaleText(locale, 'Read post')}
           <KitIcon art={ICONS.arrowUpRight} frame={20} />
         </Link>
       </div>
@@ -242,17 +237,17 @@ function FeaturedPost({ guide }: { guide: GeoGuide }) {
 }
 
 /** See note (3) in the file header — an addition, not a frame. */
-function SubscribeRow() {
+function SubscribeRow({ locale = 'en' }: { locale?: Locale }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  useLoadingIndicator(status === 'loading', 'Signing you up');
+  useLoadingIndicator(status === 'loading', getLocaleText(locale, 'Signing you up'));
   const [message, setMessage] = useState('');
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.includes('@')) {
       setStatus('error');
-      setMessage('Please enter a valid email address');
+      setMessage(getLocaleText(locale, 'Please enter a valid email address'));
       return;
     }
     setStatus('loading');
@@ -268,17 +263,17 @@ function SubscribeRow() {
         setStatus('success');
         setMessage(
           data.alreadySubscribed
-            ? "You're already subscribed!"
-            : 'Successfully subscribed! Check your email.',
+            ? getLocaleText(locale, "You're already subscribed!")
+            : getLocaleText(locale, 'Successfully subscribed! Check your email.'),
         );
         setEmail('');
       } else {
         setStatus('error');
-        setMessage(data.error ?? 'Something went wrong. Please try again.');
+        setMessage(getLocaleText(locale, data.error ?? 'Something went wrong. Please try again.'));
       }
     } catch {
       setStatus('error');
-      setMessage('Failed to subscribe. Please try again.');
+      setMessage(getLocaleText(locale, 'Failed to subscribe. Please try again.'));
     }
   }
 
@@ -302,7 +297,7 @@ function SubscribeRow() {
           fieldClassName="flex-1"
         />
         <Button type="submit" size="md" disabled={busy}>
-          {status === 'loading' ? 'Please wait...' : status === 'success' ? 'Subscribed' : 'Subscribe'}
+          {status === 'loading' ? getLocaleText(locale, 'Please wait...') : status === 'success' ? getLocaleText(locale, 'Subscribed') : getLocaleText(locale, 'Subscribe')}
         </Button>
       </div>
       {message ? (
@@ -320,10 +315,14 @@ function SubscribeRow() {
 export function NewsClient({
   allGuides,
   topics,
+  locale = 'en',
 }: {
   allGuides: GeoGuide[];
   topics: string[];
+  locale?: Locale;
 }) {
+  const t = (source: string, vars?: Record<string, string | number>) => getLocaleText(locale, source, vars);
+  const footer = getLocalizedFooter(locale);
   const [topic, setTopic] = useState(ALL_TOPICS);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -369,24 +368,23 @@ export function NewsClient({
   const isFiltering = search !== '' || topic !== ALL_TOPICS;
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <MarketingNavigation />
+      <MarketingNavigation locale={locale} />
 
       <main>
         {/* Header band — Figma 153:18279. Grey, and it ends flush under the
             text: the separation from the tabs is the next section's padding. */}
         <section className="bg-surface-muted pt-gb-9xl">
           <Container className="flex flex-col gap-gb-lg">
-            <p className="text-gb-md font-semibold text-brand">Blog</p>
+            <p className="text-gb-md font-semibold text-brand">{t('Blog')}</p>
             <div className="flex flex-col gap-gb-4xl lg:flex-row lg:items-start">
               <h1 className="flex-1 font-display text-gb-display-sm font-medium tracking-gb-display-tight text-fg lg:max-w-gb-width-xl lg:text-gb-display-lg">
-                Resource library
+                {t('Resource library')}
               </h1>
               <div className="flex w-full flex-col gap-gb-xl lg:max-w-gb-width-sm lg:pt-gb-lg">
                 <p className="text-gb-xl text-fg-tertiary">
-                  Guides on choosing a university, funding it, and getting in — written for
-                  Vietnamese students.
+                  {t('Guides on choosing a university, funding it, and getting in — written for Vietnamese students.')}
                 </p>
-                <SubscribeRow />
+                <SubscribeRow locale={locale} />
               </div>
             </div>
           </Container>
@@ -413,7 +411,7 @@ export function NewsClient({
                             : 'text-fg-muted hover:bg-surface-hover'
                         }`}
                       >
-                        {name === ALL_TOPICS ? 'View all' : name}
+                        {name === ALL_TOPICS ? t('View all') : t(name)}
                       </button>
                     );
                   })}
@@ -430,8 +428,8 @@ export function NewsClient({
                     type="search"
                     value={query}
                     onChange={(event) => updateQuery(event.target.value)}
-                    placeholder="Search articles, topics or tags"
-                    aria-label="Search articles, topics or tags"
+                    placeholder={t('Search articles, topics or tags')}
+                    aria-label={t('Search articles, topics or tags')}
                     className="w-full rounded-gb-md border border-line-strong bg-surface py-gb-input-y pl-gb-6xl pr-gb-input-x text-gb-md text-fg shadow-gb-xs placeholder:text-fg-muted focus:outline-2 focus:outline-offset-0 focus:outline-brand"
                   />
                 </label>
@@ -442,24 +440,24 @@ export function NewsClient({
               {isFiltering ? (
                 <p role="status" className="text-gb-sm text-fg-muted">
                   <span className="font-semibold text-fg-secondary">{filtered.length}</span>{' '}
-                  <span>{filtered.length === 1 ? 'article' : 'articles'}</span>
+                  <span>{t(filtered.length === 1 ? 'article' : 'articles')}</span>
                 </p>
               ) : null}
             </div>
 
             {filtered.length === 0 ? (
               <p className="py-gb-9xl text-center text-gb-md text-fg-tertiary">
-                {search ? 'No articles match that search yet.' : 'No posts in this topic yet.'}
+                {search ? t('No articles match that search yet.') : t('No posts in this topic yet.')}
               </p>
             ) : (
               <>
                 {/* The lead post belongs to the first page of results only. */}
-                {featured && currentPage === 1 ? <FeaturedPost guide={featured} /> : null}
+                {featured && currentPage === 1 ? <FeaturedPost guide={featured} locale={locale} /> : null}
 
                 {visible.length > 0 ? (
                   <div className="grid grid-cols-1 gap-x-gb-4xl gap-y-gb-6xl md:grid-cols-2">
                     {visible.map((guide) => (
-                      <BlogPostCard key={guide.slug} guide={guide} />
+                      <BlogPostCard key={guide.slug} guide={guide} locale={locale} />
                     ))}
                   </div>
                 ) : null}
@@ -473,11 +471,11 @@ export function NewsClient({
 
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

@@ -38,6 +38,7 @@ export {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
+  getLocalizedFooter,
   getMarketingNavPresentation,
   MARKETING_NAV_ITEMS,
   MARKETING_NAV_ACTIONS,

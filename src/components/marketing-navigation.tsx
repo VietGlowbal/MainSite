@@ -1,6 +1,7 @@
 'use client';
 
 import { SiteNavigation } from '@/components/site-navigation';
+import type { Locale } from '@/lib/i18n/locale';
 
 type NavAction = {
   href: string;
@@ -17,10 +18,12 @@ type NavAction = {
 export function MarketingNavigation({
   showSaved = false,
   tone = 'light',
+  locale,
 }: {
   primaryAction?: NavAction;
   showSaved?: boolean;
   tone?: 'dark' | 'light';
+  locale?: Locale;
 }) {
-  return <SiteNavigation tone={tone} showSaved={showSaved} />;
+  return <SiteNavigation tone={tone} showSaved={showSaved} locale={locale} />;
 }

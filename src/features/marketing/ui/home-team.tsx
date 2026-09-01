@@ -2,6 +2,7 @@ import Image from 'next/image';
 import type { TeamMember } from '@/lib/team';
 import { Button, ICONS, KitIcon, Section } from '@/shared/ui';
 import { crestFor, type UniversityKey } from './university-crests';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * Home roster — Figma 903:10609, rebuilt as a staggered card deck.
@@ -185,7 +186,7 @@ function monogram(name: string): string {
   return seed === '' ? '?' : seed;
 }
 
-export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) {
+export function HomeTeam({ members = [], locale = 'en' }: { members?: readonly TeamMember[]; locale?: Locale }) {
   const storedPhotos = new Map<string, string>();
   for (const member of members) {
     if (member.photo_url) storedPhotos.set(member.slug, member.photo_url);
@@ -199,13 +200,10 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
     >
       <div className="mx-auto flex max-w-[1100px] flex-col items-center gap-gb-2xl text-center">
         <h2 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-brand md:text-gb-display-md">
-          The team behind your journey.
+          {getLocaleText(locale, 'The team behind your journey.')}
         </h2>
         <p className="text-gb-md leading-relaxed text-fg-tertiary md:text-gb-xl">
-          GlowBal is built by a team across technology, education, research and communication,
-          including people who have experienced scholarship and study-abroad journeys themselves.
-          We combine student insight, specialist knowledge and technology to turn fragmented
-          advice into a clearer system.
+          {getLocaleText(locale, 'GlowBal is built by a team across technology, education, research and communication, including people who have experienced scholarship and study-abroad journeys themselves. We combine student insight, specialist knowledge and technology to turn fragmented advice into a clearer system.')}
         </p>
       </div>
 
@@ -281,7 +279,7 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
                 <h3 data-no-auto-translate className="text-gb-lg font-semibold text-fg">
                   {member.name}
                 </h3>
-                <p className="text-gb-md text-brand">{member.role}</p>
+                <p className="text-gb-md text-brand">{getLocaleText(locale, member.role)}</p>
 
                 {/* Underlines the role at 24px at rest and runs the full width
                     on hover — the card's one piece of pure motion. */}
@@ -301,13 +299,13 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
                   {member.programme === null ? (
                     <span data-no-auto-translate>{crest?.name ?? ''}</span>
                   ) : (
-                    <span>{member.programme}</span>
+                    <span>{getLocaleText(locale, member.programme)}</span>
                   )}
                 </p>
 
                 {member.scholarship === null ? null : (
                   <p className="rounded-gb-md bg-brand-subtle px-gb-lg py-gb-md text-gb-xs font-semibold text-fg-brand">
-                    {member.scholarship}
+                    {getLocaleText(locale, member.scholarship)}
                   </p>
                 )}
               </div>
@@ -316,8 +314,8 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
         })}
       </div>
 
-      <Button href="/about" size="xl" className="self-center">
-        Meet the GlowBal team
+      <Button href={localizePath('/about', locale)} size="xl" className="self-center">
+        {getLocaleText(locale, 'Meet the GlowBal team')}
       </Button>
     </Section>
   );

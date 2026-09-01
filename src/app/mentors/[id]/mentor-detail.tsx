@@ -1,13 +1,7 @@
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
-import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+import { getLocalizedFooter } from '@/features/marketing/ui';
 import { Badge, Container, Footer, VerifiedMark } from '@/shared/ui';
 import { formatMoney } from '@/lib/currency';
 import { T } from '@/lib/i18n';
@@ -15,6 +9,7 @@ import type { PublicMentor, PublicMentorReview } from '@/lib/mentors';
 import type { Currency, MentorAvailabilitySlot } from '@/types/mentorship';
 import { MentorBooking } from './mentor-booking';
 import { LocalizedReviewByline } from './mentor-i18n';
+import { localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * /mentors/[id] — Figma 375:21633 "Detail cố vấn" (1440x1823).
@@ -315,18 +310,21 @@ export function MentorDetail({
   reviews,
   reviewCount,
   isSignedIn,
+  locale = 'en',
 }: {
   mentor: PublicMentor;
   slots: readonly MentorAvailabilitySlot[];
   reviews: readonly PublicMentorReview[];
   reviewCount: number;
   isSignedIn: boolean;
+  locale?: Locale;
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
   const currency = mentor.hourly_rate_currency;
   const amount = Number(mentor.hourly_rate_amount ?? 0);
   const hasPrice = amount > 0;
+  const footer = getLocalizedFooter(locale);
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
@@ -338,7 +336,7 @@ export function MentorDetail({
               only way back to the directory is the browser button — the same
               gap /universities/[id] fills with its own back link. */}
           <Link
-            href="/advisors"
+            href={localizePath('/advisors', locale)}
             className="inline-flex items-center gap-gb-sm text-gb-sm font-semibold text-fg-tertiary transition-colors hover:text-fg"
           >
             <span aria-hidden="true">←</span> <T k="All advisors" />
@@ -425,7 +423,7 @@ export function MentorDetail({
                     <T k="This advisor hasn’t set a session price. Browse the directory for advisors who are taking bookings." />
                   </p>
                   <Link
-                    href="/advisors"
+                    href={localizePath('/advisors', locale)}
                     className="mt-gb-2xl flex w-full items-center justify-center rounded-gb-md border border-line bg-surface px-gb-xl py-gb-lg text-gb-md font-semibold text-fg transition-colors hover:bg-surface-hover"
                   >
                     <T k="Find an advisor" />
@@ -439,11 +437,11 @@ export function MentorDetail({
 
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

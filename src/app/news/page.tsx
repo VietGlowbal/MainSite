@@ -3,6 +3,7 @@ import { SITE_URL } from '@/lib/site-url';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { listGeoGuides, listGeoTopics } from '@/lib/geo-content';
 import { NewsClient } from './news-client';
+import type { Locale } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
   title: 'Study Abroad Guides, Insights & News | GlowBal',
@@ -29,8 +30,8 @@ export const metadata: Metadata = {
 // revalidation (see /api/admin/news) so changes appear within seconds.
 export const revalidate = 300;
 
-export default async function NewsPage() {
+export default async function NewsPage({ locale = 'en' }: { locale?: Locale } = {}) {
   const [allGuides, topics] = await Promise.all([listGeoGuides(), listGeoTopics()]);
 
-  return <NewsClient allGuides={allGuides} topics={topics} />;
+  return <NewsClient allGuides={allGuides} topics={topics} locale={locale} />;
 }

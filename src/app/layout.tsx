@@ -8,6 +8,7 @@ import { NavigationRolesProvider } from '@/components/navigation-roles';
 import { NavigationSessionProvider } from '@/components/navigation-session';
 import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
+import { headers } from 'next/headers';
 import { DomTranslator } from '@/lib/dom-translate';
 import { StrategyHelpButton } from '@/features/marketing/strategy-help';
 import { GlobalLoadingOverlay } from '@/shared/ui/loading-overlay';
@@ -72,8 +73,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'vi_VN',
-    alternateLocale: ['en_US'],
+    locale: 'en_US',
+    alternateLocale: ['vi_VN'],
     url: SITE_URL,
     siteName: 'GlowBal',
     title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
@@ -111,11 +112,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = (await headers()).get('x-glowbal-locale') === 'vi' ? 'vi' : 'en';
+
   // Warm up connections to the CDNs that serve LCP imagery, so image-heavy
   // routes don't pay full DNS + TLS latency on first paint. React hoists
   // these hints into <head>.
@@ -158,7 +161,7 @@ export default function RootLayout({
      * sticky still works.
      */
     <html
-      lang="en"
+      lang={locale}
       className={`${inter.variable} ${bricolage.variable} ${geistMono.variable} h-full overflow-x-clip antialiased`}
     >
       {/* No `bg-white` here: `body {}` now lives in @layer base (globals.css),

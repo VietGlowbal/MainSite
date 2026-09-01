@@ -20,4 +20,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 43200;
 
-export default AboutPage;
+export default async function VietnameseAboutPage() {
+  return <AboutPage locale="vi" />;
+}

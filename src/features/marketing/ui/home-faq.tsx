@@ -1,4 +1,5 @@
 import { Section } from '@/shared/ui';
+import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 
 export type FaqEntry = {
   question: string;
@@ -52,15 +53,15 @@ function ToggleIcon() {
 }
 
 /** Figma 375:10078 accordion, kept server-rendered with native details/summary. */
-export function HomeFaq({ entries = HOME_FAQ }: { entries?: readonly FaqEntry[] }) {
+export function HomeFaq({ entries = HOME_FAQ, locale = 'en' }: { entries?: readonly FaqEntry[]; locale?: Locale }) {
   return (
     <Section containerClassName="flex flex-col gap-gb-7xl">
       <div className="mx-auto max-w-gb-width-xl text-center">
         <h2 className="font-display text-gb-display-sm font-semibold text-fg md:text-gb-display-md">
-          Frequently asked questions
+          {getLocaleText(locale, 'Frequently asked questions')}
         </h2>
         <p className="mt-gb-2xl text-gb-lg text-fg-tertiary md:text-gb-xl">
-          Everything you need to know about the product and billing.
+          {getLocaleText(locale, 'Everything you need to know about the product and billing.')}
         </p>
       </div>
 
@@ -72,11 +73,11 @@ export function HomeFaq({ entries = HOME_FAQ }: { entries?: readonly FaqEntry[] 
             {...(index === 0 ? { open: true } : {})}
           >
             <summary className="flex cursor-pointer list-none items-start gap-gb-xl rounded-gb-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
-              <span className="min-w-0 flex-1 text-gb-md font-semibold text-fg">{entry.question}</span>
+              <span className="min-w-0 flex-1 text-gb-md font-semibold text-fg">{getLocaleText(locale, entry.question)}</span>
               <ToggleIcon />
             </summary>
             <p className="mt-gb-xs max-w-[calc(100%-40px)] text-gb-md text-fg-tertiary">
-              {entry.answer}
+              {getLocaleText(locale, entry.answer)}
             </p>
           </details>
         ))}

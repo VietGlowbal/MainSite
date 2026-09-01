@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { useT } from '@/lib/i18n';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { Button, ICONS, Input, KitIcon, Textarea, controlClasses } from '@/shared/ui';
 
 /**
@@ -41,23 +41,23 @@ const DIAL_CODES = [
   { value: 'AU', label: 'AU +61' },
 ];
 
-function SubmitButton() {
+function SubmitButton({ locale }: { locale: Locale }) {
   const { pending } = useFormStatus();
-  const t = useT();
   return (
     <Button type="submit" size="xl" disabled={pending} className="w-full">
-      {t(pending ? 'Sending…' : 'Request guidance')}
+      {getLocaleText(locale, pending ? 'Sending…' : 'Request guidance')}
     </Button>
   );
 }
 
 export function HomeContact({
   action,
+  locale = 'en',
 }: {
   action: (state: ContactState, formData: FormData) => Promise<ContactState>;
+  locale?: Locale;
 }) {
   const [state, formAction] = useActionState(action, INITIAL);
-  const t = useT();
 
   return (
     <section id="contact" className="scroll-mt-gb-9xl bg-surface py-gb-5xl">
@@ -87,29 +87,28 @@ export function HomeContact({
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-x-gb-3xl bottom-gb-3xl rounded-gb-lg bg-black/45 p-gb-2xl backdrop-blur-sm">
-            <p className="text-gb-lg font-semibold text-white">The GlowBal team</p>
+              <p className="text-gb-lg font-semibold text-white">{getLocaleText(locale, 'The GlowBal team')}</p>
             <p className="mt-gb-xs text-gb-sm text-white/85">
-              Start with a dream university. Leave with a scholarship plan.
+              {getLocaleText(locale, 'Start with a dream university. Leave with a scholarship plan.')}
             </p>
           </div>
         </div>
 
         <div>
           <h2 className="font-display text-gb-display-xs font-medium md:text-gb-display-sm">
-            Not sure where to begin?
+            {getLocaleText(locale, 'Not sure where to begin?')}
           </h2>
           <p className="mt-gb-lg text-gb-md text-fg-tertiary">
-            Tell us about your goals. The GlowBal team will contact you to help identify a suitable
-            next step.
+            {getLocaleText(locale, 'Tell us about your goals. The GlowBal team will contact you to help identify a suitable next step.')}
           </p>
 
           <form action={formAction} className="mt-gb-4xl flex flex-col gap-gb-3xl">
-            <Input name="firstName" label={t('First name')} placeholder={t('First name')} required maxLength={80} />
+            <Input name="firstName" label={getLocaleText(locale, 'First name')} placeholder={getLocaleText(locale, 'First name')} required maxLength={80} />
 
             <Input
               name="email"
               type="email"
-              label={t('Email address')}
+              label={getLocaleText(locale, 'Email address')}
               placeholder="you@company.com"
               required
               maxLength={190}
@@ -123,14 +122,14 @@ export function HomeContact({
                 one combined field so the number still gets a tel keypad. */}
             <div>
               <label htmlFor="phone" className="text-gb-sm font-medium text-fg-secondary">
-                Phone number
+                {getLocaleText(locale, 'Phone number')}
               </label>
               <div className="mt-gb-sm grid grid-cols-[auto_1fr] gap-gb-md">
                 <div className="relative">
                   <select
                     name="dialCode"
                     defaultValue="VN"
-                    aria-label={t('Country dialling code')}
+                    aria-label={getLocaleText(locale, 'Country dialling code')}
                     className={controlClasses(false, 'appearance-none pr-gb-5xl')}
                   >
                     {DIAL_CODES.map((c) => (
@@ -156,8 +155,8 @@ export function HomeContact({
 
             <Textarea
               name="notes"
-              label={t('What and where would you like to study?')}
-              placeholder={t('Leave us a message...')}
+              label={getLocaleText(locale, 'What and where would you like to study?')}
+              placeholder={getLocaleText(locale, 'Leave us a message...')}
               required
               rows={4}
               maxLength={500}
@@ -171,15 +170,15 @@ export function HomeContact({
                 className="mt-gb-xxs size-gb-3xl shrink-0 cursor-pointer rounded-gb-xs border border-line-strong accent-brand"
               />
               <span className="text-gb-sm text-fg-tertiary">
-                You agree to our friendly{' '}
-                <a href="/privacy" className="font-semibold text-fg-brand underline">
-                  privacy policy
+                {getLocaleText(locale, 'You agree to our friendly')}{' '}
+                <a href={localizePath('/privacy', locale)} className="font-semibold text-fg-brand underline">
+                  {getLocaleText(locale, 'privacy policy')}
                 </a>
                 .
               </span>
             </label>
 
-            <SubmitButton />
+            <SubmitButton locale={locale} />
           </form>
 
           {state.status !== 'idle' ? (
@@ -191,7 +190,7 @@ export function HomeContact({
                   : 'bg-surface-error text-fg-error'
               }`}
             >
-              {t(state.message)}
+              {getLocaleText(locale, state.message)}
             </p>
           ) : null}
         </div>

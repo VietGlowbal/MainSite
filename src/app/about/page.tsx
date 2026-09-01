@@ -4,14 +4,11 @@ import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MarketingNavigation } from '@/components/marketing-navigation';
 import {
   AboutTeam,
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
+  getLocalizedFooter,
   HomeFaq,
 } from '@/features/marketing/ui';
 import { Container, Footer } from '@/shared/ui';
+import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 
 /**
  * /about — net-new, built from Figma 153:11401 ("About us").
@@ -55,23 +52,23 @@ export const metadata: Metadata = {
 // Team roster changes rarely; mirror the home page's 12h ISR.
 export const revalidate = 43200;
 
-export default async function AboutPage() {
+export default async function AboutPage({ locale = 'en' }: { locale?: Locale } = {}) {
   const team = await getTeamMembers();
+  const footer = getLocalizedFooter(locale);
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <MarketingNavigation />
+      <MarketingNavigation locale={locale} />
 
       <main>
         {/* Hero — honest copy, no world map of offices GlowBal does not have. */}
         <section className="py-gb-9xl">
           <Container className="flex flex-col items-center gap-gb-xl text-center">
             <h1 className="max-w-gb-width-xl font-display text-gb-display-sm font-semibold md:text-gb-display-md">
-              The team helping students go global
+              {getLocaleText(locale, 'The team helping students go global')}
             </h1>
             <p className="max-w-gb-width-lg text-gb-lg text-fg-tertiary">
-              GlowBal is built by students and advisors who have been through the study-abroad
-              journey themselves — and want to make it clearer for everyone who comes next.
+              {getLocaleText(locale, 'GlowBal is built by students and advisors who have been through the study-abroad journey themselves — and want to make it clearer for everyone who comes next.')}
             </p>
           </Container>
         </section>
@@ -83,16 +80,16 @@ export default async function AboutPage() {
         </Container>
 
         {/* FAQ — shared with Home; answers await copy (MissingContent). */}
-        <HomeFaq />
+        <HomeFaq locale={locale} />
       </main>
 
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

@@ -10,17 +10,14 @@ import {
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
 import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
+  getLocalizedFooter,
 } from '@/features/marketing/navigation';
 import { Footer } from '@/shared/ui/footer';
 import { UniversityListClient } from './university-list-client';
 
 import { SITE_URL } from '@/lib/site-url';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
+import type { Locale } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
   title: 'Explore Global Universities | GlowBal',
@@ -45,20 +42,21 @@ export const metadata: Metadata = {
 
 export const revalidate = 43200;
 
-type Props = { searchParams: Promise<UniversityRawSearchParams> };
+type Props = { searchParams: Promise<UniversityRawSearchParams>; locale?: Locale };
 
-export default async function UniversitiesPage({ searchParams }: Props) {
+export default async function UniversitiesPage({ searchParams, locale = 'en' }: Props) {
   const query = parseUniversitySearchParams(await searchParams);
   const [directory, facets] = await Promise.all([
     loadUniversityDirectory(query),
     getUniversityFacets(),
   ]);
+  const footer = getLocalizedFooter(locale);
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
       {/* Keep the session-aware header in its own client boundary. A session
           update during selective hydration must never remount the directory. */}
-      <SiteNavigation tone="light" showSaved />
+      <SiteNavigation tone="light" showSaved locale={locale} />
       <UniversityListClient
         universities={directory.page.items}
         total={directory.page.total}
@@ -69,14 +67,15 @@ export default async function UniversitiesPage({ searchParams }: Props) {
         countries={facets.countries.map((facet) => facet.value)}
         wikiPairs={directory.wikiPairs}
         canonicalSearch={directory.canonicalSearch}
+        locale={locale}
       />
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

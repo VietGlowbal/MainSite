@@ -1,6 +1,7 @@
 import { BRAND_ICONS, BrandIcon, InstagramMark } from '@/shared/ui/icons';
 import type { FooterColumn, FooterSocial } from '@/shared/ui/footer';
 import type { TopNavEntry, TopNavItem } from '@/shared/ui/top-nav';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * The site chrome's link configuration — what the header and footer point at.
@@ -92,19 +93,19 @@ const ONBOARDING_ACTION = {
 
 const identity: MarketingNavTranslator = (label) => label;
 
-function translateEntry(entry: TopNavEntry, t: MarketingNavTranslator): TopNavEntry {
+function translateEntry(entry: TopNavEntry, t: MarketingNavTranslator, locale: Locale): TopNavEntry {
   if ('items' in entry) {
     return {
       label: t(entry.label),
-      items: entry.items.map((item) => ({ href: item.href, label: t(item.label) })),
+      items: entry.items.map((item) => ({ href: localizePath(item.href, locale), label: t(item.label) })),
     };
   }
 
-  return { href: entry.href, label: t(entry.label) };
+  return { href: localizePath(entry.href, locale), label: t(entry.label) };
 }
 
-function translateAction(action: TopNavItem, t: MarketingNavTranslator): TopNavItem {
-  return { href: action.href, label: t(action.label) };
+function translateAction(action: TopNavItem, t: MarketingNavTranslator, locale: Locale): TopNavItem {
+  return { href: localizePath(action.href, locale), label: t(action.label) };
 }
 
 /**
@@ -115,6 +116,7 @@ function translateAction(action: TopNavItem, t: MarketingNavTranslator): TopNavI
 export function getMarketingNavPresentation(
   state: MarketingNavState,
   t: MarketingNavTranslator = identity,
+  locale: Locale = 'en',
 ): MarketingNavPresentation {
   // Completion can only belong to an authenticated profile. Failing closed on
   // an impossible guest/completed combination keeps onboarding available.
@@ -124,12 +126,13 @@ export function getMarketingNavPresentation(
     : INCOMPLETE_MARKETING_NAV_ITEMS;
 
   return {
-    items: sourceItems.map((item) => translateEntry(item, t)),
+    items: sourceItems.map((item) => translateEntry(item, t, locale)),
     primaryAction: translateAction(
       isCompletedStudent ? STRATEGY_ACTION : ONBOARDING_ACTION,
       t,
+      locale,
     ),
-    accountAction: translateAction(state.signedIn ? PROFILE_ACTION : REGISTER_ACTION, t),
+    accountAction: translateAction(state.signedIn ? PROFILE_ACTION : REGISTER_ACTION, t, locale),
   };
 }
 
@@ -226,3 +229,24 @@ export const FOOTER_RATINGS = {
   headline: 'Best AI Tool',
   supporting: '2,000+ reviews',
 } as const;
+
+export function getLocalizedFooter(locale: Locale) {
+  return {
+    tagline: getLocaleText(locale, FOOTER_TAGLINE),
+    columns: FOOTER_COLUMNS.map((column) => ({
+      heading: getLocaleText(locale, column.heading),
+      links: column.links.map((link) => ({
+        ...link,
+        href: localizePath(link.href, locale),
+        label: getLocaleText(locale, link.label),
+        ...(link.badge ? { badge: getLocaleText(locale, link.badge) } : {}),
+      })),
+    })),
+    social: FOOTER_SOCIAL,
+    copyright: getLocaleText(locale, FOOTER_COPYRIGHT),
+    ratings: {
+      headline: getLocaleText(locale, FOOTER_RATINGS.headline),
+      supporting: getLocaleText(locale, FOOTER_RATINGS.supporting),
+    },
+  };
+}

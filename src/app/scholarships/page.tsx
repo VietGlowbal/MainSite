@@ -11,6 +11,7 @@ import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
+import { localizePath, type Locale } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
   title: 'Find Scholarships & Financial Aid | GlowBal',
@@ -35,12 +36,12 @@ export const metadata: Metadata = {
 export const revalidate = 43200;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
-type Props = { searchParams: Promise<RawSearchParams> };
+type Props = { searchParams: Promise<RawSearchParams>; locale?: Locale };
 
-export default async function ScholarshipsPage({ searchParams }: Props) {
+export default async function ScholarshipsPage({ searchParams, locale = 'en' }: Props) {
   const state = parseScholarshipSearchParams(await searchParams);
   const currentSearch = scholarshipSearchParams(state, {}).toString();
-  const returnTo = currentSearch ? `/scholarships?${currentSearch}` : '/scholarships';
+  const returnTo = localizePath(currentSearch ? `/scholarships?${currentSearch}` : '/scholarships', locale);
 
   const directoryPromise = state.view === 'directory'
     ? loadScholarshipDirectory(state)
@@ -102,7 +103,7 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
   const isPlus = isPlusEntitlementActive(profileResult.data ?? {});
 
   if (directory && directory.canonicalSearch !== currentSearch) {
-    redirect(directory.canonicalSearch ? `/scholarships?${directory.canonicalSearch}` : '/scholarships');
+    redirect(localizePath(directory.canonicalSearch ? `/scholarships?${directory.canonicalSearch}` : '/scholarships', locale));
   }
 
   const savedRows = (savedResult.data ?? []) as Array<{
@@ -192,6 +193,7 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
           savedScholarships={savedScholarships}
           canonicalSearch={directory?.canonicalSearch ?? currentSearch}
           isPlus={isPlus}
+          locale={locale}
         />
       </div>
     </main>

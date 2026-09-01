@@ -3,7 +3,7 @@ import {
   HomeDemoVideo,
   type FeatureDemoVideo,
 } from './home-demo-video';
-import { T } from '@/lib/i18n';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 export type { FeatureDemoSource, FeatureDemoVideo } from './home-demo-video';
 
@@ -85,17 +85,17 @@ const BLOCKS: readonly Block[] = [
   },
 ];
 
-function DemoFallback({ block }: { block: Block }) {
+function DemoFallback({ block, locale }: { block: Block; locale: Locale }) {
   const isMatcher = block.demoKey === 'matcher';
 
   return (
     <div className="flex size-full flex-col bg-surface-muted p-gb-xl sm:p-gb-3xl">
       <div className="flex items-center justify-between border-b border-line pb-gb-xl">
         <span data-no-auto-translate className="font-display text-gb-md font-semibold text-fg">
-          <T k={block.title} />
+          {getLocaleText(locale, block.title)}
         </span>
         <span className="flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-muted">
-          <span className="size-gb-sm rounded-gb-full bg-brand" /> Live preview
+          <span className="size-gb-sm rounded-gb-full bg-brand" /> {getLocaleText(locale, 'Live preview')}
         </span>
       </div>
       <div className="grid min-h-0 flex-1 gap-gb-xl pt-gb-xl sm:grid-cols-[0.7fr_1.3fr]">
@@ -112,7 +112,7 @@ function DemoFallback({ block }: { block: Block }) {
           <div className="flex items-center justify-between">
             <span className="h-gb-lg w-1/2 rounded-gb-full bg-fg/10" />
             <span className="rounded-gb-full bg-brand-surface px-gb-md py-gb-xs text-gb-xs font-semibold text-brand">
-              {isMatcher ? '92% fit' : 'On track'}
+              {isMatcher ? getLocaleText(locale, '92% fit') : getLocaleText(locale, 'On track')}
             </span>
           </div>
           <div className="grid flex-1 grid-cols-3 items-end gap-gb-md">
@@ -138,18 +138,20 @@ function DemoFallback({ block }: { block: Block }) {
 function BlockMedia({
   block,
   video,
+  locale,
 }: {
   block: Block;
   video: FeatureDemoVideo | undefined;
+  locale: Locale;
 }) {
   return (
     <div className="w-full lg:flex-1">
       <div className="aspect-[16/10] overflow-hidden rounded-[32px] border border-line bg-surface p-[4px] shadow-gb-lg">
         <div className="size-full overflow-hidden rounded-[27px] border border-line bg-surface">
           {video ? (
-            <HomeDemoVideo title={block.title} video={video} />
+            <HomeDemoVideo title={getLocaleText(locale, block.title)} video={video} />
           ) : (
-            <DemoFallback block={block} />
+            <DemoFallback block={block} locale={locale} />
           )}
         </div>
       </div>
@@ -160,9 +162,11 @@ function BlockMedia({
 function FeatureBlock({
   block,
   video,
+  locale,
 }: {
   block: Block;
   video: FeatureDemoVideo | undefined;
+  locale: Locale;
 }) {
   return (
     <article
@@ -176,34 +180,36 @@ function FeatureBlock({
             <KitIcon art={ICONS.zapFast} frame={24} />
           </span>
           <h3 className="mt-gb-2xl font-display text-gb-display-sm font-semibold text-fg">
-            {block.title}
+            {getLocaleText(locale, block.title)}
           </h3>
-          <p className="mt-gb-lg text-gb-lg font-semibold text-fg-secondary">{block.lead}</p>
-          <p className="mt-gb-md text-gb-md leading-relaxed text-fg-tertiary">{block.body}</p>
+          <p className="mt-gb-lg text-gb-lg font-semibold text-fg-secondary">{getLocaleText(locale, block.lead)}</p>
+          <p className="mt-gb-md text-gb-md leading-relaxed text-fg-tertiary">{getLocaleText(locale, block.body)}</p>
         </div>
 
         <CheckList>
           {block.checks.map((check) => (
-            <CheckItem key={check}>{check}</CheckItem>
+            <CheckItem key={check}>{getLocaleText(locale, check)}</CheckItem>
           ))}
         </CheckList>
 
         <div>
-          <Button href={block.href} size="xl">
-            {block.action}
+          <Button href={localizePath(block.href, locale)} size="xl">
+            {getLocaleText(locale, block.action)}
           </Button>
         </div>
       </div>
 
-      <BlockMedia block={block} video={video} />
+      <BlockMedia block={block} video={video} locale={locale} />
     </article>
   );
 }
 
 export function HomeFeatures({
   videos = HOME_FEATURE_DEMO_VIDEOS,
+  locale = 'en',
 }: {
   videos?: HomeFeatureDemoVideos;
+  locale?: Locale;
 } = {}) {
   return (
     <Section
@@ -212,14 +218,14 @@ export function HomeFeatures({
       containerClassName="flex flex-col gap-gb-9xl"
     >
       <div className="mx-auto max-w-gb-width-xl text-center">
-        <p className="text-gb-md font-semibold text-brand">Features</p>
+        <p className="text-gb-md font-semibold text-brand">{getLocaleText(locale, 'Features')}</p>
         <h2 className="mt-gb-lg font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
-          Learn how GlowBal helps you find scholarships from A to Z with just two simple features
+          {getLocaleText(locale, 'Learn how GlowBal helps you find scholarships from A to Z with just two simple features')}
         </h2>
       </div>
 
       {BLOCKS.map((block) => (
-        <FeatureBlock key={block.demoKey} block={block} video={videos[block.demoKey]} />
+        <FeatureBlock key={block.demoKey} block={block} video={videos[block.demoKey]} locale={locale} />
       ))}
     </Section>
   );
