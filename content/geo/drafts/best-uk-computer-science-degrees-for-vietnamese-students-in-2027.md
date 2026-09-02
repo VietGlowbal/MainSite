@@ -6,7 +6,7 @@ pageType: ranking
 studentSegment: Vietnamese undergraduate applicant
 targetCountry: UK
 subject: Computer Science
-lastUpdated: 2026-08-29
+lastUpdated: 2026-09-02
 status: draft
 ---
 # Best UK Computer Science Degrees for Vietnamese Students in 2027
