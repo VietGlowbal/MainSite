@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   from: vi.fn(),
+  countApplicationReportGenerations: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -18,6 +19,9 @@ vi.mock('@/lib/supabase/server', () => ({
     auth: { getUser: mocks.getUser },
     from: mocks.from,
   }),
+}));
+vi.mock('@/features/apply/api', () => ({
+  countApplicationReportGenerations: mocks.countApplicationReportGenerations,
 }));
 
 function selectBuilder(result: { data: unknown; error: unknown }, eqCalls: unknown[][] = []) {
@@ -69,6 +73,7 @@ function routeContext(id: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+  mocks.countApplicationReportGenerations.mockResolvedValue({ count: 1, migrationMissing: false });
 });
 
 describe('POST /api/applications/[id]/candidate-information/reopen', () => {
@@ -164,5 +169,28 @@ describe('POST /api/applications/[id]/candidate-information/reopen', () => {
     const { POST } = await import('./route');
     const response = await POST(request(), routeContext('app-1'));
     expect(response.status).toBe(500);
+  });
+
+  it('does not reopen after the shared five-set quota is reached', async () => {
+    mocks.countApplicationReportGenerations.mockResolvedValue({ count: 5, migrationMissing: false });
+    let updateAttempted = false;
+    mocks.from.mockImplementation((table: string) => {
+      if (table !== 'course_applications') throw new Error(`unexpected table ${table}`);
+      return {
+        ...selectBuilder({ data: { id: 'app-1' }, error: null }),
+        update: () => {
+          updateAttempted = true;
+          throw new Error('must not update');
+        },
+      };
+    });
+
+    const { POST } = await import('./route');
+    const response = await POST(request(), routeContext('app-1'));
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.code).toBe('REPORT_LIMIT_REACHED');
+    expect(updateAttempted).toBe(false);
   });
 });

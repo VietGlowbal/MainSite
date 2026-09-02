@@ -58,10 +58,13 @@ async function loadApplication(
 
 export default async function StrategyAnalysisPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
+  searchParams: Promise<{ regenerate?: string }>;
 }) {
   const { applicationId } = await params;
+  const { regenerate } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -98,6 +101,7 @@ export default async function StrategyAnalysisPage({
       applicationId={applicationId}
       confirmedAt={confirmedAt}
       matchingSubtitle={matchingSubtitle}
+      regenerateOnLoad={regenerate === '1'}
     />
   );
 }

@@ -233,10 +233,12 @@ export function AnalysisWorkspace({
   applicationId,
   confirmedAt,
   matchingSubtitle,
+  regenerateOnLoad = false,
 }: {
   applicationId: string;
   confirmedAt?: string | null | undefined;
   matchingSubtitle?: string | undefined;
+  regenerateOnLoad?: boolean;
 }) {
   const { t, lang } = useLanguage();
   const [personal, setPersonal] = useState<ReportState>({ status: 'generating' });
@@ -264,11 +266,23 @@ export function AnalysisWorkspace({
   }, []);
 
   useEffect(() => {
+    if (!regenerateOnLoad) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('regenerate');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [regenerateOnLoad]);
+
+  useEffect(() => {
     if (startedApplicationRef.current === applicationId) return;
     startedApplicationRef.current = applicationId;
     let active = true;
     async function loadReports() {
-      const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages, false, setQuota);
+      const personalState = await fetchOrGeneratePersonal(
+        applicationId,
+        errorMessages,
+        regenerateOnLoad,
+        setQuota,
+      );
       if (!active) return;
       setPersonal(personalState);
       if (personalState.status !== 'complete') {
@@ -278,19 +292,19 @@ export function AnalysisWorkspace({
         });
         return;
       }
-      const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages, false);
+      const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages, regenerateOnLoad);
       if (!active) return;
       setMatching(matchingState);
       if (matchingState.status !== 'complete') return;
       setStrategy({ status: 'generating' });
-      const strategyState = await fetchOrGenerateStrategy(applicationId, errorMessages, false);
+      const strategyState = await fetchOrGenerateStrategy(applicationId, errorMessages, regenerateOnLoad);
       if (active) setStrategy(strategyState);
     }
     void loadReports();
     return () => {
       active = false;
     };
-  }, [applicationId, errorMessages]);
+  }, [applicationId, errorMessages, regenerateOnLoad]);
 
   const retryPersonal = useCallback(async () => {
     setPersonal({ status: 'generating' });

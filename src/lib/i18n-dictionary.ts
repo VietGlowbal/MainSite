@@ -4540,6 +4540,9 @@ export const translations: Record<string, string> = {
   'Preview {fileName}': 'Xem trước {fileName}',
   'Need to make a change? Contact GlowBal Support if something in your confirmed information is incorrect.':
     'Cần thay đổi? Liên hệ Hỗ trợ GlowBal nếu có thông tin nào trong hồ sơ đã xác nhận của bạn không chính xác.',
+  'Edit information and regenerate reports': 'Chỉnh sửa thông tin và tạo lại báo cáo',
+  'Opening edit mode…': 'Đang mở chế độ chỉnh sửa…',
+  'Could not open your information for editing.': 'Không thể mở thông tin để chỉnh sửa.',
   'We could not confirm your information. Please try again.':
     'Chúng tôi không thể xác nhận thông tin của bạn. Vui lòng thử lại.',
   'Check everything below carefully — once confirmed, this information is locked and used to generate your reports.':

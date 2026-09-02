@@ -57,6 +57,44 @@ describe('ReviewConfirmView read-only mode', () => {
     expect(screen.queryByRole('link', { name: 'Continue' })).not.toBeInTheDocument();
   });
 
+  it('shows the edit-and-regenerate action on the application Reflections tab', () => {
+    render(
+      <ReviewConfirmView
+        reflection={reflection}
+        documents={[]}
+        readiness={readiness}
+        readOnly
+        confirmedAt="2026-08-13T00:00:00.000Z"
+        applicationId="app-1"
+        returnTo="/ai-strategy/app-1/strategy/analysis"
+        reportCount={1}
+        reportLimit={5}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Edit information and regenerate reports' })).toBeInTheDocument();
+    expect(screen.getByText('Reports generated: 1/5')).toBeInTheDocument();
+  });
+
+  it('disables the edit-and-regenerate action at the shared quota limit', () => {
+    render(
+      <ReviewConfirmView
+        reflection={reflection}
+        documents={[]}
+        readiness={readiness}
+        readOnly
+        confirmedAt="2026-08-13T00:00:00.000Z"
+        applicationId="app-1"
+        returnTo="/ai-strategy/app-1/strategy/analysis"
+        reportCount={5}
+        reportLimit={5}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Edit information and regenerate reports' })).toBeDisabled();
+    expect(screen.getByText('Reports generated: 5/5')).toBeInTheDocument();
+  });
+
   it('still shows the editable confirm panel when not read-only', () => {
     render(<ReviewConfirmView reflection={reflection} documents={[]} readiness={readiness} />);
 

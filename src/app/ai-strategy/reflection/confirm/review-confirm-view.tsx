@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  APPLICATION_REPORT_GENERATION_LIMIT,
   EDUCATION_LEVEL_META,
   PERSONAL_REFLECTION_QUESTION_COUNT,
   destinationFlag,
@@ -52,6 +53,10 @@ function personalReflectionHref(returnTo: string | undefined) {
   return returnTo ? `${path}?return=${encodeURIComponent(returnTo)}` : path;
 }
 
+function regenerationReturnHref(returnTo: string) {
+  return `${returnTo}${returnTo.includes('?') ? '&' : '?'}regenerate=1`;
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === '') return null;
   return (
@@ -99,6 +104,8 @@ export function ReviewConfirmView({
   readOnly,
   confirmedAt,
   continueHref,
+  reportCount,
+  reportLimit,
 }: {
   reflection: ReflectionValues;
   documents: EvidenceDocument[];
@@ -115,12 +122,16 @@ export function ReviewConfirmView({
    * reports are still pending, or straight to the Personal Report once they
    * exist (`confirmedReflectionContinueHref`). Unused outside `readOnly`. */
   continueHref?: string | undefined;
+  /** Shared complete-report-set quota shown on the Reflections tab. */
+  reportCount?: number | undefined;
+  reportLimit?: number | undefined;
 }) {
   const { t, lang } = useLanguage();
   const router = useRouter();
   const [acknowledged, setAcknowledged] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const aboutHref = readOnly ? undefined : editHref('about', returnTo);
@@ -129,6 +140,9 @@ export function ReviewConfirmView({
     ? `${evidenceHref}${evidenceHref.includes('?') ? '&' : '?'}review=1`
     : undefined;
   const personalHref = readOnly ? undefined : personalReflectionHref(returnTo);
+  const effectiveReportLimit = reportLimit ?? APPLICATION_REPORT_GENERATION_LIMIT;
+  const canStartRegeneration =
+    readOnly && Boolean(applicationId && returnTo && typeof reportCount === 'number');
   const confirmedExperienceCount = reflection.achievements.length + reflection.activities.length;
   const personalReflectionAnswered = personalReflectionAnsweredCount(reflection.personalReflection);
   const confirmedDate = confirmedAt
@@ -189,6 +203,32 @@ export function ReviewConfirmView({
     }
   }
 
+  async function handleStartRegeneration() {
+    if (!canStartRegeneration || !applicationId || !returnTo || reportCount === undefined) return;
+    if (reportCount >= effectiveReportLimit) return;
+
+    setReopening(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/candidate-information/reopen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(body?.message ?? t('Could not open your information for editing.'));
+        setReopening(false);
+        return;
+      }
+      router.push(
+        `/ai-strategy/reflection?return=${encodeURIComponent(regenerationReturnHref(returnTo))}`,
+      );
+    } catch {
+      setError(t('Could not open your information for editing.'));
+      setReopening(false);
+    }
+  }
+
   return (
     <ReflectionShell step="evidence" caption={t('Review & Confirm')}>
       <div className="flex flex-col gap-gb-2xl">
@@ -221,6 +261,27 @@ export function ReviewConfirmView({
               <Button href={continueHref} size="sm" className="mt-gb-lg">
                 {t('Continue')}
               </Button>
+            ) : null}
+            {canStartRegeneration ? (
+              <div className="mt-gb-lg flex flex-wrap items-center gap-gb-md">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void handleStartRegeneration()}
+                  disabled={reopening || (reportCount ?? 0) >= effectiveReportLimit}
+                >
+                  {reopening
+                    ? t('Opening edit mode…')
+                    : t('Edit information and regenerate reports')}
+                </Button>
+                <span className="text-gb-xs text-fg-muted">
+                  {t('Reports generated: {count}/{limit}', {
+                    count: reportCount ?? 0,
+                    limit: effectiveReportLimit,
+                  })}
+                </span>
+              </div>
             ) : null}
           </div>
         ) : readiness.ready ? (
@@ -279,6 +340,8 @@ export function ReviewConfirmView({
             </ul>
           </div>
         )}
+
+        {readOnly && error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
 
         <ReviewSection title={t('Personal information')} editLabel={t('Edit')} editHref={aboutHref}>
           <Field label={t('Highest level of education')} value={educationLabel} />

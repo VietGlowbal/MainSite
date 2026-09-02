@@ -1,5 +1,14 @@
 # Current project status
 
+Working tree 2026-09-02 (Reflection-tab report regeneration flow): the
+Reflections tab now shows the shared report quota and an "Edit information and
+regenerate reports" action. The action safely re-opens that application,
+returns the student through the existing Reflection editors, and sends the
+confirmed snapshot back to the analysis workspace with an explicit flag that
+regenerates Personal, Matching, and Strategy together. The action is disabled
+at five complete report sets; server-side reopening enforces the same limit.
+      Measured: focused route/UI suites 32 passed and strict typecheck pass.
+
 Working tree 2026-09-02 (complete report-set regeneration quota): the Strategy
 analysis workspace now shows the shared application quota and exposes one
 button to regenerate Personal, Matching, and Strategy together. Each manual
