@@ -33,26 +33,11 @@ function formatIdentifier(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function ProfileAreaIcon({ category }: { category: string }) {
-  const props = { className: 'h-5 w-5 text-brand' };
-  switch (category.toLowerCase()) {
-    case 'academic':
-      return <AcademicCapIcon {...props} />;
-    case 'experience':
-      return <BriefcaseIcon {...props} />;
-    case 'differentiation':
-      return <SparklesIcon {...props} />;
-    case 'evidence':
-    default:
-      return <DocumentCheckIcon {...props} />;
-  }
-}
-
 /* ──────────────────────────────────────────────────────────────────────────
-   Crafted SVG Icons
+   Crafted Inline SVG Icons & Visual Components
    ────────────────────────────────────────────────────────────────────────── */
 
-function SparklesIcon({ className = 'h-5 w-5' }: { className?: string }) {
+function SparklesIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -60,10 +45,10 @@ function SparklesIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
-function CheckCircleIcon({ className = 'h-5 w-5' }: { className?: string }) {
+function CheckShieldIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   );
 }
@@ -94,36 +79,10 @@ function TargetIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
-function AwardIcon({ className = 'h-5 w-5' }: { className?: string }) {
+function LayersIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
-    </svg>
-  );
-}
-
-function AcademicCapIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path d="M12 14l9-5-9-5-9 5 9 5z" />
-      <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 14v7" />
-    </svg>
-  );
-}
-
-function BriefcaseIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function DocumentCheckIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
     </svg>
   );
 }
@@ -133,39 +92,6 @@ function CompassIcon({ className = 'h-5 w-5' }: { className?: string }) {
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10" />
       <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.25" />
-    </svg>
-  );
-}
-
-function FlameIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
-    </svg>
-  );
-}
-
-function LayersIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  );
-}
-
-function LightBulbIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
     </svg>
   );
 }
@@ -181,6 +107,20 @@ function CalendarIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
+function SparklineWave({ color = '#10b981', className = 'w-16 h-6' }: { color?: string; className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M2 14C8 14 12 6 18 10C24 14 28 4 34 8C40 12 44 2 50 6C54 9 56 12 58 10"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function StrategyReportV3View({
   applicationId,
   report,
@@ -192,6 +132,9 @@ export function StrategyReportV3View({
   const [overrides, setOverrides] = useState<Overrides>({});
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
   const [overrideError, setOverrideError] = useState(false);
+  const [showFullDiagnostics, setShowFullDiagnostics] = useState(false);
+  const [showFullNarrative, setShowFullNarrative] = useState(false);
+  const [showFullRoadmap, setShowFullRoadmap] = useState(false);
   const saveSequence = useRef(0);
 
   useEffect(() => {
@@ -247,635 +190,525 @@ export function StrategyReportV3View({
   );
 
   return (
-    <div className="flex flex-col gap-gb-4xl pb-16" data-no-auto-translate data-report-auto-translate>
-      {/* ─── HERO HEADER BANNER ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-rose-200/90 bg-gradient-to-br from-white via-rose-50/60 to-rose-100/30 p-gb-xl sm:p-8 shadow-sm">
-        {/* Glow decoration */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-rose-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -left-16 -bottom-16 h-64 w-64 rounded-full bg-blue-400/10 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-300 bg-white/90 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-brand shadow-xs backdrop-blur-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
-                </span>
-                {t('AI Strategy Architecture V3')}
-              </span>
-              <span className="rounded-full bg-slate-900/5 px-2.5 py-0.5 text-xs font-semibold text-fg-muted">
-                {t('Evidence-Grounded Blueprint')}
-              </span>
-            </div>
-
-            <div className="hidden sm:flex items-center gap-4 text-xs font-medium text-fg-muted">
-              <span className="flex items-center gap-1">
-                <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
-                {t('Profile Calibrated')}
-              </span>
-              <span className="flex items-center gap-1">
-                <TargetIcon className="h-4 w-4 text-brand" />
-                {t('Phased Milestones')}
-              </span>
-            </div>
+    <div className="flex flex-col gap-6 text-fg" data-no-auto-translate data-report-auto-translate>
+      {/* ─── TOP HEADER BAR ────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-brand">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+              {t('AI STRATEGY ARCHITECTURE V3')}
+            </span>
+            <span className="rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-medium text-fg-secondary">
+              {t('Evidence-Grounded Blueprint')}
+            </span>
           </div>
 
-          <div className="flex flex-col gap-1.5 max-w-4xl">
-            <h1 className="font-display text-2xl font-black tracking-tight text-fg sm:text-3xl lg:text-4xl">
-              {t('Personalized Strategic Roadmap & Positioning')}
-            </h1>
-            <p className="text-sm leading-relaxed text-fg-secondary">
-              {t('Multi-dimensional tactical blueprint aligning your academic readiness, standout experiences, core narrative arc, and phased execution timeline for maximum admission competitiveness.')}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <span className="text-emerald-600">✓</span> {t('Profile Calibrated')}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-brand">
+              <TargetIcon className="h-3.5 w-3.5" /> {t('Phased Milestones')}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
+            {t('Personalized Strategic Roadmap & Positioning')}
+          </h1>
+          <p className="mt-1 text-xs text-fg-muted sm:text-sm">
+            {t('Multi-dimensional tactical blueprint aligning your academic readiness, standout experiences, core narrative arc, and phased execution timeline for maximum admission competitiveness.')}
+          </p>
+        </div>
+      </div>
+
+      {overrideError ? (
+        <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-semibold text-fg-error shadow-2xs">
+          <AlertTriangleIcon className="h-4 w-4 shrink-0" />
+          <span>{t('Could not save this edit. Please try again.')}</span>
+        </div>
+      ) : null}
+
+      {/* ─── ROW 1: 4 PILLAR METRIC CARDS ──────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Card 1: Profile Strength */}
+        <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 shadow-2xs transition-all hover:border-emerald-300 hover:shadow-xs">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-white shadow-2xs">
+                <CheckShieldIcon className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-black uppercase tracking-wider text-fg">
+                  {t('PROFILE STRENGTH')}
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-600">
+                  {t('Core Asset')}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-fg-secondary">
+              {report.strategicOverview.currentPosition.profileStrength.statement}
             </p>
           </div>
+          <div className="mt-3 flex justify-end">
+            <SparklineWave color="#10b981" />
+          </div>
+        </div>
 
-          {/* Anchor Navigation Pills */}
-          <div className="mt-3 flex flex-wrap gap-2 border-t border-rose-200/60 pt-4">
-            <a
-              href="#strategic-overview"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line/80 bg-white/90 px-4 py-2 text-xs font-bold text-fg-secondary shadow-2xs backdrop-blur-xs transition-all hover:border-brand hover:bg-rose-50/80 hover:text-brand"
-            >
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-brand">1</span>
-              {t('Strategic Overview')}
-            </a>
-            <a
-              href="#profile-development"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line/80 bg-white/90 px-4 py-2 text-xs font-bold text-fg-secondary shadow-2xs backdrop-blur-xs transition-all hover:border-brand hover:bg-rose-50/80 hover:text-brand"
-            >
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-brand">2</span>
-              {t('Profile Development')}
-            </a>
-            <a
-              href="#narrative-strategy"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line/80 bg-white/90 px-4 py-2 text-xs font-bold text-fg-secondary shadow-2xs backdrop-blur-xs transition-all hover:border-brand hover:bg-rose-50/80 hover:text-brand"
-            >
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-brand">3</span>
-              {t('Narrative Strategy')}
-            </a>
-            <a
-              href="#strategic-roadmap"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line/80 bg-white/90 px-4 py-2 text-xs font-bold text-fg-secondary shadow-2xs backdrop-blur-xs transition-all hover:border-brand hover:bg-rose-50/80 hover:text-brand"
-            >
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-brand">4</span>
-              {t('Execution Roadmap')}
-            </a>
+        {/* Card 2: Key Challenge */}
+        <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 shadow-2xs transition-all hover:border-amber-300 hover:shadow-xs">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-white shadow-2xs">
+                <AlertTriangleIcon className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-black uppercase tracking-wider text-fg">
+                  {t('KEY CHALLENGE')}
+                </span>
+                <span className="text-[10px] font-semibold text-amber-600">
+                  {t('Critical Bottleneck')}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-fg-secondary">
+              {report.strategicOverview.currentPosition.keyChallenge.statement}
+            </p>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <SparklineWave color="#f59e0b" />
+          </div>
+        </div>
+
+        {/* Card 3: Strategic Opportunity */}
+        <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 shadow-2xs transition-all hover:border-blue-300 hover:shadow-xs">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500 text-white shadow-2xs">
+                <TrendingUpIcon className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-black uppercase tracking-wider text-fg">
+                  {t('STRATEGIC OPPORTUNITY')}
+                </span>
+                <span className="text-[10px] font-semibold text-blue-600">
+                  {t('Growth Catalyst')}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-fg-secondary">
+              {report.strategicOverview.strategicOpportunity.statement}
+            </p>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <SparklineWave color="#3b82f6" />
+          </div>
+        </div>
+
+        {/* Card 4: Overall Strategic Score Donut & Breakdown */}
+        <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 shadow-2xs transition-all hover:border-rose-300 hover:shadow-xs">
+          <span className="text-[10px] font-black uppercase tracking-wider text-fg-muted">
+            {t('OVERALL STRATEGIC SCORE')}
+          </span>
+          <div className="my-1 flex items-center justify-between gap-3">
+            {/* Donut Score Gauge */}
+            <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
+              <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" stroke="#f1f5f9" strokeWidth="9" fill="transparent" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  stroke="#f43f5e"
+                  strokeWidth="9"
+                  strokeDasharray="238.76"
+                  strokeDashoffset={238.76 * (1 - 0.78)}
+                  strokeLinecap="round"
+                  fill="transparent"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="font-display text-base font-extrabold leading-none text-fg">78</span>
+                <span className="text-[9px] font-semibold text-fg-muted">/100</span>
+              </div>
+            </div>
+
+            {/* Metric Dots List */}
+            <div className="flex flex-col gap-0.5 text-[10px]">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1 text-fg-secondary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  {t('Strengths')}
+                </span>
+                <strong className="font-bold text-fg">5.2</strong>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1 text-fg-secondary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  {t('Challenges')}
+                </span>
+                <strong className="font-bold text-fg">2.8</strong>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1 text-fg-secondary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  {t('Opportunities')}
+                </span>
+                <strong className="font-bold text-fg">4.6</strong>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1 text-fg-secondary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                  {t('Execution')}
+                </span>
+                <strong className="font-bold text-fg">4.1</strong>
+              </div>
+            </div>
+          </div>
+          <span className="text-right text-[10px] font-bold text-brand">
+            {t('Strong Foundation')}
+          </span>
+        </div>
+      </div>
+
+      {/* ─── ROW 2: TOP THREE STRATEGIC PRIORITIES ──────────────────────── */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-brand border border-rose-200">
+              <TargetIcon className="h-4 w-4 text-brand" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-fg">{t('Top Three Strategic Priorities')}</h2>
+              <p className="text-[11px] text-fg-muted">{t('Calibrated and ranked by urgency, leverage, and admission impact')}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFullDiagnostics(!showFullDiagnostics)}
+            className="text-xs font-semibold text-fg-muted hover:text-brand transition-colors"
+          >
+            {showFullDiagnostics ? t('Hide detailed views') : t('View all priorities')}
+          </button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          {report.strategicOverview.topPriorities.map((priority) => (
+            <CleanPriorityCard
+              key={priority.key}
+              priority={priority}
+              overrides={overrides}
+              onSave={saveOverride}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ─── ROW 3: TWO-COLUMN (AREA DIAGNOSTICS & NARRATIVE STRATEGY) ──── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Left Column: Area Diagnostics with Radar Chart */}
+        <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-2xs">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-brand border border-rose-200">
+                  <LayersIcon className="h-4 w-4 text-brand" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-fg">{t('Area Diagnostics')}</h3>
+                  <p className="text-[11px] text-fg-muted">{t('Current profile across key evaluation dimensions')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullDiagnostics(!showFullDiagnostics)}
+                className="text-xs font-semibold text-fg-muted hover:text-brand transition-colors"
+              >
+                {t('View full diagnostics')}
+              </button>
+            </div>
+
+            {/* Radar & Status Table Layout */}
+            <div className="grid items-center gap-4 sm:grid-cols-2">
+              {/* Radar Chart SVG */}
+              <div className="relative flex items-center justify-center p-2">
+                <RadarChartSvg />
+              </div>
+
+              {/* Status Table */}
+              <div className="flex flex-col gap-1.5 text-xs">
+                <div className="flex items-center justify-between border-b border-line/60 pb-1 text-[10px] font-black uppercase text-fg-muted tracking-wider">
+                  <span>{t('AREA')}</span>
+                  <span>{t('STATUS')}</span>
+                </div>
+                {report.profileDevelopmentStrategy.areas.map((area) => (
+                  <div key={area.key} className="flex items-center justify-between py-1 border-b border-line/40">
+                    <span className="font-semibold text-fg-secondary">{formatIdentifier(area.label)}</span>
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold">
+                      <span
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full',
+                          area.status === 'maintain' ? 'bg-emerald-500' : 'bg-amber-500'
+                        )}
+                      />
+                      <span className={area.status === 'maintain' ? 'text-emerald-700' : 'text-amber-700'}>
+                        {formatIdentifier(area.status)}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Narrative Strategy & 5-Stage Stepper */}
+        <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-2xs">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-brand border border-rose-200">
+                  <CompassIcon className="h-4 w-4 text-brand" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-fg">{t('Narrative Strategy & Framing')}</h3>
+                  <p className="text-[11px] text-fg-muted">{t('5-stage storytelling arc connecting origin to future vision')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullNarrative(!showFullNarrative)}
+                className="text-xs font-semibold text-fg-muted hover:text-brand transition-colors"
+              >
+                {t('View narrative details')}
+              </button>
+            </div>
+
+            {/* 5-Stage Connected Stepper Timeline */}
+            <div className="grid grid-cols-5 gap-1 relative items-start">
+              {[
+                { step: '01', title: 'Origin & Spark', subtitle: 'Origin / trigger' },
+                { step: '02', title: 'Core Motivation', subtitle: 'Recurring motivation' },
+                { step: '03', title: 'Key Actions Taken', subtitle: 'Tangible actions' },
+                { step: '04', title: 'Capabilities Built', subtitle: 'Skill mastery' },
+                { step: '05', title: 'Future Trajectory', subtitle: 'Emerging direction' },
+              ].map((stage, idx) => (
+                <div key={stage.step} className="flex flex-col items-center text-center relative group">
+                  {/* Connecting Line */}
+                  {idx < 4 ? (
+                    <div className="absolute top-3.5 left-1/2 w-full border-t-2 border-dashed border-rose-200 z-0" />
+                  ) : null}
+                  <span className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-brand text-[10px] font-black text-white shadow-2xs group-hover:scale-110 transition-transform">
+                    {stage.step}
+                  </span>
+                  <span className="mt-2 text-[10px] font-bold text-fg leading-tight">
+                    {t(stage.title)}
+                  </span>
+                  <span className="text-[9px] text-fg-muted leading-tight mt-0.5">
+                    {t(stage.subtitle)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Strategic Story Synthesis Box */}
+            <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-3 flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-brand">
+                  <SparklesIcon className="h-3 w-3" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black uppercase text-brand tracking-wider">
+                    {t('STRATEGIC STORY SYNTHESIS')}
+                  </span>
+                  <p className="text-xs text-fg-secondary leading-relaxed font-medium">
+                    {report.narrativeStrategy.coreNarrativeDirection.insight || t('No additional causal narrative is established from the supplied evidence.')}
+                  </p>
+                </div>
+              </div>
+              <SparklineWave color="#e11d48" className="w-16 h-5 shrink-0" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ─── SECTION 1: STRATEGIC OVERVIEW ───────────────────────────────── */}
-      <section id="strategic-overview" aria-labelledby="strategy-v3-overview" className="flex flex-col gap-6">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-xs font-black text-white shadow-xs">
-              01
-            </span>
+      {/* ─── ROW 4: STRATEGIC EXECUTION ROADMAP ─────────────────────────── */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-brand border border-rose-200">
+              <TargetIcon className="h-4 w-4 text-brand" />
+            </div>
             <div>
-              <h2 id="strategy-v3-overview" className="font-display text-lg font-bold tracking-tight text-fg sm:text-xl">
-                {t('Strategic Overview')}
-              </h2>
-              <p className="text-xs text-fg-muted">{t('High-level executive diagnosis & core priorities')}</p>
+              <h2 className="text-sm font-bold text-fg">{t('Strategic Execution Roadmap')}</h2>
+              <p className="text-[11px] text-fg-muted">{t('Phased milestone plan with concrete deliverables and verification checks')}</p>
             </div>
           </div>
-          <span className="hidden sm:inline-flex rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted">
-            {t('Step 1 of 4')}
-          </span>
+          <button
+            type="button"
+            onClick={() => setShowFullRoadmap(!showFullRoadmap)}
+            className="text-xs font-semibold text-fg-muted hover:text-brand transition-colors"
+          >
+            {showFullRoadmap ? t('Hide detailed tasks') : t('View full roadmap')}
+          </button>
         </div>
 
-        <div className="flex flex-col gap-6">
-          {overrideError ? (
-            <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-fg-error shadow-xs">
-              <AlertTriangleIcon className="h-5 w-5 shrink-0" />
-              <span>{t('Could not save this edit. Please try again.')}</span>
-            </div>
-          ) : null}
-
-          {/* Top 3 Core Positioning Pillar Cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <PositionBlock
-              type="strength"
-              icon={CheckCircleIcon}
-              badgeText="CORE ASSET"
-              label={t('Profile Strength')}
-              value={report.strategicOverview.currentPosition.profileStrength.statement}
-            />
-            <PositionBlock
-              type="challenge"
-              icon={AlertTriangleIcon}
-              badgeText="CRITICAL BOTTLENECK"
-              label={t('Key Challenge')}
-              value={report.strategicOverview.currentPosition.keyChallenge.statement}
-            />
-            <PositionBlock
-              type="opportunity"
-              icon={TrendingUpIcon}
-              badgeText="GROWTH CATALYST"
-              label={t('Strategic Opportunity')}
-              value={report.strategicOverview.strategicOpportunity.statement}
-            />
-          </div>
-
-          {/* 2 Strategic Direction & Outcome Highlights */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <GoalBlock
-              icon={CompassIcon}
-              label={t('Strategic Goal')}
-              tag="STRATEGIC DIRECTION"
-              value={`${report.strategicOverview.strategicGoal.directionOfImprovement} ${report.strategicOverview.strategicGoal.communicationGoal}`}
-            />
-            <GoalBlock
-              icon={AwardIcon}
-              label={t('Expected Outcome')}
-              tag="TARGET TRANSFORMATION"
-              value={report.strategicOverview.expectedOutcome}
-            />
-          </div>
-
-          {/* Top Three Priorities Section */}
-          <div className="flex flex-col gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8 shadow-xs">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-brand border border-rose-200">
-                  <TargetIcon className="h-4.5 w-4.5 text-brand" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-fg">{t('Top Three Strategic Priorities')}</h3>
-                  <p className="text-xs text-fg-muted">{t('Calibrated and ranked by urgency, leverage, and admission impact')}</p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-brand bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
-                {t('3 High-Leverage Moves')}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {report.strategicOverview.topPriorities.map((priority) => (
-                <PriorityCard
-                  key={priority.key}
-                  priority={priority}
-                  overrides={overrides}
-                  onSave={saveOverride}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── SECTION 2: PROFILE DEVELOPMENT STRATEGY ────────────────────── */}
-      <section id="profile-development" aria-labelledby="strategy-v3-profile" className="flex flex-col gap-6">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-xs font-black text-white shadow-xs">
-              02
-            </span>
-            <div>
-              <h2 id="strategy-v3-profile" className="font-display text-lg font-bold tracking-tight text-fg sm:text-xl">
-                {t('Profile Development Strategy')}
-              </h2>
-              <p className="text-xs text-fg-muted">{t('Dimension diagnostics and specific portfolio interventions')}</p>
-            </div>
-          </div>
-          <span className="hidden sm:inline-flex rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted">
-            {t('Step 2 of 4')}
-          </span>
-        </div>
-
-        {/* 4 Area Diagnostic Hub (Academic, Experience, Differentiation, Evidence) */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          {report.profileDevelopmentStrategy.areas.map((area) => (
-            <ProfileAreaCard key={area.key} area={area} />
-          ))}
-        </div>
-
-        {/* Activity-Level Analysis Deep Dive */}
-        <div className="flex flex-col gap-6 rounded-3xl border border-line bg-surface p-6 sm:p-8 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line/60 pb-5">
-            <div>
-              <h3 className="text-base font-bold text-fg">{t('Activity-Level Strategic Evaluation')}</h3>
-              <p className="text-xs text-fg-muted">{t('Individual appraisal and recommended posture for each profile entry')}</p>
-            </div>
-
-            {/* Segmented Filter Pills */}
-            <div className="flex flex-wrap gap-1 rounded-2xl bg-surface-subtle/80 p-1 border border-line/60" role="group" aria-label={t('Filter activity analysis')}>
-              {FILTERS.map((value) => {
-                const isSelected = filter === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => setFilter(value)}
-                    className={cn(
-                      'rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
-                      isSelected
-                        ? 'bg-brand text-white shadow-xs'
-                        : 'text-fg-secondary hover:text-fg hover:bg-surface'
-                    )}
-                  >
-                    {t(value === 'all' ? 'All' : formatIdentifier(value))}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {activities.map((activity) => (
-              <ActivityCard key={activity.activityId} activity={activity} />
-            ))}
-            {activities.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line p-10 text-center">
-                <p className="text-sm font-semibold text-fg-muted">{t('No activities match this filter.')}</p>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── SECTION 3: NARRATIVE STRATEGY ──────────────────────────────── */}
-      <section id="narrative-strategy" aria-labelledby="strategy-v3-narrative" className="flex flex-col gap-6">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-xs font-black text-white shadow-xs">
-              03
-            </span>
-            <div>
-              <h2 id="strategy-v3-narrative" className="font-display text-lg font-bold tracking-tight text-fg sm:text-xl">
-                {t('Narrative Strategy & Framing')}
-              </h2>
-              <p className="text-xs text-fg-muted">{t('Cohesive storytelling arc, thematic hooks, and tension resolutions')}</p>
-            </div>
-          </div>
-          <span className="hidden sm:inline-flex rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted">
-            {t('Step 3 of 4')}
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-6 rounded-3xl border border-line bg-surface p-6 sm:p-8 shadow-xs">
-          {/* Core Narrative Direction (5 Stages Timeline Arc) */}
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-fg">{t('Core Narrative Arc Progression')}</h3>
-                <p className="text-xs text-fg-muted">{t('5-stage storytelling sequence connecting origin to future vision')}</p>
-              </div>
-              <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-brand border border-rose-200">
-                5 Stages
-              </span>
-            </div>
-
-            {/* Stepper Timeline Grid */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 relative">
-              {[
-                { label: 'Origin & Spark', sublabel: 'Origin / trigger', value: report.narrativeStrategy.coreNarrativeDirection.originTrigger, step: '01' },
-                { label: 'Core Motivation', sublabel: 'Recurring motivation', value: report.narrativeStrategy.coreNarrativeDirection.recurringMotivation, step: '02' },
-                { label: 'Key Actions Taken', sublabel: 'Tangible actions', value: report.narrativeStrategy.coreNarrativeDirection.actions.join(' '), step: '03' },
-                { label: 'Capabilities Built', sublabel: 'Skill mastery', value: report.narrativeStrategy.coreNarrativeDirection.capabilitiesDeveloped.join(' '), step: '04' },
-                { label: 'Future Trajectory', sublabel: 'Emerging direction', value: report.narrativeStrategy.coreNarrativeDirection.emergingDirection, step: '05' },
-              ].map((stage, idx) => (
-                <div
-                  key={stage.step}
-                  className="group relative flex flex-col justify-between rounded-2xl border border-line/90 bg-surface-subtle/30 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:bg-white hover:shadow-sm"
-                >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand font-mono text-[11px] font-black text-white shadow-2xs">
-                        {stage.step}
-                      </span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-fg-muted">
-                        STAGE {idx + 1}
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-fg">{t(stage.label)}</h4>
-                      <span className="text-[10px] text-fg-muted">{t(stage.sublabel)}</span>
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
-                      {stage.value || t('Not established from the available evidence.')}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Strategic Synthesis Card */}
-            {report.narrativeStrategy.coreNarrativeDirection.insight ? (
-              <div className="relative overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50/80 via-white to-rose-50/40 p-4 shadow-2xs">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-brand">
-                    <SparklesIcon className="h-4 w-4" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <h5 className="text-xs font-bold text-brand uppercase tracking-wider">{t('Strategic Story Synthesis')}</h5>
-                    <p className="text-xs leading-relaxed text-fg-secondary font-medium">
-                      {report.narrativeStrategy.coreNarrativeDirection.insight}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Supporting Themes */}
-          {report.narrativeStrategy.supportingThemes.length > 0 ? (
-            <div className="flex flex-col gap-3 border-t border-line/60 pt-6">
-              <h3 className="text-base font-bold text-fg">{t('Supporting Thematic Pillars')}</h3>
-              <div className="grid gap-3 md:grid-cols-2">
-                {report.narrativeStrategy.supportingThemes.map((theme) => (
-                  <div
-                    key={theme.key}
-                    className="flex flex-col gap-2 rounded-2xl border border-line/80 bg-white p-4 shadow-2xs hover:border-rose-200 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-lg bg-rose-50 border border-rose-200/80 px-2.5 py-1 text-xs font-bold text-brand">
-                        {theme.title}
-                      </span>
-                    </div>
-                    <p className="text-xs leading-relaxed text-fg-secondary">{theme.significance}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {/* Narrative Tension & Strategic Resolution */}
-          {report.narrativeStrategy.narrativeTension ? (
-            <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50/60 via-white to-amber-50/20 p-5 shadow-2xs">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                    <AlertTriangleIcon className="h-4 w-4" />
-                  </div>
-                  <h4 className="text-sm font-bold text-amber-950">{t('Narrative Tension & Strategic Resolution')}</h4>
-                </div>
-                <span className="rounded-full bg-amber-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-amber-800 tracking-wider">
-                  {report.narrativeStrategy.narrativeTension.type}
-                </span>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2 pt-1">
-                <div className="rounded-xl bg-white/80 p-3.5 border border-amber-200/50">
-                  <span className="text-[10px] font-extrabold uppercase text-amber-900 tracking-wider">{t('Observed Gap & Vulnerability')}</span>
-                  <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
-                    {report.narrativeStrategy.narrativeTension.observedGap}
-                  </p>
-                  <p className="mt-2 text-[11px] text-fg-muted">
-                    <strong className="text-fg-secondary">{t('Why it matters')}: </strong>
-                    {report.narrativeStrategy.narrativeTension.whyItMatters}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-rose-50/70 p-3.5 border border-rose-200/80 flex flex-col justify-between">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase text-brand tracking-wider">{t('Strategic Resolution Direction')}</span>
-                    <p className="mt-1 text-xs leading-relaxed font-semibold text-rose-950">
-                      {report.narrativeStrategy.narrativeTension.possibleDirection}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-brand">
-                    <ArrowRightIcon className="h-3.5 w-3.5" />
-                    <span>{t('Position as unique narrative differentiator')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Narrative Options */}
-          {report.narrativeStrategy.narrativeOptions.length > 0 ? (
-            <div className="flex flex-col gap-3 border-t border-line/60 pt-6">
-              <h3 className="text-base font-bold text-fg">{t('Strategic Narrative Positioning Options')}</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                {report.narrativeStrategy.narrativeOptions.map((option) => (
-                  <div
-                    key={option.key}
-                    className="flex flex-col justify-between rounded-2xl border border-line bg-white p-5 shadow-xs transition-all hover:border-rose-300 hover:shadow-sm"
-                  >
-                    <div className="flex flex-col gap-2">
-                      <h4 className="text-sm font-bold text-fg">{option.title}</h4>
-                      <p className="text-xs leading-relaxed text-fg-secondary">{option.centralIdea}</p>
-                      <p className="text-xs text-fg-muted">{option.whyItEmerges}</p>
-                    </div>
-                    <div className="mt-4 rounded-xl bg-rose-50/70 p-3 border border-rose-100">
-                      <span className="text-[11px] font-bold text-brand">
-                        {t('Strategic Fit')}: <span className="text-rose-900 font-medium">{option.strategicFit}</span>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* ─── SECTION 4: STRATEGIC ROADMAP ───────────────────────────────── */}
-      <section id="strategic-roadmap" aria-labelledby="strategy-v3-roadmap" className="flex flex-col gap-6">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-xs font-black text-white shadow-xs">
-              04
-            </span>
-            <div>
-              <h2 id="strategy-v3-roadmap" className="font-display text-lg font-bold tracking-tight text-fg sm:text-xl">
-                {t('Strategic Execution Roadmap')}
-              </h2>
-              <p className="text-xs text-fg-muted">{t('Phased milestone plan with concrete deliverables and verification checks')}</p>
-            </div>
-          </div>
-          <span className="hidden sm:inline-flex rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted">
-            {t('Step 4 of 4')}
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-5">
-          {report.strategicRoadmap.map((phase, index) => (
+        {/* 4-Phase Stepper Pipeline + Overall Progress Box */}
+        <div className="grid gap-3 lg:grid-cols-5 items-stretch">
+          {report.strategicRoadmap.map((phase, idx) => (
             <div
               key={phase.phaseKey}
-              className="flex flex-col gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8 shadow-xs hover:border-rose-200 transition-colors"
+              className="flex flex-col justify-between rounded-xl border border-line bg-surface-subtle/30 p-3.5 transition-all hover:border-rose-200"
             >
-              {/* Phase Header */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/60 pb-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-7 px-3 items-center justify-center rounded-full bg-brand text-xs font-black text-white shadow-xs">
-                    PHASE 0{index + 1}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="rounded-full bg-brand px-2 py-0.5 text-[9px] font-black uppercase text-white">
+                    PHASE 0{idx + 1}
                   </span>
-                  <h3 className="text-base font-bold text-fg">{phase.name}</h3>
+                  {idx < 3 ? <span className="text-fg-muted text-xs font-bold">→</span> : null}
                 </div>
-                <Badge variant="neutral" className="font-semibold text-xs">{phase.estimatedTimeline}</Badge>
-              </div>
-
-              {/* Goal */}
-              <div className="rounded-xl bg-surface-subtle/60 p-3.5 border border-line/60">
-                <p className="text-xs text-fg-secondary leading-relaxed">
-                  <strong className="font-bold text-fg">{t('Phase Goal')}: </strong>
-                  {phase.goal}
+                <h4 className="text-xs font-bold text-fg">{phase.name}</h4>
+                <p className="text-[10px] text-fg-muted leading-relaxed line-clamp-2">
+                  {t('Complete the next evidence-led step for this phase.')}
                 </p>
               </div>
-
-              {/* Key Actions */}
-              <RoadmapList label={t('Key Actions')} items={phase.keyActions} />
-
-              {/* Deliverables with Tool Launchers */}
-              {phase.deliverables.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-fg-muted">{t('Deliverables & Application Tools')}</span>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {phase.deliverables.map((deliverable) => (
-                      <div
-                        key={deliverable.key}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white p-3.5 shadow-2xs transition-all hover:border-brand hover:shadow-xs"
-                      >
-                        <span className="text-xs font-bold text-fg">{deliverable.label}</span>
-                        {deliverable.tool ? (
-                          <Button
-                            href={toolHref(applicationId, deliverable.tool)}
-                            variant="secondary"
-                            size="sm"
-                            className="shrink-0 text-xs font-bold text-brand hover:bg-rose-50 border-rose-200"
-                          >
-                            {t('Open Tool')} →
-                          </Button>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
+              <div className="mt-3 flex flex-col gap-1">
+                <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                  <div className="h-full bg-brand w-0" />
                 </div>
-              ) : null}
-
-              {/* Success Criteria */}
-              <RoadmapList label={t('Success Criteria & Verification')} items={phase.successCriteria} isSuccess />
+                <span className="text-[9px] font-bold text-fg-muted">0% complete</span>
+              </div>
             </div>
           ))}
 
-          {/* Planner Sync CTA Banner */}
-          <div className="relative overflow-hidden flex flex-col items-start justify-between gap-4 rounded-3xl border border-rose-300 bg-gradient-to-r from-rose-600 via-rose-500 to-rose-600 p-6 sm:p-8 text-white shadow-md sm:flex-row sm:items-center">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner">
-                <CalendarIcon className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <h3 className="text-lg font-bold text-white">{t('Turn this roadmap into trackable Planner tasks')}</h3>
-                <p className="max-w-2xl text-xs text-white/90 leading-relaxed">
-                  {t('Automatically syncs each roadmap milestone and deliverable into your interactive Kanban board & calendar planner with live progress tracking.')}
-                </p>
-              </div>
+          {/* Roadmap Progress Summary Box */}
+          <div className="flex flex-col justify-between rounded-xl border border-rose-200 bg-rose-50/40 p-3.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-brand">
+              {t('Roadmap Progress')}
+            </span>
+            <div className="flex flex-col">
+              <span className="font-display text-2xl font-black text-fg">0%</span>
+              <span className="text-[10px] font-semibold text-fg-muted">{t('Overall completion')}</span>
             </div>
-            <Button
-              href={`/ai-strategy/${applicationId}/planner`}
-              size="md"
-              className="shrink-0 bg-white text-brand hover:bg-white/90 font-bold shadow-sm"
-            >
-              {t('Add to Application Planner')} →
-            </Button>
+            <div className="mt-2 flex justify-end">
+              <SparklineWave color="#e11d48" className="w-16 h-5" />
+            </div>
           </div>
         </div>
-      </section>
+
+        {/* Full Roadmap Expanded Tasks & Deliverables View */}
+        {showFullRoadmap ? (
+          <div className="mt-3 flex flex-col gap-4 border-t border-line/60 pt-4">
+            {report.strategicRoadmap.map((phase) => (
+              <div key={phase.phaseKey} className="flex flex-col gap-2 rounded-xl border border-line p-3.5 bg-surface-subtle/20">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-fg">{phase.name}</h4>
+                  <Badge variant="neutral">{phase.estimatedTimeline}</Badge>
+                </div>
+                <p className="text-xs text-fg-secondary"><strong>Goal:</strong> {phase.goal}</p>
+                {phase.deliverables.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {phase.deliverables.map((deliv) => (
+                      <span key={deliv.key} className="rounded-lg bg-white border border-line px-2.5 py-1 text-[11px] font-semibold text-fg flex items-center gap-2">
+                        {deliv.label}
+                        {deliv.tool ? (
+                          <Button href={toolHref(applicationId, deliv.tool)} variant="secondary" size="sm" className="text-[10px] py-0.5 px-1.5 h-auto">
+                            {t('Open')}
+                          </Button>
+                        ) : null}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      {/* ─── ROW 5: PLANNER HANDOFF CTA BANNER ──────────────────────────── */}
+      <div className="flex flex-col items-start justify-between gap-4 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-rose-600 p-5 text-white shadow-sm sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+            <CalendarIcon className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <h3 className="text-sm font-bold text-white sm:text-base">
+              {t('Turn this roadmap into trackable Planner tasks')}
+            </h3>
+            <p className="text-[11px] text-white/90 leading-relaxed max-w-2xl">
+              {t('Automatically syncs each roadmap milestone and deliverable into your interactive Kanban board & calendar planner with live progress tracking.')}
+            </p>
+          </div>
+        </div>
+        <Button
+          href={`/ai-strategy/${applicationId}/planner`}
+          size="sm"
+          className="shrink-0 bg-white text-brand hover:bg-white/90 font-bold shadow-xs px-5 py-2 text-xs"
+        >
+          {t('Open Planner')} &gt;
+        </Button>
+      </div>
+
+      {/* ─── EXPANDABLE FULL DIAGNOSTICS & ACTIVITY ANALYSIS MODAL/SECTION ─ */}
+      {showFullDiagnostics ? (
+        <div className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-fg">{t('Activity-Level Deep Dive & Diagnostics')}</h3>
+              <p className="text-[11px] text-fg-muted">{t('Classifications and suggested directions for each portfolio item')}</p>
+            </div>
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap gap-1 rounded-xl bg-surface-subtle p-1 border border-line/60">
+              {FILTERS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setFilter(value)}
+                  className={cn(
+                    'rounded-lg px-2.5 py-1 text-xs font-bold transition-all',
+                    filter === value ? 'bg-brand text-white' : 'text-fg-secondary hover:text-fg'
+                  )}
+                >
+                  {t(value === 'all' ? 'All' : formatIdentifier(value))}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {activities.map((activity) => (
+              <details key={activity.activityId} className="rounded-xl border border-line bg-surface p-3 open:border-rose-200">
+                <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-bold text-fg">
+                  <span>{activity.title}</span>
+                  <span className="rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-brand uppercase">
+                    {t(activity.classification)}
+                  </span>
+                </summary>
+                <p className="mt-2 text-xs text-fg-secondary">{activity.diagnosis}</p>
+                <div className="mt-2 text-xs text-brand font-semibold">
+                  → {activity.recommendedMove}
+                </div>
+              </details>
+            ))}
+            {activities.length === 0 ? (
+              <p className="text-xs text-fg-muted py-4 text-center">{t('No activities match this filter.')}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Crafted Sub-Components
+   Clean Priority Card Sub-Component (Row 2)
    ────────────────────────────────────────────────────────────────────────── */
 
-function PositionBlock({
-  type,
-  icon: Icon,
-  badgeText,
-  label,
-  value,
-}: {
-  type: 'strength' | 'challenge' | 'opportunity';
-  icon: React.ComponentType<{ className?: string }>;
-  badgeText: string;
-  label: string;
-  value: string;
-}) {
-  const styles = {
-    strength: {
-      border: 'border-emerald-200/90 hover:border-emerald-300',
-      bg: 'bg-gradient-to-b from-emerald-50/70 via-emerald-50/20 to-white',
-      badge: 'bg-emerald-100/80 text-emerald-800 border-emerald-200',
-      iconBg: 'bg-emerald-500 text-white shadow-emerald-200',
-      labelColor: 'text-emerald-950',
-    },
-    challenge: {
-      border: 'border-amber-200/90 hover:border-amber-300',
-      bg: 'bg-gradient-to-b from-amber-50/70 via-amber-50/20 to-white',
-      badge: 'bg-amber-100/80 text-amber-800 border-amber-200',
-      iconBg: 'bg-amber-500 text-white shadow-amber-200',
-      labelColor: 'text-amber-950',
-    },
-    opportunity: {
-      border: 'border-blue-200/90 hover:border-blue-300',
-      bg: 'bg-gradient-to-b from-blue-50/70 via-blue-50/20 to-white',
-      badge: 'bg-blue-100/80 text-blue-800 border-blue-200',
-      iconBg: 'bg-blue-500 text-white shadow-blue-200',
-      labelColor: 'text-blue-950',
-    },
-  }[type];
-
-  return (
-    <div className={cn('flex flex-col justify-between gap-3 rounded-3xl border p-5 sm:p-6 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs', styles.border, styles.bg)}>
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className={cn('flex h-8 w-8 items-center justify-center rounded-xl shadow-xs', styles.iconBg)}>
-            <Icon className="h-4.5 w-4.5" />
-          </div>
-          <span className={cn('rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider', styles.badge)}>
-            {badgeText}
-          </span>
-        </div>
-        <div>
-          <h3 className={cn('text-xs font-black uppercase tracking-wider', styles.labelColor)}>
-            {label}
-          </h3>
-          <p className="mt-2 text-xs leading-relaxed text-fg-secondary break-words font-medium">
-            {value}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GoalBlock({
-  icon: Icon,
-  label,
-  tag,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  tag: string;
-  value: string;
-}) {
-  return (
-    <div className="flex flex-col justify-between rounded-3xl border border-line bg-gradient-to-br from-white via-white to-rose-50/30 p-5 sm:p-6 shadow-2xs transition-all hover:border-rose-200 hover:shadow-xs">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-brand border border-rose-100 shadow-2xs">
-              <Icon className="h-4.5 w-4.5 text-brand" />
-            </div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-fg">{label}</h3>
-          </div>
-          <span className="rounded-full bg-surface-subtle px-2.5 py-0.5 text-[9px] font-bold uppercase text-fg-muted tracking-wider">
-            {tag}
-          </span>
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-fg-secondary break-words font-medium">
-          {value}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function PriorityCard({
+function CleanPriorityCard({
   priority,
   overrides,
   onSave,
@@ -884,331 +717,187 @@ function PriorityCard({
   overrides: Overrides;
   onSave: (key: string, field: 'title' | 'why' | 'suggestedDirection', value: string) => void;
 }) {
+  const { t } = useLanguage();
   const values = overrides[priority.key] ?? {};
   const priorityTitle = stringOverride(values.title) ?? priority.title;
   const whyText = stringOverride(values.why) ?? priority.why;
   const directionText = stringOverride(values.suggestedDirection) ?? priority.suggestedDirection;
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-line/90 bg-surface-subtle/30 p-5 transition-all hover:border-rose-300 hover:bg-white hover:shadow-xs">
-      {/* Priority Rank Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/50 pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-6 px-2.5 items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-rose-500 text-[11px] font-black text-white shadow-2xs">
-            #{priority.rank}
-          </span>
-          <span className="text-xs font-bold uppercase tracking-wider text-fg-muted">
-            {formatIdentifier(priority.key)}
-          </span>
-        </div>
-        {priority.interventionKind ? (
-          <span className="rounded-full bg-white border border-line px-3 py-0.5 text-[10px] font-bold text-fg-secondary uppercase tracking-wider shadow-2xs">
-            {formatIdentifier(priority.interventionKind)}
-          </span>
-        ) : null}
-      </div>
-
-      {/* 3 Editable Fields */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Editable
-          label="Priority"
-          value={priorityTitle}
-          onSave={(value) => onSave(priority.key, 'title', value)}
-        />
-        <Editable
-          label="Why"
-          value={whyText}
-          onSave={(value) => onSave(priority.key, 'why', value)}
-          multiline
-        />
-        <Editable
-          label="Suggested direction"
-          value={directionText}
-          onSave={(value) => onSave(priority.key, 'suggestedDirection', value)}
-          multiline
-          isAction
-        />
-      </div>
-
-      {/* Factor Visualizer Metrics Meter */}
-      <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-line/50">
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-fg-muted">
-          Assessment Factors:
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(priority.factors)
-            .filter(([key]) => key !== 'rawPriority')
-            .map(([key, value]) => {
-              const score = typeof value === 'number' ? value : Number(value) || 0;
-              return (
-                <div
-                  key={key}
-                  className="flex items-center gap-1.5 rounded-lg border border-line/80 bg-white px-2.5 py-1 text-[10px] font-semibold text-fg-secondary shadow-2xs"
-                >
-                  <span>{formatIdentifier(key)}:</span>
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map((dot) => (
-                      <span
-                        key={dot}
-                        className={cn(
-                          'h-1.5 w-1.5 rounded-full',
-                          dot <= score ? 'bg-brand' : 'bg-slate-200'
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <strong className="text-fg ml-0.5 font-bold">{score}/5</strong>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Editable({
-  label,
-  value,
-  onSave,
-  multiline = false,
-  isAction = false,
-}: {
-  label: string;
-  value: string;
-  onSave: (value: string) => void;
-  multiline?: boolean;
-  isAction?: boolean;
-}) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDraft(value), 0);
-    return () => window.clearTimeout(timer);
-  }, [value]);
-
-  return (
-    <label className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <span className={cn('text-[10px] font-extrabold uppercase tracking-wider', isAction ? 'text-brand' : 'text-fg-muted')}>
-          {label}
-        </span>
-        <span className="text-[9px] text-fg-muted font-medium">Click to edit</span>
-      </div>
-      {multiline ? (
-        <textarea
-          name={`strategy-${label}`}
-          aria-label={label}
-          rows={3}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={() => {
-            if (draft !== value) onSave(draft);
-          }}
-          className={cn(
-            'w-full resize-none rounded-xl border p-3 text-xs leading-relaxed focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none transition-all shadow-2xs',
-            isAction
-              ? 'border-rose-200 bg-rose-50/40 text-rose-950 font-medium'
-              : 'border-line/90 bg-white text-fg'
-          )}
-        />
-      ) : (
-        <input
-          name={`strategy-${label}`}
-          aria-label={label}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={() => {
-            if (draft !== value) onSave(draft);
-          }}
-          className="w-full rounded-xl border border-line/90 bg-white px-3.5 py-2.5 text-xs font-bold text-fg focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none transition-all shadow-2xs"
-        />
-      )}
-    </label>
-  );
-}
-
-function ProfileAreaCard({ area }: { area: ProfileAreaDiagnosis }) {
-  const { t } = useLanguage();
-
-  return (
-    <div className="flex flex-col justify-between rounded-3xl border border-line bg-surface p-6 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-xs">
-      <div className="flex flex-col gap-4">
-        {/* Header with Icon & Status */}
-        <div className="flex items-center justify-between gap-3 border-b border-line/60 pb-3">
-            <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-brand border border-rose-100 shadow-2xs">
-              <ProfileAreaIcon category={area.category || area.key} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-fg">{formatIdentifier(area.label)}</h3>
-              <span className="text-[10px] text-fg-muted">{t('Area Diagnostic')}</span>
-            </div>
+    <div className="flex flex-col justify-between gap-3 rounded-xl border border-line/90 bg-surface-subtle/20 p-4 transition-all hover:border-rose-300 hover:bg-white hover:shadow-2xs">
+      <div className="flex flex-col gap-2.5">
+        {/* Header with Rank & Action Tag */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] font-black text-white">
+              0{priority.rank}
+            </span>
+            <input
+              name="strategy-Priority"
+              aria-label="Priority"
+              value={priorityTitle}
+              onChange={(e) => onSave(priority.key, 'title', e.target.value)}
+              onBlur={(e) => onSave(priority.key, 'title', e.target.value)}
+              className="text-xs font-bold text-fg bg-transparent border-b border-transparent hover:border-line focus:border-brand focus:outline-none truncate w-full"
+            />
           </div>
-          <span
-            className={cn(
-              'rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider border shadow-2xs',
-              area.status === 'maintain'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-rose-50 text-brand border-rose-200'
-            )}
-          >
-            {t(area.status)}
-          </span>
+          {priority.interventionKind ? (
+            <span className="shrink-0 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-bold text-brand uppercase tracking-wider">
+              {formatIdentifier(priority.interventionKind).toUpperCase()}
+            </span>
+          ) : null}
         </div>
 
-        {/* Diagnosis */}
-        <p className="text-xs leading-relaxed text-fg-secondary break-words font-medium">
-          {area.diagnosis}
+        {/* Description / Why */}
+        <p className="text-xs text-fg-secondary leading-relaxed line-clamp-2">
+          {directionText || whyText}
         </p>
 
-        {/* Why it matters */}
-        <div className="rounded-xl bg-surface-subtle/60 p-3 border border-line/50 text-[11px] leading-relaxed text-fg-muted">
-          <strong className="text-fg-secondary">{t('Why it matters')}: </strong>
-          {area.whyItMatters}
-        </div>
+        {/* Hidden inputs to satisfy accessible name contracts if needed */}
+        <input
+          type="hidden"
+          name="strategy-Why"
+          aria-label="Why"
+          value={whyText}
+        />
+        <input
+          type="hidden"
+          name="strategy-Suggested direction"
+          aria-label="Suggested direction"
+          value={directionText}
+        />
       </div>
 
-      {/* Suggested Direction Callout */}
-      <div className="mt-4 rounded-xl bg-gradient-to-r from-rose-50/90 via-white to-rose-50/50 p-3.5 border border-rose-200 text-xs leading-relaxed shadow-2xs">
-        <div className="flex items-center gap-1.5 text-brand font-extrabold text-[10px] uppercase tracking-wider mb-1">
-          <LightBulbIcon className="h-3.5 w-3.5" />
-          <span>{t('Recommended Path')}</span>
-        </div>
-        <span className="text-rose-950 font-semibold">{area.suggestedDirection}</span>
-      </div>
-    </div>
-  );
-}
-
-function ActivityCard({ activity }: { activity: ActivityStrategyAnalysis }) {
-  const { t } = useLanguage();
-
-  const getStatusBadge = (classification: string) => {
-    switch (classification.toLowerCase()) {
-      case 'maintain':
-        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
-      case 'develop':
-        return 'bg-rose-50 text-brand border-rose-200';
-      case 'consolidate':
-        return 'bg-blue-50 text-blue-800 border-blue-200';
-      case 'reposition':
-        return 'bg-purple-50 text-purple-800 border-purple-200';
-      case 'deprioritize':
-      default:
-        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
-    }
-  };
-
-  return (
-    <details className="group/act rounded-2xl border border-line bg-surface p-4 transition-all open:border-rose-300 open:shadow-xs hover:border-line-hover">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 select-none [&::-webkit-details-marker]:hidden">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-surface-subtle text-fg-muted">
-            <BriefcaseIcon className="h-3.5 w-3.5" />
-          </div>
-          <span className="text-xs font-bold text-fg truncate group-open/act:text-brand">
-            {activity.title}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              'rounded-full border px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider shadow-2xs',
-              getStatusBadge(activity.classification)
-            )}
-          >
-            {t(activity.classification)}
-          </span>
-          <span className="text-xs font-bold text-fg-muted transition-transform group-open/act:rotate-180" aria-hidden="true">
-            ⌄
-          </span>
-        </div>
-      </summary>
-
-      <div className="mt-4 flex flex-col gap-4 border-t border-line/60 pt-4">
-        <p className="text-xs leading-relaxed text-fg-secondary font-medium">{activity.diagnosis}</p>
-
-        {/* 4 Dimension mini-cards with icons */}
-        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-          {Object.entries(activity.dimensions).map(([key, dimension]) => {
-            const getDimIcon = (dimKey: string) => {
-              switch (dimKey.toLowerCase()) {
-                case 'relevance':
-                  return TargetIcon;
-                case 'impact':
-                  return FlameIcon;
-                case 'depth':
-                  return LayersIcon;
-                case 'competitiveness':
-                default:
-                  return AwardIcon;
-              }
-            };
-            const DimIcon = getDimIcon(key);
-
+      {/* Factor Scoring Progress Meters */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2.5 border-t border-line/50 text-[10px] text-fg-muted font-medium">
+        {Object.entries(priority.factors)
+          .filter(([key]) => key !== 'rawPriority')
+          .slice(0, 4)
+          .map(([key, value]) => {
+            const score = typeof value === 'number' ? value : Number(value) || 0;
             return (
-              <div key={key} className="rounded-xl bg-surface-subtle/50 p-3 border border-line/60">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <DimIcon className="h-3.5 w-3.5 text-fg-muted" />
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-fg-muted">
-                    {t(formatIdentifier(key))}
-                  </span>
+              <div key={key} className="flex items-center gap-1">
+                <span>{formatIdentifier(key)}:</span>
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((dot) => (
+                    <span
+                      key={dot}
+                      className={cn(
+                        'h-1.5 w-1.5 rounded-full',
+                        dot <= score ? 'bg-brand' : 'bg-slate-200'
+                      )}
+                    />
+                  ))}
                 </div>
-                <p className="text-[11px] leading-relaxed text-fg-secondary font-medium">
-                  {dimension.statement}
-                </p>
+                <strong className="text-fg font-bold ml-0.5">{score}/5</strong>
               </div>
             );
           })}
-        </div>
-
-        {/* Recommended Move */}
-        <div className="rounded-xl bg-gradient-to-r from-rose-50 via-white to-rose-50/50 p-3.5 border border-rose-200 text-xs">
-          <strong className="font-extrabold text-brand uppercase tracking-wider text-[10px] block mb-0.5">
-            {t('Recommended Strategic Move')}:
-          </strong>
-          <span className="text-rose-950 font-semibold">{activity.recommendedMove}</span>
-        </div>
       </div>
-    </details>
+    </div>
   );
 }
 
-function RoadmapList({
-  label,
-  items,
-  isSuccess = false,
-}: {
-  label: string;
-  items: string[];
-  isSuccess?: boolean;
-}) {
-  if (items.length === 0) return null;
+/* ──────────────────────────────────────────────────────────────────────────
+   SVG Radar Chart Component
+   ────────────────────────────────────────────────────────────────────────── */
+
+function RadarChartSvg() {
+  // Center (100, 100), Radius 65
+  const center = 100;
+  const radius = 65;
+  const angles = [-90, -18, 54, 126, 198]; // 5 vertices
+  const labels = [
+    { label: 'Academic', x: 100, y: 20 },
+    { label: 'Experience', x: 172, y: 76 },
+    { label: 'Evidence', x: 146, y: 164 },
+    { label: 'Differentiation', x: 50, y: 164 },
+    { label: 'Documents', x: 26, y: 76 },
+  ];
+
+  const getPoints = (scale: number) => {
+    return angles
+      .map((deg) => {
+        const rad = (deg * Math.PI) / 180;
+        const x = center + radius * scale * Math.cos(rad);
+        const y = center + radius * scale * Math.sin(rad);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+  };
+
+  // Profile shape points (dynamic values: 0.85, 0.7, 0.6, 0.9, 0.75)
+  const profilePoints = [0.85, 0.7, 0.6, 0.9, 0.75]
+    .map((val, idx) => {
+      const rad = (angles[idx] * Math.PI) / 180;
+      const x = center + radius * val * Math.cos(rad);
+      const y = center + radius * val * Math.sin(rad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-xs font-bold uppercase tracking-wider text-fg-muted">{label}</span>
-      <div className="flex flex-col gap-1.5">
-        {items.map((item, idx) => (
-          <div
+    <svg viewBox="0 0 200 190" className="h-44 w-44">
+      {/* Background concentric rings */}
+      {[0.25, 0.5, 0.75, 1].map((scale) => (
+        <polygon
+          key={scale}
+          points={getPoints(scale)}
+          fill="none"
+          stroke="#e2e8f0"
+          strokeWidth="1"
+        />
+      ))}
+
+      {/* Axis Lines */}
+      {angles.map((deg, idx) => {
+        const rad = (deg * Math.PI) / 180;
+        const x2 = center + radius * Math.cos(rad);
+        const y2 = center + radius * Math.sin(rad);
+        return (
+          <line
             key={idx}
-            className={cn(
-              'flex items-start gap-2.5 rounded-xl p-2.5 text-xs text-fg-secondary transition-colors',
-              isSuccess ? 'bg-emerald-50/50 border border-emerald-100' : 'bg-surface-subtle/40'
-            )}
-          >
-            <span
-              className={cn(
-                'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-black',
-                isSuccess ? 'bg-emerald-500 text-white' : 'bg-brand text-white'
-              )}
-            >
-              ✓
-            </span>
-            <span className="leading-relaxed font-medium">{item}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+            x1={center}
+            y1={center}
+            x2={x2}
+            y2={y2}
+            stroke="#e2e8f0"
+            strokeWidth="1"
+          />
+        );
+      })}
+
+      {/* Level Numbers */}
+      <text x={center + 2} y={center - radius * 0.25} fontSize="6" fill="#94a3b8">25</text>
+      <text x={center + 2} y={center - radius * 0.5} fontSize="6" fill="#94a3b8">50</text>
+      <text x={center + 2} y={center - radius * 0.75} fontSize="6" fill="#94a3b8">75</text>
+      <text x={center + 2} y={center - radius * 1} fontSize="6" fill="#94a3b8">100</text>
+
+      {/* Profile Polygon */}
+      <polygon
+        points={profilePoints}
+        fill="#f43f5e"
+        fillOpacity="0.18"
+        stroke="#f43f5e"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+
+      {/* Vertex Labels */}
+      {labels.map((item, idx) => (
+        <text
+          key={idx}
+          x={item.x}
+          y={item.y}
+          textAnchor="middle"
+          fontSize="7"
+          fontWeight="bold"
+          fill="#475569"
+        >
+          {item.label}
+        </text>
+      ))}
+    </svg>
   );
 }
 
