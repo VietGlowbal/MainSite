@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
+  APPLICATION_REPORT_GENERATION_LIMIT,
   buildPersonalReport,
   PERSONAL_REPORT_CONTRACT_VERSION,
   type PersonalReportTrigger,
@@ -40,6 +41,7 @@ import {
   createPersonalReportV2Version,
   findPersonalReportV2ByCacheKey,
   getApplicationPersonalReportSupplements,
+  countApplicationReportGenerations,
   getLatestApplicationPersonalReportV2,
   getLatestPersonalReportV2,
   getPersonalReportSupplements,
@@ -75,6 +77,7 @@ export type RegeneratePersonalReportResult =
   | { status: 'regenerated'; record: PersonalReportV2Record }
   | { status: 'snapshot_missing' }
   | { status: 'insufficient_evidence' }
+  | { status: 'limit_reached'; count: number; limit: number }
   | { status: 'migration_missing' }
   | { status: 'not_configured' }
   | { status: 'error'; message: string; record: PersonalReportV2Record | null };
@@ -333,6 +336,14 @@ async function regenerateApplicationPersonalReport(
   );
   if (current && !force && currentMatches) {
     return { status: 'cached', record: current };
+  }
+
+  if (trigger === 'manual') {
+    const versionCount = await countApplicationReportGenerations(supabase, { userId, applicationId });
+    if (versionCount.migrationMissing) return { status: 'migration_missing' };
+    if (versionCount.count >= APPLICATION_REPORT_GENERATION_LIMIT) {
+      return { status: 'limit_reached', count: versionCount.count, limit: APPLICATION_REPORT_GENERATION_LIMIT };
+    }
   }
 
   let evaluation: ProfileEvaluation;

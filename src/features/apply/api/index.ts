@@ -47,6 +47,7 @@ export {
 export type { StoredApplicationProfileAnalysis } from './application-analysis-repository';
 export {
   createPersonalReportV2Version,
+  countApplicationReportGenerations,
   getApplicationPersonalReportV2Version,
   getApplicationPersonalReportSupplements,
   getLatestApplicationPersonalReportV2,

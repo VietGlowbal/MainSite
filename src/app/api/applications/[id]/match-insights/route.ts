@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
 import { getLatestApplicationMatchingAnalysis } from '@/features/apply/api';
@@ -9,13 +10,16 @@ import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const bodySchema = z.object({ force: z.boolean().optional() });
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const getElapsed = startTimer();
   const { id: applicationId } = await context.params;
+  const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,6 +67,7 @@ export async function POST(
       supabase,
       userId,
       applicationId,
+      force: parsed.data.force,
       cooldownUntil: nextRegenerationAt,
     });
 

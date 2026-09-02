@@ -53,6 +53,9 @@ export type ReportConfidence = Confidence;
  */
 export type PersonalReportTrigger = 'manual' | 'matching_report' | 'supplement_answer';
 
+/** Maximum number of complete application report generations. */
+export const APPLICATION_REPORT_GENERATION_LIMIT = 5;
+
 /** One row of the version-history dropdown — no report content, just enough to label and pick a version. */
 export type PersonalReportVersionSummary = {
   id: string;

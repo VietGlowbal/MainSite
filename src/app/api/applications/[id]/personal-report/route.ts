@@ -1,12 +1,16 @@
 import { after, NextResponse } from 'next/server';
 import { z } from 'zod';
 import {
+  countApplicationReportGenerations,
   enqueueApplicationPersonalReportGeneration,
   getApplicationPersonalReportGeneration,
   getLatestApplicationPersonalReportV2,
   processApplicationPersonalReportGenerations,
 } from '@/features/apply/api';
-import { PERSONAL_REPORT_CONTRACT_VERSION } from '@/features/apply/domain';
+import {
+  APPLICATION_REPORT_GENERATION_LIMIT,
+  PERSONAL_REPORT_CONTRACT_VERSION,
+} from '@/features/apply/domain';
 import { PERSONAL_REPORT_EXTRACTION_VERSION } from '@/lib/ai/personal-report-v2';
 import { createClient } from '@/lib/supabase/server';
 import { applyRateLimit, personalReportLimiter } from '@/lib/rate-limiter';
@@ -39,6 +43,7 @@ function publicGeneration(job: Awaited<ReturnType<typeof getApplicationPersonalR
     'AI_GENERATION_FAILED',
     'WORKER_ERROR',
     'MAX_RETRIES_EXCEEDED',
+    'REPORT_LIMIT_REACHED',
   ]);
   return {
     status: job.status,
@@ -47,7 +52,12 @@ function publicGeneration(job: Awaited<ReturnType<typeof getApplicationPersonalR
     input_hash: job.input_hash,
     report_version_id: job.report_version_id,
     error_code: job.error_code && safeErrorCodes.has(job.error_code) ? job.error_code : null,
-    error_message: job.status === 'blocked' ? 'Could not create the report. Please try again.' : null,
+    error_message:
+      job.status !== 'blocked'
+        ? null
+        : job.error_code === 'REPORT_LIMIT_REACHED'
+          ? 'You have reached the maximum number of report generations.'
+          : 'Could not create the report. Please try again.',
   };
 }
 
@@ -68,14 +78,20 @@ export async function GET(_request: Request, context: Params) {
   }
   if (!owned.data) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
-  const [latest, snapshot, generation] = await Promise.all([
+  const [latest, snapshot, generation, reportCount] = await Promise.all([
     getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
     owned.data.candidate_confirmed_at
       ? loadLatestApplicationSnapshot(supabase, user.id, applicationId)
       : Promise.resolve({ data: null, error: null }),
     getApplicationPersonalReportGeneration(supabase, { userId: user.id, applicationId }),
+    countApplicationReportGenerations(supabase, { userId: user.id, applicationId }),
   ]);
-  if (latest.migrationMissing || generation.migrationMissing || isPersonalReportMigrationMissing(snapshot.error)) {
+  if (
+    latest.migrationMissing ||
+    generation.migrationMissing ||
+    reportCount.migrationMissing ||
+    isPersonalReportMigrationMissing(snapshot.error)
+  ) {
     return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
   }
 
@@ -93,6 +109,8 @@ export async function GET(_request: Request, context: Params) {
     confirmed: Boolean(owned.data.candidate_confirmed_at && snapshotId),
     confirmedSnapshotId: snapshotId,
     stale,
+    reportCount: reportCount.count,
+    reportLimit: APPLICATION_REPORT_GENERATION_LIMIT,
     generation: publicGeneration(generation.job),
   });
 }
@@ -123,12 +141,17 @@ export async function POST(request: Request, context: Params) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
 
-  const [latest, snapshot, currentGeneration] = await Promise.all([
+  const [latest, snapshot, currentGeneration, reportCount] = await Promise.all([
     getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
     loadLatestApplicationSnapshot(supabase, user.id, applicationId),
     getApplicationPersonalReportGeneration(supabase, { userId: user.id, applicationId }),
+    countApplicationReportGenerations(supabase, { userId: user.id, applicationId }),
   ]);
-  if (latest.migrationMissing || isPersonalReportMigrationMissing(snapshot.error)) {
+  if (
+    latest.migrationMissing ||
+    reportCount.migrationMissing ||
+    isPersonalReportMigrationMissing(snapshot.error)
+  ) {
     return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
   }
   if (currentGeneration.migrationMissing) {
@@ -156,6 +179,8 @@ export async function POST(request: Request, context: Params) {
       confirmed: true,
       confirmedSnapshotId: currentSnapshotId,
       stale: false,
+      reportCount: reportCount.count,
+      reportLimit: APPLICATION_REPORT_GENERATION_LIMIT,
       generation: publicGeneration(currentGeneration.job),
     });
   }
@@ -168,13 +193,26 @@ export async function POST(request: Request, context: Params) {
     return NextResponse.json({ applicationId, queued: true, generation: publicGeneration(currentGeneration.job), stale: true }, { status: 202 });
   }
 
+  const trigger = parsed.data.trigger ?? 'manual';
+  if (trigger === 'manual' && reportCount.count >= APPLICATION_REPORT_GENERATION_LIMIT) {
+    return NextResponse.json(
+      {
+        error: 'You have reached the maximum number of report generations.',
+        code: 'REPORT_LIMIT_REACHED',
+        reportCount: reportCount.count,
+        reportLimit: APPLICATION_REPORT_GENERATION_LIMIT,
+      },
+      { status: 409 },
+    );
+  }
+
   const limited = applyRateLimit(personalReportLimiter, `${user.id}:${applicationId}`, 'Personal Report');
   if (limited) return limited;
 
   const queued = await enqueueApplicationPersonalReportGeneration(supabase, {
     userId: user.id,
     applicationId,
-    trigger: parsed.data.trigger ?? 'manual',
+    trigger,
     force: parsed.data.force,
     idempotencyKey: parsed.data.idempotencyKey,
   });

@@ -6,6 +6,7 @@ import { PERSONAL_REPORT_CONTRACT_VERSION } from '@/features/apply/domain';
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   getLatest: vi.fn(),
+  countReportGenerations: vi.fn(),
   enqueue: vi.fn(),
   getGeneration: vi.fn(),
   after: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock('next/server', async (importOriginal) => ({
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => supabaseMock }));
 vi.mock('@/features/apply/api', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatest,
+  countApplicationReportGenerations: mocks.countReportGenerations,
   enqueueApplicationPersonalReportGeneration: mocks.enqueue,
   getApplicationPersonalReportGeneration: mocks.getGeneration,
   processApplicationPersonalReportGenerations: mocks.process,
@@ -77,6 +79,7 @@ describe('application Personal Report route', () => {
     setup();
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.getLatest.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.countReportGenerations.mockResolvedValue({ count: 0, migrationMissing: false });
     mocks.enqueue.mockResolvedValue({
       migrationMissing: false,
       job: { id: 'job-1', status: 'pending', attempts: 0 },
@@ -158,6 +161,18 @@ describe('application Personal Report route', () => {
       versionId: 'report-1',
       stale: false,
     });
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('blocks the sixth complete report generation', async () => {
+    const { POST } = await import('./route');
+    mocks.countReportGenerations.mockResolvedValue({ count: 5, migrationMissing: false });
+
+    const response = await POST(request({ force: true }), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body).toMatchObject({ code: 'REPORT_LIMIT_REACHED', reportCount: 5, reportLimit: 5 });
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getLatestApplicationPersonalReportV2: vi.fn(),
   findPersonalReportV2ByCacheKey: vi.fn(),
   getApplicationPersonalReportSupplements: vi.fn(),
+  countApplicationReportGenerations: vi.fn(),
   getPersonalReportSupplements: vi.fn(),
   createPersonalReportV2Version: vi.fn(),
   getLatestApplicationProfileAnalysis: vi.fn(),
@@ -46,6 +47,7 @@ vi.mock('./personal-report-v2-repository', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatestApplicationPersonalReportV2,
   findPersonalReportV2ByCacheKey: mocks.findPersonalReportV2ByCacheKey,
   getApplicationPersonalReportSupplements: mocks.getApplicationPersonalReportSupplements,
+  countApplicationReportGenerations: mocks.countApplicationReportGenerations,
   getPersonalReportSupplements: mocks.getPersonalReportSupplements,
   createPersonalReportV2Version: mocks.createPersonalReportV2Version,
 }));
@@ -70,6 +72,7 @@ vi.mock('@/shared/evaluation', () => ({
   shouldRegenerate: mocks.shouldRegenerate,
 }));
 vi.mock('../domain', () => ({
+  APPLICATION_REPORT_GENERATION_LIMIT: 5,
   buildPersonalReport: mocks.buildPersonalReport,
   PERSONAL_REPORT_CONTRACT_VERSION: 'personal-report-v3',
 }));
@@ -120,6 +123,7 @@ describe('regeneratePersonalReport', () => {
     mocks.buildApplicantStateFromSnapshot.mockResolvedValue(FAKE_STATE);
     mocks.candidateContextFromState.mockReturnValue(FAKE_CONTEXT);
     mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.countApplicationReportGenerations.mockResolvedValue({ count: 0, migrationMissing: false });
     mocks.getLatestApplicationProfileAnalysis.mockResolvedValue(null);
     mocks.getApplicationPersonalReportSupplements.mockResolvedValue({});
     mocks.findPersonalReportV2ByCacheKey.mockResolvedValue({ record: null, migrationMissing: false });
@@ -363,6 +367,34 @@ describe('regeneratePersonalReport', () => {
     expect(result.status).toBe('cached');
     expect(mocks.buildProfileEvaluationInput).not.toHaveBeenCalled();
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+
+  it('blocks a manual application generation after five report sets', async () => {
+    mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({
+      migrationMissing: false,
+      record: {
+        ...FAKE_RECORD,
+        applicationId: 'app-a',
+        confirmedSnapshotId: 'snapshot-a',
+        sourceAnalysisVersionId: 'analysis-a',
+        reportContractVersion: 'personal-report-v3',
+        cacheKey: 'stable-hash',
+        inputHash: 'stable-hash',
+      },
+    });
+    mocks.countApplicationReportGenerations.mockResolvedValue({ count: 5, migrationMissing: false });
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+      force: true,
+    });
+
+    expect(result).toEqual({ status: 'limit_reached', count: 5, limit: 5 });
+    expect(mocks.buildProfileEvaluationInput).not.toHaveBeenCalled();
   });
 
   it('force generation reuses the analysis snapshot and appends a new version', async () => {

@@ -3,11 +3,19 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ICONS, KitIcon, Panel, ProgressBar, usePrefersReducedMotion } from '@/shared/ui';
+import { APPLICATION_REPORT_GENERATION_LIMIT } from '@/features/apply/domain';
 import { useLanguage } from '@/lib/i18n';
 import { formatUiDateTime } from '@/shared/lib';
 
 type ReportStatus = 'waiting' | 'generating' | 'complete' | 'failed';
 type ReportState = { status: ReportStatus; error?: string | undefined };
+type ReportQuota = { count: number; limit: number };
+type ReportErrorMessages = {
+  generic: string;
+  rateLimit: string;
+  unavailable: string;
+  limit: string;
+};
 
 const PERSONAL_REPORT_POLL_MS = 2_000;
 const PERSONAL_REPORT_MAX_POLLS = 150;
@@ -18,14 +26,25 @@ function waitForNextPersonalReportPoll() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, PERSONAL_REPORT_POLL_MS));
 }
 
+function reportQuotaFromBody(body: unknown): ReportQuota | null {
+  if (!body || typeof body !== 'object') return null;
+  const value = body as { reportCount?: unknown; reportLimit?: unknown };
+  return typeof value.reportCount === 'number' && typeof value.reportLimit === 'number'
+    ? { count: Math.max(0, value.reportCount), limit: Math.max(1, value.reportLimit) }
+    : null;
+}
+
 async function waitForPersonalReport(
   applicationId: string,
-  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+  errorMessages: ReportErrorMessages,
+  options: { force: boolean; previousVersionId: string | null; onQuota: (quota: ReportQuota) => void },
 ): Promise<ReportState> {
   for (let poll = 0; poll < PERSONAL_REPORT_MAX_POLLS; poll += 1) {
     try {
       const response = await fetch(`/api/applications/${applicationId}/personal-report`);
       const body = await response.json().catch(() => ({}));
+      const quota = reportQuotaFromBody(body);
+      if (quota) options.onQuota(quota);
 
       if (response.ok) {
         const generationStatus = body.generation?.status ?? null;
@@ -33,10 +52,16 @@ async function waitForPersonalReport(
         // queue row is still active. The current snapshot is authoritative;
         // do not hold Matching behind that stale row.
         if (body.reportV2 && body.stale !== true) {
-          return { status: 'complete' };
+          if (!options.force || body.versionId !== options.previousVersionId) return { status: 'complete' };
         }
         if (generationStatus === 'blocked') {
-          return { status: 'failed', error: errorMessages.generic };
+          return {
+            status: 'failed',
+            error:
+              body.generation?.error_code === 'REPORT_LIMIT_REACHED'
+                ? errorMessages.limit
+                : errorMessages.generic,
+          };
         }
       } else if (response.status !== 503) {
         if (response.status === 429) return { status: 'failed', error: errorMessages.rateLimit };
@@ -56,13 +81,19 @@ async function waitForPersonalReport(
  */
 async function fetchOrGeneratePersonal(
   applicationId: string,
-  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+  errorMessages: ReportErrorMessages,
+  force: boolean,
+  onQuota: (quota: ReportQuota) => void,
 ): Promise<ReportState> {
+  let previousVersionId: string | null = null;
   try {
     try {
       const existing = await fetch(`/api/applications/${applicationId}/personal-report`);
       const existingBody = await existing.json().catch(() => ({}));
-      if (existing.ok && existingBody.reportV2 && existingBody.stale !== true) {
+      const quota = reportQuotaFromBody(existingBody);
+      if (quota) onQuota(quota);
+      previousVersionId = typeof existingBody.versionId === 'string' ? existingBody.versionId : null;
+      if (!force && existing.ok && existingBody.reportV2 && existingBody.stale !== true) {
         return { status: 'complete' };
       }
       if (!existing.ok && existing.status !== 503) {
@@ -81,11 +112,17 @@ async function fetchOrGeneratePersonal(
     const canonical = await fetch(`/api/applications/${applicationId}/personal-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify(force ? { trigger: 'manual', force: true } : {}),
     });
       const canonicalBody = await canonical.json().catch(() => ({}));
+      const quota = reportQuotaFromBody(canonicalBody);
+      if (quota) onQuota(quota);
       if (canonical.status === 202 && canonicalBody.queued) {
-        return waitForPersonalReport(applicationId, errorMessages);
+        return waitForPersonalReport(applicationId, errorMessages, {
+          force,
+          previousVersionId,
+          onQuota,
+        });
       }
       if (!canonical.ok || !canonicalBody.reportV2) {
       if (canonical.status === 429) {
@@ -93,6 +130,9 @@ async function fetchOrGeneratePersonal(
       }
       if (canonical.status === 503) {
         return { status: 'failed', error: errorMessages.unavailable };
+      }
+      if (canonicalBody.code === 'REPORT_LIMIT_REACHED') {
+        return { status: 'failed', error: errorMessages.limit };
       }
       return { status: 'failed', error: canonicalBody.error || errorMessages.generic };
     }
@@ -105,7 +145,8 @@ async function fetchOrGeneratePersonal(
 
 async function fetchOrGenerateMatching(
   applicationId: string,
-  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+  errorMessages: ReportErrorMessages,
+  force: boolean,
 ): Promise<ReportState> {
   let lastFailure: ReportState = { status: 'failed', error: errorMessages.generic };
 
@@ -113,9 +154,14 @@ async function fetchOrGenerateMatching(
     try {
       const existing = await fetch(`/api/applications/${applicationId}/strategy/course-match`);
       const existingBody = await existing.json().catch(() => ({}));
-      if (existingBody.analysis) return { status: 'complete' };
+      if (!force && existingBody.analysis) return { status: 'complete' };
 
-      const created = await fetch(`/api/applications/${applicationId}/match-insights`, { method: 'POST' });
+      const created = await fetch(
+        `/api/applications/${applicationId}/match-insights`,
+        force
+          ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) }
+          : { method: 'POST' },
+      );
       const createdBody = await created.json().catch(() => ({}));
       if (!created.ok || createdBody.error) {
         lastFailure = {
@@ -140,7 +186,8 @@ async function fetchOrGenerateMatching(
 
 async function fetchOrGenerateStrategy(
   applicationId: string,
-  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+  errorMessages: ReportErrorMessages,
+  force: boolean,
 ): Promise<ReportState> {
   let lastFailure: ReportState = { status: 'failed', error: errorMessages.generic };
 
@@ -150,11 +197,16 @@ async function fetchOrGenerateStrategy(
       const existingBody = await existing.json().catch(() => ({}));
       // This flow generates V3. Legacy rows are only a read fallback and must
       // not make a failed/missing V3 generation look complete.
-      if (existing.ok && existingBody.reportV3) {
+      if (!force && existing.ok && existingBody.reportV3) {
         return { status: 'complete' };
       }
 
-      const created = await fetch(`/api/applications/${applicationId}/strategy/recommendation`, { method: 'POST' });
+      const created = await fetch(
+        `/api/applications/${applicationId}/strategy/recommendation`,
+        force
+          ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) }
+          : { method: 'POST' },
+      );
       const createdBody = await created.json().catch(() => ({}));
       if (!created.ok || (!createdBody.reportV3 && !createdBody.reportV2 && !createdBody.recommendation)) {
         lastFailure = {
@@ -190,6 +242,9 @@ export function AnalysisWorkspace({
   const [personal, setPersonal] = useState<ReportState>({ status: 'generating' });
   const [matching, setMatching] = useState<ReportState>({ status: 'generating' });
   const [strategy, setStrategy] = useState<ReportState>({ status: 'waiting' });
+  const [quota, setQuota] = useState<ReportQuota>({ count: 0, limit: APPLICATION_REPORT_GENERATION_LIMIT });
+  const [regenerating, setRegenerating] = useState(false);
+  const regenerationInFlightRef = useRef(false);
   const startedApplicationRef = useRef<string | null>(null);
 
   const personalHref = `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}`;
@@ -199,6 +254,7 @@ export function AnalysisWorkspace({
       generic: t('Something went wrong. Please try again.'),
       rateLimit: t('Rate limit reached. Please wait a moment and try again.'),
       unavailable: t('Service temporarily unavailable. Please try again shortly.'),
+      limit: t('You have reached the maximum number of report generations.'),
     }),
     [t],
   );
@@ -212,7 +268,7 @@ export function AnalysisWorkspace({
     startedApplicationRef.current = applicationId;
     let active = true;
     async function loadReports() {
-      const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages);
+      const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages, false, setQuota);
       if (!active) return;
       setPersonal(personalState);
       if (personalState.status !== 'complete') {
@@ -222,12 +278,12 @@ export function AnalysisWorkspace({
         });
         return;
       }
-      const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
+      const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages, false);
       if (!active) return;
       setMatching(matchingState);
       if (matchingState.status !== 'complete') return;
       setStrategy({ status: 'generating' });
-      const strategyState = await fetchOrGenerateStrategy(applicationId, errorMessages);
+      const strategyState = await fetchOrGenerateStrategy(applicationId, errorMessages, false);
       if (active) setStrategy(strategyState);
     }
     void loadReports();
@@ -240,7 +296,7 @@ export function AnalysisWorkspace({
     setPersonal({ status: 'generating' });
     setMatching({ status: 'generating' });
     setStrategy({ status: 'waiting' });
-    const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages);
+    const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages, false, setQuota);
     setPersonal(personalState);
     if (personalState.status !== 'complete') {
       setMatching({
@@ -249,11 +305,11 @@ export function AnalysisWorkspace({
       });
       return;
     }
-    const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
+    const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages, false);
     setMatching(matchingState);
     if (matchingState.status !== 'complete') return;
     setStrategy({ status: 'generating' });
-    setStrategy(await fetchOrGenerateStrategy(applicationId, errorMessages));
+    setStrategy(await fetchOrGenerateStrategy(applicationId, errorMessages, false));
   }, [applicationId, errorMessages]);
 
   const retryMatching = useCallback(() => {
@@ -263,11 +319,11 @@ export function AnalysisWorkspace({
     }
     setMatching({ status: 'generating' });
     setStrategy({ status: 'waiting' });
-    void fetchOrGenerateMatching(applicationId, errorMessages).then(async (matchingState) => {
+    void fetchOrGenerateMatching(applicationId, errorMessages, false).then(async (matchingState) => {
       setMatching(matchingState);
       if (matchingState.status !== 'complete') return;
       setStrategy({ status: 'generating' });
-      setStrategy(await fetchOrGenerateStrategy(applicationId, errorMessages));
+      setStrategy(await fetchOrGenerateStrategy(applicationId, errorMessages, false));
     });
   }, [applicationId, errorMessages, personal.status, retryPersonal]);
 
@@ -277,8 +333,36 @@ export function AnalysisWorkspace({
       return;
     }
     setStrategy({ status: 'generating' });
-    void fetchOrGenerateStrategy(applicationId, errorMessages).then(setStrategy);
+    void fetchOrGenerateStrategy(applicationId, errorMessages, false).then(setStrategy);
   }, [applicationId, errorMessages, matching.status, personal.status, retryMatching]);
+
+  const regenerateReports = useCallback(async () => {
+    if (regenerationInFlightRef.current || quota.count >= quota.limit) return;
+    regenerationInFlightRef.current = true;
+    setRegenerating(true);
+    setPersonal({ status: 'generating' });
+    setMatching({ status: 'waiting' });
+    setStrategy({ status: 'waiting' });
+    try {
+      const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages, true, setQuota);
+      setPersonal(personalState);
+      if (personalState.status !== 'complete') {
+        setMatching({ status: 'failed', error: personalState.error ?? errorMessages.generic });
+        return;
+      }
+
+      setMatching({ status: 'generating' });
+      const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages, true);
+      setMatching(matchingState);
+      if (matchingState.status !== 'complete') return;
+
+      setStrategy({ status: 'generating' });
+      setStrategy(await fetchOrGenerateStrategy(applicationId, errorMessages, true));
+    } finally {
+      regenerationInFlightRef.current = false;
+      setRegenerating(false);
+    }
+  }, [applicationId, errorMessages, quota.count, quota.limit]);
 
   const completeCount = [personal, matching, strategy].filter((report) => report.status === 'complete').length;
   const allComplete = completeCount === 3;
@@ -313,6 +397,9 @@ export function AnalysisWorkspace({
         {confirmedDate && !allComplete ? (
           <p className="text-gb-xs text-fg-muted">{t('Confirmed {date}', { date: confirmedDate })}</p>
         ) : null}
+        <p className="text-gb-xs text-fg-muted">
+          {t('Reports generated: {count}/{limit}', { count: quota.count, limit: quota.limit })}
+        </p>
       </div>
 
       {!allComplete ? (
@@ -390,6 +477,16 @@ export function AnalysisWorkspace({
 
       {allComplete ? (
         <div className="flex flex-wrap justify-center gap-gb-md">
+          <Button
+            type="button"
+            size="lg"
+            onClick={() => void regenerateReports()}
+            disabled={quota.count >= quota.limit || regenerating}
+          >
+            {regenerating
+              ? t('Generating all reports…')
+              : t('Generate all reports again')}
+          </Button>
           <Button href={personalHref} size="lg">
             {t('View my reports')}
           </Button>
@@ -402,6 +499,11 @@ export function AnalysisWorkspace({
           <Button href="/apply" variant="secondary" size="lg">
             {t('Go to My Portal')}
           </Button>
+          {quota.count >= quota.limit ? (
+            <p className="basis-full text-center text-gb-sm text-fg-muted">
+              {t('You have reached the maximum number of report generations.')}
+            </p>
+          ) : null}
         </div>
       ) : (
         <div className="flex flex-col items-center gap-gb-md text-center">

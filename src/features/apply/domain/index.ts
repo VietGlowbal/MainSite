@@ -233,6 +233,7 @@ export type {
 } from './ai-reports';
 export {
   buildPersonalReport,
+  APPLICATION_REPORT_GENERATION_LIMIT,
   PERSONAL_REPORT_CONTRACT_VERSION,
   STUDY_MOTIVATION_SUPPLEMENT_KEY,
   themeMaturityResults,

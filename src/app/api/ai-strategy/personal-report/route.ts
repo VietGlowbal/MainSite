@@ -75,6 +75,16 @@ export async function POST(request: Request) {
         { error: 'Add reflections, activities, or achievements before generating a Personal Report.' },
         { status: 422 },
       );
+    case 'limit_reached':
+      return NextResponse.json(
+        {
+          error: 'You have reached the maximum number of report generations.',
+          code: 'REPORT_LIMIT_REACHED',
+          reportCount: result.count,
+          reportLimit: result.limit,
+        },
+        { status: 409 },
+      );
     case 'error':
       return NextResponse.json(
         {

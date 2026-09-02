@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import {
   strategyRecommendationFromRow,
   strategyReportV2FromRow,
@@ -23,6 +24,7 @@ import { logger, startTimer } from '@/server/observability';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
+const bodySchema = z.object({ force: z.boolean().optional() });
 
 async function loadApplication(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -100,9 +102,11 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   return NextResponse.json({ reportV3, reportV2, recommendation });
 }
 
-export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const getElapsed = startTimer();
   const { id: applicationId } = await context.params;
+  const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -220,7 +224,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         report.metadata.selectedScholarshipVersionId === lineage.selectedScholarshipVersionId,
     );
   });
-  if (cached) {
+  if (cached && !parsed.data.force) {
     logger.info('strategy_recommendation_generate', {
       userId: user.id,
       applicationId,

@@ -251,6 +251,26 @@ export async function listApplicationPersonalReportV2Versions(
   };
 }
 
+/** Count the manual Personal Report versions that represent complete report generations. */
+export async function countApplicationReportGenerations(
+  supabase: SupabaseClient,
+  scope: ApplicationReportScope,
+): Promise<{ count: number; migrationMissing: boolean }> {
+  const { count, error } = await supabase
+    .from('student_personal_report_versions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', scope.userId)
+    .eq('application_id', scope.applicationId)
+    .or('trigger.eq.manual,trigger.is.null');
+
+  if (error) {
+    const migrationMissing = isMigrationMissing(error);
+    if (!migrationMissing) console.error('[personal-report-v2] application version count failed', error);
+    return { count: 0, migrationMissing };
+  }
+  return { count: count ?? 0, migrationMissing: false };
+}
+
 /** One past version of ONE application — ownership checked on all three columns. */
 export async function getApplicationPersonalReportV2Version(
   supabase: SupabaseClient,

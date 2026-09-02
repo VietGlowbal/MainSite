@@ -20,6 +20,55 @@ afterEach(() => {
 });
 
 describe('AnalysisWorkspace', () => {
+  it('shows the shared report quota and regenerates all three reports from one button', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, versionId: 'p1', stale: false, reportCount: 1, reportLimit: 5 });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} }, reportCount: 2, reportLimit: 5 });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm2' } });
+      if (url === STRATEGY_POST && init?.method === 'POST') return jsonResponse({ reportV3: { id: 's2' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(screen.getByText('Reports generated: 1/5')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Generate all reports again' }));
+    await waitFor(() => expect(screen.getByText('Reports generated: 2/5')).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ trigger: 'manual', force: true }),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith(MATCHING_POST, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ force: true }),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith(STRATEGY_POST, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ force: true }),
+    }));
+  });
+
+  it('disables the shared regeneration button after five report generations', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, versionId: 'p5', stale: false, reportCount: 5, reportLimit: 5 });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Generate all reports again' })).toBeDisabled();
+    expect(screen.getByText('You have reached the maximum number of report generations.')).toBeInTheDocument();
+  });
+
   it('reuses all existing reports after reload without starting generation', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, stale: false });

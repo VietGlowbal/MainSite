@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-09-02 (complete report-set regeneration quota): the Strategy
+analysis workspace now shows the shared application quota and exposes one
+button to regenerate Personal, Matching, and Strategy together. Each manual
+Personal Report generation counts as one complete set, with a server-side
+limit of five and a disabled button plus explanatory message at the limit.
+Forced Matching and Strategy requests bypass their normal cache/cooldown only
+for this coordinated regeneration flow. Measured: full test suite 3,582
+passed and 2 todo across 379 files, strict typecheck, and full lint (0 errors,
+4 existing warnings) pass.
+
 Working tree 2026-09-02 (English/Vietnamese SEO route parity): public
 Vietnamese routes now render independently at `/vi/**` while English URLs stay
 unchanged. Shared marketing sections, navigation, footer, route-aware language

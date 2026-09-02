@@ -46,16 +46,19 @@ async function processJob(job: ApplicationPersonalReportGenerationJob) {
       result.status === 'snapshot_missing' ||
       result.status === 'insufficient_evidence' ||
       result.status === 'migration_missing' ||
-      result.status === 'not_configured'
+      result.status === 'not_configured' ||
+      result.status === 'limit_reached'
     ) {
       await blockApplicationPersonalReportGeneration(
         job.id,
-        result.status.toUpperCase(),
+        result.status === 'limit_reached' ? 'REPORT_LIMIT_REACHED' : result.status.toUpperCase(),
         result.status === 'snapshot_missing'
           ? 'Confirm Candidate Information before generating this report.'
           : result.status === 'insufficient_evidence'
             ? 'Add reflections, activities, or achievements before generating this report.'
-            : 'Generation prerequisites are unavailable.',
+            : result.status === 'limit_reached'
+              ? 'You have reached the maximum number of report generations.'
+              : 'Generation prerequisites are unavailable.',
       );
       return 'blocked' as const;
     }

@@ -55,6 +55,11 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
     'GlowBal đọc phần tự nhìn nhận, thành tích và hoạt động của bạn để tìm các mẫu hành vi có bằng chứng hỗ trợ. Dữ liệu còn thiếu sẽ được nêu rõ thay vì để AI tự điền.',
   'Overall evidence confidence': 'Độ tin cậy tổng thể của bằng chứng',
   'Create report': 'Tạo báo cáo',
+  'Generate all reports again': 'Tạo lại toàn bộ báo cáo',
+  'Generating all reports…': 'Đang tạo lại toàn bộ báo cáo…',
+  'Reports generated: {count}/{limit}': 'Đã tạo báo cáo: {count}/{limit}',
+  'You have reached the maximum number of report generations.':
+    'Bạn đã đạt tối đa số lần tạo báo cáo.',
   'Creating report…': 'Đang tạo báo cáo…',
   Generated: 'Đã tạo',
   'Review Reflection': 'Xem lại phần Tự nhìn nhận',
