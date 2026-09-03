@@ -1660,3 +1660,14 @@ After material work, update this file in the same change:
 - Fix: the switcher now follows Next's pathname, the root provider is route-authoritative, the nested Vietnamese provider is removed, and homepage hero copy reuses the established catalog translations (`Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”`).
 - Regression coverage: route mapping, explicit locale precedence, and the existing reflection switch test.
 - Measured checks: full `npm.cmd run test:ci` passed (379 files, 3576 passed, 2 todo, coverage thresholds passed); `npm.cmd run typecheck:strict` passed; scoped ESLint passed; `npm.cmd run build:ci` passed (141 static pages, 3 existing `geo-content.ts` tracing warnings).
+
+## 2026-09-03 — Duplicate `universities` rows merged (`supabase-university-duplicate-merge.sql`)
+
+- Trigger: the 21/08 Beta Product Review reported that saving UC Berkeley or MIT returned zero scholarships, and read it as thin scholarship coverage.
+- Root cause: `universities` held 108 rows for 99 institutions. Nine duplicates in one contiguous id block (98-106) split the data — canonical rows carried the editorial fields and all 25 scholarship links, duplicates carried 180 of 593 `courses`, 39 of 196 `academic_units`, and 7 of 17 `university_profiles`. Students saving the plainer-named duplicate saw an empty school. Not a coverage bug.
+- Fix: new migration repoints all 13 FK children onto the canonical row, then deletes the shells, then adds `universities_normalized_name_key` — a unique index on the name with case, punctuation and parenthetical suffixes normalised out, which is the enforcement that was missing when the import doubled the catalogue.
+- Safety: single transaction; three abort guards (missing canonical target, name drift, any child row still pointing at a duplicate); every deleted row archived verbatim to `public.university_merge_archive` (RLS on, no policies, anon reads back `[]`).
+- Applied: by the owner on 2026-09-03 19:04 UTC via the Supabase SQL editor. **Confirmed run.**
+- Measured after the fact: 0 duplicate rows, 99 universities, 0 normalized-name collisions, 0 orphaned courses, Berkeley 1 scholarship, MIT 4 scholarships / 40 courses / 11 academic units, archive holding 9 + 1 rows and nothing else. 232 rows repointed, 10 deleted.
+- Not run: no application code changed, so no typecheck/build/test gate applies. `npm run verify:pr` was not run for this change.
+- Still open, and separate: only 374 of 2,877 scholarships are linked to any university (`scholarship_universities`), so 87% remain unreachable through the save-a-university flow. See `known-issues.md` §1d.

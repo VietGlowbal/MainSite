@@ -28,7 +28,7 @@ the current state. Neither overrides the evidence contract in
 | Academic + experience strategies | **Not built.** Need new F7 prompt fields |
 | Admissions Perspective, 2 of 4 blocks | **Not built.** "Questions we still have" and "What we'd like to see" need new AI output and a column |
 | Engine migration off `applicant_analyses` | **Not started.** Blocks the clean Strategy Report |
-| `supabase-final-check.sql` | **Written, NOT RUN.** Generation 503s until applied |
+| `supabase-final-check.sql` | **Applied.** Confirmed live 2026-09-04 — `application_final_checks` exists with 12 columns. (Was recorded here as "Written, NOT RUN — generation 503s until applied"; that line was stale and may explain a failure the 21/08 beta reviewer hit.) |
 
 ## Decisions in force
 

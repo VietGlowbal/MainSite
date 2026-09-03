@@ -17,6 +17,7 @@ are regression records for fixed bugs, not open work:
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
+| §1d duplicate universities | ✅ Merged 2026-09-03, confirmed live (99 rows, 0 collisions). **Read before deleting any `universities` row** — 13 tables FK to it and 4 cascade. Scholarship *coverage* (374 of 2,877 linked) is a separate, still-open problem. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
 | §5–§5m | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. §5m records that reflection never asked for the career direction the matching and strategy reports score against, and that `goals` is a SHARED column — do not add a second career-goal column beside it. |
@@ -512,6 +513,70 @@ message Could not find the 'program' column of 'user_universities' in the schema
 Note the word "column" comes **after** the column name. The obvious pattern
 `/column .*program/i` does not match it — that was the first version, and it fell
 through to the generic message in the browser.
+
+---
+
+## 1d. FIXED 2026-09-03 — nine duplicate `universities` rows merged
+
+`supabase-university-duplicate-merge.sql`, **CONFIRMED RUN** by the owner on
+2026-09-03 19:04 UTC. Verified live after the fact: 0 duplicate rows, 99
+universities, 0 normalized-name collisions, 0 orphaned courses.
+
+Found while checking the 21/08 Beta Product Review, which reported that saving
+UC Berkeley or MIT returned zero scholarships and read it as thin scholarship
+coverage. It was not. `universities` held **108 rows for 99 institutions**, with
+nine duplicated across one contiguous id block (98-106) — a later bulk import
+that landed beside the existing curated rows and was indistinguishable from
+them (`source = 'curated'` on both halves; there is no import discriminator).
+
+**The two halves held different data, which is why this looked like missing
+scholarships:**
+
+| | canonical (low id) | duplicate (98-106) |
+|---|---|---|
+| `specific_insight`, `strengths` | all nine | none |
+| scholarship links | all 25 | 0 |
+| `courses` | some pairs 0 | 180 of 593 (30%) |
+| `academic_units` | some pairs 0 | 39 of 196 (20%) |
+| `university_profiles` | 0 | 7 of 17 |
+
+So the duplicate carried the plainer, more searchable name AND no scholarships.
+A student searching "Massachusetts Institute of Technology" saved the empty
+twin; one who picked "…(MIT)" saw four. **This was never a coverage problem** —
+do not reopen it as one. The real coverage problem is separate and still open:
+only 374 of 2,877 scholarships are linked to any university at all.
+
+**⚠️ THIRTEEN tables FK to `universities`, four of them `ON DELETE CASCADE`**
+(`academic_units`, `scholarship_universities`, `university_profiles`,
+`user_universities`); the other nine `SET NULL`. A plain
+`DELETE FROM universities WHERE id BETWEEN 98 AND 106` would have destroyed 39
+academic units and 7 profiles and silently stripped the university off 180
+courses, with no error raised. Anything that removes a university row must
+repoint every child first. Enumerate the FKs from `pg_constraint` — an
+`information_schema` join over `constraint_column_usage` returned a false empty
+while this was being investigated and nearly hid all thirteen.
+
+Merge direction was canonical-wins, because editorial content cannot be
+regenerated and crawler payload can. Merging was additive, not deduplicating:
+across the five pairs holding 20 courses on each side there was **not one shared
+`course_url`**, so the two crawls had captured different programmes. MIT
+correctly went to 40 courses and 11 academic units.
+
+Net effect: 232 rows repointed, 10 deleted (9 shells + one user's redundant NYU
+save — they had saved both twins and keep the canonical one).
+
+**The undo log is still there.** `public.university_merge_archive` holds every
+deleted row verbatim as jsonb, RLS enabled with no policies (verified: the anon
+role reads back `[]`). Restore recipe is in the migration header. Drop the table
+once you are satisfied; nothing reads it.
+
+**The root cause is now constrained.** `universities_normalized_name_key` is a
+unique index on the name with case, punctuation and any parenthetical suffix
+normalised out — so "MIT" and "Massachusetts Institute of Technology (MIT)"
+collide. The FKs were always correct; what was missing was any enforcement of
+institutional identity, which is why the import doubled the catalogue silently.
+**A bulk university import will now fail loudly instead.** That is intended —
+fix the import, do not drop the index.
 
 ---
 
