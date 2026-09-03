@@ -15,6 +15,7 @@ are regression records for fixed bugs, not open work:
 | §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
 | §0, §0c database migrations | ✅ Confirmed resolved 2026-08-12 via the production schema dump — `student_profiles.curriculum` is an array type, `applicant_analyses.emerging_themes` exists. |
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
+| §0g anon-callable SECURITY DEFINER RPCs | 🔴 **OPEN, most urgent item in this file.** Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN**. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1d duplicate universities | ✅ Merged 2026-09-03, confirmed live (99 rows, 0 collisions). **Read before deleting any `universities` row** — 13 tables FK to it and 4 cascade. Scholarship *coverage* (374 of 2,877 linked) is a separate, still-open problem. |
@@ -352,6 +353,65 @@ enough on a database where §0e is also still pending.
 **Fix**: run `supabase-strategy-recommendation-report.sql` in the Supabase
 SQL editor. It is additive (`CREATE TABLE IF NOT EXISTS`), so safe to run
 even if parts of it somehow already exist.
+
+## 0g. 🔴 OPEN — three `SECURITY DEFINER` RPCs are callable by `anon` with no auth check
+
+Found 2026-09-04 auditing the system after the 21/08 Beta Product Review.
+`supabase-rpc-privilege-hardening.sql` is **WRITTEN, NOT YET RUN.** Until it is
+applied, the following is live in production.
+
+**Why the beta review missed it, and why RLS does not save you here.** The
+review's section 5.2 probed table reads and writes and correctly concluded RLS
+was holding. It never enumerated RPCs. A `SECURITY DEFINER` function executes as
+its *owner* and does not consult RLS at all — so an anon-executable one bypasses
+every policy the review verified. Table-level testing cannot find this class of
+bug. **Check `pg_proc` grants, not just `pg_policies`.**
+
+Three functions are `SECURITY DEFINER`, `EXECUTE`-able by `anon`, and contain no
+authorization check — not one reference to `auth.uid()`:
+
+| Function | Effect when called with the public anon key |
+|---|---|
+| `get_user_entitlement(target_user_id uuid)` | Returns any named user's plan, `course_search_limit`, `course_add_limit` and billing window. Cross-user disclosure. |
+| `reset_billing_period(target_user_id uuid)` | Resets any named user's billing window to the current month. |
+| `reset_all_billing_periods()` | Same, for every user whose period has expired, in one call. |
+
+The last two are a **monetization bypass**, not only a data problem: the billing
+window is what makes a usage limit expire, so anyone able to reset it on demand
+has uncapped `course_search_limit`/`course_add_limit` for free — and can reset
+other people's too.
+
+⚠️ **Do not assume the uuid is secret.** The review recorded that the public
+`avatars` bucket lists 8 UUID-named objects to an unauthenticated caller. Treat
+user-id enumeration as available.
+
+Two lower-impact maintenance functions are also anon-callable and both DELETE
+rows: `cleanup_expired_idempotency_keys()`, `cleanup_stale_search_sessions()`.
+
+**What is NOT wrong here** — the Supabase linter flags eleven functions as
+anon-executable, but five of them return `trigger`. PostgREST does not expose a
+trigger function, so those grants are inert: `create_user_entitlements`,
+`sync_entitlements_from_profile`, `sync_billing_period_from_profile`,
+`consume_activity_follow_up_question`, `update_achiever_stats`. Do not spend
+time on them beyond the `search_path` fix.
+
+**`confirm_application_candidate_snapshot` is the model to copy.** Same
+`SECURITY DEFINER` shape, but it reads `auth.uid()`, raises `42501` when NULL,
+scopes every statement to `user_id = auth.uid()`, and pins `search_path`. Any
+new definer function should look like that one.
+
+The migration revokes `anon`/`authenticated`/`PUBLIC` EXECUTE on all five
+callable RPCs and pins `search_path` on the eight definer functions that lacked
+it. **No application code calls any of the five** — verified across the repo;
+the only callers are `scripts/check-migrations.mjs` and
+`scripts/verify-phase1-checkpoint.mjs`, both on `SUPABASE_SERVICE_ROLE_KEY`,
+which the revokes do not touch.
+
+If a signed-in user ever needs their own entitlement from the client, do **not**
+re-grant the function — add the missing `target_user_id <> auth.uid()` check and
+grant `authenticated` only.
+
+---
 
 ## 0d. `application_recommendations` genUI columns — the detail-page content block
 

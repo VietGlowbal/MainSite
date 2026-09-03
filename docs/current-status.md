@@ -1671,3 +1671,14 @@ After material work, update this file in the same change:
 - Measured after the fact: 0 duplicate rows, 99 universities, 0 normalized-name collisions, 0 orphaned courses, Berkeley 1 scholarship, MIT 4 scholarships / 40 courses / 11 academic units, archive holding 9 + 1 rows and nothing else. 232 rows repointed, 10 deleted.
 - Not run: no application code changed, so no typecheck/build/test gate applies. `npm run verify:pr` was not run for this change.
 - Still open, and separate: only 374 of 2,877 scholarships are linked to any university (`scholarship_universities`), so 87% remain unreachable through the save-a-university flow. See `known-issues.md` §1d.
+
+## 2026-09-04 — Security headers added; anon-callable definer RPCs found (OPEN)
+
+- Trigger: auditing the system after the 21/08 Beta Product Review, at the owner's direction to look at backend/frontend correctness rather than copy.
+- **Headers (done, verified).** `next.config.ts` gained a `headers()` block. Production previously served only `Strict-Transport-Security` — confirmed with a live request to `glowbal-education.com`, not assumed. Now also sends `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and CSP.
+- **The CSP is `Content-Security-Policy-Report-Only` deliberately.** App Router inlines hydration payloads and styles, so an enforcing policy without per-request nonces breaks hydration and every `style` attribute. Promoting it means adding nonce generation in `src/proxy.ts` first; renaming the header alone will take the site down. The header comment says so.
+- Measured: `npm run typecheck` passed; `npm run build` passed; all five headers then read back off the built server running locally on `127.0.0.1:3000` (status 200). Not yet confirmed on the Vercel deployment.
+- **🔴 OPEN — `supabase-rpc-privilege-hardening.sql` written, NOT YET RUN.** Three `SECURITY DEFINER` RPCs are `EXECUTE`-able by `anon` with no `auth.uid()` check: `get_user_entitlement(uuid)` (any user's plan and quota), `reset_billing_period(uuid)` and `reset_all_billing_periods()` (reset any/every user's billing window, which uncaps free usage limits). Two anon-callable maintenance functions also DELETE rows. See `known-issues.md` §0g.
+- Why this was not in the beta review: `SECURITY DEFINER` runs as the function owner and ignores RLS, so table-level probing cannot find it. Audit `pg_proc` grants alongside `pg_policies`.
+- No application code calls the five revoked functions; the only callers are two scripts on the service-role key, which the revokes do not affect.
+- Not run: `npm run verify:pr` (lint/test/E2E) for this change — only typecheck and build.
