@@ -207,3 +207,18 @@ export const strategyExportLimiter = new RateLimiter({
   maxRequests: 5,
   windowMs: 60000,
 });
+
+/**
+ * Password-reset request guard.
+ *
+ * This endpoint sends an email to any address handed to it, so it is a spam
+ * relay if left open, and it is also where an attacker would probe for which
+ * addresses hold accounts. Applied twice per request — once per IP and once per
+ * target email — so neither "one host, many addresses" nor "many hosts, one
+ * victim" gets through. Deliberately tighter than the other limiters: a real
+ * person requests a reset once, and twice if the first mail is slow.
+ */
+export const passwordResetLimiter = new RateLimiter({
+  maxRequests: process.env.NODE_ENV === 'development' ? 1000 : 3,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+});
