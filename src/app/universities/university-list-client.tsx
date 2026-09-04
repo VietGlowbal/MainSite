@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {
   startTransition,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -27,6 +28,7 @@ import {
 import type { ExplorerUniversity } from '@/lib/explorer-utils';
 import type { UniversityDirectoryResponse } from '@/features/universities/directory-loader';
 import { universitySearchParams } from '@/features/universities/directory-query';
+import { useDebouncedSearchField } from '@/shared/hooks/use-debounced-search-field';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
 import { FadeInImage } from './fade-in-image';
 
@@ -254,8 +256,8 @@ function DirectoryBrowseView({
   total,
   page,
   pageSize,
-  initialSearch,
-  initialCountry,
+  urlSearch,
+  urlCountry,
   countries,
   busy,
   error,
@@ -265,8 +267,14 @@ function DirectoryBrowseView({
   total: number;
   page: number;
   pageSize: number;
-  initialSearch: string;
-  initialCountry: string;
+  /**
+   * What the URL and the latest response say the filters are. NOT "initial" --
+   * they change under this component on every response, on Back/Forward and on
+   * a deep link, which is exactly why the fields below never re-seed from them
+   * blindly. See useDebouncedSearchField.
+   */
+  urlSearch: string;
+  urlCountry: string;
   countries: string[];
   busy: boolean;
   error: string | null;
@@ -278,39 +286,49 @@ function DirectoryBrowseView({
   const t = (source: string, vars?: Record<string, string | number>) =>
     locale === 'vi' ? getLocaleText(locale, source, vars) : contextT(source, vars);
   const resultsRef = useRef<HTMLDivElement>(null);
-  const [name, setName] = useState(initialSearch);
-  const [country, setCountry] = useState(initialCountry);
 
+  /*
+   * The select navigates the moment it changes, so local and URL state can only
+   * disagree for the length of one request. Adopting the URL value whenever it
+   * changes is what keeps Back/Forward and deep links honest now that this
+   * component is no longer remounted (by a `key`) on every response.
+   */
+  const [country, setCountry] = useState(urlCountry);
   useEffect(() => {
-    const query = name.trim();
-    if (query === initialSearch && country === initialCountry) return;
-    const timeout = window.setTimeout(() => {
+    setCountry(urlCountry);
+  }, [urlCountry]);
+
+  const href = useCallback(
+    (query: string, nextCountry: string, nextPage = 1) => {
       const params = new URLSearchParams();
       if (query) params.set('q', query);
-      if (country) params.set('country', country);
+      if (nextCountry) params.set('country', nextCountry);
+      if (nextPage > 1) params.set('page', String(nextPage));
       const queryString = params.toString();
-      onNavigate(localizePath(queryString ? `/universities?${queryString}` : '/universities', locale), true);
-    }, 300);
-    return () => window.clearTimeout(timeout);
-  }, [name, initialSearch, country, initialCountry, locale, onNavigate]);
+      return localizePath(queryString ? `/universities?${queryString}` : '/universities', locale);
+    },
+    [locale],
+  );
 
-  function href(nextPage: number) {
-    const params = new URLSearchParams();
-    const query = name.trim();
-    if (query) params.set('q', query);
-    if (country) params.set('country', country);
-    if (nextPage > 1) params.set('page', String(nextPage));
-    const queryString = params.toString();
-    return localizePath(queryString ? `/universities?${queryString}` : '/universities', locale);
+  const search = useDebouncedSearchField({
+    value: urlSearch,
+    onCommit: (query) => onNavigate(href(query, country), true),
+  });
+
+  function changeCountry(nextCountry: string) {
+    setCountry(nextCountry);
+    // Send the text typed but not yet committed too, or the pending debounce
+    // fires 300ms from now and navigates a second time with the old country.
+    onNavigate(href(search.takePending(), nextCountry), true);
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onNavigate(href(1), true);
+    onNavigate(href(search.takePending(), country), true);
   }
 
   function goToPage(nextPage: number) {
-    onNavigate(href(nextPage));
+    onNavigate(href(search.takePending(), country, nextPage));
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -344,8 +362,8 @@ function DirectoryBrowseView({
           </span>
           <input
             {...testId(TID.uniSearchInput)}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
+            {...search.inputProps}
+            maxLength={100}
             placeholder={t('Search by university name')}
             aria-label={t('Search by university name')}
             className="w-full rounded-gb-md border border-line-strong bg-surface py-gb-input-y pl-gb-6xl pr-gb-input-x text-gb-md text-fg shadow-gb-xs placeholder:text-fg-muted focus:outline-2 focus:outline-offset-0 focus:outline-brand"
@@ -355,7 +373,7 @@ function DirectoryBrowseView({
           name="country"
           aria-label={t('Country')}
           value={country}
-          onChange={(event) => setCountry(event.target.value)}
+          onChange={(event) => changeCountry(event.target.value)}
         >
           <option value="">{t('All countries')}</option>
           {countries.map((value) => (
@@ -507,13 +525,19 @@ function Chrome({
   return (
     <>
       <main className="min-h-screen">
+        {/*
+          * No `key` here. It used to be the search + country pair, which
+          * remounted this whole subtree every time a response changed the
+          * query -- resetting the search box to the server's value and
+          * destroying the focused <input> along with it. Filter state now
+          * reconciles in place.
+          */}
         <DirectoryBrowseView
-          key={`${search}\u0000${country}`}
           total={total}
           page={page}
           pageSize={pageSize}
-          initialSearch={search}
-          initialCountry={country}
+          urlSearch={search}
+          urlCountry={country}
           countries={countries}
           busy={busy}
           error={error}

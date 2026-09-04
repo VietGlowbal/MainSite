@@ -6,6 +6,11 @@
  * anything used by exactly one belongs in that feature's own `hooks` slice.
  */
 export {
+  SEARCH_DEBOUNCE_MS,
+  useDebouncedSearchField,
+  type DebouncedSearchField,
+} from './use-debounced-search-field';
+export {
   ACCEPTED_DOCUMENT_TYPES,
   MAX_UPLOAD_BYTES,
   useDocumentUpload,
