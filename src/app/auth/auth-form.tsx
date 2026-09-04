@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { Button, Input } from '@/shared/ui';
+import { Button, EyeMark, Input } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { controlClasses } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
@@ -52,23 +52,6 @@ function GoogleMark() {
   );
 }
 
-function IconEye({ off }: { off: boolean }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      {off ? (
-        <>
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-          <line x1="1" y1="1" x2="23" y2="23" />
-        </>
-      ) : (
-        <>
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <circle cx="12" cy="12" r="3" />
-        </>
-      )}
-    </svg>
-  );
-}
 
 /** Shown after a successful sign-up: the confirmation email is on its way. */
 function CheckInbox({ email, variant }: { email: string; variant: 'signup' | 'reset' }) {
@@ -109,9 +92,13 @@ export function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [mode, setMode] = useState<Mode>(
-    searchParams.get('mode') === 'signup' ? 'signup' : 'login',
-  );
+  // `forgot` is deep-linkable because the "your password was changed" security
+  // email points here: someone who did NOT make that change needs the reset
+  // form in one click, not a sign-in form they cannot get past.
+  const [mode, setMode] = useState<Mode>(() => {
+    const requested = searchParams.get('mode');
+    return requested === 'signup' || requested === 'forgot' ? requested : 'login';
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -324,7 +311,7 @@ export function AuthForm() {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute inset-y-0 right-gb-input-x flex items-center text-fg-muted transition-colors hover:text-fg-secondary"
                 >
-                  <IconEye off={showPassword} />
+                  <EyeMark off={showPassword} />
                 </button>
               </div>
               {isSignup ? (
