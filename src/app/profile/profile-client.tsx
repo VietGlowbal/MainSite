@@ -703,6 +703,18 @@ function AccountCard({ email, plusStatus }: { email: string; plusStatus: boolean
         <KitIcon art={ICONS.arrowRight} frame={16} className="shrink-0" />
       </Link>
 
+      {/* The only entry point to /profile/security in the app. It belongs on
+          the card that already carries the account's email and its sign-out
+          control, not among the eight profile sections — those are scored, and
+          a security setting is not part of an application. */}
+      <Link
+        href="/profile/security"
+        className="flex items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface-muted px-gb-xl py-gb-lg text-gb-sm font-medium text-fg-secondary transition-colors hover:border-brand hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        Password & security
+        <KitIcon art={ICONS.arrowRight} frame={16} className="shrink-0" />
+      </Link>
+
       <SignOutButton
         containerClassName="flex flex-col gap-gb-md border-t border-line pt-gb-xl"
         className="w-full rounded-gb-md border border-line-strong bg-surface px-gb-xl py-gb-lg text-gb-sm font-semibold text-fg-error shadow-gb-xs-skeuomorphic transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-60"

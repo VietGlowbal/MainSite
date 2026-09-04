@@ -128,6 +128,13 @@ ALTER FUNCTION public.sync_entitlements_from_profile()        SET search_path = 
 ALTER FUNCTION public.sync_billing_period_from_profile()      SET search_path = public, pg_temp;
 ALTER FUNCTION public.update_achiever_stats()                 SET search_path = public, pg_temp;
 
+-- Verified against the live catalog 2026-09-04: these eight are exactly the
+-- `public` SECURITY DEFINER functions with no `search_path` set, and the two
+-- signatures above match `pg_get_function_identity_arguments`. The other two
+-- functions revoked/named above — cleanup_stale_search_sessions and
+-- consume_activity_follow_up_question — already carry `search_path=public` and
+-- are correctly absent from this list.
+
 COMMIT;
 
 -- ---------------------------------------------------------------------------

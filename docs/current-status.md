@@ -1,24 +1,84 @@
 # Current project status
 
-Working tree 2026-09-04 (Strategy Report V3 alignment and UI quality patch):
-the canonical Personal -> Matching V3 -> Strategy V3 flow is unchanged. V3
-generation now requires a structured development plan for every BUILD profile
-area; narrative options are zero or two to three, with two to four supporting
-experiences per generated option; Strategic Goal guidance is improvement-led;
-and the existing V3 row reader remains compatible with older stored rows. The
-applicant UI now renders current-position summary fields, development plans,
-activity statuses and all eight dimensions, evidence-backed themes/tension,
-and the full narrative-option evaluation contract. Priority factors display
-on a four-point scale without raw priority values or admission-probability
-copy. Measured: strategy/UI suite 16/16, route suite 8/8, base and strict
-typecheck, i18n audit (0 missing keys), touched-file ESLint, full lint (0
-errors, 4 existing warnings), and production build pass. Full repository
-Vitest: 373 files passed and 3,583 tests passed, 2 todo, with 6 files/7 tests
-timing out in unrelated existing LOR, candidate-information, matching, and CV
-suites; concurrent worker timeout warnings also appeared for existing
-reflection, marketing, planner, and strategy UI workers. Build retains the
-existing Edge-runtime deprecation and dynamic filesystem tracing warnings from
-`src/lib/geo-content.ts`.
+Working tree 2026-09-04 (change password while signed in): completes the
+password story — `/profile/security`, reached from the account card on
+`/profile`. The current password is required and verified, because
+`updateUser({ password })` needs only a session and Supabase's "secure password
+change" setting is behind the same organisation-owner wall as leaked-password
+protection; without the prompt, an unlocked browser or a replayed session cookie
+converts temporary access into permanent ownership. Verification runs on a
+throwaway `persistSession: false` client so a read-only check does not rewrite
+the caller's session cookies, and the session it mints is revoked straight away.
+On success every *other* session is revoked (`scope: 'others'`) — refresh tokens
+outlive the password that created them, so a change that leaves them working
+protects nothing — and a "your password was changed" email goes out, which is
+the only signal the real owner gets if someone had both the session and the
+password. A Google-only account has no password hash, so it is offered the
+emailed link instead of a one-click "set a password" that would be the same
+escalation. Rate limited 10 per 15 min per user id, placed after local
+validation and before the HIBP lookup; `route.test.ts` pins that ordering
+because it is invisible in the types. No Figma frame — see
+`known-issues.md §0i`.
+      Measured: full suite 3,652 passed and 2 todo across 385 files; typecheck,
+      strict typecheck, `npm run build` and lint on the touched files pass, and
+      `scripts/check-i18n.mjs --all` reports 0 missing keys. The i18n checker
+      caught the two new page strings before commit. `EyeMark` moved into
+      `shared/ui` on its third call site, replacing the copies in the sign-in
+      and reset forms.
+
+Working tree 2026-09-04 (password reset + localised auth errors): the product
+had no password-reset flow at all — "Forgot password" was a no-op that the Figma
+rebuild dropped — so a user whose password leaked could not rotate it. Added as
+a third mode on the auth card plus `/auth/reset-password`, with request and
+confirm routes. The request route always answers 200 so it cannot be used as an
+account-existence oracle, and is rate limited on both IP and target email (3 per
+15 min) because it mails an address the caller chooses. The recovery token is
+redeemed at the moment the new password is submitted, not at an earlier
+redirect, which binds the change to possession of the email rather than to
+whoever is signed in on the machine; both password checks run before the token
+is spent so a weak choice cannot burn a single-use link. No Figma frame exists
+for any of this — the UI reuses the existing auth card and should be re-derived
+if a frame appears.
+
+Auth error messages now follow the language switcher. Routes return a stable
+`code` plus `vars` alongside the English text, and the form holds the code in
+state rather than a rendered sentence — storing the string would freeze the
+message in whichever language was active when the request failed. Vietnamese
+lives in `lib/i18n-auth.ts`, guarded by tests for missing keys, dropped
+`{placeholder}`s, and untranslated copies, because `t()` falls back to English
+silently and a drifted key is otherwise invisible.
+      Measured: full suite 3,630 passed and 2 todo across 384 files; typecheck,
+      strict typecheck, `npm run build`, and lint on the touched files all pass.
+      Two bugs were caught by the new tests and fixed: `isAuthErrorCode` used
+      `in`, which walks the prototype chain and accepted `code: "toString"`; and
+      `password-reset` was missing from `EmailTemplateId`.
+
+Working tree 2026-09-04 (breached-password check at sign-up): sign-up now
+enforces a password floor of 8 characters (was 6, which accepted `123456`) and
+rejects passwords found in the HaveIBeenPwned corpus. This is a compensating
+control for Supabase's `auth_leaked_password_protection` toggle, which is off
+and can only be enabled by the organisation owner — we are members, not owners,
+so it is blocked rather than ignored. The password never leaves the process:
+only the first 5 hex characters of its SHA-1 are sent, and the match happens
+locally. The check fails OPEN on any HIBP error or a 2.5s timeout, logging a
+warning, so a third-party outage cannot block registration. Pure rules and the
+response parser live in `features/auth/domain/password.ts`; the network adapter
+in `features/auth/api/pwned-passwords.ts`. No composition rules, per NIST
+SP 800-63B. Rationale and the still-open absence of any password-reset flow are
+in `known-issues.md §0i`.
+      Measured: full suite 3,614 passed and 2 todo across 382 files; typecheck,
+      strict typecheck, and lint on the touched files all pass. The one lint
+      error (`strategy-report-v3-view.tsx`, react-hooks/static-components) is
+      pre-existing and untouched.
+
+Also 2026-09-04 (security audit follow-up): an anon `DELETE`/`PATCH` returning
+`204` was investigated and is **not** a vulnerability — PostgREST answers a
+zero-row write that way and RLS filters rather than raising. Recorded with the
+correct test method in `known-issues.md §0h`, along with a full anon-vs-service
+sweep of all 113 REST-exposed tables (no table leaks anything it should not).
+The real exposure remains `§0g`: five anon-callable `SECURITY DEFINER` RPCs,
+re-confirmed live. `supabase-rpc-privilege-hardening.sql` is verified correct
+and complete against the live catalog but **has still not been run**.
 
 Working tree 2026-09-02 (Reflection-tab report regeneration flow): the
 Reflections tab now shows the shared report quota and an "Edit information and

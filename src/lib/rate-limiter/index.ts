@@ -24,6 +24,8 @@ export {
   courseSearchSessionLimiter,
   applyShortlistLimiter,
   lorAiLimiter,
+  passwordChangeLimiter,
+  passwordResetLimiter,
   personalReportLimiter,
   strategyAiLimiter,
   strategyExportLimiter,

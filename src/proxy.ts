@@ -140,11 +140,26 @@ export async function proxy(request: NextRequest) {
   // /auth/complete-profile is exempt alongside /auth/callback: it is a screen
   // only a signed-in student can be on, so without the exemption the gate below
   // would redirect them to /apply and /apply would redirect them straight back.
+  //
+  // /auth/reset-password is exempt because BEING SIGNED IN IS NOT A REASON TO
+  // REFUSE A RECOVERY LINK. Two ways a signed-in browser opens one:
+  //
+  //   * the Google-only "set a password" card on /profile/security mails the
+  //     link to a user who is signed in by definition — bouncing them here
+  //     breaks that flow outright;
+  //   * anyone who requested a reset on one device and opens the mail on
+  //     another where they are still signed in.
+  //
+  // The redirect also drops the query string, so the token is not merely
+  // deferred — it is destroyed, and the single-use link has to be re-requested.
+  // Letting the page render is safe: it does nothing until the token is posted,
+  // and the confirm route validates it independently of any session.
   if (
     userId &&
     pathname.startsWith('/auth') &&
     !pathname.startsWith('/auth/callback') &&
-    !pathname.startsWith('/auth/complete-profile')
+    !pathname.startsWith('/auth/complete-profile') &&
+    !pathname.startsWith('/auth/reset-password')
   ) {
     const redirectTarget = request.nextUrl.searchParams.get('redirect');
     if (redirectTarget?.startsWith('/')) {

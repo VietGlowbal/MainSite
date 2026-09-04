@@ -15,7 +15,8 @@ are regression records for fixed bugs, not open work:
 | §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
 | §0, §0c database migrations | ✅ Confirmed resolved 2026-08-12 via the production schema dump — `student_profiles.curriculum` is an array type, `applicant_analyses.emerging_themes` exists. |
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
-| §0g anon-callable SECURITY DEFINER RPCs | 🔴 **OPEN, most urgent item in this file.** Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN**. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. |
+| §0g anon-callable SECURITY DEFINER RPCs | 🔴 **OPEN, most urgent item in this file.** Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN** — re-confirmed still live 2026-09-04 by calling all five as `anon` (200/204, real `plan` disclosed for a real `user_id`) and by catalog (`has_function_privilege('anon', …)` true for all 11 definer functions). The migration is **verified correct and complete** against the live catalog — run it as-is. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. |
+| §0h anon `DELETE`/`PATCH` returning 204 | ✅ **Not a vulnerability — false positive, do not re-open.** PostgREST answers a write that matched *zero* rows with `204`, and an RLS `USING` clause filters rows rather than raising. A probe against a non-existent id therefore cannot tell "blocked" from "no such row". Verified 2026-09-04 against a real row: anon `DELETE`/`PATCH` returned `[]` under `return=representation` and the row survived. See §0h. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1d duplicate universities | ✅ Merged 2026-09-03, confirmed live (99 rows, 0 collisions). **Read before deleting any `universities` row** — 13 tables FK to it and 4 cascade. Scholarship *coverage* (374 of 2,877 linked) is a separate, still-open problem. |
@@ -410,6 +411,280 @@ which the revokes do not touch.
 If a signed-in user ever needs their own entitlement from the client, do **not**
 re-grant the function — add the missing `target_user_id <> auth.uid()` check and
 grant `authenticated` only.
+
+---
+
+## 0h. ✅ NOT A BUG — anon `DELETE`/`PATCH` answering `204` is RLS working, not RLS missing
+
+Raised 2026-09-04 from a `curl` probe against `universities`, and it will be
+raised again, because the evidence looks alarming and is entirely normal:
+
+```
+DELETE /rest/v1/universities?id=eq.999999999   ->  204     "row deleted?!"
+PATCH  /rest/v1/universities?id=eq.999999999   ->  400
+POST   /rest/v1/universities                   ->  401     RLS clearly working here
+```
+
+The conclusion drawn — *"SELECT and POST are covered by RLS but DELETE/PATCH are
+not, so if the id existed the whole table could be dropped by anyone"* — is
+wrong on both halves.
+
+**Why `204` proves nothing.** PostgREST returns `204 No Content` for a `DELETE`
+that succeeded *and affected zero rows*; that is the same response as a delete
+that was filtered away. An RLS policy's `USING` clause does not raise on
+violation — it removes non-matching rows from the statement's scope, exactly
+like an extra `WHERE`. A row blocked by policy and a row that does not exist are
+therefore **indistinguishable from outside**, and `id=eq.999999999` picks a row
+that does not exist, so the probe cannot separate the two cases even in
+principle.
+
+**Why `POST` differs, which is the detail that misleads.** `INSERT` is checked
+by `WITH CHECK`, and a `WITH CHECK` failure *does* raise — `42501`, surfaced as
+`401`/`403`. So `SELECT`/`UPDATE`/`DELETE` fail **silently** while `INSERT`
+fails **loudly**. That asymmetry is a property of Postgres RLS, not evidence
+that three of the four verbs are unprotected.
+
+**How to test it properly** — force the row count into the response with
+`Prefer: return=representation`, and use an id that really exists:
+
+```
+anon DELETE ?id=eq.<real id>  -H 'Prefer: return=representation'  ->  200  []
+anon PATCH  ?id=eq.<real id>  -H 'Prefer: return=representation'  ->  200  []
+service_role DELETE, same row                                     ->  200  [{...}]
+```
+
+`[]` is zero rows touched. Verified 2026-09-04 on a throwaway `universities` row
+(`country='ZZ-TEST'`, created and dropped with the service key, never a real
+row): the row survived both anon writes unchanged. Consistent with anon
+`GET /universities` returning `[]` while the service key sees the full table.
+
+Confirmed at catalog level too, which is the evidence to cite if it comes up
+again:
+
+```
+universities   rls_on = true
+  policies:  "Authenticated users can read universities"  [r] to authenticated
+             "Service role full access to universities"   [*] to service_role
+  anon SELECT/UPDATE/DELETE grant = true, true, true
+```
+
+**Read that last line carefully, because it is the part that looks damning and
+is not.** `anon` genuinely *does* hold table-level `SELECT`/`UPDATE`/`DELETE`
+grants — that is Supabase's default blanket grant on `public`, and it is true of
+almost every table here. The grant is not what protects the row; **RLS is**, and
+`universities` has no `anon` policy for any verb. Under RLS, *no policy* already
+means *deny* — which is why adding `USING (false)` for `anon` would be pure
+redundancy, not a fix. Do not "harden" tables this way; it adds policies to
+audit without changing behaviour.
+
+The `400` on `PATCH` was not a policy result and not a "primary key format"
+problem either — `universities.id` is `bigserial`, so `eq.999999999` parses
+fine. A well-formed anon `PATCH` returns `200 []`, as above; the `400` came from
+the request body.
+
+**The generalisable rule:** never conclude a write is permitted from a `2xx`
+alone. Confirm with `return=representation`, or re-read the row afterwards.
+
+**A full-surface sweep was run at the same time and is the useful result.** All
+113 REST-exposed tables, anon key vs service key, row counts compared:
+
+| Outcome | Count | Reading |
+|---|---|---|
+| anon reaches table, sees **0** rows | 92 | RLS enforcing |
+| anon denied at **GRANT** level (`401`) | 16 | all `crawl_*`, `payment_notification_jobs`, `manual_payment_reviews` |
+| anon reads rows | 5 | `courses` / `catalog_programmes` (593, public catalogue), `team_members` (12), `team_achievements` (24), `geo_articles` (**2 of 5** — published-only policy filtering correctly) |
+
+No table leaked anything it should not. **The table surface is not where the
+exposure is — §0g is.** Do not spend more time re-probing tables while five
+definer RPCs remain anon-callable.
+
+**Tooling trap, cost one wrong conclusion on 2026-09-04.** The Supabase MCP's
+`list_projects` returns only `fbtbxcgadyrdfhzsvwom` ("AIMS", INACTIVE). That is
+**not this app's database** and running `get_advisors` against it returns an
+empty lint list that looks like a clean bill of health. This project is:
+
+```
+project ref  uooshbumyilwvbgmbixx     (= the NEXT_PUBLIC_SUPABASE_URL subdomain)
+```
+
+Access works fine — **pass that ref explicitly**; it is simply absent from
+`list_projects` because the project belongs to another owner's organisation and
+the listing only enumerates your own. Nothing needs re-authorising. The MCP
+connects as `supabase_read_only_user`, so it can read `pg_policies`, `pg_proc`
+and run the verification queries, but **cannot apply migrations** — DDL still
+has to go through the Supabase SQL Editor. Against the right ref the linter does
+report the §0g problem, as `anon_security_definer_function_executable` (11).
+
+---
+
+## 0i. Leaked-password protection is OFF and we cannot turn it on — the check lives in code instead
+
+The Supabase linter reports `auth_leaked_password_protection` (WARN): Auth is
+not checking new passwords against the HaveIBeenPwned corpus. Enabling it is one
+toggle in **Dashboard → Authentication → Policies** — but it is an
+**organisation-owner setting, and this team are members of another owner's
+organisation**, so nobody here can flip it. Treat it as blocked, not as ignored.
+
+It was not a theoretical gap. The sign-up route's only password rule was
+`z.string().min(6)`, so `123456` — the most common breached password there is —
+was accepted.
+
+**Implemented 2026-09-04 as a compensating control, in code we do own:**
+
+| Where | What |
+|---|---|
+| `features/auth/domain/password.ts` | Pure rules. Floor raised 6 → **8** (NIST SP 800-63B minimum), ceiling 200 kept. Plus the k-anonymity helpers, which are pure so they can be tested without network. |
+| `features/auth/api/pwned-passwords.ts` | The HIBP range-API adapter. |
+| `app/api/auth/signup/route.ts` | Runs both, before the account is created. |
+
+Three decisions that will look wrong without the reasoning:
+
+* **No composition rules** (no "must contain a symbol"). NIST withdrew that
+  advice — such rules produce predictable mutations, and `Password1!` clears
+  every box while sitting near the top of the breach corpus. Length plus the
+  breach check is the policy.
+* **The password never leaves the process.** It is SHA-1'd locally and only the
+  first **5 hex characters** go to HIBP, which answers with every breached
+  suffix sharing that prefix; the match happens locally against ~1M sibling
+  hashes. SHA-1 here is a lookup key into HIBP's index, *not* credential
+  storage — Supabase still bcrypts the real password. Do not "simplify" this by
+  sending the full hash. A unit test asserts the request shape for exactly this
+  reason.
+* **It fails OPEN.** If HIBP is down, rate-limiting or slow (2.5s timeout),
+  sign-up proceeds and a warning is logged. Blocking registration on a
+  third-party outage would trade defence-in-depth for an availability incident,
+  and an outage only restores the risk we already carried. `unavailable` is a
+  distinct state from `clean` so the two can never be confused.
+
+Raising the floor affects **new passwords only** — nothing here runs on the
+sign-in path, so existing accounts still authenticate normally.
+
+**If an owner later enables the toggle, keep this code.** The two overlap
+harmlessly, and this layer is what holds when the platform setting is off.
+
+### Password reset — added 2026-09-04, no Figma frame exists
+
+Until this date there was **no password-reset flow at all**. "Forgot password"
+was a no-op control in the old markup and the Figma rebuild dropped it rather
+than implementing it, so a user whose password leaked could not rotate it. That
+was a larger practical gap than the toggle above, and it is why the breach check
+alone was not enough.
+
+| Piece | File |
+|---|---|
+| Request a link (3rd mode on the auth card) | `app/auth/auth-form.tsx` |
+| Request route | `app/api/auth/reset-password/route.ts` |
+| Email | `lib/emails/password-reset.ts` |
+| Set the new password | `app/auth/reset-password/` |
+| Confirm route | `app/api/auth/reset-password/confirm/route.ts` |
+| Token redemption (repository) | `features/auth/api/password-reset.ts` |
+
+**The UI was invented, not derived** — Figma has no frame for any of it. It
+reuses the existing auth card so it does not read as a different product. If a
+frame appears later, re-derive the presentation from it; the flow below is the
+part that should not change casually.
+
+**`/auth/reset-password` is exempt from the signed-in `/auth` redirect**
+(`src/proxy.ts`). Missing that exemption is not a cosmetic bounce: the redirect
+clears the query string, so a recovery token opened in a signed-in browser is
+destroyed rather than deferred, and the single-use link has to be requested
+again. It is reachable in ordinary use — the "set a password" card on
+/profile/security mails the link to a user who is signed in by definition, and
+anyone who requests a reset on one device may open the mail on another where
+they are still signed in. Pinned by `src/__tests__/proxy-auth-redirect.test.ts`.
+
+Four decisions worth keeping:
+
+* **The request route always answers `200`,** for a registered address, an
+  unregistered one, or a Supabase failure. Any other behaviour turns it into an
+  account-existence oracle — submit an address, read the status code, learn
+  whether it holds an account. The inbox message is worded to match ("if an
+  account exists for…"), because a confident "we sent it" would leak the same
+  fact through the UI that the status code no longer leaks.
+* **The recovery token is redeemed at the moment the password is submitted,**
+  not at an earlier redirect. `verifyOtp` + `updateUser` happen together in the
+  repository. Letting the emailed link establish a session first and then
+  trusting whoever holds that session cannot distinguish "arrived from the reset
+  email" from "was already signed in on this shared machine" — which would let
+  anyone at an unlocked laptop change the password without knowing the current
+  one.
+* **Both password checks run BEFORE the token is spent.** A recovery token is
+  single-use; validating after redeeming would burn the user's link because they
+  picked something seven characters long, and force another email.
+* **Rate limited on IP *and* target email** (3 per 15 min). The endpoint sends
+  mail to an address the caller chooses, so it is a spam relay otherwise. One
+  bucket alone does not cover both "one host, many addresses" and "many hosts,
+  one victim".
+
+### Change password while signed in — added 2026-09-04, completes the flow
+
+The third case, and the one a student reaches most often: they are signed in,
+they suspect the password has leaked, and they want a different one. Also no
+Figma frame; the page borrows the profile editors' shell and the auth card's
+field styling.
+
+| Piece | File |
+|---|---|
+| Page (auth gate + which form to show) | `app/profile/security/page.tsx` |
+| Both forms | `app/profile/security/change-password-form.tsx` |
+| Route | `app/api/account/password/route.ts` |
+| Verify + update + revoke (repository) | `features/auth/api/password-change.ts` |
+| Notification email | `lib/emails/password-changed.ts` |
+| Entry point | the account card in `app/profile/profile-client.tsx` |
+
+Five decisions worth keeping:
+
+* **The current password is required, and verified.** `updateUser({ password })`
+  needs nothing but a session, and Supabase's "secure password change" setting —
+  which would require re-authentication — is the same organisation-owner toggle
+  we cannot reach. Without the prompt, anyone at an unlocked browser or replaying
+  a stolen session cookie can set a password of their choosing and convert
+  temporary access into permanent ownership of the account.
+* **Verification runs on a throwaway client** (`persistSession: false`), because
+  `signInWithPassword` is the only way Supabase will check a password and running
+  it on the request's cookie-bound client would rewrite the caller's session
+  cookies as a side effect of a read-only check. The throwaway session it mints
+  is revoked immediately (`scope: 'local'` is a server call, not a local wipe).
+* **Every other session is revoked on success** (`scope: 'others'`, which spares
+  the caller's own). Refresh tokens outlive the password that created them, so a
+  change that leaves existing sessions working has protected nothing — which is
+  the entire reason someone reaches this page.
+* **A "your password was changed" email goes out afterwards.** This is the
+  control that catches the case the prompt did not: someone who held both a
+  session *and* the password. It is deliberately NOT sent by the reset flow,
+  where the user just received a link at that same address and an attacker who
+  completed the reset already owns the mailbox. No undo link — a link that
+  reverses a password change is itself a credential.
+* **A Google-only account gets a different screen.** It has no password hash, so
+  there is no current password to verify. It could be given one straight from the
+  session in a single click; that is exactly the escalation above, so it is
+  routed through the emailed link instead. Detected with `hasPasswordIdentity`
+  (`features/auth/domain/password.ts`), which assumes a password when the
+  identity list is missing — failing the other way would tell an ordinary user
+  their account has no password.
+
+  ⚠️ **Untested against the live project:** this branch assumes
+  `admin.auth.admin.generateLink({ type: 'recovery' })` issues a token for a user
+  who has no password yet. It is the documented way an OAuth user adds one, but
+  verifying it needs a real Google account and a delivered email, and the MCP
+  connection is read-only. If it turns out GoTrue refuses, the request route
+  swallows the error and answers `200` (by design — see above), so the symptom
+  is a link that never arrives, not an error.
+
+Rate limited at 10 per 15 min **per user id**, not per IP: the endpoint reports
+whether the current password was right, which is an online guessing oracle for
+whoever holds a stolen session, and that account's budget should bound them
+however many addresses they come from. The limiter sits *after* local validation
+(so a typo does not spend an attempt) and *before* the HIBP lookup (so a wordlist
+cannot pump outbound requests). `route.test.ts` pins that ordering — it is
+invisible in the types and a silent regression if it moves.
+
+Unlike the reset routes, this one is **not** enumeration-sensitive: the caller
+has already proved who they are, so "that is not your current password" names the
+real problem instead of sending a user who merely mistyped off to the reset flow.
+
+Still missing: nothing in the password story. What this page does *not* do is
+list active sessions or offer 2FA — neither has been asked for.
 
 ---
 

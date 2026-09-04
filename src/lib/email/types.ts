@@ -6,6 +6,8 @@ export type EmailCategory =
 
 export type EmailTemplateId =
   | 'signup-confirmation'
+  | 'password-reset'
+  | 'password-changed'
   | 'welcome'
   | 'onboarding-reminder'
   | 'onboarding-complete'
