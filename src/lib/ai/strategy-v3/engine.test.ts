@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { StrategyInputContext } from './context';
-import type { ActivityStrategyAnalysis } from './domain';
+import { strategyReportV3FromRow, strategyReportV3Schema, type ActivityStrategyAnalysis } from './domain';
 import {
   calculateStrategyPriorityFactors,
   generateStrategyReportV3,
@@ -34,7 +34,19 @@ function area(category: 'academic' | 'experience' | 'differentiation' | 'evidenc
   return { key: category, category, label: category, status, diagnosis: 'Diagnosis.', whyItMatters: 'Why.', suggestedDirection: 'Direction.', evidenceIds: [] as string[], metricIds: [] as string[], requirementIds: [] as string[], targetSourceRefs: [] as string[] };
 }
 
-function synthesis(deliverables: unknown[] = []) {
+function developmentPlan() {
+  return {
+    gap: 'The profile needs stronger evidence of applied work.',
+    possibleRoutes: [
+      { title: 'Deepen an existing activity', rationale: 'Add measurable ownership and reflection.' },
+      { title: 'Consolidate related evidence', rationale: 'Connect existing work around one target theme.' },
+    ],
+    recommendedRoute: { title: 'Deepen an existing activity', rationale: 'It is feasible without inventing a new commitment.' },
+    evidenceExpected: ['A measurable outcome', 'A short reflection on what changed'],
+  };
+}
+
+function synthesis(deliverables: unknown[] = [], narrativeOptions: unknown[] = []) {
   return {
     strategicOverview: {
       currentPosition: { summary: 'Current.', profileStrength: { statement: 'Strength.', evidenceIds: [], metricIds: [] }, keyChallenge: { statement: 'Challenge.', gapIds: [], requirementIds: [] }, unclearArea: null, differentiatedPotential: null },
@@ -42,7 +54,7 @@ function synthesis(deliverables: unknown[] = []) {
       strategicGoal: { directionOfImprovement: 'Improve.', communicationGoal: 'Communicate.' },
       expectedOutcome: 'Outcome.',
     },
-    narrativeStrategy: { coreNarrativeDirection: { originTrigger: null, recurringMotivation: null, actions: [], capabilitiesDeveloped: [], emergingDirection: null, insight: 'No pattern.', evidenceIds: ['evidence-1'] }, supportingThemes: [], narrativeTension: null, narrativeOptions: [] },
+    narrativeStrategy: { coreNarrativeDirection: { originTrigger: null, recurringMotivation: null, actions: [], capabilitiesDeveloped: [], emergingDirection: null, insight: 'No pattern.', evidenceIds: ['evidence-1'] }, supportingThemes: [], narrativeTension: null, narrativeOptions },
     strategicRoadmap: ['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise'].map((phaseKey, index) => ({ phaseKey, name: phaseKey, goal: 'Goal.', keyActions: [], deliverables: index === 0 ? deliverables : [], successCriteria: [], estimatedTimeline: 'As needed.', linkedPriorityKeys: [] })),
   };
 }
@@ -84,6 +96,104 @@ describe('Strategy V3 engine', () => {
     expect(mocks.openAiJsonCompletion).toHaveBeenCalledTimes(2);
     expect(report.metadata.aiCallCount).toBe(2);
     expect(report.strategicRoadmap.map((phase) => phase.phaseKey)).toEqual(['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise']);
+  });
+
+  it('requires a development plan for BUILD areas and preserves its routes', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    const buildArea = { ...area('academic', 'build'), developmentPlan: developmentPlan() };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: [buildArea, area('experience'), area('differentiation'), area('evidence')] }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+
+    expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'academic')?.developmentPlan).toEqual(developmentPlan());
+  });
+
+  it('fails closed when a BUILD area omits its development plan', async () => {
+    mocks.openAiJsonCompletion.mockReset().mockResolvedValueOnce(JSON.stringify({
+      areas: [area('academic', 'build'), area('experience'), area('differentiation'), area('evidence')],
+    }));
+
+    await expect(generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') }))
+      .rejects.toThrow('BUILD');
+  });
+
+  it('does not persist a single narrative option', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    const activities = [1, 2, 3, 4].map((index) => ({
+      activityId: `activity:${index}`,
+      title: `Activity ${index}`,
+      category: null,
+      organisation: null,
+      level: null,
+      period: null,
+      description: `Description ${index}`,
+      reflection: null,
+      evidenceIds: [],
+    }));
+    const generatedSynthesis = synthesis([], [{
+      key: 'narrative:one',
+      title: 'One option',
+      centralIdea: 'Central idea.',
+      whyItEmerges: 'Why it emerges.',
+      supportingExperienceIds: ['activity:1', 'activity:2'],
+      targetSourceRefs: ['source:1'],
+      whatCouldStrengthenIt: 'Strengthen it.',
+      evaluation: {
+        evidenceStrength: 'high',
+        personalAuthenticity: 'high',
+        programmeRelevance: 'high',
+        differentiation: 'medium',
+        developmentPotential: 'high',
+      },
+      strategicFit: 'high',
+    }]);
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: activities.map(({ activityId }) => activityAnalysis(activityId)) }))
+      .mockResolvedValueOnce(JSON.stringify(generatedSynthesis));
+
+    const report = await generateStrategyReportV3({
+      context: context({
+        activities,
+        targetSourceIndex: [{ ref: 'source:1', label: 'Programme', title: null, url: null, kind: 'programme' }],
+        target: { ...context().target, sources: [{ ref: 'source:1', label: 'Programme', title: null, url: null, kind: 'programme' }] },
+      }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    expect(report.narrativeStrategy.narrativeOptions).toEqual([]);
+    const narrativeOption = (key: string, supportingExperienceIds = ['activity:1', 'activity:2']) => ({
+      key,
+      title: key,
+      centralIdea: 'Central idea.',
+      whyItEmerges: 'Why it emerges.',
+      supportingExperienceIds,
+      targetSourceRefs: ['source:1'],
+      whatCouldStrengthenIt: 'Strengthen it.',
+      evaluation: {
+        evidenceStrength: 'high' as const,
+        personalAuthenticity: 'high' as const,
+        programmeRelevance: 'high' as const,
+        differentiation: 'medium' as const,
+        developmentPotential: 'high' as const,
+      },
+      strategicFit: 'high' as const,
+    });
+    const withOptions = (narrativeOptions: unknown[]) => ({
+      ...report,
+      narrativeStrategy: { ...report.narrativeStrategy, narrativeOptions },
+    });
+    expect(strategyReportV3Schema.safeParse(withOptions([])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1'), narrativeOption('narrative:2')])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1'), narrativeOption('narrative:2'), narrativeOption('narrative:3')])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1', ['activity:1', 'activity:2', 'activity:3', 'activity:4']), narrativeOption('narrative:2')])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1')])).success).toBe(false);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1', ['activity:1', 'activity:2', 'activity:missing'])])).success).toBe(false);
+    expect(strategyReportV3FromRow({ report_v2: withOptions([narrativeOption('narrative:legacy', ['activity:1'])]) })?.narrativeStrategy.narrativeOptions).toHaveLength(1);
   });
 
   it('accepts target-profile requirement IDs in profile provenance', async () => {
