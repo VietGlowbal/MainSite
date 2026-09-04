@@ -517,6 +517,102 @@ report the §0g problem, as `anon_security_definer_function_executable` (11).
 
 ---
 
+## 0i. Leaked-password protection is OFF and we cannot turn it on — the check lives in code instead
+
+The Supabase linter reports `auth_leaked_password_protection` (WARN): Auth is
+not checking new passwords against the HaveIBeenPwned corpus. Enabling it is one
+toggle in **Dashboard → Authentication → Policies** — but it is an
+**organisation-owner setting, and this team are members of another owner's
+organisation**, so nobody here can flip it. Treat it as blocked, not as ignored.
+
+It was not a theoretical gap. The sign-up route's only password rule was
+`z.string().min(6)`, so `123456` — the most common breached password there is —
+was accepted.
+
+**Implemented 2026-09-04 as a compensating control, in code we do own:**
+
+| Where | What |
+|---|---|
+| `features/auth/domain/password.ts` | Pure rules. Floor raised 6 → **8** (NIST SP 800-63B minimum), ceiling 200 kept. Plus the k-anonymity helpers, which are pure so they can be tested without network. |
+| `features/auth/api/pwned-passwords.ts` | The HIBP range-API adapter. |
+| `app/api/auth/signup/route.ts` | Runs both, before the account is created. |
+
+Three decisions that will look wrong without the reasoning:
+
+* **No composition rules** (no "must contain a symbol"). NIST withdrew that
+  advice — such rules produce predictable mutations, and `Password1!` clears
+  every box while sitting near the top of the breach corpus. Length plus the
+  breach check is the policy.
+* **The password never leaves the process.** It is SHA-1'd locally and only the
+  first **5 hex characters** go to HIBP, which answers with every breached
+  suffix sharing that prefix; the match happens locally against ~1M sibling
+  hashes. SHA-1 here is a lookup key into HIBP's index, *not* credential
+  storage — Supabase still bcrypts the real password. Do not "simplify" this by
+  sending the full hash. A unit test asserts the request shape for exactly this
+  reason.
+* **It fails OPEN.** If HIBP is down, rate-limiting or slow (2.5s timeout),
+  sign-up proceeds and a warning is logged. Blocking registration on a
+  third-party outage would trade defence-in-depth for an availability incident,
+  and an outage only restores the risk we already carried. `unavailable` is a
+  distinct state from `clean` so the two can never be confused.
+
+Raising the floor affects **new passwords only** — nothing here runs on the
+sign-in path, so existing accounts still authenticate normally.
+
+**If an owner later enables the toggle, keep this code.** The two overlap
+harmlessly, and this layer is what holds when the platform setting is off.
+
+### Password reset — added 2026-09-04, no Figma frame exists
+
+Until this date there was **no password-reset flow at all**. "Forgot password"
+was a no-op control in the old markup and the Figma rebuild dropped it rather
+than implementing it, so a user whose password leaked could not rotate it. That
+was a larger practical gap than the toggle above, and it is why the breach check
+alone was not enough.
+
+| Piece | File |
+|---|---|
+| Request a link (3rd mode on the auth card) | `app/auth/auth-form.tsx` |
+| Request route | `app/api/auth/reset-password/route.ts` |
+| Email | `lib/emails/password-reset.ts` |
+| Set the new password | `app/auth/reset-password/` |
+| Confirm route | `app/api/auth/reset-password/confirm/route.ts` |
+| Token redemption (repository) | `features/auth/api/password-reset.ts` |
+
+**The UI was invented, not derived** — Figma has no frame for any of it. It
+reuses the existing auth card so it does not read as a different product. If a
+frame appears later, re-derive the presentation from it; the flow below is the
+part that should not change casually.
+
+Four decisions worth keeping:
+
+* **The request route always answers `200`,** for a registered address, an
+  unregistered one, or a Supabase failure. Any other behaviour turns it into an
+  account-existence oracle — submit an address, read the status code, learn
+  whether it holds an account. The inbox message is worded to match ("if an
+  account exists for…"), because a confident "we sent it" would leak the same
+  fact through the UI that the status code no longer leaks.
+* **The recovery token is redeemed at the moment the password is submitted,**
+  not at an earlier redirect. `verifyOtp` + `updateUser` happen together in the
+  repository. Letting the emailed link establish a session first and then
+  trusting whoever holds that session cannot distinguish "arrived from the reset
+  email" from "was already signed in on this shared machine" — which would let
+  anyone at an unlocked laptop change the password without knowing the current
+  one.
+* **Both password checks run BEFORE the token is spent.** A recovery token is
+  single-use; validating after redeeming would burn the user's link because they
+  picked something seven characters long, and force another email.
+* **Rate limited on IP *and* target email** (3 per 15 min). The endpoint sends
+  mail to an address the caller chooses, so it is a spam relay otherwise. One
+  bucket alone does not cover both "one host, many addresses" and "many hosts,
+  one victim".
+
+Still missing, deliberately: no "change password" screen for an already
+signed-in user. That needs a current-password prompt to be safe, and nobody has
+asked for it.
+
+---
+
 ## 0d. `application_recommendations` genUI columns — the detail-page content block
 
 ✅ **CONFIRMED RESOLVED 2026-08-12.** The owner's production schema dump

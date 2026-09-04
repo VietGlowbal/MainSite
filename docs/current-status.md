@@ -1,5 +1,59 @@
 # Current project status
 
+Working tree 2026-09-04 (password reset + localised auth errors): the product
+had no password-reset flow at all — "Forgot password" was a no-op that the Figma
+rebuild dropped — so a user whose password leaked could not rotate it. Added as
+a third mode on the auth card plus `/auth/reset-password`, with request and
+confirm routes. The request route always answers 200 so it cannot be used as an
+account-existence oracle, and is rate limited on both IP and target email (3 per
+15 min) because it mails an address the caller chooses. The recovery token is
+redeemed at the moment the new password is submitted, not at an earlier
+redirect, which binds the change to possession of the email rather than to
+whoever is signed in on the machine; both password checks run before the token
+is spent so a weak choice cannot burn a single-use link. No Figma frame exists
+for any of this — the UI reuses the existing auth card and should be re-derived
+if a frame appears.
+
+Auth error messages now follow the language switcher. Routes return a stable
+`code` plus `vars` alongside the English text, and the form holds the code in
+state rather than a rendered sentence — storing the string would freeze the
+message in whichever language was active when the request failed. Vietnamese
+lives in `lib/i18n-auth.ts`, guarded by tests for missing keys, dropped
+`{placeholder}`s, and untranslated copies, because `t()` falls back to English
+silently and a drifted key is otherwise invisible.
+      Measured: full suite 3,630 passed and 2 todo across 384 files; typecheck,
+      strict typecheck, `npm run build`, and lint on the touched files all pass.
+      Two bugs were caught by the new tests and fixed: `isAuthErrorCode` used
+      `in`, which walks the prototype chain and accepted `code: "toString"`; and
+      `password-reset` was missing from `EmailTemplateId`.
+
+Working tree 2026-09-04 (breached-password check at sign-up): sign-up now
+enforces a password floor of 8 characters (was 6, which accepted `123456`) and
+rejects passwords found in the HaveIBeenPwned corpus. This is a compensating
+control for Supabase's `auth_leaked_password_protection` toggle, which is off
+and can only be enabled by the organisation owner — we are members, not owners,
+so it is blocked rather than ignored. The password never leaves the process:
+only the first 5 hex characters of its SHA-1 are sent, and the match happens
+locally. The check fails OPEN on any HIBP error or a 2.5s timeout, logging a
+warning, so a third-party outage cannot block registration. Pure rules and the
+response parser live in `features/auth/domain/password.ts`; the network adapter
+in `features/auth/api/pwned-passwords.ts`. No composition rules, per NIST
+SP 800-63B. Rationale and the still-open absence of any password-reset flow are
+in `known-issues.md §0i`.
+      Measured: full suite 3,614 passed and 2 todo across 382 files; typecheck,
+      strict typecheck, and lint on the touched files all pass. The one lint
+      error (`strategy-report-v3-view.tsx`, react-hooks/static-components) is
+      pre-existing and untouched.
+
+Also 2026-09-04 (security audit follow-up): an anon `DELETE`/`PATCH` returning
+`204` was investigated and is **not** a vulnerability — PostgREST answers a
+zero-row write that way and RLS filters rather than raising. Recorded with the
+correct test method in `known-issues.md §0h`, along with a full anon-vs-service
+sweep of all 113 REST-exposed tables (no table leaks anything it should not).
+The real exposure remains `§0g`: five anon-callable `SECURITY DEFINER` RPCs,
+re-confirmed live. `supabase-rpc-privilege-hardening.sql` is verified correct
+and complete against the live catalog but **has still not been run**.
+
 Working tree 2026-09-02 (Reflection-tab report regeneration flow): the
 Reflections tab now shows the shared report quota and an "Edit information and
 regenerate reports" action. The action safely re-opens that application,
