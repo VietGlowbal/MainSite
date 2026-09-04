@@ -9,6 +9,12 @@ import { controlClasses } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n';
 import { TID, testId } from '@/shared/lib';
+import {
+  authErrorFromResponse,
+  authErrorText,
+  PASSWORD_MIN_LENGTH,
+  type AuthErrorState,
+} from '@/features/auth/domain';
 
 /**
  * Auth form — rebuilt from Figma 105:8004 (login) and 105:8037 (sign up).
@@ -22,12 +28,18 @@ import { TID, testId } from '@/shared/lib';
  * unchanged, which is what tests/e2e/signed-in.spec.ts signs in through.
  *
  * The sign-up frame's fields map 1:1 onto what the signup route already stored:
- * full name, phone, email, password, date of birth. Two dead controls the old
- * markup carried — "Remember me" (never read) and "Forgot password" (a no-op) —
- * are dropped rather than restyled; the design omits them too.
+ * full name, phone, email, password, date of birth. "Remember me" (never read)
+ * was dropped rather than restyled; the design omits it too.
+ *
+ * "Forgot password" was ALSO dropped in that rebuild, because the old control
+ * was a no-op and Figma has no frame for the flow. That left the product with
+ * no way to rotate a compromised password at all, so as of 2026-09-04 it is
+ * back as a third mode — built to match the existing card rather than from a
+ * design, since there is none to follow (`docs/known-issues.md §0i`). If a
+ * frame appears later, this is the part to re-derive from it.
  */
 
-type Mode = 'login' | 'signup';
+type Mode = 'login' | 'signup' | 'forgot';
 
 function GoogleMark() {
   return (
@@ -59,7 +71,8 @@ function IconEye({ off }: { off: boolean }) {
 }
 
 /** Shown after a successful sign-up: the confirmation email is on its way. */
-function CheckInbox({ email }: { email: string }) {
+function CheckInbox({ email, variant }: { email: string; variant: 'signup' | 'reset' }) {
+  const t = useT();
   return (
     <div className="text-center" aria-live="polite">
       <span className="mx-auto mb-gb-xl flex size-gb-7xl items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand">
@@ -68,10 +81,23 @@ function CheckInbox({ email }: { email: string }) {
           <path d="m22 7-10 5L2 7" />
         </svg>
       </span>
-      <h2 className="font-display text-gb-display-xs font-semibold text-fg">Check your inbox</h2>
+      <h2 className="font-display text-gb-display-xs font-semibold text-fg">
+        {t('Check your inbox')}
+      </h2>
       <p className="mt-gb-md text-gb-md text-fg-tertiary">
-        We sent a confirmation link to <strong className="text-fg">{email}</strong>. Click it to
-        activate your account and pick up where you left off.
+        {variant === 'signup'
+          ? t('We sent a confirmation link to {email}. Click it to activate your account.', {
+              email,
+            })
+          : /*
+             * Worded so it reads the same whether or not the address has an
+             * account. The route answers 200 either way — see its header — and
+             * a message like "we found your account" here would undo that.
+             */
+            t(
+              'If an account exists for {email}, we have sent a link to reset its password. The link expires in one hour.',
+              { email },
+            )}
       </p>
     </div>
   );
@@ -91,7 +117,9 @@ export function AuthForm() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [dob, setDob] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  // Held as a code rather than a rendered sentence so the language switcher
+  // re-renders it like every other label. See `features/auth/domain/errors.ts`.
+  const [error, setError] = useState<AuthErrorState | null>(null);
   const [loading, setLoading] = useState(false);
   useLoadingIndicator(loading, 'Checking your details');
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -118,7 +146,7 @@ export function AuthForm() {
       options: { redirectTo: buildCallbackUrl() },
     });
     if (oauthError) {
-      setError(oauthError.message);
+      setError({ text: oauthError.message });
       setLoading(false);
     }
   }
@@ -128,6 +156,21 @@ export function AuthForm() {
     setLoading(true);
     setError(null);
     try {
+      if (mode === 'forgot') {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(authErrorFromResponse(data, 'Could not send the reset link.'));
+          return;
+        }
+        setSentTo(email);
+        return;
+      }
+
       if (mode === 'signup') {
         // Sign up via our own route so the confirmation email goes through
         // Resend (Supabase's built-in email is rate-limited on the free tier).
@@ -144,7 +187,10 @@ export function AuthForm() {
           }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error ?? 'Could not create your account.');
+        if (!res.ok) {
+          setError(authErrorFromResponse(data, 'Could not create your account.'));
+          return;
+        }
         setSentTo(email);
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
@@ -159,13 +205,19 @@ export function AuthForm() {
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError({ text: err instanceof Error ? err.message : 'Something went wrong' });
     } finally {
       setLoading(false);
     }
   }
 
   const isSignup = mode === 'signup';
+  const isForgot = mode === 'forgot';
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError(null);
+  }
 
   return (
     <div className="w-full">
@@ -173,18 +225,24 @@ export function AuthForm() {
         <GlowbalLogo height={28} />
         <div className="flex flex-col gap-gb-xs">
           <h1 className="font-display text-gb-display-xs font-semibold text-fg">
-            {isSignup ? 'Create an account' : 'Welcome back 👋'}
+            {isForgot
+              ? t('Reset your password')
+              : isSignup
+                ? t('Create an account')
+                : t('Welcome back 👋')}
           </h1>
           <p className="text-gb-md text-fg-tertiary">
-            {isSignup
-              ? 'Join thousands of students finding their dream university.'
-              : 'Sign in to continue your journey.'}
+            {isForgot
+              ? t('Enter your email and we will send you a link to choose a new password.')
+              : isSignup
+                ? t('Join thousands of students finding their dream university.')
+                : t('Sign in to continue your journey.')}
           </p>
         </div>
       </div>
 
       {sentTo ? (
-        <CheckInbox email={sentTo} />
+        <CheckInbox email={sentTo} variant={isForgot ? 'reset' : 'signup'} />
       ) : (
         <>
           {/*
@@ -238,9 +296,10 @@ export function AuthForm() {
             {/* Password with a show/hide toggle — built inline because Input has
                 no trailing-slot API. Shares controlClasses so it matches the
                 other fields exactly. */}
+            {isForgot ? null : (
             <div className="flex flex-col gap-gb-sm">
               <label htmlFor="password" className="text-gb-sm font-medium text-fg-secondary">
-                Password
+                {t('Password')}
               </label>
               <div className="relative">
                 <input
@@ -251,7 +310,10 @@ export function AuthForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={isSignup ? 'Create a password' : 'Enter your password'}
                   required
-                  minLength={6}
+                  // Only constrain what we are about to create. Existing
+                  // accounts may hold a 6-character password from before the
+                  // floor moved, and they must still be able to sign in.
+                  minLength={isSignup ? PASSWORD_MIN_LENGTH : undefined}
                   autoComplete={isSignup ? 'new-password' : 'current-password'}
                   className={controlClasses(false, 'pr-gb-6xl')}
                   {...testId(TID.authPasswordInput)}
@@ -265,7 +327,23 @@ export function AuthForm() {
                   <IconEye off={showPassword} />
                 </button>
               </div>
+              {isSignup ? (
+                <p className="text-gb-xs text-fg-tertiary">
+                  {t('At least {min} characters. Checked against known data breaches.', {
+                    min: PASSWORD_MIN_LENGTH,
+                  })}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => switchMode('forgot')}
+                  className="self-end text-gb-sm font-semibold text-fg-brand hover:underline"
+                >
+                  {t('Forgot password?')}
+                </button>
+              )}
             </div>
+            )}
 
             {isSignup ? (
               <Input
@@ -282,38 +360,50 @@ export function AuthForm() {
 
             {error ? (
               <p role="alert" className="rounded-gb-md bg-surface-error px-gb-lg py-gb-md text-gb-sm text-fg-error">
-                {error}
+                {authErrorText(error, t)}
               </p>
             ) : null}
 
             <Button type="submit" size="xl" disabled={loading} className="w-full" {...testId(TID.authSubmit)}>
-              {loading ? 'Please wait…' : isSignup ? 'Create account' : 'Sign in'}
+              {loading
+                ? t('Please wait…')
+                : isForgot
+                  ? t('Send reset link')
+                  : isSignup
+                    ? t('Create account')
+                    : t('Sign in')}
             </Button>
 
-            <Button
-              type="button"
-              variant="secondary"
-              size="xl"
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-              className="w-full"
-            >
-              <GoogleMark />
-              Continue with Google
-            </Button>
+            {/* Google is a way in, not a way to reset a password we do not
+                hold for that account — hidden rather than disabled in forgot
+                mode so it cannot look like an alternative route. */}
+            {isForgot ? null : (
+              <Button
+                type="button"
+                variant="secondary"
+                size="xl"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="w-full"
+              >
+                <GoogleMark />
+                {t('Continue with Google')}
+              </Button>
+            )}
           </form>
 
           <p className="mt-gb-3xl text-center text-gb-sm text-fg-tertiary">
-            {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+            {isForgot
+              ? t('Remembered it?')
+              : isSignup
+                ? t('Already have an account?')
+                : t("Don't have an account?")}{' '}
             <button
               type="button"
-              onClick={() => {
-                setMode(isSignup ? 'login' : 'signup');
-                setError(null);
-              }}
+              onClick={() => switchMode(isSignup || isForgot ? 'login' : 'signup')}
               className="font-semibold text-fg-brand hover:underline"
             >
-              {isSignup ? 'Sign in' : 'Sign up'}
+              {isSignup || isForgot ? t('Sign in') : t('Sign up')}
             </button>
           </p>
         </>
