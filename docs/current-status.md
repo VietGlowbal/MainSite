@@ -1,5 +1,31 @@
 # Current project status
 
+Working tree 2026-09-04 (change password while signed in): completes the
+password story — `/profile/security`, reached from the account card on
+`/profile`. The current password is required and verified, because
+`updateUser({ password })` needs only a session and Supabase's "secure password
+change" setting is behind the same organisation-owner wall as leaked-password
+protection; without the prompt, an unlocked browser or a replayed session cookie
+converts temporary access into permanent ownership. Verification runs on a
+throwaway `persistSession: false` client so a read-only check does not rewrite
+the caller's session cookies, and the session it mints is revoked straight away.
+On success every *other* session is revoked (`scope: 'others'`) — refresh tokens
+outlive the password that created them, so a change that leaves them working
+protects nothing — and a "your password was changed" email goes out, which is
+the only signal the real owner gets if someone had both the session and the
+password. A Google-only account has no password hash, so it is offered the
+emailed link instead of a one-click "set a password" that would be the same
+escalation. Rate limited 10 per 15 min per user id, placed after local
+validation and before the HIBP lookup; `route.test.ts` pins that ordering
+because it is invisible in the types. No Figma frame — see
+`known-issues.md §0i`.
+      Measured: full suite 3,652 passed and 2 todo across 385 files; typecheck,
+      strict typecheck, `npm run build` and lint on the touched files pass, and
+      `scripts/check-i18n.mjs --all` reports 0 missing keys. The i18n checker
+      caught the two new page strings before commit. `EyeMark` moved into
+      `shared/ui` on its third call site, replacing the copies in the sign-in
+      and reset forms.
+
 Working tree 2026-09-04 (password reset + localised auth errors): the product
 had no password-reset flow at all — "Forgot password" was a no-op that the Figma
 rebuild dropped — so a user whose password leaked could not rotate it. Added as

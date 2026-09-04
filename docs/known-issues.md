@@ -607,9 +607,75 @@ Four decisions worth keeping:
   bucket alone does not cover both "one host, many addresses" and "many hosts,
   one victim".
 
-Still missing, deliberately: no "change password" screen for an already
-signed-in user. That needs a current-password prompt to be safe, and nobody has
-asked for it.
+### Change password while signed in — added 2026-09-04, completes the flow
+
+The third case, and the one a student reaches most often: they are signed in,
+they suspect the password has leaked, and they want a different one. Also no
+Figma frame; the page borrows the profile editors' shell and the auth card's
+field styling.
+
+| Piece | File |
+|---|---|
+| Page (auth gate + which form to show) | `app/profile/security/page.tsx` |
+| Both forms | `app/profile/security/change-password-form.tsx` |
+| Route | `app/api/account/password/route.ts` |
+| Verify + update + revoke (repository) | `features/auth/api/password-change.ts` |
+| Notification email | `lib/emails/password-changed.ts` |
+| Entry point | the account card in `app/profile/profile-client.tsx` |
+
+Five decisions worth keeping:
+
+* **The current password is required, and verified.** `updateUser({ password })`
+  needs nothing but a session, and Supabase's "secure password change" setting —
+  which would require re-authentication — is the same organisation-owner toggle
+  we cannot reach. Without the prompt, anyone at an unlocked browser or replaying
+  a stolen session cookie can set a password of their choosing and convert
+  temporary access into permanent ownership of the account.
+* **Verification runs on a throwaway client** (`persistSession: false`), because
+  `signInWithPassword` is the only way Supabase will check a password and running
+  it on the request's cookie-bound client would rewrite the caller's session
+  cookies as a side effect of a read-only check. The throwaway session it mints
+  is revoked immediately (`scope: 'local'` is a server call, not a local wipe).
+* **Every other session is revoked on success** (`scope: 'others'`, which spares
+  the caller's own). Refresh tokens outlive the password that created them, so a
+  change that leaves existing sessions working has protected nothing — which is
+  the entire reason someone reaches this page.
+* **A "your password was changed" email goes out afterwards.** This is the
+  control that catches the case the prompt did not: someone who held both a
+  session *and* the password. It is deliberately NOT sent by the reset flow,
+  where the user just received a link at that same address and an attacker who
+  completed the reset already owns the mailbox. No undo link — a link that
+  reverses a password change is itself a credential.
+* **A Google-only account gets a different screen.** It has no password hash, so
+  there is no current password to verify. It could be given one straight from the
+  session in a single click; that is exactly the escalation above, so it is
+  routed through the emailed link instead. Detected with `hasPasswordIdentity`
+  (`features/auth/domain/password.ts`), which assumes a password when the
+  identity list is missing — failing the other way would tell an ordinary user
+  their account has no password.
+
+  ⚠️ **Untested against the live project:** this branch assumes
+  `admin.auth.admin.generateLink({ type: 'recovery' })` issues a token for a user
+  who has no password yet. It is the documented way an OAuth user adds one, but
+  verifying it needs a real Google account and a delivered email, and the MCP
+  connection is read-only. If it turns out GoTrue refuses, the request route
+  swallows the error and answers `200` (by design — see above), so the symptom
+  is a link that never arrives, not an error.
+
+Rate limited at 10 per 15 min **per user id**, not per IP: the endpoint reports
+whether the current password was right, which is an online guessing oracle for
+whoever holds a stolen session, and that account's budget should bound them
+however many addresses they come from. The limiter sits *after* local validation
+(so a typo does not spend an attempt) and *before* the HIBP lookup (so a wordlist
+cannot pump outbound requests). `route.test.ts` pins that ordering — it is
+invisible in the types and a silent regression if it moves.
+
+Unlike the reset routes, this one is **not** enumeration-sensitive: the caller
+has already proved who they are, so "that is not your current password" names the
+real problem instead of sending a user who merely mistyped off to the reset flow.
+
+Still missing: nothing in the password story. What this page does *not* do is
+list active sessions or offer 2FA — neither has been asked for.
 
 ---
 
