@@ -38,6 +38,7 @@ export type { FooterColumn, FooterLink, FooterSocial } from './footer';
 export {
   BRAND_ICONS,
   BrandIcon,
+  EyeMark,
   ICONS,
   InstagramMark,
   KitIcon,
