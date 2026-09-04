@@ -584,6 +584,15 @@ reuses the existing auth card so it does not read as a different product. If a
 frame appears later, re-derive the presentation from it; the flow below is the
 part that should not change casually.
 
+**`/auth/reset-password` is exempt from the signed-in `/auth` redirect**
+(`src/proxy.ts`). Missing that exemption is not a cosmetic bounce: the redirect
+clears the query string, so a recovery token opened in a signed-in browser is
+destroyed rather than deferred, and the single-use link has to be requested
+again. It is reachable in ordinary use — the "set a password" card on
+/profile/security mails the link to a user who is signed in by definition, and
+anyone who requests a reset on one device may open the mail on another where
+they are still signed in. Pinned by `src/__tests__/proxy-auth-redirect.test.ts`.
+
 Four decisions worth keeping:
 
 * **The request route always answers `200`,** for a registered address, an
