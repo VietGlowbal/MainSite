@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const STRATEGY_REPORT_V3_CONTRACT_VERSION = 'strategy-report-v3' as const;
-export const STRATEGY_ENGINE_V3_VERSION = 'strategy-v3.1.1' as const;
+export const STRATEGY_ENGINE_V3_VERSION = 'strategy-v3.1.2' as const;
 export const STRATEGY_PRIORITY_FORMULA_VERSION =
   'impact-relevance-evidence-gap-feasibility-urgency-v2' as const;
 export const STRATEGY_ACTIVITY_BATCH_SIZE = 6 as const;
@@ -21,6 +21,19 @@ const refs = z.array(id).max(80);
 export const profileStrategyStatusSchema = z.enum(['maintain', 'develop', 'consolidate', 'build']);
 export type ProfileStrategyStatus = z.infer<typeof profileStrategyStatusSchema>;
 
+const developmentRouteSchema = z
+  .object({ title: z.string().min(1).max(300), rationale: text })
+  .strict();
+
+const developmentPlanSchema = z
+  .object({
+    gap: text,
+    possibleRoutes: z.array(developmentRouteSchema).min(2).max(4),
+    recommendedRoute: developmentRouteSchema,
+    evidenceExpected: z.array(text).max(8),
+  })
+  .strict();
+
 export const profileAreaDiagnosisSchema = z
   .object({
     key: id,
@@ -30,6 +43,9 @@ export const profileAreaDiagnosisSchema = z
     diagnosis: text,
     whyItMatters: text,
     suggestedDirection: text,
+    // Optional keeps stored pre-contract-change V3 rows readable. New BUILD
+    // output is required to provide it by the generation-stage refinement.
+    developmentPlan: developmentPlanSchema.nullable().optional(),
     evidenceIds: refs,
     metricIds: refs,
     requirementIds: refs,
@@ -161,59 +177,65 @@ export const narrativeGapTypeSchema = z.enum([
 ]);
 export type NarrativeGapType = z.infer<typeof narrativeGapTypeSchema>;
 
-const narrativeStrategySchema = z
-  .object({
-    coreNarrativeDirection: z
-      .object({
-        originTrigger: text.nullable(),
-        recurringMotivation: text.nullable(),
-        actions: z.array(text).max(12),
-        capabilitiesDeveloped: z.array(text).max(12),
-        emergingDirection: text.nullable(),
-        insight: text,
-        evidenceIds: refs,
-      })
-      .strict(),
-    supportingThemes: z
-      .array(z.object({ key: id, title: z.string().min(1).max(200), evidenceIds: refs.min(1), significance: text }).strict())
-      .max(5),
-    narrativeTension: z
-      .object({
-        type: narrativeGapTypeSchema,
-        observedGap: text,
-        evidenceIds: refs.min(1),
-        whyItMatters: text,
-        possibleDirection: text,
-      })
-      .strict()
-      .nullable(),
-    narrativeOptions: z
-      .array(
-        z
-          .object({
-            key: id,
-            title: z.string().min(1).max(200),
-            centralIdea: text,
-            whyItEmerges: text,
-            supportingExperienceIds: refs.min(1),
-            targetSourceRefs: refs.min(1),
-            whatCouldStrengthenIt: text,
-            evaluation: z
-              .object({
-                evidenceStrength: z.enum(['high', 'medium', 'low']),
-                personalAuthenticity: z.enum(['high', 'medium', 'low']),
-                programmeRelevance: z.enum(['high', 'medium', 'low']),
-                differentiation: z.enum(['high', 'medium', 'low']),
-                developmentPotential: z.enum(['high', 'medium', 'low']),
-              })
-              .strict(),
-            strategicFit: z.enum(['high', 'medium', 'low']),
-          })
-          .strict(),
-      )
-      .max(3),
-  })
+const narrativeOptionFields = {
+  key: id,
+  title: z.string().min(1).max(200),
+  centralIdea: text,
+  whyItEmerges: text,
+  targetSourceRefs: refs.min(1),
+  whatCouldStrengthenIt: text,
+  evaluation: z
+    .object({
+      evidenceStrength: z.enum(['high', 'medium', 'low']),
+      personalAuthenticity: z.enum(['high', 'medium', 'low']),
+      programmeRelevance: z.enum(['high', 'medium', 'low']),
+      differentiation: z.enum(['high', 'medium', 'low']),
+      developmentPotential: z.enum(['high', 'medium', 'low']),
+    })
+    .strict(),
+  strategicFit: z.enum(['high', 'medium', 'low']),
+} as const;
+
+const narrativeOptionSchema = z
+  .object({ ...narrativeOptionFields, supportingExperienceIds: refs.min(2).max(4) })
   .strict();
+const narrativeOptionReaderSchema = z
+  .object({ ...narrativeOptionFields, supportingExperienceIds: refs })
+  .strict();
+
+const narrativeStrategyFields = {
+  coreNarrativeDirection: z
+    .object({
+      originTrigger: text.nullable(),
+      recurringMotivation: text.nullable(),
+      actions: z.array(text).max(12),
+      capabilitiesDeveloped: z.array(text).max(12),
+      emergingDirection: text.nullable(),
+      insight: text,
+      evidenceIds: refs,
+    })
+    .strict(),
+  supportingThemes: z
+    .array(z.object({ key: id, title: z.string().min(1).max(200), evidenceIds: refs.min(1), significance: text }).strict())
+    .max(5),
+  narrativeTension: z
+    .object({
+      type: narrativeGapTypeSchema,
+      observedGap: text,
+      evidenceIds: refs.min(1),
+      whyItMatters: text,
+      possibleDirection: text,
+    })
+    .strict()
+    .nullable(),
+} as const;
+
+const narrativeStrategySchema = z.object({ ...narrativeStrategyFields, narrativeOptions: z.array(narrativeOptionSchema).max(3) }).strict().superRefine((narrative, ctx) => {
+  if (narrative.narrativeOptions.length === 1) {
+    ctx.addIssue({ code: 'custom', path: ['narrativeOptions'], message: 'V3 narrative options must contain zero or two to three options.' });
+  }
+});
+const narrativeStrategyReaderSchema = z.object({ ...narrativeStrategyFields, narrativeOptions: z.array(narrativeOptionReaderSchema).max(3) }).strict();
 
 const roadmapDeliverableSchema = z
   .object({
@@ -289,91 +311,122 @@ const metadataSchema = z
   })
   .strict();
 
-export const strategyReportV3Schema = z
-  .object({
-    contractVersion: z.literal(STRATEGY_REPORT_V3_CONTRACT_VERSION),
-    generatedAt: z.string().min(1),
-    strategicOverview: strategicOverviewSchema,
-    profileDevelopmentStrategy: profileDevelopmentSchema,
-    narrativeStrategy: narrativeStrategySchema,
-    strategicRoadmap: z.array(strategyRoadmapPhaseSchema).min(4).max(4),
-    evidenceIndex: z.array(evidenceIndexItemSchema).max(300),
-    targetSourceIndex: z.array(targetSourceIndexItemSchema).max(150),
-    metadata: metadataSchema,
-  })
-  .strict()
-  .superRefine((report, ctx) => {
-    const categories = report.profileDevelopmentStrategy.areas.map((area) => area.category);
-    if (new Set(categories).size !== 4 || STRATEGY_PHASE_KEYS.length !== 4) {
-      ctx.addIssue({ code: 'custom', path: ['profileDevelopmentStrategy', 'areas'], message: 'V3 requires one diagnosis for each profile category.' });
-    }
-    const phases = report.strategicRoadmap.map((phase) => phase.phaseKey);
-    if (phases.some((key, index) => key !== STRATEGY_PHASE_KEYS[index])) {
-      ctx.addIssue({ code: 'custom', path: ['strategicRoadmap'], message: 'V3 roadmap phases must use the canonical order.' });
-    }
-    const priorityKeys = report.strategicOverview.topPriorities.map((priority) => priority.key);
-    if (new Set(priorityKeys).size !== priorityKeys.length || priorityKeys.length > 3) {
-      ctx.addIssue({ code: 'custom', path: ['strategicOverview', 'topPriorities'], message: 'V3 priorities must be unique and capped at three.' });
-    }
-    report.strategicOverview.topPriorities.forEach((priority, index) => {
-      if (priority.rank !== index + 1) {
-        ctx.addIssue({ code: 'custom', path: ['strategicOverview', 'topPriorities', index, 'rank'], message: 'Priority ranks must be contiguous and deterministic.' });
+type StrategyReportRelations = {
+  strategicOverview: z.infer<typeof strategicOverviewSchema>;
+  profileDevelopmentStrategy: {
+    areas: ProfileAreaDiagnosis[];
+    activityAnalyses: ActivityStrategyAnalysis[];
+  };
+  strategicRoadmap: Array<z.infer<typeof strategyRoadmapPhaseSchema>>;
+  narrativeStrategy: {
+    coreNarrativeDirection: { evidenceIds: string[] };
+    supportingThemes: Array<{ evidenceIds: string[] }>;
+    narrativeTension: { evidenceIds: string[] } | null;
+    narrativeOptions: Array<{ supportingExperienceIds: string[]; targetSourceRefs: string[] }>;
+  };
+  evidenceIndex: Array<{ id: string }>;
+  targetSourceIndex: Array<{ ref: string }>;
+};
+
+function makeStrategyReportSchema<T extends z.ZodTypeAny>(narrativeStrategy: T, requireBuildPlans = false) {
+  return z
+    .object({
+      contractVersion: z.literal(STRATEGY_REPORT_V3_CONTRACT_VERSION),
+      generatedAt: z.string().min(1),
+      strategicOverview: strategicOverviewSchema,
+      profileDevelopmentStrategy: profileDevelopmentSchema,
+      narrativeStrategy,
+      strategicRoadmap: z.array(strategyRoadmapPhaseSchema).min(4).max(4),
+      evidenceIndex: z.array(evidenceIndexItemSchema).max(300),
+      targetSourceIndex: z.array(targetSourceIndexItemSchema).max(150),
+      metadata: metadataSchema,
+    })
+    .strict()
+    .superRefine((report, ctx) => {
+      validateStrategyReportRelations(report as StrategyReportRelations, ctx);
+      if (requireBuildPlans) {
+        report.profileDevelopmentStrategy.areas.forEach((area, index) => {
+          if (area.status === 'build' && !area.developmentPlan) {
+            ctx.addIssue({ code: 'custom', path: ['profileDevelopmentStrategy', 'areas', index, 'developmentPlan'], message: 'BUILD requires a development plan.' });
+          }
+        });
       }
     });
-    for (const key of report.strategicOverview.strategicOpportunity.priorityKeys) {
-      if (!priorityKeys.includes(key)) ctx.addIssue({ code: 'custom', path: ['strategicOverview', 'strategicOpportunity', 'priorityKeys'], message: `Unknown priority key: ${key}` });
+}
+
+function validateStrategyReportRelations(report: StrategyReportRelations, ctx: z.RefinementCtx): void {
+  const categories = report.profileDevelopmentStrategy.areas.map((area) => area.category);
+  if (new Set(categories).size !== 4 || STRATEGY_PHASE_KEYS.length !== 4) {
+    ctx.addIssue({ code: 'custom', path: ['profileDevelopmentStrategy', 'areas'], message: 'V3 requires one diagnosis for each profile category.' });
+  }
+  const phases = report.strategicRoadmap.map((phase) => phase.phaseKey);
+  if (phases.some((key, index) => key !== STRATEGY_PHASE_KEYS[index])) {
+    ctx.addIssue({ code: 'custom', path: ['strategicRoadmap'], message: 'V3 roadmap phases must use the canonical order.' });
+  }
+  const priorityKeys = report.strategicOverview.topPriorities.map((priority) => priority.key);
+  if (new Set(priorityKeys).size !== priorityKeys.length || priorityKeys.length > 3) {
+    ctx.addIssue({ code: 'custom', path: ['strategicOverview', 'topPriorities'], message: 'V3 priorities must be unique and capped at three.' });
+  }
+  report.strategicOverview.topPriorities.forEach((priority, index) => {
+    if (priority.rank !== index + 1) {
+      ctx.addIssue({ code: 'custom', path: ['strategicOverview', 'topPriorities', index, 'rank'], message: 'Priority ranks must be contiguous and deterministic.' });
     }
-    const evidence = new Set(report.evidenceIndex.map((item) => item.id));
-    const targetSources = new Set(report.targetSourceIndex.map((item) => item.ref));
-    const check = (values: string[], known: Set<string>, path: (string | number)[], label: string) => {
-      for (const value of values) if (!known.has(value)) ctx.addIssue({ code: 'custom', path, message: `Unknown ${label} reference: ${value}` });
-    };
-    const checkActivity = (analysis: ActivityStrategyAnalysis, path: (string | number)[]) => {
-      check(analysis.evidenceIds, evidence, path, 'evidence');
-      check(analysis.targetSourceRefs, targetSources, path, 'target source');
-      for (const dimension of Object.values(analysis.dimensions)) {
-        check(dimension.evidenceIds, evidence, path, 'evidence');
-        check(dimension.targetSourceRefs, targetSources, path, 'target source');
-      }
-    };
-    report.profileDevelopmentStrategy.areas.forEach((area, index) => {
-      check(area.evidenceIds, evidence, ['profileDevelopmentStrategy', 'areas', index], 'evidence');
-      check(area.targetSourceRefs, targetSources, ['profileDevelopmentStrategy', 'areas', index], 'target source');
-    });
-    check(report.strategicOverview.currentPosition.profileStrength.evidenceIds, evidence, ['strategicOverview', 'currentPosition'], 'evidence');
-    check(report.strategicOverview.currentPosition.differentiatedPotential?.evidenceIds ?? [], evidence, ['strategicOverview', 'currentPosition'], 'evidence');
-    for (const priority of report.strategicOverview.topPriorities) {
-      check(priority.evidenceIds, evidence, ['strategicOverview', 'topPriorities'], 'evidence');
-      check(priority.targetSourceRefs, targetSources, ['strategicOverview', 'topPriorities'], 'target source');
-    }
-    const prioritySet = new Set(priorityKeys);
-    for (const phase of report.strategicRoadmap) {
-      check(phase.linkedPriorityKeys, prioritySet, ['strategicRoadmap'], 'priority');
-      for (const deliverable of phase.deliverables) {
-        check(deliverable.linkedPriorityKeys, prioritySet, ['strategicRoadmap'], 'priority');
-      }
-    }
-    const activityIds = report.profileDevelopmentStrategy.activityAnalyses.map((analysis) => analysis.activityId);
-    if (new Set(activityIds).size !== activityIds.length) {
-      ctx.addIssue({ code: 'custom', path: ['profileDevelopmentStrategy', 'activityAnalyses'], message: 'Activity analyses must not contain duplicates.' });
-    }
-    report.profileDevelopmentStrategy.activityAnalyses.forEach((analysis, index) =>
-      checkActivity(analysis, ['profileDevelopmentStrategy', 'activityAnalyses', index]),
-    );
-    check(report.narrativeStrategy.coreNarrativeDirection.evidenceIds, evidence, ['narrativeStrategy'], 'evidence');
-    report.narrativeStrategy.supportingThemes.forEach((theme) => check(theme.evidenceIds, evidence, ['narrativeStrategy'], 'evidence'));
-    for (const option of report.narrativeStrategy.narrativeOptions) {
-      check(option.supportingExperienceIds, new Set(report.profileDevelopmentStrategy.activityAnalyses.map((item) => item.activityId)), ['narrativeStrategy'], 'activity');
-      check(option.targetSourceRefs, targetSources, ['narrativeStrategy'], 'target source');
-    }
-    if (report.narrativeStrategy.narrativeTension) check(report.narrativeStrategy.narrativeTension.evidenceIds, evidence, ['narrativeStrategy'], 'evidence');
   });
+  for (const key of report.strategicOverview.strategicOpportunity.priorityKeys) {
+    if (!priorityKeys.includes(key)) ctx.addIssue({ code: 'custom', path: ['strategicOverview', 'strategicOpportunity', 'priorityKeys'], message: `Unknown priority key: ${key}` });
+  }
+  const evidence = new Set(report.evidenceIndex.map((item) => item.id));
+  const targetSources = new Set(report.targetSourceIndex.map((source) => source.ref));
+  const check = (values: string[], known: Set<string>, path: (string | number)[], label: string) => {
+    for (const value of values) if (!known.has(value)) ctx.addIssue({ code: 'custom', path, message: `Unknown ${label} reference: ${value}` });
+  };
+  const checkActivity = (analysis: ActivityStrategyAnalysis, path: (string | number)[]) => {
+    check(analysis.evidenceIds, evidence, path, 'evidence');
+    check(analysis.targetSourceRefs, targetSources, path, 'target source');
+    for (const dimension of Object.values(analysis.dimensions)) {
+      check(dimension.evidenceIds, evidence, path, 'evidence');
+      check(dimension.targetSourceRefs, targetSources, path, 'target source');
+    }
+  };
+  report.profileDevelopmentStrategy.areas.forEach((area, index) => {
+    check(area.evidenceIds, evidence, ['profileDevelopmentStrategy', 'areas', index], 'evidence');
+    check(area.targetSourceRefs, targetSources, ['profileDevelopmentStrategy', 'areas', index], 'target source');
+  });
+  check(report.strategicOverview.currentPosition.profileStrength.evidenceIds, evidence, ['strategicOverview', 'currentPosition'], 'evidence');
+  check(report.strategicOverview.currentPosition.differentiatedPotential?.evidenceIds ?? [], evidence, ['strategicOverview', 'currentPosition'], 'evidence');
+  for (const priority of report.strategicOverview.topPriorities) {
+    check(priority.evidenceIds, evidence, ['strategicOverview', 'topPriorities'], 'evidence');
+    check(priority.targetSourceRefs, targetSources, ['strategicOverview', 'topPriorities'], 'target source');
+  }
+  const prioritySet = new Set(priorityKeys);
+  for (const phase of report.strategicRoadmap) {
+    check(phase.linkedPriorityKeys, prioritySet, ['strategicRoadmap'], 'priority');
+    for (const deliverable of phase.deliverables) check(deliverable.linkedPriorityKeys, prioritySet, ['strategicRoadmap'], 'priority');
+  }
+  const activityIds = report.profileDevelopmentStrategy.activityAnalyses.map((analysis) => analysis.activityId);
+  if (new Set(activityIds).size !== activityIds.length) {
+    ctx.addIssue({ code: 'custom', path: ['profileDevelopmentStrategy', 'activityAnalyses'], message: 'Activity analyses must not contain duplicates.' });
+  }
+  report.profileDevelopmentStrategy.activityAnalyses.forEach((analysis, index) => checkActivity(analysis, ['profileDevelopmentStrategy', 'activityAnalyses', index]));
+  check(report.narrativeStrategy.coreNarrativeDirection.evidenceIds, evidence, ['narrativeStrategy'], 'evidence');
+  report.narrativeStrategy.supportingThemes.forEach((theme) => check(theme.evidenceIds, evidence, ['narrativeStrategy'], 'evidence'));
+  for (const option of report.narrativeStrategy.narrativeOptions) {
+    check(option.supportingExperienceIds, new Set(activityIds), ['narrativeStrategy'], 'activity');
+    check(option.targetSourceRefs, targetSources, ['narrativeStrategy'], 'target source');
+  }
+  if (report.narrativeStrategy.narrativeTension) check(report.narrativeStrategy.narrativeTension.evidenceIds, evidence, ['narrativeStrategy'], 'evidence');
+}
+
+export const strategyReportV3Schema = makeStrategyReportSchema(narrativeStrategySchema, true);
+const strategyReportV3ReaderSchema = makeStrategyReportSchema(narrativeStrategyReaderSchema);
 
 export type StrategyReportV3 = z.infer<typeof strategyReportV3Schema>;
 
 export function strategyReportV3FromRow(row: Record<string, unknown>): StrategyReportV3 | null {
   const parsed = strategyReportV3Schema.safeParse(row.report_v2);
-  return parsed.success ? parsed.data : null;
+  if (parsed.success) return parsed.data;
+  const backwardCompatible = strategyReportV3ReaderSchema.safeParse(row.report_v2);
+  return backwardCompatible.success ? backwardCompatible.data as unknown as StrategyReportV3 : null;
 }
 
 function reportStrings(value: unknown): string[] {
@@ -396,6 +449,15 @@ export function assertStrategyReportV3(
 ): StrategyReportV3 {
   const parsed = strategyReportV3Schema.safeParse(value);
   if (!parsed.success) throw new Error(`Strategy V3 schema validation failed: ${parsed.error.message}`);
+  for (const area of parsed.data.profileDevelopmentStrategy.areas) {
+    if (area.status === 'build' && !area.developmentPlan) {
+      throw new Error(`BUILD profile area ${area.category} requires a development plan.`);
+    }
+  }
+  const strategicGoal = parsed.data.strategicOverview.strategicGoal;
+  if (/\b(?:become|you are|position yourself as)\s+(?:an?|the)\s+[a-z]/i.test(`${strategicGoal.directionOfImprovement} ${strategicGoal.communicationGoal}`)) {
+    throw new Error('Strategic Goal must describe an evidence-grounded direction of improvement, not a fixed identity.');
+  }
   const knownActivities = new Set(refs.activityIds);
   const knownEvidence = new Set(refs.evidenceIds);
   const knownTargets = new Set(refs.targetSourceRefs);

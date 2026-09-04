@@ -34,7 +34,16 @@ export class StrategyGenerationError extends Error {
   }
 }
 
-const profileStageSchema = z.object({ areas: z.array(profileAreaDiagnosisSchema).min(4).max(4) }).strict();
+const profileStageSchema = z
+  .object({ areas: z.array(profileAreaDiagnosisSchema).min(4).max(4) })
+  .strict()
+  .superRefine((profile, ctx) => {
+    profile.areas.forEach((area, index) => {
+      if (area.status === 'build' && !area.developmentPlan) {
+        ctx.addIssue({ code: 'custom', path: ['areas', index, 'developmentPlan'], message: 'BUILD requires a development plan.' });
+      }
+    });
+  });
 const activityStageSchema = z.object({ analyses: z.array(activityStrategyAnalysisSchema) }).strict();
 const synthesisStageSchema = z
   .object({ strategicOverview: z.unknown(), narrativeStrategy: z.unknown(), strategicRoadmap: z.unknown() })
@@ -290,6 +299,9 @@ function withoutNarrativeDetails(report: Record<string, unknown>): Record<string
 function validateProfile(areas: ProfileAreaDiagnosis[], context: StrategyInputContext): void {
   if (new Set(areas.map((area) => area.category)).size !== 4) {
     throw new StrategyGenerationError('Profile diagnosis must contain the four canonical areas.', 'profile_failed');
+  }
+  if (areas.some((area) => area.status === 'build' && !area.developmentPlan)) {
+    throw new StrategyGenerationError('BUILD profile areas require structured development plans.', 'profile_failed');
   }
   validateRefs(areas.flatMap((area) => area.evidenceIds), context.evidenceIndex.map((item) => item.id), 'evidence');
   validateRefs(areas.flatMap((area) => area.targetSourceRefs), context.targetSourceIndex.map((item) => item.ref), 'target source');
