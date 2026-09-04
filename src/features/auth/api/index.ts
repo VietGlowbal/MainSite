@@ -9,3 +9,5 @@ export { checkPasswordBreach } from './pwned-passwords';
 export type { BreachCheck, BreachCheckDeps } from './pwned-passwords';
 export { redeemRecoveryToken } from './password-reset';
 export type { ResetOutcome } from './password-reset';
+export { changeOwnPassword } from './password-change';
+export type { PasswordChangeInput, PasswordChangeOutcome } from './password-change';
