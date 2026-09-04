@@ -1,5 +1,25 @@
 # Current project status
 
+Working tree 2026-09-04 (Strategy Report V3 alignment and UI quality patch):
+the canonical Personal -> Matching V3 -> Strategy V3 flow is unchanged. V3
+generation now requires a structured development plan for every BUILD profile
+area; narrative options are zero or two to three, with two to four supporting
+experiences per generated option; Strategic Goal guidance is improvement-led;
+and the existing V3 row reader remains compatible with older stored rows. The
+applicant UI now renders current-position summary fields, development plans,
+activity statuses and all eight dimensions, evidence-backed themes/tension,
+and the full narrative-option evaluation contract. Priority factors display
+on a four-point scale without raw priority values or admission-probability
+copy. Measured: strategy/UI suite 16/16, route suite 8/8, base and strict
+typecheck, i18n audit (0 missing keys), touched-file ESLint, full lint (0
+errors, 4 existing warnings), and production build pass. Full repository
+Vitest: 373 files passed and 3,583 tests passed, 2 todo, with 6 files/7 tests
+timing out in unrelated existing LOR, candidate-information, matching, and CV
+suites; concurrent worker timeout warnings also appeared for existing
+reflection, marketing, planner, and strategy UI workers. Build retains the
+existing Edge-runtime deprecation and dynamic filesystem tracing warnings from
+`src/lib/geo-content.ts`.
+
 Working tree 2026-09-02 (Reflection-tab report regeneration flow): the
 Reflections tab now shows the shared report quota and an "Edit information and
 regenerate reports" action. The action safely re-opens that application,

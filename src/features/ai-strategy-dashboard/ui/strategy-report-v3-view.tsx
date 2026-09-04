@@ -230,50 +230,21 @@ export function StrategyReportV3View({
   const activities = report.profileDevelopmentStrategy.activityAnalyses.filter(
     (activity) => filter === 'all' || activity.classification === filter,
   );
+  const compressedTimeline = report.strategicRoadmap.some((phase) => /compressed execution/i.test(phase.estimatedTimeline));
 
   return (
     <div className="flex flex-col gap-gb-4xl pb-16" data-no-auto-translate data-report-auto-translate>
-      {/* ─── HERO HEADER BANNER ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-rose-200/90 bg-gradient-to-br from-white via-rose-50/60 to-rose-100/30 p-gb-xl sm:p-8 shadow-sm">
-        {/* Glow decoration */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-rose-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -left-16 -bottom-16 h-64 w-64 rounded-full bg-blue-400/10 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-300 bg-white/90 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-brand shadow-xs backdrop-blur-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
-                </span>
-                {t('AI Strategy Architecture V3')}
-              </span>
-              <span className="rounded-full bg-slate-900/5 px-2.5 py-0.5 text-xs font-semibold text-fg-muted">
-                {t('Evidence-Grounded Blueprint')}
-              </span>
-            </div>
-
-            <div className="hidden sm:flex items-center gap-4 text-xs font-medium text-fg-muted">
-              <span className="flex items-center gap-1">
-                <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
-                {t('Profile Calibrated')}
-              </span>
-              <span className="flex items-center gap-1">
-                <TargetIcon className="h-4 w-4 text-brand" />
-                {t('Phased Milestones')}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5 max-w-4xl">
-            <h1 className="font-display text-2xl font-black tracking-tight text-fg sm:text-3xl lg:text-4xl">
-              {t('Personalized Strategic Roadmap & Positioning')}
-            </h1>
-            <p className="text-sm leading-relaxed text-fg-secondary">
-              {t('Multi-dimensional tactical blueprint aligning your academic readiness, standout experiences, core narrative arc, and phased execution timeline for maximum admission competitiveness.')}
-            </p>
-          </div>
+      {/* ─── APPLICANT-FACING REPORT HEADER ─────────────────────────────── */}
+      <div className="rounded-3xl border border-line bg-surface p-gb-xl shadow-sm sm:p-8">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">{t('Your Application Strategy')}</p>
+          <h1 className="max-w-4xl font-display text-2xl font-black tracking-tight text-fg sm:text-3xl lg:text-4xl">
+            {t('Your Application Strategy')}
+          </h1>
+          <p className="max-w-3xl text-sm leading-relaxed text-fg-secondary">
+            {t('A focused plan based on your current profile, target programme, and available evidence.')}
+          </p>
+        </div>
 
           {/* Anchor Navigation Pills */}
           <div className="mt-3 flex flex-wrap gap-2 border-t border-rose-200/60 pt-4">
@@ -306,7 +277,6 @@ export function StrategyReportV3View({
               {t('Execution Roadmap')}
             </a>
           </div>
-        </div>
       </div>
 
       {/* ─── SECTION 1: STRATEGIC OVERVIEW ───────────────────────────────── */}
@@ -320,7 +290,7 @@ export function StrategyReportV3View({
               <h2 id="strategy-v3-overview" className="font-display text-lg font-bold tracking-tight text-fg sm:text-xl">
                 {t('Strategic Overview')}
               </h2>
-              <p className="text-xs text-fg-muted">{t('High-level executive diagnosis & core priorities')}</p>
+              <p className="text-xs text-fg-muted">{t('A concise view of your current position and next priorities')}</p>
             </div>
           </div>
           <span className="hidden sm:inline-flex rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted">
@@ -335,6 +305,10 @@ export function StrategyReportV3View({
               <span>{t('Could not save this edit. Please try again.')}</span>
             </div>
           ) : null}
+
+          <p className="max-w-3xl text-base leading-relaxed text-fg-secondary">
+            {report.strategicOverview.currentPosition.summary}
+          </p>
 
           {/* Top 3 Core Positioning Pillar Cards */}
           <div className="grid gap-4 md:grid-cols-3">
@@ -361,6 +335,27 @@ export function StrategyReportV3View({
             />
           </div>
 
+          {report.strategicOverview.currentPosition.unclearArea || report.strategicOverview.currentPosition.differentiatedPotential ? (
+            <div className="grid gap-4 border-y border-line/70 py-5 md:grid-cols-2">
+              {report.strategicOverview.currentPosition.unclearArea ? (
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-fg-muted">{t('What is still unclear')}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
+                    {report.strategicOverview.currentPosition.unclearArea.statement}
+                  </p>
+                </div>
+              ) : null}
+              {report.strategicOverview.currentPosition.differentiatedPotential ? (
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-fg-muted">{t('Potential differentiation')}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
+                    {report.strategicOverview.currentPosition.differentiatedPotential.statement}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {/* 2 Strategic Direction & Outcome Highlights */}
           <div className="grid gap-4 md:grid-cols-2">
             <GoalBlock
@@ -386,11 +381,11 @@ export function StrategyReportV3View({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-fg">{t('Top Three Strategic Priorities')}</h3>
-                  <p className="text-xs text-fg-muted">{t('Calibrated and ranked by urgency, leverage, and admission impact')}</p>
+                  <p className="text-xs text-fg-muted">{t('Priorities are ranked by potential impact, relevance to your target, evidence gaps, feasibility, and urgency.')}</p>
                 </div>
               </div>
               <span className="text-xs font-semibold text-brand bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
-                {t('3 High-Leverage Moves')}
+                {t('3 Focus Areas')}
               </span>
             </div>
 
@@ -468,7 +463,7 @@ export function StrategyReportV3View({
 
           <div className="flex flex-col gap-3">
             {activities.map((activity) => (
-              <ActivityCard key={activity.activityId} activity={activity} />
+              <ActivityCard key={activity.activityId} activity={activity} report={report} />
             ))}
             {activities.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line p-10 text-center">
@@ -488,7 +483,7 @@ export function StrategyReportV3View({
             </span>
             <div>
               <h2 id="strategy-v3-narrative" className="font-display text-lg font-bold tracking-tight text-fg sm:text-xl">
-                {t('Narrative Strategy & Framing')}
+                {t('Narrative Strategy')}
               </h2>
               <p className="text-xs text-fg-muted">{t('Cohesive storytelling arc, thematic hooks, and tension resolutions')}</p>
             </div>
@@ -516,9 +511,9 @@ export function StrategyReportV3View({
               {[
                 { label: 'Origin & Spark', sublabel: 'Origin / trigger', value: report.narrativeStrategy.coreNarrativeDirection.originTrigger, step: '01' },
                 { label: 'Core Motivation', sublabel: 'Recurring motivation', value: report.narrativeStrategy.coreNarrativeDirection.recurringMotivation, step: '02' },
-                { label: 'Key Actions Taken', sublabel: 'Tangible actions', value: report.narrativeStrategy.coreNarrativeDirection.actions.join(' '), step: '03' },
-                { label: 'Capabilities Built', sublabel: 'Skill mastery', value: report.narrativeStrategy.coreNarrativeDirection.capabilitiesDeveloped.join(' '), step: '04' },
-                { label: 'Future Trajectory', sublabel: 'Emerging direction', value: report.narrativeStrategy.coreNarrativeDirection.emergingDirection, step: '05' },
+                { label: 'Actions', sublabel: 'Actions taken', value: null, items: report.narrativeStrategy.coreNarrativeDirection.actions, step: '03' },
+                { label: 'Capabilities Developed', sublabel: 'Capabilities developed', value: null, items: report.narrativeStrategy.coreNarrativeDirection.capabilitiesDeveloped, step: '04' },
+                { label: 'Emerging Direction', sublabel: 'Emerging direction', value: report.narrativeStrategy.coreNarrativeDirection.emergingDirection, step: '05' },
               ].map((stage, idx) => (
                 <div
                   key={stage.step}
@@ -537,9 +532,17 @@ export function StrategyReportV3View({
                       <h4 className="text-xs font-bold text-fg">{t(stage.label)}</h4>
                       <span className="text-[10px] text-fg-muted">{t(stage.sublabel)}</span>
                     </div>
-                    <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
-                      {stage.value || t('Not established from the available evidence.')}
-                    </p>
+                    {stage.items ? (
+                      stage.items.length > 0 ? (
+                        <ul className="mt-1 flex flex-col gap-1 text-xs leading-relaxed text-fg-secondary">
+                          {stage.items.map((item) => <li key={item}>• {item}</li>)}
+                        </ul>
+                      ) : <p className="mt-1 text-xs leading-relaxed text-fg-secondary">{t('Not established from the available evidence.')}</p>
+                    ) : (
+                      <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
+                        {stage.value || t('Not established from the available evidence.')}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -579,6 +582,7 @@ export function StrategyReportV3View({
                       </span>
                     </div>
                     <p className="text-xs leading-relaxed text-fg-secondary">{theme.significance}</p>
+                    <EvidenceRefs ids={theme.evidenceIds} report={report} />
                   </div>
                 ))}
               </div>
@@ -610,6 +614,11 @@ export function StrategyReportV3View({
                     <strong className="text-fg-secondary">{t('Why it matters')}: </strong>
                     {report.narrativeStrategy.narrativeTension.whyItMatters}
                   </p>
+                  <EvidenceRefs
+                    ids={report.narrativeStrategy.narrativeTension.evidenceIds}
+                    report={report}
+                    label={t('Evidence supporting this diagnosis')}
+                  />
                 </div>
 
                 <div className="rounded-xl bg-rose-50/70 p-3.5 border border-rose-200/80 flex flex-col justify-between">
@@ -621,7 +630,7 @@ export function StrategyReportV3View({
                   </div>
                   <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-brand">
                     <ArrowRightIcon className="h-3.5 w-3.5" />
-                    <span>{t('Position as unique narrative differentiator')}</span>
+                    <span>{t('Use this direction to resolve the narrative gap.')}</span>
                   </div>
                 </div>
               </div>
@@ -636,17 +645,40 @@ export function StrategyReportV3View({
                 {report.narrativeStrategy.narrativeOptions.map((option) => (
                   <div
                     key={option.key}
-                    className="flex flex-col justify-between rounded-2xl border border-line bg-white p-5 shadow-xs transition-all hover:border-rose-300 hover:shadow-sm"
+                    className="flex flex-col gap-5 rounded-2xl border border-line bg-white p-5 shadow-xs transition-all hover:border-rose-300 hover:shadow-sm"
                   >
-                    <div className="flex flex-col gap-2">
-                      <h4 className="text-sm font-bold text-fg">{option.title}</h4>
-                      <p className="text-xs leading-relaxed text-fg-secondary">{option.centralIdea}</p>
-                      <p className="text-xs text-fg-muted">{option.whyItEmerges}</p>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <h4 className="text-sm font-bold text-fg">{option.title}</h4>
+                        <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
+                          {t('Strategic Fit')}: {option.strategicFit}
+                        </span>
+                      </div>
+                      <TextBlock label={t('Central idea')} value={option.centralIdea} />
+                      <TextBlock label={t('Why it emerges')} value={option.whyItEmerges} />
+                      <div>
+                        <h5 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{t('Strongest supporting experiences')}</h5>
+                        <ul className="mt-2 flex flex-col gap-1 text-xs leading-relaxed text-fg-secondary">
+                          {option.supportingExperienceIds.map((id) => (
+                            <li key={id} className="flex gap-2">
+                              <span aria-hidden="true">•</span>
+                              <span>{activityLabel(report, id)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <TextBlock label={t('What could strengthen it')} value={option.whatCouldStrengthenIt} />
                     </div>
-                    <div className="mt-4 rounded-xl bg-rose-50/70 p-3 border border-rose-100">
-                      <span className="text-[11px] font-bold text-brand">
-                        {t('Strategic Fit')}: <span className="text-rose-900 font-medium">{option.strategicFit}</span>
-                      </span>
+                    <div className="border-t border-line/70 pt-4">
+                      <h5 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{t('Evaluation')}</h5>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {Object.entries(option.evaluation).map(([key, value]) => (
+                          <div key={key} className="flex items-center justify-between gap-2 text-xs">
+                            <span className="text-fg-secondary">{t(formatIdentifier(key))}</span>
+                            <span className="font-semibold capitalize text-fg">{value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -665,7 +697,7 @@ export function StrategyReportV3View({
             </span>
             <div>
               <h2 id="strategy-v3-roadmap" className="font-display text-lg font-bold tracking-tight text-fg sm:text-xl">
-                {t('Strategic Execution Roadmap')}
+                {t('Strategic Roadmap')}
               </h2>
               <p className="text-xs text-fg-muted">{t('Phased milestone plan with concrete deliverables and verification checks')}</p>
             </div>
@@ -676,6 +708,12 @@ export function StrategyReportV3View({
         </div>
 
         <div className="flex flex-col gap-5">
+          {compressedTimeline ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-900">
+              <span className="font-semibold">{t('Compressed timeline')}</span>
+              <span className="text-amber-800">{t('The roadmap is prioritised around the current deadline.')}</span>
+            </div>
+          ) : null}
           {report.strategicRoadmap.map((phase, index) => (
             <div
               key={phase.phaseKey}
@@ -721,7 +759,11 @@ export function StrategyReportV3View({
                             size="sm"
                             className="shrink-0 text-xs font-bold text-brand hover:bg-rose-50 border-rose-200"
                           >
-                            {t('Open Tool')} →
+                            {t({
+                              personal_canvas: 'Open Personal Canvas',
+                              cv_builder: 'Open CV Builder',
+                              statement_writer: 'Open Statement Writer',
+                            }[deliverable.tool])} →
                           </Button>
                         ) : null}
                       </div>
@@ -766,6 +808,56 @@ export function StrategyReportV3View({
    Crafted Sub-Components
    ────────────────────────────────────────────────────────────────────────── */
 
+function TextBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <h5 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{label}</h5>
+      <p className="mt-1 text-xs leading-relaxed text-fg-secondary">{value}</p>
+    </div>
+  );
+}
+
+const PROFILE_AREA_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  academic: AcademicCapIcon,
+  experience: BriefcaseIcon,
+  differentiation: SparklesIcon,
+  evidence: DocumentCheckIcon,
+};
+const ACTIVITY_DIMENSION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  relevance: TargetIcon,
+  impact: FlameIcon,
+  depth: LayersIcon,
+};
+
+function EvidenceRefs({
+  ids,
+  report,
+  label,
+}: {
+  ids: string[];
+  report: StrategyReportV3;
+  label?: string;
+}) {
+  const { t } = useLanguage();
+  const evidence = ids.map((id) => report.evidenceIndex?.find((item) => item.id === id)?.label ?? id);
+  if (evidence.length === 0) return null;
+
+  return (
+    <div className="border-t border-line/60 pt-2">
+      <h5 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">
+        {label ?? t('Supporting evidence')} ({evidence.length})
+      </h5>
+      <ul className="mt-1 flex flex-col gap-1 text-xs leading-relaxed text-fg-secondary">
+        {evidence.map((item, index) => <li key={`${item}-${index}`}>• {item}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function activityLabel(report: StrategyReportV3, id: string): string {
+  return report.profileDevelopmentStrategy.activityAnalyses.find((activity) => activity.activityId === id)?.title ?? id;
+}
+
 function PositionBlock({
   type,
   icon: Icon,
@@ -782,21 +874,21 @@ function PositionBlock({
   const styles = {
     strength: {
       border: 'border-emerald-200/90 hover:border-emerald-300',
-      bg: 'bg-gradient-to-b from-emerald-50/70 via-emerald-50/20 to-white',
+      bg: 'bg-surface',
       badge: 'bg-emerald-100/80 text-emerald-800 border-emerald-200',
       iconBg: 'bg-emerald-500 text-white shadow-emerald-200',
       labelColor: 'text-emerald-950',
     },
     challenge: {
       border: 'border-amber-200/90 hover:border-amber-300',
-      bg: 'bg-gradient-to-b from-amber-50/70 via-amber-50/20 to-white',
+      bg: 'bg-surface',
       badge: 'bg-amber-100/80 text-amber-800 border-amber-200',
       iconBg: 'bg-amber-500 text-white shadow-amber-200',
       labelColor: 'text-amber-950',
     },
     opportunity: {
       border: 'border-blue-200/90 hover:border-blue-300',
-      bg: 'bg-gradient-to-b from-blue-50/70 via-blue-50/20 to-white',
+      bg: 'bg-surface',
       badge: 'bg-blue-100/80 text-blue-800 border-blue-200',
       iconBg: 'bg-blue-500 text-white shadow-blue-200',
       labelColor: 'text-blue-950',
@@ -839,7 +931,7 @@ function GoalBlock({
   value: string;
 }) {
   return (
-    <div className="flex flex-col justify-between rounded-3xl border border-line bg-gradient-to-br from-white via-white to-rose-50/30 p-5 sm:p-6 shadow-2xs transition-all hover:border-rose-200 hover:shadow-xs">
+    <div className="flex flex-col justify-between rounded-3xl border border-line bg-surface p-5 sm:p-6 shadow-2xs transition-all hover:border-rose-200 hover:shadow-xs">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -882,15 +974,8 @@ function PriorityCard({
           <span className="flex h-6 px-2.5 items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-rose-500 text-[11px] font-black text-white shadow-2xs">
             #{priority.rank}
           </span>
-          <span className="text-xs font-bold uppercase tracking-wider text-fg-muted">
-            {formatIdentifier(priority.key)}
-          </span>
+          <span className="text-sm font-bold text-fg">{priorityTitle}</span>
         </div>
-        {priority.interventionKind ? (
-          <span className="rounded-full bg-white border border-line px-3 py-0.5 text-[10px] font-bold text-fg-secondary uppercase tracking-wider shadow-2xs">
-            {formatIdentifier(priority.interventionKind)}
-          </span>
-        ) : null}
       </div>
 
       {/* 3 Editable Fields */}
@@ -932,9 +1017,10 @@ function PriorityCard({
                 >
                   <span>{formatIdentifier(key)}:</span>
                   <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map((dot) => (
+                    {[1, 2, 3, 4].map((dot) => (
                       <span
                         key={dot}
+                        aria-hidden="true"
                         className={cn(
                           'h-1.5 w-1.5 rounded-full',
                           dot <= score ? 'bg-brand' : 'bg-slate-200'
@@ -942,7 +1028,7 @@ function PriorityCard({
                       />
                     ))}
                   </div>
-                  <strong className="text-fg ml-0.5 font-bold">{score}/5</strong>
+                  <strong className="text-fg ml-0.5 font-bold">{score}/4</strong>
                 </div>
               );
             })}
@@ -1014,22 +1100,13 @@ function Editable({
 
 function ProfileAreaCard({ area }: { area: ProfileAreaDiagnosis }) {
   const { t } = useLanguage();
-
-  const getAreaIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'academic':
-        return AcademicCapIcon;
-      case 'experience':
-        return BriefcaseIcon;
-      case 'differentiation':
-        return SparklesIcon;
-      case 'evidence':
-      default:
-        return DocumentCheckIcon;
-    }
-  };
-
-  const Icon = getAreaIcon(area.category || area.key);
+  const Icon = PROFILE_AREA_ICONS[(area.category || area.key).toLowerCase()] ?? DocumentCheckIcon;
+  const statusClasses = {
+    maintain: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    develop: 'bg-rose-50 text-brand border-rose-200',
+    consolidate: 'bg-blue-50 text-blue-800 border-blue-200',
+    build: 'bg-amber-50 text-amber-800 border-amber-200',
+  }[area.status];
 
   return (
     <div className="flex flex-col justify-between rounded-3xl border border-line bg-surface p-6 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-xs">
@@ -1048,9 +1125,7 @@ function ProfileAreaCard({ area }: { area: ProfileAreaDiagnosis }) {
           <span
             className={cn(
               'rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider border shadow-2xs',
-              area.status === 'maintain'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-rose-50 text-brand border-rose-200'
+              statusClasses
             )}
           >
             {t(area.status)}
@@ -1077,11 +1152,37 @@ function ProfileAreaCard({ area }: { area: ProfileAreaDiagnosis }) {
         </div>
         <span className="text-rose-950 font-semibold">{area.suggestedDirection}</span>
       </div>
+
+      {area.status === 'build' && area.developmentPlan ? (
+        <div className="mt-4 flex flex-col gap-4 border-t border-line/70 pt-4">
+          <TextBlock label={t('Gap')} value={area.developmentPlan.gap} />
+          <div>
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{t('Possible routes')}</h4>
+            <ol className="mt-2 flex flex-col gap-2">
+              {area.developmentPlan.possibleRoutes.map((route, index) => (
+                <li key={route.title} className="flex gap-2 text-xs leading-relaxed text-fg-secondary">
+                  <span className="font-mono text-fg-muted">{String(index + 1).padStart(2, '0')}</span>
+                  <span><strong className="font-semibold text-fg">{route.title}</strong> — {route.rationale}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-3">
+            <TextBlock label={t('Recommended route')} value={`${area.developmentPlan.recommendedRoute.title} — ${area.developmentPlan.recommendedRoute.rationale}`} />
+          </div>
+          <div>
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{t('Evidence expected')}</h4>
+            <ul className="mt-2 flex flex-col gap-1 text-xs leading-relaxed text-fg-secondary">
+              {area.developmentPlan.evidenceExpected.map((item) => <li key={item}>✓ {item}</li>)}
+            </ul>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function ActivityCard({ activity }: { activity: ActivityStrategyAnalysis }) {
+function ActivityCard({ activity, report }: { activity: ActivityStrategyAnalysis; report: StrategyReportV3 }) {
   const { t } = useLanguage();
 
   const getStatusBadge = (classification: string) => {
@@ -1107,7 +1208,7 @@ function ActivityCard({ activity }: { activity: ActivityStrategyAnalysis }) {
           <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-surface-subtle text-fg-muted">
             <BriefcaseIcon className="h-3.5 w-3.5" />
           </div>
-          <span className="text-xs font-bold text-fg truncate group-open/act:text-brand">
+          <span className="text-xs font-bold text-fg break-words group-open/act:text-brand">
             {activity.title}
           </span>
         </div>
@@ -1127,33 +1228,26 @@ function ActivityCard({ activity }: { activity: ActivityStrategyAnalysis }) {
       </summary>
 
       <div className="mt-4 flex flex-col gap-4 border-t border-line/60 pt-4">
-        <p className="text-xs leading-relaxed text-fg-secondary font-medium">{activity.diagnosis}</p>
+        <TextBlock label={t('Diagnosis')} value={activity.diagnosis} />
+        <EvidenceRefs ids={activity.evidenceIds} report={report} />
 
         {/* 4 Dimension mini-cards with icons */}
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           {Object.entries(activity.dimensions).map(([key, dimension]) => {
-            const getDimIcon = (dimKey: string) => {
-              switch (dimKey.toLowerCase()) {
-                case 'relevance':
-                  return TargetIcon;
-                case 'impact':
-                  return FlameIcon;
-                case 'depth':
-                  return LayersIcon;
-                case 'competitiveness':
-                default:
-                  return AwardIcon;
-              }
-            };
-            const DimIcon = getDimIcon(key);
+            const DimIcon = ACTIVITY_DIMENSION_ICONS[key.toLowerCase()] ?? AwardIcon;
 
             return (
               <div key={key} className="rounded-xl bg-surface-subtle/50 p-3 border border-line/60">
                 <div className="flex items-center gap-1.5 mb-1">
                   <DimIcon className="h-3.5 w-3.5 text-fg-muted" />
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-fg-muted">
-                    {t(formatIdentifier(key))}
-                  </span>
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-fg-muted">
+                      {t(formatIdentifier(key))}
+                    </span>
+                    <span className="rounded-full border border-line bg-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-fg-muted">
+                      {t(formatIdentifier(dimension.status))}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-[11px] leading-relaxed text-fg-secondary font-medium">
                   {dimension.statement}
