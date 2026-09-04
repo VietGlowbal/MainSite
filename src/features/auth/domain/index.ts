@@ -23,12 +23,14 @@ export type {
 } from './contact-details';
 export {
   countBreaches,
+  hasPasswordIdentity,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   splitHashForRange,
   validatePassword,
+  validatePasswordChange,
 } from './password';
-export type { PasswordProblem } from './password';
+export type { PasswordChangeProblem, PasswordProblem } from './password';
 export {
   AUTH_ERROR_MESSAGES,
   authErrorBody,

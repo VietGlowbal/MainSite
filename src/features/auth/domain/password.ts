@@ -67,6 +67,76 @@ export function validatePassword(password: string): PasswordProblem | null {
 }
 
 /**
+ * The extra rules that apply when a signed-in user changes their own password,
+ * on top of the ones every new password must satisfy.
+ */
+export interface PasswordChangeProblem {
+  code: Extract<
+    AuthErrorCode,
+    | 'password_blank'
+    | 'password_too_short'
+    | 'password_too_long'
+    | 'current_password_required'
+    | 'password_unchanged'
+  >;
+  vars?: AuthErrorVars;
+}
+
+/**
+ * Checks a change-password submission without touching the network.
+ *
+ * Order is chosen for usefulness, not for cheapness — all three checks are
+ * free. Strength runs before the equality check so someone who types `abc`
+ * into both boxes is told the real problem (too short) rather than being sent
+ * to find a *different* three-character password.
+ *
+ * WHY "must be different" IS A RULE AND NOT A COURTESY. This form is what a
+ * user reaches after "I think someone has my password". Accepting the same
+ * string would let the flow report success while changing nothing, which is the
+ * one outcome that leaves them worse off than not trying: they now believe they
+ * have rotated a password that is still compromised. The comparison is exact —
+ * no trimming, no case folding — because those are different passwords to
+ * Supabase, so calling them the same here would be a lie.
+ *
+ * Note this runs on the server with both plaintexts in hand. That is unavoidable
+ * for the equality check; the alternative (hash and compare) buys nothing when
+ * the current password is already being sent for verification.
+ */
+export function validatePasswordChange(
+  currentPassword: string,
+  newPassword: string,
+): PasswordChangeProblem | null {
+  if (currentPassword.length === 0) return { code: 'current_password_required' };
+  const problem = validatePassword(newPassword);
+  if (problem) return problem;
+  if (newPassword === currentPassword) return { code: 'password_unchanged' };
+  return null;
+}
+
+/**
+ * Whether this account can sign in with a password at all.
+ *
+ * A student who only ever used "Continue with Google" has no password hash, so
+ * asking them for their current one is unanswerable. The security page branches
+ * on this to offer "set a password by email" instead.
+ *
+ * `email` is the provider name Supabase gives the password identity — the same
+ * one whether the account was created by sign-up or by later linking.
+ *
+ * ABSENT IDENTITIES MEAN "ASSUME A PASSWORD", not "assume none". The list is
+ * only missing when we failed to read the user properly, and defaulting to the
+ * Google branch there would tell an ordinary password user that their account
+ * has no password — sending them to their inbox for a link they do not need.
+ * Defaulting the other way costs a wrong-password error at worst.
+ */
+export function hasPasswordIdentity(
+  identities: readonly { provider: string }[] | null | undefined,
+): boolean {
+  if (!identities || identities.length === 0) return true;
+  return identities.some((identity) => identity.provider === 'email');
+}
+
+/**
  * Splits an uppercase SHA-1 hex digest into the k-anonymity prefix and suffix.
  *
  * Only the 5-character prefix is ever sent to Have I Been Pwned; the API answers

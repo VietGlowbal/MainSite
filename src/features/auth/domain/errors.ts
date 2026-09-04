@@ -29,7 +29,13 @@ export type AuthErrorCode =
   | 'signup_failed'
   | 'reset_link_invalid'
   | 'reset_failed'
-  | 'rate_limited';
+  | 'rate_limited'
+  // ── Changing a password while already signed in ─────────────────────────
+  | 'not_signed_in'
+  | 'current_password_required'
+  | 'current_password_incorrect'
+  | 'password_unchanged'
+  | 'password_not_set';
 
 /**
  * English source text, and simultaneously the i18n catalog key. `{name}`
@@ -54,6 +60,19 @@ export const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, string> = {
     'This reset link is invalid or has expired. Please request a new one.',
   reset_failed: 'Could not update your password. Please try again.',
   rate_limited: 'Too many attempts. Please wait a moment and try again.',
+  not_signed_in: 'You need to be signed in to change your password.',
+  current_password_required: 'Please enter your current password.',
+  /*
+   * Naming the wrong field IS the right call here, unlike everywhere else in
+   * this file. The caller has already proved they are this user — they hold the
+   * session — so "the current password is wrong" tells them nothing they could
+   * not learn by trying to sign in, and being vague ("could not update") would
+   * send a user who simply mistyped off to the reset flow for no reason.
+   */
+  current_password_incorrect: 'That is not your current password. Please try again.',
+  password_unchanged: 'Your new password must be different from your current one.',
+  password_not_set:
+    'This account signs in with Google and has no password yet. Use the email link to set one.',
 };
 
 export type AuthErrorVars = Record<string, string | number>;

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   countBreaches,
+  hasPasswordIdentity,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   splitHashForRange,
   validatePassword,
+  validatePasswordChange,
 } from './password';
 
 describe('validatePassword', () => {
@@ -103,5 +105,70 @@ describe('countBreaches', () => {
 
   it('returns 0 for an empty body', () => {
     expect(countBreaches('', SUFFIX)).toBe(0);
+  });
+});
+
+describe('validatePasswordChange', () => {
+  const OK = 'correct-horse-battery';
+
+  it('accepts a strong password that differs from the current one', () => {
+    expect(validatePasswordChange('old-password-1', OK)).toBeNull();
+  });
+
+  it('names the missing current password instead of collapsing it into "invalid input"', () => {
+    expect(validatePasswordChange('', OK)?.code).toBe('current_password_required');
+  });
+
+  it('rejects reusing the current password', () => {
+    // The case this rule exists for: a user rotating a password they believe is
+    // compromised must not be told "done" while nothing changed.
+    expect(validatePasswordChange(OK, OK)?.code).toBe('password_unchanged');
+  });
+
+  it('reports the length problem before the equality one', () => {
+    // Both are true for ('abc', 'abc'). "Too short" is the actionable half —
+    // telling them to pick a *different* 3-character password is not.
+    expect(validatePasswordChange('abc', 'abc')?.code).toBe('password_too_short');
+  });
+
+  it('compares exactly — case and whitespace make a different password', () => {
+    expect(validatePasswordChange(OK, OK.toUpperCase())).toBeNull();
+    expect(validatePasswordChange(OK, `${OK} `)).toBeNull();
+  });
+
+  it('still enforces every rule a new password has to meet', () => {
+    expect(validatePasswordChange('old-password-1', '')?.code).toBe('password_blank');
+    expect(validatePasswordChange('old-password-1', 'short')?.code).toBe('password_too_short');
+    expect(
+      validatePasswordChange('old-password-1', 'a'.repeat(PASSWORD_MAX_LENGTH + 1))?.code,
+    ).toBe('password_too_long');
+  });
+
+  it('carries the limit as a var so the message stays translatable', () => {
+    expect(validatePasswordChange('old-password-1', 'short')?.vars).toEqual({
+      min: PASSWORD_MIN_LENGTH,
+    });
+  });
+});
+
+describe('hasPasswordIdentity', () => {
+  it('is true for an email/password account', () => {
+    expect(hasPasswordIdentity([{ provider: 'email' }])).toBe(true);
+  });
+
+  it('is false for a Google-only account', () => {
+    expect(hasPasswordIdentity([{ provider: 'google' }])).toBe(false);
+  });
+
+  it('is true once both are linked', () => {
+    expect(hasPasswordIdentity([{ provider: 'google' }, { provider: 'email' }])).toBe(true);
+  });
+
+  it('assumes a password when the identity list is missing', () => {
+    // Failing the other way would tell an ordinary password user that their
+    // account has no password and send them to their inbox for nothing.
+    expect(hasPasswordIdentity(undefined)).toBe(true);
+    expect(hasPasswordIdentity(null)).toBe(true);
+    expect(hasPasswordIdentity([])).toBe(true);
   });
 });
