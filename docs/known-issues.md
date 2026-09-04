@@ -15,7 +15,8 @@ are regression records for fixed bugs, not open work:
 | §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
 | §0, §0c database migrations | ✅ Confirmed resolved 2026-08-12 via the production schema dump — `student_profiles.curriculum` is an array type, `applicant_analyses.emerging_themes` exists. |
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
-| §0g anon-callable SECURITY DEFINER RPCs | 🔴 **OPEN, most urgent item in this file.** Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN**. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. |
+| §0g anon-callable SECURITY DEFINER RPCs | 🔴 **OPEN, most urgent item in this file.** Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN** — re-confirmed still live 2026-09-04 by calling all five as `anon` (200/204, real `plan` disclosed for a real `user_id`) and by catalog (`has_function_privilege('anon', …)` true for all 11 definer functions). The migration is **verified correct and complete** against the live catalog — run it as-is. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. |
+| §0h anon `DELETE`/`PATCH` returning 204 | ✅ **Not a vulnerability — false positive, do not re-open.** PostgREST answers a write that matched *zero* rows with `204`, and an RLS `USING` clause filters rows rather than raising. A probe against a non-existent id therefore cannot tell "blocked" from "no such row". Verified 2026-09-04 against a real row: anon `DELETE`/`PATCH` returned `[]` under `return=representation` and the row survived. See §0h. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1d duplicate universities | ✅ Merged 2026-09-03, confirmed live (99 rows, 0 collisions). **Read before deleting any `universities` row** — 13 tables FK to it and 4 cascade. Scholarship *coverage* (374 of 2,877 linked) is a separate, still-open problem. |
@@ -410,6 +411,109 @@ which the revokes do not touch.
 If a signed-in user ever needs their own entitlement from the client, do **not**
 re-grant the function — add the missing `target_user_id <> auth.uid()` check and
 grant `authenticated` only.
+
+---
+
+## 0h. ✅ NOT A BUG — anon `DELETE`/`PATCH` answering `204` is RLS working, not RLS missing
+
+Raised 2026-09-04 from a `curl` probe against `universities`, and it will be
+raised again, because the evidence looks alarming and is entirely normal:
+
+```
+DELETE /rest/v1/universities?id=eq.999999999   ->  204     "row deleted?!"
+PATCH  /rest/v1/universities?id=eq.999999999   ->  400
+POST   /rest/v1/universities                   ->  401     RLS clearly working here
+```
+
+The conclusion drawn — *"SELECT and POST are covered by RLS but DELETE/PATCH are
+not, so if the id existed the whole table could be dropped by anyone"* — is
+wrong on both halves.
+
+**Why `204` proves nothing.** PostgREST returns `204 No Content` for a `DELETE`
+that succeeded *and affected zero rows*; that is the same response as a delete
+that was filtered away. An RLS policy's `USING` clause does not raise on
+violation — it removes non-matching rows from the statement's scope, exactly
+like an extra `WHERE`. A row blocked by policy and a row that does not exist are
+therefore **indistinguishable from outside**, and `id=eq.999999999` picks a row
+that does not exist, so the probe cannot separate the two cases even in
+principle.
+
+**Why `POST` differs, which is the detail that misleads.** `INSERT` is checked
+by `WITH CHECK`, and a `WITH CHECK` failure *does* raise — `42501`, surfaced as
+`401`/`403`. So `SELECT`/`UPDATE`/`DELETE` fail **silently** while `INSERT`
+fails **loudly**. That asymmetry is a property of Postgres RLS, not evidence
+that three of the four verbs are unprotected.
+
+**How to test it properly** — force the row count into the response with
+`Prefer: return=representation`, and use an id that really exists:
+
+```
+anon DELETE ?id=eq.<real id>  -H 'Prefer: return=representation'  ->  200  []
+anon PATCH  ?id=eq.<real id>  -H 'Prefer: return=representation'  ->  200  []
+service_role DELETE, same row                                     ->  200  [{...}]
+```
+
+`[]` is zero rows touched. Verified 2026-09-04 on a throwaway `universities` row
+(`country='ZZ-TEST'`, created and dropped with the service key, never a real
+row): the row survived both anon writes unchanged. Consistent with anon
+`GET /universities` returning `[]` while the service key sees the full table.
+
+Confirmed at catalog level too, which is the evidence to cite if it comes up
+again:
+
+```
+universities   rls_on = true
+  policies:  "Authenticated users can read universities"  [r] to authenticated
+             "Service role full access to universities"   [*] to service_role
+  anon SELECT/UPDATE/DELETE grant = true, true, true
+```
+
+**Read that last line carefully, because it is the part that looks damning and
+is not.** `anon` genuinely *does* hold table-level `SELECT`/`UPDATE`/`DELETE`
+grants — that is Supabase's default blanket grant on `public`, and it is true of
+almost every table here. The grant is not what protects the row; **RLS is**, and
+`universities` has no `anon` policy for any verb. Under RLS, *no policy* already
+means *deny* — which is why adding `USING (false)` for `anon` would be pure
+redundancy, not a fix. Do not "harden" tables this way; it adds policies to
+audit without changing behaviour.
+
+The `400` on `PATCH` was not a policy result and not a "primary key format"
+problem either — `universities.id` is `bigserial`, so `eq.999999999` parses
+fine. A well-formed anon `PATCH` returns `200 []`, as above; the `400` came from
+the request body.
+
+**The generalisable rule:** never conclude a write is permitted from a `2xx`
+alone. Confirm with `return=representation`, or re-read the row afterwards.
+
+**A full-surface sweep was run at the same time and is the useful result.** All
+113 REST-exposed tables, anon key vs service key, row counts compared:
+
+| Outcome | Count | Reading |
+|---|---|---|
+| anon reaches table, sees **0** rows | 92 | RLS enforcing |
+| anon denied at **GRANT** level (`401`) | 16 | all `crawl_*`, `payment_notification_jobs`, `manual_payment_reviews` |
+| anon reads rows | 5 | `courses` / `catalog_programmes` (593, public catalogue), `team_members` (12), `team_achievements` (24), `geo_articles` (**2 of 5** — published-only policy filtering correctly) |
+
+No table leaked anything it should not. **The table surface is not where the
+exposure is — §0g is.** Do not spend more time re-probing tables while five
+definer RPCs remain anon-callable.
+
+**Tooling trap, cost one wrong conclusion on 2026-09-04.** The Supabase MCP's
+`list_projects` returns only `fbtbxcgadyrdfhzsvwom` ("AIMS", INACTIVE). That is
+**not this app's database** and running `get_advisors` against it returns an
+empty lint list that looks like a clean bill of health. This project is:
+
+```
+project ref  uooshbumyilwvbgmbixx     (= the NEXT_PUBLIC_SUPABASE_URL subdomain)
+```
+
+Access works fine — **pass that ref explicitly**; it is simply absent from
+`list_projects` because the project belongs to another owner's organisation and
+the listing only enumerates your own. Nothing needs re-authorising. The MCP
+connects as `supabase_read_only_user`, so it can read `pg_policies`, `pg_proc`
+and run the verification queries, but **cannot apply migrations** — DDL still
+has to go through the Supabase SQL Editor. Against the right ref the linter does
+report the §0g problem, as `anon_security_definer_function_executable` (11).
 
 ---
 
