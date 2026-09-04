@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -21,6 +21,7 @@ import {
 } from '@/lib/scholarship-constants';
 import type { DirectoryScholarship } from '@/lib/scholarships-data';
 import {
+  parseScholarshipSearchParams,
   scholarshipSearchParams,
   type Page,
   type ScholarshipFacets,
@@ -31,6 +32,7 @@ import {
 } from '@/features/scholarships/directory-query';
 import { scorePersonalMatch, scholarshipSaveDestination } from '@/features/scholarships/domain';
 import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
+import { useDebouncedSearchField } from '@/shared/hooks/use-debounced-search-field';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
 import {
   ScholarshipUniversityPicker,
@@ -408,36 +410,54 @@ export function ScholarshipDirectoryClient({
   // Filters. Pagination for the full directory is 9 cards (3 columns × 3 rows).
   const resultsTopRef = useRef<HTMLDivElement>(null);
 
+  /*
+   * Every navigation patches onto `intendedRef`, never onto the `queryState`
+   * captured when the caller rendered.
+   *
+   * A patch here is a delta -- `{ search: 'x' }` is merged over eleven other
+   * filters -- so the base it merges onto has to be current. It often was not:
+   * a debounced field fires up to 300ms after the render that scheduled it and
+   * the response lands later still, so anything the reader touched in between
+   * (a country, a sort, the other search box) was quietly reverted by the older
+   * snapshot. Applying the patch optimistically and round-tripping it through
+   * the same parser the server uses keeps the ref in exactly the shape the next
+   * response will confirm, so back-to-back edits compose instead of racing.
+   */
+  const intendedRef = useRef(queryState);
+  useEffect(() => {
+    intendedRef.current = queryState;
+  }, [queryState]);
+
   const navigate = useCallback(
     (patch: Partial<ScholarshipQueryState>, replace = true) => {
-      const href = scholarshipHref(queryState, patch, locale);
-      const nextView = patch.view ?? queryState.view;
-      if (queryState.view === 'ai' || nextView === 'ai') {
+      const base = intendedRef.current;
+      const params = scholarshipSearchParams(base, patch);
+      intendedRef.current = parseScholarshipSearchParams(Object.fromEntries(params));
+      const href = localizePath(
+        params.size > 0 ? `/scholarships?${params}` : '/scholarships',
+        locale,
+      );
+      if (base.view === 'ai' || intendedRef.current.view === 'ai') {
         if (replace) router.replace(href);
         else router.push(href);
         return;
       }
       directory.navigate(href, replace);
     },
-    [directory, locale, queryState, router],
+    [directory, locale, router],
   );
 
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const universityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const debounceFilter = (
-    timer: MutableRefObject<ReturnType<typeof setTimeout> | null>,
-    patch: Partial<ScholarshipQueryState>,
-  ) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => navigate(patch, true), 300);
-  };
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-      if (universityTimer.current) clearTimeout(universityTimer.current);
-    },
-    [],
-  );
+  // Both boxes search as you type. The hook owns the debounce AND the rule that
+  // a response never overwrites text typed while it was in flight -- see
+  // useDebouncedSearchField for why re-seeding from the response was the bug.
+  const searchField = useDebouncedSearchField({
+    value: queryState.search,
+    onCommit: (value) => navigate({ search: value }),
+  });
+  const universityField = useDebouncedSearchField({
+    value: queryState.universitySearch,
+    onCommit: (value) => navigate({ universitySearch: value }),
+  });
 
   const scholarships = useMemo(
     () => [
@@ -634,6 +654,15 @@ export function ScholarshipDirectoryClient({
               className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
               onSubmit={(event) => {
                 event.preventDefault();
+                // Enter / "Find scholarships" should not wait out the debounce.
+                const search = searchField.takePending();
+                const universitySearch = universityField.takePending();
+                if (
+                  search !== queryState.search ||
+                  universitySearch !== queryState.universitySearch
+                ) {
+                  navigate({ search, universitySearch });
+                }
                 resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
             >
@@ -643,12 +672,9 @@ export function ScholarshipDirectoryClient({
                   <SearchIcon />
                 </span>
                 <input
-                  key={queryState.search}
                   type="search"
-                  defaultValue={queryState.search}
-                  onChange={(event) =>
-                    debounceFilter(searchTimer, { search: event.target.value.slice(0, 100) })
-                  }
+                  {...searchField.inputProps}
+                  maxLength={100}
                   placeholder={t('Search by scholarship name')}
                   className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 />
@@ -697,14 +723,9 @@ export function ScholarshipDirectoryClient({
                   <SearchIcon />
                 </span>
                 <input
-                  key={queryState.universitySearch}
                   type="search"
-                  defaultValue={queryState.universitySearch}
-                  onChange={(event) =>
-                    debounceFilter(universityTimer, {
-                      universitySearch: event.target.value.slice(0, 100),
-                    })
-                  }
+                  {...universityField.inputProps}
+                  maxLength={100}
                   placeholder={t('Search by university name')}
                   className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 />
