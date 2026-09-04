@@ -30,6 +30,15 @@ export const AUTH_TRANSLATIONS: Record<string, string> = {
     'Không thể cập nhật mật khẩu. Vui lòng thử lại.',
   'Too many attempts. Please wait a moment and try again.':
     'Quá nhiều lần thử. Vui lòng đợi một chút rồi thử lại.',
+  'You need to be signed in to change your password.':
+    'Bạn cần đăng nhập để đổi mật khẩu.',
+  'Please enter your current password.': 'Vui lòng nhập mật khẩu hiện tại của bạn.',
+  'That is not your current password. Please try again.':
+    'Đó không phải mật khẩu hiện tại của bạn. Vui lòng thử lại.',
+  'Your new password must be different from your current one.':
+    'Mật khẩu mới phải khác mật khẩu hiện tại.',
+  'This account signs in with Google and has no password yet. Use the email link to set one.':
+    'Tài khoản này đăng nhập bằng Google và chưa có mật khẩu. Hãy dùng liên kết gửi qua email để tạo mật khẩu.',
 
   // ── Client-side messages that never reach a route ───────────────────────
   'Those passwords do not match.': 'Hai mật khẩu không khớp.',
@@ -80,4 +89,25 @@ export const AUTH_TRANSLATIONS: Record<string, string> = {
   'This reset link is not valid': 'Liên kết đặt lại không hợp lệ',
   'The link may have expired or already been used. Request a new one to continue.':
     'Liên kết có thể đã hết hạn hoặc đã được dùng. Hãy yêu cầu liên kết mới để tiếp tục.',
+
+  // ── Changing your password while signed in (/profile/security) ──────────
+  // 'Back to profile' is deliberately absent: it already lives in the base
+  // dictionary, and a second copy here would silently win and then drift.
+  'Password & security': 'Mật khẩu & bảo mật',
+  'Current password': 'Mật khẩu hiện tại',
+  'Enter your current password': 'Nhập mật khẩu hiện tại của bạn',
+  'Update password': 'Cập nhật mật khẩu',
+  'Changing your password signs you out everywhere else.':
+    'Đổi mật khẩu sẽ đăng xuất bạn khỏi mọi thiết bị khác.',
+  'Your password has been updated': 'Mật khẩu của bạn đã được cập nhật',
+  'Every other device that was signed in has been signed out. You are still signed in here.':
+    'Mọi thiết bị khác đang đăng nhập đã bị đăng xuất. Bạn vẫn đang đăng nhập ở đây.',
+  'We emailed {email} to confirm the change.':
+    'Chúng tôi đã gửi email tới {email} để xác nhận thay đổi này.',
+  'You sign in with Google': 'Bạn đang đăng nhập bằng Google',
+  'This account has no password yet, so there is nothing to change. Add one and you can sign in either way.':
+    'Tài khoản này chưa có mật khẩu nên chưa có gì để đổi. Hãy tạo một mật khẩu để đăng nhập được bằng cả hai cách.',
+  'We sent a link to {email}. Open it to choose your password.':
+    'Chúng tôi đã gửi liên kết tới {email}. Hãy mở liên kết đó để chọn mật khẩu.',
+  'Email me a link to set a password': 'Gửi cho tôi liên kết để tạo mật khẩu',
 };
