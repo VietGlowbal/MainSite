@@ -35,7 +35,7 @@ Chi tiết + baseline đo được: `docs/verification.md`.
 schema Supabase thật (**không bao giờ đoán tên bảng** — xem `docs/README.md`).
 
 Một PreToolUse hook (`.claude/hooks/migration-guard.mjs`) sẽ nhắc khi bạn sửa
-một file `supabase-*.sql` đã commit: migration đã chạy không sửa lại được, phải
+một file `sql/supabase-*.sql` đã commit: migration đã chạy không sửa lại được, phải
 viết file follow-up mới (`docs/known-issues.md §0`).
 
 ## Bối cảnh sản phẩm

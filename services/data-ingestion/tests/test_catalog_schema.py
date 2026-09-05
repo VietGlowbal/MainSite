@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 MAIN_SITE_ROOT = Path(__file__).resolve().parents[3]
-MIGRATION_PATH = MAIN_SITE_ROOT / "supabase-catalog-v2.sql"
+MIGRATION_PATH = MAIN_SITE_ROOT / "sql/supabase-catalog-v2.sql"
 
 
 class TestCatalogSchemaMigration(unittest.TestCase):

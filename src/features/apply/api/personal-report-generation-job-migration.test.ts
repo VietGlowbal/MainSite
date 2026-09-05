@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const sql = readFileSync(new URL('../../../../supabase-application-personal-report-generation-jobs.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('../../../../sql/supabase-application-personal-report-generation-jobs.sql', import.meta.url), 'utf8');
 
 describe('Personal Report generation job migration', () => {
   it('provides an owner-isolated queue with an atomic service-role claim RPC', () => {

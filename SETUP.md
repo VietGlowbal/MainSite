@@ -47,7 +47,7 @@ Run the SQL schema in your Supabase project:
 
 1. Open your Supabase Dashboard
 2. Go to **SQL Editor** → **New Query**
-3. Paste the contents of `supabase-schema.sql`
+3. Paste the contents of `sql/supabase-schema.sql`
 4. Click **Run**
 
 This creates:
@@ -135,8 +135,8 @@ mentor profiles. To run it end-to-end you need three things in place:
 
 ### 7a. Run the migration
 
-In the Supabase SQL Editor, run **`supabase-mentorship.sql`** after the existing
-`supabase-global-station.sql` migration. It:
+In the Supabase SQL Editor, run **`sql/supabase-mentorship.sql`** after the existing
+`sql/supabase-global-station.sql` migration. It:
 
 - Adds verification fields (legal name, DoB, CV/transcript/etc. storage keys)
   and multi-currency hourly pricing to `achiever_profiles`.
@@ -199,8 +199,8 @@ The CLI prints a `whsec_…` secret — paste it into `STRIPE_WEBHOOK_SECRET` in
 
 ### 7e. Founder-confirmed manual bank transfer (not applied by this task)
 
-Apply `supabase-vnpay-payments.sql` first, then the guarded follow-up
-`supabase-manual-payment-founder.sql`. Never edit an already-applied migration
+Apply `sql/supabase-vnpay-payments.sql` first, then the guarded follow-up
+`sql/supabase-manual-payment-founder.sql`. Never edit an already-applied migration
 in place. This task does not connect to Supabase or send real email.
 
 Keep all of these values server-only in `.env.local`/deployment secrets:
@@ -244,7 +244,7 @@ email.
 
 If an earlier SQL Editor run stopped with PostgreSQL `42883` at
 `make_interval(minutes => ...)`, pull the corrected migration and run the whole
-`supabase-manual-payment-founder.sql` file again. The valid PostgreSQL named
+`sql/supabase-manual-payment-founder.sql` file again. The valid PostgreSQL named
 argument is `mins`; the migration is guarded for a complete rerun.
 
 Also rerun the corrected guarded migration if an earlier application created
