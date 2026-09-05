@@ -3,6 +3,7 @@ import {
   degreeLabel,
   durationYears,
   type CatalogueProgramme,
+  type MatchingProgramme,
   type ProgrammeAcademicUnit,
   type ProgrammeQueries,
 } from './programme-queries';
@@ -28,6 +29,9 @@ type RawRow = {
   source_retrieved_at: string | null;
   academic_units: unknown;
 };
+
+/** What `allForMatching` selects — {@link RawRow} without the four fat columns. */
+type MatchingRawRow = Omit<RawRow, 'credential' | 'duration' | 'programme_status' | 'academic_units'>;
 
 /**
  * The one verification state that must never be offered as a choice.
@@ -88,6 +92,51 @@ export class SupabaseProgrammeRepository implements ProgrammeQueries {
       result.set(programme.universityId, current);
     }
     return result;
+  }
+
+  /**
+   * The whole catalogue, ranking fields only.
+   *
+   * `/universities/matches` previously reached this table through
+   * `byUniversityIds(everyUniversityId)`, which had two costs. The obvious one
+   * is the payload: that select carries `academic_units`, and ranking never
+   * reads a single unit. The subtler one is that passing the ids *serialised*
+   * the two catalogue reads — the programme query could not start until the
+   * university query had come back with the list — for a filter that matched
+   * every row anyway. Both go away here.
+   */
+  async allForMatching(): Promise<MatchingProgramme[]> {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('catalog_programmes')
+      .select('programme_id, university_id, programme_name, degree_level, official_url, normalized_field, verification_status, source_retrieved_at')
+      .order('university_id', { ascending: true })
+      .order('programme_name', { ascending: true });
+
+    if (error) {
+      throw new Error(`ProgrammeRepository.allForMatching failed: ${error.message}`);
+    }
+
+    const rows: MatchingProgramme[] = [];
+    for (const row of (data ?? []) as MatchingRawRow[]) {
+      const name = row.programme_name?.trim();
+      // Same two rejections as `toProgramme`, and for the same reasons — see
+      // the comment there on why REJECTED is filtered in JS rather than SQL.
+      if (!name || row.university_id == null) continue;
+      if (row.verification_status === REJECTED) continue;
+
+      rows.push({
+        id: row.programme_id,
+        universityId: row.university_id,
+        name,
+        degreeLevel: row.degree_level,
+        normalizedSubject: row.normalized_field,
+        officialUrl: row.official_url,
+        verificationStatus: row.verification_status,
+        retrievedAt: row.source_retrieved_at,
+      });
+    }
+    return rows;
   }
 }
 
