@@ -1,6 +1,6 @@
 import { ApplicationNav } from '@/components/application-nav';
 import { applicationIdFromPath } from '@/shared/lib';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * The brand-red application band for the reflection steps.
@@ -37,10 +37,7 @@ export async function ApplicationNavFromReturn({ returnTo }: { returnTo?: string
   const applicationId = applicationIdFromPath(returnTo);
   if (!applicationId) return null;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) return null;
 
   const { data: application } = await supabase
