@@ -14,7 +14,7 @@ import {
   GLOWBAL_FB_CHAT_URL,
   getPlusPackage,
 } from '@/lib/plus';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import {
   Badge,
@@ -62,10 +62,7 @@ export default async function PlusPage({
   const isCancelled = status === 'cancelled';
   const applicationId = application ?? null;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   let isPlus = false;
   let planLabel: string | null = null;
