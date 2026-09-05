@@ -16,6 +16,8 @@ import { revalidateTag } from 'next/cache';
  * Current producers:
  *   universities   -> getAllUniversities            (src/app/universities/page.tsx)
  *                     getHomeIndex                  (src/lib/home-search.ts)
+ *                     getMatchingCatalogue          (src/features/universities/api/
+ *                                                    university-matching-loader.ts)
  *   scholarships   -> getPublishedScholarships      (src/lib/scholarships-data.ts)
  *                     getHomeIndex                  (src/lib/home-search.ts)
  *   team           -> getTeamMembers                (src/lib/team.ts)

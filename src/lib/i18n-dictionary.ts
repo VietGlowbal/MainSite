@@ -1531,6 +1531,7 @@ export const translations: Record<string, string> = {
   'Finding courses for you': 'Đang tìm khoá học cho bạn',
   'Loading your applications': 'Đang tải hồ sơ ứng tuyển của bạn',
   'Loading your profile': 'Đang tải hồ sơ của bạn',
+  'Loading your matches': 'Đang tải trường phù hợp với bạn',
   'Adding courses to your plan': 'Đang thêm khoá học vào kế hoạch',
   'Reading your statement': 'Đang đọc bài luận của bạn',
   'Analysing your statement': 'Đang phân tích bài luận của bạn',
