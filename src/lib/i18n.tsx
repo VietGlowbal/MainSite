@@ -48,49 +48,36 @@ export function LanguageProvider({
 
   /*
    * The catalog is loaded on demand — see `i18n-catalog-runtime.ts` for why it
-   * is no longer a static import. Seeding from `getCatalog()` rather than from
-   * `{}` is what keeps `/vi/*` free of a text swap: that layout primes the
-   * catalog before render, so the server and the first client render both start
-   * with the full map and agree.
+   * is no longer a static import.
+   *
+   * DERIVED DURING RENDER, NOT HELD IN STATE. `getCatalog()` reads a module
+   * singleton that is already populated in the two cases that matter: `/vi/*`
+   * primes it in its layout before anything renders, and a client navigation
+   * away from `/vi/*` leaves it primed for the rest of the session. Reading it
+   * here means those cases need no effect and no extra render at all.
+   *
+   * The earlier version kept it in state and adopted it from inside the effect,
+   * which was both a cascading render (`react-hooks/set-state-in-effect`) and,
+   * before that, a bug: state seeded from `{}` on an English route never picked
+   * the singleton up, so after a client navigation off `/vi/*` the switcher was
+   * dead for the rest of the session.
+   *
+   * `fetched` only exists for the remaining case — an English route where the
+   * reader asks for Vietnamese and the chunk is genuinely not in memory yet.
+   *
+   * Hydration is safe without keying on `defaultLang`: the server's singleton
+   * may be primed by an earlier `/vi/*` request in the same process while the
+   * browser's is empty, but `t()` returns the source string for English before
+   * it ever reads this, so the two cannot render differently.
    */
-  const [catalog, setCatalog] = useState<Catalog>(() =>
-    // Keyed on `defaultLang`, not on `getCatalog()` alone: the server primes a
-    // module-level singleton, so once any `/vi/*` request has been served the
-    // catalog is populated for every *later* render in that process, including
-    // English ones. Seeding from it directly would therefore make the server's
-    // initial state depend on request history while the browser's does not.
-    // `t()` short-circuits on English so nothing reads it there anyway — this
-    // just keeps both sides provably identical instead of incidentally so.
-    defaultLang === 'vi' ? getCatalog() : {},
-  );
+  const [fetched, setFetched] = useState<Catalog | null>(null);
+  const catalog = fetched ?? getCatalog();
 
   useEffect(() => {
-    if (lang !== 'vi') return;
-
-    /*
-     * Adopt a catalog that is already in memory, rather than assuming this
-     * provider's state must already hold it.
-     *
-     * These are two different things and conflating them was a bug: the module
-     * singleton is loaded once per page load, but `catalog` above is seeded
-     * from it only when the route itself is Vietnamese. Navigate from `/vi/*`
-     * to an English route on the client and the singleton stays primed while
-     * the remounted provider holds `{}` — so a guard of "already loaded, do
-     * nothing" left `t()` returning English for the rest of the session, no
-     * matter how many times the reader hit the switcher. The i18n suite caught
-     * it; jsdom primes the catalog in `src/__tests__/setup.ts`, which puts
-     * every component test on exactly that path.
-     *
-     * The identity check is what stops this re-rendering forever.
-     */
-    if (isCatalogLoaded()) {
-      setCatalog((current) => (current === getCatalog() ? current : getCatalog()));
-      return;
-    }
-
+    if (lang !== 'vi' || isCatalogLoaded()) return;
     let active = true;
     void loadCatalog().then((loaded) => {
-      if (active) setCatalog(loaded);
+      if (active) setFetched(loaded);
     });
     return () => {
       active = false;
