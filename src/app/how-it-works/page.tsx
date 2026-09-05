@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
-import {
-  getLocalizedFooter,
-  StrategyGuide,
-} from '@/features/marketing/ui';
+// The narrow slices, not the `marketing/ui` barrel: the barrel also re-exports
+// the Home compositions, and `home-metrics` pulls framer-motion, so one barrel
+// import puts 247 KB of animation library on a page that animates nothing.
+// See docs/performance.md.
+import { getLocalizedFooter } from '@/features/marketing/navigation';
+import { StrategyGuide } from '@/features/marketing/strategy-guide';
 import { GUIDE_STEP_COUNT, STRATEGY_GUIDE } from '@/features/marketing/domain';
 import { createClient } from '@/lib/supabase/server';
 import { Button, Container, Footer, Panel } from '@/shared/ui';

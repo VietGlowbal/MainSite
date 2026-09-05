@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MarketingNavigation } from '@/components/marketing-navigation';
 import { useT } from '@/lib/i18n';
-import { getLocalizedFooter } from '@/features/marketing/ui';
+import { getLocalizedFooter } from '@/features/marketing/navigation';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import type { PublicMentor } from '@/lib/mentors';
 import { formatMoney } from '@/lib/currency';

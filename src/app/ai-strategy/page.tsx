@@ -1,14 +1,16 @@
 import type { Metadata } from 'next';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
+// The narrow slices, not the `marketing/ui` barrel — see the note in
+// how-it-works/page.tsx and docs/performance.md.
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  StrategyHub,
-} from '@/features/marketing/ui';
+} from '@/features/marketing/navigation';
+import { StrategyHub } from '@/features/marketing/strategy-hub';
 import { createClient } from '@/lib/supabase/server';
 import { Footer } from '@/shared/ui';
 

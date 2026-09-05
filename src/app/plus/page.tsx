@@ -8,7 +8,7 @@ import {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+} from '@/features/marketing/navigation';
 import {
   FREE_FEATURES,
   GLOWBAL_FB_CHAT_URL,

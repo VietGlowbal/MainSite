@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import { getTeamMembers } from '@/lib/team';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MarketingNavigation } from '@/components/marketing-navigation';
-import {
-  AboutTeam,
-  getLocalizedFooter,
-  HomeFaq,
-} from '@/features/marketing/ui';
+// The narrow slices, not the `marketing/ui` barrel. None of these three
+// animates, but the barrel also re-exports `home-metrics`, which pulls
+// framer-motion — so the barrel import alone was putting 247 KB of it on this
+// page. See docs/performance.md.
+import { AboutTeam, HomeFaq } from '@/features/marketing/about';
+import { getLocalizedFooter } from '@/features/marketing/navigation';
 import { Container, Footer } from '@/shared/ui';
 import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 

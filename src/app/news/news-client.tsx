@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MarketingNavigation } from '@/components/marketing-navigation';
-import { getLocalizedFooter } from '@/features/marketing/ui';
+import { getLocalizedFooter } from '@/features/marketing/navigation';
 import type { GeoGuide } from '@/lib/geo-content';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import {
