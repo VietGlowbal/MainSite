@@ -92,13 +92,31 @@ Nguồn thật là `src/styles/tokens.css` (trích từ Figma variables). **Khô
 
 ### CSS quarantine
 
-`src/app/globals.css` là 5.672 dòng CSS **unlayered** với 425 selector legacy. Chúng out-rank Tailwind utilities.
+`src/app/globals.css` là CSS **unlayered** — nó out-rank Tailwind utilities.
+
+**Đã dọn ngày 2026-09-05 (xem `docs/performance.md` fix 5):** 5.042 → **1.192
+dòng**, 404 → **83 class selector**. 490 rule chết đã bị xoá sau khi đối chiếu
+hai chiều: grep toàn bộ source, *và* thu thập class thật từ DOM trên 65 lượt tải
+trang (47 route, cả đã đăng nhập lẫn ẩn danh) — 1.281 class xuất hiện thật, không
+class nào nằm trong danh sách xoá.
 
 Component mới:
-- **Không** dùng tên class legacy: `.glowbal-*`, `.auth-*`, `.glow-*`, `.profile-*`, `.cosmic-*`, `.cosmos-*`, `.onboarding-*`, `.geo-*`, `.explorer-*`
-- **Không** render bên trong 8 root này (CSS trong đó sẽ ăn vào con): `.geo-article`, `.cosmos-light-zone`, `.onboarding-form-shell`, `.auth-secure-notice`, `.profile-upload-tip`, `.profile-empty-state`, `.cosmic-step-card`, `.glowbal-nav-pill-admin`
+- **Không** dùng tên class legacy: `.glowbal-*`, `.auth-*`, `.glow-*`,
+  `.profile-*`, `.cosmic-*`, `.cosmos-*`, `.onboarding-*`, `.geo-*`
+  (`.explorer-*` nay đã sạch hoàn toàn)
+- **Không** render bên trong 3 root còn lại (CSS trong đó sẽ ăn vào con):
+  `.geo-article`, `.cosmos-light-zone`, `.onboarding-form-shell`.
+  Năm root cũ — `.auth-secure-notice`, `.profile-upload-tip`,
+  `.profile-empty-state`, `.cosmic-step-card`, `.glowbal-nav-pill-admin` — đã bị
+  xoá khỏi `globals.css`, không còn ràng buộc.
 
 Không dùng tên nào trong danh sách trên là đã miễn nhiễm với cascade cũ.
+
+⚠️ Trước khi xoá thêm CSS: `.glowbal-main-content` và quy tắc
+`body:has(… [data-testid='nav-header']) [data-global-navigation] { display:none }`
+**không được xoá** — đó là thứ duy nhất ngăn hai header cùng hiện trên các trang
+tự dựng chrome. Cách đúng là thêm route vào `OWN_CHROME_ROUTES`
+(`src/components/nav-reveal.tsx`), không phải dựa vào quy tắc CSS đó.
 
 ## Kiến trúc
 

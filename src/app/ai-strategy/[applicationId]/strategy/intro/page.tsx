@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { markStrategyIntroSeen } from '@/features/ai-strategy-dashboard/api';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { Button, Container, Panel } from '@/shared/ui';
 
 /**
@@ -43,10 +43,7 @@ export default async function StrategyIntroPage({
 }) {
   const { applicationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   await markStrategyIntroSeen(supabase, user.id, applicationId);

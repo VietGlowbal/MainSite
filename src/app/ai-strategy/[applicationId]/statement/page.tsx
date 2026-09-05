@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { StatementWriter } from '@/components/statement/StatementWriter';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import type { AIAnalysis } from '@/lib/types';
 import { ICONS, KitIcon } from '@/shared/ui';
 
@@ -63,10 +63,7 @@ export default async function StrategyStatementPage({
 }) {
   const { applicationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect(`/auth?redirect=${encodeURIComponent(`/ai-strategy/${applicationId}/statement`)}`);
 
   const { data: application } = await supabase

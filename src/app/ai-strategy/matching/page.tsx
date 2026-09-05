@@ -3,21 +3,18 @@ import Link from 'next/link';
 import { T } from '@/lib/i18n';
 import { listMatchingApplications } from '@/features/apply/api';
 import { AI_JOURNEY, aiJourneySteps } from '@/features/apply/domain';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { Avatar, Badge, Button, Panel, Stepper } from '@/shared/ui';
 import { ReflectionChrome } from '../reflection-chrome';
 
 export default async function MatchingApplicationsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const result = await listMatchingApplications(supabase, user.id);
 
   return (
-    <ReflectionChrome user={user}>
+    <ReflectionChrome>
       <div className="flex flex-col gap-gb-4xl" data-no-auto-translate>
         <header className="flex flex-col gap-gb-lg">
           <Badge variant="brand-subtle">GlowBal Matching Report</Badge>

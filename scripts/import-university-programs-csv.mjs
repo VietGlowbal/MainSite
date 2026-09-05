@@ -895,13 +895,75 @@ async function main() {
     );
   }
 
+  const revalidated = await revalidateUniversityCaches();
+
   console.log(
     JSON.stringify(
-      { mode: 'apply', ...result, verified_catalog_programmes: count },
+      { mode: 'apply', ...result, verified_catalog_programmes: count, revalidated },
       null,
       2,
     ),
   );
+}
+
+/**
+ * Expire the caches that now hold a pre-import view of the catalogue.
+ *
+ * ⚠️ THIS IS NOT OPTIONAL HOUSEKEEPING. `/universities/matches` ranks students
+ * against `catalog_programmes` through `getMatchingCatalogue`, which since
+ * 2026-09-05 is an `unstable_cache` entry with a twelve-hour TTL tagged
+ * `universities` (see docs/performance.md fix 6). Promoting rows here writes
+ * straight to Postgres and Next never notices, so without this call a student
+ * who opens their matches after an import is ranked against the programmes that
+ * existed before it — for up to twelve hours, with nothing on screen to say so.
+ *
+ * Same endpoint and credentials as `npm run revalidate:universities`; that CLI
+ * stays for expiring the cache by hand. `expireUniversitiesNow()` on the other
+ * end uses `{ expire: 0 }` rather than stale-while-revalidate precisely for the
+ * import case: the next request should block on fresh data, not serve the old
+ * catalogue once more.
+ *
+ * Deliberately non-fatal. The promotion has already been verified by the time
+ * this runs, and failing the whole import because a cache ping did not land
+ * would misreport a successful import as a failed one. It is loud instead: the
+ * operator is told exactly which command to run.
+ */
+export async function revalidateUniversityCaches() {
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
+  const token = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const manualFix = 'npm run revalidate:universities -- <site-url>';
+
+  if (!siteUrl || !token) {
+    console.warn(
+      `\n⚠️  Catalogue imported but caches NOT revalidated: ${!siteUrl ? 'NEXT_PUBLIC_SITE_URL' : 'SUPABASE_SERVICE_ROLE_KEY'} is not set.\n` +
+        `    /universities/matches will rank against the pre-import catalogue for up to 12h.\n` +
+        `    Run: ${manualFix}\n`,
+    );
+    return { ok: false, reason: 'missing-env' };
+  }
+
+  try {
+    const response = await fetch(`${siteUrl}/api/admin/universities/revalidate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      console.warn(
+        `\n⚠️  Catalogue imported but revalidation returned ${response.status}.\n` +
+          `    /universities/matches will rank against the pre-import catalogue for up to 12h.\n` +
+          `    Run: ${manualFix}\n`,
+      );
+      return { ok: false, reason: `http-${response.status}` };
+    }
+    return { ok: true, endpoint: `${siteUrl}/api/admin/universities/revalidate` };
+  } catch (error) {
+    console.warn(
+      `\n⚠️  Catalogue imported but revalidation could not be reached: ${String(error.message ?? error)}\n` +
+        `    /universities/matches will rank against the pre-import catalogue for up to 12h.\n` +
+        `    Run: ${manualFix}\n`,
+    );
+    return { ok: false, reason: 'unreachable' };
+  }
 }
 
 const isEntrypoint =

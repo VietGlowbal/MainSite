@@ -51,12 +51,43 @@ export interface CatalogueProgramme {
   units: ProgrammeAcademicUnit[];
 }
 
+/**
+ * The subset of a programme that `rankUniversityRecommendations` reads.
+ *
+ * Deliberately a `Pick` rather than the full row: `/universities/matches` used
+ * to load every column of all 593 rows, and `academic_units` alone is **192 kB
+ * of the payload against 58 kB for everything ranking actually uses** (measured
+ * with `pg_column_size`, 2026-09-05). Nothing downstream touches the units, the
+ * credential, the duration or the programme status, so the port refuses to hand
+ * them over on this path instead of trusting each caller to ignore them.
+ */
+export type MatchingProgramme = Pick<
+  CatalogueProgramme,
+  | 'id'
+  | 'universityId'
+  | 'name'
+  | 'degreeLevel'
+  | 'normalizedSubject'
+  | 'officialUrl'
+  | 'verificationStatus'
+  | 'retrievedAt'
+>;
+
 export interface ProgrammeQueries {
   /** Every catalogued programme for one university, or [] when it has none. */
   byUniversityId(universityId: number): Promise<CatalogueProgramme[]>;
 
   /** Batch equivalent used by recommendation flows to avoid one query per university. */
   byUniversityIds(universityIds: number[]): Promise<Map<number, CatalogueProgramme[]>>;
+
+  /**
+   * Every catalogued programme, narrowed to the ranking fields.
+   *
+   * A flat array, not a `Map`, because the recommendation loader caches this
+   * across users through `unstable_cache` and a `Map` does not survive that
+   * serialisation. Grouping is the caller's job.
+   */
+  allForMatching(): Promise<MatchingProgramme[]>;
 }
 
 /**

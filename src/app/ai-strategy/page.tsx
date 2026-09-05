@@ -11,7 +11,7 @@ import {
   FOOTER_TAGLINE,
 } from '@/features/marketing/navigation';
 import { StrategyHub } from '@/features/marketing/strategy-hub';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { Footer } from '@/shared/ui';
 
 /**
@@ -57,10 +57,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AiStrategyPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { identity: user } = await getServerIdentity();
 
   const isSignedIn = Boolean(user);
 

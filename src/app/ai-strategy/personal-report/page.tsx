@@ -9,6 +9,7 @@ import {
 import { PersonalReportV2View } from '@/features/apply/ui';
 import { applicationIdFromPath } from '@/shared/lib';
 import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { ReflectionChrome } from '../reflection-chrome';
 import { ApplicationNavFromReturn } from '../reflection/application-nav-from-return';
 
@@ -47,10 +48,7 @@ export default async function PersonalReportPage({
 }: {
   searchParams: Promise<{ return?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const { return: returnTo } = await searchParams;
@@ -75,10 +73,10 @@ export default async function PersonalReportPage({
     ? !applicationState?.confirmed || Boolean(stored.record && stored.record.confirmedSnapshotId !== latestSnapshotId)
     : false;
   const studentName =
-    (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || 'there';
+    (user.userMetadata?.full_name as string | undefined) || user.email?.split('@')[0] || 'there';
 
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
+    <ReflectionChrome nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
       <PersonalReportV2View
         initialReport={stored.record?.reportV2 ?? null}
         initialVersionId={stored.record?.id ?? null}

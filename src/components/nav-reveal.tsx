@@ -282,6 +282,22 @@ export function NavReveal() {
     '/',
     '/dev/home',
     '/universities',
+    /*
+     * Both match pages ship `SiteNavigation` + `Footer` themselves, exactly
+     * like `/universities` above, but neither was on this list — `/universities`
+     * matches exactly and the numeric-id regex below does not accept a word.
+     *
+     * ⚠️ THIS WAS WORTH 0.05 CLS, NOT JUST TIDINESS. Without an entry here the
+     * app chrome renders too, and the only thing that stopped two headers being
+     * on screen was `body:has(.glowbal-main-content [data-testid='nav-header'])
+     * [data-global-navigation] { display: none }` in globals.css. That rule
+     * fires when the page's own header parses, which is *after* the app header
+     * has painted — so `<main>` was measured jumping 73px upward
+     * (y=73 h=827 -> y=0 h=900) on a cold load, a full-viewport shift worth
+     * 0.0507. Suppressing the nav here means the rule never has to fire.
+     */
+    '/universities/matches',
+    '/universities/matches/demo',
     '/auth',
     // Pre-launch site lock — bare centered card, same
     // treatment as /auth, no app chrome to double up.

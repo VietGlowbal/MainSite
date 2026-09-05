@@ -3,6 +3,7 @@ import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { AnalysisWorkspace } from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * `/ai-strategy/[applicationId]/strategy/analysis` — Stage 3, AI Analysis
@@ -66,10 +67,7 @@ export default async function StrategyAnalysisPage({
   const { applicationId } = await params;
   const { regenerate } = await searchParams;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect('/auth');
 

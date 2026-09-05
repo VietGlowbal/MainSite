@@ -1,5 +1,60 @@
 # Current project status
 
+Working tree 2026-09-05 (Core Web Vitals, part 3: dead CSS, the matches
+catalogue, and three auth round-trips): parts 1 and 2 are merged and live; this
+continues them. Full record in [performance.md](performance.md).
+
+**The `[applicationId]` skeleton from part 2 is confirmed on screen** — the gap
+that entry flagged is closed. With the Plus + admin account the owner supplied,
+the `aria-busy` wrapper was observed ahead of content on `/strategy`,
+`/matching-report` and `/cv/content`, CLS 0.0018 on each.
+
+`globals.css` was 84% dead: 340 of 404 class selectors matched nothing. Now
+**5,042 → 1,192 lines**, 404 → 83 selectors, render-blocking CSS **51.1 → 41.3 KB
+gzipped**. ⚠️ A grep alone was not treated as sufficient — every candidate was
+also checked against the live DOM across 65 page loads on 47 routes, signed in
+*and* signed out (`/auth` and `/onboarding` redirect away when you have a
+session, and `auth-*` was the biggest dead family), and none of the 1,281 live
+classes was on the delete list. Verified by a 28-route pixel diff plus the e2e
+suite. ⚠️ **The audit over-estimated this fix and `CLAUDE.md` has been corrected
+too:** deleting 74% of the source moved the compiled bundle only 18%, because
+most of it is Tailwind utilities, not legacy CSS. The rest needs per-route CSS,
+logged as item 8.
+
+`/universities/matches` was reading all 593 `catalog_programmes` rows with every
+column — `academic_units` alone is 192 kB against 58 kB for the eight fields
+ranking uses — and could not start that read until the university query returned
+ids, for a filter matching every row. Now one narrow `allForMatching()`, both
+catalogue reads in parallel, and the pair cached under the existing
+`universities` tag. ⚠️ The cached value must stay JSON-serialisable —
+`unstable_cache` turns a `Map` into `{}`. Separately, the route was rendering
+**two headers**: `nav-reveal` matches `/universities` exactly, so the app chrome
+came along and only a `:has()` rule in `globals.css` hid it — after it had
+painted, moving `<main>` 73px. Both match routes are now in `OWN_CHROME_ROUTES`.
+Cold load: commit 989 → 446ms, FCP 1576 → 1076ms, fully loaded 10.8 → 3.6s,
+**CLS 0.0530 → 0.0023**.
+
+`/ai-strategy/[applicationId]/*` was making **three** Auth API round-trips per
+request — layout, page, and `ApplicationNav`'s fallback, which the layout never
+passed a `userId`. All 24 sites plus five public pages (`/ai-strategy`,
+`/how-it-works`, `/plus`, `/universities/[id]`, `/mentors/[id]`, which were
+paying a network call just to compute `isSignedIn` for anonymous visitors) now
+use the request-cached `getServerIdentity()`. ⚠️ **Not a weaker check, and this
+was verified rather than assumed:** a live token's header reads `alg: ES256`, so
+`getClaims()` verifies the signature locally against the JWKS; on the legacy
+HS256 secret it would transparently fall back to the Auth server. Guarded by
+`src/__tests__/ai-strategy-auth-dedupe.test.ts`, because the regression is a
+*new* page with the old pattern.
+
+      Gates: `npm run build`, `npx tsc --noEmit`, `npx tsc -p
+      tsconfig.strict.json` all pass; `eslint src` 0 errors / 5 pre-existing
+      warnings; **387 test files, 3,666 passed + 2 todo, 0 failures**;
+      `check-i18n --all` clean. `npx playwright test` 54 passed with one
+      failure — `kitchen-sink › design tokens` — which **fails identically on a
+      clean checkout** and was left rather than re-recorded blind. ⚠️ Stop any
+      `npm start` before running e2e, or Playwright attaches to it, misses
+      `ENABLE_DEV_ROUTES=1`, and 17 `/dev/home` tests fail for no reason.
+
 Working tree 2026-09-05 (Core Web Vitals, part 2: `/ai-strategy` streaming +
 the barrel that put framer-motion everywhere): continues the entry below; the
 full record is [performance.md](performance.md).

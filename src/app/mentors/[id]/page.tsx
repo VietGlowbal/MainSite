@@ -5,7 +5,7 @@ import {
   getPublicMentorReviews,
   getPublicMentorSlots,
 } from '@/lib/mentors';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { SITE_URL } from '@/lib/site-url';
 import { buildAdvisorJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
@@ -80,21 +80,13 @@ export default async function MentorDetailPage({
   const mentor = await getPublicMentorById(id);
   if (!mentor) notFound();
 
-  const supabase = await createClient();
-  const [
-    {
-      data: { user },
-    },
-    slots,
-    { reviews, count },
-  ] = await Promise.all([
-    supabase.auth.getUser(),
+  const [{ identity: user }, slots, { reviews, count }] = await Promise.all([
+    getServerIdentity(),
     getPublicMentorSlots(id),
     getPublicMentorReviews(id),
   ]);
 
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
+  const userName = user?.name ?? null;
 
   const jsonLd = buildAdvisorJsonLd({
     name: mentor.display_name,
@@ -118,7 +110,7 @@ export default async function MentorDetailPage({
         reviewCount={count}
         isSignedIn={!!user}
         userName={userName}
-        userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
+        userAvatarUrl={user?.avatarUrl ?? null}
         locale={locale}
       />
     </>

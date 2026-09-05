@@ -16,20 +16,25 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: { id: 'student-1' } } }) },
-    from: () => ({
-      select: () => ({
-        eq: () => ({
+// The page resolves its session through the request-cached identity rather
+// than a fresh Auth API round-trip — see docs/performance.md fix 7 and
+// src/__tests__/ai-strategy-auth-dedupe.test.ts.
+vi.mock('@/server/auth/server-identity', () => ({
+  getServerIdentity: async () => ({
+    identity: { id: 'student-1', email: null, name: null, avatarUrl: null, userMetadata: {} },
+    supabase: {
+      from: () => ({
+        select: () => ({
           eq: () => ({
-            maybeSingle: async () => ({
-              data: { course_name: 'Computer Science', university_name: 'Example University' },
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { course_name: 'Computer Science', university_name: 'Example University' },
+              }),
             }),
           }),
         }),
       }),
-    }),
+    },
   }),
 }));
 vi.mock('@/features/ai-strategy-dashboard/api', () => ({

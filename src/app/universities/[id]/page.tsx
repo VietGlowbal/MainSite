@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
 import { officialWebsite, splitList } from '@/features/universities/domain';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import type { University } from '@/lib/types';
 import type { DetailSection } from './detail-nav';
 import { SITE_URL } from '@/lib/site-url';
@@ -110,9 +110,8 @@ export default async function UniversityDetailPage({
   const university = await loadUniversity((await params).id);
   if (!university) notFound();
 
-  const supabase = await createClient();
-  const [{ data: { user } }, scholarshipsByUniversity] = await Promise.all([
-    supabase.auth.getUser(),
+  const [{ supabase, identity: user }, scholarshipsByUniversity] = await Promise.all([
+    getServerIdentity(),
     getScholarshipQueries().byUniversityIds([university.id]),
   ]);
 
@@ -145,8 +144,7 @@ export default async function UniversityDetailPage({
     sourceUrl: s.sourceUrl,
   }));
 
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
+  const userName = user?.name ?? null;
 
   const officialSite = officialWebsite(university.name);
   const jsonLd = buildUniversityJsonLd({
@@ -173,7 +171,7 @@ export default async function UniversityDetailPage({
         isSignedIn={!!user}
         isSaved={isSaved}
         userName={userName}
-        userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
+        userAvatarUrl={user?.avatarUrl ?? null}
         locale={locale}
       />
     </>

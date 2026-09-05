@@ -3,7 +3,7 @@ import { nextOnboardingStep } from '@/features/ai-strategy-dashboard/domain';
 import { aiStrategyApplicationNav } from '@/shared/lib/ai-strategy-route-model';
 import { Breadcrumbs } from '@/shared/ui/breadcrumbs';
 import { Container } from '@/shared/ui/container';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { ApplicationNavBackground } from './application-nav-background';
 import { ApplicationSubNav } from './application-sub-nav';
 
@@ -20,12 +20,13 @@ export async function ApplicationNav({
   userId?: string;
   courseName?: string | null;
 }) {
-  const supabase = await createClient();
-  const authenticatedUserId =
-    userId ??
-    (
-      await supabase.auth.getUser()
-    ).data.user?.id;
+  // `getServerIdentity` is React-`cache()`d per request and verifies the access
+  // token's ES256 signature locally, so the caller that already resolved the
+  // session (every one of them does) pays nothing for this second read — where
+  // `supabase.auth.getUser()` was a fresh Auth API round-trip each time this
+  // band rendered. See docs/performance.md fix 7.
+  const { supabase, identity } = await getServerIdentity();
+  const authenticatedUserId = userId ?? identity?.id;
 
   if (!authenticatedUserId) return null;
 

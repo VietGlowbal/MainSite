@@ -8,7 +8,7 @@ import { SiteNavigation } from '@/components/site-navigation';
 import { getLocalizedFooter } from '@/features/marketing/navigation';
 import { StrategyGuide } from '@/features/marketing/strategy-guide';
 import { GUIDE_STEP_COUNT, STRATEGY_GUIDE } from '@/features/marketing/domain';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { Button, Container, Footer, Panel } from '@/shared/ui';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
@@ -58,10 +58,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HowItWorksPage({ locale = 'en' }: { locale?: Locale } = {}) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { identity: user } = await getServerIdentity();
 
   const isSignedIn = Boolean(user);
   const footer = getLocalizedFooter(locale);

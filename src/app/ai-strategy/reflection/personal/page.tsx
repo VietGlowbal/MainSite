@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { loadApplicationSummary, loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { candidateInformationStepperSteps, confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
@@ -28,10 +28,7 @@ export default async function PersonalReflectionPage({
 }: {
   searchParams: Promise<{ return?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect('/auth');
 
@@ -55,7 +52,7 @@ export default async function PersonalReflectionPage({
     ) : undefined;
 
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
+    <ReflectionChrome nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
       {confirmedAt ? (
         <ConfirmedPersonalReflectionView
           answers={reflection.personalReflection}
