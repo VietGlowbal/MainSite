@@ -30,16 +30,31 @@ Substitute method, against the live project:
 | `/storage/v1/bucket`, service role | 7 buckets and their public flag |
 | Repo `supabase-*.sql` (95 files) | policy, view, index and function *intent* |
 
-**Not measurable this way — still open:**
+**Closed 2026-09-05T16:26Z by `sql/introspect.sql`,** run in the Supabase SQL
+editor by the project owner and exported as CSV. That query reads catalog and
+statistics views only — `pg_policy`, `pg_class`, `pg_proc`, `pg_indexes`,
+`pg_stat_user_indexes`, `pg_constraint`, `information_schema.role_table_grants`,
+`pg_extension` — no table data and no PII. It returned policy expressions for
+all 108 tables, `security_invoker` for all 5 views, `proacl` for all 80
+functions, 341 indexes with scan counts, 206 foreign keys, 2,053 grants and 15
+storage policies.
 
-- Actual `pg_policies` text, `pg_indexes`, table ownership, `security_invoker`
-  flags, `pg_stat_user_indexes` (unused indexes), extensions.
+Everything in §2–§4 below marked *measured* now comes from that snapshot rather
+than from the repo. Where the two disagree, the catalog wins and the earlier
+inference has been corrected in place — §4 in particular was substantially
+wrong when derived from `.sql` files alone.
+
+**Still open:**
+
+- Supabase's own security and performance linters. The MCP connector still
+  points at the wrong project; nothing in this audit substitutes for them.
 - Whether a student can *download* another user's file from `mentor-documents` /
-  `student-documents`. The policy definitions in the repo are correctly
-  owner-scoped, but I could not confirm they are live.
-- Supabase's own security and performance linters.
+  `student-documents`. The live storage policies are now confirmed owner-scoped
+  (§2), but the end-to-end download has not been attempted.
+- Query-level hot spots. `pg_stat_statements` **is installed** (v1.11) and is the
+  right tool; it was not queried by `introspect.sql`.
 
-To close these, either grant the MCP connector access to the org owning
+To close the first, grant the MCP connector access to the org owning
 `uooshbumyilwvbgmbixx`, or add a `DATABASE_URL` for a read-only role.
 
 ## 1. Inventory
@@ -104,6 +119,63 @@ the test that catches the classic `USING (auth.uid() IS NOT NULL)` bug.
 
 Note also that `geo_articles` returns 2 of 5 rows to anon: a published-only
 policy working exactly as intended.
+
+### Catalog verification (measured 2026-09-05T16:26Z)
+
+The behavioural probing above says what *did* come back. The catalog says why.
+Four structural checks, all clean:
+
+| Check | Result |
+|---|---|
+| Tables with RLS disabled | **0 of 108.** `relrowsecurity` is true everywhere. |
+| Views without `security_invoker` | **0 of 5.** All five set `security_invoker=true`, so none launders base-table RLS through its owner. |
+| `SECURITY DEFINER` functions without a pinned `search_path` | **0 of 31.** Every one sets `search_path`. |
+| Mutating definer functions executable by `anon`/`authenticated` | **0.** All 26 read `{postgres=X,service_role=X}`. |
+
+That last row **closes `known-issues.md` §0g**, which had stood at "🔴 OPEN, most
+urgent item in this file" since 2026-09-04. `sql/supabase-rpc-privilege-hardening.sql`
+has been applied. The six definer functions `anon` can still execute are the five
+TRIGGER functions the migration deliberately left alone — PostgREST does not
+expose a function returning `trigger` — plus `confirm_application_candidate_snapshot`,
+which raises `42501` when `auth.uid()` is NULL.
+
+No policy reachable by `anon`, `authenticated` or PUBLIC uses the weak
+`USING (auth.uid() IS NOT NULL)` form. Every policy over student data scopes by
+`auth.uid() = user_id` or by an `EXISTS` join to `course_applications.user_id =
+auth.uid()`. **This is the single most important result in the audit** and it is
+now measured rather than inferred.
+
+**A7 — `anon` holds INSERT/UPDATE/DELETE on 81 relations, 47 of them student PII
+or payment data. Severity: MEDIUM, structural. Not currently exploitable.**
+
+This is Supabase's default `GRANT ALL ... TO anon, authenticated`, not something
+anyone chose. Nothing leaks today, because RLS denies every one of those writes —
+that was confirmed behaviourally. But it means **RLS is the only control**: the
+first table created without a policy, or with a permissive one, is immediately
+anon-writable over the public API. `student_profiles`, `payment_transactions`,
+`uploaded_documents`, `structured_cvs` and `user_entitlements` are all in this set.
+
+*Proposed, not applied:* revoke INSERT/UPDATE/DELETE from `anon` across the
+student and payment domains, keeping SELECT only where a public read policy
+exists. No application code path uses an anon write, so this should be inert.
+Verify that claim against the route handlers before running it.
+
+**A8 — `courses` accepts inserts from any logged-in user. Severity: LOW-MEDIUM,
+integrity not confidentiality.**
+
+Policy `Authenticated users can insert courses` applies to PUBLIC with
+`WITH CHECK (auth.role() = 'authenticated')` — no ownership column, no
+moderation. `courses` is the shared catalogue every student reads. A logged-in
+user can write arbitrary rows into it. `anon` is blocked by the `auth.role()`
+test. Consider restricting inserts to `service_role` and routing catalogue
+writes through `promote_crawl_run`, which is already service-role-only.
+
+**A9 — `programme_target_profile_versions` is readable in full by any logged-in
+user.** `USING (true)` for `authenticated`. Its sibling `*_versions` tables all
+scope to `user_id`, so this reads as an oversight — but the content is
+AI-extracted *programme* requirements, not student data, and a shared cache is a
+defensible design. **Decide and document which it is**, because the next reader
+will assume it is a bug.
 
 ### Findings, by risk
 
@@ -171,27 +243,28 @@ Anon reads all 12 rows including `email`. If those are personal rather than role
 addresses, it is a scrapeable staff PII list. Fix: drop `email` from the
 anon-facing policy or projection.
 
-**A4 — three views declared without `security_invoker`. MEDIUM (fragility, not a live leak).**
+**A4 — ~~three views declared without `security_invoker`~~. WITHDRAWN 2026-09-05 —
+the catalog disproves it.**
 
-`ambassador_link_stats`, `coordinator_referral_daily` and `user_login_counts` are
-created without `with (security_invoker = true)`; only the two in
-`supabase-catalog-v2.sql:344,389` set it. Without it a view runs as its owner and
-bypasses RLS on the base tables.
+All five views set `security_invoker=true` live: `reloptions` reads
+`{security_invoker=true}` for `ambassador_link_stats`, `catalog_programmes`,
+`coordinator_referral_daily`, `course_current_field_values` and
+`user_login_counts`. The finding came from reading `create view` statements in
+the repo, which omit the flag for three of them; the live objects have it
+regardless — either applied by a later file or set outside version control.
 
-Measured behaviour is currently *correct* (`user_login_counts` returns 0/344 to
-the student; `ambassador_link_stats` returns 2/15, matching `ambassador_links`
-2/15), so either the flag is set live or the owner is not privileged. Either way
-the declaration lacks the safeguard, so a future ownership change turns it into a
-silent leak — `user_login_counts` sits directly over `login_events` (1,639 rows).
-This is exactly what Supabase's `security_definer_view` lint would flag.
+The behavioural evidence recorded here at the time (`user_login_counts` 0/344 to
+the student, `ambassador_link_stats` 2/15) was correct and now has its
+explanation. **No action needed.** Kept rather than deleted because it is a
+worked example of the trap this audit hit twice: a `.sql` file is evidence of
+intent, never of live state.
+**A5 — ~~two `SECURITY DEFINER` functions with mutable `search_path`~~. RESOLVED
+2026-09-05.**
 
-**A5 — two `SECURITY DEFINER` functions with mutable `search_path`. LOW.**
-
-`update_achiever_stats` and `sync_slot_status_on_booking_change`. Both are
-trigger functions rather than directly callable, which limits the exposure, but
-`SET search_path = ''` is the standard hardening and the other 32 definers
-already have it.
-
+**0 of 31** definer functions has an unpinned `search_path`. Both named functions
+now carry it: `update_achiever_stats` has `search_path=public, pg_temp` and
+`sync_slot_status_on_booking_change` has `search_path=public`, applied by
+`sql/supabase-rpc-privilege-hardening.sql`. No action needed.
 **A6 — `user_entitlements` has no policy in version control. MEDIUM (process).**
 
 442 rows, gates paid access. Live behaviour is correct (the student sees 1). But
@@ -207,8 +280,11 @@ Payment RPCs are tight: `create_manual_payment_checkout`, `claim_manual_payment`
 functions and `process_vnpay_ipn` are all `revoke … from public, anon,
 authenticated` followed by `grant … to service_role`
 (`supabase-manual-payment-founder.sql:355-364`). `consume_statement_review` is
-`SECURITY INVOKER` and filters on `auth.uid()`. `confirm_application_candidate_snapshot`
-derives the user internally. Storage policies for both private buckets are
+`SECURITY INVOKER` and filters on `auth.uid()`. `confirm_application_candidate_snapshot` derives the user internally and raises
+`42501` when `auth.uid()` is NULL — worth noting that `anon` **does** still hold
+EXECUTE on it in `pg_proc.proacl`, because its `.sql` file revokes only from
+PUBLIC and Supabase grants `anon` explicitly at CREATE time. The body is what
+makes it safe, not the grant. Storage policies for both private buckets are
 owner-scoped by folder.
 
 ## 3. Schema quality
@@ -260,48 +336,103 @@ are silent.
 Concentrated in `crawl_*` and the join tables — consistent with copy-pasted
 migrations.
 
+**Redundant indexes (measured).** 23 plain indexes are an exact column-prefix of
+a wider index on the same table, so the wider one already serves every query the
+narrow one does. Postgres keeps and maintains both on every write. Examples:
+
+| Table | Redundant | Already covered by |
+|---|---|---|
+| `student_profiles` | `idx_student_profiles_user_id` | `student_profiles_user_id_key` UNIQUE |
+| `course_applications` | `idx_course_applications_user_id` | `idx_course_applications_user_status` |
+| `application_tasks` | `idx_application_tasks_application_id` | `idx_application_tasks_pillar` |
+| `course_parse_jobs` | `idx_course_parse_jobs_application_id` | `unique_application_id` UNIQUE |
+| `course_parse_jobs` | `idx_course_parse_jobs_status` | `idx_course_parse_jobs_status_created` |
+| `uploaded_documents` | `idx_uploaded_documents_user_id` | `idx_uploaded_documents_type` |
+
+Full list of 23 in the introspection snapshot. Dropping them is safe — scans
+migrate to the wider index — but the gain is write amplification and a few
+hundred kB, not read latency. **Low priority; batch it with other DDL.**
+
+**Two "v2 added, v1 never dropped" constraint pairs.** Both are still enforced
+simultaneously, so the *older, narrower* rule is the one that rejects writes:
+
+- `payment_transactions` carries UNIQUE `(user_id, product_type, idempotency_key)`
+  **and** UNIQUE `(user_id, provider, product_type, idempotency_key)`. The
+  provider-aware v2 has **0 scans**; the provider-blind v1 has 459. The same
+  idempotency key reused across VNPay and manual bank transfer would be rejected
+  by v1 even though v2 was added to permit exactly that. **Verify against the
+  payment routes before dropping v1** — this is money, and the counters say v1 is
+  the one actually enforcing.
+- `application_planner_feedback` carries `planner_feedback_one_per_target`
+  (`… , COALESCE(target_id, …)`, **0 scans**) and `planner_feedback_one_per_target_v2`
+  (`… , target_key`, 64 scans). Here v2 is the live one and v1 is dead weight.
+
 ## 4. Performance
 
-Supabase's performance linter could not be run (§0), so this comes from declared
-indexes only: 195 `create index` statements across 85 of 113 relations.
-**28 relations have no declared index at all.**
+Measured from `pg_indexes`, `pg_stat_user_indexes` and `pg_constraint`, 2026-09-05.
+**341 indexes across 108 tables.** This supersedes the earlier count of 195
+`create index` statements read from the repo — that number was low because 35
+relations have no DDL in the repo at all (§5).
 
-Unindexed declared-FK columns, highest row counts first (views excluded — an
-index on a view is meaningless):
+**79 of 206 foreign keys have no covering index.** A parent delete or a join on
+these does a sequential scan. Corrected from the repo-derived list, which was
+wrong in roughly half its rows: `course_field_values.source_run_id`,
+`scholarship_universities.scholarship_id`, `payment_notification_jobs.transaction_id`
+and `course_search_session_results.session_id` **are** in fact indexed, as
+prefixes of composite or unique indexes. The real list is led by:
 
-| Table | Column | Rows |
+| Table | Uncovered FK column(s) | Why it matters |
 |---|---|---|
-| `course_field_values` | `source_run_id` | 15,537 |
-| `course_admission_requirements` | `source_run_id` | 1,600 |
-| `course_academic_units` | `academic_unit_id`, `source_run_id` | 595 |
-| `crawl_programme_organisation_units` | `run_id` | 595 |
-| `student_personal_report_versions` | `confirmed_snapshot_id` | 498 |
-| `crawl_admission_packages` | `run_id` | 400 |
-| `course_offerings` | `source_run_id` | 400 |
-| `scholarship_universities` | `scholarship_id` | 374 |
-| `academic_units` | `parent_id`, `source_run_id` | 196 |
-| `crawl_organisation_units` | `run_id` | 196 |
-| `user_scholarships` | `scholarship_id` | 116 |
-| `user_universities` | `university_id` | 114 |
-| `course_search_session_results` | `session_id`, `university_id` | 76 |
-| `payment_notification_jobs` | `transaction_id` | 75 |
+| `application_match_analyses` | `source_analysis_version_id`, `source_personal_report_version_id`, `target_profile_version_id`, `confirmed_snapshot_id` | four lineage FKs, none indexed, on the table the report pipeline joins most |
+| `course_applications` | `university_id`, `ingestion_job_id`, `(crawl_run_id, crawl_programme_id)` | the hub table; `university_id` is filtered on the apply flow |
+| `student_activity_follow_up_answers` | `application_id`, `question_id`, `user_id`, `superseded_by_answer_id` | every FK on the table is uncovered |
+| `application_profile_analysis_versions` | `user_id`, `confirmed_snapshot_id` | per-user history reads scan |
+| `structured_cvs`, `cv_reviews`, `cv_target_profiles`, `statement_*` | `user_id` | the CV/SOP cluster indexes `strategy_id` but not `user_id` |
+| `recommendations`, `saved_options`, `support_requests`, `work_experiences` | `user_id`, `run_id`, `recommendation_id` | small tables today; cheap to fix before they grow |
 
-The `*_run_id` cluster is the clearest win: every crawl promotion filters by run,
-and none of those columns is indexed.
+The `user_id` gap is the consistent one: several student-owned tables index the
+domain FK but not the column their own RLS policy filters on. Every
+`USING (auth.uid() = user_id)` check on those tables is a sequential scan.
+**That is the highest-value fix in this section** — it is both a performance and
+a scalability issue for the exact predicate that runs on every request.
 
-**jsonb without GIN.** Only 5 GIN indexes exist (`tags`, `funding_type`, `raw`,
-and two `gin_trgm_ops`). None covers the AI structured-output columns —
-`course_field_values.value_json` (15,537 rows),
+**39 droppable never-scanned indexes** (71 of 341 have `idx_scan = 0`; 32 of those
+back UNIQUE constraints and must stay). Largest:
+
+| Index | Size | Note |
+|---|---|---|
+| `crawl_field_assertions.idx_crawl_assertions_review_fingerprint` | 792 kB | crawl review queue |
+| `scholarships.idx_scholarships_raw` | 552 kB | GIN over a raw jsonb blob; `scholarships` is hot (137k pk scans) yet this has never been used |
+| `crawl_review_items.idx_crawl_review_group` | 312 kB | crawl review queue |
+| `courses.idx_courses_search_keywords` | 136 kB | GIN; keyword search appears unused |
+| `email_deliveries.*_created_idx` ×3 | 48 kB | three unused sort indexes on one table |
+
+**Read `idx_scan = 0` carefully.** These counters are cumulative since the last
+statistics reset, and a zero means "not used since then", not "useless". The
+crawl-review indexes sit behind an admin workflow that has barely run at all —
+`idx_crawl_review_queue` has exactly 1 scan — so their zeros say nothing about
+their value. **Do not drop the `crawl_*` ones.** `idx_scholarships_raw` and the
+`email_deliveries` trio are the defensible drops: their tables are demonstrably
+active and the indexes still went unread.
+
+**One anomaly worth a follow-up.** `scholarship_universities_pkey` has **12.5
+million scans** — seven times the next busiest index (`universities_pkey`, 1.77M)
+and ninety times the scan count of `scholarships_pkey` (137k), against a table of
+only 176 kB. I checked the obvious cause and ruled it out: the repository batches
+correctly (`byUniversityIds` uses `.in(university_id, ids)`,
+`supabase-scholarship-repository.ts:384`), so this is not an application-level
+N+1. Remaining candidates are PostgREST resolving an embedded resource per parent
+row, or the per-row `EXISTS` in the `scholarship_universities` RLS policy.
+**Settle it with `pg_stat_statements`** — the extension is installed —
+rather than guessing.
+
+**jsonb without GIN.** 6 GIN indexes exist (`search_keywords`, `tags`,
+`funding_type`, `raw`, and two `gin_trgm_ops`). None covers the AI
+structured-output columns — `course_field_values.value_json` (15,537 rows),
 `programme_target_profile_versions.profile`, the report payloads. Add GIN only
-where a query actually filters *inside* the JSON; if these are only ever fetched
-whole by id, no GIN is needed. Check before adding.
-
-**Composite index candidates**, from the access patterns named in the brief:
-`application_tasks(application_id, status)` (1,033 rows),
-`course_applications(user_id, status)`, and
-`application_stages(application_id, status)` (411). Confirm against
-`pg_stat_statements` rather than adding blind.
-
+where a query filters *inside* the JSON; if these are fetched whole by id, none
+is needed. Note that two of the six existing GIN indexes have never been scanned,
+which is the argument for checking first.
 ## 5. Migration hygiene
 
 There is **no migration runner**. No `supabase/` directory, no CLI, no version
@@ -360,12 +491,25 @@ A1 and A2 from §2; leave the table count alone.
    finding that is live and exposing data today; do first)**
 2. `add_selected_courses_to_apply`: fix the file before anyone applies it, and
    decide whether the Apply-shortlist route needs it at all. **(A1)**
-3. Add `with (security_invoker = true)` to the three views. **(A4)**
-4. Drop `team_members.email` from the anon projection. **(A3)**
-5. `SET search_path = ''` on the two trigger definers. **(A5)**
-6. Indexes on the `*_run_id` / FK cluster in §4.
-7. Baseline migration snapshot per §5.
-8. Drop `achiever_availability`; merge the two `*_report_supplements` tables.
+3. Drop `team_members.email` from the anon projection. **(A3)**
+4. Index the uncovered `user_id` foreign keys — every `USING (auth.uid() =
+   user_id)` policy on those tables currently sequential-scans. **(§4; highest
+   performance value)**
+5. Revoke `anon` INSERT/UPDATE/DELETE across the student and payment domains,
+   after confirming no route relies on an anon write. **(A7)**
+6. Restrict `courses` INSERT to `service_role`. **(A8)**
+7. Decide and document whether `programme_target_profile_versions` is
+   deliberately shared-readable. **(A9)**
+8. Baseline migration snapshot per §5.
+9. Drop `achiever_availability`; merge the two `*_report_supplements` tables.
+10. Resolve the two duplicated UNIQUE constraint pairs — `payment_transactions`
+    first, and only after checking the payment routes. **(§3)**
+11. Low priority: drop the 23 redundant prefix indexes and the defensible dead
+    ones (`idx_scholarships_raw`, the `email_deliveries` trio). **(§4)**
+
+~~Add `with (security_invoker = true)` to the three views (A4)~~ — withdrawn, all
+five views already have it. ~~`SET search_path` on the two trigger definers
+(A5)~~ — already applied.
 
 Per `docs/known-issues.md` §0, none of these may be made by editing an existing
 `supabase-*.sql` file — each needs a new follow-up file.

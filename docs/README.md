@@ -38,7 +38,17 @@ material work; keep detailed design history in the topic-specific documents.
    not policy text, indexes, or `pg_proc` grants. For those run
    [`sql/introspect.sql`](../sql/introspect.sql) in the Supabase SQL editor — one
    read-only statement returning a single JSON cell, safe on production — and
-   paste the result back. **Do not conclude a function is locked down from the
+   paste the result back.
+
+   **It was run on 2026-09-05T16:26Z and the results are written up in**
+   [`audit-2026-09-05-database.md`](audit-2026-09-05-database.md) **§2 and §4.**
+   Headline: 0 of 108 tables have RLS disabled, 0 of 5 views lack
+   `security_invoker`, 0 of 31 definer functions has an unpinned `search_path`,
+   and no policy anywhere uses the weak `USING (auth.uid() IS NOT NULL)` form.
+   That run also **closed [known-issues.md §0g](known-issues.md)**, which had
+   stood at "🔴 OPEN, most urgent item in this file" on the belief that the RPC
+   hardening migration had never been applied — `pg_proc.proacl` shows it had.
+   Re-run the file rather than trusting these numbers if the date matters. **Do not conclude a function is locked down from the
    `REVOKE` in a `.sql` file:** several files in `sql/` were never applied
    (2026-09-05: `add_selected_courses_to_apply` is defined in the repo and absent
    from the live database). Grants live in `pg_proc.proacl`, not in the repo.

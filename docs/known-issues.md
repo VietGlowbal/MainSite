@@ -15,7 +15,7 @@ are regression records for fixed bugs, not open work:
 | §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
 | §0, §0c database migrations | ✅ Confirmed resolved 2026-08-12 via the production schema dump — `student_profiles.curriculum` is an array type, `applicant_analyses.emerging_themes` exists. |
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
-| §0g anon-callable SECURITY DEFINER RPCs | 🔴 **OPEN, most urgent item in this file.** Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN** — re-confirmed still live 2026-09-04 by calling all five as `anon` (200/204, real `plan` disclosed for a real `user_id`) and by catalog (`has_function_privilege('anon', …)` true for all 11 definer functions). The migration is **verified correct and complete** against the live catalog — run it as-is. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. **Partial update 2026-09-05:** `get_user_entitlement` now returns `42501 permission denied` to `anon` when called with the anon key, so that one disclosure is closed. The other definer functions were **not** re-verified — they mutate, so they cannot be probed read-only. Confirm the rest from `pg_proc.proacl` (run `sql/introspect.sql` §3) before closing this row. |
+| §0g anon-callable SECURITY DEFINER RPCs | ✅ **RESOLVED 2026-09-05.** `sql/supabase-rpc-privilege-hardening.sql` has been applied: `pg_proc.proacl` now reads `{postgres=X,service_role=X}` for all 26 mutating definer functions, `anon` and `authenticated` hold no EXECUTE. Verified from the live catalog, not from the file. The six definer functions `anon` can still execute are the five TRIGGER functions the migration deliberately left alone (PostgREST does not expose a function returning `trigger`) plus `confirm_application_candidate_snapshot`, which raises `42501` when `auth.uid()` is NULL. Evidence: `sql/introspect.sql` run 2026-09-05T16:26Z, `docs/audit-2026-09-05-database.md` §2. Historical detail below. ~~🔴 OPEN, most urgent item in this file.~~ Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN** — re-confirmed still live 2026-09-04 by calling all five as `anon` (200/204, real `plan` disclosed for a real `user_id`) and by catalog (`has_function_privilege('anon', …)` true for all 11 definer functions). The migration is **verified correct and complete** against the live catalog — run it as-is. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. **Partial update 2026-09-05:** `get_user_entitlement` now returns `42501 permission denied` to `anon` when called with the anon key, so that one disclosure is closed. The other definer functions were **not** re-verified — they mutate, so they cannot be probed read-only. Confirm the rest from `pg_proc.proacl` (run `sql/introspect.sql` §3) before closing this row. |
 | §0h anon `DELETE`/`PATCH` returning 204 | ✅ **Not a vulnerability — false positive, do not re-open.** PostgREST answers a write that matched *zero* rows with `204`, and an RLS `USING` clause filters rows rather than raising. A probe against a non-existent id therefore cannot tell "blocked" from "no such row". Verified 2026-09-04 against a real row: anon `DELETE`/`PATCH` returned `[]` under `return=representation` and the row survived. See §0h. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
@@ -357,11 +357,29 @@ enough on a database where §0e is also still pending.
 SQL editor. It is additive (`CREATE TABLE IF NOT EXISTS`), so safe to run
 even if parts of it somehow already exist.
 
-## 0g. 🔴 OPEN — three `SECURITY DEFINER` RPCs are callable by `anon` with no auth check
+## 0g. ✅ RESOLVED 2026-09-05 — three `SECURITY DEFINER` RPCs were callable by `anon` with no auth check
 
 Found 2026-09-04 auditing the system after the 21/08 Beta Product Review.
-`supabase-rpc-privilege-hardening.sql` is **WRITTEN, NOT YET RUN.** Until it is
-applied, the following is live in production.
+**Closed 2026-09-05: the migration has been applied and the live catalog
+confirms it.** `sql/introspect.sql` returns `{postgres=X/postgres,service_role=X/postgres}`
+for every function listed below — `anon` and `authenticated` hold no EXECUTE on
+any of them. The account that follows is kept because the *reasoning* still
+applies to the next definer function anyone writes.
+
+Two things worth carrying forward:
+
+1. **`REVOKE ... FROM PUBLIC` does not remove `anon`.** Supabase grants EXECUTE
+   to `anon` and `authenticated` explicitly at CREATE time via default
+   privileges, so revoking PUBLIC leaves those two entries in place. The
+   hardening file gets this right by revoking the roles by name; a migration
+   that only revokes PUBLIC will silently leave the function anon-callable.
+   `confirm_application_candidate_snapshot` is the live proof: its own `.sql`
+   file ends with `REVOKE ALL ... FROM PUBLIC` plus `GRANT ... TO
+   authenticated`, and `anon` still holds EXECUTE in `pg_proc.proacl` today.
+   It is safe only because its body raises `42501` when `auth.uid()` is NULL.
+2. **The check is `pg_proc.proacl`, not the `.sql` file.** This row sat at
+   "written, NOT YET RUN" after it had in fact been run, because the file was
+   the only thing being read.
 
 **Why the beta review missed it, and why RLS does not save you here.** The
 review's section 5.2 probed table reads and writes and correctly concluded RLS
