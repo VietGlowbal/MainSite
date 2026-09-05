@@ -216,6 +216,10 @@ function AppTopNav({
       tone="light"
       logo={<GlowbalLogo height={28} />}
       items={items}
+      /* Same reservation as site-navigation.tsx: the actions stay withheld
+         until the session resolves, but the bar keeps their height so the page
+         below it does not move. See TopNav's `actionsPending` note. */
+      actionsPending={!session.ready}
       primaryAction={session.ready ? presentation.primaryAction : undefined}
       utility={<SavedNavLink />}
       {...(user

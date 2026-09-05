@@ -80,6 +80,10 @@ export function SiteNavigation({ tone = 'dark', showSaved = false, locale }: Pro
         tone={tone}
         logo={<GlowbalLogo height={28} />}
         items={items}
+        /* Withholding the actions below is deliberate; it also used to make the
+           bar 4px shorter until the session resolved, which moved the whole
+           page. TopNav reserves the height instead — see its prop note. */
+        actionsPending={!sessionReady}
         primaryAction={primaryAction}
         {...(showSaved ? { utility: <SavedNavLink /> } : {})}
         {...(user
