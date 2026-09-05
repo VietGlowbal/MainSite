@@ -1,5 +1,53 @@
 # Current project status
 
+Working tree 2026-09-05 (Core Web Vitals: lazy translation catalog + nav layout
+reservation): Speed Insights reported RES **57/100** (Desktop, production, 7
+days) with FCP 4.64s, LCP 4.67s and CLS 0.20, against a TTFB of 0.27s — so the
+server was never the problem, the number of bytes before first paint was. Vietnam
+is 871 of 958 events and scored 56 where the US scored 86, which is the same
+pages over a slower connection. Full audit and the remaining backlog are in
+[performance.md](performance.md); two fixes landed here.
+
+`lib/i18n-dictionary.ts` (534 KB of source) was a static import in `lib/i18n.tsx`,
+`lib/dom-translate.tsx` and `lib/i18n/locale.ts`, all reachable from the root
+layout, so it shipped in the first-load bundle of every one of the 260 routes —
+584 KB raw / 178 KB gzipped, **a third of the JS transfer**, on `/terms` as much
+as on `/`. English never reads it: `t()` returns the source string before the
+lookup. It now sits behind a dynamic import in `lib/i18n-catalog-runtime.ts`.
+⚠️ The invariant that keeps this working: **never statically import
+`i18n-catalog` from client-reachable code** — one such import puts all 584 KB
+back everywhere, silently. `/vi/*` deliberately keeps it eager, and needs *both*
+halves of the prime: `app/vi/vi-catalog.tsx` for the browser, and a direct
+import in `app/vi/layout.tsx` for the server, because a `'use client'` module
+imported from a server component yields a client reference that is not evaluated
+until React renders it — after child server components have already run. Shipped
+without the second half, `/vi/about` rendered its heading in English.
+
+The CLS was one shift, and it was the header. `SiteNavigation` withholds the
+nav actions until Supabase resolves (deliberate — a completed student must not
+see the first-time onboarding CTA flash), which also left the bar 4px shorter
+until then. Measured at 1440×900: the actions box went `89x34 → 398x46` and took
+`<main>` — essentially the whole viewport — down 4px with it, so a near-1.0
+impact fraction multiplied the actions' own 306px sideways move into **0.199 of
+the site's 0.20**. `TopNav` now takes `actionsPending` and holds the height with
+an invisible inert `Button` (a real one, so it tracks the design rather than a
+magic number). Both headers pass it, including `AppTopNav` in `nav-reveal.tsx`.
+
+      Measured: first-load JS **552 → 375 KB gzipped (−32%)** on `/`, `/terms`,
+      `/about`, `/ai-strategy`, `/apply`, `/profile`; `/universities` 566 → 391;
+      `/vi` unchanged at 553 by design. CLS `/` **0.2000 → 0.0036**, `/terms`
+      0.1985 → 0.0035, `/about` 0.2065 → 0.0114 (Playwright, production build,
+      1440×900, 5 Mbps / 80ms / 4× CPU). Local FCP 1212 → 1068ms on `/`, but
+      localhost has no real network — judge this against Speed Insights after
+      deploy, not against that delta. All six `/vi/*` routes re-checked for
+      Vietnamese server copy. Full suite 3,661 passed and 2 todo across 386
+      files; typecheck, strict typecheck, `npm run build` and lint on the
+      touched files all pass. The i18n suite caught a real bug before commit:
+      the load effect skipped adopting an already-primed catalog, which left
+      `t()` stuck on English for the rest of the session after a client
+      navigation off `/vi/*`. `/about`'s residual 0.0114 is a pre-existing shift
+      in its card overlays, not the nav.
+
 Working tree 2026-09-04 (change password while signed in): completes the
 password story — `/profile/security`, reached from the account card on
 `/profile`. The current password is required and verified, because
