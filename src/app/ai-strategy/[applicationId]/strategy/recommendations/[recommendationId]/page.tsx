@@ -12,7 +12,7 @@ import {
   categoryVariant,
   formatDate,
 } from '@/features/ai-strategy-dashboard/ui';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { Badge, Container, ICONS, KitIcon, Panel } from '@/shared/ui';
 
 /**
@@ -41,10 +41,7 @@ export default async function RecommendationDetailPage({
 }) {
   const { applicationId, recommendationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const { data: row } = await supabase

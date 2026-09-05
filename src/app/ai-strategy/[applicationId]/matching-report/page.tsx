@@ -3,7 +3,7 @@ import { getMatchingReportPageData } from '@/features/apply/api';
 import { MatchingReportView } from '@/features/apply/ui';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * Canonical application-level Matching Report route.
@@ -31,10 +31,7 @@ export default async function MatchingReportPage({
   params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const state = await fetchOnboardingState(supabase, user.id, applicationId);

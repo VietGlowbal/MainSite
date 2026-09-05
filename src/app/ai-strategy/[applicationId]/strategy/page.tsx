@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { StrategyHome } from '@/features/ai-strategy-dashboard/ui';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * `/ai-strategy/[applicationId]/strategy` — Stage 1, Strategy Home
@@ -75,10 +75,7 @@ export default async function StrategyHomePage({
 }) {
   const { applicationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect('/auth');
 
