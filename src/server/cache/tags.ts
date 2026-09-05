@@ -18,6 +18,12 @@ import { revalidateTag } from 'next/cache';
  *                     getHomeIndex                  (src/lib/home-search.ts)
  *                     getMatchingCatalogue          (src/features/universities/api/
  *                                                    university-matching-loader.ts)
+ *
+ * ⚠️ `getMatchingCatalogue` also caches `catalog_programmes`, which the
+ * `universities` writers do not touch. Its own writer is
+ * `scripts/import-university-programs-csv.mjs --apply`, which calls
+ * `/api/admin/universities/revalidate` for exactly this reason. If you add
+ * another `catalog_programmes` writer, invalidate this tag from it too.
  *   scholarships   -> getPublishedScholarships      (src/lib/scholarships-data.ts)
  *                     getHomeIndex                  (src/lib/home-search.ts)
  *   team           -> getTeamMembers                (src/lib/team.ts)

@@ -100,11 +100,16 @@ function groupByUniversity(programmes: MatchingProgramme[]): Map<number, Recomme
  * `allForMatching` returns a flat array and the grouping happens after the
  * cache boundary rather than inside it.
  *
- * Tagged `universities`, so the existing invalidation path covers it: the
- * nightly `discover-universities` cron and the admin
- * `/api/admin/universities/revalidate` endpoint an operator hits after a CSV
- * import both already call into `@/server/cache`. See the producer registry in
- * `src/server/cache/tags.ts`.
+ * ⚠️ **This entry is the only cached reader of `catalog_programmes`, and that
+ * table has a writer the `universities` tag did not originally cover.** The
+ * tag is invalidated by the nightly `discover-universities` cron and by
+ * `/api/admin/universities/revalidate`; the programme CSV importer
+ * (`scripts/import-university-programs-csv.mjs`) writes straight to Postgres
+ * and used to trigger neither, so caching here silently gave a student
+ * pre-import rankings for up to twelve hours. The importer now calls that
+ * endpoint itself on a successful `--apply`. Anything else that learns to write
+ * `catalog_programmes` must do the same. See the producer registry in
+ * `src/server/cache/tags.ts` and docs/performance.md fix 6.
  */
 const getMatchingCatalogue = unstable_cache(
   async () => {

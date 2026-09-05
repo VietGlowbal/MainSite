@@ -308,10 +308,21 @@ Three separate problems, all in `loadUniversityRecommendations`:
   university read had returned the ids — for a filter that matched every row
   anyway. Both reads now go out together.
 - **No caching.** Neither table depends on who is asking. The pair is now one
-  `unstable_cache` entry tagged `universities`, so the existing invalidation
-  path already covers it: the nightly `discover-universities` cron and the admin
-  `/api/admin/universities/revalidate` endpoint an operator hits after a CSV
-  import. Only the student's profile row is still read per request, in parallel.
+  `unstable_cache` entry tagged `universities`. Only the student's profile row
+  is still read per request, in parallel.
+
+⚠️ **Caching `catalog_programmes` needed an invalidation path it did not have,
+and the first version of this shipped without one.** The `universities` tag is
+expired by the nightly `discover-universities` cron and by
+`/api/admin/universities/revalidate` — but neither touches programmes. The
+actual writer is `scripts/import-university-programs-csv.mjs --apply`, which
+wrote straight to Postgres and pinged nothing. Before this fix that was
+harmless, because programmes were read fresh every time; after it, an operator
+importing corrected programmes would have had students ranked against the old
+catalogue for up to twelve hours with nothing on screen to say so. The importer
+now calls that endpoint itself on a verified apply, non-fatally and loudly —
+a failed ping prints the exact command to run rather than failing an import that
+already succeeded. Any future writer of that table must do the same.
 
 ⚠️ **The cached value has to stay JSON-serialisable.** `unstable_cache` writes
 through the Next data cache and a `Map` comes back as `{}`, which is why
