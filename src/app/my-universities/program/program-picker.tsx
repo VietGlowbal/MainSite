@@ -12,7 +12,7 @@ import {
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
   MARKETING_NAV_ITEMS,
-} from '@/features/marketing/ui';
+} from '@/features/marketing/navigation';
 import {
   courseNameFromUrl,
   isCourseUrl,

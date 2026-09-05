@@ -48,6 +48,7 @@ unrelated history end to end.
 | [redesign-status.md](redesign-status.md) | When changing a route or comparing it with Figma. It is the route/frame decision ledger, not the primary current-status file. |
 | [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, `/mentors`, saving, auth — **or any `supabase-*.sql` file**. §0 is the migration trap; §1b is the mentorship RLS gap. |
 | [design-system.md](design-system.md) | Before writing any component. Token names, the primitives that already exist. |
+| [performance.md](performance.md) | Before touching `lib/i18n*`, the nav headers, or anything you expect to change bundle size or Core Web Vitals. Carries the measured baseline, **the rule that `i18n-catalog` must never be statically imported from client-reachable code**, and the two theories (the globe, the fonts) that measurement already ruled out. |
 | [architecture.md](architecture.md) | Before adding a file under `features/`, `shared/`, or `server/`. |
 | [verification.md](verification.md) | Before claiming anything works. Commands, the latest measured local baseline, CI behavior, and how to see gated pages. |
 | [audit-2026-08-03.md](audit-2026-08-03.md) | For the security/operations audit evidence. It is a dated snapshot; use its revalidation banner before quoting a finding as current. |

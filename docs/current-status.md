@@ -1,5 +1,106 @@
 # Current project status
 
+Working tree 2026-09-05 (Core Web Vitals, part 2: `/ai-strategy` streaming +
+the barrel that put framer-motion everywhere): continues the entry below; the
+full record is [performance.md](performance.md).
+
+A barrel import was costing every route 247 KB. `app/layout.tsx` →
+`nav-reveal.tsx` → `@/features/marketing/ui` → `home-metrics` →
+`home-metrics-grid` → **framer-motion**. Both global nav components were asking
+that barrel for one pure function, `getMarketingNavPresentation`, and the barrel
+also re-exports every Home composition — so `/terms`, which animates nothing,
+carried the whole animation library. ⚠️ The fix is **not** a deep import:
+ESLint's `NO_DEEP_FEATURE_IMPORT` bans three-segment feature paths, and it
+caught the first attempt. The sanctioned route is a slice — a thin re-export at
+`features/marketing/<name>.ts`, the pattern `strategy-help.ts` already set and
+`navigation.ts` already used. `navigation.ts` gained
+`getMarketingNavPresentation`; `strategy-guide`, `strategy-hub` and `about`
+are new. Framer-motion now ships only on `/` and `/vi`, which animate.
+**Supabase stays** — 222 KB / 59 KB gz, reached by three globally-mounted
+components that need real auth state; deferring it would delay sign-in display
+everywhere for 59 KB, which is not a good trade.
+
+All 27 `/ai-strategy/*` routes had zero `loading.tsx` and zero `Suspense`, so
+nothing painted until every await resolved. Added
+`app/ai-strategy/[applicationId]/loading.tsx` and moved anonymous auth to the
+edge: `'/ai-strategy/'` in `PROTECTED_ROUTES` — ⚠️ **the trailing slash is
+load-bearing**, since `startsWith` tests that list and `/ai-strategy` itself is
+the public hub. ⚠️ **The boundary sits at `[applicationId]`, not `/ai-strategy`,
+and must not move up**: Next wraps a segment's `loading.tsx` around the children
+of that segment's *layout*, so at this level the Plus entitlement gate still
+runs server-side. One level up, the shell would flush first and a student
+without Plus would watch a skeleton of a page they cannot have before being
+bounced to `/plus`. `personal-report` and `reflection/*` are deliberately **not**
+done: their `ApplicationNavFromReturn` band is conditional on a search param a
+`loading.tsx` cannot read, so a segment skeleton there would shift a viewport of
+content by the band's height — roughly 0.1 CLS, undoing much of the previous
+entry's work. They need in-page `Suspense` instead; logged as item 3b.
+
+      Measured: first-load JS gzipped — `/terms` **552 → 304 KB (−45%)** across
+      both parts, `/how-it-works` 304, `/about` 310, `/news` 310, `/advisors`
+      312, `/ai-strategy` 315, `/universities` 321, `/scholarships` 323,
+      `/plus` 328. `/` stays 377 (animates) and `/vi` 555 (Vietnamese SSR) by
+      design. CLS unchanged at 0.0035–0.0114. Proxy verified by hand:
+      `/ai-strategy` 200, children 307 to `/auth?redirect=…`; all seven `/vi/*`
+      routes re-checked for Vietnamese copy. Full suite 3,661 passed and 2 todo
+      across 386 files; typecheck, strict typecheck, `npm run build` and
+      `eslint src` (0 errors, 5 pre-existing warnings) all pass. Lint also
+      caught a cascading `setState` inside an effect left by the previous
+      entry's catalog work — the provider now derives the catalog during render
+      instead, which removes the extra render and the state/singleton split that
+      caused the bug that entry describes. **Not exercised locally:** the
+      `[applicationId]` skeleton needs an authenticated Plus session; the
+      boundary is confirmed compiled but has not been seen on screen — check it
+      on the first preview deploy.
+
+Working tree 2026-09-05 (Core Web Vitals: lazy translation catalog + nav layout
+reservation): Speed Insights reported RES **57/100** (Desktop, production, 7
+days) with FCP 4.64s, LCP 4.67s and CLS 0.20, against a TTFB of 0.27s — so the
+server was never the problem, the number of bytes before first paint was. Vietnam
+is 871 of 958 events and scored 56 where the US scored 86, which is the same
+pages over a slower connection. Full audit and the remaining backlog are in
+[performance.md](performance.md); two fixes landed here.
+
+`lib/i18n-dictionary.ts` (534 KB of source) was a static import in `lib/i18n.tsx`,
+`lib/dom-translate.tsx` and `lib/i18n/locale.ts`, all reachable from the root
+layout, so it shipped in the first-load bundle of every one of the 260 routes —
+584 KB raw / 178 KB gzipped, **a third of the JS transfer**, on `/terms` as much
+as on `/`. English never reads it: `t()` returns the source string before the
+lookup. It now sits behind a dynamic import in `lib/i18n-catalog-runtime.ts`.
+⚠️ The invariant that keeps this working: **never statically import
+`i18n-catalog` from client-reachable code** — one such import puts all 584 KB
+back everywhere, silently. `/vi/*` deliberately keeps it eager, and needs *both*
+halves of the prime: `app/vi/vi-catalog.tsx` for the browser, and a direct
+import in `app/vi/layout.tsx` for the server, because a `'use client'` module
+imported from a server component yields a client reference that is not evaluated
+until React renders it — after child server components have already run. Shipped
+without the second half, `/vi/about` rendered its heading in English.
+
+The CLS was one shift, and it was the header. `SiteNavigation` withholds the
+nav actions until Supabase resolves (deliberate — a completed student must not
+see the first-time onboarding CTA flash), which also left the bar 4px shorter
+until then. Measured at 1440×900: the actions box went `89x34 → 398x46` and took
+`<main>` — essentially the whole viewport — down 4px with it, so a near-1.0
+impact fraction multiplied the actions' own 306px sideways move into **0.199 of
+the site's 0.20**. `TopNav` now takes `actionsPending` and holds the height with
+an invisible inert `Button` (a real one, so it tracks the design rather than a
+magic number). Both headers pass it, including `AppTopNav` in `nav-reveal.tsx`.
+
+      Measured: first-load JS **552 → 375 KB gzipped (−32%)** on `/`, `/terms`,
+      `/about`, `/ai-strategy`, `/apply`, `/profile`; `/universities` 566 → 391;
+      `/vi` unchanged at 553 by design. CLS `/` **0.2000 → 0.0036**, `/terms`
+      0.1985 → 0.0035, `/about` 0.2065 → 0.0114 (Playwright, production build,
+      1440×900, 5 Mbps / 80ms / 4× CPU). Local FCP 1212 → 1068ms on `/`, but
+      localhost has no real network — judge this against Speed Insights after
+      deploy, not against that delta. All six `/vi/*` routes re-checked for
+      Vietnamese server copy. Full suite 3,661 passed and 2 todo across 386
+      files; typecheck, strict typecheck, `npm run build` and lint on the
+      touched files all pass. The i18n suite caught a real bug before commit:
+      the load effect skipped adopting an already-primed catalog, which left
+      `t()` stuck on English for the rest of the session after a client
+      navigation off `/vi/*`. `/about`'s residual 0.0114 is a pre-existing shift
+      in its card overlays, not the nav.
+
 Working tree 2026-09-04 (change password while signed in): completes the
 password story — `/profile/security`, reached from the account card on
 `/profile`. The current password is required and verified, because

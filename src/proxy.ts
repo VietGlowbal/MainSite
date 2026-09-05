@@ -13,6 +13,23 @@ const PROTECTED_ROUTES = [
   '/writer',
   '/admin',
   '/onboarding/complete',
+  /*
+   * ⚠️ TRAILING SLASH IS LOAD-BEARING. `/ai-strategy` itself is the public
+   * Strategy Hub — marketing copy about a feature must not require an account
+   * (see the note in its page.tsx). `'/ai-strategy/'` matches every child and
+   * not the hub, because `startsWith` is what tests this list.
+   *
+   * All 26 child pages already redirected anonymous visitors themselves; this
+   * moves that decision to the edge. Two reasons. It stops the server rendering
+   * a page for someone who will never see it — and, since `[applicationId]`
+   * now streams a skeleton (see its loading.tsx), a page-level redirect can no
+   * longer be a clean 307 once the shell has flushed. Deciding here keeps the
+   * anonymous case a real redirect with nothing painted first.
+   *
+   * No extra cost: `getClaims()` above already runs for these paths — only the
+   * redirect decision is new.
+   */
+  '/ai-strategy/',
 ];
 
 const PUBLIC_MARKETING_ROUTES = new Set([

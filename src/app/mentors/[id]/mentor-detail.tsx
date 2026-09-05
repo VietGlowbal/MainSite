@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
-import { getLocalizedFooter } from '@/features/marketing/ui';
+import { getLocalizedFooter } from '@/features/marketing/navigation';
 import { Badge, Container, Footer, VerifiedMark } from '@/shared/ui';
 import { formatMoney } from '@/lib/currency';
 import { T } from '@/lib/i18n';

@@ -11,7 +11,16 @@ import {
 } from '@/components/navigation-roles';
 import { useNavigationSession, type NavigationSessionValue } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { getMarketingNavPresentation } from '@/features/marketing/ui';
+/*
+ * The `navigation` slice, NOT the `@/features/marketing/ui` barrel.
+ *
+ * This component is mounted by the root layout, so whatever it can reach is in
+ * the first-load bundle of every route. The barrel re-exports the Home page
+ * compositions, and `home-metrics` → `home-metrics-grid` imports framer-motion
+ * — so asking the barrel for one pure function put **247 KB of animation
+ * library on `/terms`**. See `docs/performance.md`.
+ */
+import { getMarketingNavPresentation } from '@/features/marketing/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { getLocaleFromPath, getLocaleText, type Locale } from '@/lib/i18n/locale';
 import { MobileNav, type MobileNavEntry } from '@/shared/ui/mobile-nav';
@@ -216,6 +225,10 @@ function AppTopNav({
       tone="light"
       logo={<GlowbalLogo height={28} />}
       items={items}
+      /* Same reservation as site-navigation.tsx: the actions stay withheld
+         until the session resolves, but the bar keeps their height so the page
+         below it does not move. See TopNav's `actionsPending` note. */
+      actionsPending={!session.ready}
       primaryAction={session.ready ? presentation.primaryAction : undefined}
       utility={<SavedNavLink />}
       {...(user

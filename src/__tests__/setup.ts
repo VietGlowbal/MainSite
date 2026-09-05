@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom';
+import { translations } from '@/lib/i18n-catalog';
+import { primeCatalog } from '@/lib/i18n-catalog-runtime';
 
 // Mock window.matchMedia for tests that use responsive hooks.
 //
@@ -64,3 +66,20 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => true,
   }),
 });
+
+// ── Translation catalog ──────────────────────────────────────────────────────
+//
+// In the browser the Vietnamese catalog is loaded on demand, so that 584 KB of
+// strings does not sit in every route's first-load bundle — see
+// `src/lib/i18n-catalog-runtime.ts`. `/vi/*` primes it in its layout; nothing
+// else has it until the reader asks for Vietnamese.
+//
+// A component test renders neither layout, so without this line every
+// `t('...')` and `getLocaleText('vi', ...)` would fall back to English and the
+// assertions on Vietnamese copy would fail — which is exactly what happened
+// when the lazy load landed. Priming here restores the eager behaviour the
+// suite was written against: tests assert translation *behaviour*, and the
+// bundle boundary they would otherwise be measuring is a build concern checked
+// in `docs/performance.md`, not a runtime one.
+
+primeCatalog(translations);

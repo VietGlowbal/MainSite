@@ -10,7 +10,10 @@ import {
 } from '@/components/navigation-roles';
 import { useNavigationSession } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { getMarketingNavPresentation } from '@/features/marketing/ui';
+// The `navigation` slice, not the `marketing/ui` barrel — see the note in
+// nav-reveal.tsx. This header is on nearly every page, so reaching the barrel
+// here would put the Home page's framer-motion into all of them.
+import { getMarketingNavPresentation } from '@/features/marketing/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { getLocaleFromPath, getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { MobileNav, TopNav } from '@/shared/ui';
@@ -80,6 +83,10 @@ export function SiteNavigation({ tone = 'dark', showSaved = false, locale }: Pro
         tone={tone}
         logo={<GlowbalLogo height={28} />}
         items={items}
+        /* Withholding the actions below is deliberate; it also used to make the
+           bar 4px shorter until the session resolved, which moved the whole
+           page. TopNav reserves the height instead — see its prop note. */
+        actionsPending={!sessionReady}
         primaryAction={primaryAction}
         {...(showSaved ? { utility: <SavedNavLink /> } : {})}
         {...(user
