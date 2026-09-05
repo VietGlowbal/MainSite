@@ -10,7 +10,10 @@ import {
 } from '@/components/navigation-roles';
 import { useNavigationSession } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { getMarketingNavPresentation } from '@/features/marketing/ui';
+// The `navigation` slice, not the `marketing/ui` barrel — see the note in
+// nav-reveal.tsx. This header is on nearly every page, so reaching the barrel
+// here would put the Home page's framer-motion into all of them.
+import { getMarketingNavPresentation } from '@/features/marketing/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { getLocaleFromPath, getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { MobileNav, TopNav } from '@/shared/ui';
