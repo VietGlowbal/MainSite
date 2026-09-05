@@ -110,30 +110,139 @@ tracks the design instead of a magic number. Both headers pass it —
 `components/nav-reveal.tsx`, which has the same pattern for pages that do not
 ship their own chrome.
 
+### 3. The `/ai-strategy/*` cluster sent nothing until every await resolved
+
+All 27 routes had **zero `loading.tsx` and zero `<Suspense>`**, so no shell
+flushed until auth, the entitlement gate and the page's own report query had all
+completed. That is why the cluster sat at RES 40–68 against a 0.27s TTFB.
+
+Two changes:
+
+- **`'/ai-strategy/'` added to `PROTECTED_ROUTES` in `src/proxy.ts`.** ⚠️ The
+  trailing slash is load-bearing: `/ai-strategy` itself is the public Strategy
+  Hub, and `startsWith` is what tests the list, so `'/ai-strategy/'` matches
+  every child and not the hub. All 26 children already redirected anonymous
+  visitors themselves; deciding at the edge stops the server rendering a page
+  nobody will see, and keeps that redirect a real 307 now that a shell can flush
+  before a page-level `redirect()` runs. It costs no extra round-trip —
+  `getClaims()` already ran for these paths.
+- **`app/ai-strategy/[applicationId]/loading.tsx`.**
+
+⚠️ **The boundary is at `[applicationId]`, not at `/ai-strategy`, and moving it
+up would be a product regression.** Next wraps a segment's `loading.tsx` around
+the children of that segment's *layout*, so at this level `layout.tsx` still
+runs its session check and its GlowBal Plus entitlement gate to completion
+server-side. One level up, the shell would flush first and demote
+`redirect('/plus?application=…')` into a client-side bounce — a student without
+Plus would watch a skeleton of a page they are not entitled to, then get sent
+away. The same reasoning is why the skeleton needs no header of its own: the
+layout has already painted the nav, footer and rose `ApplicationNav` band, so
+nothing above the skeleton can move and the swap costs no layout shift.
+
+**Deferred, deliberately:** `/ai-strategy/personal-report` (85 visits) and
+`/ai-strategy/reflection/*` (~108). They render `ReflectionChrome` themselves
+with `nav={<ApplicationNavFromReturn/>}`, which returns `null` unless a
+`?return=` param is present — and a `loading.tsx` cannot see search params. A
+segment-level skeleton would therefore sometimes omit a band that the real page
+then adds, shifting a full viewport of content down by the band's height: order
+0.1 CLS, undoing much of fix 2. These need in-page `<Suspense>` around the
+report body with the chrome resolved in the shell, which is a real refactor of
+both pages, not a file drop. Left for a follow-up rather than done badly.
+
+### 4. A barrel file put framer-motion on every route
+
+`src/app/layout.tsx` → `nav-reveal.tsx` → `@/features/marketing/ui` (the barrel)
+→ `home-metrics.tsx` → `home-metrics-grid.tsx` → **framer-motion**.
+
+Both global nav components asked the barrel for one pure function,
+`getMarketingNavPresentation`, which actually lives in the featherweight
+`nav-items` module. The barrel also re-exports every Home page composition, so
+that one import put **247 KB of animation library into the first-load bundle of
+all 260 routes** — `/terms` included, which animates nothing.
+
+⚠️ **Deep-importing `@/features/marketing/ui/nav-items` is not the fix, and
+ESLint will reject it** — `NO_DEEP_FEATURE_IMPORT` in `eslint.config.mjs` bans
+three-segment feature paths. The sanctioned route is a *slice*: a thin
+re-export at `src/features/marketing/<name>.ts`, the pattern `strategy-help.ts`
+already established and `navigation.ts` already used. So `navigation.ts` grew
+`getMarketingNavPresentation` and its types, and three more slices were added
+for the compositions that had no lightweight entry point:
+
+| Slice | For |
+|---|---|
+| `marketing/navigation` | header + footer items — eleven consumers, including both global navs |
+| `marketing/strategy-guide` | `/how-it-works` |
+| `marketing/strategy-hub` | `/ai-strategy` |
+| `marketing/about` | `/about` (and `/vi/about`, which re-exports it) |
+
+Framer-motion now ships only on `/` and `/vi` — the Home page, which genuinely
+animates.
+
+**Supabase stays, and that is the right call.** The 222 KB / 59 KB gzipped
+client is reached by `navigation-session.tsx`, `navigation-roles.tsx` and
+`saved-nav-link.tsx`, all mounted globally and all needing real auth state for
+the header. Deferring it behind a dynamic import would save 59 KB gzipped but
+delay sign-in state on every page across three components. Not worth it at that
+price; revisit only if the header's auth story changes.
+
+> ⚠️ **Do not import `@/features/marketing/ui` from anything global.** It is a
+> page-composition barrel and it reaches framer-motion. `src/app/page.tsx` and
+> `/vi` legitimately use it; everything else should take a slice, adding one if
+> the thing it needs has none.
+
 ### Measured result
 
 Production build, `npm start`, Playwright at 1440×900, 5 Mbps / 80ms RTT / 4×
 CPU throttle. Local FCP is not comparable to the production figure — localhost
 has no real network — but the CLS and bundle numbers are.
 
-| Route | First-load JS before | after | CLS before | after |
-|---|---|---|---|---|
-| `/` | 1,784 KB / 552 gz | **1,203 KB / 375 gz** | 0.2000 | **0.0036** |
-| `/terms` | 1,783 KB / 552 gz | **1,202 KB / 374 gz** | 0.1985 | **0.0035** |
-| `/about` | 1,785 KB / 552 gz | **1,203 KB / 375 gz** | 0.2065 | **0.0114** |
-| `/universities` | 1,829 KB / 566 gz | **1,248 KB / 391 gz** | — | — |
-| `/apply`, `/profile` | — | **1,210 KB / 377 gz** | — | — |
-| `/ai-strategy` | 1,784 KB / 552 gz | **1,203 KB / 375 gz** | — | — |
-| `/vi`, `/vi/about` | 1,786 KB / 553 gz | 1,786 KB / 553 gz | — | — |
+First-load JS, gzipped. "Baseline" is before any of this work; the middle column
+isolates the catalog fix so the two effects can be told apart.
 
-**−178 KB gzipped (−32%) on every route except `/vi/*`**, which is unchanged by
-design. `/about`'s residual 0.0114 is a separate pre-existing shift in its card
-overlays (`SPAN.absolute.inset-x-0.bottom-0`, growing 170→196px), not the nav.
+| Route | Baseline | after 1+2 | after 3+4 | framer? | dict? |
+|---|---|---|---|---|---|
+| `/terms` | 552 | 374 | **304** | no | no |
+| `/about` | — | 375 | **310** | no | no |
+| `/news` | — | — | **310** | no | no |
+| `/advisors` | — | — | **312** | no | no |
+| `/ai-strategy` | — | 375 | **315** | no | no |
+| `/universities` | — | 391 | **321** | no | no |
+| `/scholarships` | — | — | **323** | no | no |
+| `/plus` | — | 399 | **328** | no | no |
+| `/` | — | 375 | 377 | **yes** | no |
+| `/vi/about` | — | — | 488 | no | **yes** |
+| `/vi` | 553 | 553 | 555 | **yes** | **yes** |
 
-Local FCP moved 1212→1068ms on `/`, 1036→996ms on `/terms`, 848→816ms on
-`/about`. The real gain is on Vietnamese connections, where 178 KB is seconds
-rather than milliseconds; confirm against Speed Insights after this deploys
-rather than trusting the local delta.
+`/terms` is the clean before/after on one route: **552 → 304 KB gzipped, −45%.**
+`/` keeps framer-motion because the Home page animates; `/vi/*` keeps the
+catalog because it renders Vietnamese server-side. Both are correct.
+
+CLS, same harness (Playwright, production build, 1440×900, 5 Mbps / 80ms / 4×
+CPU):
+
+| Route | before | after |
+|---|---|---|
+| `/` | 0.2000 | **0.0036** |
+| `/terms` | 0.1985 | **0.0035** |
+| `/about` | 0.2065 | **0.0114** |
+| `/plus` | — | **0.0035** |
+| `/ai-strategy` | — | **0.0035** |
+
+`/about`'s residual 0.0114 is a separate pre-existing shift in its card overlays
+(`SPAN.absolute.inset-x-0.bottom-0`, growing 170→196px), not the nav.
+
+Local FCP: `/` 1212 → 1064ms, `/terms` 1036 → 992ms, `/about` 848 → 800ms,
+`/ai-strategy` 916ms. Treat these as directional only — localhost has no real
+network, and the whole point of the byte reduction is what it does to a
+Vietnamese connection. Judge it against Speed Insights after deploy.
+
+**Not exercised locally:** the `[applicationId]` streaming path needs an
+authenticated Plus session, which this work had no way to mint. The boundary is
+confirmed compiled (Turbopack emits
+`src_app_ai-strategy_[applicationId]_loading_tsx_*.js`) and the proxy's edge
+redirects were verified by hand — `/ai-strategy` 200, every child 307 to
+`/auth?redirect=…` — but the skeleton itself has not been seen on screen. Worth
+a look on the first preview deploy.
 
 ## Still open, in priority order
 
@@ -141,10 +250,10 @@ Ordered by visit volume × severity, from the 2026-09-05 audit.
 
 | # | Route(s) | Root cause | Fix | Effort |
 |---|---|---|---|---|
-| 3 | `/ai-strategy/*` (≈250 visits) | **Zero `loading.tsx` and zero `Suspense` across all 27 routes** — no shell is sent until every server await resolves; the approach is `getUser()` → `verifiedApplicationId()` → `Promise.all([...])`, three sequential Supabase hops | `loading.tsx` per segment; flatten the first two hops | M |
-| 4 | all | framer-motion (241 KB) and the Supabase client (222 KB) are in the global baseline | audit which root-layout providers pull them; defer non-critical animation | M |
+| 3b | `/ai-strategy/personal-report` (85), `/ai-strategy/reflection/*` (~108) | Still no streaming — a segment `loading.tsx` is unsafe here because the conditional `ApplicationNavFromReturn` band would shift a viewport of content (see fix 3 above) | in-page `<Suspense>` around the report body, chrome resolved in the shell; or give the band a reserved height so a segment skeleton becomes safe | M |
 | 5 | all | `globals.css` compiles to 324 KB / 50 KB gz, render-blocking, with 425 legacy selectors | trim the quarantine (see `CLAUDE.md`) | M–L |
 | 6 | `/universities/matches` | pulls 99 universities + all 593 `catalog_programmes` rows (454 KB JSON, ~640ms measured) and ranks them, per render | cache/narrow the query; add `loading.tsx` | M |
+| 7 | `/ai-strategy/[applicationId]/*` | The layout calls `supabase.auth.getUser()` and so does each page — two Auth API round-trips per request. `server/auth/server-identity.ts` already wraps `getClaims()` in React `cache()`, which verifies the JWT locally and dedupes per request | move both onto `getServerIdentity()` | M, security-adjacent — review carefully |
 
 **`/universities/matches` scores RES 0 but is not crashing.** Vercel runtime
 errors for the 7 days to 2026-09-05 show **no errors on that route**. With 8
