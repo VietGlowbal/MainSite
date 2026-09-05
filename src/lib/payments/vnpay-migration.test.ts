@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const readText = (url: URL) => readFileSync(url, 'utf8').replace(/\r\n/g, '\n');
-const migration = readText(new URL('../../../supabase-vnpay-payments.sql', import.meta.url));
+const migration = readText(new URL('../../../sql/supabase-vnpay-payments.sql', import.meta.url));
 const checkoutRoute = readText(new URL('../../app/api/payments/vnpay/checkout/route.ts', import.meta.url));
 
 describe('VNPay migration invariants', () => {
