@@ -1,4 +1,4 @@
-import { translations } from '@/lib/i18n-catalog';
+import { getCatalog } from '@/lib/i18n-catalog-runtime';
 
 export type Locale = 'en' | 'vi';
 
@@ -12,12 +12,17 @@ export const homeCopy = {
       'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
   },
   vi: {
-    title:
-      translations['The all-in-one solution for scholarship seekers'] ??
-      'The all-in-one solution for scholarship seekers',
+    /*
+     * Inlined rather than looked up. These two are read at module scope, and
+     * `homeCopy` is imported by server components for `metadata` — a lookup
+     * here would force the whole 534 KB catalog to be statically reachable from
+     * a module the client bundles, which is exactly what
+     * `i18n-catalog-runtime.ts` exists to prevent. Both strings are copied
+     * verbatim from `i18n-dictionary.ts`; keep them in sync if that changes.
+     */
+    title: 'Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”',
     description:
-      translations['From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.'] ??
-      'From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.',
+      'GlowBal giúp bạn đưa ra quyết định chọn trường và học bổng phù hợp, từ đó xây dựng chiến lược cá nhân hoá, đồng hành theo dõi hồ sơ cùng bạn trong toàn bộ hành trình chinh phục giấc mơ du học.',
     metadataTitle: 'GlowBal Du Học | Tìm Trường, Học Bổng & Chiến Lược Ứng Tuyển',
     metadataDescription:
       'GlowBal là nền tảng giúp học sinh, sinh viên Việt Nam tìm trường đại học quốc tế, khám phá học bổng và xây dựng chiến lược du học, ứng tuyển phù hợp với hồ sơ cá nhân.',
@@ -67,7 +72,11 @@ export function getLocaleText(
   source: string,
   vars?: Record<string, string | number>,
 ): string {
-  const value = locale === 'vi' ? translations[source] ?? source : source;
+  // `getCatalog()` is empty until something primes or loads it. On `/vi/*` the
+  // layout primes it before anything renders; everywhere else `locale` is 'en'
+  // and the lookup is skipped. A miss falls back to the English source, which
+  // is what an untranslated key has always done.
+  const value = locale === 'vi' ? getCatalog()[source] ?? source : source;
   return vars
     ? value.replace(/\{(\w+)\}/g, (_, key) => (key in vars ? String(vars[key]) : `{${key}}`))
     : value;

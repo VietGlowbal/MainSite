@@ -99,6 +99,25 @@ type Props = {
   secondaryAction?: TopNavItem | undefined;
   /** Present => signed-in state (203:12356). */
   user?: TopNavUser | null | undefined;
+  /**
+   * True while the browser session is still unresolved, so `primaryAction`,
+   * `secondaryAction` and `user` are all deliberately withheld.
+   *
+   * ⚠️ This is a LAYOUT concern, not a cosmetic one. The actions are the
+   * tallest thing in the bar, so with all three withheld the header rendered
+   * 34px of content instead of 46px and grew by 4px the moment Supabase
+   * answered — pushing `<main>` (essentially the whole viewport) down with it.
+   * Measured on 2026-09-05 at 1440x900: that single shift was CLS 0.199 of the
+   * site's 0.20, because a near-full-viewport impact fraction multiplied the
+   * actions' own 306px sideways move.
+   *
+   * So when this is set the bar reserves a button's worth of height with an
+   * invisible spacer. Nothing is shown and nothing is focusable — the reason
+   * the actions are withheld (see site-navigation.tsx: a completed student must
+   * not see the first-time onboarding CTA flash) is untouched. Only the space
+   * they will occupy is held open.
+   */
+  actionsPending?: boolean | undefined;
   /** Defaults to the dark bar the marketing pages use. */
   tone?: Tone | undefined;
   /**
@@ -342,6 +361,7 @@ export function TopNav({
   user,
   tone = 'dark',
   utility,
+  actionsPending = false,
 }: Props) {
   const t = useT();
   const pathname = usePathname();
@@ -465,6 +485,20 @@ export function TopNav({
           </div>
 
           <div className="flex shrink-0 items-center gap-gb-lg">
+            {/* Holds the bar's height while the session resolves — see the
+                `actionsPending` prop note. A real Button rather than a fixed
+                height so it tracks whatever the design says a nav action
+                measures; ` ` gives it a line box to be as tall as. */}
+            {actionsPending ? (
+              <Button
+                variant="primary-on-dark"
+                className="invisible"
+                aria-hidden="true"
+                tabIndex={-1}
+              >
+                {' '}
+              </Button>
+            ) : null}
             {/* Signed in, the design shows no "Sign in" button at all. */}
             {user == null && secondaryAction ? (
               <Button

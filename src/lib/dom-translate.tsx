@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
-import { translations as dictionary } from '@/lib/i18n-catalog';
+import { getCatalog, isCatalogLoaded, loadCatalog } from '@/lib/i18n-catalog-runtime';
 
 /**
  * Whole-page auto-translation.
@@ -66,10 +66,29 @@ function isPiiRoute(pathname: string): boolean {
 const LS_KEY = 'glowbal-mt-cache-vi-v2';
 const HAS_LETTER = /\p{L}/u;
 
-// english(core) -> vietnamese. Seeded with the static dictionary so common
-// strings are instant and free (no API round-trip).
-const cache = new Map<string, string>(Object.entries(dictionary));
-const translatedValues = new Set(Object.values(dictionary));
+// english(core) -> vietnamese. Seeded from the static catalog so common strings
+// are instant and free (no API round-trip).
+//
+// The seeding is deferred: the catalog is no longer a static import (see
+// `i18n-catalog-runtime.ts`), so these start empty and are filled by
+// `seedFromCatalog()` once it is available. Before that the maps behave exactly
+// as they do for a string the dictionary never covered — nothing matches, and
+// the English source stands.
+const cache = new Map<string, string>();
+let translatedValues = new Set<string>();
+let seeded = false;
+
+function seedFromCatalog() {
+  if (seeded || !isCatalogLoaded()) return;
+  seeded = true;
+  const dictionary = getCatalog();
+  // Entries already in `cache` came from localStorage (machine translations)
+  // and are only kept where the catalog has nothing — same precedence the
+  // eager version had, where the dictionary was written first.
+  for (const [k, v] of Object.entries(dictionary)) cache.set(k, v);
+  translatedValues = new Set(Object.values(dictionary));
+}
+
 const original = new WeakMap<Text, string>();
 // Per-element snapshot of original attribute values, so toggling back to
 // English restores them (mirrors `original` for text nodes).
@@ -81,6 +100,7 @@ function loadCache() {
   cacheLoaded = true;
   try {
     const raw = localStorage.getItem(LS_KEY);
+    const dictionary = getCatalog();
     if (raw) for (const [k, v] of Object.entries(JSON.parse(raw) as Record<string, string>))
       if (!(k in dictionary)) cache.set(k, v);   // chỉ nạp MT cho key CHƯA có trong từ điển
   } catch {
@@ -164,8 +184,28 @@ export function DomTranslator() {
   const { lang } = useLanguage();
   const pathname = usePathname();
 
+  /*
+   * Tracks the deferred catalog. `/vi/*` primes it before render so this starts
+   * true and the translate pass runs exactly once, as it always did. Elsewhere
+   * it flips only when the reader switches to Vietnamese, costing one extra
+   * pass on a click — never on first paint.
+   */
+  const [catalogReady, setCatalogReady] = useState(isCatalogLoaded);
+
+  useEffect(() => {
+    if (lang !== 'vi' || catalogReady) return;
+    let active = true;
+    void loadCatalog().then(() => {
+      if (active) setCatalogReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [lang, catalogReady]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    seedFromCatalog();
     loadCache();
     const mainRoot = document.querySelector('main.glowbal-main-content');
     if (!mainRoot) return;
@@ -367,7 +407,10 @@ export function DomTranslator() {
       clearTimeout(debounce);
       cancelAnimationFrame(frame);
     };
-  }, [lang, pathname]);
+    // `catalogReady` re-runs the pass once the deferred catalog arrives, so a
+    // reader who switches to Vietnamese gets the static dictionary applied
+    // without waiting for a navigation.
+  }, [lang, pathname, catalogReady]);
 
   return null;
 }
