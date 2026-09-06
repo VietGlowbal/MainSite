@@ -147,6 +147,7 @@ function v3Phases(
   firstOrder: number,
 ): PlanPhase[] {
   const seen = new Set<string>();
+  const seenDeliverables = new Set<string>();
   return roadmap.data.strategicRoadmap.flatMap((phase) => {
     if (seen.has(phase.phaseKey)) return [];
     seen.add(phase.phaseKey);
@@ -165,13 +166,15 @@ function v3Phases(
         order: 1,
         sourceDecisionIds: [],
         sourceProvenances: sourceProvenances(context),
-        microSteps: uniqueDeliverables(phase.deliverables).map((deliverable, index) => ({
+        microSteps: uniqueDeliverables(phase.deliverables, seenDeliverables).map((deliverable, index) => ({
           id: `micro-step:strategy-roadmap:${phase.phaseKey}:${deliverable.key}`,
           title: deliverable.label,
           guidance: `Complete this deliverable: ${deliverable.label} ${phase.goal}`,
           order: index + 1,
           readiness: 'requires_enrichment' as const,
-          contentSchema: null,
+          contentSchema: phase.successCriteria.length
+            ? { type: 'checklist' as const, items: phase.successCriteria }
+            : null,
           sourceDecisionIds: [],
           sourceProvenances: sourceProvenances(context),
         })),
@@ -215,8 +218,7 @@ function f7Phases(
   }];
 }
 
-function uniqueDeliverables<T extends { key: string }>(deliverables: readonly T[]): T[] {
-  const seen = new Set<string>();
+function uniqueDeliverables<T extends { key: string }>(deliverables: readonly T[], seen = new Set<string>()): T[] {
   return deliverables.filter((deliverable) => {
     if (seen.has(deliverable.key)) return false;
     seen.add(deliverable.key);

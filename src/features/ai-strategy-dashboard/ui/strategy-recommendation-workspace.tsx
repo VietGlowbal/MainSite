@@ -9,6 +9,7 @@ import { StrategyReportV2View } from './strategy-report-v2-view';
 import { StrategyReportV3View } from './strategy-report-v3-view';
 import { Button, usePrefersReducedMotion } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
+import type { PlannerMode } from '../api/planner-mode';
 
 /** Cycled while the strategy is generating. */
 const LOADING_MESSAGES = [
@@ -44,8 +45,10 @@ type LoadState = 'checking' | 'generating' | 'ready' | 'error';
  */
 export function StrategyRecommendationWorkspace({
   applicationId,
+  plannerMode = 'canonical',
 }: {
   applicationId: string;
+  plannerMode?: PlannerMode;
 }) {
   const { t } = useLanguage();
   const router = useRouter();
@@ -154,7 +157,7 @@ export function StrategyRecommendationWorkspace({
   }, [applicationId, router, t]);
 
   if (state === 'ready' && reportV3) {
-    return <StrategyReportV3View applicationId={applicationId} report={reportV3} />;
+    return <StrategyReportV3View applicationId={applicationId} plannerMode={plannerMode} report={reportV3} />;
   }
 
   if (state === 'ready' && reportV2) {

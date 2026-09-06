@@ -55,6 +55,9 @@ export function plannerSourceFingerprint(context: PlanningContext): string {
       strategy: sourceProvenance(context.provenance?.strategy),
     },
     sourceStaleness: stableValue(context.provenance?.staleness ?? null),
+    // V3 deliverables are the executable Strategy source. Keep the roadmap
+    // content in the fingerprint so a changed deliverable triggers reconcile.
+    strategyRoadmap: stableValue(context.strategyRoadmap),
     // Strategy priorities/avoid lists are semantically ordered and therefore
     // intentionally passed through unchanged.
     strategy: context.strategy ? stableValue(context.strategy) : null,

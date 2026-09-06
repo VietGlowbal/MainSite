@@ -1930,3 +1930,27 @@ After material work, update this file in the same change:
 - Debounce stays at 300ms (`SEARCH_DEBOUNCE_MS`), one constant if it ever needs tuning.
 - Regression coverage: `src/shared/hooks/use-debounced-search-field.test.tsx`, 4 tests. The in-flight case was mutation-checked — removing the echo guard fails it.
 - Measured: `npm run typecheck`, `npm run typecheck:strict`, `npm run build` pass; `npm test` 380 files / 3,590 passed, 2 todo; `npm run lint` reports the one pre-existing `react-hooks/static-components` error in `strategy-report-v3-view.tsx` and 5 pre-existing warnings, none in the changed files. `npx playwright test tests/e2e/guest-universities.spec.ts` 4 passed against a production build.
+## 2026-09-06 — Strategy V3 → Planner wiring reliability patch (working tree)
+
+- Strategy source selection now parses newest rows and chooses newest valid V3,
+  then F8, then valid F7, without exact prompt-version gates. V3 deliverables
+  deduplicate by stable key, map one-to-one to canonical Planner micro-steps,
+  carry exact success criteria checklists, and retain stable regeneration,
+  insertion, and archive behavior. V3 roadmap content now participates in the
+  Planner source fingerprint while volatile timestamps are excluded.
+- V3 tool launchers use the shared route helper for Personal Canvas, CV Builder,
+  and Statement Writer. Canonical Planner navigation still ensures and refreshes
+  the plan; legacy CTA clicks generate roadmap tasks through the existing endpoint
+  before navigation. No migration or external state change was required.
+- Measured: focused Strategy/Planner/UI suite 8 files / 78 tests passed;
+  `npm.cmd run typecheck` passed; `npm.cmd run typecheck:strict` passed;
+  `npm.cmd run lint` passed with 4 existing warnings; i18n checker passed with
+  zero missing keys, placeholder mismatches, and dynamic catalog misses;
+  `npm.cmd run build` passed with 141 static pages and 3 existing
+  `geo-content.ts` tracing warnings; `git diff --check` passed. Full
+  `npm.cmd test` reached 377 files / 3597 passed / 2 todo, with 3 unrelated
+  failures: one Matching Report UI timeout and two candidate-confirm test
+  timeout/assertion failures.
+- `estimatedDurationDays` remains a documented gap because the canonical
+  Planner micro-step model has no duration field and this patch adds no
+  scheduling migration.

@@ -84,12 +84,19 @@ export const STRATEGY_TOOLS: Record<StrategyToolKey, StrategyTool> = {
  * back to step 1 when there is no profile yet. Sending a student to step 3
  * would bounce them.
  */
-export function strategyToolHref(tool: StrategyToolKey, applicationId: string): string {
+export function strategyToolHref(
+  tool: StrategyToolKey | 'personal_canvas' | 'cv_builder' | 'statement_writer',
+  applicationId: string,
+): string {
   switch (tool) {
     case 'cv':
+    case 'cv_builder':
       return `/ai-strategy/${applicationId}/cv/target-profile`;
     case 'statement':
+    case 'statement_writer':
       return `/ai-strategy/${applicationId}/statement`;
+    case 'personal_canvas':
+      return `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy-report`)}`;
   }
 }
 

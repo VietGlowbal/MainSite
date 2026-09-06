@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Badge } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 import type {
@@ -9,6 +10,8 @@ import type {
   ProfileAreaDiagnosis,
   StrategyReportV3,
 } from '@/lib/ai/strategy-v3/domain';
+import { strategyToolHref } from '../domain/strategy-tool';
+import type { PlannerMode } from '../api/planner-mode';
 
 type Overrides = Record<string, Record<string, unknown>>;
 
@@ -168,16 +171,41 @@ function CalendarIcon({ className = 'h-5 w-5' }: { className?: string }) {
 
 export function StrategyReportV3View({
   applicationId,
+  plannerMode = 'canonical',
   report,
 }: {
   applicationId: string;
+  plannerMode?: PlannerMode;
   report: StrategyReportV3;
 }) {
   const { t } = useLanguage();
+  const router = useRouter();
   const [overrides, setOverrides] = useState<Overrides>({});
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
   const [overrideError, setOverrideError] = useState(false);
+  const [plannerSyncing, setPlannerSyncing] = useState(false);
+  const [plannerSyncError, setPlannerSyncError] = useState(false);
   const saveSequence = useRef(0);
+
+  const openPlanner = async () => {
+    setPlannerSyncError(false);
+    if (plannerMode === 'legacy') {
+      setPlannerSyncing(true);
+      try {
+        const response = await fetch(`/api/applications/${applicationId}/strategy/roadmap-tasks`, { method: 'POST' });
+        if (!response.ok) {
+          setPlannerSyncError(true);
+          return;
+        }
+      } catch {
+        setPlannerSyncError(true);
+        return;
+      } finally {
+        setPlannerSyncing(false);
+      }
+    }
+    router.push(`/ai-strategy/${applicationId}/planner`);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -754,7 +782,7 @@ export function StrategyReportV3View({
                         <span className="text-xs font-bold text-fg">{deliverable.label}</span>
                         {deliverable.tool ? (
                           <Button
-                            href={toolHref(applicationId, deliverable.tool)}
+                            href={strategyToolHref(deliverable.tool, applicationId)}
                             variant="secondary"
                             size="sm"
                             className="shrink-0 text-xs font-bold text-brand hover:bg-rose-50 border-rose-200"
@@ -791,12 +819,14 @@ export function StrategyReportV3View({
               </div>
             </div>
             <Button
-              href={`/ai-strategy/${applicationId}/planner`}
+              onClick={openPlanner}
+              disabled={plannerSyncing}
               size="md"
               className="shrink-0 bg-white text-brand hover:bg-white/90 font-bold shadow-sm"
             >
-              {t('Add to Application Planner')} →
+              {t(plannerSyncing ? 'Adding to Planner...' : 'Add to Application Planner')} →
             </Button>
+            {plannerSyncError ? <p role="alert" className="text-xs text-white">{t('Something went wrong. Please try again.')}</p> : null}
           </div>
         </div>
       </section>
@@ -1309,16 +1339,5 @@ function RoadmapList({
 
 function stringOverride(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
-}
-
-function toolHref(
-  applicationId: string,
-  tool: 'personal_canvas' | 'cv_builder' | 'statement_writer',
-): string {
-  if (tool === 'personal_canvas') {
-    return `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy-report`)}`;
-  }
-  if (tool === 'cv_builder') return `/ai-strategy/${applicationId}/cv/target-profile`;
-  return `/ai-strategy/${applicationId}/statement`;
 }
 

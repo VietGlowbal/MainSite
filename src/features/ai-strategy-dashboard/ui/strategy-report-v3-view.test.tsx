@@ -4,6 +4,8 @@ import type { StrategyReportV3 } from '@/lib/ai/strategy-v3/domain';
 import { StrategyReportV3View } from './strategy-report-v3-view';
 
 vi.mock('@/lib/i18n', () => ({ useLanguage: () => ({ t: (value: string) => value }) }));
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
 const REPORT = {
   strategicOverview: {
@@ -74,6 +76,24 @@ const REPORT = {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('StrategyReportV3View overrides', () => {
+  it('generates legacy roadmap tasks before opening Planner', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return Promise.resolve({ ok: true });
+      expect(url).toContain('report-overrides');
+      return Promise.resolve({ ok: true, json: async () => ({ overrides: {} }) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<StrategyReportV3View applicationId="application-1" plannerMode="legacy" report={REPORT} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Application Planner →' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/ai-strategy/application-1/planner'));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/applications/application-1/strategy/roadmap-tasks',
+      { method: 'POST' },
+    );
+  });
+
   it('rolls back a failed optimistic save and shows an explicit error', async () => {
     const fetchMock = vi.fn((_: string, init?: RequestInit) => init?.method === 'PUT'
       ? Promise.resolve({ ok: false })

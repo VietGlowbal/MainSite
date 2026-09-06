@@ -4,6 +4,7 @@ import {
   recommendationsFromStrategyReportV3,
   recommendationsFromStrategyReportV2,
   reconcileSeeds,
+  strategyRecommendationFromRow,
   strategyReportV2FromRow,
   strategyReportV3FromRow,
   type ExistingRecommendation,
@@ -53,12 +54,19 @@ export async function generateRoadmapTasks(
 ): Promise<GenerateRoadmapTasksResult> {
   const strategyQuery = supabase
     .from('application_strategy_recommendations')
-    .select('roadmap,report_v2')
+    .select(
+      'id,application_id,source_analysis_id,source_match_analysis_id,' +
+      'direction_options,chosen_direction,chosen_direction_why,narrative,' +
+      'positioning_before,positioning_after,positioning_rationale,' +
+      'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
+      'roadmap,report_v2,input_hash,model_name,prompt_version,created_at,pdf_storage_path',
+    )
     .eq('application_id', applicationId)
     .order('created_at', { ascending: false })
     .limit(20);
   const strategyResult = await strategyQuery;
-  const strategyRows = strategyResult.error && isSchemaGap(strategyResult.error)
+  const legacyColumnFallback = Boolean(strategyResult.error && isSchemaGap(strategyResult.error));
+  const strategyRows = legacyColumnFallback
     ? (await supabase
         .from('application_strategy_recommendations')
         .select('roadmap')
@@ -70,19 +78,18 @@ export async function generateRoadmapTasks(
   const rows = (Array.isArray(strategyRows) ? strategyRows : strategyRows ? [strategyRows] : []) as Array<Record<string, unknown>>;
   const reportV3 = rows.map(strategyReportV3FromRow).find(Boolean) ?? null;
   const reportV2 = rows.map(strategyReportV2FromRow).find(Boolean) ?? null;
-  const latestStrategy = rows[0] ?? null;
+  const legacyRoadmap = rows
+    .map((row) => strategyRecommendationFromRow(row)?.roadmap ?? null)
+    .find(Boolean)
+    // Before the report_v2 migration, the fallback query only returns the
+    // legacy roadmap column, so retain that compatibility path.
+    ?? (legacyColumnFallback ? rows.find((row) => row.roadmap)?.roadmap : null)
+    ?? null;
 
   // The report_v2 column ships in supabase-strategy-report-v2.sql; before it
   // runs, the combined select would fail outright — fall back to the legacy
   // column only.
-  const roadmapJson = (latestStrategy?.roadmap ?? null) as {
-    why: string;
-    prioritize: string[];
-    avoid: string[];
-  } | null;
-  const historicalRoadmap = rows.find((row) => row.roadmap)?.roadmap as typeof roadmapJson;
-
-  if (!reportV3 && !reportV2 && !roadmapJson && !historicalRoadmap) {
+  if (!reportV3 && !reportV2 && !legacyRoadmap) {
     return { ok: false, error: 'no_strategy_recommendation', inserted: 0, updated: 0, archived: 0 };
   }
 
@@ -90,7 +97,7 @@ export async function generateRoadmapTasks(
     ? recommendationsFromStrategyReportV3(applicationId, reportV3)
     : reportV2
       ? recommendationsFromStrategyReportV2(applicationId, reportV2)
-      : recommendationsFromRoadmap(applicationId, (roadmapJson ?? historicalRoadmap)!);
+      : recommendationsFromRoadmap(applicationId, legacyRoadmap as { why: string; prioritize: string[]; avoid: string[] });
 
   const existingSelect = supabase
     .from('application_recommendations')

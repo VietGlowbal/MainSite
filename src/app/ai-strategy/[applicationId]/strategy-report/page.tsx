@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
+import { fetchOnboardingState, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { StrategyRecommendationWorkspace } from '@/features/ai-strategy-dashboard/ui';
 import { getServerIdentity } from '@/server/auth/server-identity';
@@ -27,5 +27,6 @@ export default async function StrategyReportPage({
     redirect(onboardingStepHref(step, applicationId));
   }
 
-  return <StrategyRecommendationWorkspace applicationId={applicationId} />;
+  const plannerMode = await getPlannerMode(supabase, user.id);
+  return <StrategyRecommendationWorkspace applicationId={applicationId} plannerMode={plannerMode} />;
 }

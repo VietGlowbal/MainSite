@@ -65,13 +65,17 @@ function buildSupabase(db: {
 }) {
   function makeBuilder(table: string) {
     const builder: Record<string, unknown> = {};
+    const filters: Record<string, unknown> = {};
 
     const resolve = () => {
       const errKey = `${table}_error` as keyof typeof db;
       const dataKey = table as keyof typeof db;
       const err = db[errKey] as { code?: string; message: string } | null | undefined;
       if (err) return { data: null, error: err };
-      const rows = db[dataKey] as MockTable[] | null | undefined;
+      let rows = db[dataKey] as MockTable[] | null | undefined;
+      if (table === 'application_strategy_recommendations' && rows) {
+        rows = rows.filter((row) => Object.entries(filters).every(([column, value]) => row[column] === value));
+      }
       // Return null data for empty/not-provided tables (maybeSingle semantics
       // for tables with no rows)
       if (rows === undefined || rows === null) return { data: null, error: null };
@@ -88,7 +92,10 @@ function buildSupabase(db: {
     // Every method returns builder for chaining; terminations resolve.
     const chain = () => builder;
     builder.select = chain;
-    builder.eq = chain;
+    builder.eq = (column: string, value: unknown) => {
+      if (table === 'application_strategy_recommendations') filters[column] = value;
+      return builder;
+    };
     builder.not = chain;
     builder.is = chain;
     builder.in = chain;
@@ -480,6 +487,21 @@ const VALID_V3_STRATEGY_ROW: MockTable = {
   },
 };
 
+const VALID_V3_STRATEGY_ROW_V32: MockTable = {
+  ...VALID_V3_STRATEGY_ROW,
+  id: 'strategy-v3-2',
+  prompt_version: 'strategy-report-synthesis-v3.2.0-grounded-narrative-options',
+  created_at: '2025-01-05T00:00:00Z',
+  report_v2: {
+    ...(VALID_V3_STRATEGY_ROW.report_v2 as Record<string, unknown>),
+    generatedAt: '2025-01-05T00:00:00Z',
+    metadata: {
+      ...((VALID_V3_STRATEGY_ROW.report_v2 as Record<string, unknown>).metadata as Record<string, unknown>),
+      synthesisPromptVersion: 'strategy-report-synthesis-v3.2.0-grounded-narrative-options',
+    },
+  },
+};
+
 const VALID_PROFILE: MockTable = {
   budget_range: '20000-30000',
   tuition_budget_usd: null,
@@ -846,6 +868,60 @@ describe('fetchPlanningContextSources', () => {
       },
     });
     expect(result.strategyRecommendation).toBeNull();
+  });
+
+  it('selects the newest valid V3 report without requiring an exact prompt version', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_V3_STRATEGY_ROW_V32, VALID_F8_STRATEGY_ROW, VALID_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({
+      kind: 'v3',
+      provenance: {
+        id: 'strategy-v3-2',
+        promptVersion: 'strategy-report-synthesis-v3.2.0-grounded-narrative-options',
+      },
+    });
+    expect(result.strategyRecommendation).toBeNull();
+  });
+
+  it('skips a malformed newest V3 row and selects the older valid V3 row', async () => {
+    const malformedNewest: MockTable = {
+      ...VALID_V3_STRATEGY_ROW_V32,
+      id: 'strategy-v3-invalid',
+      report_v2: { malformed: true },
+    };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [malformedNewest, VALID_V3_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'v3', provenance: { id: 'strategy-v3-1' } });
+  });
+
+  it('selects the newest valid F8 row when no valid V3 row exists', async () => {
+    const malformedNewest: MockTable = { ...VALID_F8_STRATEGY_ROW, id: 'strategy-f8-invalid', report_v2: { malformed: true } };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [malformedNewest, VALID_F8_STRATEGY_ROW, VALID_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'f8', provenance: { id: 'strategy-f8-1' } });
+  });
+
+  it('skips a malformed newest F7 row and selects the older valid F7 fallback', async () => {
+    const malformedNewest: MockTable = { ...VALID_STRATEGY_ROW, id: 'strategy-f7-invalid', chosen_direction: 'Unknown direction' };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [malformedNewest, VALID_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'f7', provenance: { id: 'strat-1' } });
   });
 
   // ── 14. Malformed F7 → null + invalid ─────────────────────────────────────────

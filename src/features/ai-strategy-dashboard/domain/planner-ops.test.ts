@@ -27,6 +27,17 @@ describe('Planner Ops source freshness', () => {
     expect(plannerSourceFingerprint(context({ strategy: { direction: 'research' } }))).not.toBe(plannerSourceFingerprint(context({ strategy: { direction: 'industry' } })));
   });
 
+  it('changes for V3 roadmap content but ignores generated timestamps', () => {
+    const roadmap = {
+      kind: 'v3',
+      data: { strategicRoadmap: [{ phaseKey: 'foundation', goal: 'Build evidence', keyActions: ['Collect proof'], deliverables: [{ key: 'task-a', label: 'Task A' }], successCriteria: ['Proof collected'], estimatedTimeline: 'This month', linkedPriorityKeys: [] }] },
+      provenance: { id: 'strategy-v3-1', generatedAt: '2026-09-01T00:00:00Z', promptVersion: 'strategy-report-synthesis-v3.2.0-grounded-narrative-options' },
+    };
+    const first = plannerSourceFingerprint(context({ strategyRoadmap: roadmap }));
+    expect(plannerSourceFingerprint(context({ strategyRoadmap: { ...roadmap, data: { strategicRoadmap: [{ ...roadmap.data.strategicRoadmap[0], deliverables: [{ key: 'task-a', label: 'Task A renamed' }] }] } } }))).not.toBe(first);
+    expect(plannerSourceFingerprint(context({ strategyRoadmap: { ...roadmap, provenance: { ...roadmap.provenance, generatedAt: '2026-09-02T00:00:00Z' } } }))).toBe(first);
+  });
+
   it('changes for profile, evidence, missing-input, F5, F7, answer, and attention changes', () => {
     const base = { ...(context({
       applicantState: { evidence: { strength: 'low' } },

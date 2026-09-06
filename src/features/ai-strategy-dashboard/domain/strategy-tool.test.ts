@@ -54,6 +54,12 @@ describe('strategyToolHref', () => {
   it('points at the statement writer', () => {
     expect(strategyToolHref('statement', 'app-1')).toBe('/ai-strategy/app-1/statement');
   });
+
+  it('points at Personal Canvas with a return route', () => {
+    expect(strategyToolHref('personal_canvas', 'app-1')).toBe(
+      '/ai-strategy/personal-report?return=%2Fai-strategy%2Fapp-1%2Fstrategy-report',
+    );
+  });
 });
 
 describe('toolForRecommendation', () => {

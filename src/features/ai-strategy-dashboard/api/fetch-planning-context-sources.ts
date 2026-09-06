@@ -55,12 +55,6 @@ import {
   parseImprovementActions,
 } from './planning-context-source-parsers';
 
-// Core 1 must select the same current persisted F8 shape as its writer. Keep
-// this local to avoid importing the model-generation module into the context
-// compiler (which creates a runtime cycle under test).
-const CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION = 'strategy-report-f8-v3';
-const CURRENT_STRATEGY_REPORT_V3_PROMPT_VERSION = 'strategy-report-synthesis-v3.1.0-structured-output';
-
 // ─── Fatal error ──────────────────────────────────────────────────────────────
 
 /** Thrown when the application cannot be found or does not belong to userId. */
@@ -626,20 +620,27 @@ export async function fetchPlanningContextSources(
   let strategyRecommendation: PlanningContextSources['strategyRecommendation'] = null;
   let strategyRoadmap: NonNullable<PlanningContextSources['strategyRoadmap']> | null = null;
 
-  // Strategy V3 is the canonical shape. Query it first so an older F8/F7 row cannot
-  // displace the current report by created_at alone.
-  const { data: v3Rows } = await supabase
+  // Strategy report rows are ordered newest-first, then validated by their
+  // readers. Prompt versions are provenance, not selection gates: a future V3
+  // prompt bump must not make a valid roadmap invisible to Planner.
+  const { data: reportRows, error: reportRowsError } = await supabase
     .from('application_strategy_recommendations')
     .select(
-      'id,source_analysis_id,source_match_analysis_id,report_v2,input_hash,' +
-      'model_name,prompt_version,created_at',
+      'id,application_id,source_analysis_id,source_match_analysis_id,' +
+      'direction_options,chosen_direction,chosen_direction_why,narrative,' +
+      'positioning_before,positioning_after,positioning_rationale,' +
+      'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
+      'roadmap,report_v2,input_hash,model_name,prompt_version,created_at',
     )
     .eq('application_id', applicationId)
-    .eq('prompt_version', CURRENT_STRATEGY_REPORT_V3_PROMPT_VERSION)
     .not('report_v2', 'is', null)
     .order('created_at', { ascending: false })
     .limit(20);
-  const v3Row = (Array.isArray(v3Rows) ? v3Rows : v3Rows ? [v3Rows] : [])
+  const reportRowsAsRecords = reportRowsError
+    ? []
+    : (Array.isArray(reportRows) ? reportRows : reportRows ? [reportRows] : [])
+      .map((candidate) => candidate as unknown as Record<string, unknown>);
+  const v3Row = reportRowsAsRecords
     .map((candidate) => candidate as unknown as Record<string, unknown>)
     .find((candidate) => Boolean(strategyReportV3FromRow(candidate)));
 
@@ -654,7 +655,9 @@ export async function fetchPlanningContextSources(
           id: typeof row.id === 'string' ? row.id : '',
           generatedAt: typeof row.created_at === 'string' ? row.created_at : reportV3.generatedAt,
           inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
-          promptVersion: reportV3.metadata.synthesisPromptVersion,
+          promptVersion: typeof row.prompt_version === 'string'
+            ? row.prompt_version
+            : reportV3.metadata.synthesisPromptVersion,
           engineVersion: reportV3.metadata.strategyEngineVersion,
           modelName: reportV3.metadata.model,
           sourceAnalysisId: reportV3.metadata.sourceAnalysisVersionId,
@@ -664,20 +667,11 @@ export async function fetchPlanningContextSources(
     }
   }
 
-  // F8 is the compatibility shape. Query it only when V3 is unavailable so an older F8/F7 row cannot
-  // displace the current report_v2 roadmap by created_at alone.
-  const f8Row = strategyRoadmap ? null : (await supabase
-    .from('application_strategy_recommendations')
-    .select(
-      'id,source_analysis_id,source_match_analysis_id,report_v2,input_hash,' +
-      'model_name,prompt_version,created_at',
-    )
-    .eq('application_id', applicationId)
-    .eq('prompt_version', CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION)
-    .not('report_v2', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()).data;
+  // F8 is the compatibility shape. Select the newest valid F8 only when no
+  // valid V3 was found, regardless of its prompt version.
+  const f8Row = strategyRoadmap
+    ? null
+    : reportRowsAsRecords.find((candidate) => Boolean(strategyReportV2FromRow(candidate))) ?? null;
 
   if (f8Row) {
     const row = f8Row as unknown as Record<string, unknown>;
@@ -713,8 +707,15 @@ export async function fetchPlanningContextSources(
     )
     .eq('application_id', applicationId)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
+
+  const legacyStrategyRows = Array.isArray(stratRow) ? stratRow : stratRow ? [stratRow] : [];
+  const legacyStrategy = legacyStrategyRows
+    .map((candidate) => {
+      const row = candidate as unknown as Record<string, unknown>;
+      return { row, parsed: strategyRecommendationFromRow(row) };
+    })
+    .find((candidate) => candidate.parsed);
 
   if (stratError) {
     // Treat missing migration as 'unavailable' — same pattern as the GET route.
@@ -727,14 +728,14 @@ export async function fetchPlanningContextSources(
       status: 'unavailable',
       message: isMigration ? 'migration missing' : 'query failed',
     });
-  } else if (!stratRow) {
+  } else if (legacyStrategyRows.length === 0) {
     diagnostics.push({ source: 'application_strategy_recommendations', status: 'missing' });
   } else {
-    const row = stratRow as unknown as Record<string, unknown>;
-    const parsed = strategyRecommendationFromRow(row);
+    const { parsed } = legacyStrategy ?? {};
     if (!parsed) {
       diagnostics.push({ source: 'application_strategy_recommendations', status: 'invalid', message: 'strategyRecommendationSchema parse failed' });
     } else {
+      const row = legacyStrategy?.row ?? {};
       const provenance: SourceProvenance = {
         id: parsed.id,
         generatedAt: parsed.createdAt,

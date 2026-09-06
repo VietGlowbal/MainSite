@@ -11,6 +11,7 @@ type Op = 'select' | 'insert' | 'update';
  */
 function buildSupabase(options: {
   latestStrategy?: { roadmap: { why: string; prioritize: string[]; avoid: string[] } } | null;
+  reportV2QueryError?: boolean;
   existingRows?: Array<{ id: string; pillar: string | null; title: string; status: string }>;
   failOn?: { table: string; op: Op };
 }) {
@@ -19,12 +20,16 @@ function buildSupabase(options: {
   function makeBuilder(table: string) {
     let op: Op = 'select';
     let value: unknown;
+    let selectedColumns = '';
 
     const resolve = () => {
       const failed = options.failOn && options.failOn.table === table && options.failOn.op === op;
       if (failed) return { data: null, error: { message: 'boom' } };
 
       if (table === 'application_strategy_recommendations') {
+        if (options.reportV2QueryError && selectedColumns.includes('report_v2')) {
+          return { data: null, error: { code: 'PGRST204', message: 'missing report_v2' } };
+        }
         return { data: options.latestStrategy ?? null, error: null };
       }
       if (table === 'application_recommendations') {
@@ -35,7 +40,10 @@ function buildSupabase(options: {
     };
 
     const builder: Record<string, unknown> = {
-      select: () => builder,
+      select: (columns: string) => {
+        selectedColumns = columns;
+        return builder;
+      },
       eq: () => builder,
       is: () => builder,
       in: () => builder,
@@ -67,7 +75,7 @@ function buildSupabase(options: {
 
 describe('generateRoadmapTasks', () => {
   it('errors with no_strategy_recommendation when F7 has not generated yet', async () => {
-    const supabase = buildSupabase({ latestStrategy: null });
+    const supabase = buildSupabase({ latestStrategy: null, reportV2QueryError: true });
     const result = await generateRoadmapTasks(supabase as never, 'app-1');
     expect(result).toEqual({
       ok: false,
@@ -87,6 +95,7 @@ describe('generateRoadmapTasks', () => {
           avoid: ['Spreading across unrelated clubs'],
         },
       },
+      reportV2QueryError: true,
       existingRows: [],
     });
 
@@ -115,6 +124,7 @@ describe('generateRoadmapTasks', () => {
   it('reports read_failed without touching the database further when the existing-rows read errors', async () => {
     const supabase = buildSupabase({
       latestStrategy: { roadmap: { why: '', prioritize: [], avoid: [] } },
+      reportV2QueryError: true,
       failOn: { table: 'application_recommendations', op: 'select' },
     });
 
@@ -127,6 +137,7 @@ describe('generateRoadmapTasks', () => {
   it('archives a roadmap task no longer represented after the report regenerates', async () => {
     const supabase = buildSupabase({
       latestStrategy: { roadmap: { why: '', prioritize: [], avoid: [] } },
+      reportV2QueryError: true,
       existingRows: [
         { id: 'rec-1', pillar: null, title: 'Old priority item', status: 'not_started' },
       ],

@@ -56,6 +56,10 @@ const V3_ROADMAP = {
   ],
 };
 
+function v3Deliverable(key: string, label: string) {
+  return { key, label, kind: 'requirement' as const, linkedPriorityKeys: [], tool: null, basisRefs: [] };
+}
+
 function f8Context(overrides: Record<string, unknown> = {}) {
   return {
     strategyRoadmap: {
@@ -184,6 +188,35 @@ describe('mergeStrategyRoadmapPlan', () => {
     });
   });
 
+  it('maps every unique V3 deliverable exactly once and carries exact success criteria', () => {
+    const roadmap = structuredClone(V3_ROADMAP);
+    roadmap.strategicRoadmap[0]!.deliverables = [
+      v3Deliverable('strategy-deliverable::strengthen_foundation::task-a::other', 'Task A'),
+      v3Deliverable('strategy-deliverable::strengthen_foundation::task-b::other', 'Task B'),
+    ];
+    roadmap.strategicRoadmap[1]!.deliverables = [
+      v3Deliverable('strategy-deliverable::strengthen_foundation::task-b::other', 'Task B duplicate'),
+      v3Deliverable('strategy-deliverable::build_competitive_advantages::task-c::other', 'Task C'),
+    ];
+    roadmap.strategicRoadmap[0]!.successCriteria = ['A is complete', 'B is complete'];
+    roadmap.strategicRoadmap[1]!.successCriteria = ['C is complete'];
+
+    const plan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: {
+        kind: 'v3' as const,
+        data: roadmap,
+        provenance: f8Context().strategyRoadmap.provenance,
+      },
+    }));
+    const microSteps = plan.phases.flatMap((phase) => phase.steps.flatMap((step) => step.microSteps));
+
+    expect(microSteps).toHaveLength(3);
+    expect(microSteps.map((microStep) => microStep.title)).toEqual(['Task A', 'Task B', 'Task C']);
+    expect(new Set(microSteps.map((microStep) => microStep.id)).size).toBe(3);
+    expect(microSteps[0]?.contentSchema).toEqual({ type: 'checklist', items: ['A is complete', 'B is complete'] });
+    expect(microSteps[2]?.contentSchema).toEqual({ type: 'checklist', items: ['C is complete'] });
+  });
+
   it('reconciles V3 deliverables idempotently and archives removed nodes without overwriting completion', () => {
     const firstPlan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
       strategyRoadmap: {
@@ -221,6 +254,39 @@ describe('mergeStrategyRoadmapPlan', () => {
       },
     }));
     expect(reconcilePlan('app-1', removedPlan, existing).operations).toContainEqual({ kind: 'archive_micro_step', id: 'db-micro-0-0-0' });
+  });
+
+  it('updates and inserts regenerated V3 deliverables without resetting existing execution state', () => {
+    const initialRoadmap = structuredClone(V3_ROADMAP);
+    initialRoadmap.strategicRoadmap[0]!.deliverables = [
+      v3Deliverable('strategy-deliverable::strengthen_foundation::task-a::other', 'Task A'),
+      v3Deliverable('strategy-deliverable::strengthen_foundation::task-b::other', 'Task B'),
+    ];
+    const initialPlan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: { kind: 'v3' as const, data: initialRoadmap, provenance: f8Context().strategyRoadmap.provenance },
+    }));
+    const existing = persistedFor(initialPlan, initialPlan.phases[0]!.steps[0]!.microSteps[0]!.id);
+    const initialMicros = existing.microSteps;
+    initialMicros[0]!.status = 'completed';
+    initialMicros[1]!.status = 'in_progress';
+    initialMicros[1]!.executionEvidence = [{ id: 'evidence-b' }];
+
+    const revisedRoadmap = structuredClone(initialRoadmap);
+    revisedRoadmap.strategicRoadmap[0]!.deliverables[1]!.label = 'Task B renamed';
+    revisedRoadmap.strategicRoadmap[0]!.deliverables.push(v3Deliverable('strategy-deliverable::strengthen_foundation::task-c::other', 'Task C'));
+    const revisedPlan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: { kind: 'v3' as const, data: revisedRoadmap, provenance: f8Context().strategyRoadmap.provenance },
+    }));
+    const operations = reconcilePlan('app-1', revisedPlan, existing).operations;
+    const update = operations.find((operation) => operation.kind === 'update_micro_step' && operation.id === 'db-micro-0-0-1');
+
+    expect(update).toMatchObject({ fields: { domainNodeId: initialMicros[1]!.domainNodeId, title: 'Task B renamed' } });
+    if (update?.kind === 'update_micro_step') {
+      expect(update.fields).not.toHaveProperty('status');
+      expect(update.fields).not.toHaveProperty('executionEvidence');
+    }
+    expect(operations).toContainEqual(expect.objectContaining({ kind: 'insert_micro_step', stepDomainNodeId: 'step:strategy-roadmap:strengthen_foundation:deliverables' }));
+    expect(operations).not.toContainEqual(expect.objectContaining({ kind: 'archive_micro_step', id: 'db-micro-0-0-1' }));
   });
 
   it('does not invent availability when no explicit availability input exists', () => {
