@@ -31,6 +31,13 @@ function isSchemaGap(error: { code?: string; message?: string } | null): boolean
   return Boolean(error && ['42P01', 'PGRST204', 'PGRST205'].includes(error.code ?? ''));
 }
 
+function seedToUpdateRow(seed: Parameters<typeof seedToRow>[0]) {
+  const row: Record<string, unknown> = { ...seedToRow(seed, 'next_action') };
+  delete row.status;
+  delete row.deadline;
+  return row;
+}
+
 /**
  * Turns the latest Strategy Report's Execution Roadmap into
  * `application_recommendations` rows — the "generate Planner tasks from this
@@ -133,7 +140,7 @@ export async function generateRoadmapTasks(
   }
 
   for (const update of plan.toUpdate) {
-    const row = seedToRow({ applicationId, ...update.fields }, 'next_action');
+    const row = seedToUpdateRow({ applicationId, ...update.fields });
     const { error } = await supabase
       .from('application_recommendations')
       .update(row)

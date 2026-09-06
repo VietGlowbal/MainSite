@@ -1954,3 +1954,23 @@ After material work, update this file in the same change:
 - `estimatedDurationDays` remains a documented gap because the canonical
   Planner micro-step model has no duration field and this patch adds no
   scheduling migration.
+
+## 2026-09-06 — Strategy V3 → Planner follow-up reliability patch (working tree)
+
+- Real errors reading the V3/F8 `report_v2` source now fail closed instead of
+  silently selecting a stale F7 roadmap; known schema-gap codes still permit
+  the F7 compatibility fallback.
+- V3 phase success criteria remain labeled step-level guidance. V3 Planner
+  micro-tasks now write `contentSchema: null` and `submitChecklist: []`; the
+  Strategy Report UI remains the phase-criteria display.
+- V3 legacy Planner generation now has end-to-end coverage for three
+  deliverables and regeneration by stable `source_key` (rename/update, insert,
+  archive), while status and deadline are excluded from planning updates.
+- Measured: focused Strategy/Planner suite 4 files / 51 tests passed;
+  `npm.cmd run typecheck` passed; `npm.cmd run typecheck:strict` passed;
+  targeted ESLint passed; `npm.cmd run build` passed (146 static pages, 3
+  existing `geo-content.ts` tracing warnings); `git diff --check` passed with
+  LF/CRLF warnings. Full `npm.cmd test` reached 383 files / 3678 passed / 2
+  todo with 5 unrelated timeout failures. Full `npm.cmd run lint` remains
+  blocked by the existing `react-hooks/set-state-in-effect` error at
+  `src/app/universities/university-list-client.tsx:298` plus 4 warnings.

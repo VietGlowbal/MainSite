@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { recommendationsFromStrategyReportV3 } from './strategy-v3-planner';
 
 describe('Strategy V3 Planner handoff', () => {
-  it('creates one stable seed per deliverable, preserves criteria, and routes every tool', () => {
+  it('creates one stable seed per deliverable, keeps criteria out of task fields, and routes every tool', () => {
     const report = {
       strategicRoadmap: [
         ...['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise'].map((phaseKey) => ({
@@ -30,8 +30,8 @@ describe('Strategy V3 Planner handoff', () => {
       '/ai-strategy/app-1/cv/target-profile',
       '/ai-strategy/app-1/statement',
     ]);
-    expect(seeds[0]?.contentSchema).toEqual({ type: 'checklist', items: ['Done.', 'Verified.'] });
-    expect(seeds[0]?.submitChecklist).toEqual(['Done.', 'Verified.']);
+    expect(seeds[0]?.contentSchema).toBeNull();
+    expect(seeds[0]?.submitChecklist).toEqual([]);
   });
 
   it('deduplicates repeated deliverable keys across phases', () => {

@@ -54,6 +54,7 @@ function buildSupabase(db: {
   application_match_analyses_error?: { code?: string; message: string } | null;
   application_strategy_recommendations?: MockTable[] | null;
   application_strategy_recommendations_error?: { code?: string; message: string } | null;
+  application_strategy_recommendations_report_error?: { code?: string; message: string } | null;
   application_plans?: MockTable[] | null;
   application_plan_phases?: MockTable[] | null;
   application_plan_steps?: MockTable[] | null;
@@ -70,11 +71,16 @@ function buildSupabase(db: {
     const resolve = () => {
       const errKey = `${table}_error` as keyof typeof db;
       const dataKey = table as keyof typeof db;
-      const err = db[errKey] as { code?: string; message: string } | null | undefined;
+      const reportErr = table === 'application_strategy_recommendations' && filters.report_v2_read
+        ? db.application_strategy_recommendations_report_error
+        : undefined;
+      const err = (reportErr ?? db[errKey]) as { code?: string; message: string } | null | undefined;
       if (err) return { data: null, error: err };
       let rows = db[dataKey] as MockTable[] | null | undefined;
       if (table === 'application_strategy_recommendations' && rows) {
-        rows = rows.filter((row) => Object.entries(filters).every(([column, value]) => row[column] === value));
+        rows = rows.filter((row) => Object.entries(filters)
+          .filter(([column]) => column !== 'report_v2_read')
+          .every(([column, value]) => row[column] === value));
       }
       // Return null data for empty/not-provided tables (maybeSingle semantics
       // for tables with no rows)
@@ -97,6 +103,10 @@ function buildSupabase(db: {
       return builder;
     };
     builder.not = chain;
+    builder.not = (column: string) => {
+      if (table === 'application_strategy_recommendations' && column === 'report_v2') filters.report_v2_read = true;
+      return builder;
+    };
     builder.is = chain;
     builder.in = chain;
     builder.order = chain;
@@ -868,6 +878,35 @@ describe('fetchPlanningContextSources', () => {
       },
     });
     expect(result.strategyRecommendation).toBeNull();
+  });
+
+  it('fails closed on an unexpected report read error instead of falling back to F7', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_STRATEGY_ROW],
+      application_strategy_recommendations_report_error: { code: '42501', message: 'permission denied' },
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toBeNull();
+    expect(result.strategyRecommendation).toBeNull();
+    expect(result.diagnostics).toContainEqual({
+      source: 'application_strategy_recommendations',
+      status: 'unavailable',
+      message: 'query failed',
+    });
+  });
+
+  it('keeps the F7 compatibility fallback for a known report schema gap', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_STRATEGY_ROW],
+      application_strategy_recommendations_report_error: { code: 'PGRST204', message: 'missing report_v2' },
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'f7', provenance: { id: 'strat-1' } });
+    expect(result.strategyRecommendation).not.toBeNull();
   });
 
   it('selects the newest valid V3 report without requiring an exact prompt version', async () => {

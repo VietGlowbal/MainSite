@@ -29,10 +29,8 @@ export function recommendationsFromStrategyReportV3(
         actionLabel: target ? 'Open tool' : null,
         actionType: target ? 'internal_route' : 'none',
         actionTarget: target,
-        contentSchema: phase.successCriteria.length
-          ? { type: 'checklist' as const, items: phase.successCriteria }
-          : null,
-        submitChecklist: phase.successCriteria,
+        contentSchema: null,
+        submitChecklist: [],
         tips: [],
         suggestedQuestions: [],
         sourceAnalysisId: null,

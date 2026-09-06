@@ -55,6 +55,10 @@ import {
   parseImprovementActions,
 } from './planning-context-source-parsers';
 
+function isSchemaGap(error: { code?: string; message?: string } | null): boolean {
+  return Boolean(error && ['42P01', 'PGRST204', 'PGRST205'].includes(error.code ?? ''));
+}
+
 // ─── Fatal error ──────────────────────────────────────────────────────────────
 
 /** Thrown when the application cannot be found or does not belong to userId. */
@@ -636,6 +640,7 @@ export async function fetchPlanningContextSources(
     .not('report_v2', 'is', null)
     .order('created_at', { ascending: false })
     .limit(20);
+  const reportRowsReadFailed = Boolean(reportRowsError && !isSchemaGap(reportRowsError));
   const reportRowsAsRecords = reportRowsError
     ? []
     : (Array.isArray(reportRows) ? reportRows : reportRows ? [reportRows] : [])
@@ -695,19 +700,22 @@ export async function fetchPlanningContextSources(
   }
 
   // Mirror the GET route: newest first, no prompt_version filter (F7 does not
-  // have the same version-gating as F5).
-  const { data: stratRow, error: stratError } = await supabase
-    .from('application_strategy_recommendations')
-    .select(
-      'id,application_id,source_analysis_id,source_match_analysis_id,' +
-      'direction_options,chosen_direction,chosen_direction_why,narrative,' +
-      'positioning_before,positioning_after,positioning_rationale,' +
-      'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
-      'roadmap,model_name,prompt_version,pdf_storage_path,created_at',
-    )
-    .eq('application_id', applicationId)
-    .order('created_at', { ascending: false })
-    .limit(20);
+  // have the same version-gating as F5). A real report read failure is
+  // fail-closed: it must not be hidden by a stale F7 row.
+  const { data: stratRow, error: stratError } = reportRowsReadFailed
+    ? { data: null, error: null }
+    : await supabase
+      .from('application_strategy_recommendations')
+      .select(
+        'id,application_id,source_analysis_id,source_match_analysis_id,' +
+        'direction_options,chosen_direction,chosen_direction_why,narrative,' +
+        'positioning_before,positioning_after,positioning_rationale,' +
+        'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
+        'roadmap,model_name,prompt_version,pdf_storage_path,created_at',
+      )
+      .eq('application_id', applicationId)
+      .order('created_at', { ascending: false })
+      .limit(20);
 
   const legacyStrategyRows = Array.isArray(stratRow) ? stratRow : stratRow ? [stratRow] : [];
   const legacyStrategy = legacyStrategyRows
@@ -717,7 +725,9 @@ export async function fetchPlanningContextSources(
     })
     .find((candidate) => candidate.parsed);
 
-  if (stratError) {
+  if (reportRowsReadFailed) {
+    diagnostics.push({ source: 'application_strategy_recommendations', status: 'unavailable', message: 'query failed' });
+  } else if (stratError) {
     // Treat missing migration as 'unavailable' — same pattern as the GET route.
     const isMigration =
       stratError.code === '42P01' ||

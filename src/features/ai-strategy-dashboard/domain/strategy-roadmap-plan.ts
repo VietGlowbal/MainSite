@@ -152,6 +152,9 @@ function v3Phases(
     if (seen.has(phase.phaseKey)) return [];
     seen.add(phase.phaseKey);
     const contextText = factualContext(context);
+    const successCriteria = phase.successCriteria.length
+      ? `Phase success criteria: ${phase.successCriteria.join(' ')}`
+      : null;
     return [{
       id: `phase:strategy-roadmap:${phase.phaseKey}`,
       title: phase.name,
@@ -162,7 +165,7 @@ function v3Phases(
       steps: [{
         id: `step:strategy-roadmap:${phase.phaseKey}:deliverables`,
         title: 'Complete roadmap deliverables',
-        objective: [phase.keyActions.join(' '), contextText].filter(Boolean).join(' '),
+        objective: [phase.keyActions.join(' '), successCriteria, contextText].filter(Boolean).join(' '),
         order: 1,
         sourceDecisionIds: [],
         sourceProvenances: sourceProvenances(context),
@@ -172,9 +175,7 @@ function v3Phases(
           guidance: `Complete this deliverable: ${deliverable.label} ${phase.goal}`,
           order: index + 1,
           readiness: 'requires_enrichment' as const,
-          contentSchema: phase.successCriteria.length
-            ? { type: 'checklist' as const, items: phase.successCriteria }
-            : null,
+          contentSchema: null,
           sourceDecisionIds: [],
           sourceProvenances: sourceProvenances(context),
         })),

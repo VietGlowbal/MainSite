@@ -188,7 +188,7 @@ describe('mergeStrategyRoadmapPlan', () => {
     });
   });
 
-  it('maps every unique V3 deliverable exactly once and carries exact success criteria', () => {
+  it('maps every unique V3 deliverable exactly once and keeps success criteria at step level', () => {
     const roadmap = structuredClone(V3_ROADMAP);
     roadmap.strategicRoadmap[0]!.deliverables = [
       v3Deliverable('strategy-deliverable::strengthen_foundation::task-a::other', 'Task A'),
@@ -213,8 +213,10 @@ describe('mergeStrategyRoadmapPlan', () => {
     expect(microSteps).toHaveLength(3);
     expect(microSteps.map((microStep) => microStep.title)).toEqual(['Task A', 'Task B', 'Task C']);
     expect(new Set(microSteps.map((microStep) => microStep.id)).size).toBe(3);
-    expect(microSteps[0]?.contentSchema).toEqual({ type: 'checklist', items: ['A is complete', 'B is complete'] });
-    expect(microSteps[2]?.contentSchema).toEqual({ type: 'checklist', items: ['C is complete'] });
+    expect(microSteps[0]?.contentSchema).toBeNull();
+    expect(microSteps[2]?.contentSchema).toBeNull();
+    expect(plan.phases[0]?.steps[0]?.objective).toContain('Phase success criteria: A is complete B is complete');
+    expect(plan.phases[1]?.steps[0]?.objective).toContain('Phase success criteria: C is complete');
   });
 
   it('reconciles V3 deliverables idempotently and archives removed nodes without overwriting completion', () => {
