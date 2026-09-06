@@ -30,7 +30,10 @@ import {
 } from '@/lib/ai/vinuni-evaluation-v2';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { createClient } from '@/lib/supabase/server';
-import { VINUNI_DEMO_APPLICATION_ID } from '@/lib/ai/vinuni-evaluation-shared';
+import {
+  VINUNI_DEMO_APPLICATION_ID,
+  VINUNI_DEFAULT_ESSAY_PROMPT,
+} from '@/lib/ai/vinuni-evaluation-shared';
 
 const MIN_LENGTH = 200;
 const MAX_LENGTH = 15_000;
@@ -51,12 +54,19 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const applicationId =
     typeof body?.applicationId === 'string' ? body.applicationId.trim() : '';
-  const useV2 = Boolean(applicationId);
+  const isPublicContext = body?.contextMode === 'vinuni_public';
+  const useV2 = Boolean(applicationId || isPublicContext);
   const isDemoId = applicationId === VINUNI_DEMO_APPLICATION_ID;
   const isLocalDemo = useV2 && isDemoId && process.env.NODE_ENV === 'development';
 
   if (isDemoId && !isLocalDemo) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  if (isPublicContext && applicationId) {
+    return NextResponse.json(
+      { error: 'vinuni_public context must not include an application ID.' },
+      { status: 400 },
+    );
   }
 
   const supabase = isLocalDemo ? null : await createClient();
@@ -90,7 +100,11 @@ export async function POST(request: Request) {
     | undefined;
   if (useV2) {
     const essayPrompt =
-      typeof body?.essayPrompt === 'string' ? body.essayPrompt.trim() : '';
+      typeof body?.essayPrompt === 'string' && body.essayPrompt.trim()
+        ? body.essayPrompt.trim()
+        : isPublicContext
+          ? VINUNI_DEFAULT_ESSAY_PROMPT
+          : '';
     const requestedSections = Array.isArray(body?.requestedSections)
       ? body.requestedSections.filter(
           (section: unknown): section is VinUniRequestedSection =>
@@ -98,7 +112,7 @@ export async function POST(request: Request) {
             V2_SECTION_KEYS.has(section as VinUniRequestedSection),
         )
       : undefined;
-    if (!applicationId) {
+    if (!applicationId && !isPublicContext) {
       return NextResponse.json({ error: 'Application ID is required.' }, { status: 400 });
     }
     if (!essayPrompt || essayPrompt.length > MAX_PROMPT_LENGTH) {
@@ -119,7 +133,17 @@ export async function POST(request: Request) {
       );
     }
 
-    if (isLocalDemo) {
+    if (isPublicContext) {
+      v2Input = {
+        essayPrompt,
+        ...(requestedSections ? { requestedSections } : {}),
+        context: buildVinUniEvaluationContext({
+          application: { id: null, universityName: 'VinUniversity', courseName: null },
+          course: null,
+          profile: null,
+        }),
+      };
+    } else if (isLocalDemo) {
       v2Input = {
         essayPrompt,
         ...(requestedSections ? { requestedSections } : {}),

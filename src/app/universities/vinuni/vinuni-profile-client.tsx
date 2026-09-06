@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { VinUniAaccFeedback } from '@/components/statement/VinUniAaccFeedback';
 import { useT } from '@/lib/i18n';
 import type { AaccAnalysis } from '@/lib/ai/vinuni-grounded-evaluation';
+import type { AaccAnalysisV2 } from '@/lib/ai/vinuni-evaluation-v2';
 import type { University } from '@/lib/types';
 import {
   vinuniHero,
@@ -930,13 +931,27 @@ const PILLAR_ACCENT: Record<AaccPillarKey, { ring: string; chip: string; bar: st
 
 const MIN_SOP_CHARS = 200;
 
+async function readVinUniAnalysis(response: Response): Promise<AaccAnalysisV2> {
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error || 'Unable to analyse right now.');
+  }
+  const lines = (await response.text()).split('\n').filter(Boolean);
+  for (const line of lines) {
+    const event = JSON.parse(line) as { type?: string; analysis?: AaccAnalysisV2; message?: string };
+    if (event.type === 'complete' && event.analysis) return event.analysis;
+    if (event.type === 'error') throw new Error(event.message || 'Analysis was not completed.');
+  }
+  throw new Error('Analysis was not completed.');
+}
+
 export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
   const t = useT();
   const [mode, setMode] = useState<'idle' | 'yes' | 'no'>('idle');
   const [sopText, setSopText] = useState('');
   const [loading, setLoading] = useState(false);
   useLoadingIndicator(loading, 'Analysing your statement');
-  const [result, setResult] = useState<AaccAnalysis | null>(null);
+  const [result, setResult] = useState<(AaccAnalysis | AaccAnalysisV2) | null>(null);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -951,16 +966,11 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
       const res = await fetch('/api/ai/analyze-statement-aacc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: sopText }),
+        body: JSON.stringify({ text: sopText, contextMode: 'vinuni_public' }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error || 'Unable to analyse right now.');
-      } else {
-        setResult(data as AaccAnalysis);
-      }
-    } catch {
-      setError('Network error. Please try again.');
+      setResult(await readVinUniAnalysis(res));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1083,7 +1093,8 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:p-8">
-              <h3 className="text-base font-semibold text-slate-900">Suggested structure</h3>
+              <h3 className="text-base font-semibold text-slate-900">{t('One possible planning framework')}</h3>
+              <p className="mt-2 text-sm text-slate-600">{t('Use these prompts flexibly; your essay does not need to follow a fixed structure.')}</p>
               <ol className="mt-4 space-y-2.5">
                 {vinuniSopGuidance.structure.map((s, i) => (
                   <li key={s} className="flex items-start gap-3 text-sm text-slate-700">
@@ -1248,7 +1259,7 @@ function AaccSkeleton() {
   );
 }
 
-function AaccResult({ analysis, onTryAgain }: { analysis: AaccAnalysis; onTryAgain: () => void }) {
+function AaccResult({ analysis, onTryAgain }: { analysis: AaccAnalysis | AaccAnalysisV2; onTryAgain: () => void }) {
   if (analysis.sections) {
     return <VinUniAaccFeedback analysis={analysis} onTryAgain={onTryAgain} />;
   }

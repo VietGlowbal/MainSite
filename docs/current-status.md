@@ -1,5 +1,43 @@
 # Current project status
 
+Working tree 2026-09-06 (VinUni Structure & Flow V2): the authenticated
+application writer and the authenticated public VinUni SOP entry now use the
+same two-pass, evidence-first evaluator. Pass A reconstructs the draft's
+actual narrative units and links; Section B validates seven structure criteria,
+four transition layers, five evolution dimensions, moment depth, deterministic
+balance, the six-link ending progression, and ranked priorities. Legacy stored
+`ideasStructure` payloads remain readable, while invalid rich Section B output
+returns a retryable error instead of fabricated feedback. The public entry uses
+`contextMode: "vinuni_public"` with no application/profile/programme context and
+does not persist the essay.
+
+Measured: focused VinUni/API/UI tests 45 pass; base and strict TypeScript pass;
+scoped ESLint pass; i18n checker and integration tests pass; production build
+passes with the existing `geo-content.ts` tracing warnings; `git diff --check`
+passes. The full Vitest run reports 3,687 passing tests and three failures
+outside this task's VinUni scope: one matching-report timeout and two
+candidate-information auth/idempotency failures.
+
+Working tree 2026-09-06 (reviewed VinUni catalogue import): the owner-reviewed
+`data/VinUni data.xlsx` is normalized to `data/vinuni-reviewed.json` and imported
+through the existing crawl staging/promotion pipeline. This task changes the
+database/import path only; existing application UI sources are unchanged.
+
+Production run `ab305cb7-27fa-49ab-8dc9-e30f8c101b87`
+(`vinuni-reviewed-9348ebddbe35-ce5173dd7282`) promoted 12 `HUMAN_VERIFIED`
+programmes, 4 colleges, 12 primary programme-college relations, 60 structured
+programme facts, and one university profile. The existing BBA kept id
+`c0a00000-0000-4000-a000-000000000004`; the run produced zero catalogue rows
+for non-VinUni universities. A post-import normalization correction maps
+`Medical Doctor` to degree level `professional` and was re-promoted idempotently.
+The production cache revalidation endpoint returned 401; this does not affect
+the imported database rows.
+
+Measured: 61 focused tests pass; base and strict TypeScript pass; scoped ESLint
+passes; both importer syntax checks and `git diff --check` pass; the Next.js
+production CI build passes with the three existing `geo-content.ts` tracing
+warnings.
+
 Working tree 2026-09-05 (Core Web Vitals, part 3: dead CSS, the matches
 catalogue, and three auth round-trips): parts 1 and 2 are merged and live; this
 continues them. Full record in [performance.md](performance.md).
@@ -1285,8 +1323,8 @@ for top/good/worth. Focused recommendation/domain/API/UI plus i18n tests now
 pass 55/55. No aggregate gate, full Vitest, or production build was run.
 
 Working tree 2026-08-29: the saved-university subject picker restores VinUni's
-typed `vinuni-content.ts` catalogue (4 colleges, 10 programmes). The live
-`catalog_programmes` view currently contains only VinUni's BBA row, so using it
+typed `vinuni-content.ts` catalogue (4 colleges, 10 programmes). At that time,
+the live `catalog_programmes` view contained only VinUni's BBA row, so using it
 as the picker source hid the other programmes; other universities continue to
 fall back to `universities.strengths`. The picker presentation also restores the
 2026-07-30 navigation and compact subject/paste-link UI while retaining the

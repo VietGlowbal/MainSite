@@ -2,12 +2,18 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AaccAnalysis } from '@/lib/ai/vinuni-grounded-evaluation';
-import type { AaccAnalysisV2 } from '@/lib/ai/vinuni-evaluation-v2';
+import type {
+  AaccAnalysisV2,
+  StructureCriterionAssessment,
+  StructureFlowMap,
+  StructureFlowReview,
+} from '@/lib/ai/vinuni-evaluation-v2';
 import {
   calculateImprovementProjection,
   reviewClaimKey,
   VinUniAaccFeedback,
 } from './VinUniAaccFeedback';
+import { VinUniStructureFlowFeedback } from './VinUniStructureFlowFeedback';
 
 const locale = vi.hoisted(() => ({ lang: 'vi' as 'en' | 'vi' }));
 vi.mock('@/lib/i18n', async () => {
@@ -72,6 +78,100 @@ const analysis: AaccAnalysis = {
     nextSteps: ['Bổ sung suy ngẫm sau thất bại.'],
   },
 };
+
+const structureMap: StructureFlowMap = {
+  corePurpose: 'Show learning through a failed workshop.',
+  narrativeUnits: [
+    { id: 'N001', type: 'experience', label: 'Workshop', summary: 'The applicant led a workshop.', evidenceIds: ['U001'], order: 0 },
+    { id: 'N002', type: 'decision', label: 'Adjustment', summary: 'The applicant simplified the design.', evidenceIds: ['U002'], order: 1 },
+  ],
+  links: [{ fromUnitId: 'N001', toUnitId: 'N002', relationship: 'causal', evidenceIds: ['U002'] }],
+  turningPointUnitIds: ['N002'],
+  endingEvidenceIds: ['U002'],
+  possibleMultipleThreads: false,
+  threadNotes: [],
+  unresolvedStructureQuestions: [],
+};
+
+const structureReview: StructureFlowReview = (() => {
+  const claim = (id: string, text: string): NonNullable<StructureCriterionAssessment['strength']> => ({
+    id,
+    text,
+    evidenceRefs: [{ source: 'essay', id: 'U001' }],
+    priority: 'medium',
+  });
+  const criterion = (key: StructureCriterionAssessment['key'], label: string): StructureCriterionAssessment => ({
+    key,
+    label,
+    strength: claim(`${key}-s`, `${label} strength.`),
+    weakness: claim(`${key}-w`, `${label} weakness.`),
+    whyItMatters: claim(`${key}-why`, `${label} matters.`),
+    improvement: claim(`${key}-i`, `${label} improvement.`),
+    severity: 'minor_gap',
+    evidenceRefs: [{ source: 'essay', id: 'U001' }],
+  });
+  const dimension = {
+    status: 'partial_evolution' as const,
+    summary: 'A partial evolution is visible.',
+    evidenceRefs: [{ source: 'essay' as const, id: 'U001' as const }],
+    missingStep: null,
+  };
+  const node = {
+    status: 'partial' as const,
+    text: 'A partial ending link.',
+    evidenceRefs: [{ source: 'essay' as const, id: 'U002' as const }],
+  };
+  return {
+    narrativeOverview: {
+      corePurpose: structureMap.corePurpose,
+      architectureSummary: 'The draft moves from experience to an explicit adjustment.',
+      unitIds: ['N001', 'N002'],
+      turningPointUnitIds: ['N002'],
+    },
+    criteria: {
+      narrativeArchitecture: criterion('narrative_architecture', 'Narrative Architecture'),
+      causalProgression: criterion('causal_progression', 'Causal Progression'),
+      developmentEvolution: criterion('development_evolution', 'Development & Evolution'),
+      transitionsContinuity: criterion('transitions_continuity', 'Transitions & Continuity'),
+      narrativeDepth: criterion('narrative_depth', 'Narrative Depth & Development'),
+      focusBalance: criterion('focus_balance', 'Focus & Narrative Balance'),
+      endingForwardProgression: criterion('ending_forward_progression', 'Ending & Forward Progression'),
+    },
+    transitions: [{
+      id: 'TR001',
+      fromUnitId: 'N001',
+      toUnitId: 'N002',
+      logical: 'clear',
+      causal: 'partial',
+      thematic: 'partial',
+      personal: 'missing',
+      diagnosis: 'The decision follows the failed first attempt.',
+      evidenceRefs: [{ source: 'essay', id: 'U002' }],
+      missingBridge: 'Explain the personal significance of the adjustment.',
+      improvement: 'Add the reasoning behind the decision.',
+    }],
+    evolution: { responsibility: dimension, problemComplexity: dimension, thinking: dimension, approach: dimension, identity: dimension },
+    importantMoments: [{
+      id: 'M001', unitId: 'N002', title: 'The redesign', whyImportant: 'It changes the direction of the story.',
+      levels: { description: 'clear', reasoning: 'partial', tension: 'partial', reflection: 'missing', transformation: 'missing' },
+      strongestLevel: 'description', missingLevels: ['reflection'], evidenceRefs: [{ source: 'essay', id: 'U002' }], improvement: 'Explain what changed in the applicant.',
+    }],
+    balanceAnalysis: {
+      units: [
+        { unitId: 'N001', function: 'Context', wordCount: 7, share: 50, narrativePurpose: 'Establish the experience.', imbalance: 'none' },
+        { unitId: 'N002', function: 'Change', wordCount: 7, share: 50, narrativePurpose: 'Show the adjustment.', imbalance: 'none' },
+      ],
+      strength: claim('balance-s', 'The change receives useful space.'), weakness: null, whyItMatters: null, improvement: null,
+    },
+    endingProgression: {
+      pastEvidence: node, keyLearning: node, currentDirection: node, capabilityGap: node, nextStep: node, longTermAspiration: node,
+      continuity: 'partial', missingLinks: ['Connect learning to the next step.'], strength: null, weakness: null, whyItMatters: null, improvement: null,
+    },
+    priorities: [1, 2, 3].map((rank) => ({
+      rank, title: `Priority ${rank}`, whatToImprove: 'Clarify one bridge.', whyItMatters: 'The reader can follow change.', specificDirection: 'Name the reasoning.', exampleOrTemplate: null, evidenceRefs: [{ source: 'essay' as const, id: 'U002' as const }],
+    })),
+  };
+})();
 
 describe('VinUniAaccFeedback', () => {
   afterEach(() => {
@@ -465,17 +565,7 @@ describe('VinUniAaccFeedback', () => {
 
     render(<VinUniAaccFeedback analysis={v2} onTryAgain={vi.fn()} />);
 
-    const journeyChart = screen.getByRole('img', {
-      name: 'Biểu đồ hành trình bài luận qua năm chặng',
-    });
-    expect(journeyChart).toBeVisible();
-    expect(within(journeyChart).getByTestId('narrative-plot')).toHaveClass('h-[260px]');
-    const stageMarkers = within(journeyChart).getAllByTestId('narrative-stage-marker');
-    expect(stageMarkers).toHaveLength(5);
-    expect(stageMarkers[0]).toHaveClass('h-12', 'w-12');
-    for (const stage of ['Mở đầu', 'Bối cảnh', 'Xung đột', 'Chuyển biến', 'Tương lai']) {
-      expect(within(journeyChart).getByText(stage)).toBeVisible();
-    }
+    expect(screen.queryByTestId('narrative-plot')).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Bản đồ độ phủ dẫn chứng' })).toBeVisible();
     expect(screen.getByRole('table', { name: 'Đã có và cần bổ sung' })).toBeVisible();
     expect(screen.getByRole('img', { name: 'Tín hiệu Writing, Detail và Voice' })).toBeVisible();
@@ -483,6 +573,35 @@ describe('VinUniAaccFeedback', () => {
     expect(screen.getByRole('list', { name: 'Lộ trình ưu tiên' })).toBeVisible();
     expect(screen.getByRole('img', { name: 'Cầu điểm cải thiện' })).toBeVisible();
     expect(screen.queryByRole('img', { name: 'Tín hiệu Tổng quan' })).not.toBeInTheDocument();
+  });
+
+  it('renders the actual structure map and all seven Section B criteria', () => {
+    render(
+      <VinUniStructureFlowFeedback
+        review={structureReview}
+        map={structureMap}
+      />,
+    );
+
+    expect(screen.getByTestId('structure-flow-feedback')).toBeVisible();
+    expect(screen.getAllByTestId('narrative-map')).toHaveLength(1);
+    expect(screen.getAllByText('Workshop').length).toBeGreaterThan(0);
+    for (const label of [
+      'Narrative Architecture',
+      'Causal Progression',
+      'Development & Evolution',
+      'Transitions & Continuity',
+      'Narrative Depth & Development',
+      'Focus & Narrative Balance',
+      'Ending & Forward Progression',
+    ]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    for (const label of ['Logical:', 'Causal:', 'Thematic:', 'Cá nhân:', 'Past evidence', 'Long-term aspiration']) {
+      expect(screen.getAllByText(new RegExp(label.replace(':', ':?'))).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByText('Priority 1')).toBeVisible();
+    expect(screen.queryByTestId('narrative-plot')).not.toBeInTheDocument();
   });
 
   it('keeps evidence metadata clickable and shows every priority without a disclosure toggle', async () => {

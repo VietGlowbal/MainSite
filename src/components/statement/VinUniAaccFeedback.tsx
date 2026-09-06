@@ -18,6 +18,7 @@ import type {
   ReviewClaim,
 } from '@/lib/ai/vinuni-evaluation-v2';
 import { VINUNI_AACC_PILLARS } from '@/lib/vinuni-content';
+import { VinUniStructureFlowFeedback } from './VinUniStructureFlowFeedback';
 
 type Props = {
   analysis: AaccAnalysis;
@@ -802,159 +803,6 @@ function WritingSignals({ diagnostics }: { diagnostics?: EssayDiagnostics }) {
   );
 }
 
-function NarrativeJourneyChart({
-  analysis,
-  diagnostics,
-  strength,
-  gap,
-}: {
-  analysis: AaccAnalysis;
-  diagnostics?: EssayDiagnostics;
-  strength?: ReviewItem;
-  gap?: ReviewItem;
-}) {
-  const t = useT();
-  const dimensions = diagnostics?.achievability?.dimensions;
-  if (!dimensions) return null;
-
-  const stages = [
-    { label: 'Hook', score: dimensions.writing.current },
-    { label: 'Context', score: dimensions.detail.current },
-    {
-      label: 'Conflict',
-      score: Number(((dimensions.voice.current + dimensions.character.current) / 2).toFixed(1)),
-    },
-    { label: 'Change', score: analysis.pillars.creativity.score / 10 },
-    { label: 'Future', score: analysis.pillars.aspirations.score / 10 },
-  ];
-  const points = stages.map(({ score }, index) => ({
-    x: 50 + index * 225,
-    y: 210 - Math.max(0, Math.min(10, score)) * 16,
-  }));
-  const line = points.reduce((path, point, index) => {
-    if (!index) return `M ${point.x} ${point.y}`;
-    const previous = points[index - 1];
-    const middle = (previous.x + point.x) / 2;
-    return `${path} C ${middle} ${previous.y}, ${middle} ${point.y}, ${point.x} ${point.y}`;
-  }, '');
-  const itemText = (item?: ReviewItem) =>
-    item ? (typeof item === 'string' ? item : item.text) : '';
-
-  return (
-    <figure
-      role="img"
-      aria-label={t('Essay journey chart across five stages')}
-      className="mb-10 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 px-6 py-6 md:px-8">
-        <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-rose-600">
-          {t('Essay rhythm')}
-        </p>
-        <h3 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-slate-950">
-          {t('Story journey across five stages')}
-        </h3>
-        </div>
-        <p className="max-w-sm text-sm leading-6 text-slate-600">
-          {t('A higher line means the stage has stronger evidence and persuasion.')}
-        </p>
-      </div>
-      <div className="px-4 py-6 sm:px-7 md:px-10">
-        <div className="grid grid-cols-5 gap-2 text-center">
-          {stages.map(({ label }, index) => (
-            <div key={label} className="min-w-0">
-              <span className="mx-auto grid h-8 w-8 place-items-center rounded-full border border-rose-200 bg-rose-50 text-[10px] font-bold text-rose-700">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <span className="mt-2 block text-[10px] font-semibold leading-4 text-slate-700 sm:text-sm">
-                {t(label)}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div
-          data-testid="narrative-plot"
-          className="relative mt-2 h-[260px] w-full"
-        >
-          <svg
-            viewBox="0 0 1000 230"
-            preserveAspectRatio="none"
-            className="absolute inset-0 h-full w-full"
-            aria-hidden="true"
-          >
-          <defs>
-            <linearGradient id="narrative-area" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#fb7185" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="#fff1f2" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[50, 130, 210].map((y) => (
-            <line
-              key={y}
-              x1="30"
-              x2="970"
-              y1={y}
-              y2={y}
-              stroke="#e2e8f0"
-              strokeDasharray="5 7"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-          <path
-            d={`${line} L ${points.at(-1)!.x} 220 L ${points[0].x} 220 Z`}
-            fill="url(#narrative-area)"
-          />
-          <path
-            d={line}
-            fill="none"
-            stroke="#e11d48"
-            strokeLinecap="round"
-            strokeWidth="4"
-            vectorEffect="non-scaling-stroke"
-          />
-          </svg>
-          {points.map((point, index) => (
-            <span
-              key={stages[index].label}
-              data-testid="narrative-stage-marker"
-              className="absolute grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-rose-500 bg-white text-base font-bold tabular-nums text-rose-700 shadow-[0_8px_22px_rgba(225,29,72,0.2)]"
-              style={{
-                left: `${(point.x / 1000) * 100}%`,
-                top: `${(point.y / 230) * 100}%`,
-              }}
-            >
-              {stages[index].score.toFixed(1).replace('.0', '')}
-            </span>
-          ))}
-        </div>
-      </div>
-      {strength || gap ? (
-        <div className="grid gap-4 border-t border-slate-100 bg-surface p-5 md:grid-cols-2 md:p-6">
-          {strength ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
-              <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
-                <StatusIcon kind="complete" /> {t('Working well')}
-              </p>
-              <p className="mt-3 text-[15px] leading-7 text-slate-700">{itemText(strength)}</p>
-            </div>
-          ) : null}
-          {gap ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-5">
-              <p className="flex items-center gap-2 text-sm font-semibold text-rose-800">
-                <StatusIcon kind="missing" /> {t('Fix first')}
-              </p>
-              <p className="mt-3 text-[15px] leading-7 text-slate-700">{itemText(gap)}</p>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      <figcaption className="border-t border-slate-100 px-6 py-4 text-xs leading-5 text-slate-500">
-        {t('Summary from Writing, Detail, Voice, Character, Creativity, and Aspirations in the current result.')}
-      </figcaption>
-    </figure>
-  );
-}
-
 function AaccBulletChart({
   analysis,
   review,
@@ -1291,6 +1139,7 @@ export function VinUniAaccFeedback({
       ? (analysis as AaccAnalysisV2)
       : null;
   const review = v2Analysis?.review;
+  const structureFlow = review?.structureFlow;
   const diagnostics = v2Analysis?.diagnostics;
   const overallItems: ReviewItem[] = review?.overall?.length
     ? review.overall
@@ -1307,10 +1156,11 @@ export function VinUniAaccFeedback({
   const hasProjectedActions = nextSteps.some(isReviewClaim);
   const followUpQuestions = review?.nextSteps?.questions ?? [];
   const overallReady = overallItems.length > 0;
-  const ideasReady =
-    ideas.strengths.length > 0 ||
-    ideas.suggestions.length > 0 ||
-    ideas.weaknesses.some((group) => group.items.length > 0);
+  const ideasReady = structureFlow
+    ? true
+    : ideas.strengths.length > 0 ||
+      ideas.suggestions.length > 0 ||
+      ideas.weaknesses.some((group) => group.items.length > 0);
   const hookReady =
     hook.analysis.length > 0 || hook.suggestions.length > 0;
   const readyPillars = VINUNI_AACC_PILLARS.filter((pillar) => {
@@ -1334,9 +1184,6 @@ export function VinUniAaccFeedback({
     overallReady || ideasReady || hookReady || readyPillars.length > 0 || nextStepsReady;
   const summaryReady =
     ideasReady && hookReady && readyPillars.length === VINUNI_AACC_PILLARS.length;
-  const narrativeReady = ['creativity', 'aspirations'].every((key) =>
-    readyPillars.some((pillar) => pillar.key === key),
-  );
   const firstStrength = ideas.strengths[0] ?? overallItems[0];
   const firstGap = ideas.weaknesses.find(({ items }) => items.length)?.items[0];
   const strengthCount =
@@ -1424,12 +1271,6 @@ export function VinUniAaccFeedback({
             <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{missingCount}</strong><span className="text-xs font-semibold">{t('missing content')}</span></span>
           </span>
         </div> : null}
-        {narrativeReady ? <NarrativeJourneyChart
-          analysis={analysis}
-          diagnostics={diagnostics}
-          strength={firstStrength}
-          gap={firstGap}
-        /> : null}
         {overallReady ? (
           <ProgressiveChapter letter="A" title="Overview" animate={streaming}>
             {v2Analysis?.evidenceMap ? (
@@ -1443,7 +1284,16 @@ export function VinUniAaccFeedback({
           </ProgressiveChapter>
         ) : null}
 
-        {ideasReady ? (
+        {structureFlow && v2Analysis?.evidenceMap.structureFlowMap ? (
+          <ProgressiveChapter letter="B" title="Structure and flow" animate={streaming}>
+            <VinUniStructureFlowFeedback
+              review={structureFlow}
+              map={v2Analysis.evidenceMap.structureFlowMap}
+              onEvidenceSelect={onEvidenceSelect}
+              activeClaimKeys={activeClaimKeys}
+            />
+          </ProgressiveChapter>
+        ) : ideasReady ? (
           <ProgressiveChapter letter="B" title="Ideas and structure" animate={streaming}>
           <IdeasComparison strengths={ideas.strengths} weaknesses={ideas.weaknesses} />
           <details className="group rounded-[1.5rem] border border-slate-200 bg-white">

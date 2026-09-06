@@ -27,6 +27,10 @@ import type {
   VinUniV2StreamEvent,
 } from '@/lib/ai/vinuni-evaluation-v2';
 import {
+  collectStructureFlowClaims,
+  legacyIdeasStructureFromStructureFlow,
+} from '@/lib/ai/vinuni-evaluation-v2';
+import {
   createVinUniInputHash,
   VINUNI_DEFAULT_ESSAY_PROMPT,
   VINUNI_DEMO_APPLICATION_ID,
@@ -236,6 +240,33 @@ function applyVinUniSection(
     return next;
   }
   if (event.section === 'B') {
+    if ('narrativeOverview' in event.data) {
+      const legacyIdeas = legacyIdeasStructureFromStructureFlow(event.data);
+      const next = {
+        ...current,
+        sections: {
+          ...current.sections!,
+          ideasStructure: {
+            strengths: textOf(legacyIdeas.strengths),
+            weaknesses: legacyIdeas.weaknesses.map((group) => ({
+              category: group.category,
+              title: group.title,
+              items: textOf(group.items),
+            })),
+            suggestions: textOf(legacyIdeas.suggestions),
+          },
+        },
+      };
+      const v2 = ensureV2Analysis(next);
+      return {
+        ...v2,
+        review: {
+          ...v2.review,
+          structureFlow: event.data,
+          ideasStructure: legacyIdeas,
+        },
+      };
+    }
     const next = {
       ...current,
       sections: {
@@ -251,20 +282,6 @@ function applyVinUniSection(
         },
       },
     };
-    if (
-      [...event.data.strengths, ...event.data.suggestions].some(
-        (item) => 'evidenceRefs' in item,
-      )
-    ) {
-      const v2 = ensureV2Analysis(next);
-      return {
-        ...v2,
-        review: {
-          ...v2.review,
-          ideasStructure: event.data as AaccAnalysisV2['review']['ideasStructure'],
-        },
-      };
-    }
     return next;
   }
   if (event.section === 'C') {
@@ -707,9 +724,13 @@ export function StatementWriter({
     return [
       ...(vinUniAnalysis.diagnostics?.issues ?? []),
       ...review.overall,
-      ...review.ideasStructure.strengths,
-      ...review.ideasStructure.weaknesses.flatMap(({ items }) => items),
-      ...review.ideasStructure.suggestions,
+      ...(review.structureFlow
+        ? []
+        : [
+            ...review.ideasStructure.strengths,
+            ...review.ideasStructure.weaknesses.flatMap(({ items }) => items),
+            ...review.ideasStructure.suggestions,
+          ]),
       ...review.hookEngagement.analysis,
       ...review.hookEngagement.suggestions,
       ...Object.values(review.pillars).flatMap((pillar) => [
@@ -719,6 +740,7 @@ export function StatementWriter({
       ]),
       ...review.nextSteps.actions,
       ...review.nextSteps.questions,
+      ...collectStructureFlowClaims(review.structureFlow),
     ];
   }, [vinUniAnalysis]);
 

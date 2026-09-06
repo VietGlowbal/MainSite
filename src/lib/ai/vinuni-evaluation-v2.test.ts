@@ -15,6 +15,85 @@ import type { VinUniTextStream } from './vinuni-grounded-evaluation';
 const essay =
   'I led a robotics workshop for younger students. After the first session failed, I simplified the design and measured improved completion.';
 
+const structureFlow = () => {
+  const claim = (id: string, text: string) => ({
+    id,
+    text,
+    evidenceRefs: [{ source: 'essay' as const, id: 'U001' as const }],
+    priority: 'high' as const,
+  });
+  const criterion = (key: string, label: string) => ({
+    key,
+    label,
+    strength: claim(`${key}-strength`, `${label} has a grounded strength.`),
+    weakness: claim(`${key}-weakness`, `${label} has a grounded gap.`),
+    whyItMatters: claim(`${key}-why`, `${label} affects reader understanding.`),
+    improvement: claim(`${key}-improve`, `Improve ${label} with one explicit bridge.`),
+    severity: 'minor_gap' as const,
+    evidenceRefs: [{ source: 'essay' as const, id: 'U001' as const }],
+  });
+  const dimension = {
+    status: 'partial_evolution' as const,
+    summary: 'The draft shows a partial change.',
+    evidenceRefs: [{ source: 'essay' as const, id: 'U001' as const }],
+    missingStep: null,
+  };
+  const endingNode = { status: 'partial' as const, text: 'A stated ending.', evidenceRefs: [{ source: 'essay' as const, id: 'U002' as const }] };
+  return {
+    narrativeOverview: {
+      corePurpose: 'Show learning through a failed workshop.',
+      architectureSummary: 'The draft moves from an experience to a failed first attempt and a measured adjustment.',
+      unitIds: ['N001', 'N002'],
+      turningPointUnitIds: [],
+    },
+    criteria: {
+      narrativeArchitecture: criterion('narrative_architecture', 'Narrative Architecture'),
+      causalProgression: criterion('causal_progression', 'Causal Progression'),
+      developmentEvolution: criterion('development_evolution', 'Development & Evolution'),
+      transitionsContinuity: criterion('transitions_continuity', 'Transitions & Continuity'),
+      narrativeDepth: criterion('narrative_depth', 'Narrative Depth & Development'),
+      focusBalance: criterion('focus_balance', 'Focus & Narrative Balance'),
+      endingForwardProgression: criterion('ending_forward_progression', 'Ending & Forward Progression'),
+    },
+    transitions: [],
+    evolution: { responsibility: dimension, problemComplexity: dimension, thinking: dimension, approach: dimension, identity: dimension },
+    importantMoments: [],
+    balanceAnalysis: {
+      units: [
+        { unitId: 'N001', function: 'experience', wordCount: 1, share: 50, narrativePurpose: 'Set context.', imbalance: 'none' as const },
+        { unitId: 'N002', function: 'change', wordCount: 1, share: 50, narrativePurpose: 'Show adjustment.', imbalance: 'none' as const },
+      ],
+      strength: claim('balance-strength', 'The draft gives space to the change.'),
+      weakness: null,
+      whyItMatters: null,
+      improvement: null,
+    },
+    endingProgression: {
+      pastEvidence: endingNode,
+      keyLearning: endingNode,
+      currentDirection: endingNode,
+      capabilityGap: endingNode,
+      nextStep: endingNode,
+      longTermAspiration: endingNode,
+      continuity: 'partial' as const,
+      missingLinks: [],
+      strength: null,
+      weakness: null,
+      whyItMatters: null,
+      improvement: null,
+    },
+    priorities: [1, 2, 3].map((rank) => ({
+      rank,
+      title: `Priority ${rank}`,
+      whatToImprove: 'Make one relationship explicit.',
+      whyItMatters: 'Readers can follow the development more easily.',
+      specificDirection: 'Name the decision and its result.',
+      exampleOrTemplate: null,
+      evidenceRefs: [{ source: 'essay' as const, id: 'U001' as const }],
+    })),
+  };
+};
+
 describe('VinUni V2 context', () => {
   it('matches a VinUni programme and keeps demo profile empty', () => {
     const context = buildVinUniEvaluationContext({
@@ -103,6 +182,47 @@ describe('VinUni V2 validation', () => {
         segments,
       ),
     ).toThrow('Unknown essay evidence ID: U999');
+  });
+
+  it('preserves an arbitrary narrative architecture and rejects invalid links', () => {
+    const map = {
+      structureFlowMap: {
+        corePurpose: 'Show how the applicant learned from a workshop failure.',
+        narrativeUnits: [{
+          id: 'N001',
+          type: 'experience',
+          label: 'Workshop',
+          summary: 'The applicant led a workshop.',
+          evidenceIds: ['U001'],
+          order: 0,
+        }],
+        links: [],
+        turningPointUnitIds: [],
+        endingEvidenceIds: ['U001'],
+        possibleMultipleThreads: false,
+        threadNotes: [],
+        unresolvedStructureQuestions: [],
+      },
+      claims: [],
+      reflectionArcs: [],
+      promptCoverage: [],
+      aaccCoverage: {
+        ability: { evidenceIds: [], strength: 'none' },
+        aspirations: { evidenceIds: [], strength: 'none' },
+        creativity: { evidenceIds: [], strength: 'none' },
+        commitment: { evidenceIds: [], strength: 'none' },
+      },
+      informationGaps: [],
+      possiblePromptInjection: false,
+    };
+    expect(parseEvidenceCoverageMap(map, segments).structureFlowMap?.narrativeUnits[0].type).toBe('experience');
+    expect(() => parseEvidenceCoverageMap({
+      ...map,
+      structureFlowMap: {
+        ...map.structureFlowMap,
+        links: [{ fromUnitId: 'N001', toUnitId: 'N001', relationship: 'causal', evidenceIds: [] }],
+      },
+    }, segments)).toThrow('self-referential');
   });
 
   it('rejects an applicant assessment supported only by programme context', () => {
@@ -437,9 +557,9 @@ describe('VinUni V2 two-pass stream', () => {
       void event;
     }
 
-    expect(VINUNI_EVALUATION_CONFIG_V2.promptVersion).toBe('vinuni_two_pass_vi_v2_4');
+    expect(VINUNI_EVALUATION_CONFIG_V2.promptVersion).toBe('vinuni_two_pass_vi_v3_0');
     expect(requests[0].messages[0].content).toContain(
-      'bối cảnh → tension → lựa chọn → hành động → kết quả → insight',
+      'Không áp đặt một mẫu chung',
     );
     expect(requests[1].messages[0].content).toEqual(
       expect.stringContaining('VinUni cung cấp X; ứng viên dùng X làm Y và đóng góp Z'),
@@ -529,7 +649,7 @@ describe('VinUni V2 two-pass stream', () => {
     expect(order).toEqual(['evidence_map', 'diagnostics', 'A']);
   });
 
-  it('completes with grounded fallback sections when every provider response is empty', async () => {
+  it('returns a retryable error when rich Section B remains invalid after repair', async () => {
     const provider = vi.fn(async function* () {
       yield { content: '', finishReason: 'stop' };
     });
@@ -552,15 +672,9 @@ describe('VinUni V2 two-pass stream', () => {
       events.push(event);
     }
 
-    expect(events.filter((event) => event.type === 'section').map((event) => event.section))
-      .toEqual(['A', 'B', 'C', 'D', 'D', 'D', 'D', 'E', 'F']);
-    expect(events).not.toContainEqual(expect.objectContaining({ type: 'error' }));
-    expect(events).toContainEqual(
-      expect.objectContaining({
-        type: 'complete',
-        analysis: expect.objectContaining({ isComplete: true }),
-      }),
-    );
+    expect(events.filter((event) => event.type === 'section')).toEqual([]);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'error', code: 'SECTION_B_INVALID' }));
+    expect(events).not.toContainEqual(expect.objectContaining({ type: 'complete' }));
   });
 
   it('repairs truncated coverage with a larger budget and the validation reason', async () => {
@@ -841,11 +955,7 @@ describe('VinUni V2 two-pass stream', () => {
       { section: 'A', data: { items: [claim('R001', 'Bài luận trả lời đúng trọng tâm bằng một trải nghiệm lãnh đạo cụ thể, cho thấy quá trình học từ thất bại và điều chỉnh hành động có căn cứ.')] } },
       {
         section: 'B',
-        data: {
-          strengths: [claim('R002', 'Mạch kể đi từ vấn đề đến thất bại rồi cải tiến khá rõ, giúp người đọc theo dõi được nguyên nhân, quyết định và kết quả của ứng viên.')],
-          weaknesses: [],
-          suggestions: [claim('R003', 'Bổ sung một câu suy ngẫm về thay đổi trong quan niệm lãnh đạo để kết nối trải nghiệm thực tế với định hướng phát triển cá nhân dài hạn.')],
-        },
+        data: structureFlow(),
       },
       {
         section: 'C',
@@ -917,9 +1027,7 @@ describe('VinUni V2 two-pass stream', () => {
     }
 
     expect(provider).toHaveBeenCalledTimes(3);
-    expect(requests[0].messages[0].content).toContain(
-      '"claims":[{"id":"C001","text":"...","evidenceIds":["U001"]}]',
-    );
+    expect(requests[0].messages[0].content).toContain('structureFlowMap.narrativeUnits');
     expect(requests[1].messages[0].content).toContain(
       'Mỗi criterion D có tổng cộng 4-6 nhận xét',
     );

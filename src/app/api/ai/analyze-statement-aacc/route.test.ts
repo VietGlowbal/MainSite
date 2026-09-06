@@ -250,6 +250,35 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     );
   });
 
+  it('uses an authenticated applicationless V2 context for the public VinUni page', async () => {
+    vi.stubEnv('VINUNI_ESSAY_PIPELINE_VERSION', 'v1');
+    streamVinUniEvaluationV2Mock.mockImplementation(async function* () {
+      yield {
+        type: 'complete',
+        analysis: { isComplete: true },
+        inputHash: 'v2-public',
+        versions: { schema: 'v2-schema', rubric: 'v2-rubric', prompt: 'v2-prompt' },
+        timing: { firstSectionMs: 1000, totalMs: 5000 },
+      };
+    });
+
+    const response = await POST(
+      request({ applicationId: '', contextMode: 'vinuni_public', essayPrompt: '' }),
+    );
+    await response.text();
+
+    expect(response.status).toBe(200);
+    expect(fetchApplicationWorkspaceMock).not.toHaveBeenCalled();
+    expect(buildVinUniEvaluationContextMock).toHaveBeenCalledWith({
+      application: { id: null, universityName: 'VinUniversity', courseName: null },
+      course: null,
+      profile: null,
+    });
+    expect(streamVinUniEvaluationV2Mock).toHaveBeenCalledWith(
+      expect.objectContaining({ essayPrompt: expect.any(String) }),
+    );
+  });
+
   it('does not expose the VinUni demo endpoint in production', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('VINUNI_ESSAY_PIPELINE_VERSION', 'v2');
