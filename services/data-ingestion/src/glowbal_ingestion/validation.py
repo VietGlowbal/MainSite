@@ -7,13 +7,19 @@ from datetime import date
 from typing import Any
 from urllib.parse import urlparse
 
-from .deepseek import ExtractionSource
+from .extraction_provider import ExtractionSource
+from .identity_granularity import identity_granularity_reasons
 from .models import (
+    ApplicabilityState,
+    EpistemicState,
     FUNDING_TYPES,
     HIGH_RISK_FIELDS,
     FieldAssertion,
     NullReason,
     PageType,
+    SourceAuthority,
+    SourceRelationship,
+    TemporalState,
     VerificationStatus,
     has_semantic_value,
     normalize_placeholder_values,
@@ -150,6 +156,17 @@ ACTIVE_APPLICATION_FIELDS = frozenset(
         "rolling_admission",
     }
 )
+
+
+def _enum_value(value: Any, enum_type: type[Any], default: Any = None) -> Any:
+    """Restore enum dimensions when an assertion crosses a JSON boundary."""
+
+    if value is None or isinstance(value, enum_type):
+        return value if value is not None else default
+    try:
+        return enum_type(str(value))
+    except (TypeError, ValueError):
+        return default
 LANGUAGE_REQUIREMENT_FIELDS = frozenset(
     {"ielts_overall", "ielts_subscores", "toefl", "duolingo"}
 )
@@ -1187,6 +1204,16 @@ def fact_to_assertion(
             programme_degree,
         )
     )
+    if field_name == "programme_identity" and source:
+        errors.extend(
+            identity_granularity_reasons(
+                value=value,
+                evidence=evidence,
+                source_text=source.text,
+                scope=fact.get("scope"),
+                source_url=source_url,
+            )
+        )
     if field_name == "scholarships":
         errors.extend(_scholarship_applicability_errors(evidence))
     if (
@@ -1260,7 +1287,11 @@ def fact_to_assertion(
         confidence=float(fact.get("confidence", 0)),
         verification_status=status,
         extractor_version=extractor_version,
-        model_name=model_name,
+        model_name=(
+            str(fact.get("_model_name"))
+            if fact.get("_model_name")
+            else model_name
+        ),
         validation_errors=errors,
         extraction_group=fact.get("_group"),
         applicability_source_url=(
@@ -1274,6 +1305,52 @@ def fact_to_assertion(
             else None
         ),
         source_content_hash=source.content_hash if source else None,
+        raw_document_id=(
+            str(fact.get("_raw_document_id"))
+            if fact.get("_raw_document_id")
+            else (source.raw_document_id if source else None)
+        ),
+        parser_id=(
+            str(fact.get("_parser_id"))
+            if fact.get("_parser_id")
+            else (source.parser_id if source else None)
+        ),
+        parser_version=(
+            str(fact.get("_parser_version"))
+            if fact.get("_parser_version")
+            else (source.parser_version if source else None)
+        ),
+        provider_id=(
+            str(fact.get("_provider_id"))
+            if fact.get("_provider_id")
+            else None
+        ),
+        prompt_version=(
+            str(fact.get("_prompt_version"))
+            if fact.get("_prompt_version")
+            else None
+        ),
+        schema_version=(
+            str(fact.get("_schema_version"))
+            if fact.get("_schema_version")
+            else None
+        ),
+        source_authority=(
+            _enum_value(fact.get("_source_authority"), SourceAuthority)
+            or (source.source_authority if source else None)
+        ),
+        source_relationship=(
+            _enum_value(fact.get("_source_relationship"), SourceRelationship)
+            or (source.source_relationship if source else None)
+        ),
+        temporal_state=(
+            _enum_value(fact.get("_temporal_state"), TemporalState)
+            or (source.temporal_state if source else TemporalState.UNKNOWN)
+        ),
+        applicability_state=(
+            _enum_value(fact.get("_applicability_state"), ApplicabilityState)
+            or ApplicabilityState.UNKNOWN
+        ),
     )
 
 

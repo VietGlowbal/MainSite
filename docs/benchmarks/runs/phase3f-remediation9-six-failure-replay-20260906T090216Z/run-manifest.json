@@ -1,0 +1,14 @@
+{
+  "schema_version": "phase3f-remediation9-replay-manifest/v1",
+  "run_id": "phase3f-remediation9-six-failure-replay-20260906T090216Z",
+  "source_run_id": "phase3f-v2-run-20260905T161914Z",
+  "run_type": "OFFLINE_SIX_FAILURE_REPLAY",
+  "provider_calls": 0,
+  "refetches": 0,
+  "new_urls_discovered": 0,
+  "source_pipeline_output_sha256": "8dc5d04d36d1fd8cdaadcf9a44fdb34263091bc56c0db2ad088634ea9b904b9d",
+  "sealed_artifacts": {
+    "replay-output.json": "c7f2e22038073997282878b8f4facd139ac30cf88013d0ee8ba3bbf7dc71cae3",
+    "six-case-comparison.jsonl": "65daeb304e6f64bd8ba069a279f6896e93549452a2dc7a69592b925221b6842b"
+  }
+}

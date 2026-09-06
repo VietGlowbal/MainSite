@@ -140,6 +140,7 @@ from glowbal_ingestion.supabase_seeds import (
     load_approved_supabase_seeds,
 )
 from glowbal_ingestion.supabase_import import (
+    SupabaseImportError,
     import_supabase_run,
     preflight_supabase_run,
 )
@@ -1030,6 +1031,199 @@ class SupabaseImportTests(unittest.TestCase):
         )
         self.assertTrue(result.applied)
         self.assertEqual(client.updates[-1][1]["status"], "completed")
+
+    @staticmethod
+    def _write_acquisition_artifacts(run_dir: Path) -> None:
+        """Write a complete, FK-linked v3 source graph without raw payloads."""
+        intent_id = "10000000-0000-0000-0000-000000000011"
+        candidate_id = "10000000-0000-0000-0000-000000000012"
+        discovery_id = "10000000-0000-0000-0000-000000000013"
+        decision_id = "10000000-0000-0000-0000-000000000014"
+        attempt_id = "10000000-0000-0000-0000-000000000015"
+        raw_document_id = "10000000-0000-0000-0000-000000000016"
+
+        def write_jsonl(name: str, records: list[dict[str, object]]) -> None:
+            (run_dir / name).write_text(
+                "".join(json.dumps(record) + "\n" for record in records),
+                encoding="utf-8",
+            )
+
+        write_jsonl(
+            "acquisition_intents.jsonl",
+            [{
+                "intent_id": intent_id,
+                "entity": {"entity_type": "PROGRAMME", "entity_id": "programme-1"},
+                "field_groups": ["tuition"],
+                "reason": "fixture contract",
+                "preferred_source_classes": ["government_dataset"],
+                "priority": 10,
+                "policy_version": "acquisition-intent/v1",
+                "created_at": "2026-08-29T00:00:00+00:00",
+            }],
+        )
+        write_jsonl(
+            "source_candidates.jsonl",
+            [{
+                "candidate_id": candidate_id,
+                "intent_id": intent_id,
+                "canonical_locator": "provider://ipeds/unitid/123",
+                "locator_type": "provider_resource",
+                "source_class": "government_dataset",
+                "declared_authority": "GOVERNMENT",
+                "relationship": "GOVERNMENT",
+                "relationship_evidence": ["unitid"],
+                "expected_field_groups": ["tuition"],
+                "discovery_method": "fixture",
+                "adapter_id": "ipeds",
+                "provider_id": "IPEDS",
+                "dataset_id": "HD2025",
+                "temporal_state": "CURRENT",
+                # This is deliberately not a UUID: source identities include
+                # provider/resource keys as well as URL-derived identities.
+                "source_identity": "IPEDS:HD2025:UNITID:123",
+                "raw_document_id": raw_document_id,
+            }],
+        )
+        write_jsonl(
+            "source_discovery_evidence.jsonl",
+            [{
+                "discovery_evidence_id": discovery_id,
+                "source_candidate_id": candidate_id,
+                "discovery_method": "fixture",
+                "evidence_summary": "provider resource listed for target",
+                "source_locator": "provider://ipeds/unitid/123",
+            }],
+        )
+        write_jsonl(
+            "source_admission_decisions.jsonl",
+            [{
+                "admission_decision_id": decision_id,
+                "acquisition_intent_id": intent_id,
+                "source_candidate_id": candidate_id,
+                "admitted": True,
+                "reason": "ADMITTED",
+                "factor_scores": {
+                    "authority": 50,
+                    "relationship": 20,
+                    "temporal": 10,
+                    "relevance": 10,
+                    "applicability": 10,
+                },
+                "total_score": 100,
+                "allowed_domain": "ipeds.ed.gov",
+            }],
+        )
+        write_jsonl(
+            "acquisition_attempts.jsonl",
+            [{
+                "attempt_id": attempt_id,
+                "intent_id": intent_id,
+                "candidate_id": candidate_id,
+                "raw_document_id": raw_document_id,
+                "status": "RAW_PERSISTED",
+                "retryable": False,
+                "started_at": "2026-08-29T00:00:01+00:00",
+                "finished_at": "2026-08-29T00:00:02+00:00",
+            }],
+        )
+
+    def test_optional_v3_imports_source_graph_in_fk_order(self) -> None:
+        class Client:
+            def __init__(self) -> None:
+                self.inserts: list[tuple[str, list[dict[str, object]], str | None]] = []
+
+            def select(self, table, _params):
+                if table == "universities":
+                    return [{"id": 1, "name": "MIT", "primary_domain": "mit.edu"}]
+                return []
+
+            def insert(self, table, rows, *, return_rows=False, on_conflict=None):
+                self.inserts.append((table, list(rows), on_conflict))
+                if table == "crawl_runs":
+                    return [{"id": "10000000-0000-0000-0000-000000000001"}]
+                return []
+
+            def update(self, _table, _values, _params):
+                return None
+
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir = Path(temporary) / "test-import-run"
+            run_dir.mkdir()
+            self._write_run(run_dir)
+            self._write_acquisition_artifacts(run_dir)
+            client = Client()
+            result = import_supabase_run(run_dir, apply=True, client=client)
+
+        table_order = [table for table, _rows, _conflict in client.inserts]
+        self.assertEqual(result.counts["crawl_acquisition_v3_available"], 1)
+        self.assertLess(
+            table_order.index("crawl_acquisition_intents"),
+            table_order.index("crawl_source_candidates"),
+        )
+        self.assertLess(
+            table_order.index("crawl_source_candidates"),
+            table_order.index("crawl_source_discovery_evidence_v3"),
+        )
+        self.assertLess(
+            table_order.index("crawl_source_candidates"),
+            table_order.index("crawl_source_admission_decisions_v3"),
+        )
+        self.assertLess(
+            table_order.index("crawl_source_candidates"),
+            table_order.index("crawl_acquisition_attempts"),
+        )
+        candidate_insert = next(
+            rows for table, rows, _conflict in client.inserts
+            if table == "crawl_source_candidates"
+        )
+        self.assertEqual(
+            candidate_insert[0]["source_identity"],
+            "IPEDS:HD2025:UNITID:123",
+        )
+        self.assertNotIn("payload", candidate_insert[0])
+
+    def test_optional_v3_unavailable_keeps_v2_import_usable(self) -> None:
+        class Client:
+            def __init__(self) -> None:
+                self.inserts: list[tuple[str, list[dict[str, object]], str | None]] = []
+
+            def select(self, table, _params):
+                if table == "universities":
+                    return [{"id": 1, "name": "MIT", "primary_domain": "mit.edu"}]
+                if table == "crawl_acquisition_intents":
+                    raise SupabaseImportError("Supabase GET crawl_acquisition_intents failed with HTTP 404")
+                return []
+
+            def insert(self, table, rows, *, return_rows=False, on_conflict=None):
+                self.inserts.append((table, list(rows), on_conflict))
+                if table == "crawl_runs":
+                    return [{"id": "10000000-0000-0000-0000-000000000001"}]
+                return []
+
+            def update(self, _table, _values, _params):
+                return None
+
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir = Path(temporary) / "test-import-run"
+            run_dir.mkdir()
+            self._write_run(run_dir)
+            self._write_acquisition_artifacts(run_dir)
+            client = Client()
+            result = import_supabase_run(run_dir, apply=True, client=client)
+
+        imported_tables = {table for table, _rows, _conflict in client.inserts}
+        self.assertTrue(result.applied)
+        self.assertEqual(result.counts["crawl_acquisition_v3_available"], 0)
+        self.assertIn("crawl_programmes", imported_tables)
+        self.assertFalse(
+            imported_tables & {
+                "crawl_acquisition_intents",
+                "crawl_source_candidates",
+                "crawl_source_discovery_evidence_v3",
+                "crawl_source_admission_decisions_v3",
+                "crawl_acquisition_attempts",
+            },
+        )
 
     def test_failed_import_resumes_same_run_idempotently(self) -> None:
         run_id = "10000000-0000-0000-0000-000000000001"

@@ -1,0 +1,13 @@
+{
+  "schema_version": "phase3f-remediation9-targeted-smoke-manifest/v1",
+  "run_id": "phase3f-remediation9-targeted-smoke-20260906T090318Z",
+  "run_type": "OFFLINE_TARGETED_SMOKE",
+  "source_replay_artifact": "docs\\benchmarks\\runs\\phase3f-remediation9-six-failure-replay-20260906T090216Z\\replay-output.json",
+  "source_replay_artifact_sha256": "c7f2e22038073997282878b8f4facd139ac30cf88013d0ee8ba3bbf7dc71cae3",
+  "provider_calls": 0,
+  "refetches": 0,
+  "new_urls_discovered": 0,
+  "sealed_artifacts": {
+    "targeted-smoke.json": "40983b87eefad557f07490468906abc780d7b492890c9c3c015187c825b37c73"
+  }
+}

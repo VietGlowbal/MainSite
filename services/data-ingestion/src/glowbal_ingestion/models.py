@@ -32,8 +32,39 @@ class NullReason(str, enum.Enum):
     BLOCKED_BY_POLICY = "BLOCKED_BY_POLICY"
     FETCH_FAILED = "FETCH_FAILED"
     PARSE_FAILED = "PARSE_FAILED"
+    EXTRACTION_FAILED = "EXTRACTION_FAILED"
     AMBIGUOUS = "AMBIGUOUS"
     CONFLICTED = "CONFLICTED"
+
+
+class AvailabilityState(str, enum.Enum):
+    NOT_EVALUATED = "NOT_EVALUATED"
+    FOUND = "FOUND"
+    NOT_PUBLISHED = "NOT_PUBLISHED"
+    NOT_REQUIRED = "NOT_REQUIRED"
+    SOURCE_NOT_FOUND = "SOURCE_NOT_FOUND"
+    ACCESS_BLOCKED = "ACCESS_BLOCKED"
+    FETCH_FAILED = "FETCH_FAILED"
+    PARSE_FAILED = "PARSE_FAILED"
+    EXTRACTION_FAILED = "EXTRACTION_FAILED"
+    STALE_ONLY = "STALE_ONLY"
+    CONFLICTING_SOURCES = "CONFLICTING_SOURCES"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+
+
+class ApplicabilityState(str, enum.Enum):
+    APPLICABLE = "APPLICABLE"
+    UNIVERSAL = "UNIVERSAL"
+    CONDITIONAL = "CONDITIONAL"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    UNKNOWN = "UNKNOWN"
+
+
+class ConflictState(str, enum.Enum):
+    NO_CONFLICT = "NO_CONFLICT"
+    RESOLVED_AUTOMATICALLY = "RESOLVED_AUTOMATICALLY"
+    REQUIRES_REVIEW = "REQUIRES_REVIEW"
+    UNRESOLVABLE = "UNRESOLVABLE"
 
 
 class VerificationStatus(str, enum.Enum):
@@ -44,6 +75,48 @@ class VerificationStatus(str, enum.Enum):
     NEEDS_REVIEW = "NEEDS_REVIEW"
     HUMAN_VERIFIED = "HUMAN_VERIFIED"
     REJECTED = "REJECTED"
+
+
+class EpistemicState(str, enum.Enum):
+    OBSERVED = "OBSERVED"
+    DERIVED = "DERIVED"
+    INFERRED = "INFERRED"
+
+
+class TemporalState(str, enum.Enum):
+    CURRENT = "CURRENT"
+    HISTORICAL = "HISTORICAL"
+    FUTURE = "FUTURE"
+    TARGET_CYCLE_ESTIMATE = "TARGET_CYCLE_ESTIMATE"
+    UNKNOWN = "UNKNOWN"
+
+
+class SourceAuthority(str, enum.Enum):
+    OFFICIAL = "OFFICIAL"
+    GOVERNMENT = "GOVERNMENT"
+    OFFICIAL_PARTNER = "OFFICIAL_PARTNER"
+    ACCREDITED_PROVIDER = "ACCREDITED_PROVIDER"
+    TRUSTED_AGGREGATOR = "TRUSTED_AGGREGATOR"
+    ARCHIVE = "ARCHIVE"
+    OTHER = "OTHER"
+
+
+class SourceRelationship(str, enum.Enum):
+    DIRECT_OFFICIAL = "DIRECT_OFFICIAL"
+    PARENT_INSTITUTION = "PARENT_INSTITUTION"
+    DEPARTMENT = "DEPARTMENT"
+    CENTRAL_ADMISSIONS = "CENTRAL_ADMISSIONS"
+    INTERNATIONAL_ADMISSIONS = "INTERNATIONAL_ADMISSIONS"
+    FINANCE_OFFICE = "FINANCE_OFFICE"
+    GOVERNMENT = "GOVERNMENT"
+    SCHOLARSHIP_PROVIDER = "SCHOLARSHIP_PROVIDER"
+    PARTNER_INSTITUTION = "PARTNER_INSTITUTION"
+    CONSORTIUM = "CONSORTIUM"
+    CATALOGUE_PROVIDER = "CATALOGUE_PROVIDER"
+    ACCREDITATION_BODY = "ACCREDITATION_BODY"
+    ARCHIVE = "ARCHIVE"
+    AGGREGATOR = "AGGREGATOR"
+    OTHER_RELATED = "OTHER_RELATED"
 
 
 class PolicyStatus(str, enum.Enum):
@@ -112,6 +185,10 @@ def normalize_placeholder_values(value: Any) -> Any:
 
 
 DEEP_FIELDS: tuple[str, ...] = (
+    # Factual identity fields are routed through extraction.  Routing
+    # metadata remains separate from these source-backed assertions.
+    "programme_identity",
+    "credential",
     "programme_status",
     "programme_focus",
     "curriculum_overview",
@@ -160,6 +237,8 @@ SCHOOL_PROFILE_FIELDS: tuple[str, ...] = (
 
 EXTRACTION_FIELD_GROUPS: dict[str, tuple[str, ...]] = {
     "identity_offering": (
+        "programme_identity",
+        "credential",
         "programme_status",
         "academic_cycle",
         "intakes",
@@ -393,6 +472,15 @@ class SourceDocument(JsonRecord):
     text_length: int = 0
     fetch_method: str = "http"
     rendered: bool = False
+    raw_document_id: str | None = None
+    parser_id: str | None = None
+    parser_version: str | None = None
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    published_at: str | None = None
+    valid_from: str | None = None
+    valid_to: str | None = None
 
 
 @dataclass
@@ -493,6 +581,22 @@ class FieldAssertion(JsonRecord):
     inherited_from_assertion_id: str | None = None
     inherited_from_entity_id: str | None = None
     inheritance_key: str | None = None
+    epistemic_state: EpistemicState = EpistemicState.OBSERVED
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    raw_document_id: str | None = None
+    parser_id: str | None = None
+    parser_version: str | None = None
+    provider_id: str | None = None
+    prompt_version: str | None = None
+    schema_version: str | None = None
+    degree_level: str | None = None
+    country: str | None = None
+    applicability_state: ApplicabilityState = ApplicabilityState.UNKNOWN
+    published_at: str | None = None
+    valid_from: str | None = None
+    valid_to: str | None = None
 
 
 @dataclass
@@ -527,3 +631,42 @@ class ParsedPage:
     text: str
     links: list[tuple[str, str]]
     language: str | None = None
+
+
+@dataclass(frozen=True)
+class RawDocument(JsonRecord):
+    """Immutable metadata for one source observation; payload lives elsewhere."""
+
+    raw_document_id: str
+    source_identity: str
+    canonical_url: str
+    content_hash: str
+    content_type: str | None
+    retrieved_at: str
+    payload_location: str
+    payload_reference: str | None
+    http_status: int | None = None
+    safe_response_headers: dict[str, str] = field(default_factory=dict)
+    published_at: str | None = None
+    academic_cycle: str | None = None
+    language: str | None = None
+    fetch_method: str | None = None
+    rendered: bool = False
+    acquisition_run_id: str | None = None
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    schema_version: str = "raw-document/v1"
+
+
+@dataclass(frozen=True)
+class ParsedDocument(JsonRecord):
+    raw_document_id: str
+    parser_id: str
+    parser_version: str
+    text: str
+    structured_payload: Any | None = None
+    links: tuple[tuple[str, str], ...] = ()
+    language: str | None = None
+    title: str | None = None
+    sections: tuple[str, ...] = ()

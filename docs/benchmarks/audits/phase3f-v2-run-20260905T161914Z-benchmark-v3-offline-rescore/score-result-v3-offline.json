@@ -1,0 +1,3440 @@
+{
+  "schema_version": "phase3f-benchmark-score/v2",
+  "truth_version": "phase-3f-ground-truth-v3-frozen",
+  "run_id": "phase3f-v2-run-20260905T161914Z",
+  "counts": {
+    "truth_records": 252,
+    "primary_scoreable_records": 246,
+    "ambiguous_records": 6,
+    "output_records": 252,
+    "truth_state_counts": {
+      "FOUND": 118,
+      "NEEDS_REVIEW": 124,
+      "NOT_REQUIRED": 4
+    }
+  },
+  "metrics": {
+    "programme_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "programme_discovery_recall_by_institution": {
+      "Cornell": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Duke": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "ETH Zurich": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Harvard": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "MIT": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Northwestern": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Princeton": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Sorbonne Université": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "UCLA": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Michigan": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Tokyo": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Université de Montréal": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      }
+    },
+    "programme_discovery_institution_floor": {
+      "status": "AVAILABLE",
+      "min_value": 1.0,
+      "threshold": 0.8,
+      "violating_institutions": []
+    },
+    "required_source_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "critical_field_precision": {
+      "numerator": 24,
+      "denominator": 30,
+      "value": 0.8,
+      "status": "AVAILABLE"
+    },
+    "critical_field_recall_resolved_coverage": {
+      "numerator": 24,
+      "denominator": 122,
+      "value": 0.19672131147540983,
+      "status": "AVAILABLE"
+    },
+    "safe_unresolved_correctness": {
+      "numerator": 88,
+      "denominator": 124,
+      "value": 0.7096774193548387,
+      "status": "AVAILABLE"
+    },
+    "product_safe_evidence_entailment": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null,
+      "status": "NOT_AVAILABLE"
+    },
+    "false_current_critical_count": 0,
+    "identity_merge_violations": 0,
+    "critical_unresolved_conflict_promoted_count": 0,
+    "critical_source_not_found_promoted_count": 0,
+    "critical_stale_only_promoted_count": 0,
+    "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+    "product_safe_without_durable_provenance_count": 0,
+    "truth_comparison_failures": 6,
+    "coverage_loss_count": 103,
+    "identity_v3_comparison": {
+      "found_population": 28,
+      "exact_equivalent": 0,
+      "canonically_equivalent": 24,
+      "official_alias_equivalent": 0,
+      "credential_aware_equivalent": 0,
+      "wrong_granularity": 3,
+      "ambiguous": 1,
+      "factually_wrong": 0,
+      "concrete_precision": "24/30"
+    },
+    "error_counts": null
+  },
+  "error_counts": {
+    "QUALITY_POLICY": 66,
+    "IDENTITY": 5,
+    "EXTRACTION": 9,
+    "FETCH": 48,
+    "GROUND_TRUTH_AMBIGUOUS": 6,
+    "CONFLICT": 4,
+    "APPLICABILITY": 1
+  },
+  "cases": [
+    {
+      "case_id": "GT-V2-01-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-01-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-01-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-01-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "FAIL",
+      "error_classes": [
+        "IDENTITY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-01-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-01-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-01-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-02-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-02-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-02-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-02-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-02-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-02-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-02-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-03-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-03-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-03-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-03-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "FAIL",
+      "error_classes": [
+        "IDENTITY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-03-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-03-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-03-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-04-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-04-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-04-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-04-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-04-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-04-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NOT_REQUIRED",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-04-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NOT_REQUIRED",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-05-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-05-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-05-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-05-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_AMBIGUOUS",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "EXCLUDED_AMBIGUOUS",
+      "error_classes": [
+        "GROUND_TRUTH_AMBIGUOUS"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": false
+    },
+    {
+      "case_id": "GT-V2-05-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-05-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-05-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_AMBIGUOUS",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "EXCLUDED_AMBIGUOUS",
+      "error_classes": [
+        "GROUND_TRUTH_AMBIGUOUS"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": false
+    },
+    {
+      "case_id": "GT-V2-06-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-06-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-06-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-06-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_AMBIGUOUS",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "EXCLUDED_AMBIGUOUS",
+      "error_classes": [
+        "GROUND_TRUTH_AMBIGUOUS"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": false
+    },
+    {
+      "case_id": "GT-V2-06-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-06-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NOT_REQUIRED",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-06-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NOT_REQUIRED",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-07-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-07-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-07-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-07-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-07-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-07-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-07-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-08-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-08-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-08-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-08-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-08-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-08-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-08-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-09-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-09-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-09-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-09-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-09-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-09-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-09-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-10-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-10-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-10-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-10-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-10-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-10-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-10-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-11-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-11-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-11-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-11-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "CONFLICTING_SOURCES",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "CONFLICT"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-11-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-11-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-11-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_AMBIGUOUS",
+      "truth_state": null,
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "EXCLUDED_AMBIGUOUS",
+      "error_classes": [
+        "GROUND_TRUTH_AMBIGUOUS"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": false
+    },
+    {
+      "case_id": "GT-V2-12-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-12-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-12-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-12-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_AMBIGUOUS",
+      "truth_state": null,
+      "output_state": "CONFLICTING_SOURCES",
+      "outcome": "EXCLUDED_AMBIGUOUS",
+      "error_classes": [
+        "GROUND_TRUTH_AMBIGUOUS"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": false
+    },
+    {
+      "case_id": "GT-V2-12-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-12-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-12-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-13-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-13-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-13-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-13-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-13-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-13-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-13-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_AMBIGUOUS",
+      "truth_state": null,
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "EXCLUDED_AMBIGUOUS",
+      "error_classes": [
+        "GROUND_TRUTH_AMBIGUOUS"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": false
+    },
+    {
+      "case_id": "GT-V2-14-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-14-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-14-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-14-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-14-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-14-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-14-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-15-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-15-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-15-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-15-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-15-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-15-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-15-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-16-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-16-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-16-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-16-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-16-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-16-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-16-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-17-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-17-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-17-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-17-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-17-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-17-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-17-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-18-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-18-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-18-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-18-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-18-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-18-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-18-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-19-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "FAIL",
+      "error_classes": [
+        "IDENTITY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "WRONG_GRANULARITY",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_WRONG_IDENTITY_GRANULARITY"
+    },
+    {
+      "case_id": "GT-V2-19-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-19-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-19-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "CONFLICTING_SOURCES",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "CONFLICT"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-19-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-19-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-19-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-20-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-20-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-20-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-20-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-20-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-20-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-20-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-21-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "AMBIGUOUS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "AMBIGUOUS",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "UNRESOLVED_IDENTITY_AMBIGUITY"
+    },
+    {
+      "case_id": "GT-V2-21-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-21-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-21-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-21-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-21-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-21-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-22-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-22-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-22-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-22-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-22-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-22-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-22-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-23-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-23-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-23-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-23-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-23-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-23-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-23-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-24-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-24-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-24-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-24-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-24-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-24-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-24-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-25-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "FAIL",
+      "error_classes": [
+        "IDENTITY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "WRONG_GRANULARITY",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_WRONG_IDENTITY_GRANULARITY"
+    },
+    {
+      "case_id": "GT-V2-25-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "CONFLICTING_SOURCES",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "CONFLICT"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-25-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-25-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-25-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-25-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-25-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-26-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-26-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-26-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-26-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-26-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-26-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-26-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-27-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-27-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-27-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-27-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-27-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-27-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-27-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-28-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-28-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-28-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-28-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-28-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-28-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-28-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "FAIL",
+      "error_classes": [
+        "APPLICABILITY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-29-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-29-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-29-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-29-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-29-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-29-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-29-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-30-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-30-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-30-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-30-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-30-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-30-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-30-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-31-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-31-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-31-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-31-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-31-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-31-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-31-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-32-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "FAIL",
+      "error_classes": [
+        "IDENTITY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "WRONG_GRANULARITY",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_WRONG_IDENTITY_GRANULARITY"
+    },
+    {
+      "case_id": "GT-V2-32-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-32-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-32-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "CONFLICTING_SOURCES",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "CONFLICT"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-32-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "EXTRACTION_FAILED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "EXTRACTION"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-32-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-32-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-33-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-33-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-33-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-33-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-33-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-33-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-33-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-34-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "FOUND",
+      "outcome": "PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "CANONICALLY_EQUIVALENT",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "RESOLVED_CORRECT"
+    },
+    {
+      "case_id": "GT-V2-34-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-34-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-34-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-34-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "error_classes": [],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-34-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-34-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "NEEDS_REVIEW",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "QUALITY_POLICY"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-35-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-35-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-35-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-35-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-35-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-35-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-35-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-36-programme_identity",
+      "field": "programme_identity",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true,
+      "comparison_class": "NOT_COMPARED_NON_FOUND",
+      "normalization_applied": [
+        "structured-v3-contract"
+      ],
+      "alias_evidence": [],
+      "coverage_class": "NON_FOUND_RUNTIME_STATE"
+    },
+    {
+      "case_id": "GT-V2-36-credential",
+      "field": "credential",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "FOUND",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-36-programme_status",
+      "field": "programme_status",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-36-tuition",
+      "field": "tuition",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-36-application_deadline",
+      "field": "application_deadline",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-36-english_requirement",
+      "field": "english_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    },
+    {
+      "case_id": "GT-V2-36-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_status": "REVIEWED_CONFIRMED",
+      "truth_state": "NEEDS_REVIEW",
+      "output_state": "ACCESS_BLOCKED",
+      "outcome": "COVERAGE_LOSS",
+      "error_classes": [
+        "FETCH"
+      ],
+      "product_safe_violations": [],
+      "primary_scoreable": true
+    }
+  ],
+  "benchmark_version": "phase3f-v3",
+  "methodology": "BENCHMARK_V3_OFFLINE_RESCORE_OF_SEALED_RUN4",
+  "sealed_input_sha256": "8dc5d04d36d1fd8cdaadcf9a44fdb34263091bc56c0db2ad088634ea9b904b9d",
+  "deepseek_calls": 0,
+  "recrawl": false,
+  "refetch": false,
+  "classification": "FAIL — QUALITY",
+  "classification_reason": "Critical precision 80.00% remains below the locked 98% target; safety counters remain zero."
+}

@@ -1,5 +1,426 @@
 # Current project status
 
+Working tree 2026-09-06: Remediation 9 corrected the six known true quality
+patterns under frozen Benchmark V3 without changing GT v3, Scorer v2, the V3
+freeze manifest, or official Runs #1–#4. The offline replay
+`phase3f-remediation9-six-failure-replay-20260906T090216Z` changed all six
+incorrect concrete FOUND values to `NEEDS_REVIEW`: 0 incorrect FOUND remain.
+All 24 canonical-equivalent identity controls stayed FOUND, while the one
+Contract-v2 ambiguous identity stayed unresolved. The bounded 9-case targeted
+smoke `phase3f-remediation9-targeted-smoke-20260906T090318Z` produced 2
+evidence-audited FOUND controls and 7 NEEDS_REVIEW cases, with 100% precision
+among concrete FOUND values. It used persisted Run #4 evidence only: 0
+provider calls, 0 refetches, and 0 new URLs.
+
+The generic fixes are deterministic identity-granularity guards for pre-major,
+department-only, parent/child, and mutually exclusive MS/PhD scope; tuition
+billing/annual-scope guards; and an admissions-semantic guard that rejects
+qualifying-discipline/application-component text without explicit admission
+prerequisite semantics. Focused tests pass 30/30 and the full ingestion suite
+passes 363/363. All seven zero-tolerance counters remain 0. Benchmark #5 was
+not run; Slice F remains **NO-GO** pending explicit authorization.
+
+Working tree 2026-09-06: Phase 3F ground-truth adjudication audit completed for
+exactly the 28 Run #4 `programme_identity` cases that were runtime `FOUND` but
+scored incorrect. The blind Pass-1 artifact was sealed before GT/runtime reveal
+(28/28 unique, SHA-256
+`7c6f58d56add1fbefa8dade85fa7cca35cab71c2467ea797430065b8b3452251`). Pass 2
+found 20 `CANONICALIZATION_MISMATCH`, 6 `IDENTITY_GRANULARITY_MISMATCH`, 1
+`SCORER_CONTRACT_MISMATCH`, and 1 `GENUINELY_AMBIGUOUS`; no GT-wrong,
+GT-stale, runtime-wrong, or both-wrong cases were independently established.
+GT was semantically supported in 27/28 cases with sufficient evidence (27/27
+among the non-ambiguous subset), but representation disagreement was systemic
+(27/28). The decision gate is **GT_V2_IDENTITY_CONTRACT_INCONSISTENT**. No GT,
+scorer, pipeline, official run, or benchmark was modified. Details:
+`docs/benchmarks/2026-09-06-phase3f-programme-identity-ground-truth-audit.md`.
+Slice F remains **NO-GO**; benchmark #5 and Remediation 9 were not run.
+
+Working tree 2026-09-05: Official frozen V3 benchmark run #4,
+`phase3f-v2-run-20260905T161914Z`, executed all 36 frozen programme rows and
+sealed/scored the output with the unchanged scorer contract. Direct DeepSeek
+was used at `https://api.deepseek.com` with `deepseek-v4-flash`, reasoning
+`none`; 36/36 programmes and 362/362 fetched sources completed, with 288
+logical requests, 281 successful calls, 0 retries, and 0 HTTP 429. The run
+sealed 1,756 assertions (665 effective non-null values) and projected 31
+`FOUND`, 158 `NEEDS_REVIEW`, 49 `ACCESS_BLOCKED`, 5
+`CONFLICTING_SOURCES`, and 9 `EXTRACTION_FAILED`; `NOT_EVALUATED` and
+`PARSE_FAILED` were both 0. Programme and required-source discovery were both
+100%; safe-unresolved correctness improved to 88/124 (70.97%), but critical
+precision was 0/31 and resolved coverage 0/122. All seven zero-tolerance
+safety counters were 0, so the locked classification is **FAIL — QUALITY**,
+not a safety or integrity failure. Pipeline output SHA-256:
+`8dc5d04d36d1fd8cdaadcf9a44fdb34263091bc56c0db2ad088634ea9b904b9d`.
+Artifacts are under
+`docs/benchmarks/runs/phase3f-v2-run-20260905T161914Z/`, including the
+four-run comparison. No remediation or later Slice F gate was run. Slice F
+remains **NO-GO**; Node 24.19.x remains deferred/unverified by user decision.
+
+Working tree 2026-09-05: Remediation 8 assertion-generation revalidation
+completed against exactly the 50 direct-support identity/credential cases
+(25 `programme_identity`, 25 `credential`) using existing persisted raw
+evidence only. Run
+`phase3f-remediation8-revalidation-50-20260905T160831Z` reprocessed 50 cases
+across 29 programmes, reran 32 parsers and 29 extractors, performed 0
+refetches and discovered 0 URLs. It created 44/50 non-null runtime
+assertions (88%): identity 24/25 and credential 20/25. Projection produced
+22 `FOUND` and 22 `NEEDS_REVIEW`; six successful empty extractor results
+remained `NOT_EVALUATED`. DeepSeek returned 29/29 responses with 0 retries
+and 0 HTTP 429. Post-seal truth audit found false-current = 0 and all seven
+zero-tolerance counters = 0. The revalidation majority gate passes, so
+`FULL BENCHMARK RUN #4 READY` for this assertion-generation criterion; no
+official benchmark #4 was run. Details:
+`docs/benchmarks/2026-09-05-phase3f-remediation-8-50case-revalidation-report.md`.
+Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
+decision.
+
+Working tree 2026-09-05: Remediation 8 fixed the systemic missing assertion
+generation path for source-backed `programme_identity` and `credential`:
+both fields are now routed through `DEEP_FIELDS` and the identity extraction
+group, source-native candidates survive into runtime assertions, and routing
+metadata is not used as factual evidence. The new diagnostic smoke
+`phase3f-remediation8-assertion-generation-12prog-20260905T152500Z` sealed
+12/12 programmes, 131 sources, 582 assertion rows, 227 pipeline non-null
+assertions, and 224 effective non-null values. Projection produced 12 FOUND
+values across 3 field families, 49 NEEDS_REVIEW, 2 CONFLICTING_SOURCES, and
+21 ACCESS_BLOCKED, with 0 NOT_EVALUATED, 0 PARSE_FAILED, and 0 projected
+EXTRACTION_FAILED. The two legacy credential safety regressions found in the
+first Remediation 8 smoke were corrected generically by requiring current
+temporal support for runtime credential acceptance; all seven zero-tolerance
+counters remained zero. The assertion-generation smoke meets its diagnostic
+target, but official benchmark #4 remains **BLOCKED** because the full-set
+majority recovery condition for the 50 identity/credential cases has not been
+revalidated; no official benchmark #4 was run. Details:
+`docs/benchmarks/2026-09-05-phase3f-remediation-8-assertion-generation-report.md`.
+Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
+decision.
+
+Working tree 2026-09-05: Acceptance Remediation 7 completed its post-seal
+83-case acceptance audit and a new 12-programme diagnostic smoke. The audit
+confirmed 55 direct-support cases never create runtime assertions (25
+programme identity, 25 credential, 3 major-admissions, 1 English, 1 deadline),
+with 0/83 direct-support cases reaching FOUND in sealed official run #3. The
+latest smoke `phase3f-remediation7-acceptance-12prog-20260905T110000Z` sealed
+12/12 programmes, fetched 135 sources, produced 598 field assertions/265
+non-null metrics, and projected 3 FOUND values across 2 field families. The
+cycle-only model metadata regression was rejected and guarded; all seven
+zero-tolerance safety counters remained zero. Readiness for official
+benchmark #4 is **BLOCKED** because the smoke is below the diagnostic target
+of 5 FOUND values across 3 field families. No frozen truth, scorer, or official
+run artifact changed, and official benchmark #4 was not run. Details:
+`docs/benchmarks/2026-09-05-phase3f-remediation-7-acceptance-report.md`.
+Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
+decision.
+
+Working tree 2026-09-05: Source adequacy audit for sealed official run #3 is
+complete. Of 122 confirmed primary resolved cases, 83 had direct supporting
+evidence fetched, 21 had field-relevant but ambiguous material, and 18 had no
+supporting material or were blocked. The diagnostic split is 28 upstream
+evidence gaps versus 94 downstream processing/acceptance gaps, so the dominant
+remaining problem is **ACCEPTANCE_DOMINANT**. Generic bounded link-recovery
+categories were extended for identity, credential, status, deadline, English,
+and major-admissions fields; frozen truth/scorer and official runs remain
+unchanged. The corrected nine-row recovery smoke
+`phase3f-source-recovery-9prog-20260905T072353Z` completed 9/9 rows and 73
+fetches but found no new canonical URLs, produced 117 effective non-null
+assertions and 0 projected `FOUND` values. Recovery success is blocked; no
+official benchmark #4 was run. Details:
+`docs/benchmarks/2026-09-05-phase-3f-source-adequacy-and-recovery-report.md`.
+Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
+decision.
+
+Working tree 2026-09-05: Official frozen V3 benchmark run #3,
+`phase3f-v2-run-20260905T030109Z`, executed all 36 frozen programme rows,
+sealed output, and scored with the unchanged contract. Frozen input and
+run-#1/run-#2 integrity checks passed. Direct DeepSeek used
+`https://api.deepseek.com` with `deepseek-v4-flash`, reasoning `none`: 252
+provider calls, 253 logical requests, 0 retries, and 0 HTTP 429. Discovery
+was 36/36 (100%) overall and every institution met the 80% floor. The run
+produced 1,648 assertions, 602 pipeline non-null assertions and 596 effective
+non-null assertions, but 0 final projected values; resolved coverage was
+0/122 and safe-unresolved correctness was 85/124 (68.55%). All seven
+zero-tolerance counters remained zero; no PRODUCT_SAFE output was emitted.
+The official classification is **FAIL — QUALITY**. The sealed run artifacts,
+three-run comparison, and authoritative audit are under
+`docs/benchmarks/runs/phase3f-v2-run-20260905T030109Z/`. No remediation or
+later Slice F gate was run. Slice F remains **NO-GO**; Node 24.19.x remains
+deferred/unverified by user decision.
+
+Working tree 2026-09-04: Coverage Remediation 5 completed the exact nine-row
+diagnostic smoke `phase3f-remediation5-9prog-20260904T162804Z`. The direct
+DeepSeek path remained healthy: 70 calls, HTTP 429 = 0, retries = 0. The
+smoke sealed 9/9 programmes and 96 sources, with 426 assertions, 153 effective
+non-null assertions, 2 projected `FOUND` values, 51 `NEEDS_REVIEW`, 6
+`ACCESS_BLOCKED`, 4 `CONFLICTING_SOURCES`, 0 `NOT_EVALUATED`, 0
+`PARSE_FAILED`, and 0 projected `EXTRACTION_FAILED`. All seven Remediation 4
+false-current cases and all zero-tolerance counters remained safe at zero.
+The new generic acceptance path recovers a directly evidenced ETH programme
+qualification profile without weakening Product Safety. Full benchmark run #3
+is **READY** for separate authorization but was not run; Slice F remains
+**NO-GO**. Details: `docs/benchmarks/2026-09-04-phase-3f-remediation-5-report.md`.
+
+Working tree 2026-09-04: Safety Remediation 4 added a deterministic,
+field-aware runtime acceptance policy. The previous projection bug accepted
+unknown applicability/currentness as `FOUND`; candidates for major admission,
+tuition, deadline, English, and programme-status fields now require explicit
+semantic scope/currentness while remaining separate from Product Safety and
+canonical promotion. Candidate rejection reasons are retained in projection
+diagnostics. The seven current false-current cases replay to `NEEDS_REVIEW/null`
+and the six original Remediation 1 P0 cases remain safe on official run #2
+artifacts. Provider precedence now honors explicit DeepSeek configuration over
+stale compatible settings. Focused tests passed 43 and the full ingestion
+suite passed 334. The valid nine-row smoke
+`phase3f-remediation4-9prog-20260904T090000Z` sealed 9/9 programmes and 82
+sources but DeepSeek returned HTTP 402 `Insufficient Balance`, producing zero
+non-null assertions and zero projected `FOUND` values; it is not a valid
+quality measurement. Official benchmark #3 was not run at that historical
+point; the subsequent coverage-remediation status is recorded above. Details:
+`docs/benchmarks/2026-09-04-phase-3f-remediation-4-report.md`.
+
+Working tree 2026-09-03: Quality Remediation 3 repaired state-lifecycle
+classification and provider retry handling in the working tree. A valid parsed
+source with no semantic value no longer remains `NOT_EVALUATED`; genuine parser
+errors remain `PARSE_FAILED`, while failed extraction groups become
+`EXTRACTION_FAILED`. Robots-blocked routed targets now use only generic,
+admitted official source-bundle fallbacks, preserving the block in telemetry.
+Provider transport now has bounded concurrency, `Retry-After` handling,
+backoff/jitter, and no retry for permanent quota errors. The nine-row
+diagnostic smoke `phase3f-v2-run-20260903T095720Z` sealed 78 fetched source
+records (60 canonical URLs), all with non-empty parser output, and produced
+0 `NOT_EVALUATED`, 0 `PARSE_FAILED`, 45 `EXTRACTION_FAILED`, and 18
+`NEEDS_REVIEW`; it used no provider calls because B.AI reported zero credit.
+The live post-change provider smoke is therefore blocked, so official run #3
+remains **BLOCKED**. Full ingestion tests measured 323 passed; frozen artifact
+checksums and official run #1/#2 hashes remain unchanged. Details:
+`docs/benchmarks/2026-09-03-phase-3f-remediation-3-report.md`.
+
+Working tree 2026-09-03: Quality Remediation 2 diagnosed and repaired the
+systemic final-projection loss in the working tree: supported non-null
+assertions can now survive projection as FOUND/value while Product Safety and
+canonical promotion remain independently conservative. Source metadata,
+enum restoration, routing-vs-factual identity, and robots-blocked candidate
+visibility are covered by targeted tests. The six-programme diagnostic smoke
+`phase3f-remediation2-6prog-20260903T085624Z` produced 78 effective non-null
+assertions and one final projected non-null value; it was not scored and did
+not modify official run #1 or run #2. Provider throttling, incomplete field
+evidence, and Harvard/Tokyo discovery-floor failures remain. Official run #3
+is **BLOCKED**; no benchmark or later Slice F gate was run. Details:
+`docs/benchmarks/2026-09-03-phase-3f-remediation-2-report.md`.
+
+Working tree 2026-09-03: official frozen v3 benchmark run #2,
+`phase3f-v2-run-20260903T065023Z`, completed all 36 terminal roster rows,
+sealed its pipeline output, and scored **FAIL — QUALITY** under the unchanged
+contract. Frozen truth, roster, and machine contract checksums passed. The
+run used the provider-neutral `openai_compatible` adapter at `api.b.ai` with
+`deepseek-v4-flash`, reasoning `none`, and Node 22.15.0. Discovery was 33/36
+(91.67%); Harvard (33.33%) and University of Tokyo (66.67%) missed the 80%
+institution floor. Critical precision was unavailable (0/0 accepted),
+resolved coverage was 0/122, and safe-unresolved correctness improved to
+26/124 (20.97%). All seven zero-tolerance counters were zero, including
+false-current critical; no PRODUCT_SAFE output was emitted. The pipeline
+produced 1,298 assertions with 311 non-null raw assertion values (262 in the
+effective assertion set), while the final benchmark projection emitted no
+non-null values. Run #1 remains immutable and its output hash is unchanged.
+Run #2 artifacts and the run #1 comparison are under
+`docs/benchmarks/runs/phase3f-v2-run-20260903T065023Z/`. Scorer tests measured
+34 passed plus 6 subtests; core ingestion tests measured 185 passed plus 26
+subtests. Compileall, JSON/schema validation, checksum verification, secret
+scan, and git diff check passed. No remediation or later Slice F gate was run.
+Node 24.19.x remains deferred/unverified.
+
+Working tree 2026-09-01: Phase 3F production hardening is **CONDITIONAL / NO-GO**
+for rollout. Environment visibility was restored from the separate local
+`main` worktree's untracked `.env.local` and used without copying or logging
+secrets. **NON-PRODUCTION ENVIRONMENT IDENTITY — PASS**: explicit
+non-production site/database configuration markers and the staging-only raw
+database shape support the classification; provider hostnames were not used
+as proof. Mutations remain restricted to one uniquely prefixed staging smoke
+test. Supabase REST and configured Storage bucket metadata
+returned HTTP 200; anon reads were denied for crawl staging and allowed for
+canonical tables. MongoDB Atlas ping and raw database access now pass; an
+earlier TLS handshake failure was transient. The live project
+has 600 stored crawl programmes across 30 institution records. The superseded
+v1 roster was compositionally weak. The current frozen v2 manifest preserves
+36 programmes across 12 institutions, three per institution, with 14
+PDF-heavy, 10 multilingual, 36 separate-admissions, 36 separate-finance, 8
+related-party, 25 historical/cycle-change, 16 identity-edge, 34
+conflict-capable, 27 adversarial, and 17 structured/catalogue programmes. Its
+source identities are recorded in `docs/benchmarks/2026-08-30-phase-3f-roster-v2.md`; Batches 10, 11, and 12 are closed with 21 independently confirmed records each. All 252 critical-field cases have now received terminal human review status: 246 reviewed-confirmed and 6 reviewed-ambiguous, with 0 unreviewed.
+The primary-locator transport recheck measured 31
+2xx responses, four protected 403 responses, and one timeout; these are
+runtime/adversarial observations, not reference truth. Recall, critical
+precision, and
+evidence-entailment targets therefore remain unavailable rather than passed by
+assumption. Baseline crawl/catalog objects
+are present; all five v3 migration families are absent and unapplied.
+Independent truth preparation is recorded in `docs/benchmarks/2026-08-30-phase-3f-ground-truth-v2.md` and `docs/benchmarks/2026-08-30-phase-3f-ground-truth-v2.jsonl`: 252 field cases have terminal human review status, with 246 reviewed-confirmed, 6 reviewed-ambiguous, and 0 unreviewed. Batches 1-12 are closed; correction packets preserve the original rejection and re-review histories. Human-review completion is recorded in `docs/benchmarks/2026-09-01-phase-3f-human-review-complete.md`; the versioned truth freeze and locked scorer contract/preflight passed in the current worktree, with the immutable manifest at `docs/benchmarks/2026-09-01-phase-3f-ground-truth-freeze-v2.json` and the contract at `docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md`. The first real frozen v3 baseline run `phase3f-v2-run-20260901T120410Z` executed all 36 roster rows, sealed its output, and scored **FAIL — SAFETY** because six confirmed `NEEDS_REVIEW` cases received concrete runtime values; no remediation was performed. Details are in `docs/benchmarks/runs/phase3f-v2-run-20260901T120410Z/`. Human review Batch 1 is recorded in
+`docs/benchmarks/2026-08-30-phase-3f-human-review-batch-1.md`: the first three
+MIT programmes and 21 cases were confirmed by a HUMAN reviewer with explicit
+CONFIRM decisions; unresolved proposals retain NEEDS_REVIEW semantics without
+an invented value. Human review Batch 2 is recorded in
+`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-2.md`: Harvard
+programmes 4-6 and 21 cases; 18 were confirmed and 3 were marked ambiguous.
+Confirmed unresolved records retain `NEEDS_REVIEW`; ambiguous records remain
+ excluded from ordinary value scoring. Human review Batch 3 is recorded in
+`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-3.md` for Princeton
+programmes 7-9 and 21 cases; all 21 are now confirmed. The CBE tuition case
+was initially rejected for an inconsistent locator, corrected, and then
+confirmed on independent human re-review as `NEEDS_REVIEW` with a null value.
+The correction packet
+`docs/benchmarks/2026-08-30-phase-3f-human-review-batch-3-correction-1.md`
+preserves that audit sequence. Batch 3 is closed. Human review Batch 4 is
+recorded in `docs/benchmarks/2026-08-31-phase-3f-human-review-batch-4.md` for
+Duke programmes 10-12 and 21 cases: 19 were confirmed and 2 were marked
+ambiguous. The Fuqua deadline case was initially rejected, corrected to
+NEEDS_REVIEW with a null value, and independently confirmed; the full sequence
+is preserved in `docs/benchmarks/2026-08-31-phase-3f-human-review-batch-4-correction-1.md`.
+Batch 5 is recorded in `docs/benchmarks/2026-08-31-phase-3f-human-review-batch-5.md`
+for Northwestern programmes 13-15; 20 decisions are confirmed and one
+major-admissions case is ambiguous. Batch 6 is recorded in
+`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-6.md` for Cornell
+programmes 16-18; all 21 decisions are confirmed, with unresolved temporal or
+applicability cases retaining NEEDS_REVIEW semantics. Batch 7 is recorded in
+`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-7.md` for UCLA
+programmes 19-21; all 21 decisions are confirmed and Batch 7 is closed. The correction packet
+`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-7-correction-1.md`
+preserves the four rejection/correction sequences.
+the deterministic Phase 3F scorer self-test measured 13 passed tests plus 4 subtests, and the frozen-truth preflight measured PASS with checksums, schema, 252/246/6/0 counts, 13 correction chains, strict truth/output validation, and future-run-directory checks verified. The scorer now verifies all frozen input digests before scoring, uses the reviewed semantic normalization when present with exact-value fallback, and counts any concrete confirmed-NEEDS_REVIEW promotion as false-current; `RAW_PERSIST_FAILED` maps to canonical `RAW_LINEAGE_MISSING`.
+bounded Slice A staging durability smoke test passed inline/object writes,
+checksum reads, duplicate content, multiple observations, missing-object
+failure, and cleanup; no test snapshots/blobs remain. No migration, production
+write, live failure/restart/concurrency matrix, or broad rollout was performed.
+The superseded v1 roster, current v2 manifest, and failure/restart/concurrency
+matrix are recorded in `docs/benchmarks/2026-08-30-phase-3f-roster.md`,
+`docs/benchmarks/2026-08-30-phase-3f-roster-v2.md`, and
+`docs/benchmarks/2026-08-30-phase-3f-failure-matrix.md`; the benchmark and
+rollout/incident runbooks are recorded in
+`docs/benchmarks/2026-08-30-phase-3f-report.md`,
+`docs/runbooks/data-platform-production.md`, and
+`docs/runbooks/data-platform-incidents.md`. Measured locally: Python **285
+passed**, compileall, base/strict TypeScript, 51 focused Node tests, lint, and
+`git diff --check` passed; targeted hardening tests measured **260 passed in
+6.50s** and the full Python regression measured **285 passed**; full Node
+measured 3467 passed / 2 todo / 2
+unrelated CV-route timeout failures. Node 22.15.0 remains unchanged; Node
+24.19.x verification, live v3 schema validation, and the full live failure
+matrix remain deferred. Antigravity
+failed at the worker/runtime stage (`agent_prompt_stalled`) with no repository
+effects, so Luna used documentation-only hardening fallback. OpenCode final
+read-only review completed with **P0: 2 BLOCKED, P1: 5 BLOCKED, P2: 4, P3: 3**;
+the code-level safety assessment found no new shadow-architecture defect, but
+the required gate verdict is not PASS. No Terra/Sol escalation was required.
+The later targeted v2 manifest audit stalled before returning findings and was
+not treated as independent approval.
+US-50 and ASIA-50 are not ready.
+
+Working tree 2026-08-29: Phase 3E ingestion convergence, legacy compatibility,
+and scholarship shadow semantics is **PASS**. Python acquisition, the legacy
+parser, manual URLs, programme CSV, migration-only catalogue backfill, and
+scholarship ETL now emit a common evidence/assertion envelope with explicit
+provenance limits, Slice C quality handoff, and no canonical-write trust.
+Manual/CSV ordinary ingestion is guarded; legacy application and scholarship
+tables remain explicit compatibility-only paths during shadow rollout. Legacy
+assertions are derived, missing legacy raw bodies are never fabricated, CSV
+rows carry file/hash/row provenance, scholarship identity and university
+mapping are conservative, recurrence remains advisory, and additive job,
+curator, mapping, source, assertion, differential, and write-audit metadata is
+available in `supabase-ingestion-convergence-v3.sql`. The migration is
+intentionally unapplied and RLS policies remain a pre-cutover requirement.
+Measured with `$env:PYTHONPATH='src'; python -m pytest`: **285 passed**;
+`$env:PYTHONPATH='src'; python -m compileall -q src`, base/strict TypeScript,
+51 focused Node tests, and `git diff --check` passed. The full Node suite
+measured **3467 passed, 2 todo, 2 unrelated CV-route timeout failures**; the
+production build compiled but static generation remains blocked by absent
+Supabase environment variables. OpenCode initial review and targeted
+re-review are P0/P1 PASS; the two initial P1 shadow-semantics findings and
+the reported P2 hardening findings were addressed or documented. Antigravity
+Sonnet could not start because of a provider 402 balance error, so Luna used
+the bounded implementation fallback. No Terra/Sol escalation was required.
+Node 22.15.0 remains unchanged; Node 24.19.x, live schema verification, and
+production rollout remain deferred. Details:
+`docs/plans/2026-08-29-data-platform-phase-3e.md`.
+
+Working tree 2026-08-29: Phase 3D Slice D identity, quality-gated promotion,
+and product-safe reads is **PASS** in shadow mode. Programme identity now uses
+conservative identifier/corroboration resolution with versioned aliases,
+offerings, relationships, institution roles, and auditable decisions; URL and
+title similarity alone cannot merge records. University resolution remains
+identifier/domain/curation-led and refuses sparse name-only creation. The
+versioned Product Safety Contract blocks unresolved identity, critical missing
+or stale fields, conflicts, prohibited high-volatility inference, missing
+authority, review, and broken raw-evidence lineage. `promotion_v3.py` provides
+dry-run evaluation, stable run-independent fingerprints, append-only audit and
+projection history, idempotent application, and differential reporting;
+`product_read.py` keeps verified current, partial/reviewable, historical, and
+advisory inferred data separate. `supabase-identity-promotion-v3.sql` is
+additive and unapplied; legacy `promote_crawl_run` and existing canonical
+behavior remain available and unchanged. Measured with
+`PYTHONPATH=src`: **280 passed**, compileall passed, and `git diff --check`
+passed. OpenCode broad and targeted independent reviews are P0/P1 PASS; the
+targeted review reported zero P0/P1/P2/P3 findings. The Antigravity Sonnet
+worker could not start because of a provider 402 balance error, so Luna used
+the bounded implementation fallback. No Terra/Sol escalation was required.
+Node 22.15.0 remains unchanged; Node 24.19.x and live database verification
+remain deferred. Details: `docs/plans/2026-08-29-data-platform-phase-3d.md`.
+
+Working tree 2026-08-29: Phase 3C Slice C coverage, recovery, conflicts, and
+inference is **PASS** in shadow mode. The new quality layer keeps availability,
+applicability, verification, temporal, epistemic, authority, volatility, and
+conflict dimensions separate; `CoverageEngine` is field-policy-driven and
+preserves explicit failure/unknown states. `RecoveryPlanner` emits bounded,
+fingerprinted Slice B `AcquisitionIntent` objects without fetching; retained
+fresh raw evidence can be reused by reference. Conflict resolution is
+applicability-aware, and `InferenceEngine` preserves historical evidence
+lineage while keeping high-volatility projections advisory and review-required.
+The smoke pipeline now emits the facade's quality assessments and bounded
+recovery decisions as shadow-only metadata streams after effective assertions.
+`supabase-evidence-quality-v3.sql` is additive and unapplied; it stores quality
+metadata and lineage references, never raw bodies. Measured with
+`PYTHONPATH=src`: **264 passed**, compileall passed, and `git diff --check`
+passed. OpenCode independent review and targeted re-review both passed P0/P1;
+the accepted P2 enum finding was fixed, one unrelated provider-startup finding
+was rejected, and cross-run inference persistence deduplication is deferred.
+No Terra/Sol escalation was required. Node 22.15.0 and promotion/canonical
+behavior remain unchanged. Details: `docs/plans/2026-08-29-data-platform-phase-3c.md`.
+
+Working tree 2026-08-29: Phase 3B Slice B acquisition-platform shadow path is
+implemented and signed off for Python ingestion. It adds deterministic acquisition intents,
+source candidates/attempts, field-directed planning, a deterministic adapter
+registry/resolver, source admission telemetry, explicit related-party domain
+rules, existing native catalogue/Coursedog wrapping, structured-source metadata
+wrappers, PDF/JSON/manual/search/archive fixture adapters, and multilingual
+title scoring. The legacy/native discovery algorithm remains the default;
+`ACQUISITION_BACKEND=platform_shadow` records candidate admission without
+changing promotion, canonical writes, identity, coverage, recovery, inference,
+or the legacy application parser. Remote raw persistence remains the Slice A
+boundary before accepted parse/extract; no raw bodies enter Supabase. Two
+additive, unapplied migrations hold acquisition/source-resolution audit metadata;
+provider/resource source identities are stored as opaque text, and the optional
+v3 importer is contract-tested for both available and unapplied migrations.
+Measured with `PYTHONPATH=src`: Python **254 passed**, `compileall` passed, and
+`git diff --check` passed. Node 22.15.0 remains deferred for the required Node
+24.19.x verification; no live crawl was run. OpenCode P0/P1 review is PASS.
+Retry-attempt history richness is deferred to production-hardening work; no
+other P2 blockers remain. Details and review scope:
+`docs/plans/2026-08-28-data-platform-phase-3b.md`.
+
+Working tree 2026-08-28: Phase 3A Slice A data-platform foundation has passed
+targeted OpenCode review. It adds immutable remote raw-evidence contracts,
+lazy MongoDB, S3-compatible, and Supabase Storage adapters, parser/provider
+boundaries, and an additive acquisition-metadata migration without changing
+discovery, promotion, identity, legacy application flows, or canonical product
+behaviour. Measured from the worktree with `PYTHONPATH=src`: Python **233
+passed** and `git diff --check` passed. The prior 223-test Slice A checkpoint
+was extended by durability, provenance, provider-boundary, and Supabase Storage
+regression cases. Real non-production MongoDB verification passed. The
+configured Supabase bucket resolved and real Storage verification passed:
+large-PDF upload/retrieval/checksum, immutable duplicate handling, Mongo object
+references, local-artifact deletion, remote-only reprocessing,
+missing/unavailable behavior, and the `RAW_PERSIST_FAILED` invariant. Node
+22.15.0 remains a deferred environment prerequisite for the required Node
+24.19.x verification.
+Details and exact configuration/migration constraints:
+`docs/plans/2026-08-28-data-platform-phase-3a.md`.
+
 Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
 planning-owned student guidance, shown immediately in the hierarchical List
 and in the task detail’s “What to do” panel. New and refreshed deterministic,

@@ -1,0 +1,21 @@
+{
+  "audit": "phase3f-programme-identity-ground-truth-adjudication",
+  "run_id": "phase3f-v2-run-20260905T161914Z",
+  "population_count": 28,
+  "unique_case_ids": 28,
+  "pass1_path": "docs\\benchmarks\\audits\\2026-09-06-phase3f-programme-identity-blind-pass1.jsonl",
+  "pass1_sha256": "7c6f58d56add1fbefa8dade85fa7cca35cab71c2467ea797430065b8b3452251",
+  "matrix_path": "docs\\benchmarks\\audits\\2026-09-06-phase3f-programme-identity-adjudication.jsonl",
+  "matrix_sha256": "c936fcc8df72e615632805878483344950eee3b27c3cefcc9dbe0fed2eaadbf2",
+  "queue_path": "docs\\benchmarks\\audits\\2026-09-06-phase3f-programme-identity-human-review-queue.jsonl",
+  "queue_sha256": "4a72a29e7e09488fd97e74dde1f5a0a5fecbee92986fb6350de955cc59dec941",
+  "proposal_path": "docs\\benchmarks\\audits\\2026-09-06-phase3f-ground-truth-v3-change-proposals.jsonl",
+  "proposal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "report_path": "docs\\benchmarks\\2026-09-06-phase3f-programme-identity-ground-truth-audit.md",
+  "sealed_at": "2026-09-06T06:58:48.036033Z",
+  "pass2_after_pass1_sealed": true,
+  "pipeline_modified": false,
+  "frozen_truth_modified": false,
+  "scorer_modified": false,
+  "report_sha256": "a998f6396b037670198842b105356f6c52d12391290951bf58b8e25b723d7943"
+}

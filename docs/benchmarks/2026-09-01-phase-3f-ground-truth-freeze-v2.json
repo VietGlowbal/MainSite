@@ -1,0 +1,72 @@
+{
+  "benchmark_version": "phase3f-v2",
+  "truth_version": "phase-3f-ground-truth-v2-frozen",
+  "roster_version": "phase-3f-roster-v2",
+  "schema_version": "phase3f-ground-truth/v2",
+  "scorer_contract_version": "phase-3f-scorer-contract/v1",
+  "freeze_timestamp": "2026-09-01T08:22:31+00:00",
+  "freeze_commit_sha": "8f616fe2c0fe9aeeaacdf7a12ecfd1df83292a5a",
+  "dirty_worktree": true,
+  "total_records": 252,
+  "scoreable_records": 246,
+  "reviewed_confirmed": 246,
+  "reviewed_ambiguous": 6,
+  "unreviewed": 0,
+  "ambiguous_case_ids": [
+    "GT-V2-05-major_admissions_requirement",
+    "GT-V2-05-tuition",
+    "GT-V2-06-tuition",
+    "GT-V2-11-major_admissions_requirement",
+    "GT-V2-12-tuition",
+    "GT-V2-13-major_admissions_requirement"
+  ],
+  "field_counts": {
+    "programme_identity": 36,
+    "credential": 36,
+    "programme_status": 36,
+    "tuition": 36,
+    "application_deadline": 36,
+    "english_requirement": 36,
+    "major_admissions_requirement": 36
+  },
+  "expected_state_counts": {
+    "FOUND": 118,
+    "NEEDS_REVIEW": 127,
+    "NOT_REQUIRED": 4,
+    "null": 3
+  },
+  "primary_expected_state_counts": {
+    "FOUND": 118,
+    "NEEDS_REVIEW": 124,
+    "NOT_REQUIRED": 4
+  },
+  "confirmed_needs_review_null": 124,
+  "correction_chain_count": 13,
+  "review_completion_artifact": "docs/benchmarks/2026-09-01-phase-3f-human-review-complete.md",
+  "truth_file": "docs/benchmarks/2026-09-01-phase-3f-ground-truth-v2-frozen.jsonl",
+  "reviewed_working_truth_file": "docs/benchmarks/2026-08-30-phase-3f-ground-truth-v2.jsonl",
+  "roster_file": "docs/benchmarks/2026-08-30-phase-3f-roster-v2.md",
+  "scorer_contract_file": "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md",
+  "scorer_contract_machine_file": "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.json",
+  "truth_sha256": "97308474e88eecc8165a94aae4a9bcfe104ec8da6807efdd0a2ad8de74e8e0d4",
+  "reviewed_working_truth_sha256": "97308474e88eecc8165a94aae4a9bcfe104ec8da6807efdd0a2ad8de74e8e0d4",
+  "roster_sha256": "7518c63696e7a29ef3d4f3584b2338995d86e5d06d478d192d28562926394139",
+  "scorer_contract_sha256": "47c2b2446dbd0ba2e9ebdd955ba972999ed76de4c7e8f188edea9f43ba837e91",
+  "scorer_contract_machine_sha256": "720bc47dde66fce4ceb740cf766e28433bc5553b1882ca87da06e861ae890d99",
+  "checksums": {
+    "truth": "97308474e88eecc8165a94aae4a9bcfe104ec8da6807efdd0a2ad8de74e8e0d4",
+    "roster": "7518c63696e7a29ef3d4f3584b2338995d86e5d06d478d192d28562926394139",
+    "scorer_contract": "47c2b2446dbd0ba2e9ebdd955ba972999ed76de4c7e8f188edea9f43ba837e91",
+    "scorer_contract_machine": "720bc47dde66fce4ceb740cf766e28433bc5553b1882ca87da06e861ae890d99"
+  },
+  "immutability": {
+    "mode": "versioned-copy-write-once",
+    "mutate_in_place": false,
+    "changed_truth_requires_new_version": true
+  },
+  "node_runtime_policy": {
+    "selected_version": "22.15.0",
+    "nominal_requirement": "24.19.x",
+    "node_24_verification": "DEFERRED / UNVERIFIED"
+  }
+}

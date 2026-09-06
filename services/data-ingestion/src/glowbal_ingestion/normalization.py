@@ -412,17 +412,21 @@ def candidate_to_programme(
 ) -> ProgrammeRecord:
     name = clean_programme_name(candidate.name_hint, candidate.url)
     degree = infer_degree(name, candidate.url)
+    # A manually supplied URL is a crawl target, not evidence of its award.
+    # Keep degree inference for bounded deep-selection eligibility, but do not
+    # turn URL/name hints into a canonical credential without page evidence.
+    credential = (
+        None
+        if candidate.catalogue_source == "user_supplied"
+        else infer_credential(name, candidate.url, degree_level=degree)
+    )
     return ProgrammeRecord(
         programme_id=stable_id("programme", institution_id, candidate.url),
         institution_id=institution_id,
         programme_name=name,
         official_url=candidate.url,
         degree_level=degree,
-        credential=infer_credential(
-            name,
-            candidate.url,
-            degree_level=degree,
-        ),
+        credential=credential,
         normalized_field=infer_field(name),
         organisation_unit_id=None,
         language=None,

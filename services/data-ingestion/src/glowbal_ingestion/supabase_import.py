@@ -572,6 +572,12 @@ def _source_rows(
         "text_length",
         "fetch_method",
         "rendered",
+        "raw_document_id",
+        "parser_id",
+        "parser_version",
+        "source_authority",
+        "source_relationship",
+        "temporal_state",
     )
     seen_source_ids: set[str] = set()
     for record in _iter_jsonl(run_dir / "sources.jsonl"):
@@ -579,6 +585,111 @@ def _source_rows(
         if source_id in seen_source_ids:
             continue
         seen_source_ids.add(source_id)
+        yield _with_run_id(record, run_id, fields)
+
+
+def _acquisition_intent_rows(
+    run_dir: Path,
+    run_id: str,
+) -> Iterator[dict[str, Any]]:
+    fields = (
+        "intent_id", "entity_type", "entity_id", "field_groups",
+        "target_cycle", "audience", "preferred_source_classes",
+        "minimum_authority", "freshness_requirement", "reason", "priority",
+        "budget_policy_id", "policy_version", "created_at",
+    )
+    for record in _iter_jsonl(run_dir / "acquisition_intents.jsonl"):
+        entity = record.get("entity") if isinstance(record.get("entity"), dict) else {}
+        normalized = dict(record)
+        normalized["entity_type"] = normalized.get("entity_type") or entity.get("entity_type")
+        normalized["entity_id"] = normalized.get("entity_id") or entity.get("entity_id")
+        yield _with_run_id(normalized, run_id, fields)
+
+
+def _source_candidate_rows(
+    run_dir: Path,
+    run_id: str,
+) -> Iterator[dict[str, Any]]:
+    fields = (
+        "candidate_id", "intent_id", "canonical_locator", "locator_type",
+        "source_class", "publisher_key", "declared_authority", "relationship",
+        "source_authority", "source_relationship",
+        "relationship_evidence", "expected_field_groups", "language",
+        "academic_cycle", "estimated_freshness", "discovery_method",
+        "discovery_evidence", "fetch_strategy", "cost_class", "adapter_id",
+        "adapter_version", "provider_id", "dataset_id", "retrieved_at",
+        "temporal_state", "source_identity", "raw_document_id",
+    )
+    for record in _iter_jsonl(run_dir / "source_candidates.jsonl"):
+        row = _with_run_id(record, run_id, fields)
+        row["source_authority"] = (
+            row.pop("declared_authority", None)
+            or row.get("source_authority")
+        )
+        row["source_relationship"] = (
+            row.pop("relationship", None)
+            or row.get("source_relationship")
+        )
+        yield row
+
+
+def _source_admission_rows(
+    run_dir: Path,
+    run_id: str,
+) -> Iterator[dict[str, Any]]:
+    for record in _iter_jsonl(run_dir / "source_admission_decisions.jsonl"):
+        factors = record.get("factor_scores")
+        factors = factors if isinstance(factors, dict) else {}
+        yield {
+            "run_id": run_id,
+            "admission_decision_id": record.get("admission_decision_id"),
+            "acquisition_intent_id": record.get("acquisition_intent_id"),
+            "source_candidate_id": record.get("source_candidate_id"),
+            "admitted": bool(record.get("admitted")),
+            "reason": record.get("reason"),
+            "authority_score": int(factors.get("authority") or 0),
+            "relationship_score": int(factors.get("relationship") or 0),
+            "temporal_score": int(factors.get("temporal") or 0),
+            "relevance_score": int(factors.get("relevance") or 0),
+            "applicability_score": int(factors.get("applicability") or 0),
+            "total_score": int(record.get("total_score") or 0),
+            "allowed_domain": (
+                record.get("allowed_domain")
+                or (
+                    (record.get("allowed_domains") or [None])[-1]
+                    if isinstance(record.get("allowed_domains"), list) else None
+                )
+            ),
+            "decided_at": record.get("decided_at"),
+        }
+
+
+def _source_discovery_evidence_rows(
+    run_dir: Path,
+    run_id: str,
+) -> Iterator[dict[str, Any]]:
+    fields = (
+        "discovery_evidence_id", "source_candidate_id", "discovery_method",
+        "evidence_summary", "source_locator", "created_at",
+    )
+    for record in _iter_jsonl(run_dir / "source_discovery_evidence.jsonl"):
+        yield _with_run_id(record, run_id, fields)
+
+
+def _acquisition_attempt_rows(
+    run_dir: Path,
+    run_id: str,
+) -> Iterator[dict[str, Any]]:
+    fields = (
+        "attempt_id", "intent_id", "candidate_id", "raw_document_id",
+        "status", "error_code", "retryable", "started_at", "finished_at",
+    )
+    seen: set[str] = set()
+    for record in _iter_jsonl(run_dir / "acquisition_attempts.jsonl"):
+        attempt_id = str(record.get("attempt_id") or "")
+        if not attempt_id or attempt_id in seen:
+            continue
+        seen.add(attempt_id)
         yield _with_run_id(record, run_id, fields)
 
 
@@ -616,6 +727,16 @@ def _assertion_rows(
         "inherited_from_assertion_id",
         "inherited_from_entity_id",
         "inheritance_key",
+        "epistemic_state",
+        "temporal_state",
+        "source_authority",
+        "source_relationship",
+        "raw_document_id",
+        "parser_id",
+        "parser_version",
+        "provider_id",
+        "prompt_version",
+        "schema_version",
     )
     seen_assertion_ids: set[str] = set()
     for record in _iter_jsonl(path):
@@ -870,6 +991,21 @@ def _plan_counts(run_dir: Path) -> dict[str, int]:
         "crawl_errors": _count_records(
             _error_rows(run_dir, placeholder)
         ),
+        "crawl_acquisition_intents": _count_records(
+            _acquisition_intent_rows(run_dir, placeholder)
+        ),
+        "crawl_source_candidates": _count_records(
+            _source_candidate_rows(run_dir, placeholder)
+        ),
+        "crawl_source_admission_decisions_v3": _count_records(
+            _source_admission_rows(run_dir, placeholder)
+        ),
+        "crawl_source_discovery_evidence_v3": _count_records(
+            _source_discovery_evidence_rows(run_dir, placeholder)
+        ),
+        "crawl_acquisition_attempts": _count_records(
+            _acquisition_attempt_rows(run_dir, placeholder)
+        ),
     }
     counts["crawl_review_items"] = _count_records(
         _assertion_review_rows(run_dir, placeholder)
@@ -897,6 +1033,27 @@ def _insert_batches(
             batch,
             on_conflict=on_conflict,
         )
+
+
+def _optional_v3_tables_available(
+    client: SupabaseRestClient,
+) -> bool:
+    """Detect unapplied additive acquisition migrations without blocking v2."""
+    tables = (
+        "crawl_acquisition_intents",
+        "crawl_source_candidates",
+        "crawl_acquisition_attempts",
+        "crawl_source_admission_decisions_v3",
+        "crawl_source_discovery_evidence_v3",
+    )
+    for table in tables:
+        try:
+            client.select(table, (("select", "*"), ("limit", "0")))
+        except SupabaseImportError as exc:
+            if "HTTP 404" in str(exc) or "PGRST205" in str(exc):
+                return False
+            raise
+    return True
 
 
 def import_supabase_run(
@@ -930,6 +1087,24 @@ def import_supabase_run(
         client = SupabaseRestClient(base_url, api_key)
 
     university_ids = _resolve_university_ids(client, run_dir)
+    has_acquisition_artifacts = any(
+        counts[key] > 0
+        for key in (
+            "crawl_acquisition_intents",
+            "crawl_source_candidates",
+            "crawl_source_admission_decisions_v3",
+            "crawl_source_discovery_evidence_v3",
+            "crawl_acquisition_attempts",
+        )
+    )
+    acquisition_v3_available = (
+        _optional_v3_tables_available(client)
+        if has_acquisition_artifacts else False
+    )
+    # An unapplied additive migration must not break v2 imports. The result
+    # explicitly reports that the run kept its source lineage locally instead
+    # of silently implying those rows were imported.
+    counts["crawl_acquisition_v3_available"] = int(acquisition_v3_available)
 
     existing = client.select(
         "crawl_runs",
@@ -1043,6 +1218,42 @@ def import_supabase_run(
             batch_size,
             on_conflict="run_id,source_id",
         )
+        if has_acquisition_artifacts and acquisition_v3_available:
+            _insert_batches(
+                client,
+                "crawl_acquisition_intents",
+                _acquisition_intent_rows(run_dir, run_id),
+                batch_size,
+                on_conflict="run_id,intent_id",
+            )
+            _insert_batches(
+                client,
+                "crawl_source_candidates",
+                _source_candidate_rows(run_dir, run_id),
+                batch_size,
+                on_conflict="run_id,candidate_id",
+            )
+            _insert_batches(
+                client,
+                "crawl_source_discovery_evidence_v3",
+                _source_discovery_evidence_rows(run_dir, run_id),
+                batch_size,
+                on_conflict="run_id,discovery_evidence_id",
+            )
+            _insert_batches(
+                client,
+                "crawl_source_admission_decisions_v3",
+                _source_admission_rows(run_dir, run_id),
+                batch_size,
+                on_conflict="run_id,admission_decision_id",
+            )
+            _insert_batches(
+                client,
+                "crawl_acquisition_attempts",
+                _acquisition_attempt_rows(run_dir, run_id),
+                batch_size,
+                on_conflict="run_id,attempt_id",
+            )
         _insert_batches(
             client,
             "crawl_field_assertions",

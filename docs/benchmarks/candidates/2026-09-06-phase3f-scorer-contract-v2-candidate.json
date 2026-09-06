@@ -1,0 +1,34 @@
+{
+  "schema_version": "phase3f-identity-scorer-contract-v2-candidate",
+  "status": "CANDIDATE_NOT_FROZEN",
+  "input": "structured programme identity records; source-native identity retained",
+  "equivalence_classes": [
+    "EXACT_EQUIVALENT",
+    "CANONICALLY_EQUIVALENT",
+    "PARENT_CHILD_RELATED_NOT_EQUIVALENT",
+    "CREDENTIAL_VARIANT",
+    "ALIAS_EQUIVALENT",
+    "NOT_EQUIVALENT",
+    "AMBIGUOUS"
+  ],
+  "safe_normalization": [
+    "case",
+    "whitespace",
+    "punctuation",
+    "proven credential separation",
+    "official alias with provenance",
+    "explicit parent-child relation"
+  ],
+  "fuzzy_only_pass": false,
+  "parent_child_equal": false,
+  "institution_in_canonical_name": false,
+  "credential_separate": true,
+  "native_translation_requires_official_provenance": true,
+  "coverage_states": [
+    "COVERAGE_LOSS",
+    "ACCESS_BLOCKED",
+    "NEEDS_REVIEW",
+    "FOUND"
+  ],
+  "ambiguous_is_not_pass": true
+}

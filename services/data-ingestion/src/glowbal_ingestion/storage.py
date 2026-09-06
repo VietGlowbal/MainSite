@@ -99,6 +99,33 @@ class JsonlStore:
                 handle.write(content)
         return str(destination.relative_to(self.paths.root)).replace("\\", "/")
 
+    def save_raw_snapshot(
+        self,
+        *,
+        content: bytes,
+        content_type: str | None,
+        raw_document_id: str,
+    ) -> str:
+        """Optional dual-mode local mirror with immutable snapshot naming.
+
+        ``save_raw`` remains the legacy local compatibility path.  This helper
+        is only a temporary mirror after remote retention succeeds, so its
+        contents are never treated as the durable source of truth.
+        """
+        content_type_lower = (content_type or "").lower()
+        if "pdf" in content_type_lower or content.startswith(b"%PDF"):
+            destination = self.paths.raw_pdf / f"{raw_document_id}.pdf"
+            destination.write_bytes(content)
+        elif "json" in content_type_lower:
+            destination = self.paths.raw_json / f"{raw_document_id}.json.gz"
+            with gzip.open(destination, "wb", compresslevel=6) as handle:
+                handle.write(content)
+        else:
+            destination = self.paths.raw_html / f"{raw_document_id}.html.gz"
+            with gzip.open(destination, "wb", compresslevel=6) as handle:
+                handle.write(content)
+        return str(destination.relative_to(self.paths.root)).replace("\\", "/")
+
 
 class StateStore:
     """Small disk-backed checkpoint and LLM cache used only during a smoke run."""

@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .models import SourceAuthority, SourceRelationship
+
 
 @dataclass(frozen=True)
 class CrawlLimits:
@@ -110,6 +112,47 @@ class ProgrammePriority:
 
 
 @dataclass(frozen=True)
+class ExternalSourceRule:
+    """Explicit admission rule for a related-party source domain.
+
+    This is intentionally narrower than ``allowed_domains``: a candidate still
+    needs relationship evidence and an adapter must name the rule it uses.
+    """
+
+    domain: str
+    adapter_id: str
+    reason: str
+    relationship: SourceRelationship
+    authority: SourceAuthority
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> "ExternalSourceRule":
+        domain = str(raw.get("domain") or "").strip().lower()
+        adapter_id = str(raw.get("adapter_id") or "").strip()
+        reason = str(raw.get("reason") or "").strip()
+        if not domain or not adapter_id or not reason:
+            raise ValueError(
+                "External source rule requires domain, adapter_id and reason."
+            )
+        try:
+            relationship = SourceRelationship(
+                str(raw.get("relationship") or "").upper()
+            )
+            authority = SourceAuthority(
+                str(raw.get("authority") or "").upper()
+            )
+        except ValueError as exc:
+            raise ValueError("External source rule has invalid authority or relationship.") from exc
+        return cls(
+            domain=domain,
+            adapter_id=adapter_id,
+            reason=reason,
+            relationship=relationship,
+            authority=authority,
+        )
+
+
+@dataclass(frozen=True)
 class InstitutionSeed:
     institution_id: str
     name: str
@@ -117,6 +160,7 @@ class InstitutionSeed:
     official_domain: str
     homepage_url: str
     allowed_domains: tuple[str, ...] = ()
+    external_source_rules: tuple[ExternalSourceRule, ...] = ()
     catalogue_hints: tuple[str, ...] = ()
     school_profile_urls: tuple[str, ...] = ()
     manual_programme_urls: tuple[str, ...] = ()
@@ -159,6 +203,11 @@ class InstitutionSeed:
             homepage_url=str(raw["homepage_url"]),
             allowed_domains=tuple(
                 str(item).lower() for item in raw.get("allowed_domains", [])
+            ),
+            external_source_rules=tuple(
+                ExternalSourceRule.from_dict(item)
+                for item in raw.get("external_source_rules", [])
+                if isinstance(item, dict)
             ),
             catalogue_hints=tuple(str(item) for item in raw.get("catalogue_hints", [])),
             school_profile_urls=tuple(
@@ -221,6 +270,15 @@ class InstitutionSeed:
     def all_allowed_domains(self) -> tuple[str, ...]:
         return tuple(dict.fromkeys((self.official_domain, *self.allowed_domains)))
 
+    def allowed_domains_for_adapter(self, adapter_id: str | None) -> tuple[str, ...]:
+        """Return official domains plus explicitly approved related domains."""
+        related = (
+            rule.domain
+            for rule in self.external_source_rules
+            if adapter_id and rule.adapter_id == adapter_id
+        )
+        return tuple(dict.fromkeys((*self.all_allowed_domains, *related)))
+
 
 @dataclass(frozen=True)
 class SmokeConfig:
@@ -230,6 +288,23 @@ class SmokeConfig:
     deepseek_flash_model: str = "deepseek-v4-flash"
     deepseek_pro_model: str = "deepseek-v4-pro"
     deepseek_base_url: str = "https://api.deepseek.com"
+    raw_evidence_mode: str = "local"
+    raw_evidence_inline_max_bytes: int = 8 * 1024 * 1024
+    acquisition_backend: str = "legacy"
+
+    def __post_init__(self) -> None:
+        if self.raw_evidence_mode not in {"local", "remote", "dual"}:
+            raise ValueError(
+                "raw_evidence_mode must be local, remote or dual."
+            )
+        if not 0 < self.raw_evidence_inline_max_bytes <= 12 * 1024 * 1024:
+            raise ValueError(
+                "raw_evidence_inline_max_bytes must be between 1 byte and 12 MiB."
+            )
+        if self.acquisition_backend not in {"legacy", "platform_shadow"}:
+            raise ValueError(
+                "acquisition_backend must be legacy or platform_shadow."
+            )
 
     @classmethod
     def load(
@@ -253,6 +328,13 @@ class SmokeConfig:
         if not institutions:
             raise ValueError("Smoke config must contain at least one institution.")
 
+        raw_evidence_mode = os.environ.get(
+            "RAW_EVIDENCE_MODE", raw.get("raw_evidence_mode", "local")
+        ).strip().lower()
+        inline_limit_raw = os.environ.get(
+            "RAW_EVIDENCE_INLINE_MAX_BYTES",
+            raw.get("raw_evidence_inline_max_bytes", 8 * 1024 * 1024),
+        )
         return cls(
             run_name=str(raw.get("run_name", "local-smoke")),
             institutions=institutions,
@@ -266,6 +348,11 @@ class SmokeConfig:
             deepseek_base_url=str(
                 raw.get("deepseek_base_url", "https://api.deepseek.com")
             ).rstrip("/"),
+            raw_evidence_mode=raw_evidence_mode,
+            raw_evidence_inline_max_bytes=int(inline_limit_raw),
+            acquisition_backend=os.environ.get(
+                "ACQUISITION_BACKEND", raw.get("acquisition_backend", "legacy")
+            ).strip().lower(),
         )
 
 
@@ -273,6 +360,7 @@ def load_dotenv_if_present(path: Path, *, override: bool = False) -> None:
     """Load a small .env-style file without logging or overwriting real env vars."""
     if not path.exists():
         return
+    file_values: dict[str, str] = {}
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -281,7 +369,9 @@ def load_dotenv_if_present(path: Path, *, override: bool = False) -> None:
         key = key.strip()
         value = value.strip().strip("'").strip('"')
         if key:
-            if override:
-                os.environ[key] = value
-            else:
-                os.environ.setdefault(key, value)
+            # Last assignment in the file wins, while an explicitly supplied
+            # process environment still wins unless override=True.
+            file_values[key] = value
+    for key, value in file_values.items():
+        if override or key not in os.environ:
+            os.environ[key] = value

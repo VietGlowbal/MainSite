@@ -3,14 +3,23 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 import threading
 import time
 from dataclasses import dataclass, field
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .config import SmokeConfig
+from .extraction_provider import (
+    ExtractionProviderError,
+    ExtractionProviderErrorCode,
+    ExtractionSource,
+    extraction_request_fingerprint,
+)
 from .models import (
     ADMISSION_DOCUMENT_TYPES,
     ADMISSION_PACKAGE_FIELDS,
@@ -25,22 +34,15 @@ from .models import (
 from .storage import StateStore
 
 
-class DeepSeekError(RuntimeError):
-    pass
-
-
-@dataclass(frozen=True)
-class ExtractionSource:
-    url: str
-    page_type: str
-    title: str | None
-    text: str
-    content_hash: str
+class DeepSeekError(ExtractionProviderError):
+    """Compatibility error exposed by the DeepSeek adapter only."""
 
 
 @dataclass
 class DeepSeekStats:
     calls: int = 0
+    logical_requests: int = 0
+    request_attempts: int = 0
     cache_hits: int = 0
     flash_calls: int = 0
     pro_calls: int = 0
@@ -48,6 +50,15 @@ class DeepSeekStats:
     completion_tokens: int = 0
     failures: int = 0
     group_failures: int = 0
+    rate_limit_responses: int = 0
+    retry_after_present: int = 0
+    retry_attempts: int = 0
+    rate_limit_retries: int = 0
+    transport_retries: int = 0
+    response_retries: int = 0
+    rate_limit_recoveries: int = 0
+    terminal_rate_limit_failures: int = 0
+    max_in_flight: int = 0
     failure_details: list[dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -59,8 +70,10 @@ class DeepSeekStats:
 
 
 class DeepSeekClient:
+    provider_id = "deepseek"
+    extraction_provider_id = "openai_compatible"
     SCHEMA_VERSION = "GlowBalEducationExtraction/v9"
-    PROMPT_VERSION = "2026-07-28.10"
+    PROMPT_VERSION = "2026-07-28.11"
     GROUP_SOURCE_TYPES: dict[str, frozenset[str]] = {
         "identity_offering": frozenset(
             {
@@ -114,6 +127,13 @@ class DeepSeekClient:
         ),
     }
     GROUP_SOURCE_PRIORITY: dict[str, dict[str, int]] = {
+        "identity_offering": {
+            "programme_overview": 0,
+            "programme_admission": 1,
+            "catalogue": 2,
+            "pdf": 3,
+            "deadline": 4,
+        },
         "academics_admissions": {
             "programme_admission": 0,
             "international_admission": 1,
@@ -173,9 +193,87 @@ class DeepSeekClient:
     ) -> None:
         self.config = config
         self.state = state
-        self.api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+        configured_provider = os.environ.get("EXTRACTION_PROVIDER", "").strip().lower()
+        if configured_provider == "deepseek":
+            self.api_key = (
+                os.environ.get("DEEPSEEK_API_KEY", "").strip()
+                or os.environ.get("EXTRACTION_API_KEY", "").strip()
+                or os.environ.get("OPENAI_COMPATIBLE_API_KEY", "").strip()
+            )
+            self.base_url = (
+                os.environ.get("DEEPSEEK_BASE_URL", "").strip().rstrip("/")
+                or os.environ.get("EXTRACTION_ENDPOINT", "").strip().rstrip("/")
+                or config.deepseek_base_url
+            )
+        else:
+            self.api_key = (
+                os.environ.get("EXTRACTION_API_KEY", "").strip()
+                or os.environ.get("OPENAI_COMPATIBLE_API_KEY", "").strip()
+                or os.environ.get("DEEPSEEK_API_KEY", "").strip()
+            )
+            self.base_url = (
+                os.environ.get("EXTRACTION_ENDPOINT", "").strip().rstrip("/")
+                or os.environ.get("OPENAI_COMPATIBLE_BASE_URL", "").strip().rstrip("/")
+                or config.deepseek_base_url
+            )
+        self.timeout_seconds = float(
+            os.environ.get("EXTRACTION_TIMEOUT_SECONDS", "90")
+        )
+        self.max_output_tokens = int(
+            os.environ.get("EXTRACTION_MAX_OUTPUT_TOKENS", "12000")
+        )
+        self.temperature = float(
+            os.environ.get("EXTRACTION_TEMPERATURE", "0")
+        )
+        self.max_retries = int(
+            os.environ.get(
+                "EXTRACTION_MAX_RETRIES",
+                str(config.limits.max_llm_retries),
+            )
+        )
+        self.max_concurrency = max(
+            1,
+            min(
+                32,
+                int(
+                    os.environ.get(
+                        "OPENAI_COMPATIBLE_MAX_CONCURRENCY",
+                        os.environ.get("EXTRACTION_MAX_CONCURRENCY", "1"),
+                    )
+                ),
+            ),
+        )
+        self.backoff_base_seconds = max(
+            0.0,
+            float(
+                os.environ.get(
+                    "OPENAI_COMPATIBLE_BACKOFF_BASE",
+                    os.environ.get("EXTRACTION_BACKOFF_BASE", "1"),
+                )
+            ),
+        )
+        self.backoff_max_seconds = max(
+            self.backoff_base_seconds,
+            float(
+                os.environ.get(
+                    "OPENAI_COMPATIBLE_BACKOFF_MAX",
+                    os.environ.get("EXTRACTION_BACKOFF_MAX", "30"),
+                )
+            ),
+        )
+        self.backoff_jitter_seconds = max(
+            0.0,
+            float(
+                os.environ.get(
+                    "OPENAI_COMPATIBLE_BACKOFF_JITTER",
+                    os.environ.get("EXTRACTION_BACKOFF_JITTER", "0.25"),
+                )
+            ),
+        )
         self.stats = DeepSeekStats()
         self._stats_lock = threading.Lock()
+        self._request_gate = threading.BoundedSemaphore(self.max_concurrency)
+        self._in_flight = 0
         self.progress = progress
 
     def _report(self, message: str) -> None:
@@ -194,18 +292,18 @@ class DeepSeekClient:
         extraction_group: str,
         field_names: tuple[str, ...],
     ) -> str:
-        payload = {
-            "schema": self.SCHEMA_VERSION,
-            "prompt_version": self.PROMPT_VERSION,
-            "programme_id": programme.programme_id,
-            "sources": [(source.url, source.content_hash) for source in sources],
-            "model": model_name,
-            "extraction_group": extraction_group,
-            "field_names": list(field_names),
-        }
-        return hashlib.sha256(
-            json.dumps(payload, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+        return extraction_request_fingerprint(
+            entity_id=programme.programme_id,
+            source_content_hashes=tuple(
+                source.content_hash for source in sources
+            ),
+            field_names=field_names,
+            prompt_version=self.PROMPT_VERSION,
+            schema_version=self.SCHEMA_VERSION,
+            provider_id=self.provider_id,
+            model_id=model_name,
+            capabilities={"extraction_group": extraction_group},
+        )
 
     def _build_prompt(
         self,
@@ -236,6 +334,22 @@ class DeepSeekClient:
 
         fields = ", ".join(field_names)
         group_focus = {
+            "identity_offering": (
+                "- programme_identity is a factual source-backed field, not "
+                "routing metadata. Emit it only when the source explicitly "
+                "names the target programme; use the source-native title and "
+                "never copy the roster/entity label or infer identity from a "
+                "URL alone.\n"
+                "- credential must be the exact source-native award label "
+                "such as B.S.E., B.S., M.Sc. or Master of Science. Emit it "
+                "only when that label is present in the evidence; do not "
+                "normalize or infer a credential from the programme name, "
+                "degree level, routing metadata or roster.\n"
+                "- A programme/catalogue/admission source can support these "
+                "facts, but a general institution page must not be treated "
+                "as programme evidence without an explicit applicability "
+                "relationship."
+            ),
             "academics_admissions": (
                 "- When programme_focus, curriculum_overview, "
                 "specialisations, learning_outcomes or "
@@ -618,7 +732,11 @@ Sources:
         thinking: bool,
     ) -> dict[str, Any]:
         if not self.api_key:
-            raise DeepSeekError("DEEPSEEK_API_KEY is not configured.")
+            raise DeepSeekError(
+                "No OpenAI-compatible extraction API key is configured.",
+                code=ExtractionProviderErrorCode.PROVIDER_UNAVAILABLE,
+                retryable=False,
+            )
         body: dict[str, Any] = {
             "model": model_name,
             "messages": [
@@ -632,13 +750,31 @@ Sources:
                 {"role": "user", "content": prompt},
             ],
             "response_format": {"type": "json_object"},
-            "thinking": {"type": "enabled" if thinking else "disabled"},
-            "max_tokens": 12_000,
+            "max_tokens": self.max_output_tokens,
+            "temperature": self.temperature,
         }
-        if thinking:
-            body["reasoning_effort"] = "high"
+        reasoning_effort = os.environ.get(
+            "EXTRACTION_REASONING_EFFORT", ""
+        ).strip().lower()
+        if reasoning_effort:
+            if reasoning_effort not in {"none", "low", "medium", "high"}:
+                raise DeepSeekError(
+                    "EXTRACTION_REASONING_EFFORT must be none, low, medium, or high.",
+                    code=ExtractionProviderErrorCode.PERMANENT_PROVIDER_ERROR,
+                )
+            if reasoning_effort == "none":
+                # DeepSeek-compatible gateways use this native switch to
+                # disable reasoning; their OpenAI-style reasoning_effort
+                # enum does not accept the literal value "none".
+                body["thinking"] = {"type": "disabled"}
+            else:
+                body["reasoning_effort"] = reasoning_effort
+        else:
+            body["thinking"] = {"type": "enabled" if thinking else "disabled"}
+            if thinking:
+                body["reasoning_effort"] = "high"
         request = Request(
-            f"{self.config.deepseek_base_url}/chat/completions",
+            f"{self.base_url}/chat/completions",
             data=json.dumps(body).encode("utf-8"),
             headers={
                 "Authorization": f"Bearer {self.api_key}",
@@ -648,24 +784,66 @@ Sources:
             method="POST",
         )
         try:
-            with urlopen(request, timeout=90) as response:
-                raw = response.read(8 * 1024 * 1024)
+            raw = self._open_request(request)
         except HTTPError as exc:
             detail = exc.read(2048).decode("utf-8", errors="replace")
-            raise DeepSeekError(f"DeepSeek HTTP {exc.code}: {detail}") from exc
+            if exc.code == 429:
+                code = ExtractionProviderErrorCode.RATE_LIMITED
+            elif exc.code in {408, 425, 500, 502, 503, 504}:
+                code = ExtractionProviderErrorCode.TRANSIENT_PROVIDER_ERROR
+            elif exc.code in {400, 401, 403, 404, 422}:
+                code = ExtractionProviderErrorCode.PERMANENT_PROVIDER_ERROR
+            else:
+                code = ExtractionProviderErrorCode.TRANSIENT_PROVIDER_ERROR
+            retry_after_seconds = self._retry_after_seconds(exc)
+            if exc.code == 429:
+                with self._stats_lock:
+                    self.stats.rate_limit_responses += 1
+                    if retry_after_seconds is not None:
+                        self.stats.retry_after_present += 1
+            raise DeepSeekError(
+                f"DeepSeek HTTP {exc.code}: {detail}",
+                code=code,
+                retryable=code
+                in {
+                    ExtractionProviderErrorCode.RATE_LIMITED,
+                    ExtractionProviderErrorCode.TRANSIENT_PROVIDER_ERROR,
+                },
+                retry_after_seconds=retry_after_seconds,
+                http_status=exc.code,
+            ) from exc
         except URLError as exc:
-            raise DeepSeekError(f"DeepSeek network error: {exc.reason}") from exc
+            raise DeepSeekError(
+                f"DeepSeek network error: {exc.reason}",
+                code=ExtractionProviderErrorCode.PROVIDER_UNAVAILABLE,
+                retryable=True,
+            ) from exc
+        except TimeoutError as exc:
+            raise DeepSeekError(
+                "OpenAI-compatible extraction request timed out.",
+                code=ExtractionProviderErrorCode.PROVIDER_UNAVAILABLE,
+                retryable=True,
+            ) from exc
         try:
             envelope = json.loads(raw)
             choice = envelope["choices"][0]
             content = choice["message"].get("content")
             if not content:
-                raise DeepSeekError("DeepSeek returned empty content.")
+                raise DeepSeekError(
+                    "DeepSeek returned empty content.",
+                    code=ExtractionProviderErrorCode.INVALID_PROVIDER_RESPONSE,
+                )
             if choice.get("finish_reason") == "length":
-                raise DeepSeekError("DeepSeek output was truncated.")
+                raise DeepSeekError(
+                    "DeepSeek output was truncated.",
+                    code=ExtractionProviderErrorCode.CONTEXT_LIMIT,
+                )
             payload = json.loads(content)
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-            raise DeepSeekError("DeepSeek returned an invalid response envelope.") from exc
+            raise DeepSeekError(
+                "DeepSeek returned an invalid response envelope.",
+                code=ExtractionProviderErrorCode.INVALID_PROVIDER_RESPONSE,
+            ) from exc
 
         usage = envelope.get("usage") or {}
         with self._stats_lock:
@@ -779,7 +957,7 @@ Sources:
         models = (
             [self.config.deepseek_pro_model]
             if prefer_pro
-            else [self.config.deepseek_flash_model, self.config.deepseek_pro_model]
+            else [self.config.deepseek_flash_model]
         )
         last_error: Exception | None = None
         for model_name in models:
@@ -804,7 +982,8 @@ Sources:
                 return cached_model, self._validate_payload(
                     payload, SCHOOL_PROFILE_FIELDS
                 )
-            attempts = self.config.limits.max_llm_retries + 1
+            attempts = self.max_retries + 1
+            self._record_logical_request()
             for attempt in range(attempts):
                 try:
                     self._report(
@@ -825,9 +1004,24 @@ Sources:
                     last_error = exc
                     with self._stats_lock:
                         self.stats.failures += 1
+                    if not exc.retryable:
+                        break
                     if attempt + 1 < attempts:
-                        time.sleep(2**attempt)
-        raise DeepSeekError(f"School profile extraction failed: {last_error}")
+                        self._wait_before_retry(exc, attempt)
+                    elif exc.code == ExtractionProviderErrorCode.RATE_LIMITED:
+                        with self._stats_lock:
+                            self.stats.terminal_rate_limit_failures += 1
+        raise DeepSeekError(
+            f"School profile extraction failed: {last_error}",
+            code=(
+                last_error.code
+                if isinstance(last_error, ExtractionProviderError)
+                else ExtractionProviderErrorCode.TRANSIENT_PROVIDER_ERROR
+            ),
+            retryable=bool(
+                getattr(last_error, "retryable", False)
+            ),
+        ) from last_error
 
     def _sources_for_group(
         self,
@@ -930,6 +1124,73 @@ Sources:
         limit = self.config.limits.max_sources_per_extraction_group
         return [main, *[item[2] for item in ranked[: max(0, limit - 1)]]]
 
+    def _record_logical_request(self) -> None:
+        with self._stats_lock:
+            self.stats.logical_requests += 1
+
+    def _retry_delay(self, error: DeepSeekError, attempt: int) -> float:
+        retry_after = getattr(error, "retry_after_seconds", None)
+        if retry_after is not None:
+            delay = max(0.0, min(float(retry_after), self.backoff_max_seconds))
+        else:
+            delay = min(
+                self.backoff_max_seconds,
+                self.backoff_base_seconds * (2**attempt),
+            )
+        if self.backoff_jitter_seconds and delay:
+            delay += random.uniform(0.0, self.backoff_jitter_seconds)
+        return delay
+
+    def _wait_before_retry(self, error: DeepSeekError, attempt: int) -> None:
+        with self._stats_lock:
+            self.stats.retry_attempts += 1
+            if error.code == ExtractionProviderErrorCode.RATE_LIMITED:
+                self.stats.rate_limit_retries += 1
+            elif error.code in {
+                ExtractionProviderErrorCode.TRANSIENT_PROVIDER_ERROR,
+                ExtractionProviderErrorCode.PROVIDER_UNAVAILABLE,
+            }:
+                self.stats.transport_retries += 1
+            else:
+                self.stats.response_retries += 1
+        delay = self._retry_delay(error, attempt)
+        if delay:
+            time.sleep(delay)
+
+    def _open_request(self, request: Request) -> bytes:
+        """Serialize provider transport while retaining bounded concurrency."""
+        self._request_gate.acquire()
+        with self._stats_lock:
+            self._in_flight += 1
+            self.stats.request_attempts += 1
+            self.stats.max_in_flight = max(
+                self.stats.max_in_flight,
+                self._in_flight,
+            )
+        try:
+            with urlopen(request, timeout=self.timeout_seconds) as response:
+                return response.read(8 * 1024 * 1024)
+        finally:
+            with self._stats_lock:
+                self._in_flight -= 1
+            self._request_gate.release()
+
+    @staticmethod
+    def _retry_after_seconds(error: HTTPError) -> float | None:
+        value = error.headers.get("Retry-After") if error.headers else None
+        if not value:
+            return None
+        try:
+            return max(0.0, float(value))
+        except (TypeError, ValueError):
+            try:
+                retry_at = parsedate_to_datetime(value)
+            except (TypeError, ValueError, OverflowError):
+                return None
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=timezone.utc)
+            return max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+
     def _extract_group(
         self,
         programme: ProgrammeRecord,
@@ -951,7 +1212,7 @@ Sources:
         models = (
             [self.config.deepseek_pro_model]
             if prefer_pro
-            else [self.config.deepseek_flash_model, self.config.deepseek_pro_model]
+            else [self.config.deepseek_flash_model]
         )
         last_error: Exception | None = None
         for model_name in models:
@@ -975,7 +1236,9 @@ Sources:
                     cached_payload,
                     field_names,
                 )
-            attempts = self.config.limits.max_llm_retries + 1
+            attempts = self.max_retries + 1
+            self._record_logical_request()
+            saw_rate_limit = False
             for attempt in range(attempts):
                 try:
                     self._report(
@@ -1004,6 +1267,9 @@ Sources:
                         }
                     payload = self._validate_payload(payload, field_names)
                     self.state.put_llm(cache_key, model_name, payload)
+                    if saw_rate_limit:
+                        with self._stats_lock:
+                            self.stats.rate_limit_recoveries += 1
                     self._report(
                         f"[{programme.programme_name}] DeepSeek extraction complete "
                         f"{extraction_group} ({model_name})"
@@ -1011,16 +1277,32 @@ Sources:
                     return model_name, payload
                 except DeepSeekError as exc:
                     last_error = exc
+                    saw_rate_limit = saw_rate_limit or (
+                        exc.code == ExtractionProviderErrorCode.RATE_LIMITED
+                    )
                     with self._stats_lock:
                         self.stats.failures += 1
+                    if not exc.retryable:
+                        break
                     if attempt + 1 < attempts:
                         self._report(
                             f"[{programme.programme_name}] DeepSeek retry: {exc}"
                         )
-                        time.sleep(2**attempt)
+                        self._wait_before_retry(exc, attempt)
+                    elif exc.code == ExtractionProviderErrorCode.RATE_LIMITED:
+                        with self._stats_lock:
+                            self.stats.terminal_rate_limit_failures += 1
         raise DeepSeekError(
-            f"Extraction group {extraction_group} failed: {last_error}"
-        )
+            f"Extraction group {extraction_group} failed: {last_error}",
+            code=(
+                last_error.code
+                if isinstance(last_error, ExtractionProviderError)
+                else ExtractionProviderErrorCode.TRANSIENT_PROVIDER_ERROR
+            ),
+            retryable=bool(
+                getattr(last_error, "retryable", False)
+            ),
+        ) from last_error
 
     def extract(
         self,
@@ -1047,13 +1329,7 @@ Sources:
                     group_sources,
                     extraction_group,
                     field_names,
-                    prefer_pro=(
-                        prefer_pro
-                        or any(
-                            source.page_type == PageType.PDF.value
-                            for source in group_sources
-                        )
-                    ),
+                    prefer_pro=prefer_pro,
                 )
             except DeepSeekError as exc:
                 detail = {
@@ -1150,13 +1426,7 @@ Sources:
                     group_sources,
                     extraction_group,
                     allowed,
-                    prefer_pro=(
-                        prefer_pro
-                        or any(
-                            source.page_type == PageType.PDF.value
-                            for source in group_sources
-                        )
-                    ),
+                    prefer_pro=prefer_pro,
                     retain_only_requested_fields=True,
                 )
             except DeepSeekError as exc:

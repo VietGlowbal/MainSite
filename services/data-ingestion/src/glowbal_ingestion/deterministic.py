@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .deepseek import ExtractionSource
+from .extraction_provider import ExtractionSource
 from .models import (
     FieldAssertion,
     VerificationStatus,
@@ -375,6 +375,9 @@ def extract_source_excerpt_assertions(
                     applicability_source_url=None,
                     applicability_evidence=None,
                     source_content_hash=source.content_hash,
+                    raw_document_id=source.raw_document_id,
+                    parser_id=source.parser_id,
+                    parser_version=source.parser_version,
                     review_fingerprint=None,
                     inherited_from_assertion_id=None,
                     inherited_from_entity_id=None,

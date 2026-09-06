@@ -1,0 +1,24 @@
+{
+  "status": "NON_OFFICIAL_METHODOLOGY_EVALUATION",
+  "run_id": "phase3f-v2-run-20260905T161914Z",
+  "official_v2_identity": {
+    "found_population": 28,
+    "correct": 0,
+    "score": "0/28"
+  },
+  "candidate_v3_identity": {
+    "found_population": 28,
+    "exact_equivalent": 0,
+    "canonically_equivalent": 24,
+    "wrong_granularity": 3,
+    "factual_wrong": 0,
+    "ambiguous": 1,
+    "coverage_loss_total_36": 8,
+    "diagnostic_equivalent_score": "24/28"
+  },
+  "pipeline_identity_classification": "IDENTITY_PIPELINE_NEEDS_CANONICALIZATION",
+  "secondary_cluster": "IDENTITY_PIPELINE_NEEDS_GRANULARITY_FIX",
+  "fuzzy_only_pass": false,
+  "deepseek_calls": 0,
+  "refetches": 0
+}

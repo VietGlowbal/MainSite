@@ -7,10 +7,15 @@ from collections import defaultdict
 from typing import Any, Iterable
 
 from .models import (
+    ApplicabilityState,
     ADMISSION_PACKAGE_FIELDS,
     DEEP_FIELDS,
+    EpistemicState,
     FieldAssertion,
     NullReason,
+    SourceAuthority,
+    SourceRelationship,
+    TemporalState,
     VerificationStatus,
     has_semantic_value,
     utc_now_iso,
@@ -67,6 +72,25 @@ def assertion_from_dict(payload: dict[str, Any]) -> FieldAssertion:
     )
     value["verification_status"] = VerificationStatus(
         str(verification_status)
+    )
+    value["epistemic_state"] = EpistemicState(
+        str(value.get("epistemic_state") or EpistemicState.OBSERVED.value)
+    )
+    value["temporal_state"] = TemporalState(
+        str(value.get("temporal_state") or TemporalState.UNKNOWN.value)
+    )
+    source_authority = value.get("source_authority")
+    value["source_authority"] = (
+        SourceAuthority(str(source_authority)) if source_authority else None
+    )
+    source_relationship = value.get("source_relationship")
+    value["source_relationship"] = (
+        SourceRelationship(str(source_relationship))
+        if source_relationship
+        else None
+    )
+    value["applicability_state"] = ApplicabilityState(
+        str(value.get("applicability_state") or ApplicabilityState.UNKNOWN.value)
     )
     value["validation_errors"] = [
         str(error) for error in value.get("validation_errors", [])

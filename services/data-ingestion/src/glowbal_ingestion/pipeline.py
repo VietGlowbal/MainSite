@@ -8,12 +8,14 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlsplit
 
 from .admission import build_admission_package, evaluate_package
 from .approved_assertions import ApprovedAssertionRepository
 from .best_assertions import merge_best_assertions, prefer_human_verified
 from .config import InstitutionSeed, SmokeConfig
+from .convergence import ProgrammeAcquisitionAdapter
 from .crawl4ai_adapter import (
     Crawl4AIAdapterError,
     Crawl4AIRenderer,
@@ -21,7 +23,15 @@ from .crawl4ai_adapter import (
     require_crawl4ai,
     should_render_page,
 )
-from .deepseek import DeepSeekClient, DeepSeekError, ExtractionSource
+from .extraction_provider import (
+    ExtractionProvider,
+    ExtractionProviderError,
+    ExtractionRequest,
+    ExtractionResult,
+    ExtractionSource,
+    LegacyTupleExtractionProvider,
+    create_extraction_provider,
+)
 from .deterministic import (
     extract_deterministic_facts,
     extract_source_excerpt_assertions,
@@ -49,6 +59,10 @@ from .models import (
     ProgrammeRecord,
     SCHOOL_PROFILE_FIELDS,
     SourceDocument,
+    RawDocument,
+    SourceAuthority,
+    SourceRelationship,
+    TemporalState,
     VerificationStatus,
     has_semantic_value,
     stable_id,
@@ -62,10 +76,21 @@ from .normalization import (
     programme_is_selection_eligible,
     refine_programme_name_from_title,
 )
-from .parsing import classify_page, normalize_text, parse_html, parse_pdf
+from .parser_registry import ParserError, ParserRegistry
+from .parsing import classify_page, normalize_text
 from .policy import RobotsPolicy, check_policy
+from .quality import SliceCQuality
 from .scrapy_adapter import ScrapyDiscoveryAdapter, require_scrapy
+from .source_adapters import AcquisitionPlatformBackend
 from .storage import JsonlStore, RunPaths, StateStore
+from .raw_evidence import (
+    RawEvidenceDurability,
+    RawEvidenceError,
+    RawEvidenceErrorCode,
+    RawEvidenceStore,
+    RawSnapshotInput,
+    create_remote_raw_evidence_store,
+)
 from .url_safety import (
     UnsafeUrlError,
     canonicalize_url,
@@ -167,6 +192,23 @@ RELATED_LINK_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 
+
+def fields_requiring_llm(
+    requested_fields: tuple[str, ...],
+    deterministic_facts: list[dict[str, object]],
+) -> tuple[str, ...]:
+    """Return only unresolved fields eligible for provider extraction."""
+    deterministic_fields = frozenset(
+        str(fact.get("field_name"))
+        for fact in deterministic_facts
+        if has_semantic_value(fact.get("value"))
+    )
+    return tuple(
+        field_name
+        for field_name in requested_fields
+        if field_name not in deterministic_fields
+    )
+
 SOURCE_CATEGORY_BY_PAGE_TYPE: dict[str, str] = {
     PageType.PROGRAMME_ADMISSION.value: "programme_admission",
     PageType.INTERNATIONAL_ADMISSION.value: "programme_admission",
@@ -192,10 +234,17 @@ OFF_SCOPE_RE = re.compile(
 )
 RELATED_LINK_PATTERN_BY_CATEGORY = dict(RELATED_LINK_PATTERNS)
 COVERAGE_RETRY_FIELD_CATEGORIES: dict[str, tuple[str, ...]] = {
+    # These are link categories only. They direct bounded recovery toward
+    # already-discovered official pages; they do not supply facts or roster
+    # labels to extraction.
+    "programme_identity": ("programme_detail", "curriculum"),
+    "credential": ("programme_detail", "curriculum"),
+    "programme_status": ("programme_detail", "curriculum"),
     "programme_focus": ("programme_detail", "curriculum"),
     "curriculum_overview": ("curriculum",),
     "learning_outcomes": ("curriculum", "career_outcome"),
     "admission_difficulty": ("programme_admission",),
+    "major_admissions_requirement": ("programme_admission", "curriculum"),
     "recommendation_letters": ("programme_admission",),
     "sop_essay_requirements": ("programme_admission",),
     "graduation_certificate": ("programme_admission",),
@@ -203,6 +252,8 @@ COVERAGE_RETRY_FIELD_CATEGORIES: dict[str, tuple[str, ...]] = {
     "application_fee": ("programme_admission", "tuition"),
     "tuition": ("tuition",),
     "additional_fees": ("tuition",),
+    "application_deadline": ("deadline", "programme_admission", "international_admission"),
+    "english_requirement": ("english_requirement", "international_admission", "programme_admission"),
     "scholarships": ("scholarship",),
     "career_outcomes": ("career_outcome",),
     "employment_outcomes": ("career_outcome",),
@@ -285,6 +336,27 @@ def dedupe_equivalent_assertions(
     return [selected[key] for key in order]
 
 
+def _source_metadata_for_url(
+    seed: InstitutionSeed,
+    url: str,
+) -> tuple[SourceAuthority | None, SourceRelationship | None]:
+    """Return declared source metadata without treating it as field evidence.
+
+    The legacy fetch path historically discarded the source-admission metadata
+    that the platform shadow path already computes.  Preserve that metadata at
+    the raw/source boundary so quality policy can distinguish an official
+    source from an unknown one.  This function never supplies programme facts.
+    """
+
+    host = (urlsplit(url).hostname or "").casefold()
+    if host and hostname_matches(host, (seed.official_domain,)):
+        return SourceAuthority.OFFICIAL, SourceRelationship.DIRECT_OFFICIAL
+    for rule in seed.external_source_rules:
+        if host and hostname_matches(host, (rule.domain,)):
+            return rule.authority, rule.relationship
+    return None, None
+
+
 @dataclass
 class RunMetrics:
     institutions_total: int = 0
@@ -312,6 +384,12 @@ class RunMetrics:
     assertions_non_null: int = 0
     assertions_rejected: int = 0
     assertions_needs_review: int = 0
+    field_candidates_created_total: int = 0
+    runtime_assertions_created_total: int = 0
+    candidate_to_assertion_drop_total: int = 0
+    field_candidates_created_by_field: dict[str, int] = field(default_factory=dict)
+    runtime_assertions_created_by_field: dict[str, int] = field(default_factory=dict)
+    candidate_to_assertion_drop_reason: dict[str, int] = field(default_factory=dict)
     shared_bundles_upserted: int = 0
     inherited_assertions: int = 0
     inherited_field_slots: int = 0
@@ -319,6 +397,11 @@ class RunMetrics:
     extraction_fields_skipped: int = 0
     approved_baseline_programmes: int = 0
     approved_baseline_assertions: int = 0
+    acquisition_intents: int = 0
+    source_candidates_generated: int = 0
+    source_candidates_admitted: int = 0
+    source_candidates_rejected: int = 0
+    acquisition_discovery_failures: int = 0
     errors: int = 0
     started_at: str = field(default_factory=utc_now_iso)
     completed_at: str | None = None
@@ -329,6 +412,24 @@ class RunMetrics:
         with self._lock:
             for key, value in increments.items():
                 setattr(self, key, int(getattr(self, key)) + value)
+
+    def bump_field_metric(self, metric: str, field_name: str) -> None:
+        """Increment a field-level assertion-generation diagnostic."""
+        if not field_name:
+            return
+        with self._lock:
+            values = getattr(self, metric)
+            values[field_name] = int(values.get(field_name, 0)) + 1
+
+    def record_candidate_drop(self, reason: str) -> None:
+        """Record why a candidate did not enter the assertion list."""
+        if not reason:
+            return
+        with self._lock:
+            self.candidate_to_assertion_drop_total += 1
+            self.candidate_to_assertion_drop_reason[reason] = (
+                int(self.candidate_to_assertion_drop_reason.get(reason, 0)) + 1
+            )
 
     def to_dict(self) -> dict[str, object]:
         with self._lock:
@@ -361,6 +462,7 @@ class SmokePipeline:
         render_policy: str = "off",
         target_fields: tuple[str, ...] | None = None,
         skip_school_profile: bool = False,
+        raw_evidence_store: RawEvidenceStore | None = None,
     ) -> None:
         if discovery_backend not in {"native", "scrapy", "hybrid"}:
             raise ValueError(
@@ -390,9 +492,38 @@ class SmokePipeline:
         self.paths = RunPaths.create(run_dir)
         self.store = JsonlStore(self.paths)
         self.state = StateStore(run_dir / "crawl_state.sqlite")
+        self.parser_registry = ParserRegistry.default()
+        self.raw_evidence_mode = config.raw_evidence_mode
+        self.raw_evidence_store = raw_evidence_store
+        if self.raw_evidence_mode in {"remote", "dual"}:
+            self.raw_evidence_store = (
+                raw_evidence_store
+                or create_remote_raw_evidence_store(
+                    inline_payload_max_bytes=config.raw_evidence_inline_max_bytes
+                )
+            )
+            if (
+                getattr(
+                    self.raw_evidence_store,
+                    "durability",
+                    RawEvidenceDurability.LOCAL_ONLY,
+                )
+                != RawEvidenceDurability.REMOTE_DURABLE
+            ):
+                # Validation occurs after local run state is initialized for
+                # compatibility with existing constructors; release it before
+                # rejecting the run so a failed pre-fetch setup never leaks a
+                # SQLite handle on Windows workers.
+                self.state.close()
+                raise ValueError(
+                    "RAW_EVIDENCE_MODE remote/dual requires a "
+                    "REMOTE_DURABLE RawEvidenceStore."
+                )
         shared_cache_dir = run_dir.parent / "_cache"
         shared_cache_dir.mkdir(parents=True, exist_ok=True)
         self.llm_state = StateStore(
+            # Retain the existing cache path during the provider migration.
+            # Cache keys are provider-neutral from Slice A onward.
             shared_cache_dir / "deepseek_cache.sqlite"
         )
         self.fetcher = SafeFetcher(config.limits)
@@ -415,17 +546,34 @@ class SmokePipeline:
             if render_policy != "off"
             else None
         )
-        self.discovery = CatalogueDiscovery(
+        legacy_discovery = CatalogueDiscovery(
             self.fetcher,
             self._progress,
             backend=discovery_backend,
             scrapy_adapter=scrapy_adapter,
             graph_sink=self._record_discovery_edge,
         )
-        self.deepseek = DeepSeekClient(
-            config,
-            self.llm_state,
-            self._progress,
+        # The shadow backend preserves the exact legacy discovery algorithm;
+        # it merely emits source-candidate admission telemetry.  It is not an
+        # acquisition planner/crawler replacement.
+        self.discovery = AcquisitionPlatformBackend(
+            legacy_discovery,
+            event_sink=self._record_acquisition_event,
+            artifact_sink=self._record_acquisition_artifact,
+            mode=config.acquisition_backend,
+            fetcher=self.fetcher,
+            raw_evidence_store=self.raw_evidence_store,
+            acquisition_run_id=self.paths.root.name,
+        )
+        self.extractor: ExtractionProvider = create_extraction_provider(
+            config, self.llm_state, self._progress
+        )
+        # Slice C is deliberately shadow-only: it observes the assertion
+        # bundle and records quality/recovery decisions without changing the
+        # programme result or acquiring anything itself.
+        self.shadow_quality = SliceCQuality()
+        self._legacy_extractor = getattr(
+            self.extractor, "legacy_client", None
         )
         self.approved_assertions = (
             ApprovedAssertionRepository.from_environment()
@@ -445,6 +593,94 @@ class SmokePipeline:
         self._start_monotonic = 0.0
         self._optional_phd_lock = threading.Lock()
         self._optional_phd_used = 0
+
+    def _record_acquisition_event(self, event: dict[str, object]) -> None:
+        """Persist source-resolution telemetry without raw content or secrets."""
+        self.store.append("acquisition_events", event)
+        if event.get("event") == "source_candidate_admission":
+            if event.get("admitted"):
+                self.metrics.add(source_candidates_admitted=1)
+            else:
+                self.metrics.add(source_candidates_rejected=1)
+        elif event.get("event") == "acquisition_intent":
+            self.metrics.add(acquisition_intents=1)
+        elif event.get("event") == "source_candidates_generated":
+            self.metrics.add(source_candidates_generated=int(event.get("count") or 0))
+
+    def _record_acquisition_artifact(
+        self,
+        stream: str,
+        record: dict[str, object],
+    ) -> None:
+        """Write run-scoped source lineage without raw response bodies."""
+        self.store.append(stream, record)
+
+    # Temporary compatibility alias for existing callers/tests.  Pipeline code
+    # uses ``extractor`` and no longer imports provider-specific classes.
+    @property
+    def deepseek(self) -> object:
+        if self._legacy_extractor is None:
+            # Compatibility surface for legacy tests/callers that replace the
+            # old tuple-style client. Production orchestration stays on the
+            # generic provider contract.
+            self._legacy_extractor = SimpleNamespace()
+            self.extractor = LegacyTupleExtractionProvider(
+                self._legacy_extractor
+            )
+        return self._legacy_extractor
+
+    @deepseek.setter
+    def deepseek(self, value: ExtractionProvider) -> None:
+        self._legacy_extractor = value
+        self.extractor = LegacyTupleExtractionProvider(value)
+
+    def _extraction_request(
+        self,
+        *,
+        entity_id: str,
+        field_names: tuple[str, ...],
+        sources: list[ExtractionSource],
+        operation: str,
+        context: dict[str, object],
+        prefer_pro: bool = False,
+    ) -> ExtractionRequest:
+        legacy = getattr(self.extractor, "legacy_client", None)
+        return ExtractionRequest(
+            entity_id=entity_id,
+            field_names=field_names,
+            sources=tuple(sources),
+            prompt_version=str(
+                getattr(legacy, "PROMPT_VERSION", "provider-managed/v1")
+            ),
+            schema_version=str(
+                getattr(legacy, "SCHEMA_VERSION", "provider-managed/v1")
+            ),
+            operation=operation,
+            context=context,
+            capabilities={"prefer_pro": prefer_pro},
+        )
+
+    @staticmethod
+    def _facts_with_extraction_provenance(
+        result: ExtractionResult,
+        sources: list[ExtractionSource],
+    ) -> list[dict[str, object]]:
+        """Attach the exact observed snapshot, never a hash-based surrogate."""
+        sources_by_url = {source.url: source for source in sources}
+        facts: list[dict[str, object]] = []
+        for fact in result.facts:
+            enriched = dict(fact)
+            source = sources_by_url.get(str(enriched.get("source_url") or ""))
+            if source is not None:
+                enriched["_raw_document_id"] = source.raw_document_id
+                enriched["_parser_id"] = source.parser_id
+                enriched["_parser_version"] = source.parser_version
+            enriched["_provider_id"] = result.provider_id
+            enriched["_model_name"] = result.model_id
+            enriched["_prompt_version"] = result.prompt_version
+            enriched["_schema_version"] = result.schema_version
+            facts.append(enriched)
+        return facts
 
     @staticmethod
     def _elapsed_label(seconds: float) -> str:
@@ -526,7 +762,15 @@ class SmokePipeline:
 
     def _record_assertion(self, assertion: FieldAssertion) -> None:
         self.store.append("field_assertions", assertion)
-        updates = {"assertions_total": 1}
+        self.metrics.add(
+            assertions_total=1,
+            runtime_assertions_created_total=1,
+        )
+        self.metrics.bump_field_metric(
+            "runtime_assertions_created_by_field",
+            assertion.field_name,
+        )
+        updates = {}
         if assertion.verification_status != VerificationStatus.REJECTED:
             slot = (assertion.entity_id, assertion.field_name)
             with self._coverage_lock:
@@ -545,6 +789,40 @@ class SmokePipeline:
         if assertion.verification_status == VerificationStatus.NEEDS_REVIEW:
             updates["assertions_needs_review"] = 1
         self.metrics.add(**updates)
+
+    def _record_extraction_trace(
+        self,
+        *,
+        programme: ProgrammeRecord,
+        phase: str,
+        sources: list[ExtractionSource],
+        deterministic_candidate_count: int,
+        llm_called: bool,
+        llm_success: bool,
+        extracted_value_present: bool,
+        llm_field_names: tuple[str, ...] = (),
+        assertion_created: int = 0,
+        assertion_value_present: bool = False,
+    ) -> None:
+        """Persist value-plumbing diagnostics without source bodies or secrets."""
+        self.store.append(
+            "extraction_trace",
+            {
+                "programme_id": programme.programme_id,
+                "programme_url": programme.official_url,
+                "phase": phase,
+                "retrieved_at": utc_now_iso(),
+                "source_count": len(sources),
+                "parser_success": bool(sources and any(source.text for source in sources)),
+                "deterministic_candidate_count": deterministic_candidate_count,
+                "llm_called": llm_called,
+                "llm_success": llm_success,
+                "llm_field_names": list(llm_field_names),
+                "extracted_value_present": extracted_value_present,
+                "assertion_created": assertion_created,
+                "assertion_value_present": assertion_value_present,
+            },
+        )
 
     @staticmethod
     def _prepare_assertion(
@@ -572,10 +850,30 @@ class SmokePipeline:
             for group_name in failed_groups
             if group_name in EXTRACTION_FIELD_GROUPS
         ):
-            return NullReason.PARSE_FAILED
+            # The parser already produced a usable SourceDocument.  A failed
+            # provider/extraction group is an extraction failure, not a parser
+            # failure; keeping this distinction prevents the coverage state
+            # machine from misreporting valid parsed evidence.
+            return NullReason.EXTRACTION_FAILED
         if programme.degree_level == "bachelor" and field_name == "minimum_degree":
             return NullReason.NOT_APPLICABLE
         return NullReason.NOT_PUBLISHED
+
+    def _parse_document(
+        self,
+        raw_document: RawDocument,
+        payload: bytes,
+    ) -> Any:
+        """Translate a genuine parser failure into an explicit fetch state."""
+        try:
+            return self.parser_registry.parse(raw_document, payload)
+        except ParserError as exc:
+            raise FetchError(
+                "Parser could not produce usable document content.",
+                code="PARSE_FAILED",
+                url=raw_document.canonical_url,
+                retryable=False,
+            ) from exc
 
     def _fetch_and_parse_source(
         self,
@@ -642,19 +940,23 @@ class SmokePipeline:
                 },
             )
         content_type = (result.content_type or "").lower()
-        if "pdf" in content_type or result.body.startswith(b"%PDF"):
-            page = parse_pdf(result.body, result.final_url)
-            page_type = PageType.PDF
-        elif (
-            "html" in content_type
-            or "xml" in content_type
-            or not content_type
-        ):
-            page = parse_html(
-                result.body,
-                result.final_url,
-                result.headers.get("content-type"),
+        parser_content_type = result.content_type or "text/html; charset=utf-8"
+        if "html" in content_type or "xml" in content_type or not content_type:
+            # This provisional parse only decides whether rendering is useful.
+            # Accepted parsing/extraction occurs after remote persistence below.
+            provisional = RawDocument(
+                raw_document_id=stable_id(
+                    "provisional-render", result.final_url, result.content_hash
+                ),
+                source_identity=stable_id("source-identity", result.final_url),
+                canonical_url=result.final_url,
+                content_hash=result.content_hash,
+                content_type=parser_content_type,
+                retrieved_at=result.retrieved_at,
+                payload_location="transient",
+                payload_reference=None,
             )
+            page = self._parse_document(provisional, result.body)
             if (
                 self.renderer is not None
                 and not rendered
@@ -673,10 +975,24 @@ class SmokePipeline:
                         result.final_url,
                         allowed_domains=seed.all_allowed_domains,
                     )
-                    rendered_page = parse_html(
+                    rendered_page = self._parse_document(
+                        RawDocument(
+                            raw_document_id=stable_id(
+                                "provisional-render",
+                                rendered_result.final_url,
+                                rendered_result.content_hash,
+                            ),
+                            source_identity=stable_id(
+                                "source-identity", rendered_result.final_url
+                            ),
+                            canonical_url=rendered_result.final_url,
+                            content_hash=rendered_result.content_hash,
+                            content_type="text/html; charset=utf-8",
+                            retrieved_at=rendered_result.retrieved_at,
+                            payload_location="transient",
+                            payload_reference=None,
+                        ),
                         rendered_result.body,
-                        rendered_result.final_url,
-                        "text/html; charset=utf-8",
                     )
                 except (Crawl4AIAdapterError, RuntimeError) as exc:
                     self.store.append(
@@ -730,20 +1046,134 @@ class SmokePipeline:
                         fetch_method = "crawl4ai"
                         rendered = True
                         self.metrics.add(render_successes=1)
-            page_type = classify_page(result.final_url, page.title, page.text)
-        else:
+        elif "pdf" not in content_type and not result.body.startswith(b"%PDF"):
             raise FetchError(
                 f"Unsupported content type: {result.content_type}",
                 code="UNSUPPORTED_CONTENT_TYPE",
                 url=result.final_url,
             )
-        raw_path = self.store.save_raw(
-            content=result.body,
-            content_type=result.content_type,
-            canonical_url=result.final_url,
+
+        source_authority, source_relationship = _source_metadata_for_url(
+            seed, result.final_url
         )
+        snapshot = RawSnapshotInput(
+            canonical_url=result.final_url,
+            payload=result.body,
+            content_type=parser_content_type,
+            retrieved_at=result.retrieved_at,
+            http_status=result.status,
+            safe_response_headers={
+                key.lower(): value
+                for key, value in result.headers.items()
+                if key.lower()
+                in {"content-type", "etag", "last-modified", "content-language", "cache-control"}
+            },
+            fetch_method=fetch_method,
+            rendered=rendered,
+            acquisition_run_id=self.paths.root.name,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+        )
+        raw_document: RawDocument
+        raw_path: str | None = None
+        if self.raw_evidence_mode in {"remote", "dual"}:
+            if self.raw_evidence_store is None:
+                raise RuntimeError("Remote raw evidence store was not initialized.")
+            try:
+                raw_document = self.raw_evidence_store.put_snapshot(snapshot)
+            except RawEvidenceError as exc:
+                self.store.append(
+                    "raw_persistence_events",
+                    {
+                        "raw_document_id": snapshot.raw_document_id,
+                        "institution_id": seed.institution_id,
+                        "url": result.final_url,
+                        "status": "failed",
+                        # A remote-mode write must never be represented as a
+                        # successful retention event. Adapters retain the
+                        # diagnostic cause internally, while orchestration has
+                        # one stable write-boundary failure code.
+                        "code": RawEvidenceErrorCode.RAW_PERSIST_FAILED.value,
+                        "cause_code": (
+                            exc.cause_code.value if exc.cause_code else exc.code.value
+                        ),
+                        "retryable": exc.retryable,
+                        "retrieved_at": result.retrieved_at,
+                    },
+                )
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=result.final_url,
+                    stage="raw_persistence",
+                    code=RawEvidenceErrorCode.RAW_PERSIST_FAILED.value,
+                    message=str(exc),
+                    retryable=exc.retryable,
+                )
+                raise FetchError(
+                    "Durable raw evidence persistence failed.",
+                    code=RawEvidenceErrorCode.RAW_PERSIST_FAILED.value,
+                    url=result.final_url,
+                    retryable=exc.retryable,
+                ) from exc
+            self.store.append(
+                "raw_persistence_events",
+                {
+                    "raw_document_id": raw_document.raw_document_id,
+                    "institution_id": seed.institution_id,
+                    "url": result.final_url,
+                    "status": "persisted",
+                    "storage": raw_document.payload_location,
+                    "content_hash": raw_document.content_hash,
+                    "retrieved_at": result.retrieved_at,
+                },
+            )
+        else:
+            raw_document = RawDocument(
+                raw_document_id=snapshot.raw_document_id,
+                source_identity=snapshot.source_identity or "",
+                canonical_url=snapshot.canonical_url,
+                content_hash=snapshot.payload_hash,
+                content_type=snapshot.content_type,
+                retrieved_at=snapshot.retrieved_at,
+                payload_location="local",
+                payload_reference=None,
+                http_status=snapshot.http_status,
+                safe_response_headers=snapshot.safe_response_headers,
+                fetch_method=snapshot.fetch_method,
+                rendered=snapshot.rendered,
+                acquisition_run_id=snapshot.acquisition_run_id,
+                source_authority=snapshot.source_authority,
+                source_relationship=snapshot.source_relationship,
+            )
+        if self.raw_evidence_mode in {"local", "dual"}:
+            if self.raw_evidence_mode == "dual":
+                raw_path = self.store.save_raw_snapshot(
+                    content=result.body,
+                    content_type=result.content_type,
+                    raw_document_id=raw_document.raw_document_id,
+                )
+            else:
+                raw_path = self.store.save_raw(
+                    content=result.body,
+                    content_type=result.content_type,
+                    canonical_url=result.final_url,
+                )
+
+        # This is the accepted parse.  It always follows remote persistence in
+        # remote/dual modes, allowing a later parser version to reprocess the
+        # same retained snapshot without a network request.
+        parsed = self._parse_document(raw_document, result.body)
+        if parsed.parser_id == "pdf-text":
+            page_type = PageType.PDF
+        else:
+            page_type = classify_page(
+                result.final_url, parsed.title, parsed.text
+            )
         source_id = stable_id(
-            "source", seed.institution_id, result.final_url, result.content_hash
+            "source",
+            seed.institution_id,
+            result.final_url,
+            raw_document.content_hash,
         )
         document = SourceDocument(
             source_id=source_id,
@@ -756,22 +1186,34 @@ class SmokePipeline:
             retrieved_at=result.retrieved_at,
             content_hash=result.content_hash,
             raw_object_path=raw_path,
-            title=page.title,
-            language=page.language,
-            text_length=len(page.text),
+            title=parsed.title,
+            language=parsed.language,
+            text_length=len(parsed.text),
             fetch_method=fetch_method,
             rendered=rendered,
+            raw_document_id=raw_document.raw_document_id,
+            parser_id=parsed.parser_id,
+            parser_version=parsed.parser_version,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            temporal_state=TemporalState.UNKNOWN,
         )
         self.store.append("sources", document)
         self.metrics.add(sources_fetched=1)
         extraction_source = ExtractionSource(
             url=result.final_url,
             page_type=page_type.value,
-            title=page.title,
-            text=page.text,
+            title=parsed.title,
+            text=parsed.text,
             content_hash=result.content_hash,
+            raw_document_id=raw_document.raw_document_id,
+            parser_id=parsed.parser_id,
+            parser_version=parsed.parser_version,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            temporal_state=TemporalState.UNKNOWN,
         )
-        return document, extraction_source, page.links
+        return document, extraction_source, list(parsed.links)
 
     def _process_school_profile(
         self,
@@ -821,13 +1263,23 @@ class SmokePipeline:
         model_name: str | None = None
         facts: list[dict[str, object]] = []
         try:
-            model_name, payload = self.deepseek.extract_school_profile(
-                institution_id=seed.institution_id,
-                institution_name=seed.name,
-                sources=sources,
+            extraction_result = self.extractor.extract(
+                self._extraction_request(
+                    entity_id=seed.institution_id,
+                    field_names=SCHOOL_PROFILE_FIELDS,
+                    sources=sources,
+                    operation="school_profile",
+                    context={
+                        "institution_id": seed.institution_id,
+                        "institution_name": seed.name,
+                    },
+                )
             )
-            if payload.get("programme_identity_match"):
-                facts = list(payload.get("facts", []))
+            model_name = extraction_result.model_id
+            if extraction_result.identity_match:
+                facts = self._facts_with_extraction_provenance(
+                    extraction_result, sources
+                )
             else:
                 self._emit_error(
                     institution_id=seed.institution_id,
@@ -837,15 +1289,15 @@ class SmokePipeline:
                     message="School profile sources did not describe the target institution.",
                     retryable=False,
                 )
-        except DeepSeekError as exc:
-            self._emit_error(
-                institution_id=seed.institution_id,
-                url=seed.homepage_url,
-                stage="school_profile_extraction",
-                code="DEEPSEEK_FAILED",
-                message=str(exc),
-                retryable=True,
-            )
+        except ExtractionProviderError as exc:
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=seed.homepage_url,
+                    stage="school_profile_extraction",
+                    code=exc.code.value,
+                    message=str(exc),
+                    retryable=exc.retryable,
+                )
 
         assertions: list[FieldAssertion] = []
         found: set[str] = set()
@@ -902,6 +1354,36 @@ class SmokePipeline:
                 source_content_hash=(
                     source.content_hash if source else None
                 ),
+                raw_document_id=(
+                    str(fact.get("_raw_document_id"))
+                    if fact.get("_raw_document_id")
+                    else (source.raw_document_id if source else None)
+                ),
+                parser_id=(
+                    str(fact.get("_parser_id"))
+                    if fact.get("_parser_id")
+                    else (source.parser_id if source else None)
+                ),
+                parser_version=(
+                    str(fact.get("_parser_version"))
+                    if fact.get("_parser_version")
+                    else (source.parser_version if source else None)
+                ),
+                provider_id=(
+                    str(fact.get("_provider_id"))
+                    if fact.get("_provider_id")
+                    else None
+                ),
+                prompt_version=(
+                    str(fact.get("_prompt_version"))
+                    if fact.get("_prompt_version")
+                    else None
+                ),
+                schema_version=(
+                    str(fact.get("_schema_version"))
+                    if fact.get("_schema_version")
+                    else None
+                ),
             )
             assertion = self._prepare_assertion(
                 assertion,
@@ -919,7 +1401,7 @@ class SmokePipeline:
                         entity_type="institution",
                         field_name=field_name,
                         null_reason=(
-                            NullReason.PARSE_FAILED
+                            NullReason.EXTRACTION_FAILED
                             if model_name is None
                             else NullReason.NOT_PUBLISHED
                         ),
@@ -1430,6 +1912,26 @@ class SmokePipeline:
                 selective_extraction_programmes=1,
                 extraction_fields_skipped=skipped_field_count,
             )
+        programme_sources = seed.programme_source_bundles.get(
+            programme.official_url, ()
+        )
+        shared_admission_sources = (
+            seed.shared_admission_source_bundles.get(
+                str(programme.degree_level or "").lower(), ()
+            )
+        )
+        shared_support_sources = seed.shared_source_bundles.get(
+            str(programme.degree_level or "").lower(), ()
+        )
+        configured_sources = tuple(
+            dict.fromkeys(
+                (
+                    *programme_sources,
+                    *shared_support_sources,
+                    *shared_admission_sources,
+                )
+            )
+        )
         if inherited_assertions or approved_baseline:
             self._progress(
                 f"[{seed.name}] {programme.programme_name}: inherited "
@@ -1455,14 +1957,64 @@ class SmokePipeline:
                     message=str(exc),
                     retryable=bool(getattr(exc, "retryable", False)),
                 )
-                self._write_null_set(
-                    programme,
-                    NullReason.FETCH_FAILED,
-                    source_url=programme.official_url,
-                    model_name=None,
-                    field_names=self.target_fields,
-                )
-                return programme
+                fallback_source: tuple[
+                    ExtractionSource, list[tuple[str, str]]
+                ] | None = None
+                for fallback_url in configured_sources:
+                    if canonicalize_url(fallback_url) == canonicalize_url(
+                        programme.official_url
+                    ):
+                        continue
+                    try:
+                        _, fallback, fallback_links = (
+                            self._fetch_and_parse_source(
+                                seed, policy, fallback_url
+                            )
+                        )
+                    except (FetchError, RuntimeError, UnsafeUrlError) as fallback_exc:
+                        self._emit_error(
+                            institution_id=seed.institution_id,
+                            url=fallback_url,
+                            stage="configured_primary_fallback_fetch",
+                            code=getattr(
+                                fallback_exc,
+                                "code",
+                                "CONFIGURED_PRIMARY_FALLBACK_FAILED",
+                            ),
+                            message=str(fallback_exc),
+                            retryable=bool(
+                                getattr(fallback_exc, "retryable", False)
+                            ),
+                        )
+                        continue
+                    fallback_source = (fallback, fallback_links)
+                    self._record_url_edge(
+                        programme,
+                        discovered_from=programme.official_url,
+                        target_url=fallback.url,
+                        relation="configured_primary_fallback",
+                    )
+                    self._progress(
+                        f"[{seed.name}] {programme.programme_name}: using "
+                        "an admitted configured source after primary fetch failure"
+                    )
+                    break
+                if fallback_source is None:
+                    reason = (
+                        NullReason.BLOCKED_BY_POLICY
+                        if str(code).upper()
+                        in {"BLOCKED_BY_ROBOTS", "ACCESS_BLOCKED"}
+                        else NullReason.FETCH_FAILED
+                    )
+                    self._write_null_set(
+                        programme,
+                        reason,
+                        source_url=programme.official_url,
+                        model_name=None,
+                        field_names=self.target_fields,
+                    )
+                    return programme
+                main_source, links = fallback_source
 
         sources = [main_source]
         fetched_urls = {canonicalize_url(main_source.url)}
@@ -1470,26 +2022,6 @@ class SmokePipeline:
         related_link_contexts: list[
             tuple[str, list[tuple[str, str]]]
         ] = [(main_source.url, links)]
-        programme_sources = seed.programme_source_bundles.get(
-            programme.official_url, ()
-        )
-        shared_admission_sources = (
-            seed.shared_admission_source_bundles.get(
-                str(programme.degree_level or "").lower(), ()
-            )
-        )
-        shared_support_sources = seed.shared_source_bundles.get(
-            str(programme.degree_level or "").lower(), ()
-        )
-        configured_sources = tuple(
-            dict.fromkeys(
-                (
-                    *programme_sources,
-                    *shared_support_sources,
-                    *shared_admission_sources,
-                )
-            )
-        )
         configured_capacity = max(
             0,
             self.config.limits.max_deep_sources_per_programme - len(sources),
@@ -1691,59 +2223,99 @@ class SmokePipeline:
 
         deterministic_facts = extract_deterministic_facts(sources)
         facts = list(deterministic_facts)
+        llm_field_names = fields_requiring_llm(
+            requested_fields,
+            deterministic_facts,
+        )
         model_name: str | None = None
-        payload: dict[str, object] = {
-            "programme_identity_match": True,
-            "facts": [],
-            "warnings": [],
-        }
+        identity_match = True
+        group_diagnostics: list[dict[str, object]] = []
+        llm_called = False
+        llm_success = False
         if not self.discovery_only:
-            # The client promotes only extraction groups that actually include
-            # a PDF. A PDF elsewhere in the bundle must not force every group
-            # onto the slower reasoning model.
+            # Keep the remediation smoke on the configured Flash model. The
+            # provider supports an explicit Pro capability for future work,
+            # but the pipeline does not auto-escalate by source type.
             prefer_pro = False
             try:
-                if not requested_fields:
+                if not llm_field_names:
                     self._progress(
                         f"[{seed.name}] {programme.programme_name}: "
-                        "all requested fields already reusable; skipping LLM"
+                        "all requested fields resolved deterministically; skipping LLM"
                     )
                 elif skipped_field_count:
-                    model_name, payload = self.deepseek.extract_fields(
-                        programme,
-                        sources,
-                        field_names=requested_fields,
-                        prefer_pro=prefer_pro,
+                    llm_called = True
+                    extraction_result = self.extractor.extract(
+                        self._extraction_request(
+                            entity_id=programme.programme_id,
+                            field_names=llm_field_names,
+                            sources=sources,
+                            operation="fields",
+                            context={"programme": programme},
+                            prefer_pro=prefer_pro,
+                        )
                     )
                 else:
-                    model_name, payload = self.deepseek.extract(
-                        programme, sources, prefer_pro=prefer_pro
+                    llm_called = True
+                    extraction_result = self.extractor.extract(
+                        self._extraction_request(
+                            entity_id=programme.programme_id,
+                            field_names=DEEP_FIELDS,
+                            sources=sources,
+                            operation="programme",
+                            context={"programme": programme},
+                            prefer_pro=prefer_pro,
+                        )
                     )
-                facts.extend(payload.get("facts", []))
-                for diagnostic in payload.get("group_diagnostics", []):
-                    self.store.append(
-                        "extraction_events",
-                        {
-                            "programme_id": programme.programme_id,
-                            "institution_id": seed.institution_id,
-                            "programme_url": programme.official_url,
-                            "retrieved_at": utc_now_iso(),
-                            **diagnostic,
-                        },
+                if llm_field_names:
+                    llm_success = True
+                    model_name = extraction_result.model_id
+                    identity_match = extraction_result.identity_match is not False
+                    facts.extend(
+                        self._facts_with_extraction_provenance(
+                            extraction_result, sources
+                        )
                     )
-            except DeepSeekError as exc:
+                    group_diagnostics.extend(
+                        extraction_result.group_diagnostics
+                    )
+                    for diagnostic in extraction_result.group_diagnostics:
+                        self.store.append(
+                            "extraction_events",
+                            {
+                                "programme_id": programme.programme_id,
+                                "institution_id": seed.institution_id,
+                                "programme_url": programme.official_url,
+                                "retrieved_at": utc_now_iso(),
+                                **diagnostic,
+                            },
+                        )
+            except ExtractionProviderError as exc:
                 self._emit_error(
                     institution_id=seed.institution_id,
                     url=programme.official_url,
-                    stage="deepseek_extraction",
-                    code="DEEPSEEK_FAILED",
+                    stage="extraction_provider",
+                    code=exc.code.value,
                     message=str(exc),
-                    retryable=True,
+                    retryable=exc.retryable,
                 )
                 if not facts:
+                    self._record_extraction_trace(
+                        programme=programme,
+                        phase="provider_failure",
+                        sources=sources,
+                        deterministic_candidate_count=len(deterministic_facts),
+                        llm_called=llm_called,
+                        llm_success=False,
+                        llm_field_names=llm_field_names,
+                        extracted_value_present=any(
+                            has_semantic_value(fact.get("value"))
+                            for fact in facts
+                        ),
+                    )
                     self._write_null_set(
                         programme,
-                        NullReason.PARSE_FAILED,
+                        NullReason.EXTRACTION_FAILED,
                         source_url=main_source.url,
                         model_name=None,
                         field_names=self.target_fields,
@@ -1751,7 +2323,7 @@ class SmokePipeline:
                     return programme
 
         identity_override = (
-            not payload.get("programme_identity_match")
+            not identity_match
             and programme_identity_supported(
                 programme.programme_name,
                 main_source,
@@ -1763,7 +2335,7 @@ class SmokePipeline:
                 "model identity mismatch overridden by exact source identity"
             )
         if (
-            not payload.get("programme_identity_match")
+            not identity_match
             and not identity_override
         ):
             self._emit_error(
@@ -1771,7 +2343,7 @@ class SmokePipeline:
                 url=programme.official_url,
                 stage="identity_validation",
                 code="PROGRAMME_IDENTITY_MISMATCH",
-                message="DeepSeek reported that sources do not match the target programme.",
+                message="Extraction provider reported that sources do not match the target programme.",
                 retryable=False,
             )
             if not deterministic_facts:
@@ -1785,6 +2357,18 @@ class SmokePipeline:
                 return programme
             facts = deterministic_facts
 
+        self._record_extraction_trace(
+            programme=programme,
+            phase="pre_assertion",
+            sources=sources,
+            deterministic_candidate_count=len(deterministic_facts),
+            llm_called=llm_called,
+            llm_success=llm_success,
+            llm_field_names=llm_field_names,
+            extracted_value_present=any(
+                has_semantic_value(fact.get("value")) for fact in facts
+            ),
+        )
         found_admission_fields: set[str] = {
             assertion.field_name
             for assertion in reusable_assertions
@@ -1923,16 +2507,22 @@ class SmokePipeline:
                 admission_retry_sources=len(retry_sources),
             )
             try:
-                retry_model, retry_payload = (
-                    self.deepseek.extract_admission_package(
-                        programme,
-                        retry_context,
-                        missing_fields=missing_admission_fields,
+                retry_result = self.extractor.extract(
+                    self._extraction_request(
+                        entity_id=programme.programme_id,
+                        field_names=missing_admission_fields,
+                        sources=retry_context,
+                        operation="admission_package",
+                        context={"programme": programme},
                         prefer_pro=False,
                     )
                 )
+                retry_model = retry_result.model_id
                 model_name = model_name or retry_model
-                facts.extend(retry_payload.get("facts", []))
+                retry_facts = self._facts_with_extraction_provenance(
+                    retry_result, retry_context
+                )
+                facts.extend(retry_facts)
                 self.store.append(
                     "extraction_events",
                     {
@@ -1948,19 +2538,19 @@ class SmokePipeline:
                             missing_admission_fields
                         ),
                         "fact_count": len(
-                            retry_payload.get("facts", [])
+                            retry_facts
                         ),
                         "model_name": retry_model,
                     },
                 )
-            except DeepSeekError as exc:
+            except ExtractionProviderError as exc:
                 self._emit_error(
                     institution_id=seed.institution_id,
                     url=programme.official_url,
                     stage="admission_coverage_retry_extraction",
                     code="ADMISSION_RETRY_EXTRACTION_FAILED",
                     message=str(exc),
-                    retryable=True,
+                    retryable=exc.retryable,
                 )
 
         source_map = {source.url: source for source in sources}
@@ -1968,8 +2558,15 @@ class SmokePipeline:
         seen_assertion_ids: set[str] = set()
         seen_facts: set[tuple[str, str, str, str]] = set()
         for fact in facts:
+            field_name = str(fact.get("field_name") or "")
+            if field_name and has_semantic_value(fact.get("value")):
+                self.metrics.add(field_candidates_created_total=1)
+                self.metrics.bump_field_metric(
+                    "field_candidates_created_by_field",
+                    field_name,
+                )
             fact_key = (
-                str(fact.get("field_name")),
+                field_name,
                 str(fact.get("source_url")),
                 json.dumps(
                     fact.get("value"),
@@ -1979,6 +2576,7 @@ class SmokePipeline:
                 str(fact.get("evidence")),
             )
             if fact_key in seen_facts:
+                self.metrics.record_candidate_drop("DUPLICATE_FACT")
                 continue
             seen_facts.add(fact_key)
             assertion = fact_to_assertion(
@@ -2000,8 +2598,10 @@ class SmokePipeline:
                 self.target_fields is not None
                 and assertion.field_name not in self.target_fields
             ):
+                self.metrics.record_candidate_drop("TARGET_FIELD_FILTER")
                 continue
             if assertion.assertion_id in seen_assertion_ids:
+                self.metrics.record_candidate_drop("DUPLICATE_ASSERTION_ID")
                 continue
             seen_assertion_ids.add(assertion.assertion_id)
             candidate_assertions.append(assertion)
@@ -2116,31 +2716,26 @@ class SmokePipeline:
             for field_name in coverage_field_scope
             if field_name in coverage_retry_fields
         )
-        extract_fields = getattr(
-            self.deepseek, "extract_fields", None
-        )
-        if (
-            ordered_retry_fields
-            and callable(extract_fields)
-            and not self.discovery_only
-        ):
+        if ordered_retry_fields and not self.discovery_only:
             self.metrics.add(
                 coverage_retry_programmes=1,
                 coverage_retry_sources=len(coverage_retry_sources),
             )
             try:
-                retry_model, coverage_payload = extract_fields(
-                    programme,
-                    sources,
-                    field_names=ordered_retry_fields,
-                    # Keep selective recovery concise on Flash. The client
-                    # still promotes a group when that group's own evidence is
-                    # a PDF; field type alone should not force slow reasoning.
-                    prefer_pro=False,
+                coverage_result = self.extractor.extract(
+                    self._extraction_request(
+                        entity_id=programme.programme_id,
+                        field_names=ordered_retry_fields,
+                        sources=sources,
+                        operation="fields",
+                        context={"programme": programme},
+                        # Keep selective recovery concise on Flash. The
+                        # provider may still promote a PDF-backed group.
+                        prefer_pro=False,
+                    )
                 )
-                retry_diagnostics = coverage_payload.get(
-                    "group_diagnostics", []
-                )
+                retry_model = coverage_result.model_id
+                retry_diagnostics = coverage_result.group_diagnostics
                 completed_retry_groups = sum(
                     diagnostic.get("status") == "completed"
                     for diagnostic in retry_diagnostics
@@ -2148,11 +2743,11 @@ class SmokePipeline:
                 self.metrics.add(
                     coverage_retry_groups=completed_retry_groups
                 )
-                payload.setdefault("group_diagnostics", []).extend(
-                    retry_diagnostics
-                )
+                group_diagnostics.extend(retry_diagnostics)
                 model_name = model_name or retry_model
-                retry_facts = coverage_payload.get("facts", [])
+                retry_facts = self._facts_with_extraction_provenance(
+                    coverage_result, sources
+                )
                 facts.extend(retry_facts)
                 self.store.append(
                     "extraction_events",
@@ -2221,14 +2816,14 @@ class SmokePipeline:
                 validated_assertions = validate_assertion_set(
                     candidate_assertions
                 )
-            except DeepSeekError as exc:
+            except ExtractionProviderError as exc:
                 self._emit_error(
                     institution_id=seed.institution_id,
                     url=programme.official_url,
                     stage="field_coverage_retry_extraction",
                     code="COVERAGE_RETRY_EXTRACTION_FAILED",
                     message=str(exc),
-                    retryable=True,
+                    retryable=exc.retryable,
                 )
         accepted_after_retry = {
             assertion.field_name
@@ -2290,7 +2885,7 @@ class SmokePipeline:
             )
         failed_groups = {
             str(diagnostic.get("extraction_group"))
-            for diagnostic in payload.get("group_diagnostics", [])
+            for diagnostic in group_diagnostics
             if diagnostic.get("status") == "failed"
         }
         found_fields: set[str] = set()
@@ -2393,6 +2988,7 @@ class SmokePipeline:
                     },
                 )
         output_field_scope = self.target_fields or DEEP_FIELDS
+        quality_assertions = list(effective_assertions)
         for field_name in output_field_scope:
             if field_name not in found_fields:
                 missing_assertion = null_assertion(
@@ -2412,6 +3008,103 @@ class SmokePipeline:
                     "effective_field_assertions",
                     missing_assertion,
                 )
+                quality_assertions.append(missing_assertion)
+
+        self._record_extraction_trace(
+            programme=programme,
+            phase="post_assertion",
+            sources=sources,
+            deterministic_candidate_count=len(deterministic_facts),
+            llm_called=llm_called,
+            llm_success=llm_success,
+            llm_field_names=llm_field_names,
+            extracted_value_present=any(
+                has_semantic_value(fact.get("value")) for fact in facts
+            ),
+            assertion_created=len(quality_assertions),
+            assertion_value_present=any(
+                has_semantic_value(assertion.value_json)
+                and assertion.verification_status != VerificationStatus.REJECTED
+                for assertion in quality_assertions
+            ),
+        )
+
+        shadow_target_cycle = next(
+            (
+                str(assertion.value_json)
+                for assertion in quality_assertions
+                if assertion.field_name == "academic_cycle"
+                and isinstance(assertion.value_json, str)
+                and assertion.value_json.strip()
+            ),
+            None,
+        )
+        try:
+            shadow_quality = self.shadow_quality.evaluate(
+                programme,
+                output_field_scope,
+                assertions=quality_assertions,
+                effective_assertions=quality_assertions,
+                target_cycle=shadow_target_cycle,
+                audience="international",
+                entity_type="programme",
+                entity_id=programme.programme_id,
+                context={
+                    "degree_level": programme.degree_level,
+                    "country": seed.country_code,
+                },
+            )
+            for assessment in shadow_quality.assessments:
+                self.store.append("quality_coverage_assessments", assessment)
+            for conflict in shadow_quality.conflicts:
+                self.store.append("quality_conflicts", conflict.to_dict())
+            for decision in shadow_quality.recovery_decisions:
+                self.store.append("quality_recovery_decisions", decision.to_dict())
+            for inference in shadow_quality.inferences:
+                self.store.append("quality_inferences", inference.to_dict())
+            self.store.append(
+                "quality_evaluations",
+                {
+                    "entity_type": "programme",
+                    "entity_id": programme.programme_id,
+                    "target_cycle": shadow_target_cycle,
+                    "audience": "international",
+                    "policy_version": shadow_quality.policy_version,
+                    "metrics": shadow_quality.metrics.to_dict(),
+                    "evaluated_at": shadow_quality.evaluated_at,
+                },
+            )
+            # The Python path already owns Slice B acquisition and Slice C
+            # shadow evaluation. Emit the common Slice E envelope beside those
+            # streams so CSV/manual/legacy adapters can be compared without
+            # introducing a second fetcher or canonical writer.
+            first_raw_document_id = next(
+                (
+                    assertion.raw_document_id
+                    for assertion in quality_assertions
+                    if assertion.raw_document_id
+                ),
+                None,
+            )
+            convergence = ProgrammeAcquisitionAdapter.from_field_assertions(
+                quality_assertions,
+                source_url=main_source.url,
+                raw_document_id=first_raw_document_id,
+                raw_retained=first_raw_document_id is not None,
+            )
+            self.store.append("ingestion_convergence", convergence.to_dict())
+        except Exception as exc:
+            # Quality is a shadow observer. A malformed legacy assertion or a
+            # serialization issue must be visible in telemetry, but can never
+            # fail the existing extraction/admission/promotion path.
+            self._emit_error(
+                institution_id=seed.institution_id,
+                url=programme.official_url,
+                stage="shadow_quality",
+                code="SHADOW_QUALITY_FAILED",
+                message=str(exc),
+                retryable=False,
+            )
 
         self.store.append(
             "admission_packages",
@@ -2954,6 +3647,21 @@ class SmokePipeline:
         best_decisions = self._load_jsonl(
             self.paths.jsonl_path("best_assertion_decisions")
         )
+        shadow_assessments = self._load_jsonl(
+            self.paths.jsonl_path("quality_coverage_assessments")
+        )
+        shadow_evaluations = self._load_jsonl(
+            self.paths.jsonl_path("quality_evaluations")
+        )
+        shadow_state_counts: dict[str, int] = {}
+        for assessment in shadow_assessments:
+            state = str(assessment.get("state") or "UNKNOWN")
+            shadow_state_counts[state] = shadow_state_counts.get(state, 0) + 1
+        shadow_metrics = [
+            item.get("metrics")
+            for item in shadow_evaluations
+            if isinstance(item.get("metrics"), dict)
+        ]
         comparable_decisions = [
             decision
             for decision in best_decisions
@@ -2976,7 +3684,11 @@ class SmokePipeline:
             "run_name": self.config.run_name,
             "generated_at": utc_now_iso(),
             "metrics": metrics,
-            "deepseek": self.deepseek.stats.to_dict(),
+            "extraction_provider": (
+                self.extractor.stats.to_dict()
+                if getattr(self.extractor, "stats", None) is not None
+                else {"provider_id": self.extractor.provider_id, "calls": 0}
+            ),
             "crawler_runtime": {
                 "discovery_backend": self.discovery_backend,
                 "render_policy": self.render_policy,
@@ -2999,6 +3711,27 @@ class SmokePipeline:
                     "Coverage uses unique applicable entity/field slots and excludes "
                     "rejected audit records. Coverage is not accuracy; human QA must "
                     "validate high-risk fields."
+                ),
+            },
+            "shadow_quality": {
+                "evaluation_count": len(shadow_evaluations),
+                "assessment_count": len(shadow_assessments),
+                "state_counts": shadow_state_counts,
+                "recovery_intents": sum(
+                    int(item.get("recovery_intents") or 0)
+                    for item in shadow_metrics
+                ),
+                "conflicts_detected": sum(
+                    int(item.get("conflicts_detected") or 0)
+                    for item in shadow_metrics
+                ),
+                "inferences_generated": sum(
+                    int(item.get("inferences_generated") or 0)
+                    for item in shadow_metrics
+                ),
+                "note": (
+                    "Slice C shadow quality is semantic and policy-driven; its "
+                    "assessments and plans do not change promotion or canonical reads."
                 ),
             },
             "best_result": {
@@ -3043,10 +3776,11 @@ class SmokePipeline:
                     }
                     for seed in self.config.institutions
                 ],
-                "models": {
-                    "flash": self.config.deepseek_flash_model,
-                    "pro": self.config.deepseek_pro_model,
+                "extraction_provider": {
+                    "provider_id": self.extractor.provider_id,
+                    "configured": self.extractor.configured,
                 },
+                "raw_evidence_mode": self.raw_evidence_mode,
                 "discovery_only": self.discovery_only,
                 "allow_unreviewed_terms": self.allow_unreviewed_terms,
                 "run_mode": "delta" if self.target_fields else "full",
@@ -3450,10 +4184,6 @@ class SmokePipeline:
         )
 
     def run(self) -> dict[str, object]:
-        if not self.discovery_only and not self.deepseek.configured:
-            raise RuntimeError(
-                "DEEPSEEK_API_KEY is required unless --discovery-only is used."
-            )
         self._start_monotonic = time.monotonic()
         self._progress(
             f"Starting smoke run for {len(self.config.institutions)} institution(s)"
