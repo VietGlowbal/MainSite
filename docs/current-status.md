@@ -17,6 +17,9 @@ F remains **NO-GO** pending the pushed clean-checkout preflight. A subsequent
 clean-checkout probe exposed Windows `core.autocrlf` conversion on the five
 manifest-referenced V2 lineage files; path-specific `-text` attributes now
 preserve their frozen LF bytes without changing any artifact content.
+The final clean probe then advanced through the V2 lineage and found the
+manifested machine-scorer script needed the same byte-preservation treatment;
+that packaging-only rule is now included before the final clean probe.
 
 Working tree 2026-09-06: Remediation 9 corrected the six known true quality
 patterns under frozen Benchmark V3 without changing GT v3, Scorer v2, the V3
