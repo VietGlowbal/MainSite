@@ -82,8 +82,17 @@ def _git_value(*args: str) -> str | None:
 
 
 def dirty_worktree() -> bool | None:
-    status = _git_value("status", "--porcelain")
-    return None if status is None else bool(status)
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return bool(result.stdout.strip())
 
 
 def _check_hash(path: Path, expected: str, label: str) -> str:
