@@ -13,7 +13,10 @@ restored unchanged by their frozen hashes; Benchmark #5 has not been run.
 The scoped repair diff is whitespace-clean. The restored roster retains three
 intentional Markdown hard-break spaces required by its frozen byte hash, so a
 full Git whitespace check reports only those preserved historical lines. Slice
-F remains **NO-GO** pending the pushed clean-checkout preflight.
+F remains **NO-GO** pending the pushed clean-checkout preflight. A subsequent
+clean-checkout probe exposed Windows `core.autocrlf` conversion on the five
+manifest-referenced V2 lineage files; path-specific `-text` attributes now
+preserve their frozen LF bytes without changing any artifact content.
 
 Working tree 2026-09-06: Remediation 9 corrected the six known true quality
 patterns under frozen Benchmark V3 without changing GT v3, Scorer v2, the V3
