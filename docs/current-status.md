@@ -1,5 +1,20 @@
 # Current project status
 
+Working tree 2026-09-07: The Phase 3F V3 execution checkpoint repair is
+validated in the development worktree and is ready for selective staging. The
+V3 runner now selects the frozen GT v3, roster v2, V3 freeze manifest, and
+Scorer Contract v2; it generates `phase3f-v3-run-*` IDs and fails closed on
+missing or mismatched manifest artifacts. A no-provider preflight and frozen
+Scorer-v2 compatibility test pass (19 focused tests); the full ingestion suite
+passes 369/369, compileall passes, all 13 manifest-referenced JSON/JSONL files
+parse, and official Run #1–#4 output hashes remain unchanged. Development-tree
+preflight made 0 provider calls. The exact missing historical inputs are being
+restored unchanged by their frozen hashes; Benchmark #5 has not been run.
+The scoped repair diff is whitespace-clean. The restored roster retains three
+intentional Markdown hard-break spaces required by its frozen byte hash, so a
+full Git whitespace check reports only those preserved historical lines. Slice
+F remains **NO-GO** pending the pushed clean-checkout preflight.
+
 Working tree 2026-09-06: Remediation 9 corrected the six known true quality
 patterns under frozen Benchmark V3 without changing GT v3, Scorer v2, the V3
 freeze manifest, or official Runs #1–#4. The offline replay

@@ -49,17 +49,43 @@ from glowbal_ingestion.runtime_acceptance import (  # noqa: E402
 )
 from glowbal_ingestion.url_safety import canonicalize_url  # noqa: E402
 
+try:  # noqa: E402 - supports both script and package execution
+    from scripts.phase3f_v3_preflight import (
+        BENCHMARK_VERSION,
+        OUTPUT_SCHEMA_VERSION,
+        ROSTER_V2_PATH,
+        RUN_ID_PREFIX,
+        TRUTH_VERSION,
+        V3_CONTRACT_MARKDOWN_PATH,
+        V3_CONTRACT_PATH,
+        V3_MANIFEST_PATH,
+        V3_TRUTH_PATH,
+        V3PreflightError,
+        new_run_id,
+        preflight,
+    )
+except ModuleNotFoundError:  # pragma: no cover - direct script fallback
+    from phase3f_v3_preflight import (  # type: ignore[no-redef]
+        BENCHMARK_VERSION,
+        OUTPUT_SCHEMA_VERSION,
+        ROSTER_V2_PATH,
+        RUN_ID_PREFIX,
+        TRUTH_VERSION,
+        V3_CONTRACT_MARKDOWN_PATH,
+        V3_CONTRACT_PATH,
+        V3_MANIFEST_PATH,
+        V3_TRUTH_PATH,
+        V3PreflightError,
+        new_run_id,
+        preflight,
+    )
 
-TRUTH_PATH = REPO_ROOT / "docs/benchmarks/2026-09-01-phase-3f-ground-truth-v2-frozen.jsonl"
-ROSTER_PATH = REPO_ROOT / "docs/benchmarks/2026-08-30-phase-3f-roster-v2.md"
-FREEZE_MANIFEST_PATH = REPO_ROOT / "docs/benchmarks/2026-09-01-phase-3f-ground-truth-freeze-v2.json"
-CONTRACT_PATH = REPO_ROOT / "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.json"
-CONTRACT_MARKDOWN_PATH = REPO_ROOT / "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md"
+TRUTH_PATH = V3_TRUTH_PATH
+ROSTER_PATH = ROSTER_V2_PATH
+FREEZE_MANIFEST_PATH = V3_MANIFEST_PATH
+CONTRACT_PATH = V3_CONTRACT_PATH
+CONTRACT_MARKDOWN_PATH = V3_CONTRACT_MARKDOWN_PATH
 LIMITS_PATH = REPO_ROOT / "services/data-ingestion/configs/crawl-limits.json"
-
-OUTPUT_SCHEMA_VERSION = "phase3f-v3-benchmark-output/v1"
-TRUTH_VERSION = "phase-3f-ground-truth-v2-frozen"
-BENCHMARK_VERSION = "phase3f-v2"
 FIELDS = (
     "programme_identity",
     "credential",
@@ -153,7 +179,7 @@ def sha256_file(path: Path) -> str:
 
 
 def utc_run_id() -> str:
-    return datetime.now(timezone.utc).strftime("phase3f-v2-run-%Y%m%dT%H%M%SZ")
+    return new_run_id(datetime.now(timezone.utc))
 
 
 def git_value(*args: str) -> str | None:
@@ -386,7 +412,7 @@ def build_execution_config(
             or os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
         )
     return SmokeConfig(
-        run_name="phase3f-v2-first-real",
+        run_name="phase3f-v3-first-real",
         institutions=tuple(seeds),
         limits=limits,
         deepseek_flash_model=model,
@@ -1321,16 +1347,16 @@ def _project_output(
 
 
 def _input_digests() -> dict[str, str]:
-    paths = {
-        "truth": TRUTH_PATH,
-        "roster": ROSTER_PATH,
-        "contract_markdown": CONTRACT_MARKDOWN_PATH,
-        "machine_contract": CONTRACT_PATH,
+    result = preflight(require_clean=False)
+    return {
+        "truth": str(result["truth_sha256"]),
+        "roster": str(result["roster_sha256"]),
+        "contract_markdown": str(
+            result["artifact_digests"]["artifacts.scorer_contract_v2_markdown"]
+        ),
+        "machine_contract": str(result["scorer_contract_v2_sha256"]),
+        "freeze_manifest": str(result["manifest_sha256"]),
     }
-    missing = [str(path) for path in paths.values() if not path.exists()]
-    if missing:
-        raise BenchmarkHarnessError("Missing frozen input(s): " + ", ".join(missing))
-    return {name: sha256_file(path) for name, path in paths.items()}
 
 
 def _select_diagnostic_rows(
@@ -1358,22 +1384,10 @@ def _select_diagnostic_rows(
 
 
 def _verify_manifest_digests(digests: dict[str, str]) -> None:
-    manifest = json.loads(FREEZE_MANIFEST_PATH.read_text(encoding="utf-8"))
-    checksums = manifest.get("checksums") if isinstance(manifest, dict) else {}
-    checksums = checksums if isinstance(checksums, dict) else {}
-    expected = {
-        "truth": manifest.get("truth_sha256") or checksums.get("truth"),
-        "roster": manifest.get("roster_sha256") or checksums.get("roster"),
-        "contract_markdown": manifest.get("scorer_contract_sha256") or checksums.get("scorer_contract"),
-        "machine_contract": manifest.get("scorer_contract_machine_sha256") or checksums.get("scorer_contract_machine"),
-    }
-    mismatches = [
-        f"{name}: expected {expected[name]}, got {digests[name]}"
-        for name in digests
-        if expected.get(name) != digests[name]
-    ]
-    if mismatches:
-        raise BenchmarkHarnessError("BENCHMARK INTEGRITY FAILURE: " + "; ".join(mismatches))
+    try:
+        preflight(require_clean=False)
+    except V3PreflightError as exc:
+        raise BenchmarkHarnessError(str(exc)) from exc
 
 
 def _runtime_metadata(config: SmokeConfig) -> dict[str, Any]:
@@ -1413,14 +1427,28 @@ def execute(args: argparse.Namespace) -> Path:
             "--field-directed-recovery is diagnostic-only and requires --rows."
         )
     rows = _select_diagnostic_rows(rows, selected_rows)
-    digests = _input_digests()
-    _verify_manifest_digests(digests)
+    run_id = args.run_id or utc_run_id()
+    try:
+        preflight_result = preflight(
+            require_clean=not diagnostic_rows,
+            run_id=run_id,
+        )
+    except V3PreflightError as exc:
+        raise BenchmarkHarnessError(str(exc)) from exc
+    digests = {
+        "truth": str(preflight_result["truth_sha256"]),
+        "roster": str(preflight_result["roster_sha256"]),
+        "contract_markdown": str(
+            preflight_result["artifact_digests"]["artifacts.scorer_contract_v2_markdown"]
+        ),
+        "machine_contract": str(preflight_result["scorer_contract_v2_sha256"]),
+        "freeze_manifest": str(preflight_result["manifest_sha256"]),
+    }
     config = build_execution_config(
         rows,
         source_register,
         field_directed_recovery=args.field_directed_recovery,
     )
-    run_id = args.run_id or utc_run_id()
     run_root = (args.output_root / run_id).resolve()
     if run_root.exists() and any(run_root.iterdir()):
         raise BenchmarkHarnessError(f"Run directory already contains files: {run_root}")
@@ -1441,6 +1469,7 @@ def execute(args: argparse.Namespace) -> Path:
         "programme_count": len(rows),
         "diagnostic_only": diagnostic_rows,
         "input_digests": digests,
+        "preflight": preflight_result,
         "pipeline_truth_access": False,
         "pipeline_input": (
             "frozen roster and source register only; generic catalogue/link "
@@ -1556,13 +1585,31 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Diagnostic-only generic catalogue/link recovery; requires --rows.",
     )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Validate frozen V3 packaging and local configuration without provider calls.",
+    )
+    parser.add_argument(
+        "--require-clean",
+        action="store_true",
+        help="Require a clean tracked worktree for preflight-only validation.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     try:
-        execute(_parser().parse_args(argv))
-    except (BenchmarkHarnessError, OSError, ValueError, RuntimeError) as exc:
+        args = _parser().parse_args(argv)
+        if args.preflight_only:
+            load_dotenv_if_present(REPO_ROOT / ".env.local")
+            result = preflight(require_clean=args.require_clean, run_id=args.run_id)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            if args.require_clean:
+                raise BenchmarkHarnessError("--require-clean is only valid with --preflight-only.")
+            execute(args)
+    except (BenchmarkHarnessError, V3PreflightError, OSError, ValueError, RuntimeError) as exc:
         print(json.dumps({"status": "FAILED", "error": str(exc)}), file=sys.stderr)
         return 1
     return 0

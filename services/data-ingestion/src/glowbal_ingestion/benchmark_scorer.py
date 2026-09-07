@@ -21,6 +21,7 @@ from typing import Any, Iterable, Mapping
 from .product_safety import BLOCKERS, ProductLifecycleState
 
 SCORER_CONTRACT_VERSION = "phase-3f-scorer-contract/v1"
+SCORER_CONTRACT_V2_VERSION = "phase-3f-scorer-contract/v2"
 OUTPUT_SCHEMA_VERSION = "phase3f-v3-benchmark-output/v1"
 RESULT_SCHEMA_VERSION = "phase3f-benchmark-score/v1"
 
@@ -174,6 +175,20 @@ def _manifest_hash(manifest: Mapping[str, Any], name: str) -> str | None:
         candidate = checksums.get(name)
         if isinstance(candidate, str) and candidate:
             return candidate
+    v3_artifact_names = {
+        "truth": "ground_truth_v3",
+        "roster": "roster_v2",
+        "scorer_contract": "scorer_contract_v2_markdown",
+        "scorer_contract_machine": "scorer_contract_v2_json",
+    }
+    artifacts = manifest.get("artifacts")
+    artifact_name = v3_artifact_names.get(name)
+    if isinstance(artifacts, Mapping) and artifact_name:
+        spec = artifacts.get(artifact_name)
+        if isinstance(spec, Mapping):
+            candidate = spec.get("sha256")
+            if isinstance(candidate, str) and candidate:
+                return candidate
     return None
 
 
@@ -194,14 +209,22 @@ def load_contract(path: Path) -> dict[str, Any]:
         raise BenchmarkScorerError(f"Cannot load scorer contract: {path}") from exc
     if not isinstance(payload, dict):
         raise BenchmarkScorerError("Machine-readable scorer contract must be an object.")
-    if payload.get("version") != SCORER_CONTRACT_VERSION:
+    version = payload.get("version")
+    if version not in {SCORER_CONTRACT_VERSION, SCORER_CONTRACT_V2_VERSION}:
         raise BenchmarkScorerError(
-            f"Unsupported scorer contract version: {payload.get('version')!r}."
+            f"Unsupported scorer contract version: {version!r}."
         )
-    if payload.get("output_schema_version") != OUTPUT_SCHEMA_VERSION:
+    if version == SCORER_CONTRACT_VERSION and payload.get("output_schema_version") != OUTPUT_SCHEMA_VERSION:
         raise BenchmarkScorerError(
             "Scorer contract does not identify the supported output schema."
         )
+    if version == SCORER_CONTRACT_V2_VERSION:
+        if payload.get("benchmark_version") != "phase3f-v3":
+            raise BenchmarkScorerError("V3 scorer contract benchmark version mismatch.")
+        if payload.get("truth_version") != "phase-3f-ground-truth-v3-frozen":
+            raise BenchmarkScorerError("V3 scorer contract truth version mismatch.")
+        if payload.get("fuzzy_only_pass") is not False:
+            raise BenchmarkScorerError("V3 scorer contract permits fuzzy-only PASS.")
     return payload
 
 
@@ -266,6 +289,35 @@ def verify_manifest_artifacts(
     contract_path: Path,
 ) -> None:
     """Verify every frozen input digest before scoring; mismatch fails closed."""
+
+    if manifest.get("benchmark_version") == "phase3f-v3":
+        if contract.get("version") != SCORER_CONTRACT_V2_VERSION:
+            raise BenchmarkScorerError("V3 scoring requires scorer contract v2.")
+        expected_truth_hash = _manifest_hash(manifest, "truth")
+        expected_machine_hash = _manifest_hash(manifest, "scorer_contract_machine")
+        if not expected_truth_hash or sha256_file(truth_path) != expected_truth_hash:
+            raise TruthChecksumMismatch("V3 frozen truth checksum mismatch.")
+        if not expected_machine_hash or sha256_file(contract_path) != expected_machine_hash:
+            raise BenchmarkScorerError("V3 machine scorer contract checksum mismatch.")
+        artifacts = manifest.get("artifacts")
+        if not isinstance(artifacts, Mapping):
+            raise BenchmarkScorerError("V3 freeze manifest has no artifacts.")
+        for name, spec in artifacts.items():
+            if not isinstance(spec, Mapping):
+                raise BenchmarkScorerError(f"Invalid V3 artifact specification: {name}")
+            path_value = spec.get("path")
+            expected = spec.get("sha256")
+            if not isinstance(path_value, str) or not isinstance(expected, str):
+                raise BenchmarkScorerError(f"Invalid V3 artifact checksum: {name}")
+            artifact_path = _resolve_artifact_path(manifest_path, path_value)
+            if not artifact_path.exists() or sha256_file(artifact_path) != expected:
+                raise BenchmarkScorerError(f"V3 artifact checksum mismatch: {artifact_path}")
+        manifest_truth_version = manifest.get("truth_version") or contract.get(
+            "truth_version"
+        )
+        if contract.get("truth_version") != manifest_truth_version:
+            raise BenchmarkScorerError("V3 contract truth version does not match manifest.")
+        return
 
     expected_truth_hash = _manifest_hash(manifest, "truth")
     if not expected_truth_hash:
@@ -346,25 +398,50 @@ def load_truth(
         records.append(item)
 
     if manifest is not None:
-        expected_total = manifest.get("total_records")
-        if isinstance(expected_total, int) and len(records) != expected_total:
-            raise BenchmarkScorerError(
-                f"Truth record count mismatch: expected {expected_total}, got {len(records)}."
-            )
-        expected_statuses = {
-            REVIEWED_CONFIRMED: manifest.get("reviewed_confirmed"),
-            REVIEWED_AMBIGUOUS: manifest.get("reviewed_ambiguous"),
-            UNREVIEWED: manifest.get("unreviewed"),
-        }
-        actual_statuses = Counter(str(item.get("review_status")) for item in records)
-        for status, expected in expected_statuses.items():
-            if isinstance(expected, int) and actual_statuses[status] != expected:
+        if manifest.get("benchmark_version") == "phase3f-v3":
+            population = manifest.get("population")
+            if not isinstance(population, Mapping):
+                raise BenchmarkScorerError("V3 manifest has no population object.")
+            if len(records) != population.get("truth_records"):
+                raise BenchmarkScorerError("V3 truth record count does not match manifest.")
+            statuses = Counter(str(item.get("review_status")) for item in records)
+            expected_statuses = {
+                REVIEWED_CONFIRMED: population.get("reviewed_confirmed"),
+                REVIEWED_AMBIGUOUS: population.get("reviewed_ambiguous"),
+                UNREVIEWED: population.get("unreviewed"),
+            }
+            for status, expected in expected_statuses.items():
+                if isinstance(expected, int) and statuses[status] != expected:
+                    raise BenchmarkScorerError(
+                        f"V3 truth status count mismatch for {status}: "
+                        f"expected {expected}, got {statuses[status]}"
+                    )
+        else:
+            expected_total = manifest.get("total_records")
+            if isinstance(expected_total, int) and len(records) != expected_total:
                 raise BenchmarkScorerError(
-                    f"Truth status count mismatch for {status}: expected {expected}, "
-                    f"got {actual_statuses[status]}."
+                    f"Truth record count mismatch: expected {expected_total}, got {len(records)}."
                 )
-
-        expected_ambiguous = set(manifest.get("ambiguous_case_ids") or [])
+        if manifest.get("benchmark_version") == "phase3f-v3":
+            expected_ambiguous = {
+                str(item["case_id"])
+                for item in records
+                if item.get("review_status") == REVIEWED_AMBIGUOUS
+            }
+        else:
+            expected_statuses = {
+                REVIEWED_CONFIRMED: manifest.get("reviewed_confirmed"),
+                REVIEWED_AMBIGUOUS: manifest.get("reviewed_ambiguous"),
+                UNREVIEWED: manifest.get("unreviewed"),
+            }
+            actual_statuses = Counter(str(item.get("review_status")) for item in records)
+            for status, expected in expected_statuses.items():
+                if isinstance(expected, int) and actual_statuses[status] != expected:
+                    raise BenchmarkScorerError(
+                        f"Truth status count mismatch for {status}: expected {expected}, "
+                        f"got {actual_statuses[status]}."
+                    )
+            expected_ambiguous = set(manifest.get("ambiguous_case_ids") or [])
         actual_ambiguous = {
             str(item["case_id"])
             for item in records
@@ -377,7 +454,11 @@ def load_truth(
 
     _validate_truth_records(records)
     if manifest is not None:
-        expected_scoreable = manifest.get("scoreable_records")
+        expected_scoreable = (
+            manifest.get("population", {}).get("reviewed_confirmed")
+            if manifest.get("benchmark_version") == "phase3f-v3"
+            else manifest.get("scoreable_records")
+        )
         actual_scoreable = sum(
             item.get("review_status") == REVIEWED_CONFIRMED for item in records
         )
@@ -527,30 +608,131 @@ def _comparison_values(
     return truth.get("expected_value"), output.get("value")
 
 
-def compare_value(truth: Mapping[str, Any], output: Mapping[str, Any]) -> tuple[bool, str | None]:
-    """Return exact field-aware value comparison and a primary error class."""
+def _identity_tokens(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return [str(item) for item in value if str(item).strip()]
+    return [str(value)]
+
+
+def _identity_normalise(value: Any) -> str:
+    if value is None:
+        return ""
+    value = unicodedata.normalize("NFKC", str(value)).casefold()
+    value = re.sub(r"[\u2010-\u2015\-/,;:()\[\]{}]+", " ", value)
+    return " ".join(value.split())
+
+
+def _identity_without_credentials(value: Any, identity: Mapping[str, Any]) -> str:
+    result = _identity_normalise(value)
+    variants = _identity_tokens(identity.get("credential"))
+    variants.extend(_identity_tokens(identity.get("degree_variants")))
+    for variant in sorted(
+        {_identity_normalise(item) for item in variants if _identity_normalise(item)},
+        key=len,
+        reverse=True,
+    ):
+        result = re.sub(rf"\b{re.escape(variant)}\b", " ", result)
+    return " ".join(result.split())
+
+
+def _compare_identity_v3(
+    truth: Mapping[str, Any], output: Mapping[str, Any]
+) -> tuple[bool, str | None, str | None]:
+    """Compare a V3 structured identity without fuzzy or containment matching."""
+
+    identity = truth.get("programme_identity_v3")
+    if not isinstance(identity, Mapping):
+        return False, "IDENTITY", None
+    actual_identity = output.get("identity")
+    actual_identity = actual_identity if isinstance(actual_identity, Mapping) else {}
+    if actual_identity.get("fuzzy_only") is True:
+        return False, "IDENTITY", "FUZZY_ONLY"
+
+    canonical = identity.get("canonical_programme_identity")
+    if not isinstance(canonical, str) or not canonical.strip():
+        return False, "IDENTITY", "AMBIGUOUS"
+    actual_structured = actual_identity.get("canonical_programme_identity")
+    actual_value = actual_structured if actual_structured not in (None, "") else output.get("value")
+    actual_normalised = _identity_normalise(actual_value)
+    canonical_normalised = _identity_normalise(canonical)
+    source_native = _identity_normalise(identity.get("source_native_identity"))
+    official_aliases = {
+        _identity_normalise(item)
+        for item in _identity_tokens(identity.get("official_english_aliases"))
+        + _identity_tokens(identity.get("native_aliases"))
+        + _identity_tokens(identity.get("other_official_aliases"))
+        if _identity_normalise(item)
+    }
+
+    expected_track = identity.get("track")
+    actual_track = actual_identity.get("track")
+    if expected_track and actual_track not in (None, expected_track):
+        return False, "IDENTITY", "WRONG_GRANULARITY"
+    if expected_track and actual_track is None:
+        source_candidates = {source_native, *official_aliases}
+        if actual_normalised not in source_candidates:
+            return False, "IDENTITY", "WRONG_GRANULARITY"
+
+    if actual_normalised == canonical_normalised:
+        return True, None, "EXACT_EQUIVALENT"
+    if actual_normalised == source_native and source_native:
+        return True, None, "CANONICALLY_EQUIVALENT"
+    if actual_normalised in official_aliases:
+        return True, None, "OFFICIAL_ALIAS_EQUIVALENT"
+
+    actual_without_credential = _identity_without_credentials(actual_value, identity)
+    canonical_without_credential = _identity_without_credentials(canonical, identity)
+    if (
+        actual_without_credential
+        and canonical_without_credential
+        and actual_without_credential == canonical_without_credential
+    ):
+        return True, None, "CREDENTIAL_AWARE_EQUIVALENT"
+    return False, "IDENTITY", "WRONG_GRANULARITY" if (
+        identity.get("entity_type") in {"TRACK", "CONCENTRATION", "STAGE", "PRE_MAJOR"}
+        or expected_track
+        or identity.get("stage")
+    ) else "NOT_EQUIVALENT"
+
+
+def _compare_value_detailed(
+    truth: Mapping[str, Any], output: Mapping[str, Any]
+) -> tuple[bool, str | None, str | None]:
+    """Return value comparison, error class, and optional V3 identity class."""
 
     metadata_error = _metadata_error(truth, output)
     if metadata_error:
-        return False, metadata_error
+        return False, metadata_error, None
     if _identity_mismatch(truth, output):
-        return False, "IDENTITY"
+        if truth.get("field") != "programme_identity" or "programme_identity_v3" not in truth:
+            return False, "IDENTITY", None
 
     field = str(truth.get("field") or "")
+    if field == "programme_identity" and "programme_identity_v3" in truth:
+        return _compare_identity_v3(truth, output)
     expected, actual = _comparison_values(truth, output)
     if actual is None or actual == "":
-        return False, "QUALITY_POLICY"
+        return False, "QUALITY_POLICY", None
     if field == "programme_identity" and not _values_equal(expected, actual):
-        return False, "IDENTITY"
+        return False, "IDENTITY", None
     if field == "credential" and not _values_equal(expected, actual):
-        return False, "IDENTITY"
+        return False, "IDENTITY", None
     if not _values_equal(expected, actual):
         if field == "application_deadline":
-            return False, "TEMPORAL"
+            return False, "TEMPORAL", None
         if field in {"tuition", "english_requirement", "major_admissions_requirement"}:
-            return False, "APPLICABILITY"
-        return False, "QUALITY_POLICY"
-    return True, None
+            return False, "APPLICABILITY", None
+        return False, "QUALITY_POLICY", None
+    return True, None, None
+
+
+def compare_value(truth: Mapping[str, Any], output: Mapping[str, Any]) -> tuple[bool, str | None]:
+    """Return exact field-aware value comparison and a primary error class."""
+
+    matched, error, _ = _compare_value_detailed(truth, output)
+    return matched, error
 
 
 def _runtime_error_class(state: str | None) -> str:
@@ -748,6 +930,7 @@ def score_records(
         output_item = output_records.get(case_id)
         is_ambiguous = case_id in ambiguous_ids
         case_errors: list[str] = []
+        comparison_class: str | None = None
         product_violations = (
             product_safe_violations(truth_item, output_item)
             if output_item is not None
@@ -781,7 +964,9 @@ def score_records(
                 resolved_truth_total += 1
                 if output_state == FOUND:
                     accepted_total += 1
-                    matched, value_error = compare_value(truth_item, output_item)
+                    matched, value_error, comparison_class = _compare_value_detailed(
+                        truth_item, output_item
+                    )
                     if matched:
                         accepted_correct += 1
                         resolved_truth_correct += 1
@@ -897,6 +1082,7 @@ def score_records(
                 "output_state": output_item.get("state") if output_item else None,
                 "outcome": case_outcome,
                 "error_classes": list(dict.fromkeys(case_errors)),
+                "comparison_class": comparison_class,
                 "product_safe_violations": product_violations,
                 "primary_scoreable": not is_ambiguous,
             }
@@ -996,7 +1182,9 @@ def score(
     )
     truth = load_truth(truth_path, manifest=manifest)
     output = load_output(output_path)
-    expected_truth_version = manifest.get("truth_version")
+    expected_truth_version = manifest.get("truth_version") or contract.get(
+        "truth_version"
+    )
     if output.get("truth_version") != expected_truth_version:
         raise BenchmarkScorerError("Benchmark output references a different truth version.")
     return score_records(truth, output)

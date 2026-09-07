@@ -27,10 +27,30 @@ from glowbal_ingestion.benchmark_scorer import (  # noqa: E402
     score,
     sha256_file,
 )
+try:  # noqa: E402 - supports script and package execution
+    from scripts.phase3f_v3_preflight import (
+        BENCHMARK_VERSION,
+        TRUTH_VERSION,
+        V3_CONTRACT_PATH,
+        V3_MANIFEST_PATH,
+        V3_TRUTH_PATH,
+        V3PreflightError,
+        validate_v3_integrity,
+    )
+except ModuleNotFoundError:  # pragma: no cover - direct script fallback
+    from phase3f_v3_preflight import (  # type: ignore[no-redef]
+        BENCHMARK_VERSION,
+        TRUTH_VERSION,
+        V3_CONTRACT_PATH,
+        V3_MANIFEST_PATH,
+        V3_TRUTH_PATH,
+        V3PreflightError,
+        validate_v3_integrity,
+    )
 
-TRUTH = ROOT / "docs/benchmarks/2026-09-01-phase-3f-ground-truth-v2-frozen.jsonl"
-FREEZE_MANIFEST = ROOT / "docs/benchmarks/2026-09-01-phase-3f-ground-truth-freeze-v2.json"
-CONTRACT = ROOT / "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.json"
+TRUTH = V3_TRUTH_PATH
+FREEZE_MANIFEST = V3_MANIFEST_PATH
+CONTRACT = V3_CONTRACT_PATH
 ROSTER = ROOT / "docs/benchmarks/2026-08-30-phase-3f-roster-v2.md"
 FIELDS = (
     "programme_identity",
@@ -41,14 +61,7 @@ FIELDS = (
     "english_requirement",
     "major_admissions_requirement",
 )
-AMBIGUOUS = {
-    "GT-V2-05-tuition",
-    "GT-V2-05-major_admissions_requirement",
-    "GT-V2-06-tuition",
-    "GT-V2-11-major_admissions_requirement",
-    "GT-V2-12-tuition",
-    "GT-V2-13-major_admissions_requirement",
-}
+AMBIGUOUS = set()
 RESOLVED = {"FOUND", "NOT_REQUIRED", "NOT_PUBLISHED"}
 OPERATIONAL = {
     "DISCOVERY",
@@ -436,7 +449,7 @@ def render_report(
     product_safe_total = sum(item.get("product_state") == "PRODUCT_SAFE" for item in output["records"])
     product_safe_pass = metrics["product_safe_evidence_entailment"].get("numerator", 0)
     lines = [
-        f"# Phase 3F V2 Benchmark Report — {run_manifest['run_id']}",
+        f"# Phase 3F V3 Benchmark Report — {run_manifest['run_id']}",
         "",
         f"Benchmark gate classification: **{gate}**",
         "",
@@ -563,6 +576,10 @@ def render_report(
 
 
 def score_run(run_dir: Path) -> None:
+    try:
+        validate_v3_integrity()
+    except V3PreflightError as exc:
+        raise ScoringRunError(str(exc)) from exc
     run_manifest_path = run_dir / "run-manifest.json"
     run_manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
     output_path = run_dir / str(run_manifest.get("pipeline_output_path") or "pipeline-output.json")
@@ -579,6 +596,12 @@ def score_run(run_dir: Path) -> None:
     output = load_output(output_path)
     freeze_manifest = load_manifest(FREEZE_MANIFEST)
     truth = load_truth(TRUTH, manifest=freeze_manifest)
+    global AMBIGUOUS
+    AMBIGUOUS = {
+        str(item["case_id"])
+        for item in truth
+        if item.get("review_status") == "REVIEWED_AMBIGUOUS"
+    }
     truth_by_id, output_by_id, _ = maps(truth, output, result)
     if len(truth) != 252 or len(output_by_id) != 252 or set(truth_by_id) != set(output_by_id):
         raise ScoringRunError("Scoring population or IDs do not equal the frozen 252-record set.")
