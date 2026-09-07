@@ -295,7 +295,7 @@ function DirectoryBrowseView({
    */
   const [country, setCountry] = useState(urlCountry);
   useEffect(() => {
-    setCountry(urlCountry);
+    startTransition(() => setCountry(urlCountry));
   }, [urlCountry]);
 
   const href = useCallback(

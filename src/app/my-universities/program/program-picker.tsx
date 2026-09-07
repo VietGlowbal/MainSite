@@ -19,7 +19,6 @@ import {
   optionsForGroup,
   type ProgramChoices,
 } from '@/features/universities/domain';
-import { createClient } from '@/lib/supabase/client';
 import {
   Button,
   Container,
@@ -92,7 +91,6 @@ export function ProgramPicker({
   returnTo: string;
 }) {
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
 
   const [group, setGroup] = useState<string | null>(null);
   const [program, setProgram] = useState<string | null>(initialProgram);
@@ -140,9 +138,10 @@ export function ProgramPicker({
   );
 
   const urlProvided = url.trim().length > 0;
+  const urlProgram = urlProvided ? courseNameFromUrl(url.trim()) : null;
   const urlValid = !urlProvided || isCourseUrl(url);
   /* Nothing chosen is not an error, but it is not a submission either. */
-  const canSave = (program != null || urlProvided) && urlValid && !saving;
+  const canSave = (program != null || urlProgram != null) && urlValid && !saving;
 
   async function save() {
     if (!canSave) return;
@@ -166,37 +165,30 @@ export function ProgramPicker({
      */
     const programUrl = urlProvided ? url.trim() : chosenOfficialUrl;
     const programFromUrl = urlProvided
-      ? choices.options.find((option) => option.officialUrl === programUrl)?.name ?? courseNameFromUrl(url.trim())
+      ? choices.options.find((option) => option.officialUrl === programUrl)?.name ?? urlProgram
       : null;
 
-    const { error: updateError } = await supabase
-      .from('user_universities')
-      .update({ program: program ?? programFromUrl, program_url: programUrl })
-      .eq('id', savedId);
-
-    if (updateError) {
+    let response: Response;
+    try {
+      response = await fetch('/api/my-universities/program', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          savedId,
+          program: program ?? programFromUrl,
+          programUrl,
+        }),
+      });
+    } catch {
       setSaving(false);
-      /*
-       * Name the failure. The likely one on a project where
-       * supabase-saved-program.sql has not been run is a missing column, and a
-       * generic "please try again" would send someone retrying a write that can
-       * never succeed.
-       *
-       * Matched on the CODE, verified against the live API rather than guessed:
-       * PostgREST answers an unknown column with PGRST204 and the message
-       * "Could not find the 'program' column of 'user_universities' in the schema
-       * cache" — note the word "column" comes AFTER the column name, which an
-       * obvious /column .*program/ pattern misses. 42703 is Postgres's own
-       * undefined_column, in case the request ever reaches it directly.
-       */
-      const code = (updateError as { code?: string }).code ?? '';
-      const missingColumn =
-        code === 'PGRST204' || code === '42703' || /'program(_url)?' column/i.test(updateError.message);
-      setError(
-        missingColumn
-          ? 'Saving a subject is not switched on in this environment yet — the user_universities.program column has not been added. Nothing was changed.'
-          : 'We could not save that. Please try again.',
-      );
+      setError('We could not save that. Please try again.');
+      return;
+    }
+
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!response.ok) {
+      setSaving(false);
+      setError(result?.error ?? 'We could not save that. Please try again.');
       return;
     }
 

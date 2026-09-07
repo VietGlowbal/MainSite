@@ -1446,6 +1446,21 @@ export const translations: Record<string, string> = {
   'Sending…': 'Đang gửi…',
   'You agree to our friendly': 'Bạn đồng ý với',
   'privacy policy': 'chính sách bảo mật',
+  'Cookie preferences': 'Tùy chọn cookie',
+  'Necessary cookies keep GlowBal working. Optional analytics help us understand site use.':
+    'Cookie cần thiết giúp GlowBal hoạt động. Phân tích tùy chọn giúp chúng tôi hiểu cách trang được sử dụng.',
+  'Accept non-essential': 'Chấp nhận cookie không cần thiết',
+  'Reject non-essential': 'Từ chối cookie không cần thiết',
+  Configure: 'Tùy chỉnh',
+  'Privacy settings': 'Cài đặt quyền riêng tư',
+  'Necessary cookies are always available. Choose whether optional analytics may load.':
+    'Cookie cần thiết luôn được bật. Bạn có thể chọn cho phép tải phân tích tùy chọn.',
+  'Non-essential analytics': 'Phân tích không cần thiết',
+  'Analytics are optional and are not required for your account or application.':
+    'Phân tích là tùy chọn và không cần thiết cho tài khoản hoặc hồ sơ ứng tuyển của bạn.',
+  'Your browser privacy signal keeps optional analytics turned off.':
+    'Tín hiệu quyền riêng tư của trình duyệt đang giữ phân tích tùy chọn ở trạng thái tắt.',
+  'Save privacy preferences': 'Lưu tùy chọn quyền riêng tư',
 
   // ── Footer (Figma 104:7404) ──────────────────────────────────────────────
   'Helping students find global universities, scholarships, and application strategies.':

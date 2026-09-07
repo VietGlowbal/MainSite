@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Badge } from './badge';
 import { Container } from './container';
 import { RatingsBadge } from './ratings-badge';
+import { ConsentSettingsTrigger } from './consent-settings-trigger';
 
 /**
  * Footer — Figma 104:7404 (1440x444), the site's bottom chrome.
@@ -114,7 +115,10 @@ export function Footer({ logo, tagline, columns, social, copyright, ratings }: P
 
       <div className="py-gb-6xl">
         <Container className="flex flex-wrap items-center justify-between gap-x-gb-4xl gap-y-gb-3xl">
-          <p className="text-gb-sm text-fg-on-inverse-muted">{copyright}</p>
+          <div className="flex flex-wrap items-center gap-gb-xl">
+            <p className="text-gb-sm text-fg-on-inverse-muted">{copyright}</p>
+            <ConsentSettingsTrigger />
+          </div>
           <div className="flex items-center gap-gb-xl">
             {social.map((item) => (
               <a

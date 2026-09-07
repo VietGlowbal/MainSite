@@ -1,5 +1,29 @@
 # Current project status
 
+Working tree 2026-09-08 (RnD feedback reliability audit): the pasted audit was
+checked against main `0595e2c76fe859baf607adb6cf52eb3149c2987d` and the live
+Supabase project using read-only checks. This patch adds a consent boundary
+around Vercel Analytics/Speed Insights with persisted policy-versioned choices,
+GPC/DNT handling, a footer settings entry point, and a keyboard-trapped shared
+Modal. It also moves saved-program writes behind an authenticated,
+owner-scoped PATCH route that returns the canonical row and rejects zero-row
+updates, and adds `/api/health` as a no-store liveness endpoint. The existing
+university URL-state effect now uses a transition so the repository lint gate
+passes.
+
+Measured: live REST counts were 2,877 published scholarships, 99 universities,
+374 scholarship-university link rows covering 374 unique scholarships, and 604
+rows each in `courses` and `catalog_programmes`. The focused audit tests pass
+(12 files, 64 tests; modal follow-up 4 files, 9 tests); full Vitest passes
+3,699 tests with 2 TODOs; base and strict TypeScript, lint, i18n checks, and
+the production build pass. `verify:pr` stops before its gates because the host
+has Node 24.13.0 while the repository requires 24.19.0. Playwright E2E was
+attempted but Chromium is not installed on this host, so browser assertions
+remain to be run with the pinned Node runtime and Playwright browser.
+
+Full classification and remaining migration/product decisions are recorded in
+[the RnD feedback audit](plans/2026-09-08-rnd-feedback-audit.md).
+
 Working tree 2026-09-06 (VinUni Structure & Flow V2): the authenticated
 application writer and the authenticated public VinUni SOP entry now use the
 same two-pass, evidence-first evaluator. Pass A reconstructs the draft's

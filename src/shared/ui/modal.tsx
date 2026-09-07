@@ -3,6 +3,17 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'area[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[contenteditable="true"]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
 /**
  * Modal — the overlay shape the design uses for both dialogs in the file: the
  * universities login gate and the saved list's "Apply scholarship" picker
@@ -55,14 +66,33 @@ export function Modal({
     const opener = document.activeElement as HTMLElement | null;
     // Prefer the first focusable thing in the panel; fall back to the panel,
     // which is why it carries tabIndex={-1}.
-    const target =
-      panelRef.current?.querySelector<HTMLElement>(
-        'input:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-      ) ?? panelRef.current;
+    const target = panelRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) ?? panelRef.current;
     target?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onCloseRef.current();
+      if (event.key !== 'Tab' || !panelRef.current) return;
+
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        panelRef.current.focus();
+        return;
+      }
+
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (!panelRef.current.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     document.addEventListener('keydown', onKeyDown);
 
