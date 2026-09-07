@@ -19,8 +19,9 @@ manifest-referenced V2 lineage files; path-specific checkout attributes now
 preserve each file's manifest-recorded LF/CRLF bytes without changing any
 artifact content.
 The final clean probe then advanced through the V2 lineage and found the
-manifested machine-scorer script needed the same byte-preservation treatment;
-that packaging-only rule is now included before the final clean probe.
+manifested machine-scorer script and two tracked V2 JSON files needed exact
+byte-preservation treatment; those packaging-only rules and verified bytes are
+now included before the final clean probe.
 
 Working tree 2026-09-06: Remediation 9 corrected the six known true quality
 patterns under frozen Benchmark V3 without changing GT v3, Scorer v2, the V3
