@@ -2,11 +2,10 @@
 /.node-version text eol=lf
 /.nvmrc text eol=lf
 
-# Phase 3F immutable V2 lineage inputs are byte-hashed by the V3 freeze
-# manifest. Keep their LF bytes unchanged on Windows checkouts.
+# Phase 3F frozen inputs are byte-hashed by the V3 freeze manifest. Keep the
+# LF-hashed files below unchanged on Windows checkouts; the other V2 JSON
+# inputs intentionally retain their existing CRLF working-tree bytes.
 /docs/benchmarks/2026-08-30-phase-3f-roster-v2.md -text
 /docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md -text
 /docs/benchmarks/2026-09-01-phase-3f-ground-truth-v2-frozen.jsonl -text
-/docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.json -text
-/docs/benchmarks/2026-09-01-phase-3f-ground-truth-freeze-v2.json -text
 /scripts/score_phase3f_benchmark_v3_offline.py -text

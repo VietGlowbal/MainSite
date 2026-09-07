@@ -14,9 +14,10 @@ The scoped repair diff is whitespace-clean. The restored roster retains three
 intentional Markdown hard-break spaces required by its frozen byte hash, so a
 full Git whitespace check reports only those preserved historical lines. Slice
 F remains **NO-GO** pending the pushed clean-checkout preflight. A subsequent
-clean-checkout probe exposed Windows `core.autocrlf` conversion on the five
-manifest-referenced V2 lineage files; path-specific `-text` attributes now
-preserve their frozen LF bytes without changing any artifact content.
+clean-checkout probe exposed Windows `core.autocrlf` conversion on the
+manifest-referenced V2 lineage files; path-specific checkout attributes now
+preserve each file's manifest-recorded LF/CRLF bytes without changing any
+artifact content.
 The final clean probe then advanced through the V2 lineage and found the
 manifested machine-scorer script needed the same byte-preservation treatment;
 that packaging-only rule is now included before the final clean probe.
