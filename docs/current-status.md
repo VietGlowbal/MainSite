@@ -1,7 +1,8 @@
 # Current project status
 
 Working tree 2026-09-07: The Phase 3F V3 execution checkpoint repair is
-validated in the development worktree and is ready for selective staging. The
+committed and pushed at `76455516cd92db6699e0905e864e1a5599174a62`. A fresh
+clean checkout at that commit passed the no-provider preflight. The
 V3 runner now selects the frozen GT v3, roster v2, V3 freeze manifest, and
 Scorer Contract v2; it generates `phase3f-v3-run-*` IDs and fails closed on
 missing or mismatched manifest artifacts. A no-provider preflight and frozen
@@ -9,11 +10,12 @@ Scorer-v2 compatibility test pass (19 focused tests); the full ingestion suite
 passes 369/369, compileall passes, all 13 manifest-referenced JSON/JSONL files
 parse, and official Run #1–#4 output hashes remain unchanged. Development-tree
 preflight made 0 provider calls. The exact missing historical inputs are being
-restored unchanged by their frozen hashes; Benchmark #5 has not been run.
+restored unchanged by their frozen hashes; the clean checkout reports
+`dirty_worktree=false`, and Benchmark #5 has not been run.
 The scoped repair diff is whitespace-clean. The restored roster retains three
 intentional Markdown hard-break spaces required by its frozen byte hash, so a
 full Git whitespace check reports only those preserved historical lines. Slice
-F remains **NO-GO** pending the pushed clean-checkout preflight. A subsequent
+F remains **NO-GO** pending explicit authorization for Benchmark #5. A subsequent
 clean-checkout probe exposed Windows `core.autocrlf` conversion on the
 manifest-referenced V2 lineage files; path-specific checkout attributes now
 preserve each file's manifest-recorded LF/CRLF bytes without changing any
