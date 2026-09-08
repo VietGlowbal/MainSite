@@ -14,6 +14,7 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useT } from '@/lib/i18n';
+import { trackSopFeedbackGenerated } from '@/lib/analytics/ga';
 import { createClient } from '@/lib/supabase/client';
 import type {
   AaccAnalysis,
@@ -657,6 +658,10 @@ export function StatementWriter({
         setStatus('done');
         setVinUniStatus('');
         setViewMode('review');
+        // The streamed VinUni path finishes here rather than at the generic
+        // `return` below, so it needs its own call or the AACC rubric — the
+        // busiest review flow on the site — would report zero feedback events.
+        if (!streamError) trackSopFeedbackGenerated(targetName);
         if (
           completeEvent.current &&
           'versions' in completeEvent.current &&
@@ -681,6 +686,9 @@ export function StatementWriter({
       setActiveTab('suggestions');
       setViewMode('review');
       await saveDraft(text, genericResult);
+      // Institution name only. The draft, the score and the quoted suggestions
+      // in `genericResult` stay local — GA never sees document content.
+      trackSopFeedbackGenerated(targetName);
       onAnalysisComplete?.();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;

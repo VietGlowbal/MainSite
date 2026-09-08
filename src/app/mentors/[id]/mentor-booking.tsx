@@ -7,6 +7,7 @@ import { computeServiceFee, computeTotal, formatMoney } from '@/lib/currency';
 import { convertToVnd } from '@/lib/payments/vnpay-shared';
 import { PaymentMethodSelector } from '@/components/payments/payment-method-selector';
 import { useLanguage } from '@/lib/i18n';
+import { trackMentorBookingStarted } from '@/lib/analytics/ga';
 import type { Currency, MentorAvailabilitySlot } from '@/types/mentorship';
 
 /**
@@ -516,6 +517,12 @@ function BookingIntake({
         throw new Error(t('The payment link was missing. Please try again.'));
       }
 
+      // Fires on "checkout created", not "paid" — the student is about to be
+      // sent to the transfer instructions and may never complete. No arguments:
+      // `finalTopic` and `questions` are free text the student wrote, so neither
+      // goes to GA. Called before the assignment below because navigation can
+      // tear the page down before a later statement runs.
+      trackMentorBookingStarted();
       window.location.href = body.status_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : t('Could not start checkout.'));

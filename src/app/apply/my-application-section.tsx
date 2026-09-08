@@ -13,6 +13,7 @@ import {
 import type { DeadlineTone } from '@/features/apply/workspace-domain';
 import { ResearchingInline } from '@/features/apply/tracker-ui';
 import type { CourseApplication } from '@/lib/apply-types';
+import { trackCourseImportCompleted } from '@/lib/analytics/ga';
 import { useT } from '@/lib/i18n';
 import { Avatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
@@ -325,6 +326,11 @@ function AddCourseButton({
         setSubmitting(false);
         return;
       }
+      // Only on the success path — a 409 duplicate or a 403 plan limit returns
+      // above, so those do not count as an import. The university label is the
+      // one already on screen; the pasted URL is deliberately not sent, since a
+      // course page link can carry the student's session parameters.
+      trackCourseImportCompleted(universityLabel);
       setOpen(false);
       setUrl('');
       router.refresh();
