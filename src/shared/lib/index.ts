@@ -3,6 +3,18 @@
  * Nothing here may import React, Next, or a database client.
  */
 export { TID, testId, type TestId } from './testids';
+/**
+ * The analytics choice, mirrored into a cookie so server code (the /c/<code>
+ * referral tracker) can honour it. localStorage stays the source of truth.
+ */
+export {
+  CONSENT_COOKIE,
+  CONSENT_COOKIE_MAX_AGE,
+  CONSENT_POLICY_VERSION,
+  analyticsConsentedFromCookie,
+  consentCookieAssignment,
+  serialiseConsentCookie,
+} from './consent-cookie';
 export {
   MONTH_ABBREVIATIONS,
   MONTH_NAMES,

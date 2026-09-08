@@ -322,12 +322,20 @@ function guessDomain(name: string): string | null {
 }
 
 function faviconLogoUrl(domain: string): string {
-  // Google's free `s2/favicons` endpoint returns a 256px image of the
+  // Google's free `s2/favicons` endpoint returns a 128px image of the
   // domain's favicon — for universities that's almost always the
   // institution's wordmark/crest. We used to use `logo.clearbit.com`
   // but Clearbit shut down their public API on Dec 1 2025, so we
   // picked the most reliable no-auth alternative.
-  return `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
+  //
+  // ⚠️ RETURNS OUR OWN PATH, NOT GOOGLE'S URL, AND MUST KEEP DOING SO. What
+  // this function returns is written into `universities.logo_url` by the
+  // imagery cron and rendered by plain `<img>` tags across the app, so a
+  // google.com URL here becomes a third-party request from every student's
+  // browser — before the cookie banner is answered, and regardless of what
+  // they answered. `/api/university-logo` makes that call server-side instead.
+  // See the route for the full reasoning.
+  return `/api/university-logo?domain=${encodeURIComponent(domain)}`;
 }
 
 // ── Wikipedia / Commons fetchers ───────────────────────────────────────
@@ -510,10 +518,10 @@ async function resolveLogo(
     }
   }
 
-  // 2. Google's `s2/favicons` endpoint as a last-resort fallback. For
-  //    universities the favicon is almost always the institution's
-  //    wordmark or crest, which renders fine in the 48px circle on the
-  //    card. Free, no API key, served by Google's CDN.
+  // 2. The favicon fallback as a last resort. For universities the favicon
+  //    is almost always the institution's wordmark or crest, which renders
+  //    fine in the 48px circle on the card. Free and no API key; proxied
+  //    through our own origin so the student's browser never calls Google.
   const domain = guessDomain(displayName);
   if (domain) return faviconLogoUrl(domain);
 
