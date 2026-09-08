@@ -429,7 +429,14 @@ def normalize_programme_status(value: Any) -> str:
         return "discontinued"
     if re.search(r"\bwithdrawn\b", normalized):
         return "withdrawn"
-    if re.search(r"\b(?:open|active|accepting\s+applications?)\b", normalized):
+    if re.search(
+        r"\b(?:accepting\s+applications?|"
+        r"applications?\s+(?:are\s+)?(?:now\s+|currently\s+)?open|"
+        r"apply\s+now)\b",
+        normalized,
+    ):
+        return "accepting_applications"
+    if re.search(r"\b(?:open|active)\b", normalized):
         return "active"
     return normalized.replace(" ", "_")
 
@@ -759,6 +766,11 @@ def _status_evidence_errors(
         ),
         "discontinued": r"\bdiscontinu(?:ed|ation)\b",
         "withdrawn": r"\bwithdrawn\b",
+        "accepting_applications": (
+            r"\b(?:(?:currently|now)\s+)?accepting\s+applications?|"
+            r"\bapplications?\s+(?:are\s+)?(?:currently|now)\s+open\b|"
+            r"\bopen\s+for\s+applications?\b|\bapply\s+now\b"
+        ),
         "active": (
             r"\b(?:applications?\s+(?:are\s+)?open|"
             r"accepting\s+applications?|apply\s+now)\b"

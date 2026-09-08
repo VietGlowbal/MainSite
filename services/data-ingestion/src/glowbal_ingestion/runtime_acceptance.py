@@ -64,6 +64,27 @@ PROGRAMME_PROFILE_QUALIFICATION_RE = re.compile(
     r"subject(?:s)?|profile)\b",
     re.IGNORECASE,
 )
+PROGRAMME_STATUS_ACCEPTING_RE = re.compile(
+    r"\b(?:"
+    r"(?:currently|now|at\s+present)\s+accepting\s+applications?|"
+    r"applications?\s+(?:are\s+)?(?:currently|now)\s+open|"
+    r"open\s+for\s+applications?|"
+    r"apply\s+now|"
+    r"accepting\s+applications?"
+    r")\b",
+    re.IGNORECASE,
+)
+PROGRAMME_STATUS_NEGATIVE_RE = re.compile(
+    r"\b(?:not|no\s+longer|never)\s+accepting\s+applications?|"
+    r"\bapplications?\s+(?:are\s+)?(?:currently|now)?\s*closed\b|"
+    r"\bclosed\s+for\s+applications?\b",
+    re.IGNORECASE,
+)
+PROGRAMME_STATUS_ACTIVE_RE = re.compile(
+    r"\b(?:programme|program|course)\s+(?:is\s+)?"
+    r"(?:currently|now)\s+active\b|\bcurrently\s+active\b",
+    re.IGNORECASE,
+)
 POST_ADMISSION_RE = re.compile(
     r"\b(?:after\s+(?:an?\s+)?offer|after\s+admission|post[-\s]?admission|"
     r"upon\s+(?:admission|enrol(?:l)?ment)|after\s+enrol(?:l)?ment|"
@@ -102,6 +123,52 @@ def _has_value(value: Any) -> bool:
     if isinstance(value, (list, tuple, set, frozenset)):
         return any(_has_value(item) for item in value)
     return True
+
+
+def _programme_status_candidate(assertion: Mapping[str, Any]) -> str:
+    value = assertion.get("value_json")
+    if isinstance(value, Mapping):
+        for key in ("programme_status", "status", "value"):
+            if key in value and _has_value(value.get(key)):
+                value = value[key]
+                break
+    return re.sub(r"[^a-z0-9]+", "_", _text(value)).strip("_")
+
+
+def _programme_status_open_evidence(evidence: str) -> bool:
+    if PROGRAMME_STATUS_NEGATIVE_RE.search(evidence):
+        return False
+    return bool(PROGRAMME_STATUS_ACCEPTING_RE.search(evidence))
+
+
+def _programme_status_requires_open_window(
+    assertion: Mapping[str, Any],
+    *,
+    evidence: str,
+) -> bool:
+    status = _programme_status_candidate(assertion)
+    return status == "accepting_applications" or (
+        status == "active" and _programme_status_open_evidence(evidence)
+    )
+
+
+def _programme_status_applicability_is_sufficient(
+    assertion: Mapping[str, Any],
+    *,
+    audience: Any,
+) -> tuple[bool, str | None]:
+    """Require explicit programme and audience applicability for current status."""
+
+    if _scope(assertion) not in PROGRAMME_SCOPES:
+        return False, "PROGRAMME_STATUS_PROGRAMME_SCOPE_UNPROVEN"
+    if _text(assertion.get("applicability_state")).upper() not in {
+        "APPLICABLE",
+        "UNIVERSAL",
+    }:
+        return False, "PROGRAMME_STATUS_APPLICABILITY_UNPROVEN"
+    if not _audience_matches(assertion.get("audience"), audience):
+        return False, "PROGRAMME_STATUS_AUDIENCE_UNPROVEN"
+    return True, None
 
 
 def _has_target_cycle_evidence(
@@ -222,8 +289,17 @@ def _applicability_is_sufficient(
     *,
     field: str,
     evidence: str,
+    audience: Any,
     target_degree: str | None,
 ) -> tuple[bool, str | None]:
+    if field == "programme_status" and _programme_status_requires_open_window(
+        assertion,
+        evidence=evidence,
+    ):
+        return _programme_status_applicability_is_sufficient(
+            assertion,
+            audience=audience,
+        )
     state = _text(assertion.get("applicability_state")).upper()
     if state in {"APPLICABLE", "UNIVERSAL"}:
         return True, None
@@ -269,10 +345,31 @@ def _temporal_is_sufficient(
     evidence: str,
 ) -> tuple[bool, str | None]:
     state = _text(assertion.get("temporal_state")).upper()
+    if field == "programme_status" and _programme_status_requires_open_window(
+        assertion,
+        evidence=evidence,
+    ):
+        if state in {"HISTORICAL", "FUTURE", "TARGET_CYCLE_ESTIMATE"}:
+            return False, f"TEMPORAL_{state}"
+        if not _programme_status_open_evidence(evidence):
+            return False, "PROGRAMME_STATUS_OPEN_WINDOW_UNPROVEN"
+        if not _has_target_cycle_evidence(
+            assertion,
+            target_cycle=target_cycle,
+            evidence=evidence,
+        ):
+            return False, "TEMPORAL_SCOPE_UNPROVEN"
+        return True, None
     if state == "CURRENT":
         return True, None
     if state in {"HISTORICAL", "FUTURE", "TARGET_CYCLE_ESTIMATE"}:
         return False, f"TEMPORAL_{state}"
+    if field == "programme_status":
+        if _programme_status_candidate(assertion) == "active" and PROGRAMME_STATUS_ACTIVE_RE.search(
+            evidence
+        ):
+            return True, None
+        return False, "PROGRAMME_STATUS_SEMANTICS_UNPROVEN"
     if field == "programme_status" and re.search(
         r"\b(?:currently|current|applications?\s+(?:are\s+)?open|accepting\s+applications?|apply\s+now)\b",
         evidence,
@@ -289,6 +386,92 @@ def _temporal_is_sufficient(
     if _has_target_cycle_evidence(assertion, target_cycle=target_cycle, evidence=evidence):
         return True, None
     return False, "TEMPORAL_SCOPE_UNPROVEN"
+
+
+def _status_window_dates(evidence: str) -> tuple[str | None, str | None]:
+    date_matches = re.findall(
+        r"\b(?:20\d{2}[-/]\d{1,2}[-/]\d{1,2}|"
+        r"\d{1,2}\s*(?:er|st|nd|rd|th)?\s+[a-z]+\s+20\d{2})\b",
+        evidence,
+        re.IGNORECASE,
+    )
+    if not date_matches:
+        return None, None
+    return date_matches[0], date_matches[1] if len(date_matches) > 1 else None
+
+
+def status_acceptance_diagnostics(
+    assertion: Mapping[str, Any],
+    *,
+    target_cycle: Any = None,
+    audience: Any = None,
+) -> dict[str, Any]:
+    """Expose status acceptance evidence without exposing benchmark truth."""
+
+    evidence = _text(assertion.get("evidence"))
+    status = _programme_status_candidate(assertion)
+    open_evidence = _programme_status_open_evidence(evidence)
+    target_cycle_evidence = _has_target_cycle_evidence(
+        assertion,
+        target_cycle=target_cycle,
+        evidence=evidence,
+    )
+    requires_status_applicability = _programme_status_requires_open_window(
+        assertion,
+        evidence=evidence,
+    )
+    applicability, applicability_reason = (
+        _programme_status_applicability_is_sufficient(
+            assertion,
+            audience=audience,
+        )
+        if requires_status_applicability
+        else (True, None)
+    )
+    temporal, temporal_reason = _temporal_is_sufficient(
+        assertion,
+        field="programme_status",
+        target_cycle=target_cycle,
+        evidence=evidence,
+    )
+    reasons = list(
+        projection_acceptance_reasons(
+            assertion,
+            field_name="programme_status",
+            target_cycle=target_cycle,
+            audience=audience,
+        )
+    )
+    window_start, window_end = _status_window_dates(evidence)
+    return {
+        "status_candidate": status,
+        "temporal_evidence": {
+            "explicit_current_open_status": open_evidence,
+            "target_cycle_in_evidence": target_cycle_evidence,
+            "temporal_state": assertion.get("temporal_state"),
+            "evidence": assertion.get("evidence"),
+        },
+        "cycle": assertion.get("academic_cycle"),
+        "intake": assertion.get("intake") or assertion.get("intake_name"),
+        "window_start": window_start,
+        "window_end": window_end,
+        "current_applicability": temporal and applicability,
+        "programme_applicability": {
+            "scope": assertion.get("scope"),
+            "applicability_state": assertion.get("applicability_state"),
+            "assertion_audience": assertion.get("audience"),
+            "target_audience": audience,
+            "proved": applicability,
+            "reason": applicability_reason,
+        },
+        "acceptance_reason": (
+            "explicit_current_open_window_matching_cycle_and_applicability"
+            if not reasons
+            else None
+        ),
+        "rejection_reason": reasons
+        or [reason for reason in (applicability_reason, temporal_reason) if reason],
+    }
 
 
 def _tuition_reasons(assertion: Mapping[str, Any], *, evidence: str) -> list[str]:
@@ -534,6 +717,7 @@ def projection_acceptance_reasons(
             assertion,
             field=effective_field,
             evidence=evidence,
+            audience=audience,
             target_degree=target_degree,
         )
         if not applicable and applicability_reason:

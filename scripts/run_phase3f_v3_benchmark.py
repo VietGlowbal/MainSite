@@ -48,6 +48,7 @@ from glowbal_ingestion.pipeline import SmokePipeline  # noqa: E402
 from glowbal_ingestion.product_safety import BLOCKERS, ProductLifecycleState  # noqa: E402
 from glowbal_ingestion.runtime_acceptance import (  # noqa: E402
     projection_acceptance_reasons,
+    status_acceptance_diagnostics,
 )
 from glowbal_ingestion.url_safety import canonicalize_url  # noqa: E402
 
@@ -1195,35 +1196,31 @@ def _project_output(
                 for assertion in candidate_assertions
                 if _has_value(_assertion_value(assertion))
             ]
-            candidate_diagnostics = [
-                {
-                    "assertion_id": assertion.get("assertion_id"),
-                    "component_field": component,
-                    "value_present": _has_value(_assertion_value(assertion)),
-                    "accepted_for_runtime_found": not bool(
-                        projection_acceptance_reasons(
+            candidate_diagnostics = []
+            for component in field_names:
+                for assertion in field_assertions.get(component, []):
+                    acceptance_reasons = projection_acceptance_reasons(
+                        assertion,
+                        field_name=field,
+                        component_field=component,
+                        target_cycle=target_cycle,
+                        audience=audience,
+                        target_degree=target_degree,
+                    )
+                    diagnostic = {
+                        "assertion_id": assertion.get("assertion_id"),
+                        "component_field": component,
+                        "value_present": _has_value(_assertion_value(assertion)),
+                        "accepted_for_runtime_found": not bool(acceptance_reasons),
+                        "acceptance_reasons": list(acceptance_reasons),
+                    }
+                    if field == "programme_status":
+                        diagnostic["status_acceptance"] = status_acceptance_diagnostics(
                             assertion,
-                            field_name=field,
-                            component_field=component,
                             target_cycle=target_cycle,
                             audience=audience,
-                            target_degree=target_degree,
                         )
-                    ),
-                    "acceptance_reasons": list(
-                        projection_acceptance_reasons(
-                            assertion,
-                            field_name=field,
-                            component_field=component,
-                            target_cycle=target_cycle,
-                            audience=audience,
-                            target_degree=target_degree,
-                        )
-                    ),
-                }
-                for component in field_names
-                for assertion in field_assertions.get(component, [])
-            ]
+                    candidate_diagnostics.append(diagnostic)
             candidate_sources = {
                 str(assertion.get("source_url"))
                 for assertion in candidate_assertions

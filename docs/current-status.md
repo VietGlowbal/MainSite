@@ -1,19 +1,19 @@
 # Current project status
 
-Working tree 2026-09-08: Remediation 10 completed against sealed Official
-Run #5 without modifying its output or Benchmark V3. The five incorrect
-identity `FOUND` values were traced generically: three now score correctly and
-two conservatively remain `NEEDS_REVIEW`; incorrect concrete `FOUND` is 0 in
-offline replay. The 20 previously-correct identity controls did not regress,
-and the bounded 12-programme diagnostic smoke produced 7/7 correct concrete
-critical values with all seven safety counters at 0. The high-value acceptance
-audit covered 46 cases/89 rows; all blockers were justified, so no broad
-quality-policy relaxation was made. The missing clean-checkpoint fixtures
-`supabase-crawl-acquisition-v3.sql` and `supabase-identity-promotion-v3.sql`
-are restored for the Remediation-10 checkpoint; the full ingestion suite passes
-375/375, scorer and preflight/Remediation-10 tests pass 25/25, compileall and
-V3 integrity checks pass. A clean committed checkout is required before any
-`FULL BENCHMARK RUN #6` authorization; it was not run. Slice F remains
+Working tree 2026-09-08: Remediation 11 completed against sealed Official
+Run #6 without modifying its output or Benchmark V3. The generic
+programme-status acceptance guard now requires explicit current open-window
+evidence, matching cycle proof, and explicit programme/audience applicability.
+Offline replay of all 36 programme-status cases changed
+`GT-V2-24-programme_status` from unsafe `FOUND=accepting_applications` to
+`NEEDS_REVIEW`; false-current is 0 and all seven safety counters are 0. The
+22 correct Run #6 identity controls remained correct with no new incorrect
+outputs. The bounded 11-row live smoke scored 7/7 concrete critical values,
+with false-current and all seven safety counters at 0. The full ingestion suite
+passes 386/386; focused Remediation-11, Remediation-10, Remediation-9,
+scorer, and V3 preflight tests pass. Compileall, JSON/JSONL validation, secret
+scan, frozen hashes, and Run #1-#6 integrity checks pass. FULL BENCHMARK RUN #7
+is READY under the Remediation-11 gate, but it was not run. Slice F remains
 **NO-GO**.
 
 Working tree 2026-09-07: The Phase 3F V3 execution checkpoint repair is
