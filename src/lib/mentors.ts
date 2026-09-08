@@ -60,6 +60,33 @@ const PUBLIC_MENTOR_SELECT = `
   university:universities!achiever_profiles_university_id_fkey ( id, name, country, logo_url )
 `;
 
+const PRIVATE_MENTOR_SELECT = `
+  id, display_name, legal_name, date_of_birth, avatar_url, university_id,
+  degree_level, subject, graduation_year, study_start_year, currently_enrolled,
+  bio, help_topics, strengths, languages, hourly_rate_amount, hourly_rate_currency,
+  cv_storage_key, acceptance_letter_storage_key, transcript_storage_key,
+  student_card_storage_key, status, verified_at, total_sessions, avg_rating,
+  stripe_account_id, created_at,
+  university:universities!achiever_profiles_university_id_fkey ( id, name, country, logo_url )
+`;
+
+/** Read private mentor fields only for the authenticated owner. */
+export async function getOwnMentorProfile(): Promise<MentorWithUniversity | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('achiever_profiles')
+    .select(PRIVATE_MENTOR_SELECT)
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as unknown as MentorWithUniversity;
+}
+
 export async function getApprovedMentors(
   filters?: MentorBrowseFilters,
 ): Promise<PublicMentor[]> {
@@ -316,24 +343,8 @@ export async function getPublicMentorReviews(
 
 export async function getMentorById(
   id: string,
-): Promise<MentorWithUniversity | null> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('achiever_profiles')
-    .select(`
-      *,
-      university:universities!achiever_profiles_university_id_fkey (
-        id,
-        name,
-        country
-      )
-    `)
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return data as MentorWithUniversity;
+): Promise<PublicMentor | null> {
+  return getPublicMentorById(id);
 }
 
 // ── Availability slots — calendar style ─────────────────────────────────────
@@ -418,19 +429,14 @@ export async function getMentorReviews(
 export async function getMentorsByUniversity(
   universityId: number,
   limit = 3,
-): Promise<MentorWithUniversity[]> {
-  const supabase = await createClient();
+): Promise<PublicMentor[]> {
+  if (isPlaceholderSupabaseConfig()) return [];
+
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('achiever_profiles')
-    .select(`
-      *,
-      university:universities!achiever_profiles_university_id_fkey (
-        id,
-        name,
-        country
-      )
-    `)
+    .select(PUBLIC_MENTOR_SELECT)
     .eq('status', 'approved')
     .eq('university_id', universityId)
     .order('avg_rating', { ascending: false })
@@ -441,7 +447,7 @@ export async function getMentorsByUniversity(
     return [];
   }
 
-  return (data ?? []) as MentorWithUniversity[];
+  return (data ?? []) as unknown as PublicMentor[];
 }
 
 // ── Slot management helpers (server-side only) ─────────────────────────────

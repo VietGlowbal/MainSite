@@ -73,7 +73,7 @@ export interface SupabaseMockOptions {
   existingAppsError?: unknown;
   university?: unknown;
   rpcError?: unknown;
-  /** Override the RPC response. By default it echoes the payload as created applications. */
+  /** Override the RPC response. By default it echoes the selected result rows. */
   rpcApplications?: unknown;
 }
 
@@ -113,17 +113,20 @@ export function buildAddCoursesSupabase(options: SupabaseMockOptions = {}) {
     }
   });
 
-  const rpc = vi.fn((_fnName: string, args: { p_results?: Array<Record<string, unknown>> }) => {
+  const rpc = vi.fn((_fnName: string, args: { p_result_ids?: string[] }) => {
     if (rpcError) {
       return Promise.resolve({ data: null, error: rpcError });
     }
+    const resultsById = new Map(
+      (results as Array<Record<string, unknown>>).map((result) => [result.id, result]),
+    );
     const applications_created =
       rpcApplications !== undefined
         ? rpcApplications
-        : (args?.p_results || []).map((r) => ({
-            application_id: `app-${r.result_id}`,
-            course_name: r.course_name,
-            course_url: r.course_url,
+        : (args?.p_result_ids || []).map((resultId) => ({
+            application_id: `app-${resultId}`,
+            course_name: resultsById.get(resultId)?.course_name,
+            course_url: resultsById.get(resultId)?.course_url,
             parse_status: 'pending',
           }));
     return Promise.resolve({ data: { applications_created }, error: null });

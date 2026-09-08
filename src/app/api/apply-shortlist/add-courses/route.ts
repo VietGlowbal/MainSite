@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
     // Task 13.3: Fetch selected session results
     const { data: selectedResults, error: resultsError } = await supabase
       .from('course_search_session_results')
-      .select('*')
+      .select('id, course_name, course_url, source_domain')
       .eq('session_id', sessionId)
       .in('id', selectedResultIds);
 
@@ -425,24 +425,13 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     if (toCreateValidated.length > 0) {
-      // Prepare data for RPC call
-      const resultsPayload = toCreateValidated.map(result => ({
-        result_id: result.id,
-        university_id: session.university_id,
-        university_name: result.university_name || 'Unknown University',
-        course_name: result.course_name,
-        course_url: result.course_url,
-        source_domain: result.source_domain,
-      }));
-
       try {
         // Call PostgreSQL RPC function for atomic batch creation
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           'add_selected_courses_to_apply',
           {
-            p_user_id: user.id,
             p_session_id: sessionId,
-            p_results: resultsPayload,
+            p_result_ids: toCreateValidated.map(result => result.id),
           }
         );
 
@@ -451,7 +440,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             { 
               error: 'Failed to create applications',
-              details: rpcError.message,
             },
             { status: 500 }
           );

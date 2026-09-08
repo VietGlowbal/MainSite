@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getOwnMentorProfile } from '@/lib/mentors';
 import type { MentorAvailabilitySlot, MentorshipBooking } from '@/types/mentorship';
 import { MentorDashboard } from '@/components/mentorship/MentorDashboard';
 
@@ -10,11 +11,7 @@ export default async function MentorDashboardPage() {
     redirect('/auth?redirect=/dashboard/advisor');
   }
 
-  const { data: profile } = await supabase
-    .from('achiever_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+  const profile = await getOwnMentorProfile();
 
   if (!profile) {
     redirect('/advisors/apply');

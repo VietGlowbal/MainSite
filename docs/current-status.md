@@ -1,5 +1,24 @@
 # Current project status
 
+Working tree 2026-09-08 (critical security hardening): the shortlist
+`SECURITY DEFINER` RPC now derives `auth.uid()`, accepts only a session plus
+result UUIDs, validates ownership/all rows before atomic app/source/job writes,
+and has authenticated-only execute privileges. Mentor public reads now use
+explicit projections; private mentor fields are owner-only through a server
+helper, and mentor/student document paths and update policies are owner-scoped.
+The deployment migration is reviewable but has not been applied to production.
+
+Measured: the six-file focused security suite passed 46 tests; base and strict
+TypeScript passed; lint passed with four existing warnings; the production
+build completed once with the existing three `geo-content.ts` tracing warnings,
+but two final Turbopack reruns reached compilation/TypeScript and then hit the
+host's Next page-data worker OOM (`3221226505`); the Webpack fallback hit an
+existing `node:crypto` plugin error outside this patch. The disposable
+integration harness passed syntax checking but was not run because no separate
+test-project credentials were supplied. Full Vitest passed 3,701 tests with
+two TODOs and retained two out-of-scope unauthenticated CV-test timeouts.
+Latest `origin/main` is `e86e15f7f12f561fe4908ec2dd6a850993babbb4`.
+
 Working tree 2026-09-08 (Strategy Report version tracking and Planner CTA):
 the persisted Strategy Report engine version is now surfaced in the report
 header and root data attribute, while the Planner CTA uses the shared
