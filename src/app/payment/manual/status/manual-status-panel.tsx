@@ -1,13 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 import { generateVietQrUrl } from '@/lib/payments/vietqr';
+import { trackMentorPaymentCompleted } from '@/lib/analytics/ga';
 
 type Status = {
   status: string;
   status_label: string;
+  /**
+   * 'mentorship' | 'plus'. Already returned by /api/payments/manual/status —
+   * the route spreads the whole `payment_transactions` row — it just was not
+   * declared here. It is what separates a mentorship booking from a Plus
+   * subscription, which share this screen.
+   */
+  product_type?: string;
   reference: string;
   transfer_description: string;
   amount_vnd: number;
@@ -92,6 +100,31 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
       window.clearInterval(timer);
     };
   }, [load]);
+
+  /*
+   * "The mentorship was paid for." This screen polls every 15 seconds, so the
+   * ref is not defensive tidying — without it every subsequent poll while the
+   * student sits on a fulfilled payment would emit the event again and the
+   * revenue number would climb on its own.
+   *
+   * Gated on `product_type` because the same transfer flow also sells Plus;
+   * counting those as mentorship revenue would be wrong, not merely noisy.
+   *
+   * This is the only place the browser ever learns a payment completed. The
+   * server knows sooner — an admin confirms the transfer — but a webhook or an
+   * API route has no `window.dataLayer` to push to, so a payment confirmed
+   * while the student has the tab closed is genuinely not counted here. The
+   * first-party record in `payment_transactions` remains the source of truth
+   * for revenue; this event measures the funnel, not the books.
+   */
+  const paymentTracked = useRef(false);
+  useEffect(() => {
+    if (paymentTracked.current) return;
+    if (status?.status !== 'fulfilled') return;
+    if (status.product_type !== 'mentorship') return;
+    paymentTracked.current = true;
+    trackMentorPaymentCompleted(status.amount_vnd);
+  }, [status]);
 
   async function claim() {
     setClaiming(true);

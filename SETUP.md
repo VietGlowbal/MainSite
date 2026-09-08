@@ -15,7 +15,17 @@ OPENAI_API_KEY=sk-...your-openai-api-key...
 
 # OpenAI model to use (defaults to gpt-4o-mini if not set)
 OPENAI_MODEL=gpt-4o-mini
+
+# ── Google Analytics 4 (optional) ──
+# Leave unset to disable analytics entirely — no script, no events, no console
+# noise. This is the local and CI default.
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 ```
+
+> ⚠️ `.env.example` in this repository is **gitignored and untracked**
+> (`.gitignore:36` is a blanket `.env*`). Editing it documents nothing for
+> anyone else — add new environment variables **here** instead. See
+> `docs/known-issues.md` §7.
 
 ### Getting an OpenAI API Key
 
@@ -257,3 +267,65 @@ Rerun the guarded migration after updating to the one-founder-email flow. It
 replaces checkout so only `student_instructions` is queued initially, retires
 unsent legacy `founder_review` jobs, and keeps the single actionable
 `founder_claimed` email for when the student reports the transfer.
+
+---
+
+## 8. Google Analytics 4 (optional)
+
+GA4 is installed via `@next/third-parties`. It is **off** until
+`NEXT_PUBLIC_GA_ID` is set, and even then it loads only for visitors who accept
+non-essential analytics.
+
+### One-time setup
+
+1. [analytics.google.com](https://analytics.google.com) → **Admin** →
+   **Create** → **Property**. Timezone `(GMT+07:00) Vietnam`, currency `VND`.
+2. Choose platform **Web**, enter the site domain.
+3. Copy the **Measurement ID** (`G-XXXXXXXXXX`) — Admin → **Data streams**.
+4. Local: put it in `.env.local` as `NEXT_PUBLIC_GA_ID` and restart the dev
+   server.
+5. Deployment: add the same variable in Vercel → Settings → Environment
+   Variables for Production, Preview and Development.
+
+⚠️ `NEXT_PUBLIC_*` values are **inlined at build time**, not read at runtime.
+Adding the variable in Vercel has no effect until the project is redeployed;
+existing deployments keep whatever value they were built with.
+
+### Registering the custom dimensions
+
+GA4 will not show a custom event parameter in any report until it is registered.
+Admin → **Custom definitions** → **Create custom dimension**, scope **Event**:
+
+| Dimension name | Event parameter |
+|---|---|
+| University | `university` |
+| Tier list surface | `surface` |
+
+Then Admin → **Events** → mark whichever events count as goals as key events.
+Custom events take up to 24h to appear in the Events list; **GA4 does not
+backfill**, so data starts from the deploy that carried a real Measurement ID.
+
+### Events emitted
+
+| Event | Parameters | Fires when |
+|---|---|---|
+| `course_import_completed` | `university` | A pasted course URL created an application |
+| `sop_feedback_generated` | `university` (optional) | An SOP/LOR analysis returned |
+| `tier_list_viewed` | `surface` | `/universities/matches` rendered (once per mount) |
+| `mentor_booking_started` | — | A mentorship checkout was created |
+| `mentor_payment_completed` | `value`, `currency` | A manual transfer reached `fulfilled` |
+
+No personal data is ever sent — only institution names, a surface label and an
+amount. Payloads pass through `sanitiseMetadata` in `src/lib/analytics/track.ts`,
+which drops content-shaped keys and any string over 120 characters.
+
+### Verifying it works
+
+Open the site in a **private window**, accept the cookie banner, then check
+DevTools → Network for a request to `googletagmanager.com/gtag/js`. GA4
+**Reports → Realtime** should show the session within ~30 seconds.
+
+If nothing appears, in order of likelihood: the cookie banner was not accepted;
+the browser sends Do Not Track / Global Privacy Control (which forces consent
+off and hides the banner entirely); an adblocker is blocking the request; or the
+deployment predates the environment variable. See `docs/known-issues.md` §8.

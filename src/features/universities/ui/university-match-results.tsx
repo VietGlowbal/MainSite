@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Button, Container, Panel } from '@/shared/ui';
 import { useT } from '@/lib/i18n';
+import { trackTierListViewed } from '@/lib/analytics/ga';
 import {
   programmeVerificationConfidence,
   RECOMMENDATION_UI_CONFIG,
@@ -90,6 +91,24 @@ export function UniversityMatchResults({
   const [selectivityFilter, setSelectivityFilter] = useState<SelectivityContext | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(RECOMMENDATION_UI_CONFIG.initialVisibleResults);
   const hasActiveFilter = recommendationFilter !== null || selectivityFilter !== null;
+
+  /*
+   * "The student reached a tier list." Fired once per mount, not per filter
+   * change — the filter chips re-render this component constantly and each of
+   * those is the same view, not a new one. The ref (rather than an empty
+   * dependency array alone) is what holds that true under React's development
+   * double-invoke, so the local count matches production.
+   *
+   * `demo` is excluded on purpose: /universities/matches/demo renders fixed
+   * fixture data, and counting it would put staff walkthroughs into the same
+   * number as real student sessions.
+   */
+  const tierViewTracked = useRef(false);
+  useEffect(() => {
+    if (demo || tierViewTracked.current) return;
+    tierViewTracked.current = true;
+    trackTierListViewed('match_results');
+  }, [demo]);
   const filteredResults = useMemo(() => recommendation.results.filter((result) => {
     const recommendationMatches = recommendationFilter === null || result.recommendationBand === recommendationFilter;
     const selectivityMatches = selectivityFilter === null || result.selectivityContext === selectivityFilter;

@@ -1,5 +1,26 @@
 # Current project status
 
+Working tree 2026-09-08 (Google Analytics 4): GA4 is installed through
+`@next/third-parties` and mounted **inside `ConsentBoundary`**, not the root
+layout — it loads only after a visitor accepts non-essential analytics, and not
+at all under GPC/DNT. `src/lib/analytics/ga.ts` wraps `sendGAEvent` behind a
+closed event-name union, re-uses `sanitiseMetadata` from `track.ts` so no
+document content can reach a third party, and re-reads the stored consent on
+every event (unmounting the component does not unload gtag.js, so without that
+a revocation would not take effect until reload). Five events are wired:
+`course_import_completed`, `sop_feedback_generated`, `tier_list_viewed`,
+`mentor_booking_started`, `mentor_payment_completed`. Requires
+`NEXT_PUBLIC_GA_ID`; unset means no script and no events, which is the CI and
+local default.
+
+Measured: base TypeScript, lint (0 errors; the 5 warnings are pre-existing and
+in untouched files) and the production build pass; 263 tests pass across the
+touched areas. Per-route first-load JS was measured by A/B build on this branch
+— `/` 1,126,510 → 1,141,934 bytes and `/ai-strategy/*` +15,424 bytes
+uncompressed, all of it the component and helper; gtag.js itself is fetched
+`afterInteractive` from googletagmanager.com and is not bundled. Not run:
+`verify:pr`, E2E.
+
 Working tree 2026-09-08 (critical security hardening): the shortlist
 `SECURITY DEFINER` RPC now derives `auth.uid()`, accepts only a session plus
 result UUIDs, validates ownership/all rows before atomic app/source/job writes,
@@ -2065,3 +2086,56 @@ After material work, update this file in the same change:
   todo with 5 unrelated timeout failures. Full `npm.cmd run lint` remains
   blocked by the existing `react-hooks/set-state-in-effect` error at
   `src/app/universities/university-list-client.tsx:298` plus 4 warnings.
+
+## 2026-09-08 — Google Analytics 4, consent-gated (working tree)
+
+- Trigger: owner asked for GA4 with five named product events, explicitly
+  constrained so it does not grow the critical path that the `/ai-strategy/*`
+  FCP/LCP work is measuring.
+- **GA is mounted inside `ConsentBoundary`, NOT the root layout.** The task
+  specified `app/layout.tsx`, but this branch had just added a consent gate that
+  renders `<Analytics />`/`<SpeedInsights />` only when `consent.analytics` is
+  true. Mounting GA in the layout would have fetched gtag.js and started a GA
+  session for a visitor who pressed "Reject non-essential" — the one outcome
+  that component exists to prevent. `layout.tsx` is therefore unchanged.
+- **Events re-read consent on every call.** Unmounting `<GoogleAnalytics />`
+  does not unload gtag.js: the script has run, `window.dataLayer` survives, and
+  `sendGAEvent` would keep pushing for the rest of the session. `emit()` reads
+  the stored record through `parseStoredConsent`, so revocation takes effect
+  immediately rather than at next reload. Storage failure returns `false` —
+  analytics fails closed.
+- **No PII, enforced by re-use rather than by care.** `ga.ts` sends payloads
+  through `sanitiseMetadata` from `track.ts` (primitives only, forbidden-key
+  list, 120-char ceiling), so there is one definition of "PII-shaped" instead of
+  two that drift. Only institution names, a `surface` label and `value`/
+  `currency` ever leave. `help_topic`, `help_questions`, SOP/CV text, user ids
+  and emails are never passed; verified by grep across all six call sites.
+- `ga.ts` sits beside `track.ts` and does not replace it. `track.ts` writes
+  first-party, RLS-protected `application_events` rows keyed to a user; GA4
+  answers anonymous funnel questions. They are not substitutes.
+- **`sendGAEvent` is browser-only.** It pushes onto `window.dataLayer`, so a
+  webhook, cron or API route cannot emit a GA event — a fact that changed where
+  two of the five events could go. See known-issues §8.
+- CSP (`next.config.ts`) gained `https://www.googletagmanager.com` to
+  `script-src`, plus the `*.google-analytics.com`/`*.analytics.google.com`
+  endpoints to `connect-src` and `img-src`. The header is still report-only, so
+  this changes nothing today; it is listed so GA does not file a violation
+  report on every page load, and does not silently die the day the header is
+  promoted to enforcing.
+- Call sites: `my-application-section.tsx` (success path only — 409 duplicate
+  and 403 plan-limit return before it), `StatementWriter.tsx` (both the generic
+  and the streamed VinUni completion paths), `mentor-booking.tsx` (checkout
+  created, before the redirect tears the page down), `university-match-results.tsx`
+  (once per mount, `demo` excluded), `manual-status-panel.tsx` (once, gated on
+  `product_type === 'mentorship'`).
+- Setup: `NEXT_PUBLIC_GA_ID`. It is inlined at build time, so adding it to
+  Vercel requires a redeploy before it takes effect. Unset = no script, no
+  events, no console noise — the CI and local default.
+- Measured: base TypeScript, lint (0 errors, 5 pre-existing warnings in
+  untouched files), production build, and 263 tests across the touched areas all
+  pass. Per-route first-load JS from an A/B build on this branch: `/`
+  1,126,510 → 1,141,934, `/ai-strategy` 934,548 → 949,972,
+  `/ai-strategy/[applicationId]` 1,268,411 → 1,283,835 — a flat +15,424 bytes
+  uncompressed, plus 171 bytes on the two routes that also import a helper.
+  gtag.js is external and `afterInteractive`, so none of it blocks render.
+  Not run: `verify:pr`, Playwright E2E.
