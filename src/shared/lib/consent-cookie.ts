@@ -19,6 +19,14 @@
  * truth — `parseStoredConsent` still owns that. Format is
  * `<policy-version>.<0|1>`, e.g. `2026-09-08.1`. A value written under an older
  * policy version reads as no-consent, exactly as the localStorage record does.
+ *
+ * ROOM FOR A SECOND CATEGORY. Google Ads will need its own bit, so the format
+ * is defined as `<policy-version>.<analytics>[.<further flags>]` and the reader
+ * below matches on position rather than on the whole string. A cookie this
+ * version writes therefore stays readable by a version that appends a flag, and
+ * a flag a future version writes is ignored rather than fatal here. The one
+ * constraint that buys: a policy version must never contain a `.`, because the
+ * separator is what makes the segments addressable.
  */
 
 /** Name of the mirror cookie. Read server-side; written by the client. */
@@ -27,6 +35,8 @@ export const CONSENT_COOKIE = 'gb_consent';
 /**
  * Bump when the wording or the scope of what is collected changes: every
  * visitor is then asked again, because both readers reject an older version.
+ * Adding an advertising category is such a change. Must not contain a `.` —
+ * see the format note above.
  */
 export const CONSENT_POLICY_VERSION = '2026-09-08';
 
@@ -46,7 +56,9 @@ export function serialiseConsentCookie(analytics: boolean): string {
  * "do not store anything on this device" without a second check.
  */
 export function analyticsConsentedFromCookie(raw: string | null | undefined): boolean {
-  return raw === serialiseConsentCookie(true);
+  if (!raw) return false;
+  const [version, analytics] = raw.split('.');
+  return version === CONSENT_POLICY_VERSION && analytics === '1';
 }
 
 /**

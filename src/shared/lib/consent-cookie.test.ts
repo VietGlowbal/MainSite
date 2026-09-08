@@ -14,9 +14,18 @@ describe('consent mirror cookie', () => {
     expect(serialiseConsentCookie(false)).toBe(`${CONSENT_POLICY_VERSION}.0`);
   });
 
-  it('reads acceptance only from an exact, current value', () => {
+  it('reads acceptance only from a current value', () => {
     expect(analyticsConsentedFromCookie(serialiseConsentCookie(true))).toBe(true);
     expect(analyticsConsentedFromCookie(serialiseConsentCookie(false))).toBe(false);
+  });
+
+  it('ignores flags a later version appends instead of failing on them', () => {
+    // The format is `<version>.<analytics>[.<further flags>]`. When an
+    // advertising bit is added, a reader that had not been updated yet must
+    // still see the analytics answer rather than read the whole cookie as
+    // malformed and silently withdraw a consent the visitor did give.
+    expect(analyticsConsentedFromCookie(`${CONSENT_POLICY_VERSION}.1.0`)).toBe(true);
+    expect(analyticsConsentedFromCookie(`${CONSENT_POLICY_VERSION}.0.1`)).toBe(false);
   });
 
   it('fails closed on anything it does not recognise', () => {

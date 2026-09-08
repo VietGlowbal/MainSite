@@ -1,5 +1,26 @@
 # Current project status
 
+Working tree 2026-09-08 (cookie banner wording, and room for Google Ads): the
+banner's buttons are now **Accept / Accept Essential Cookies / Configure**. Both
+of the first two call `saveConsent(true)` — an owner decision taken after the
+GDPR objection was put in writing, so the second button's label does not
+describe what it does and Configure is the only refusal left on the banner.
+Recorded in [known-issues.md §9](known-issues.md), asserted by a named test, and
+commented beside the JSX: **do not "fix" that `true` to `false`.** GPC/DNT is
+untouched and still overrides every button.
+
+In the same change, the seam for a second consent category (Google Ads) was
+opened without implementing any of it: a `ConsentCategory` union and a single
+`consentAllows(record, category)` read path now stand between the stored record
+and its five call sites, and the `gb_consent` mirror cookie is documented and
+parsed as `<version>.<analytics>[.<further flags>]` so appending a bit later is
+not a format break. The eight-step checklist for adding a category — including
+the two easy-to-miss steps, bumping `CONSENT_POLICY_VERSION` and switching GA to
+Google Consent Mode — sits in the doc comment above `consentAllows`. Measured:
+`npm run typecheck` clean, `npm run lint` 0 errors (5 pre-existing warnings),
+consent suites 11 passed, i18n suites 20 files / 129 passed, `npm run build`
+passes. Not run: `verify:pr`, E2E.
+
 Working tree 2026-09-08 (third-party requests before consent): `ConsentBoundary`
 already kept GA4 / Vercel Analytics / Speed Insights behind an accept-reject
 choice, but three things reached third parties or the visitor's device without

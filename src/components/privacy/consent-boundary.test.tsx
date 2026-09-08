@@ -60,7 +60,7 @@ describe('ConsentBoundary', () => {
 
     expect(screen.queryByTestId('vercel-analytics')).not.toBeInTheDocument();
     await screen.findByRole('complementary', { name: 'Cookie preferences' });
-    await user.click(screen.getByRole('button', { name: 'Accept non-essential' }));
+    await user.click(screen.getByRole('button', { name: 'Accept' }));
 
     expect(screen.getByTestId('vercel-analytics')).toBeInTheDocument();
     expect(screen.getByTestId('vercel-speed-insights')).toBeInTheDocument();
@@ -69,6 +69,28 @@ describe('ConsentBoundary', () => {
     });
     // The server reads this copy, and only this one: /c/<code> decides whether
     // it may write gb_visitor from it.
+    expect(analyticsConsentedFromCookie(consentCookie())).toBe(true);
+  });
+
+  it('accepts from the second banner button too, by owner decision', async () => {
+    // "Accept Essential Cookies" is wired to saveConsent(true) on purpose (see
+    // the comment beside it). This test exists so that anyone who "fixes" it to
+    // false gets a red test naming the decision, rather than a silent change in
+    // what the banner consents to.
+    const user = userEvent.setup();
+    render(
+      <ConsentBoundary>
+        <p>content</p>
+      </ConsentBoundary>,
+    );
+
+    await screen.findByRole('complementary', { name: 'Cookie preferences' });
+    await user.click(screen.getByRole('button', { name: 'Accept Essential Cookies' }));
+
+    expect(screen.getByTestId('vercel-analytics')).toBeInTheDocument();
+    expect(parseStoredConsent(window.localStorage.getItem(CONSENT_STORAGE_KEY))).toMatchObject({
+      analytics: true,
+    });
     expect(analyticsConsentedFromCookie(consentCookie())).toBe(true);
   });
 

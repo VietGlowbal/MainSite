@@ -1,5 +1,5 @@
 import { sendGAEvent } from '@next/third-parties/google';
-import { CONSENT_STORAGE_KEY, parseStoredConsent } from '@/components/privacy/consent-boundary';
+import { CONSENT_STORAGE_KEY, consentAllows, parseStoredConsent } from '@/components/privacy/consent-boundary';
 import { sanitiseMetadata, type EventMetadata } from './track';
 
 /**
@@ -93,7 +93,7 @@ function emit(name: GaEventName, params: EventMetadata = {}): void {
  */
 function analyticsConsented(): boolean {
   try {
-    return parseStoredConsent(window.localStorage.getItem(CONSENT_STORAGE_KEY))?.analytics === true;
+    return consentAllows(parseStoredConsent(window.localStorage.getItem(CONSENT_STORAGE_KEY)), 'analytics');
   } catch {
     // Storage blocked (private mode, embedded webview). No stored consent means
     // no consent — analytics is the thing that must fail closed here.
