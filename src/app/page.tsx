@@ -84,9 +84,18 @@ export const metadata: Metadata = {
   },
 };
 
-// Nothing on this page reads PER-REQUEST state, so it still prerenders. The 12h
-// window was kept from the previous landing page "ready for the first section
-// that does take a Supabase read" — the partner orbit below is now that section.
+// ⚠️ THIS PAGE NO LONGER PRERENDERS, and this line does not make it. Nothing
+// *here* reads per-request state, but `app/layout.tsx` awaits `headers()` for
+// the locale, and a dynamic API in the root layout takes every route with it:
+// `next build` marks 257 of 261 routes `ƒ Dynamic`, this one included. So "/"
+// is server-rendered per request and `revalidate` only bounds the
+// `unstable_cache` entries below, not a full-route cache. Measured 2026-09-08:
+// TTFB 21-66ms once those caches are warm, 603ms on the first request after
+// they expire — and with no `loading.tsx` or `<Suspense>` here, that 603ms is
+// blank screen, because nothing flushes before the three reads resolve.
+// The 12h window was kept from the previous landing page "ready for the first
+// section that does take a Supabase read" — the partner orbit below is that
+// section. See docs/performance.md.
 export const revalidate = 43200;
 
 /**

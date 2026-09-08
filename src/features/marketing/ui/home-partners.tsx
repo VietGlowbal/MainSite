@@ -778,6 +778,30 @@ export function HomePartners({ universityIds, locale }: HomePartnersProps = {}) 
                       outset ring would be clipped away to nothing. */}
                   <Link
                     href={localizePath(universityId === null ? DIRECTORY_HREF : `/universities/${universityId}`, activeLocale)}
+                    /* ⚠️ NOT the default prefetch. Twelve crests sit in one row
+                       on "/", every one of them points at a route that is
+                       `ƒ Dynamic` in the build, and Next prefetches each link
+                       that enters the viewport — so simply scrolling past this
+                       band made the server render six university detail pages
+                       for a visitor who clicked nothing. Measured on a
+                       production build at 1440x900: 280-325ms of server time
+                       per crest, on localhost with the caches already warm.
+                       Removing it took a scrolled load of "/" from 44 RSC
+                       requests to 31.
+
+                       ⚠️ In the App Router `false` means never, NOT "on hover"
+                       — that is the Pages Router behaviour, and the two are
+                       documented in adjacent paragraphs of the same page
+                       (node_modules/next/dist/docs/01-app/03-api-reference/
+                       02-components/link.md). So a click here now pays the
+                       full dynamic render. That is the trade this accepts: the
+                       crest band is decoration most visitors scroll past, and
+                       `RouteLoading` already covers the click with the globe
+                       loader. If the click ever needs to feel instant, the fix
+                       is a `loading.tsx` for /universities/[id] — with a
+                       loading boundary the default `auto` prefetch only fetches
+                       down to the skeleton instead of rendering the page. */
+                    prefetch={false}
                     className="absolute inset-0 block rounded-gb-md focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
                   >
                     <Image

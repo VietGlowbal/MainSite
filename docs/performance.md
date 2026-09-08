@@ -399,6 +399,42 @@ destructured, so seven callers were threading a `User` object into nothing.
 regression is someone adding a *new* page with the old pattern — which no
 runtime test of the existing pages would catch.
 
+### 8. Scrolling past the partner band rendered six university pages (2026-09-08)
+
+Reported as "the homepage fires 29 same-origin RSC round-trips, which must be
+per-segment data or server actions". It is neither: every one carries
+`Next-Router-Prefetch: 1`. They are `<Link>` prefetches, and Next 16 sends
+**two per link** — a `Next-Router-Segment-Prefetch: /_tree` probe (~0.3 KB)
+followed by the payload (~3.3 KB).
+
+They start at ~460 ms, *after* `load`, so they cost no FCP or LCP. What they
+cost is server work: **`/universities/[id]` is `ƒ Dynamic`, so each prefetch is
+a real render.** The twelve crests in `HomePartners` all point there, and Next
+prefetches whatever enters the viewport — measured at 280-325 ms of server time
+per crest on localhost with the caches already warm.
+
+`prefetch={false}` on that one `<Link>`, measured on a production build at
+1440×900 with the cache disabled:
+
+| | before | after |
+|---|---|---|
+| requests, no scroll | 72 | **61** |
+| requests, scrolled to the end | 104 | **91** |
+| RSC round-trips, no scroll | 25 | **14** |
+| RSC round-trips, scrolled | 44 | **31** |
+| `/universities/[id]` renders per visit | 6 | **0** |
+
+⚠️ **In the App Router `prefetch={false}` means never — not "on hover".** The
+Pages Router behaviour *is* hover, and the two are documented in adjacent
+paragraphs of `node_modules/next/dist/docs/01-app/03-api-reference/02-components/link.md`.
+So a crest click now pays the full dynamic render; `RouteLoading` covers it with
+the globe loader. The way to have both is a `loading.tsx` for
+`/universities/[id]` — with a loading boundary the default `auto` prefetch stops
+at the skeleton instead of rendering the page.
+
+The rest of the homepage's prefetches (nav, footer, `/auth`, `/onboarding`) are
+left alone: few, and they are where visitors actually go.
+
 ## Still open, in priority order
 
 Ordered by visit volume × severity, from the 2026-09-05 audit.
@@ -406,9 +442,81 @@ Ordered by visit volume × severity, from the 2026-09-05 audit.
 | # | Route(s) | Root cause | Fix | Effort |
 |---|---|---|---|---|
 | 3b | `/ai-strategy/personal-report` (85), `/ai-strategy/reflection/*` (~108) | Still no streaming — a segment `loading.tsx` is unsafe here because the conditional `ApplicationNavFromReturn` band would shift a viewport of content (see fix 3 above) | in-page `<Suspense>` around the report body, chrome resolved in the shell; or give the band a reserved height so a segment skeleton becomes safe | M |
-| 8 | all | 273 KB / 41 KB gz of render-blocking CSS remains after fix 5, and it is Tailwind utilities, not legacy — one global stylesheet serves all 260 routes | per-route CSS. Turbopack will not split a global stylesheet, so this means moving page-specific styling into CSS modules or component-scoped files — a real project, not a trim | L |
+| 8 | all | 273 KB / 41 KB gz of render-blocking CSS remains after fix 5, and it is Tailwind utilities, not legacy — one global stylesheet serves all 260 routes. **Sized on 2026-09-08, see below: the honest ceiling is ~13 KB gz, not 41** | per-route CSS. Turbopack will not split a global stylesheet, so this means moving page-specific styling into CSS modules or component-scoped files — a real project, not a trim | L |
+| 11 | all | **`app/layout.tsx` awaits `headers()` for the locale, which takes every route out of static generation**: `next build` prints `ƒ Dynamic` for 257 of 261 routes, 2 static (`robots.txt`, `sitemap.xml`) and 2 SSG. So `/` re-renders per request and cannot be served from a CDN. Measured TTFB with warm `unstable_cache`: 21-66 ms; first request after expiry: **603 ms**, all of it blank because nothing flushes before the three Supabase reads. The comment in `app/page.tsx` claiming it "still prerenders" was wrong and has been corrected in place | read the locale somewhere that does not poison the whole tree — a `[locale]` segment, or move the decision into the client/`/vi` split that already exists. Not a small change: the header is set by `src/proxy.ts` and eleven-odd components read `locale` down the tree | L |
 | 9 | `/ai-strategy/[applicationId]/planner` | Measured **11.5s** to fully loaded on a throttled cold load — the slowest page found during this work, and not yet investigated. The `loading.tsx` from fix 3 means it paints early, so it is no longer a blank wait, but something behind it is very slow | profile `ensureApplicationPlan` / `getCanonicalApplicationPlanner` | M |
 | 10 | 19 remaining `getUser()` sites in `src/app` | Fix 7 converted the `/ai-strategy` cluster and five public pages; the rest of the app still pays an Auth API round-trip per request | same mechanical change onto `getServerIdentity()`, route group by route group | M |
+
+### Item 8, sized before anyone starts it (2026-09-08)
+
+The row above has said "L" since it was written without saying what it buys.
+Measured, so the next session can decide instead of guessing.
+
+The stylesheet, by layer (dev build, unminified, 359.6 KB — production is the
+same content minified to 266.6 KB decoded / 40.9 KB on the wire):
+
+| `@layer` | size | share |
+|---|---|---|
+| `utilities` | 295.6 KB | 82.2% |
+| `theme` | 17.2 KB | 4.8% |
+| `base` | 5.0 KB | 1.4% |
+| `properties` | 2.7 KB | 0.7% |
+| unlayered (the quarantine + `components.css`) | 39.1 KB | 10.9% |
+
+**Three cheap theories, all dead.** Tailwind's source detection is not leaking:
+of 1,786 generated classes, **1,783 appear in `src/` or `content/`** (the three
+that don't are composed at runtime). Classes reachable only from test files are
+**0.3 KB**; only from `/dev` and `demo-throwaway`, **1.0 KB**. There is no
+`@source` line worth adding.
+
+**What a route actually needs** — DOM classes collected at 1440×900 after
+scrolling to the end, matched against the utility rules:
+
+| Route | utility rules needed | share of the layer |
+|---|---|---|
+| `/` | 368 / 1,992 | 17.0% |
+| `/scholarships` | 206 | 10.9% |
+| `/plus` | 197 | 9.6% |
+| `/about` | 173 | 9.2% |
+| `/universities` | 166 | 8.5% |
+| `/news` | 105 | 4.7% |
+| `/terms` | 82 | 4.1% |
+| union of all seven | — | 28.1% |
+
+So ~72% of the utilities layer is dead weight on any one route, which looks like
+a large prize. **It is not, because a static split can only be scoped by
+directory.** Of the 170.1 KB attributable to specific classes, **86.2 KB is
+reachable from the always-loaded shell** (`src/components`, `src/shared`,
+`src/lib`, `src/server` — the root layout renders nav, footer, providers,
+`StrategyHelpButton` and `GlobalLoadingOverlay` on every route), so it cannot
+move. Only **82.8 KB** is owned by a feature or route directory:
+
+| Owner | splittable bytes |
+|---|---|
+| `src/features/apply` | 25.9 KB |
+| `src/features/marketing` | 18.8 KB |
+| `src/features/ai-strategy-dashboard` | 15.3 KB |
+| `src/app/universities` | 9.9 KB |
+| `src/app/scholarships` | 5.8 KB |
+| `src/app/plus` | 5.2 KB |
+
+**Net: a per-route split done properly takes `/` from 40.9 KB gz of CSS to
+roughly 28 KB — about 13 KB — while touching every route in the app.** For
+comparison the same page ships **352 KB gz of JavaScript**. Judge item 8 against
+that before spending the week.
+
+**The one free slice:** 9.1 KB of the utilities layer (5.3%, 107 rules) is
+reachable *only* from the ten dead components in
+[dead-code-audit.md §A1](dead-code-audit.md). Deleting them shrinks the
+stylesheet as a side effect, with no styling risk.
+
+⚠️ **Do not use Chromium's CSS coverage for this.** Both `CSS.startRuleUsageTracking`
+and Playwright's `page.coverage.startCSSCoverage()` report **89.5% used on every
+route, including `/terms`** — the `@layer`/`@media` structure defeats them. The
+numbers above come from parsing the compiled stylesheet into rules and matching
+them against the classes each route puts in the DOM, which is the same
+DOM-collection technique fix 5 used and is the only one that has ever given
+believable answers here.
 
 **`/universities/matches` scored RES 0 and was never crashing.** Vercel runtime
 errors for the 7 days to 2026-09-05 showed **no errors on that route**. With 8
