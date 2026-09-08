@@ -2,10 +2,14 @@
 
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { startTransition, useEffect, useState } from 'react';
 import { useT } from '@/lib/i18n';
 import { Button } from '@/shared/ui/button';
 import { Modal } from '@/shared/ui/modal';
+
+/** GA4 Measurement ID, or undefined when analytics is not configured. */
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export const CONSENT_STORAGE_KEY = 'glowbal-consent';
 export const CONSENT_POLICY_VERSION = '2026-09-08';
@@ -126,6 +130,25 @@ export function ConsentBoundary({ children }: { children: React.ReactNode }) {
       {children}
       {consent?.analytics ? <Analytics /> : null}
       {consent?.analytics ? <SpeedInsights /> : null}
+      {/*
+       * GA4 sits behind the same gate as the two above, and for the same
+       * reason — it is non-essential analytics. Mounting it from the root
+       * layout instead would fetch gtag.js and start a GA session for a
+       * visitor who pressed "Reject non-essential", which is the one outcome
+       * this component exists to prevent. Nothing is requested from Google
+       * until `consent.analytics` is true, so a rejecting or GPC/DNT visitor
+       * makes no third-party request at all.
+       *
+       * `GA_MEASUREMENT_ID` is read rather than passed in: it is a
+       * NEXT_PUBLIC_* value that Next inlines at build time, so an unset one
+       * makes this a literal `null` and no script tag is emitted. That is what
+       * keeps local dev and CI silent.
+       *
+       * Cost: gtag.js loads through next/script at the default
+       * `afterInteractive` strategy, i.e. after hydration, so it stays off the
+       * critical path the /ai-strategy FCP/LCP work is measuring.
+       */}
+      {consent?.analytics && GA_MEASUREMENT_ID ? <GoogleAnalytics gaId={GA_MEASUREMENT_ID} /> : null}
 
       {showBanner ? (
         <aside

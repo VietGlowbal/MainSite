@@ -54,11 +54,18 @@ const nextConfig: NextConfig = {
     const csp = [
       "default-src 'self'",
       // 'unsafe-inline'/'unsafe-eval': see the nonce note above. Report-only.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
+      // googletagmanager.com serves the gtag.js that <GoogleAnalytics /> mounts.
+      // Listed even though the header is report-only: leaving it out would file a
+      // violation report on every page load, and would silently kill GA on the
+      // day this is promoted to the enforcing header.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://upload.wikimedia.org https://commons.wikimedia.org https://en.wikipedia.org https://lh3.googleusercontent.com https://images.unsplash.com https://source.unsplash.com https://wp.technologyreview.com https://www.google.com https://drive.google.com https://unicons.vn https://vinuni.edu.vn https://lapslie.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://upload.wikimedia.org https://commons.wikimedia.org https://en.wikipedia.org https://lh3.googleusercontent.com https://images.unsplash.com https://source.unsplash.com https://wp.technologyreview.com https://www.google.com https://drive.google.com https://unicons.vn https://vinuni.edu.vn https://lapslie.com https://www.googletagmanager.com https://*.google-analytics.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in https://vitals.vercel-insights.com https://va.vercel-scripts.com",
+      // GA4 beacons go to google-analytics.com (and the regional
+      // *.analytics.google.com endpoints); gtag.js also fetches its own config
+      // back from googletagmanager.com.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in https://vitals.vercel-insights.com https://va.vercel-scripts.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com",
       "frame-src 'self' blob: https://*.supabase.co",
       "object-src 'none'",
       "base-uri 'self'",
