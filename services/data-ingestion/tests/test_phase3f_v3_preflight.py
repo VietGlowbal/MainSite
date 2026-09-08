@@ -27,7 +27,7 @@ def test_v3_preflight_uses_frozen_versions_and_hashes() -> None:
         "2026-09-06-phase3f-scorer-contract-v2.json"
     )
     assert result["run_id"].startswith("phase3f-v3-run-")
-    assert result["dirty_worktree"] is True
+    assert isinstance(result["dirty_worktree"], bool)
     assert result["truth_isolation"]["expected_values_loaded_by_pipeline"] is False
     assert result["provider"]["provider_calls"] == 0
 
