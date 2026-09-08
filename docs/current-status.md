@@ -1,5 +1,34 @@
 # Current project status
 
+Working tree 2026-09-08 (homepage waterfall, verified): a report that "/" fires
+74 requests / 19 chunks / 29 RSC round-trips / 14 images / 2.5 MB was checked
+against a production build and is accurate — 72 requests, 19 chunks, 25 RSC,
+16 images, 2.07 MB (104 / 44 / 29 / 2.36 MB if you scroll to the end). Measure
+this on `next build && next start`, never on `next dev`, which reports 49
+requests, 8.0 MB and zero RSC because prefetching is off in development.
+
+Two things the trace was read wrong, both now in
+[performance.md](performance.md): the RSC round-trips are `<Link>` prefetches
+(`Next-Router-Prefetch: 1`, two per link under Next 16), not per-segment data;
+and the missing homepage skeleton is not the reason the page can feel slow —
+**`app/layout.tsx` awaits `headers()`, which makes 257 of 261 routes `ƒ Dynamic`**,
+so "/" is server-rendered per request despite its `revalidate`. Cold TTFB 603 ms
+with nothing flushed before it; warm 21-66 ms. The stale comment in
+`app/page.tsx` that said the page still prerenders has been corrected in place.
+The fix itself is deliberately **not** done — owner's call, it is item 11 in
+performance.md.
+
+Fixed here: `prefetch={false}` on the twelve partner crests in `HomePartners`,
+which each point at the dynamic `/universities/[id]`. A scrolled visit to "/"
+drops 104 → 91 requests, 44 → 31 RSC, and **6 → 0 server renders of a university
+page for a visitor who clicked nothing**. Note the trade — in the App Router
+`false` means never, not "on hover". Item 8 (render-blocking CSS) was measured
+rather than started: the honest ceiling is ~13 KB gz for a change touching every
+route, and the reasoning is written up under "Item 8, sized" in
+performance.md. Measured: `npm run typecheck` clean, `eslint` clean on the
+changed file, marketing suites 6 files / 35 passed, `npm run build` passes. Not
+run: `verify:pr`, E2E.
+
 Working tree 2026-09-08 (cookie banner wording, and room for Google Ads): the
 banner's buttons are now **Accept / Accept Essential Cookies / Configure**. Both
 of the first two call `saveConsent(true)` — an owner decision taken after the
