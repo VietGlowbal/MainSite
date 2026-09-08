@@ -41,6 +41,39 @@ that an unreviewed production migration is safe to apply.
 - Used a transition for URL-driven country state in [`university-list-client.tsx`](../../src/app/universities/university-list-client.tsx) so the repository lint gate passes.
 - Added the consent strings to [`i18n-dictionary.ts`](../../src/lib/i18n-dictionary.ts) and recorded this audit in [`current-status.md`](../current-status.md).
 
+### Follow-up pass — third-party requests that bypassed the consent boundary
+
+The consent boundary gates the analytics *scripts*. A later check of what the
+browser actually requests found three paths around it; see `current-status.md`
+for the measured detail.
+
+- Copied the three hot-linked scholarship marks into `public/brand/scholarships/`
+  and pointed [`home-scholarship-branding.ts`](../../src/features/marketing/ui/home-scholarship-branding.ts)
+  at them, so the home page issues no cross-origin request before the banner is
+  answered. None of those hosts was in the CSP's `img-src` either.
+- Added [`university-logo/route.ts`](../../src/app/api/university-logo/route.ts)
+  and switched the favicon fallback in [`wiki-images.ts`](../../src/lib/wiki-images.ts)
+  to it, moving the call to Google from the browser to the server. Domain-only
+  input, so it is not a general proxy. `sql/supabase-university-logo-first-party.sql`
+  rewrites already-stored rows — **not run.** Its first run failed with 42703:
+  live enumeration confirms `logo_url` exists only on `universities`, never on
+  `course_applications` despite `supabase-apply-system.sql` declaring it, so the
+  migration is now single-table. Three rows are affected, and all three are
+  domains Google has no favicon for, so they will fall back to the app's own
+  initials mark instead of the grey globe Google serves them today.
+- Gated `gb_visitor` in [`c/[code]/route.ts`](../../src/app/c/[code]/route.ts) on
+  consent, via a new `gb_consent` mirror cookie
+  ([`consent-cookie.ts`](../../src/shared/lib/consent-cookie.ts)) that lets server
+  code read a choice stored in localStorage. Owner chose legal safety over the
+  metric; unique-visitor counts now cover consenting visitors only.
+- Fixed a `vitest.config.ts` gap the new route test exposed: route tests outside
+  `src/app/api` matched no project and ran nowhere, silently counting as passing.
+
+Not changed, reported instead: avatar / mentor-logo `<img>` tags still accept
+arbitrary hosts from the database and OAuth, and `/privacy` §8 names no
+processor and lists no cookie. The second is legal copy and is the owner's to
+write.
+
 ## Verification
 
 Passed:

@@ -1449,8 +1449,7 @@ export const translations: Record<string, string> = {
   'Cookie preferences': 'Tùy chọn cookie',
   'Necessary cookies keep GlowBal working. Optional analytics help us understand site use.':
     'Cookie cần thiết giúp GlowBal hoạt động. Phân tích tùy chọn giúp chúng tôi hiểu cách trang được sử dụng.',
-  'Accept non-essential': 'Chấp nhận cookie không cần thiết',
-  'Reject non-essential': 'Từ chối cookie không cần thiết',
+  'Accept Essential Cookies': 'Chấp nhận cookie cần thiết',
   Configure: 'Tùy chỉnh',
   'Privacy settings': 'Cài đặt quyền riêng tư',
   'Necessary cookies are always available. Choose whether optional analytics may load.':

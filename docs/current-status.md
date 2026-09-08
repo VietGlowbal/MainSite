@@ -1,5 +1,110 @@
 # Current project status
 
+Working tree 2026-09-08 (cookie banner wording, and room for Google Ads): the
+banner's buttons are now **Accept / Accept Essential Cookies / Configure**. Both
+of the first two call `saveConsent(true)` — an owner decision taken after the
+GDPR objection was put in writing, so the second button's label does not
+describe what it does and Configure is the only refusal left on the banner.
+Recorded in [known-issues.md §9](known-issues.md), asserted by a named test, and
+commented beside the JSX: **do not "fix" that `true` to `false`.** GPC/DNT is
+untouched and still overrides every button.
+
+In the same change, the seam for a second consent category (Google Ads) was
+opened without implementing any of it: a `ConsentCategory` union and a single
+`consentAllows(record, category)` read path now stand between the stored record
+and its five call sites, and the `gb_consent` mirror cookie is documented and
+parsed as `<version>.<analytics>[.<further flags>]` so appending a bit later is
+not a format break. The eight-step checklist for adding a category — including
+the two easy-to-miss steps, bumping `CONSENT_POLICY_VERSION` and switching GA to
+Google Consent Mode — sits in the doc comment above `consentAllows`. Measured:
+`npm run typecheck` clean, `npm run lint` 0 errors (5 pre-existing warnings),
+consent suites 11 passed, i18n suites 20 files / 129 passed, `npm run build`
+passes. Not run: `verify:pr`, E2E.
+
+Working tree 2026-09-08 (third-party requests before consent): `ConsentBoundary`
+already kept GA4 / Vercel Analytics / Speed Insights behind an accept-reject
+choice, but three things reached third parties or the visitor's device without
+passing through it. All three are now closed.
+
+1. **Scholarship logos were hot-linked.** `home-scholarship-branding.ts` pointed
+   at rhodeshouse.ox.ac.uk, gatescambridge.org and knight-hennessy.stanford.edu,
+   and `home-scholarship-pillars.tsx` renders them in a plain `<img>` — so every
+   anonymous visitor's browser made three cross-origin requests on the home page
+   before the banner was answered, handing each university an IP and a Referer
+   and letting it set a cookie (observed in DevTools as a `rhodeshouse.ox.ac.uk`
+   cookie). The three files now live in `public/brand/scholarships/`. Note that
+   none of those hosts was ever in the CSP's `img-src`, so this also removes a
+   breakage waiting for the day that header stops being report-only.
+2. **The university logo fallback called Google from the browser.**
+   `wiki-images.ts` emitted `https://www.google.com/s2/favicons?...`, which the
+   imagery cron persists into `universities.logo_url` and plain `<img>` tags
+   render. It now emits `/api/university-logo?domain=…`, a new route that makes
+   that call server-side. It takes a domain, never a URL, so it cannot be used
+   as an open proxy. `sql/supabase-university-logo-first-party.sql` rewrites
+   rows written before the change — **not yet run.** `www.google.com` stays in
+   `img-src` and `images.remotePatterns` until it has been.
+
+   Two things were measured against the live database after that migration
+   failed on its first run, and both correct what the `.sql` files claim.
+   (a) `logo_url` exists on exactly ONE table: `universities`. The migration
+   also updated `course_applications` because `supabase-apply-system.sql`
+   declares the column in its `CREATE TABLE IF NOT EXISTS` — the live table
+   predates it and never got the column, so the statement failed with 42703 and
+   the whole transaction rolled back (verified: the affected rows were still
+   untouched afterwards). `/apply` reads the crest by joining
+   `universities(logo_url)`, so nothing wanted it. The migration is now
+   single-table and says so.
+   (b) Only 3 rows hold a google.com URL: ids 27 `ed.ac.uk`, 48 `u-tokyo.ac.jp`,
+   96 `unibocconi.it`. All three are domains Google has NO favicon for — the
+   endpoint 301s to `t1.gstatic.com`, which answers 404 with a generic grey-globe
+   PNG in the body, and a plain `<img>` renders that body regardless of status.
+   Those three cards therefore show Google's placeholder today. The route maps a
+   404 upstream to a 404 of its own (cached 1h, versus 24h for a hit) instead of
+   forwarding the globe, so after the migration they fall back to the app's own
+   initials mark. **That is a deliberate visual change on three university
+   cards**, not a regression.
+3. **`gb_visitor` was set without consent.** The `/c/<code>` ambassador tracker
+   wrote a year-long random id purely to tell repeat visits apart — audience
+   measurement, i.e. the same category as the analytics behind the banner. The
+   owner chose legal safety over the metric: it is now written only for a
+   visitor whose consent says yes, cleared when consent is withdrawn, and
+   unconsented clicks are logged under an `anonymous-no-consent` sentinel with
+   `is_unique = false`. **Unique-visitor counts therefore now only cover
+   visitors who accepted; total clicks are unaffected.** `gb_ref` is unchanged
+   and still set unconditionally — it carries the share code the visitor
+   deliberately clicked, which is the strictly-necessary case.
+
+Because a choice kept in localStorage is invisible to the server, the analytics
+bit is mirrored into a `gb_consent` cookie (`src/shared/lib/consent-cookie.ts`);
+localStorage stays the source of truth. `ConsentBoundary` writes it on every
+decision and back-fills it on mount for visitors who decided before it existed.
+
+⚠️ **A vitest config gap was found and fixed while adding the route test:** the
+`node` project matched `src/app/api/**` and `src/app/*.test.ts` only, so a test
+for a route handler outside `src/app/api` (`/c/<code>`, `/start`,
+`/auth/callback`) matched no project and ran nowhere — which reads as a pass.
+`src/app/**/route.test.ts` is now included.
+
+Still open, reported to the owner rather than changed: avatars and mentor
+university logos are plain `<img>` tags accepting arbitrary hosts from the
+database and OAuth (`lh3.googleusercontent.com` is a Google request from the
+browser), and `/privacy` §8 describes cookies only in general terms — it names
+no processor, lists no cookie, and does not mention the footer's privacy-settings
+control.
+
+Measured on this tree, Node 24.19.x: `npm test` 395 files / 3,717 passed + 2
+todo; `npm run typecheck` and `npm run typecheck:strict` clean; `npm run lint`
+0 errors (5 pre-existing warnings in untouched files); `npm run build` passes
+with the new `/api/university-logo` route present. E2E `home-preview.spec.ts`
+23 passed / 2 skipped — the two skips are the visual baselines, which this host
+has under older filenames and which were already skipping before this change.
+Against a local production server: the three logo paths return 200 with matching
+byte sizes, `/dev/home` HTML contains zero references to the three external logo
+hosts, and the proxy returns a PNG for `ox.ac.uk` / `stanford.edu` and 400 for a
+malformed domain, an IP literal and an empty value, and 404 for the three
+domains Google has no favicon for. Not run: `verify:pr`, the full E2E suite, and
+the SQL migration.
+
 Working tree 2026-09-08 (Google Analytics 4): GA4 is installed through
 `@next/third-parties` and mounted **inside `ConsentBoundary`**, not the root
 layout — it loads only after a visitor accepts non-essential analytics, and not

@@ -215,8 +215,16 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'source.unsplash.com' },
       // Campus photography currently referenced by a curated university row.
       { protocol: 'https', hostname: 'wp.technologyreview.com' },
-      // Google favicons — used as a no-key logo fallback for universities
-      // whose Wikidata logo claims are missing.
+      // Google favicons — the no-key logo fallback for universities whose
+      // Wikidata logo claims are missing.
+      //
+      // NOW LEGACY. `wiki-images.ts` emits `/api/university-logo?domain=…`
+      // instead, so the browser calls us and we call Google server-side — the
+      // fix for a third-party request that fired before the cookie banner was
+      // answered. This entry (and `www.google.com` in the CSP's `img-src`)
+      // still covers rows written before that change; both can go once
+      // `sql/supabase-university-logo-first-party.sql` has been run against
+      // production and no `logo_url` starts with the google.com URL any more.
       { protocol: 'https', hostname: 'www.google.com' },
       // Google Drive thumbnails — team photos stored as Drive links are
       // rewritten to drive.google.com/thumbnail (see normalizeDriveImageUrl);

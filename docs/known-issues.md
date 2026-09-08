@@ -2301,7 +2301,8 @@ conversion rate whose numerator comes from the database.
 ### Testing GA locally, and the trap
 
 GA renders inside `ConsentBoundary`, so on a fresh profile **nothing loads until
-you press "Accept non-essential"** on the cookie banner. A browser sending Do
+you press "Accept" or "Accept Essential Cookies"** on the cookie banner (both
+accept everything — see §9). A browser sending Do
 Not Track or Global Privacy Control (Brave, several extensions) has consent
 forced to `false`, never shows the banner, and will never load GA — so "GA is
 broken locally" is usually one of those two, plus an adblocker. Check for a
@@ -2309,3 +2310,62 @@ request to `googletagmanager.com/gtag/js` before debugging anything else.
 
 `NEXT_PUBLIC_GA_ID` is inlined at build time. Adding it to Vercel's environment
 variables does nothing until the project is **redeployed**.
+
+---
+
+## 9. The cookie banner's second button accepts everything — by decision, not by bug
+
+**Owner decision, 2026-09-08.** The banner's three buttons are:
+
+| Button | Calls | Effect |
+|---|---|---|
+| Accept | `saveConsent(true)` | analytics on |
+| Accept Essential Cookies | `saveConsent(true)` | analytics on |
+| Configure | opens the settings modal | the only refusal on the banner |
+
+The second button's label names essential cookies and its handler consents to
+non-essential analytics. This was raised with the owner as a GDPR problem —
+consent has to be informed, and a label that misdescribes what the button does
+makes the consent it collects invalid — and the owner chose it anyway with that
+stated. Recorded here so it is not "fixed" as a typo: **do not change that
+`true` to `false` without asking the owner.**
+
+`consent-boundary.test.tsx` has a test named *accepts from the second banner
+button too, by owner decision* which fails loudly if someone does, and the JSX
+carries the same note beside the button.
+
+What did not change, and must not:
+
+- **GPC / DNT still win.** `saveConsent` ands its argument with
+  `!privacySignal`, so a browser sending Global Privacy Control or Do Not Track
+  is refused whichever button is pressed. That path is unaffected by this
+  decision.
+- **Configure is now load-bearing.** It is the only way to refuse from the
+  banner, so it cannot be dropped or hidden behind an overflow.
+- The previous labels were "Accept non-essential" / "Reject non-essential" /
+  "Configure". `'Reject non-essential'` has been removed from
+  `i18n-dictionary.ts`; `'Accept Essential Cookies'` replaces it, and `Accept`
+  was already in the dictionary.
+
+### Room left for Google Ads (added in the same change)
+
+Nothing about advertising is implemented. What was added is the seam, so that
+adding it later is a known list of edits rather than a hunt:
+
+- **`ConsentCategory`** in `src/components/privacy/consent-boundary.tsx` — a
+  union of field names, one member (`'analytics'`) today.
+- **`consentAllows(record, category)`** — the single read path, used by the
+  three JSX gates and by `lib/analytics/ga.ts`. It indexes the record by the
+  category name, so an absent field reads as a refusal and a record written by
+  today's version stays valid when a category is added.
+- **The mirror cookie tolerates extra segments.** The format is documented as
+  `<version>.<analytics>[.<further flags>]` and
+  `analyticsConsentedFromCookie` now matches by position instead of comparing
+  the whole string. Constraint that buys: **a policy version must never contain
+  a `.`**. Covered by *ignores flags a later version appends*.
+- **The eight-step checklist** for adding a category lives in the doc comment
+  above `consentAllows` — including the two non-obvious ones: bumping
+  `CONSENT_POLICY_VERSION` (adding ads widens the scope, so every visitor is
+  asked again — that is intended), and Google Consent Mode. GA4 is mounted bare
+  today because *not mounting* is the gate; ad tags cannot work that way, they
+  must load denied-by-default and receive a `gtag('consent', 'update', …)`.
