@@ -261,7 +261,12 @@ export function StrategyReportV3View({
   const compressedTimeline = report.strategicRoadmap.some((phase) => /compressed execution/i.test(phase.estimatedTimeline));
 
   return (
-    <div className="flex flex-col gap-gb-4xl pb-16" data-no-auto-translate data-report-auto-translate>
+    <div
+      className="flex flex-col gap-gb-4xl pb-16"
+      data-no-auto-translate
+      data-report-auto-translate
+      data-report-version={report.metadata.strategyEngineVersion}
+    >
       {/* ─── APPLICANT-FACING REPORT HEADER ─────────────────────────────── */}
       <div className="rounded-3xl border border-line bg-surface p-gb-xl shadow-sm sm:p-8">
         <div className="flex flex-col gap-2">
@@ -272,6 +277,9 @@ export function StrategyReportV3View({
           <p className="max-w-3xl text-sm leading-relaxed text-fg-secondary">
             {t('A focused plan based on your current profile, target programme, and available evidence.')}
           </p>
+          <Badge variant="neutral-chip">
+            {t('Report version')}: {report.metadata.strategyEngineVersion}
+          </Badge>
         </div>
 
           {/* Anchor Navigation Pills */}
@@ -821,8 +829,9 @@ export function StrategyReportV3View({
             <Button
               onClick={openPlanner}
               disabled={plannerSyncing}
+              variant="secondary"
               size="md"
-              className="shrink-0 bg-white text-brand hover:bg-white/90 font-bold shadow-sm"
+              className="shrink-0 font-bold shadow-sm hover:bg-white/90"
             >
               {t(plannerSyncing ? 'Adding to Planner...' : 'Add to Application Planner')} →
             </Button>

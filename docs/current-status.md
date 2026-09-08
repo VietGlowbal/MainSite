@@ -1,5 +1,15 @@
 # Current project status
 
+Working tree 2026-09-08 (Strategy Report version tracking and Planner CTA):
+the persisted Strategy Report engine version is now surfaced in the report
+header and root data attribute, while the Planner CTA uses the shared
+secondary button styles so its label remains visible on the banner.
+
+Measured: focused Strategy Report tests (4 pass), base and strict TypeScript,
+scoped ESLint, and the production build pass. The build retains the existing
+three `geo-content.ts` dynamic-filesystem tracing warnings. The local i18n
+audit remains blocked because Playwright Chromium is not installed.
+
 Working tree 2026-09-08 (RnD feedback reliability audit): the pasted audit was
 checked against main `0595e2c76fe859baf607adb6cf52eb3149c2987d` and the live
 Supabase project using read-only checks. This patch adds a consent boundary

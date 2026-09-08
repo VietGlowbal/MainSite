@@ -81,6 +81,7 @@ export const STRATEGY_REPORT_TRANSLATIONS: Record<string, string> = {
   Prioritise: 'Ưu tiên làm',
   Avoid: 'Nên tránh',
   'Your Application Strategy': 'Chiến lược hồ sơ của bạn',
+  'Report version': 'Phiên bản báo cáo',
   'A focused plan based on your current profile, target programme, and available evidence.':
     'Kế hoạch tập trung dựa trên hồ sơ hiện tại, chương trình mục tiêu và bằng chứng bạn đang có.',
   'A concise view of your current position and next priorities': 'Tóm tắt vị trí hiện tại và những ưu tiên tiếp theo',
