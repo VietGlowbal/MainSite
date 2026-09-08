@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Iterable
 
@@ -70,6 +71,50 @@ def _token(value: object) -> str:
     return str(value or "").strip().casefold().replace("-", "_")
 
 
+def _attribute(assertion: object, name: str) -> object:
+    """Read an assertion field from either a model or persisted JSON record."""
+
+    if isinstance(assertion, Mapping):
+        return assertion.get(name)
+    return getattr(assertion, name, None)
+
+
+def _normalise_dimension(value: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value or "").casefold()).strip("_")
+
+
+def _tuition_dimension(value: object, *keys: str) -> str:
+    if not isinstance(value, Mapping):
+        return ""
+    for key in keys:
+        candidate = value.get(key)
+        if candidate not in (None, ""):
+            return _normalise_dimension(candidate)
+    return ""
+
+
+def _semantic_dimensions_overlap(left: object, right: object) -> bool:
+    """Keep distinct tuition dimensions out of same-fact conflict detection.
+
+    A tuition assertion for a per-semester amount and one for a total-program
+    amount describe different billing bases.  Likewise, an engineering rate
+    and a master's rate can coexist in one institution-wide table.  They may
+    still both be rejected by field-specific acceptance policy; they must not
+    be reported as a contradiction of the same fact.
+    """
+
+    if _attribute(left, "field_name") != "tuition":
+        return True
+    left_value = _attribute(left, "value_json")
+    right_value = _attribute(right, "value_json")
+    for keys in (("credential",), ("fee_period", "billing_basis", "period")):
+        left_dimension = _tuition_dimension(left_value, *keys)
+        right_dimension = _tuition_dimension(right_value, *keys)
+        if left_dimension and right_dimension and left_dimension != right_dimension:
+            return False
+    return True
+
+
 def _audience_overlap(left: str | None, right: str | None) -> bool:
     a, b = _token(left), _token(right)
     if not a or not b or a in {"unknown", "all", "any", "both"} or b in {"unknown", "all", "any", "both"}:
@@ -118,7 +163,7 @@ def _scope_rank(scope: str | None) -> int:
 
 
 def _scope_overlap(left: FieldAssertion, right: FieldAssertion) -> bool:
-    a, b = _token(left.scope), _token(right.scope)
+    a, b = _token(_attribute(left, "scope")), _token(_attribute(right, "scope"))
     if a == b or not a or not b or a in {"unknown", "all"} or b in {"unknown", "all"}:
         return True
     # A broader inherited assertion and a programme assertion both apply to
@@ -128,30 +173,45 @@ def _scope_overlap(left: FieldAssertion, right: FieldAssertion) -> bool:
 
 
 def assertions_overlap(
-    left: FieldAssertion,
-    right: FieldAssertion,
+    left: FieldAssertion | Mapping[str, object],
+    right: FieldAssertion | Mapping[str, object],
     *,
     target_cycle: str | None = None,
     target_audience: str | None = None,
 ) -> bool:
     """Return whether two assertions can describe the same fact."""
 
-    if left.entity_type != right.entity_type or left.entity_id != right.entity_id:
+    if (
+        _attribute(left, "entity_type") != _attribute(right, "entity_type")
+        or _attribute(left, "entity_id") != _attribute(right, "entity_id")
+    ):
         return False
-    if left.field_name != right.field_name or not _scope_overlap(left, right):
+    if (
+        _attribute(left, "field_name") != _attribute(right, "field_name")
+        or not _scope_overlap(left, right)
+        or not _semantic_dimensions_overlap(left, right)
+    ):
         return False
-    if not _audience_overlap(left.audience, right.audience):
+    if not _audience_overlap(
+        _attribute(left, "audience"), _attribute(right, "audience")
+    ):
         return False
-    if not _cycle_overlap(left.academic_cycle, right.academic_cycle):
+    if not _cycle_overlap(
+        _attribute(left, "academic_cycle"), _attribute(right, "academic_cycle")
+    ):
         return False
-    if target_audience and not _audience_overlap(left.audience, target_audience):
+    if target_audience and not _audience_overlap(
+        _attribute(left, "audience"), target_audience
+    ):
         return False
-    if target_audience and not _audience_overlap(right.audience, target_audience):
+    if target_audience and not _audience_overlap(
+        _attribute(right, "audience"), target_audience
+    ):
         return False
     if target_cycle:
         target_years = _years(target_cycle)
         for assertion in (left, right):
-            years = _years(assertion.academic_cycle)
+            years = _years(_attribute(assertion, "academic_cycle"))
             if years and not (years & target_years):
                 return False
     return True

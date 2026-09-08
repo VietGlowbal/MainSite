@@ -1,20 +1,20 @@
 # Current project status
 
-Working tree 2026-09-08: Remediation 11 completed against sealed Official
-Run #6 without modifying its output or Benchmark V3. The generic
-programme-status acceptance guard now requires explicit current open-window
-evidence, matching cycle proof, and explicit programme/audience applicability.
-Offline replay of all 36 programme-status cases changed
-`GT-V2-24-programme_status` from unsafe `FOUND=accepting_applications` to
-`NEEDS_REVIEW`; false-current is 0 and all seven safety counters are 0. The
-22 correct Run #6 identity controls remained correct with no new incorrect
-outputs. The bounded 11-row live smoke scored 7/7 concrete critical values,
-with false-current and all seven safety counters at 0. The full ingestion suite
-passes 386/386; focused Remediation-11, Remediation-10, Remediation-9,
-scorer, and V3 preflight tests pass. Compileall, JSON/JSONL validation, secret
-scan, frozen hashes, and Run #1-#6 integrity checks pass. FULL BENCHMARK RUN #7
-is READY under the Remediation-11 gate, but it was not run. Slice F remains
-**NO-GO**.
+Working tree 2026-09-08: Remediation 12 audited the 37 mismatches in the
+confirmed 124-case safe-unresolved population from sealed Official Run #7
+without modifying that output or Benchmark V3. A generic tuition conflict
+boundary now distinguishes credential and billing-basis dimensions, changing
+three false conflict classifications to safe `NEEDS_REVIEW`; 26 access
+failures, 5 extraction failures, and 3 source-selection failures remain
+operational. Offline replay improved safe-unresolved correctness from 87/124
+to 90/124, with no new concrete output and no safety counter increase. The
+bounded 12-programme smoke produced 8/8 concrete critical values correctly,
+false-current 0, and all seven safety counters 0, using 0 provider calls, 0
+refetches, and 0 new URLs. The full ingestion suite passes 389/389 and the
+focused Remediation-12/protected remediation/scorer/preflight tests pass 74.
+Compileall, JSON/JSONL validation, secret scan, frozen hashes, and Run #1-#7
+integrity checks pass. FULL BENCHMARK RUN #8 is READY for a separately
+authorized official run; it was not run. Slice F remains **NO-GO**.
 
 Working tree 2026-09-07: The Phase 3F V3 execution checkpoint repair is
 committed and pushed at `7e4b840e011c4b616304bcc69eca7a2c92857d8c`. A fresh

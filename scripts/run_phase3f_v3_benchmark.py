@@ -42,6 +42,7 @@ from glowbal_ingestion.config import (  # noqa: E402
     SmokeConfig,
     load_dotenv_if_present,
 )
+from glowbal_ingestion.conflicts import assertions_overlap  # noqa: E402
 from glowbal_ingestion.identity_granularity import identity_dimensions  # noqa: E402
 from glowbal_ingestion.models import utc_now_iso  # noqa: E402
 from glowbal_ingestion.pipeline import SmokePipeline  # noqa: E402
@@ -787,6 +788,31 @@ def _source_record_index(pipeline_dir: Path) -> dict[str, dict[str, Any]]:
     return result
 
 
+def _persisted_conflict_is_material(
+    assertion_ids: Iterable[Any],
+    assertions_by_id: dict[str, dict[str, Any]],
+) -> bool:
+    """Recheck a persisted conflict with the current semantic boundary.
+
+    Historical pipeline artifacts can contain conflicts produced before a
+    field-specific conflict rule was added.  Missing assertion evidence keeps
+    the old conflict conservatively; only a complete set of assertions whose
+    pairwise dimensions are all distinct is reclassified.
+    """
+
+    ids = [str(item) for item in assertion_ids if item]
+    if len(ids) < 2:
+        return True
+    assertions = [assertions_by_id.get(item) for item in ids]
+    if any(assertion is None for assertion in assertions):
+        return True
+    for index, left in enumerate(assertions):
+        for right in assertions[index + 1 :]:
+            if assertions_overlap(left, right):
+                return True
+    return False
+
+
 def _raw_text_by_url(pipeline_dir: Path) -> dict[str, str]:
     """Load persisted raw source text for deterministic post-run projection."""
 
@@ -854,11 +880,26 @@ def _project_output(
             assertions_by_programme[entity_id][field_name].append(enriched)
 
     source_index = _source_record_index(pipeline_dir)
+    assertions_by_id = {
+        str(assertion.get("assertion_id")): assertion
+        for assertions in assertions_by_programme.values()
+        for field_assertions in assertions.values()
+        for assertion in field_assertions
+        if assertion.get("assertion_id")
+    }
     quality_assessments: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for assessment in _read_jsonl(pipeline_dir / "quality_coverage_assessments.jsonl"):
         entity_id = str(assessment.get("entity_id") or assessment.get("entity") or "")
         field_name = str(assessment.get("field") or "")
         if entity_id and field_name:
+            if (
+                str(assessment.get("state") or "") == "CONFLICTING_SOURCES"
+                and not _persisted_conflict_is_material(
+                    assessment.get("supporting_assertion_ids") or (),
+                    assertions_by_id,
+                )
+            ):
+                continue
             quality_assessments[(entity_id, field_name)].append(assessment)
     # Conflicts are scoped to one routed programme entity and one field.  A
     # field name by itself is not enough: a tuition disagreement for one
@@ -873,7 +914,14 @@ def _project_output(
         }:
             entity_id = str(conflict.get("entity_id") or conflict.get("entity") or "")
             field_name = str(conflict.get("field") or "")
-            if entity_id and field_name:
+            if (
+                entity_id
+                and field_name
+                and _persisted_conflict_is_material(
+                    conflict.get("assertion_ids") or (),
+                    assertions_by_id,
+                )
+            ):
                 unresolved_conflicts_by_entity[entity_id].add(field_name)
     crawl_errors = _read_jsonl(pipeline_dir / "crawl_errors.jsonl")
     errors_by_url: dict[str, list[dict[str, Any]]] = defaultdict(list)
