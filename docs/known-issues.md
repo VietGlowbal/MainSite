@@ -1097,6 +1097,26 @@ decide first whether a reviewer's name should be public at all.
 | `src/components/onboarding/onboarding-single-page.tsx` | 564 | Orphan — only referenced from comments in `i18n-dictionary.ts` and `selection-cache.ts`. |
 | `src/components/landing/home/` — `home-landing.tsx`, `hero-globe.tsx`, `reveal.tsx`, `site-header.tsx`, `university-search.tsx` | 1,510 | **Orphaned 2026-07-28** when `/` was promoted to the Figma build. Nothing imports any of them; the only remaining reference is a source citation in a comment in `src/shared/ui/icons.tsx`. `globals.css` still carries two `.home-landing-root` rules (≈4952, ≈5316) that now match nothing. |
 
+### `admissionUnlocked` — a prop threaded to nobody
+
+Traced 2026-09-08. `ExplorerContext` declares `admissionUnlocked` ("whether
+Reach/Recommended/Safe grouping is unlocked"), threads it through the provider
+and publishes it on the context value — and **no component reads it to render
+anything**. The only caller passes a literal `false`
+(`src/app/universities/university-list-client.tsx:726`).
+
+So the reach/recommend/safe grouping that `CLAUDE.md` describes as "the main
+navigation axis of the universities page (3 selectors at the top + a badge on
+each card)" **does not exist in code**. It is not switched off; it was never
+built, or was dropped in the Figma rebuild alongside the three missing filter
+chips. `src/lib/admission-fit.ts` still computes the tiers and
+`src/shared/ui/badge.tsx` still has the variants, so the pieces are there.
+
+This matters beyond tidiness: it is why `tier_list_viewed` is only wired to
+`/universities/matches` (which groups by `top_pick`/`good_fit`/
+`worth_exploring`, a different axis). Instrumenting the reach/recommend/safe
+screen would have produced zero events forever. See §8.
+
 That is ~2,530 lines of orphaned onboarding plus the 1,510-line landing tree —
 **~4,000 lines**, and most of `src/app/onboarding/`'s 43 legacy classes.
 Deleting them is safe and would make the onboarding tree clean, but it was left
@@ -2208,3 +2228,84 @@ modifier keys. Consequences on the Personal Report:
 **Rule for any new global key handler**: bare keys are only yours when no
 modifier is held, and never while the user is typing — `input`, `textarea`,
 `select` and `contentEditable`.
+
+---
+
+## 7. `.env.example` is NOT tracked by git — anything documented there is invisible to everyone else
+
+Found 2026-09-08 while adding `NEXT_PUBLIC_GA_ID`.
+
+`.gitignore:36` is a blanket `.env*`, and `.env.example` was never force-added.
+Confirm in one command:
+
+```bash
+git check-ignore -v .env.example      # -> .gitignore:36:.env*  .env.example
+git ls-files --error-unmatch .env.example   # -> error: did not match any file
+```
+
+So the file exists on your disk and on the disk of whoever created it, and
+**nowhere else**. Every variable documented in it since the ignore rule landed
+has reached no teammate, no CI runner, and no new checkout. `SETUP.md` is the
+only environment documentation that actually ships — put new variables there.
+
+⚠️ **Do NOT "fix" this by running `git add -f .env.example` without reading it
+first.** The working copy carries what look like real shared secrets, including
+`SITE_GATE_PASSWORD` and `SITE_GATE_SECRET` (the pre-launch site lock, see
+`src/lib/site-gate.ts`). Force-adding writes them into git history, where
+removing them means a history rewrite, not a delete commit. The sequence is:
+rotate those values first, replace them in the file with placeholders, then
+decide whether the file should be tracked at all.
+
+---
+
+## 8. GA4 event coverage has three deliberate gaps — do not "fix" them by guessing
+
+Added 2026-09-08 with the GA4 integration. All three come from the same root
+fact: **`sendGAEvent` is browser-only.** It pushes onto `window.dataLayer`, so a
+webhook, cron job, API route or Server Component cannot emit a GA event. If an
+event must exist for something the server knows, either a page the student
+actually loads has to observe the state change, or it does not reach GA at all.
+
+**1. `mentor_payment_completed` is only recorded if the student has the tab
+open.** The live payment method is manual VND bank transfer — an admin confirms
+it. The server learns first, but has no `dataLayer`. The only browser-visible
+moment is `manual-status-panel.tsx` polling its status to `fulfilled`. A payment
+confirmed while the student's tab is closed is genuinely not counted. **The
+first-party `payment_transactions` table remains the source of truth for
+revenue; the GA event measures the funnel, not the books.** Do not reconcile
+GA against finance and conclude one is broken.
+
+The event is gated on `product_type === 'mentorship'` because the same manual
+transfer flow also sells Plus. `product_type` was already returned by
+`/api/payments/manual/status` (the route spreads the whole row); only the
+client-side `Status` type had to declare it — no API change was needed.
+
+**Stripe and VNPay are not wired and should not be.** Both still have routes,
+but nothing in the booking UI calls them: `PaymentMethodSelector` offers exactly
+one option and its prop type is the single literal `'manual_bank_transfer'`.
+`/api/mentorship/checkout` still has its route file, but every other mention of
+it in `src/` is a prose comment (`mentor-booking.tsx`, `mentors.ts`,
+`i18n-dictionary.ts`) — no code path calls it.
+
+**2. `tier_list_viewed` only fires on `/universities/matches`.** The
+reach/recommend/safe screen does not exist — see §3. The event carries a
+`surface` parameter (`'match_results'` today, `'admission_fit'` declared but
+unused) so that turning that screen on is a one-line call rather than a schema
+change that splits the metric into two incomparable halves.
+
+**3. Nothing is recorded for a visitor who declined analytics**, or who sends
+GPC/DNT. That is the design, not a gap to close. GA totals are therefore a
+lower bound on real traffic and must never be used as the denominator for a
+conversion rate whose numerator comes from the database.
+
+### Testing GA locally, and the trap
+
+GA renders inside `ConsentBoundary`, so on a fresh profile **nothing loads until
+you press "Accept non-essential"** on the cookie banner. A browser sending Do
+Not Track or Global Privacy Control (Brave, several extensions) has consent
+forced to `false`, never shows the banner, and will never load GA — so "GA is
+broken locally" is usually one of those two, plus an adblocker. Check for a
+request to `googletagmanager.com/gtag/js` before debugging anything else.
+
+`NEXT_PUBLIC_GA_ID` is inlined at build time. Adding it to Vercel's environment
+variables does nothing until the project is **redeployed**.

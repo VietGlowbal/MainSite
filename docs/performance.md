@@ -441,6 +441,41 @@ the reuse; this is the specific way it bites.
 Vietnamese-toggled page that hits an uncached string fails silently and renders
 English. This is a billing problem, not a code one.
 
+## Third-party analytics and the critical path (2026-09-08)
+
+Three third-party scripts now ship: Vercel Analytics, Vercel Speed Insights and
+GA4. **None of them is on the critical path, and that is not an accident of
+configuration — it is two separate mechanisms.**
+
+1. All three render inside `ConsentBoundary`, so nothing is requested at all
+   until a visitor accepts non-essential analytics, and never under GPC/DNT.
+   The majority of first loads therefore fetch none of them.
+2. GA4 mounts through `@next/third-parties`, which uses `next/script` at the
+   default `afterInteractive` strategy — gtag.js is fetched from
+   `googletagmanager.com` after hydration and is **not bundled**.
+
+Measured cost of adding GA4, by A/B production build on the same branch and the
+same `node_modules` (uncompressed first-load JS, chunks summed per route from
+the client reference manifest):
+
+| Route | Before | After | Δ |
+|---|---|---|---|
+| `/` | 1,126,510 | 1,141,934 | +15,424 (1.37%) |
+| `/ai-strategy` | 934,548 | 949,972 | +15,424 (1.65%) |
+| `/ai-strategy/[applicationId]` | 1,268,411 | 1,283,835 | +15,424 (1.22%) |
+| `/apply` | 955,292 | 971,919 | +16,627 (1.74%) |
+| `/mentors/[id]` | 918,927 | 935,438 | +16,511 (1.80%) |
+
+The flat +15,424 is the component plus `src/lib/analytics/ga.ts`; the extra
+~171 bytes on the last two is their own import of a tracking helper. The
+build's route table under Turbopack prints **no size columns at all**, which is
+why these were measured from `.next/build-manifest.json` plus each route's
+`page_client-reference-manifest.js` rather than read off the build output.
+
+⚠️ Two builds of identical source produced byte-identical totals, so a delta
+measured this way is real and not chunk-hash noise — but the chunk *filenames*
+rotate every build, so never diff by filename.
+
 ## How to re-measure
 
 ```powershell
