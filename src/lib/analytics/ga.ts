@@ -123,9 +123,28 @@ export function trackSopFeedbackGenerated(university?: string): void {
   emit('sop_feedback_generated', university ? { university } : {});
 }
 
-/** The reach/match/safe results list was shown to a signed-in student. */
-export function trackTierListViewed(): void {
-  emit('tier_list_viewed');
+/**
+ * Which tier-list screen was viewed.
+ *
+ * Two exist in the product's intent and they group on different axes, so they
+ * are one event with a parameter rather than two events — the funnel question
+ * ("did the student ever reach a tier list?") is the same for both, and GA can
+ * still split them by `surface` when that matters.
+ *
+ * - `match_results` — /universities/matches, grouping by recommendation band
+ *   (top_pick / good_fit / worth_exploring). This is the one that ships today.
+ * - `admission_fit` — the reach/recommend/safe grouping on /universities.
+ *   NOT WIRED, because as of 2026-09-08 it does not exist: `admissionUnlocked`
+ *   is threaded through `explorer-context` and passed `false` by the only
+ *   caller, and no component reads it to render anything. The value is declared
+ *   here so that turning that screen on is a one-line call, not a schema change
+ *   that splits the metric in two halves nobody can compare.
+ */
+export type TierListSurface = 'match_results' | 'admission_fit';
+
+/** A tier-grouped university list was shown to a signed-in student. */
+export function trackTierListViewed(surface: TierListSurface): void {
+  emit('tier_list_viewed', { surface });
 }
 
 /**
@@ -145,6 +164,12 @@ export function trackMentorBookingStarted(): void {
  * `value` and `currency` are GA4's conventional monetary parameter names, so
  * the event reports as revenue rather than as an opaque count. The live
  * checkout prices in VND; pass the dong amount, not a converted one.
+ *
+ * Manual bank transfer is the only payment method that reaches this — the
+ * Stripe and VNPay routes still exist in the repo but nothing in the booking UI
+ * calls them (`PaymentMethodSelector` offers exactly one option). Callers must
+ * check `product_type === 'mentorship'`, because the same transfer flow also
+ * sells Plus subscriptions and counting those here would inflate the number.
  */
 export function trackMentorPaymentCompleted(amount: number): void {
   emit('mentor_payment_completed', { value: amount, currency: 'VND' });
