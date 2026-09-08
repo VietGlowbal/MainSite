@@ -1,5 +1,21 @@
 # Current project status
 
+Working tree 2026-09-08: Remediation 10 completed against sealed Official
+Run #5 without modifying its output or Benchmark V3. The five incorrect
+identity `FOUND` values were traced generically: three now score correctly and
+two conservatively remain `NEEDS_REVIEW`; incorrect concrete `FOUND` is 0 in
+offline replay. The 20 previously-correct identity controls did not regress,
+and the bounded 12-programme diagnostic smoke produced 7/7 correct concrete
+critical values with all seven safety counters at 0. The high-value acceptance
+audit covered 46 cases/89 rows; all blockers were justified, so no broad
+quality-policy relaxation was made. The missing clean-checkpoint fixtures
+`supabase-crawl-acquisition-v3.sql` and `supabase-identity-promotion-v3.sql`
+are restored for the Remediation-10 checkpoint; the full ingestion suite passes
+375/375, scorer and preflight/Remediation-10 tests pass 25/25, compileall and
+V3 integrity checks pass. A clean committed checkout is required before any
+`FULL BENCHMARK RUN #6` authorization; it was not run. Slice F remains
+**NO-GO**.
+
 Working tree 2026-09-07: The Phase 3F V3 execution checkpoint repair is
 committed and pushed at `7e4b840e011c4b616304bcc69eca7a2c92857d8c`. A fresh
 clean checkout at that commit passed the no-provider preflight. The

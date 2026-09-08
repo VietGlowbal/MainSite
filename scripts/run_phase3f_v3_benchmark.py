@@ -15,6 +15,7 @@ decisions.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -41,6 +42,7 @@ from glowbal_ingestion.config import (  # noqa: E402
     SmokeConfig,
     load_dotenv_if_present,
 )
+from glowbal_ingestion.identity_granularity import identity_dimensions  # noqa: E402
 from glowbal_ingestion.models import utc_now_iso  # noqa: E402
 from glowbal_ingestion.pipeline import SmokePipeline  # noqa: E402
 from glowbal_ingestion.product_safety import BLOCKERS, ProductLifecycleState  # noqa: E402
@@ -784,6 +786,35 @@ def _source_record_index(pipeline_dir: Path) -> dict[str, dict[str, Any]]:
     return result
 
 
+def _raw_text_by_url(pipeline_dir: Path) -> dict[str, str]:
+    """Load persisted raw source text for deterministic post-run projection."""
+
+    result: dict[str, str] = {}
+    for source in _read_jsonl(pipeline_dir / "sources.jsonl"):
+        raw_object_path = source.get("raw_object_path")
+        if not raw_object_path:
+            continue
+        path = pipeline_dir / str(raw_object_path)
+        try:
+            payload = (
+                gzip.open(path, "rb").read()
+                if path.suffix == ".gz"
+                else path.read_bytes()
+            )
+        except OSError:
+            continue
+        text = payload.decode("utf-8", errors="replace")
+        for key in (source.get("url"), source.get("canonical_url")):
+            if not key:
+                continue
+            result[str(key)] = text
+            try:
+                result[canonicalize_url(str(key))] = text
+            except Exception:  # noqa: BLE001 - retain the original URL mapping
+                pass
+    return result
+
+
 def _project_output(
     *,
     run_id: str,
@@ -801,6 +832,7 @@ def _project_output(
     assertions = _read_jsonl(pipeline_dir / "effective_field_assertions.jsonl")
     if not assertions:
         assertions = _read_jsonl(pipeline_dir / "field_assertions.jsonl")
+    raw_text_by_url = _raw_text_by_url(pipeline_dir)
     assertions_by_programme: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(
         lambda: defaultdict(list)
     )
@@ -808,7 +840,17 @@ def _project_output(
         entity_id = str(assertion.get("entity_id") or "")
         field_name = str(assertion.get("field_name") or "")
         if entity_id and field_name:
-            assertions_by_programme[entity_id][field_name].append(assertion)
+            enriched = dict(assertion)
+            source_url = str(assertion.get("source_url") or "")
+            enriched["_source_text"] = raw_text_by_url.get(source_url, "")
+            if not enriched["_source_text"] and source_url:
+                try:
+                    enriched["_source_text"] = raw_text_by_url.get(
+                        canonicalize_url(source_url), ""
+                    )
+                except Exception:  # noqa: BLE001 - preserve the assertion
+                    pass
+            assertions_by_programme[entity_id][field_name].append(enriched)
 
     source_index = _source_record_index(pipeline_dir)
     quality_assessments: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
@@ -925,6 +967,16 @@ def _project_output(
                 "RESOLVED" if factual_identity_resolved else "UNRESOLVED"
             ),
         }
+        if identity_state == "FOUND" and identity_used_assertions:
+            identity_assertion = identity_used_assertions[0]
+            identity.update(
+                identity_dimensions(
+                    value=identity_assertion.get("value_json"),
+                    evidence=identity_assertion.get("evidence"),
+                    source_text=identity_assertion.get("_source_text"),
+                    source_url=identity_assertion.get("source_url"),
+                ).to_dict()
+            )
 
         runtime_errors = list(errors_by_url.get(url, ()))
         if not runtime_errors:

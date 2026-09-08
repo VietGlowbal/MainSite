@@ -1,0 +1,300 @@
+{
+  "run_id": "phase3f-remediation10-offline-replay-20260907T170000Z",
+  "diagnostic_only": true,
+  "purpose": "Remediation 10 offline replay; no provider or refetch",
+  "source_run": "phase3f-v3-run-20260907T145934Z",
+  "source_pipeline_output": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform-benchmark5-preflight-20260907h\\docs\\benchmarks\\runs\\phase3f-v3-run-20260907T145934Z\\pipeline-output.json",
+  "source_pipeline_output_sha256": "df7814255d43e195fafe3c0e3271f0aee84d711b1fed10620500b864fb4f31d4",
+  "replay_output_sha256": "e941bceadc0ee5099a98074850e4c789cced906e7e3234bb355bcdb89d713168",
+  "code_revision": "fc0746260b2ba541a01448a8a43e6dc35ccae317",
+  "provider_calls": 0,
+  "refetch": 0,
+  "new_urls": 0,
+  "direct_acceptance_matrix_rows": 89,
+  "identity_target_cases": 5,
+  "identity_control_cases": 20,
+  "identity_control_no_regression": true,
+  "remediation4_and_original_p0_control_rows": 13,
+  "score_metrics": {
+    "programme_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "programme_discovery_recall_by_institution": {
+      "Cornell": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Duke": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "ETH Zurich": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Harvard": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "MIT": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Northwestern": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Princeton": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Sorbonne Université": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "UCLA": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Michigan": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Tokyo": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Université de Montréal": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      }
+    },
+    "programme_discovery_institution_floor": {
+      "status": "AVAILABLE",
+      "min_value": 1.0,
+      "threshold": 0.8,
+      "violating_institutions": []
+    },
+    "required_source_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "critical_field_precision": {
+      "numerator": 23,
+      "denominator": 23,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "critical_field_recall_resolved_coverage": {
+      "numerator": 23,
+      "denominator": 122,
+      "value": 0.1885245901639344,
+      "status": "AVAILABLE"
+    },
+    "safe_unresolved_correctness": {
+      "numerator": 88,
+      "denominator": 124,
+      "value": 0.7096774193548387,
+      "status": "AVAILABLE"
+    },
+    "product_safe_evidence_entailment": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null,
+      "status": "NOT_AVAILABLE"
+    },
+    "false_current_critical_count": 0,
+    "identity_merge_violations": 0,
+    "critical_unresolved_conflict_promoted_count": 0,
+    "critical_source_not_found_promoted_count": 0,
+    "critical_stale_only_promoted_count": 0,
+    "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+    "product_safe_without_durable_provenance_count": 0,
+    "truth_comparison_failures": 0,
+    "coverage_loss_count": 135
+  },
+  "score_errors": {
+    "QUALITY_POLICY": 72,
+    "CONFLICT": 4,
+    "FETCH": 48,
+    "GROUND_TRUTH_AMBIGUOUS": 6,
+    "EXTRACTION": 11
+  },
+  "identity_target_results": [
+    {
+      "case_id": "GT-V2-22-programme_identity",
+      "field": "programme_identity",
+      "before_state": "FOUND",
+      "before_value": "Baccalauréat en informatique",
+      "after_state": "FOUND",
+      "after_value": "Baccalauréat en informatique",
+      "after_identity": {
+        "resolved": true,
+        "resolution_state": "ROUTING_RESOLVED",
+        "programme_id": "f4d405cc-a97a-5d3b-8a24-2d01940d8570",
+        "programme": "Baccalaureat En Informatique",
+        "institution": "Université de Montréal",
+        "merge_basis": "runtime_routing_official_url",
+        "fuzzy_only": false,
+        "routing_resolved": true,
+        "factual_identity_resolved": false,
+        "factual_resolution_state": "UNRESOLVED",
+        "canonical_programme_identity": "informatique",
+        "source_native_identity": "Baccalauréat en informatique",
+        "entity_type": "DEGREE_PROGRAMME",
+        "credential": "Baccalauréat"
+      },
+      "scorer_outcome_after": "PASS",
+      "scorer_comparison_class_after": "EXACT_EQUIVALENT",
+      "correct_after": true,
+      "first_incorrect_stage": "STRUCTURED_IDENTITY_PARSE",
+      "fix_class": "GENERIC_IDENTITY_GRANULARITY_AND_APPLICABILITY"
+    },
+    {
+      "case_id": "GT-V2-23-programme_identity",
+      "field": "programme_identity",
+      "before_state": "FOUND",
+      "before_value": "Maîtrise en informatique",
+      "after_state": "FOUND",
+      "after_value": "Maîtrise en informatique",
+      "after_identity": {
+        "resolved": true,
+        "resolution_state": "ROUTING_RESOLVED",
+        "programme_id": "4e1d764c-27d1-55eb-88c1-19a22eba4efa",
+        "programme": "Admission And Regulations",
+        "institution": "Université de Montréal",
+        "merge_basis": "runtime_routing_official_url",
+        "fuzzy_only": false,
+        "routing_resolved": true,
+        "factual_identity_resolved": false,
+        "factual_resolution_state": "UNRESOLVED",
+        "canonical_programme_identity": "informatique",
+        "source_native_identity": "Maîtrise en informatique",
+        "entity_type": "DEGREE_PROGRAMME",
+        "credential": "Maîtrise"
+      },
+      "scorer_outcome_after": "PASS",
+      "scorer_comparison_class_after": "EXACT_EQUIVALENT",
+      "correct_after": true,
+      "first_incorrect_stage": "STRUCTURED_IDENTITY_PARSE",
+      "fix_class": "GENERIC_IDENTITY_GRANULARITY_AND_APPLICABILITY"
+    },
+    {
+      "case_id": "GT-V2-25-programme_identity",
+      "field": "programme_identity",
+      "before_state": "FOUND",
+      "before_value": "Master of Information Science and Technology",
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "after_identity": {
+        "resolved": true,
+        "resolution_state": "ROUTING_RESOLVED",
+        "programme_id": "14a69766-85f8-5b07-bfa9-0d48a4edba53",
+        "programme": "Admission E.Shtml",
+        "institution": "University of Tokyo",
+        "merge_basis": "runtime_routing_official_url",
+        "fuzzy_only": false,
+        "routing_resolved": true,
+        "factual_identity_resolved": false,
+        "factual_resolution_state": "UNRESOLVED"
+      },
+      "scorer_outcome_after": "COVERAGE_LOSS",
+      "scorer_comparison_class_after": null,
+      "correct_after": false,
+      "first_incorrect_stage": "ENTITY_TYPE",
+      "fix_class": "GENERIC_IDENTITY_GRANULARITY_AND_APPLICABILITY"
+    },
+    {
+      "case_id": "GT-V2-33-programme_identity",
+      "field": "programme_identity",
+      "before_state": "FOUND",
+      "before_value": "Parcours Systèmes et Applications Répartis (SAR)",
+      "after_state": "FOUND",
+      "after_value": "Parcours Systèmes et Applications Répartis (SAR)",
+      "after_identity": {
+        "resolved": true,
+        "resolution_state": "ROUTING_RESOLVED",
+        "programme_id": "198c7c34-7b6d-574c-baaf-32dc64798907",
+        "programme": "Parcours Sar",
+        "institution": "Sorbonne Université",
+        "merge_basis": "runtime_routing_official_url",
+        "fuzzy_only": false,
+        "routing_resolved": true,
+        "factual_identity_resolved": false,
+        "factual_resolution_state": "UNRESOLVED",
+        "canonical_programme_identity": "Master Informatique",
+        "source_native_identity": "Parcours Systèmes et Applications Répartis (SAR)",
+        "entity_type": "TRACK",
+        "parent_programme": "Master Informatique",
+        "track": "SAR",
+        "official_aliases": [
+          "SAR"
+        ]
+      },
+      "scorer_outcome_after": "PASS",
+      "scorer_comparison_class_after": "EXACT_EQUIVALENT",
+      "correct_after": true,
+      "first_incorrect_stage": "PARENT_CHILD_RELATION",
+      "fix_class": "GENERIC_IDENTITY_GRANULARITY_AND_APPLICABILITY"
+    },
+    {
+      "case_id": "GT-V2-34-programme_identity",
+      "field": "programme_identity",
+      "before_state": "FOUND",
+      "before_value": "Master of Applied Data Science (MADS)",
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "after_identity": {
+        "resolved": true,
+        "resolution_state": "ROUTING_RESOLVED",
+        "programme_id": "b719156c-eb3d-5150-9461-0b8e07a938e7",
+        "programme": "Mads.Si.Umich.Edu",
+        "institution": "University of Michigan",
+        "merge_basis": "runtime_routing_official_url",
+        "fuzzy_only": false,
+        "routing_resolved": true,
+        "factual_identity_resolved": false,
+        "factual_resolution_state": "UNRESOLVED"
+      },
+      "scorer_outcome_after": "COVERAGE_LOSS",
+      "scorer_comparison_class_after": null,
+      "correct_after": false,
+      "first_incorrect_stage": "APPLICABILITY",
+      "fix_class": "GENERIC_IDENTITY_GRANULARITY_AND_APPLICABILITY"
+    }
+  ],
+  "acceptance_blocker_counts": {
+    "MISSING_TEMPORAL_PROOF": 31,
+    "VALID_SAFETY_BLOCK": 35,
+    "MISSING_APPLICABILITY_PROOF": 23
+  }
+}

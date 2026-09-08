@@ -1,0 +1,54 @@
+{
+  "run_id": "phase3f-v3-run-20260907T180100Z",
+  "diagnostic_only": true,
+  "programme_rows": 12,
+  "case_records": 84,
+  "critical_precision": {
+    "correct": 7,
+    "concrete": 7,
+    "value": 1.0
+  },
+  "resolved_coverage": {
+    "correct": 7,
+    "denominator": 35,
+    "value": 0.2
+  },
+  "safe_unresolved_correctness": {
+    "correct": 42,
+    "denominator": 49,
+    "value": 0.8571428571428571
+  },
+  "projection_states": {
+    "FOUND": 7,
+    "NEEDS_REVIEW": 64,
+    "CONFLICTING_SOURCES": 2,
+    "EXTRACTION_FAILED": 11
+  },
+  "incorrect_concrete_found": 0,
+  "zero_tolerance_counters": {
+    "false_current": 0,
+    "identity_merge": 0,
+    "unresolved_conflict_promoted": 0,
+    "source_not_found_promoted": 0,
+    "stale_only_promoted": 0,
+    "prohibited_inferred_critical_promoted": 0,
+    "product_safe_without_durable_provenance": 0
+  },
+  "provider": {
+    "provider": "deepseek",
+    "endpoint": "https://api.deepseek.com",
+    "model": "deepseek-v4-flash",
+    "calls": 96,
+    "logical_requests": 99,
+    "request_attempts": 99,
+    "cache_hits": 1,
+    "failures": 6,
+    "group_failures": 4,
+    "retries": 0,
+    "http_429": 0,
+    "prompt_tokens": 855597,
+    "completion_tokens": 109107,
+    "total_tokens": 964704
+  },
+  "pipeline_output_sha256": "6b29922ad29f766be17971759f188ba4a3736e8b0e69c1a91cefa8bd3d434873"
+}

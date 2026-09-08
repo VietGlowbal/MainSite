@@ -501,18 +501,32 @@ def projection_acceptance_reasons(
         reasons.append("NON_CURRENT_ASSERTION")
 
     if effective_field == "programme_identity":
+        source_text = (
+            assertion.get("_source_text")
+            or assertion.get("source_text")
+            or ""
+        )
         reasons.extend(
             identity_granularity_reasons(
                 value=value,
                 evidence=assertion.get("evidence"),
-                source_text=(
-                    assertion.get("_source_text")
-                    or assertion.get("source_text")
-                ),
+                source_text=source_text,
                 scope=assertion.get("scope"),
                 source_url=assertion.get("source_url"),
             )
         )
+        # Delivery mode is part of identity applicability when the official
+        # source explicitly distinguishes a fully-online programme.  A broad
+        # roster audience such as ``graduate international`` does not prove
+        # that delivery variant; retain the source-backed candidate for review
+        # instead of emitting a concrete identity that may be compared against
+        # the wrong programme context.
+        if re.search(
+            r"\b(?:fully\s+online|online\s+(?:degree|programme|program))\b",
+            _text(source_text),
+            re.IGNORECASE,
+        ) and not re.search(r"\bonline\b", _text(audience), re.IGNORECASE):
+            reasons.append("IDENTITY_DELIVERY_SCOPE_UNPROVEN")
 
     if effective_field in STRICT_FIELDS:
         evidence = _text(assertion.get("evidence"))
