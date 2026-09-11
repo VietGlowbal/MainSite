@@ -26,4 +26,22 @@ describe('CvStartFlow', () => {
       '/apply/app-1/cv-builder?template=academic',
     );
   });
+
+  it('highlights the selected format card with prominent brand border and pressed state', async () => {
+    render(<CvStartFlow applicationId="app-1" />);
+
+    const buttons = screen.getAllByRole('button', { name: 'Choose now' });
+    const technicalCard = buttons[0].closest('article')!;
+    const academicCard = buttons[1].closest('article')!;
+
+    expect(technicalCard).toHaveClass('border-line');
+    expect(buttons[0]).toHaveAttribute('aria-pressed', 'false');
+
+    await userEvent.click(buttons[0]);
+
+    expect(technicalCard).toHaveClass('border-brand', 'ring-4');
+    expect(buttons[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(academicCard).toHaveClass('border-line');
+    expect(buttons[1]).toHaveAttribute('aria-pressed', 'false');
+  });
 });

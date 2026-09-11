@@ -1,5 +1,12 @@
 # Current project status
 
+Working tree 2026-09-11 (CV format selection prominent red border):
+`FormatCard` in `CvStartFlow.tsx` enhanced with prominent 2px brand border (`border-2 border-brand`),
+a 4px brand ring halo (`ring-4 ring-brand/20`), brand glow shadow (`shadow-md shadow-brand/10`),
+subtle brand tint background, an active top-right checkmark indicator badge, and card-wide clickability
+to make the selected format immediately distinguishable.
+Measured: `CvStartFlow.test.tsx` (2 tests) passed; `npm run typecheck` passed cleanly; `npm run lint` 0 errors.
+
 Working tree 2026-09-11 (Strategy V3 Vercel timeout): production logs showed
 `POST /api/applications/[id]/strategy/recommendation` reaching the route's
 120-second limit and returning 504. The route now allows 300 seconds, which is
