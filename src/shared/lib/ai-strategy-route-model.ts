@@ -9,6 +9,8 @@ export type ApplicationRouteKey =
   | 'planner'
   | 'cv'
   | 'essay'
+  | 'lor'
+  | 'documents'
   | 'scholarships'
   | 'finalCheck';
 
@@ -62,42 +64,55 @@ export function aiStrategyApplicationNav(
         key: 'reflections',
         label: 'Reflections',
         href: `/ai-strategy/reflection/confirm${returnParam}`,
+        icon: 'home',
         ...(readiness.candidateConfirmed ? {} : { locked: true }),
       }
-    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}` };
+    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}`, icon: 'home' };
 
   return [
     leadItem,
-    { key: 'personalReport', label: 'Personal Report', href: `/ai-strategy/personal-report${returnParam}` },
+    {
+      key: 'personalReport',
+      label: 'Personal Report',
+      href: `/ai-strategy/personal-report${returnParam}`,
+      icon: 'fileText',
+    },
     {
       key: 'matchingReport',
       label: 'Matching Report',
       href: `${app}/matching-report`,
+      icon: 'target',
       ...(readiness.analysisReady ? {} : { locked: true }),
     },
     {
       key: 'strategyReport',
       label: 'Personalized Strategy',
       href: `${app}/strategy-report`,
-      ...(readiness.strategyReady ? {} : { locked: true }),
+      icon: 'target',
+      locked: true,
     },
     {
       key: 'planner',
       label: 'Planner',
       href: `${app}/planner`,
+      icon: 'calendar',
       ...(readiness.plannerReady ? {} : { locked: true }),
     },
     // Deliberate compatibility adapters pending the CV/Essay consolidation.
-    { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv` },
-    { key: 'essay', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback` },
+    { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv`, icon: 'fileText' },
+    { key: 'essay', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback`, icon: 'pencil' },
+    { key: 'lor', label: 'LOR Support', href: `/apply/${applicationId}/lor-feedback`, icon: 'mail' },
+    {
+      key: 'documents',
+      label: 'Documents',
+      href: `/profile/documents?return=${encodeURIComponent(`${app}/strategy/analysis`)}`,
+      icon: 'folder',
+    },
     // Canonical future destinations. Locked items are intentionally omitted by
     // SubNav until their product phases are implemented.
     { key: 'scholarships', label: 'Scholarships', href: `${app}/scholarships`, locked: true },
-    // Final Check is implemented and unlocked. The page handles its own
-    // "not enough attached yet" state rather than being gated here, because a
-    // student needs to see WHAT is missing — which is most of the report's
-    // value before any document exists.
-    { key: 'finalCheck', label: 'Final Check', href: `${app}/final-check` },
+    // Final Evaluation (Final Check) is implemented and unlocked.
+    { key: 'finalCheck', label: 'Final Evaluation', href: `${app}/final-check`, icon: 'chart' },
   ];
 }
 
@@ -119,5 +134,8 @@ export function activeAiStrategyApplicationKey(
   if (/\/strategy\/analysis\/recommendation$/.test(clean)) return 'strategyReport';
   if (/\/strategy\/(dashboard|recommendations)/.test(clean)) return 'planner';
   if (/\/strategy\/analysis\/portrait$/.test(clean)) return 'personalReport';
+  if (/\/lor-feedback$/.test(clean)) return 'lor';
+  if (/\/documents(\/|$)/.test(clean)) return 'documents';
+  if (/\/final-check$/.test(clean)) return 'finalCheck';
   return null;
 }

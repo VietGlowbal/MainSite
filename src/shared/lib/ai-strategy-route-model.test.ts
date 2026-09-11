@@ -20,8 +20,18 @@ describe('aiStrategyApplicationNav', () => {
     expect(byKey.matchingReport?.href).toBe('/ai-strategy/app-123/matching-report');
     expect(byKey.strategyReport?.href).toBe('/ai-strategy/app-123/strategy-report');
     expect(byKey.planner?.href).toBe('/ai-strategy/app-123/planner');
+    expect(byKey.cv?.href).toBe('/apply/app-123/cv');
+    expect(byKey.cv?.icon).toBe('fileText');
+    expect(byKey.essay?.href).toBe('/apply/app-123/statement-feedback');
+    expect(byKey.essay?.icon).toBe('pencil');
+    expect(byKey.lor?.href).toBe('/apply/app-123/lor-feedback');
+    expect(byKey.lor?.icon).toBe('mail');
+    expect(byKey.documents?.href).toContain('/profile/documents');
+    expect(byKey.documents?.icon).toBe('folder');
     expect(byKey.scholarships?.href).toBe('/ai-strategy/app-123/scholarships');
     expect(byKey.finalCheck?.href).toBe('/ai-strategy/app-123/final-check');
+    expect(byKey.finalCheck?.label).toBe('Final Evaluation');
+    expect(byKey.finalCheck?.icon).toBe('chart');
   });
 
   it('locks application outputs until the same onboarding state says they are ready', () => {
@@ -47,7 +57,7 @@ describe('aiStrategyApplicationNav', () => {
     expect(items.find((item) => item.key === 'scholarships')?.locked).toBe(true);
   });
 
-  it('exposes Final Check, which is implemented and gates itself on the page', () => {
+  it('exposes Final Evaluation, which is implemented and gates itself on the page', () => {
     const items = aiStrategyApplicationNav('app-123', {
       analysisReady: true,
       strategyReady: true,
@@ -57,6 +67,8 @@ describe('aiStrategyApplicationNav', () => {
     const finalCheck = items.find((item) => item.key === 'finalCheck');
     expect(finalCheck?.locked).toBeUndefined();
     expect(finalCheck?.href).toBe('/ai-strategy/app-123/final-check');
+    expect(finalCheck?.label).toBe('Final Evaluation');
+    expect(finalCheck?.icon).toBe('chart');
   });
 
   it('recognises canonical and legacy redirected paths for active-state compatibility', () => {
@@ -69,6 +81,9 @@ describe('aiStrategyApplicationNav', () => {
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/matching-report', items)).toBe('matchingReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/strategy/analysis/fit', items)).toBe('matchingReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/planner', items)).toBe('planner');
+    expect(activeAiStrategyApplicationKey('/apply/app-123/lor-feedback', items)).toBe('lor');
+    expect(activeAiStrategyApplicationKey('/profile/documents', items)).toBe('documents');
+    expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/final-check', items)).toBe('finalCheck');
   });
 
   it('highlights Personal Report regardless of which application the ?return= points at', () => {

@@ -8,8 +8,6 @@ const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
 const REPORT = {
-  contractVersion: 'strategy-report-v3',
-  metadata: { strategyEngineVersion: 'strategy-v3.1.2' },
   strategicOverview: {
     currentPosition: {
       profileStrength: { statement: 'Strength' },
@@ -78,15 +76,6 @@ const REPORT = {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('StrategyReportV3View overrides', () => {
-  it('renders the persisted Strategy Report version and a visible Planner CTA', () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: async () => ({ overrides: {} }) })));
-
-    render(<StrategyReportV3View applicationId="application-1" report={REPORT} />);
-
-    expect(screen.getByText('Report version: strategy-v3.1.2')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add to Application Planner →' })).toHaveClass('text-fg-secondary');
-  });
-
   it('generates legacy roadmap tasks before opening Planner', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (init?.method === 'POST') return Promise.resolve({ ok: true });

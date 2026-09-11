@@ -1,5 +1,20 @@
 # Current project status
 
+Working tree 2026-09-11 (AI Strategy Navigation icons & LOR support synchronization):
+SubNav updated with mockup-aligned icons (home, fileText, target, calendar, pencil,
+mail, folder, chart), stacked vertical layout (icon above text), rounded pill
+active containers (bg-white/20 text-white on-brand), and vertical separator line.
+The 9 mockup tabs are aligned: Overview, Personal Report, Matching Report, Planner,
+CV Support, Essay Support, LOR Support, Documents, Final Evaluation.
+The LOR Feedback route was moved under `src/app/apply/[applicationId]/(features)/lor-feedback`
+to share the application workspace feature shell and `ApplicationNav` chrome
+(breadcrumbs & red brand sub-nav). Redundant manual back link and standalone
+`SiteNavigation` removed from `StatementFeedbackWorkspace`. Navigation visibility
+updated so root header and global navigation display consistently across all
+feature workspaces.
+Measured: targeted Vitest suites (6 files, 51 tests) passed; `npm run typecheck`
+passed cleanly; `npm run lint` passed with 0 errors.
+
 Working tree 2026-09-08 (homepage waterfall, verified): a report that "/" fires
 74 requests / 19 chunks / 29 RSC round-trips / 14 images / 2.5 MB was checked
 against a production build and is accurate — 72 requests, 19 chunks, 25 RSC,
@@ -174,15 +189,16 @@ test-project credentials were supplied. Full Vitest passed 3,701 tests with
 two TODOs and retained two out-of-scope unauthenticated CV-test timeouts.
 Latest `origin/main` is `e86e15f7f12f561fe4908ec2dd6a850993babbb4`.
 
-Working tree 2026-09-08 (Strategy Report version tracking and Planner CTA):
-the persisted Strategy Report engine version is now surfaced in the report
-header and root data attribute, while the Planner CTA uses the shared
-secondary button styles so its label remains visible on the banner.
+Working tree 2026-09-08 (Personal Report lineage selection): selecting an
+application Personal Report version now carries its `personalReportVersionId`
+through Matching Report and Strategy Report navigation and generation. Each
+downstream reader filters persisted rows by that lineage instead of silently
+falling back to the newest report; the existing Personal Report date/history
+picker remains the source selector.
 
-Measured: focused Strategy Report tests (4 pass), base and strict TypeScript,
-scoped ESLint, and the production build pass. The build retains the existing
-three `geo-content.ts` dynamic-filesystem tracing warnings. The local i18n
-audit remains blocked because Playwright Chromium is not installed.
+Measured: focused lineage/UI/API tests (43 pass), strict TypeScript, scoped
+ESLint, and the production build pass. The build retains the existing three
+`geo-content.ts` dynamic-filesystem tracing warnings; `git diff --check` passes.
 
 Working tree 2026-09-08 (RnD feedback reliability audit): the pasted audit was
 checked against main `0595e2c76fe859baf607adb6cf52eb3149c2987d` and the live

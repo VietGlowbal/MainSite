@@ -134,6 +134,11 @@ const ROUTES: readonly RoutePattern[] = [
 
   // ── My Portal ────────────────────────────────────────────────────────────
   {
+    pattern: '/apply/:id/lor-feedback',
+    trail: ['My Portal', 'Your application', 'LOR Support'],
+    dynamic: { 1: { key: APPLICATION_LABEL_KEY, fallback: 'Your application' } },
+  },
+  {
     pattern: '/apply/:id',
     trail: ['My Portal', 'Your application'],
     dynamic: { 1: { key: APPLICATION_LABEL_KEY, fallback: 'Your application' } },
@@ -183,6 +188,7 @@ const CRUMB_HREFS: readonly { pattern: string; hrefs: readonly (string | null)[]
   { pattern: '/ai-strategy/reflection', hrefs: ['/apply', null] },
   // Stage 3's explainer, under the help page it was split out of on 03/08.
   { pattern: '/ai-strategy', hrefs: ['/how-it-works', null] },
+  { pattern: '/apply/:id/lor-feedback', hrefs: ['/apply', '/apply/:id', null] },
   { pattern: '/apply/:id', hrefs: ['/apply', null] },
   { pattern: '/my-universities/program', hrefs: ['/apply', null] },
   { pattern: '/universities/:id', hrefs: ['/universities', null] },
@@ -265,6 +271,8 @@ export type SubNavItem = {
   key: string;
   label: string;
   href: string;
+  /** Optional icon identifier for visual tab navigation */
+  icon?: string;
   /** Not yet reachable — `SubNav` (`src/shared/ui/sub-nav.tsx`) omits it rather than rendering it inert. */
   locked?: boolean;
 };
@@ -373,6 +381,7 @@ export function activeSubNavKey(pathname: string): string | null {
   if (/\/strategy(\/intro)?$/.test(clean)) return 'overview';
   if (/\/cv(?:-|\/|$)/.test(clean)) return 'cv';
   if (/\/statement(?:-feedback)?$/.test(clean)) return 'statement';
+  if (/\/lor-feedback$/.test(clean)) return 'lor';
   if (/^\/apply\/[^/]+$/.test(clean)) return 'overview';
   return null;
 }

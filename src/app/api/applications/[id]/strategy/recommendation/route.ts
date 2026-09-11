@@ -4,7 +4,12 @@ import {
   strategyRecommendationFromRow,
   strategyReportV2FromRow,
 } from '@/features/ai-strategy-dashboard/domain';
-import { getApplicationProfileAnalysisVersion, getLatestApplicationPersonalReportV2, stableHash } from '@/features/apply/api';
+import {
+  getApplicationProfileAnalysisVersion,
+  getApplicationPersonalReportV2Version,
+  getLatestApplicationPersonalReportV2,
+  stableHash,
+} from '@/features/apply/api';
 import { buildApplicantStateFromSnapshot } from '@/lib/ai/applicant-state/context-builder';
 import { matchingReportV3Schema } from '@/lib/ai/matching/domain';
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
@@ -24,7 +29,10 @@ import { logger, startTimer } from '@/server/observability';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
-const bodySchema = z.object({ force: z.boolean().optional() });
+const bodySchema = z.object({
+  force: z.boolean().optional(),
+  personalReportVersionId: z.string().uuid().optional(),
+});
 
 async function loadApplication(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -76,6 +84,7 @@ async function loadCurrentMatching(
 async function loadStrategyRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
   applicationId: string,
+  personalReportVersionId?: string,
 ) {
   const result = await supabase
     .from('application_strategy_recommendations')
@@ -83,10 +92,20 @@ async function loadStrategyRows(
     .eq('application_id', applicationId)
     .order('created_at', { ascending: false })
     .limit(20);
-  return result.error ? [] : rows(result.data);
+  if (result.error) return [];
+  const strategyRows = rows(result.data);
+  if (!personalReportVersionId) return strategyRows;
+  return strategyRows.filter((row) => {
+    if (row.source_personal_report_version_id === personalReportVersionId) return true;
+    const report = strategyReportV3FromRow(row) ?? strategyReportV2FromRow(row);
+    const metadata = report && typeof report === 'object' && 'metadata' in report
+      ? (report.metadata as { personalReportVersionId?: unknown })
+      : null;
+    return metadata?.personalReportVersionId === personalReportVersionId;
+  });
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id: applicationId } = await context.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -95,7 +114,14 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Application not found' }, { status: 404 });
   }
 
-  const strategyRows = await loadStrategyRows(supabase, applicationId);
+  const requestedVersionId = z.string().uuid().safeParse(
+    new URL(request.url).searchParams.get('personalReportVersionId'),
+  );
+  const strategyRows = await loadStrategyRows(
+    supabase,
+    applicationId,
+    requestedVersionId.success ? requestedVersionId.data : undefined,
+  );
   const reportV3 = strategyRows.map(strategyReportV3FromRow).find(Boolean) ?? null;
   const reportV2 = strategyRows.map(strategyReportV2FromRow).find(Boolean) ?? null;
   const recommendation = strategyRows.map(strategyRecommendationFromRow).find(Boolean) ?? null;
@@ -114,11 +140,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
-  const personalResult = await getLatestApplicationPersonalReportV2(supabase, {
-    userId: user.id,
-    applicationId,
-  });
-  const personalRecord = personalResult.record;
+  const personalRecordResult = parsed.data.personalReportVersionId
+    ? await getApplicationPersonalReportV2Version(
+        supabase,
+        { userId: user.id, applicationId },
+        parsed.data.personalReportVersionId,
+      )
+    : await getLatestApplicationPersonalReportV2(supabase, {
+        userId: user.id,
+        applicationId,
+      });
+  const personalRecord = personalRecordResult.record;
   if (!personalRecord?.confirmedSnapshotId) return missingInputs(applicationId, user.id, getElapsed());
 
   const matching = await loadCurrentMatching(
@@ -205,7 +237,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   });
 
   // Exact V3 cache resolution deliberately happens before API-key validation.
-  const strategyRows = await loadStrategyRows(supabase, applicationId);
+  const strategyRows = await loadStrategyRows(supabase, applicationId, personalRecord.id);
   const cached = strategyRows.find((row) => {
     const report = strategyReportV3FromRow(row);
     const lineage = contextWithLineage.lineage;

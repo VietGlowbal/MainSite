@@ -223,6 +223,7 @@ export type MatchingApplicationSummary = {
 };
 
 export type MatchingReportPageData = MatchingApplicationSummary & {
+  personalReportVersionId?: string | null;
   universityId: number | null;
   courseUrl: string | null;
   studyMode: string | null;

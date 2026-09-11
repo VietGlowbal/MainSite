@@ -22,6 +22,24 @@ import {
 
 const PERSONAL_REPORT_MAX_POLLS = 150;
 
+function withPersonalReportVersion(href: string, versionId: string | null): string {
+  if (!versionId) return href;
+  const separator = href.includes('?') ? '&' : '?';
+  return `${href}${separator}personalReportVersionId=${encodeURIComponent(versionId)}`;
+}
+
+function syncSelectedVersionInUrl(
+  applicationId: string | undefined,
+  versionId: string | null,
+  latestId: string | null,
+) {
+  if (!applicationId || typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (versionId && versionId !== latestId) url.searchParams.set('personalReportVersionId', versionId);
+  else url.searchParams.delete('personalReportVersionId');
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
 /**
  * Canonical user-level Personal Report.
  *
@@ -33,6 +51,7 @@ const PERSONAL_REPORT_MAX_POLLS = 150;
 export function PersonalReportV2View({
   initialReport,
   initialVersionId,
+  initialLatestVersionId,
   initialVersions,
   applicationId,
   applicationConfirmed,
@@ -45,6 +64,7 @@ export function PersonalReportV2View({
 }: {
   initialReport: PersonalReportV2 | null;
   initialVersionId: string | null;
+  initialLatestVersionId?: string | null;
   initialVersions: PersonalReportVersionSummary[];
   applicationId?: string | undefined;
   applicationConfirmed?: boolean | undefined;
@@ -59,7 +79,7 @@ export function PersonalReportV2View({
   const [report, setReport] = useState(initialReport);
   const [versions, setVersions] = useState(initialVersions);
   const [selectedVersionId, setSelectedVersionId] = useState(initialVersionId);
-  const [latestVersionId, setLatestVersionId] = useState(initialVersionId);
+  const [latestVersionId, setLatestVersionId] = useState(initialLatestVersionId ?? initialVersionId);
   const [viewedGeneratedAt, setViewedGeneratedAt] = useState(generatedAt);
   const [busy, setBusy] = useState(false);
   const [waitingForGeneration, setWaitingForGeneration] = useState(false);
@@ -141,6 +161,7 @@ export function PersonalReportV2View({
       if (body.versionId) {
         setSelectedVersionId(body.versionId as string);
         setLatestVersionId(body.versionId as string);
+        syncSelectedVersionInUrl(applicationId, body.versionId as string, body.versionId as string);
       }
       if (body.generatedAt) setViewedGeneratedAt(body.generatedAt as string);
 
@@ -188,6 +209,7 @@ export function PersonalReportV2View({
           setReport(body.reportV2 as PersonalReportV2);
           setSelectedVersionId(body.versionId as string | null);
           setLatestVersionId(body.versionId as string | null);
+          syncSelectedVersionInUrl(applicationId, body.versionId as string | null, body.versionId as string | null);
           setViewedGeneratedAt(body.generatedAt as string | null);
           setWaitingForGeneration(false);
           setBusy(false);
@@ -208,7 +230,7 @@ export function PersonalReportV2View({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [reportEndpoint, t, waitingForGeneration]);
+  }, [applicationId, reportEndpoint, t, waitingForGeneration]);
 
   async function viewVersion(versionId: string) {
     if (versionId === selectedVersionId) return;
@@ -224,6 +246,7 @@ export function PersonalReportV2View({
       setReport(body.reportV2 as PersonalReportV2);
       setSelectedVersionId(versionId);
       setViewedGeneratedAt(body.generatedAt as string);
+      syncSelectedVersionInUrl(applicationId, versionId, latestVersionId);
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : t('Could not load that version.'),
@@ -384,7 +407,9 @@ export function PersonalReportV2View({
         <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">
           {t('View confirmed information')}
         </Button>
-        <Button href={matchingReportHref ?? '/ai-strategy/matching'}>
+        <Button
+          href={withPersonalReportVersion(matchingReportHref ?? '/ai-strategy/matching', selectedVersionId)}
+        >
           {t('Continue to Matching Report')}
         </Button>
       </div>

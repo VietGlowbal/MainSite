@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
+import { z } from 'zod';
 import {
+  getApplicationPersonalReportV2Version,
   getLatestApplicationPersonalReportV2,
   getLatestPersonalReportV2,
+  getPersonalReportV2Version,
   listApplicationPersonalReportV2Versions,
   listPersonalReportV2Versions,
   verifiedApplicationId,
@@ -46,17 +49,19 @@ import { ApplicationNavFromReturn } from '../reflection/application-nav-from-ret
 export default async function PersonalReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ return?: string }>;
+  searchParams: Promise<{ return?: string; personalReportVersionId?: string }>;
 }) {
   const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
-  const { return: returnTo } = await searchParams;
+  const { return: returnTo, personalReportVersionId: requestedVersionId } = await searchParams;
+  const parsedVersionId = z.string().uuid().safeParse(requestedVersionId);
+  const personalReportVersionId = parsedVersionId.success ? parsedVersionId.data : null;
   const applicationId = returnTo
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const [stored, versionList] = applicationId
+  const [latestStored, versionList] = applicationId
     ? await Promise.all([
         getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
         listApplicationPersonalReportV2Versions(supabase, { userId: user.id, applicationId }),
@@ -65,6 +70,12 @@ export default async function PersonalReportPage({
         getLatestPersonalReportV2(supabase, user.id),
         listPersonalReportV2Versions(supabase, user.id),
       ]);
+  const selectedStored = personalReportVersionId && personalReportVersionId !== latestStored.record?.id
+    ? applicationId
+      ? await getApplicationPersonalReportV2Version(supabase, { userId: user.id, applicationId }, personalReportVersionId)
+      : await getPersonalReportV2Version(supabase, user.id, personalReportVersionId)
+    : latestStored;
+  const stored = selectedStored.record ? selectedStored : latestStored;
   const applicationState = applicationId
     ? await loadApplicationState(supabase, user.id, applicationId)
     : null;
@@ -80,13 +91,14 @@ export default async function PersonalReportPage({
       <PersonalReportV2View
         initialReport={stored.record?.reportV2 ?? null}
         initialVersionId={stored.record?.id ?? null}
+        initialLatestVersionId={latestStored.record?.id ?? null}
         initialVersions={versionList.versions}
         applicationId={applicationId}
         applicationConfirmed={applicationId ? applicationState?.confirmed : undefined}
         stale={stale}
         studentName={studentName}
         generatedAt={stored.record?.generatedAt ?? null}
-        migrationMissing={stored.migrationMissing || versionList.migrationMissing}
+        migrationMissing={stored.migrationMissing || latestStored.migrationMissing || versionList.migrationMissing}
         returnTo={applicationId ? returnTo : undefined}
         matchingReportHref={applicationId ? `/ai-strategy/${applicationId}/matching-report` : '/ai-strategy/matching'}
       />

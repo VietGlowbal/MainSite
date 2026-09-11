@@ -10,7 +10,10 @@ import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-const bodySchema = z.object({ force: z.boolean().optional() });
+const bodySchema = z.object({
+  force: z.boolean().optional(),
+  personalReportVersionId: z.string().uuid().optional(),
+});
 
 export async function POST(
   request: Request,
@@ -68,6 +71,7 @@ export async function POST(
       userId,
       applicationId,
       force: parsed.data.force,
+      personalReportVersionId: parsed.data.personalReportVersionId,
       cooldownUntil: nextRegenerationAt,
     });
 

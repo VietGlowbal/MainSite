@@ -46,9 +46,11 @@ type LoadState = 'checking' | 'generating' | 'ready' | 'error';
 export function StrategyRecommendationWorkspace({
   applicationId,
   plannerMode = 'canonical',
+  personalReportVersionId,
 }: {
   applicationId: string;
   plannerMode?: PlannerMode;
+  personalReportVersionId?: string;
 }) {
   const { t } = useLanguage();
   const router = useRouter();
@@ -59,6 +61,9 @@ export function StrategyRecommendationWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
   const ran = useRef(false);
+  const reportEndpoint = personalReportVersionId
+    ? `/api/applications/${applicationId}/strategy/recommendation?personalReportVersionId=${encodeURIComponent(personalReportVersionId)}`
+    : `/api/applications/${applicationId}/strategy/recommendation`;
 
   useEffect(() => {
     if (state !== 'generating') return;
@@ -79,7 +84,7 @@ export function StrategyRecommendationWorkspace({
 
     async function run() {
       try {
-        const existingRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`);
+        const existingRes = await fetch(reportEndpoint);
         const existing = (await existingRes.json()) as {
           recommendation?: StrategyRecommendationRecord | null;
           reportV2?: StrategyReportV2 | null;
@@ -109,8 +114,12 @@ export function StrategyRecommendationWorkspace({
 
         for (let attempt = 0; attempt < STRATEGY_GENERATION_ATTEMPTS; attempt += 1) {
           try {
-            generatedRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`, {
+            generatedRes = await fetch(reportEndpoint, {
               method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(
+                personalReportVersionId ? { personalReportVersionId } : {},
+              ),
             });
             generated = (await generatedRes.json()) as typeof generated;
             requestError = null;
@@ -154,7 +163,7 @@ export function StrategyRecommendationWorkspace({
         setState('error');
       }
     }
-  }, [applicationId, router, t]);
+  }, [applicationId, personalReportVersionId, reportEndpoint, router, t]);
 
   if (state === 'ready' && reportV3) {
     return <StrategyReportV3View applicationId={applicationId} plannerMode={plannerMode} report={reportV3} />;

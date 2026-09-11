@@ -40,6 +40,11 @@ const V3_METRIC_LABELS: Record<string, string> = Object.fromEntries(
   [...UNIVERSITY_FIT_METRICS, ...PROGRAMME_FIT_METRICS].map((metric) => [metric.id, metric.label]),
 );
 
+function withPersonalReportVersion(href: string, versionId: string | null | undefined): string {
+  if (!versionId) return href;
+  return `${href}?personalReportVersionId=${encodeURIComponent(versionId)}`;
+}
+
 export function MatchingReportView({
   data,
   migrationMissing,
@@ -62,6 +67,12 @@ export function MatchingReportView({
     try {
       const response = await fetch(`/api/applications/${data.id}/match-insights`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          data.personalReportVersionId
+            ? { personalReportVersionId: data.personalReportVersionId }
+            : {},
+        ),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -162,9 +173,11 @@ type Translate = ReturnType<typeof useT>;
 
 function StrategyReportNextStep({
   applicationId,
+  personalReportVersionId,
   t,
 }: {
   applicationId: string;
+  personalReportVersionId?: string | null;
   t: Translate;
 }) {
   return (
@@ -177,7 +190,13 @@ function StrategyReportNextStep({
           {t('Convert these matching insights into a step-by-step personalized strategy and application checklist.')}
         </p>
       </div>
-      <Button href={`/ai-strategy/${applicationId}/strategy-report`} variant="primary">
+      <Button
+        href={withPersonalReportVersion(
+          `/ai-strategy/${applicationId}/strategy-report`,
+          personalReportVersionId,
+        )}
+        variant="primary"
+      >
         {t('Open my Strategy Report')}
       </Button>
     </div>
@@ -544,7 +563,11 @@ function V3ReportView({
         officialCourseUrl={data.courseUrl}
       />
 
-      <StrategyReportNextStep applicationId={data.id} t={t} />
+      <StrategyReportNextStep
+        applicationId={data.id}
+        personalReportVersionId={data.personalReportVersionId ?? null}
+        t={t}
+      />
 
       {/* Provenance Footer */}
       <footer className="flex flex-col items-center justify-between gap-gb-sm border-t border-line/60 pt-gb-lg text-center text-gb-xs text-fg-muted sm:flex-row sm:text-left">
@@ -734,7 +757,11 @@ function V2ReportView({
         officialCourseUrl={data.courseUrl}
       />
 
-      <StrategyReportNextStep applicationId={data.id} t={t} />
+      <StrategyReportNextStep
+        applicationId={data.id}
+        personalReportVersionId={data.personalReportVersionId ?? null}
+        t={t}
+      />
 
       <footer className="flex flex-col items-center justify-between gap-gb-sm border-t border-line/60 pt-gb-lg text-center text-gb-xs text-fg-muted sm:flex-row sm:text-left">
         <p>
@@ -934,7 +961,13 @@ function LegacyF5ReportView({
           {t('Convert these matching insights into a step-by-step personalized strategy and application checklist.')}
         </p>
         <div className="flex flex-wrap gap-gb-md">
-          <Button href={`/ai-strategy/${data.id}/strategy-report`} variant="primary">
+          <Button
+            href={withPersonalReportVersion(
+              `/ai-strategy/${data.id}/strategy-report`,
+              data.personalReportVersionId,
+            )}
+            variant="primary"
+          >
             {t('Open my Strategy Report')}
           </Button>
           <Button href={`/ai-strategy/${data.id}/planner`} variant="secondary">

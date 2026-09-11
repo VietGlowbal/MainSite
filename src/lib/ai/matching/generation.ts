@@ -1,11 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   getLatestApplicationMatchingAnalysis,
+  getApplicationPersonalReportV2Version,
   getMatchingAnalysisByInputHash,
   saveApplicationMatchingAnalysis,
   saveApplicationAcademicAssessment,
   getApplicationProfileAnalysisVersion,
   stableHash,
+  type PersonalReportV2Record,
   type MatchingAnalysisRecord,
 } from '@/features/apply/api';
 import { regeneratePersonalReport } from '@/features/apply/api/personal-report-generation';
@@ -50,6 +52,7 @@ export async function generateApplicationMatchingReport(args: {
   supabase: SupabaseClient;
   userId: string;
   applicationId: string;
+  personalReportVersionId?: string;
   force?: boolean;
   cooldownUntil?: string;
 }): Promise<
@@ -80,22 +83,37 @@ export async function generateApplicationMatchingReport(args: {
   );
   if (migrationCheck.migrationMissing) return { status: 'migration_missing' };
 
-  const personalRes = await regeneratePersonalReport({
-    supabase,
-    userId,
-    applicationId,
-    trigger: 'matching_report',
-    force: false,
-  });
+  let personalRecord: PersonalReportV2Record | null = null;
+  if (args.personalReportVersionId) {
+    const selected = await getApplicationPersonalReportV2Version(
+      supabase,
+      { userId, applicationId },
+      args.personalReportVersionId,
+    );
+    if (selected.migrationMissing) return { status: 'migration_missing' };
+    personalRecord = selected.record;
+  } else {
+    const personalRes = await regeneratePersonalReport({
+      supabase,
+      userId,
+      applicationId,
+      trigger: 'matching_report',
+      force: false,
+    });
 
-  if (personalRes.status === 'migration_missing') return { status: 'migration_missing' };
-  if (personalRes.status === 'not_configured') return { status: 'not_configured' };
-  if (personalRes.status === 'error') throw new Error(personalRes.message);
-  if (!('record' in personalRes) || !personalRes.record?.reportV2) {
-    return { status: 'not_ready', reason: 'Personal report not ready' };
+    if (personalRes.status === 'migration_missing') return { status: 'migration_missing' };
+    if (personalRes.status === 'not_configured') return { status: 'not_configured' };
+    if (personalRes.status === 'error') throw new Error(personalRes.message);
+    if (!('record' in personalRes) || !personalRes.record?.reportV2) {
+      return { status: 'not_ready', reason: 'Personal report not ready' };
+    }
+    personalRecord = personalRes.record;
   }
 
-  const personalRecord = personalRes.record;
+  if (!personalRecord?.reportV2) {
+    return { status: 'not_ready', reason: 'Personal Report version not found' };
+  }
+
   const { confirmedSnapshotId, sourceAnalysisVersionId } = personalRecord;
   if (!confirmedSnapshotId || !sourceAnalysisVersionId) {
     return { status: 'not_ready', reason: 'Personal report lineage is incomplete' };
@@ -173,7 +191,7 @@ export async function generateApplicationMatchingReport(args: {
     }
   }
 
-  if (!force && cooldownUntil && new Date(cooldownUntil).getTime() > Date.now()) {
+  if (!args.personalReportVersionId && !force && cooldownUntil && new Date(cooldownUntil).getTime() > Date.now()) {
     const currentResult = await getLatestApplicationMatchingAnalysis(
       supabase,
       { userId, applicationId },
@@ -189,7 +207,9 @@ export async function generateApplicationMatchingReport(args: {
     { analysisStatus: 'complete' },
   );
   if (latestResult.migrationMissing) return { status: 'migration_missing' };
-  const latestRecord = latestResult.record;
+  const latestRecord = latestResult.record?.sourcePersonalReportVersionId === personalRecord.id
+    ? latestResult.record
+    : null;
 
   if (!isOpenAIConfigured()) return { status: 'not_configured' };
 

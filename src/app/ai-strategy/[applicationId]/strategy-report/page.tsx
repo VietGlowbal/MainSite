@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { z } from 'zod';
 import { fetchOnboardingState, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { StrategyRecommendationWorkspace } from '@/features/ai-strategy-dashboard/ui';
@@ -7,10 +8,14 @@ import { getServerIdentity } from '@/server/auth/server-identity';
 /** Canonical application-level Strategy Report route. */
 export default async function StrategyReportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
+  searchParams: Promise<{ personalReportVersionId?: string }>;
 }) {
   const { applicationId } = await params;
+  const { personalReportVersionId: requestedVersionId } = await searchParams;
+  const parsedVersionId = z.string().uuid().safeParse(requestedVersionId);
   const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
@@ -28,5 +33,11 @@ export default async function StrategyReportPage({
   }
 
   const plannerMode = await getPlannerMode(supabase, user.id);
-  return <StrategyRecommendationWorkspace applicationId={applicationId} plannerMode={plannerMode} />;
+  return (
+    <StrategyRecommendationWorkspace
+      applicationId={applicationId}
+      plannerMode={plannerMode}
+      personalReportVersionId={parsedVersionId.success ? parsedVersionId.data : undefined}
+    />
+  );
 }

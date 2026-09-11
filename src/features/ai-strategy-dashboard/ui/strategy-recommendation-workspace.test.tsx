@@ -30,6 +30,22 @@ describe('StrategyRecommendationWorkspace', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('uses the selected Personal Report version for Strategy loading', async () => {
+    const versionId = '11111111-1111-4111-8111-111111111111';
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      expect(url).toBe(
+        `/api/applications/app-1/strategy/recommendation?personalReportVersionId=${versionId}`,
+      );
+      expect(init).toBeUndefined();
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ reportV3: { marker: 'selected' } }) } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<StrategyRecommendationWorkspace applicationId="app-1" personalReportVersionId={versionId} />);
+
+    await waitFor(() => expect(screen.getByText('selected')).toBeInTheDocument());
+  });
+
   it('shows the legacy fallback after one failed Strategy V3 generation', async () => {
     let postCalls = 0;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {

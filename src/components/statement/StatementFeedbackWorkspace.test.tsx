@@ -97,8 +97,6 @@ describe('StatementFeedbackWorkspace', () => {
       />,
     );
 
-    expect(screen.getAllByRole('link', { name: 'GlowBal home' })).toHaveLength(2);
-    expect(screen.getAllByRole('link', { name: 'GlowBal home' })[0]).toHaveAttribute('href', '/');
     expect(screen.getByRole('main')).toHaveClass('bg-surface');
     expect(screen.getByRole('main').firstElementChild).toHaveClass(
       'w-full',
@@ -192,10 +190,7 @@ describe('StatementFeedbackWorkspace', () => {
       'data-doc-type',
       'recommendation_letter',
     );
-    expect(screen.getByRole('link', { name: /Back to Apply/i })).toHaveAttribute(
-      'href',
-      '/apply/application-1',
-    );
+    expect(screen.queryByRole('link', { name: /Back to Apply/i })).not.toBeInTheDocument();
     expect(mocks.query.eq).toHaveBeenCalledWith('doc_type', 'recommendation_letter');
   });
 

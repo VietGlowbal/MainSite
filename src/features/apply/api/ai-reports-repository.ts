@@ -117,6 +117,21 @@ function latestAnalysisFromRows(rows: Array<Record<string, unknown>>): MatchingA
   return null;
 }
 
+function personalReportVersionFromRow(row: Record<string, unknown>): string | null {
+  if (typeof row.source_personal_report_version_id === 'string') return row.source_personal_report_version_id;
+  for (const report of [reportV3FromRow(row), reportFromRow(row)]) {
+    const metadata = report && typeof report === 'object' && 'metadata' in report
+      ? (report.metadata as { personalReportVersionId?: unknown })
+      : null;
+    if (typeof metadata?.personalReportVersionId === 'string') return metadata.personalReportVersionId;
+  }
+  return null;
+}
+
+function matchesPersonalReportVersion(row: Record<string, unknown>, versionId: string): boolean {
+  return personalReportVersionFromRow(row) === versionId;
+}
+
 function latestRecordFromRows(rows: Array<Record<string, unknown>>): MatchingAnalysisRecord | null {
   for (const row of rows) {
     if (reportV3FromRow(row)) return toMatchingAnalysisRecord(row);
@@ -207,6 +222,7 @@ export async function getMatchingReportPageData(
   supabase: SupabaseClient,
   userId: string,
   applicationId: string,
+  personalReportVersionId?: string | null,
 ): Promise<{ data: MatchingReportPageData | null; migrationMissing: boolean }> {
   const { data: application, error } = await supabase
     .from('course_applications')
@@ -238,6 +254,11 @@ export async function getMatchingReportPageData(
     analysisRows = (legacyResult.data ?? []) as Array<Record<string, unknown>>;
     analysisError = legacyResult.error;
   }
+  if (personalReportVersionId) {
+    analysisRows = analysisRows.filter((row) => matchesPersonalReportVersion(row, personalReportVersionId));
+  }
+  const resolvedPersonalReportVersionId =
+    personalReportVersionId ?? analysisRows.map(personalReportVersionFromRow).find(Boolean) ?? null;
   const [universityResult, scholarshipLinksResult] = await Promise.all([
     universityId == null
       ? Promise.resolve({ data: null, error: null })
@@ -297,6 +318,7 @@ export async function getMatchingReportPageData(
       analysis: latestAnalysisFromRows(
         analysisRows,
       ),
+      personalReportVersionId: resolvedPersonalReportVersionId,
       universityId,
       courseUrl: application.course_url ?? courseText('course_url'),
       studyMode: application.study_mode ?? courseText('study_mode'),

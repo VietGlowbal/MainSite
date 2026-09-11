@@ -2662,6 +2662,7 @@ export const translations: Record<string, string> = {
   'Essay Support': 'Xây dựng Bài luận',
   'CV Support': 'Xây dựng CV',
   'LOR Support': 'Xây dựng Thư giới thiệu',
+  'Final Evaluation': 'Đánh giá lần cuối',
   // Static-audit additions (rendered UI remains local when machine translation
   // is unavailable or blocked).
   'Open My Portal': 'Mở Trang lưu',
