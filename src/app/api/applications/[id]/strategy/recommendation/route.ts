@@ -28,7 +28,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 300;
 const bodySchema = z.object({
   force: z.boolean().optional(),
   personalReportVersionId: z.string().uuid().optional(),

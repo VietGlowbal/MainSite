@@ -1,5 +1,13 @@
 # Current project status
 
+Working tree 2026-09-11 (Strategy V3 Vercel timeout): production logs showed
+`POST /api/applications/[id]/strategy/recommendation` reaching the route's
+120-second limit and returning 504. The route now allows 300 seconds, which is
+available to this Pro project and accommodates the existing sequential Profile →
+Activity batches → Synthesis pipeline without restoring the earlier
+rate-limit-prone concurrency. Regression route test (9 tests) and targeted
+ESLint passed; `git diff --check` passed.
+
 Working tree 2026-09-11 (AI Strategy Navigation icons, LOR support & Strategy tab restoration):
 SubNav updated with mockup-aligned icons (home, fileText, target, compass, calendar,
 pencil, mail, folder, chart), stacked vertical layout (icon above text), rounded

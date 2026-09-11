@@ -228,6 +228,11 @@ describe('/api/applications/[id]/strategy/recommendation V3', () => {
 
   afterEach(() => vi.resetAllMocks());
 
+  it('allows the full sequential AI pipeline enough runtime on Vercel Pro', async () => {
+    const { maxDuration } = await importRoute();
+    expect(maxDuration).toBe(300);
+  });
+
   it('returns 401 without a session', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null } });
     setupSupabase();
