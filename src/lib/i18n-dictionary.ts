@@ -2658,6 +2658,7 @@ export const translations: Record<string, string> = {
   'My Application': 'Theo dõi Tiến độ',
   'Saved Universities': 'Trường đã lưu',
   Reflection: 'Nhập Thông Tin',
+  Strategy: 'Chiến lược',
   'Profile Support': 'Xây dựng Hồ sơ cùng GlowBal AI',
   'Essay Support': 'Xây dựng Bài luận',
   'CV Support': 'Xây dựng CV',

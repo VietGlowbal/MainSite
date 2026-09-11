@@ -35,7 +35,7 @@ export async function ApplicationNav({
   const plannerMode = await getPlannerMode(supabase, authenticatedUserId);
   const items = aiStrategyApplicationNav(applicationId, {
     analysisReady: state.aiAnalysisComplete,
-    strategyReady: state.strategyComplete,
+    strategyReady: Boolean(state.strategyComplete || step === 'strategy' || step === 'dashboard'),
     // Plus/admin users have the canonical Planner as their product entry
     // point. It derives whatever useful work it can from the application, so
     // it must not disappear behind the legacy recommendation onboarding flow.

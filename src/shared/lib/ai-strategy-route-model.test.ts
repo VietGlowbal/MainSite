@@ -19,6 +19,8 @@ describe('aiStrategyApplicationNav', () => {
     );
     expect(byKey.matchingReport?.href).toBe('/ai-strategy/app-123/matching-report');
     expect(byKey.strategyReport?.href).toBe('/ai-strategy/app-123/strategy-report');
+    expect(byKey.strategyReport?.locked).toBeUndefined();
+    expect(byKey.strategyReport?.icon).toBe('compass');
     expect(byKey.planner?.href).toBe('/ai-strategy/app-123/planner');
     expect(byKey.cv?.href).toBe('/apply/app-123/cv');
     expect(byKey.cv?.icon).toBe('fileText');
@@ -80,6 +82,8 @@ describe('aiStrategyApplicationNav', () => {
     });
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/matching-report', items)).toBe('matchingReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/strategy/analysis/fit', items)).toBe('matchingReport');
+    expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/strategy-report', items)).toBe('strategyReport');
+    expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/strategy/analysis/recommendation', items)).toBe('strategyReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/planner', items)).toBe('planner');
     expect(activeAiStrategyApplicationKey('/apply/app-123/lor-feedback', items)).toBe('lor');
     expect(activeAiStrategyApplicationKey('/profile/documents', items)).toBe('documents');

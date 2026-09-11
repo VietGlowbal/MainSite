@@ -192,6 +192,22 @@ function SubNavIcon({ icon, className = 'size-5' }: { icon: string; className?: 
           <line x1="6" y1="20" x2="6" y2="14" />
         </svg>
       );
+    case 'compass':
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -206,8 +222,9 @@ function resolveItemIcon(item: SubNavItem): string | null {
     case 'personalReport':
       return 'fileText';
     case 'matchingReport':
-    case 'strategyReport':
       return 'target';
+    case 'strategyReport':
+      return 'compass';
     case 'planner':
       return 'calendar';
     case 'cv':

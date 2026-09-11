@@ -88,8 +88,8 @@ export function aiStrategyApplicationNav(
       key: 'strategyReport',
       label: 'Personalized Strategy',
       href: `${app}/strategy-report`,
-      icon: 'target',
-      locked: true,
+      icon: 'compass',
+      ...(readiness.strategyReady ? {} : { locked: true }),
     },
     {
       key: 'planner',
@@ -132,6 +132,7 @@ export function activeAiStrategyApplicationKey(
   // Compatibility for old URLs while their route-level redirects resolve.
   if (/\/strategy\/analysis\/fit$/.test(clean)) return 'matchingReport';
   if (/\/strategy\/analysis\/recommendation$/.test(clean)) return 'strategyReport';
+  if (/\/strategy-report$/.test(clean)) return 'strategyReport';
   if (/\/strategy\/(dashboard|recommendations)/.test(clean)) return 'planner';
   if (/\/strategy\/analysis\/portrait$/.test(clean)) return 'personalReport';
   if (/\/lor-feedback$/.test(clean)) return 'lor';

@@ -1,11 +1,12 @@
 # Current project status
 
-Working tree 2026-09-11 (AI Strategy Navigation icons & LOR support synchronization):
-SubNav updated with mockup-aligned icons (home, fileText, target, calendar, pencil,
-mail, folder, chart), stacked vertical layout (icon above text), rounded pill
-active containers (bg-white/20 text-white on-brand), and vertical separator line.
-The 9 mockup tabs are aligned: Overview, Personal Report, Matching Report, Planner,
-CV Support, Essay Support, LOR Support, Documents, Final Evaluation.
+Working tree 2026-09-11 (AI Strategy Navigation icons, LOR support & Strategy tab restoration):
+SubNav updated with mockup-aligned icons (home, fileText, target, compass, calendar,
+pencil, mail, folder, chart), stacked vertical layout (icon above text), rounded
+pill active containers (bg-white/20 text-white on-brand), and vertical separator line.
+The Strategy tab (`strategyReport` -> `/ai-strategy/[id]/strategy-report`) was restored
+between Matching Report and Planner with a dedicated `compass` icon, gated dynamically
+by `readiness.strategyReady` (unlocked when `state.strategyComplete || step === 'strategy' || step === 'dashboard'`).
 The LOR Feedback route was moved under `src/app/apply/[applicationId]/(features)/lor-feedback`
 to share the application workspace feature shell and `ApplicationNav` chrome
 (breadcrumbs & red brand sub-nav). Redundant manual back link and standalone
