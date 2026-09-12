@@ -205,6 +205,20 @@ test-project credentials were supplied. Full Vitest passed 3,701 tests with
 two TODOs and retained two out-of-scope unauthenticated CV-test timeouts.
 Latest `origin/main` is `e86e15f7f12f561fe4908ec2dd6a850993babbb4`.
 
+Working tree 2026-09-12 (Admin AI report review): added the admin-only
+`/admin/ai-report-review` console tab. It lists the 100 most recent applications
+with AI report activity and loads one selected application at a time, presenting
+Personal → Matching → Strategy as a connected, keyboard-accessible flow. Each
+node shows its stored output plus the persisted model/prompt/input-hash and
+source-version lineage. The page intentionally does not retain or expose raw
+AI prompts or provider responses. Reads pass through an independently
+admin-authorized feature repository and a scoped admin API endpoint; no
+migration or RLS-policy change is required.
+
+Measured: focused admin-review UI test (1 pass), base and strict TypeScript,
+scoped ESLint, and the production build pass. The build retains the existing
+three `geo-content.ts` dynamic-filesystem tracing warnings.
+
 Working tree 2026-09-08 (Personal Report lineage selection): selecting an
 application Personal Report version now carries its `personalReportVersionId`
 through Matching Report and Strategy Report navigation and generation. Each

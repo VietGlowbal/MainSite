@@ -15,6 +15,7 @@ const ALL_TABS = [
   { href: '/admin/users', label: 'Users', match: 'prefix' as const },
   { href: '/admin/coordinators', label: 'Coordinators', match: 'prefix' as const },
   { href: '/admin/planner', label: 'Planner Ops', match: 'prefix' as const },
+  { href: '/admin/ai-report-review', label: 'AI report review', match: 'prefix' as const },
 ];
 
 /**

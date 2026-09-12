@@ -19,3 +19,10 @@ export type { SyncApplicationPlanResult } from './sync-application-plan';
 // go through `getCanonicalApplicationPlanner`, which enforces entitlement and
 // ownership before touching the hierarchy.
 export { updateApplicationPlannerMicroStep, PlannerMicroStepUpdateError } from './update-application-planner-micro-step';
+export {
+  getAdminAiReportReview,
+  listAdminAiReportReview,
+  type AdminAiReportReview,
+  type AdminAiReportReviewListItem,
+  type AdminAiReportReviewNode,
+} from './admin-report-review';
