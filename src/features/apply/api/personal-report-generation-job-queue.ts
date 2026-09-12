@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { recoverGatewayTimeout } from '@/lib/supabase/recover-gateway-timeout';
 import type { PersonalReportTrigger } from '../domain';
 
 export type ApplicationPersonalReportGenerationJobStatus =
@@ -132,10 +133,21 @@ export async function claimApplicationPersonalReportGenerations(
   workerId: string,
   batchSize: number,
 ): Promise<ApplicationPersonalReportGenerationJob[]> {
-  const { data, error } = await createAdminClient().rpc('claim_application_personal_report_generation_jobs', {
-    p_worker_id: workerId,
-    p_batch_size: batchSize,
-  });
+  const admin = createAdminClient();
+  const { data, error } = await recoverGatewayTimeout(
+    async () => admin.rpc('claim_application_personal_report_generation_jobs', {
+      p_worker_id: workerId,
+      p_batch_size: batchSize,
+    }),
+    async () => {
+      const { data: claimed, error: recoveryError } = await admin
+        .from(TABLE)
+        .select('*')
+        .eq('locked_by', workerId)
+        .eq('status', 'processing');
+      return recoveryError ? null : Array.isArray(claimed) ? claimed : [];
+    },
+  );
   if (error) throw error;
   return Array.isArray(data) ? data.map(asJob).filter((job): job is ApplicationPersonalReportGenerationJob => Boolean(job)) : [];
 }

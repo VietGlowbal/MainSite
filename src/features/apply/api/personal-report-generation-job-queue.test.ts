@@ -6,11 +6,13 @@ const mocks = vi.hoisted(() => ({
   write: vi.fn(),
   update: vi.fn(),
   rpc: vi.fn(),
+  recoveryRead: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: mocks.admin }));
 
 import {
+  claimApplicationPersonalReportGenerations,
   consumeApplicationPersonalReportGenerationForce,
   enqueueApplicationPersonalReportGeneration,
   MAX_AUTOMATIC_RETRIES,
@@ -30,7 +32,15 @@ const JOB = {
 function client() {
   return {
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: mocks.read })) })) })),
+      select: vi.fn(() => ({
+        eq: vi.fn((firstColumn: string) => ({
+          eq: vi.fn((secondColumn: string) => (
+            firstColumn === 'locked_by' && secondColumn === 'status'
+              ? mocks.recoveryRead()
+              : { maybeSingle: mocks.read }
+          )),
+        })),
+      })),
       insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mocks.write })) })),
       update: mocks.update,
     })),
@@ -41,6 +51,7 @@ describe('personal-report-generation-job-queue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.read.mockResolvedValue({ data: null, error: null });
+    mocks.recoveryRead.mockResolvedValue({ data: [], error: null });
     mocks.write.mockResolvedValue({ data: JOB, error: null });
     mocks.update.mockImplementation(() => {
       const chain: Record<string, unknown> = {
@@ -171,4 +182,14 @@ describe('personal-report-generation-job-queue', () => {
       updated_at: expect.any(String),
     }));
   });
+
+  it('recovers jobs already claimed when the gateway loses the RPC response', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'Gateway Timeout' } });
+    mocks.recoveryRead.mockResolvedValue({ data: [JOB], error: null });
+
+    await expect(claimApplicationPersonalReportGenerations('worker-1', 2)).resolves.toEqual([JOB]);
+    expect(mocks.rpc).toHaveBeenCalledOnce();
+    expect(mocks.recoveryRead).toHaveBeenCalledOnce();
+  });
+
 });

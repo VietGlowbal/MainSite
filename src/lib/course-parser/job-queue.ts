@@ -13,6 +13,7 @@
  */
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { recoverGatewayTimeout } from '@/lib/supabase/recover-gateway-timeout';
 
 export type ParseJobStatus =
   | 'pending'
@@ -134,10 +135,20 @@ export async function claimPendingJobs(
 ): Promise<CourseParseJob[]> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc('claim_course_parse_jobs', {
-    worker_id: workerId,
-    batch_size: batchSize,
-  });
+  const { data, error } = await recoverGatewayTimeout(
+    async () => supabase.rpc('claim_course_parse_jobs', {
+      worker_id: workerId,
+      batch_size: batchSize,
+    }),
+    async () => {
+      const { data: claimed, error: recoveryError } = await supabase
+        .from('course_parse_jobs')
+        .select('*')
+        .eq('locked_by', workerId)
+        .eq('status', 'processing');
+      return recoveryError ? null : Array.isArray(claimed) ? claimed as CourseParseJob[] : [];
+    },
+  );
 
   if (error) {
     console.error('Failed to claim parse jobs:', error);

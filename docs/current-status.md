@@ -219,6 +219,21 @@ Measured: focused admin-review UI test (1 pass), base and strict TypeScript,
 scoped ESLint, and the production build pass. The build retains the existing
 three `geo-content.ts` dynamic-filesystem tracing warnings.
 
+Working tree 2026-09-12 (Supabase job-claim resilience): Vercel production
+logs showed repeated `Gateway Timeout` responses while the parse and Personal
+Report cron workers called their Supabase job-claim RPCs; the same signature
+also appeared on an unrelated scholarship read. A worker now waits 200ms/500ms
+after that specific timeout and recovers only rows already leased to its own
+worker ID, never re-running an ambiguous claim. The additive deployment SQL,
+`sql/supabase-job-claim-resilience.sql`, makes both claim RPCs idempotent per
+worker ID, recovers abandoned parse leases after ten minutes, and adds claim
+indexes. **The SQL file has not been applied to production and must be run
+before the deployed retry path is active for the parse queue.**
+
+Measured: 13 focused recovery/queue tests, strict TypeScript, scoped ESLint,
+and `git diff --check` pass. The production build is pending after the final
+code change.
+
 Working tree 2026-09-08 (Personal Report lineage selection): selecting an
 application Personal Report version now carries its `personalReportVersionId`
 through Matching Report and Strategy Report navigation and generation. Each
