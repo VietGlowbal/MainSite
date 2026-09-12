@@ -16,6 +16,11 @@ CREATE INDEX IF NOT EXISTS idx_application_personal_report_generation_jobs_stale
   ON public.application_personal_report_generation_jobs (locked_at)
   WHERE status = 'processing';
 
+-- PostgreSQL cannot replace this live function when its historical return
+-- contract differs. This is intentionally not CASCADE: an unexpected
+-- dependency must abort the migration rather than be removed.
+DROP FUNCTION IF EXISTS public.claim_course_parse_jobs(TEXT, INT);
+
 CREATE OR REPLACE FUNCTION public.claim_course_parse_jobs(
   worker_id TEXT,
   batch_size INT DEFAULT 5
