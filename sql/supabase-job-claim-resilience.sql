@@ -20,7 +20,7 @@ CREATE OR REPLACE FUNCTION public.claim_course_parse_jobs(
   worker_id TEXT,
   batch_size INT DEFAULT 5
 )
-RETURNS SETOF public.course_parse_jobs
+RETURNS SETOF course_parse_jobs
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
