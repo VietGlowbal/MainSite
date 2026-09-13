@@ -503,6 +503,10 @@ export function phdAcademicFromProfile(profile: Record<string, unknown> | null |
     const fromStructured = readPhdAcademicDraft(profile['phd_academic']);
     if (fromStructured) return fromStructured;
   }
+  // `goals` was historically the only place to restore a research direction.
+  // This is a read-only compatibility projection for legacy rows; the wizard
+  // never writes the value back to generic goals after the structured column is
+  // available, so existing profile goals cannot be overwritten by PhD saves.
   return {
     bachelor_degree: '',
     master_degree: typeof profile['current_qualification'] === 'string' ? profile['current_qualification'] : '',

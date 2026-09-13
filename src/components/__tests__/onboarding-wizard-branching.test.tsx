@@ -662,4 +662,52 @@ describe('OnboardingWizard branching (UG, PG, PhD)', () => {
     expect(mockUpsert.mock.calls.filter((call) => call[0] === 'student_profiles')).toHaveLength(1);
     expect(mockPush).not.toHaveBeenCalledWith('/universities');
   });
+
+  it('does not treat an unrelated 42703 column error as academic-schema compatibility', async () => {
+    window.localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        answers: {
+          study_level: 'postgraduate',
+          subjects: 'Technology',
+          countries: 'Open to ideas',
+          budget: 'Under $15k',
+          campus: 'Flexible',
+          academic: { curriculum: [], scales: {}, grades: {} },
+          pg_academic: {
+            degree: 'BSc Computer Science',
+            institution: 'NUS',
+            field_of_study: 'Computer Science',
+            gpa_scale: '4.0 scale',
+            gpa: '3.8',
+            completion_year: '2024',
+          },
+          tests: {
+            english: ['None yet'],
+            englishScores: {},
+            standardized: ['GRE'],
+            standardizedScores: { GRE: '320' },
+          },
+          support: 'Scholarships and funding',
+        },
+      }),
+    );
+
+    mockUpsert.mockImplementation((table: string) => {
+      if (table === 'student_profiles') {
+        return Promise.resolve({ error: { code: '42703', message: 'column obsolete_field does not exist' } });
+      }
+      return Promise.resolve({ error: null });
+    });
+
+    render(<OnboardingWizard isSignedIn />);
+    const step8 = await screen.findByRole('button', { name: /Question 8/ });
+    await waitFor(() => expect(step8).toBeEnabled());
+    fireEvent.click(step8);
+    fireEvent.click(screen.getByRole('button', { name: 'Save & see matches' }));
+
+    await waitFor(() => expect(screen.getByText('column obsolete_field does not exist')).toBeInTheDocument());
+    expect(mockUpsert.mock.calls.filter((call) => call[0] === 'student_profiles')).toHaveLength(1);
+    expect(mockPush).not.toHaveBeenCalledWith('/universities');
+  });
 });

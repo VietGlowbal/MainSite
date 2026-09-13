@@ -199,12 +199,19 @@ const GPA_COLUMN_MAX = 99.99;
  */
 function isExpectedAcademicSchemaError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
-  const candidate = error as { code?: unknown; message?: unknown };
+  const candidate = error as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown };
   const code = String(candidate.code ?? '').toUpperCase();
-  if (code === '42703') return true;
+  const context = [candidate.message, candidate.details, candidate.hint]
+    .filter((value) => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  const mentionsAcademicColumn =
+    context.includes('postgraduate_academic') || context.includes('phd_academic');
+  // 42703 is also used for arbitrary missing columns. Require the server's
+  // diagnostic to name one of the additive fields before hiding the failure.
+  if (code === '42703') return mentionsAcademicColumn;
   if (code !== 'PGRST204') return false;
-  const message = String(candidate.message ?? '').toLowerCase();
-  return message.includes('postgraduate_academic') || message.includes('phd_academic');
+  return mentionsAcademicColumn;
 }
 
 /** The one message the format layer does not own: an empty required box. */
