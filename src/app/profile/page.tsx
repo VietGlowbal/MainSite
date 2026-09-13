@@ -22,13 +22,15 @@ export default async function ProfilePage({
     mentorSummary,
     appsCountResult,
     workCountResult,
+    achievementCountResult,
+    activityCountResult,
     englishCountResult,
     standardizedCountResult,
     { returnTo, applicationLabel },
   ] = await Promise.all([
     supabase
       .from('student_profiles')
-      .select('phone, date_of_birth, location, nationality, bio, study_level, current_institution, current_qualification, predicted_grades, academic_background, curriculum, curriculum_grades, gpa_scale, gpa_value, preferred_countries, target_subjects, budget_range, campus_preferences, support_needs, study_mode_preference, target_intake, achievements, skills, goals, career_interests, application_cycle_year, plus_status, plus_plan')
+      .select('phone, date_of_birth, location, nationality, bio, study_level, current_institution, current_qualification, predicted_grades, academic_background, curriculum, curriculum_grades, gpa_scale, gpa_value, preferred_countries, target_subjects, budget_range, campus_preferences, support_needs, study_mode_preference, target_intake, skills, goals, career_interests, application_cycle_year, plus_status, plus_plan')
       .eq('user_id', user.id)
       .maybeSingle(),
     supabase
@@ -46,6 +48,8 @@ export default async function ProfilePage({
      * them. Head-only counts stop the page lying without loading each row here.
      */
     supabase.from('work_experiences').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('student_achievements').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('student_activities').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('english_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('standardized_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     resolveApplicationReturn(supabase, user.id, returnParam),
@@ -76,6 +80,8 @@ export default async function ProfilePage({
         profile={profile}
         documents={documents}
         activeApplications={activeApplications}
+        achievementEntries={achievementCountResult.count ?? 0}
+        activityEntries={activityCountResult.count ?? 0}
         workEntries={workCountResult.count ?? 0}
         testScores={(englishCountResult.count ?? 0) + (standardizedCountResult.count ?? 0)}
         isMentor={!!mentorSummary}

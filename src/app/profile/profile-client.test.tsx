@@ -40,7 +40,10 @@ const PROFILE = {
   target_intake: '2027-09',
 } as unknown as StudentProfile;
 
-function renderProfile(profile: StudentProfile | null = PROFILE) {
+function renderProfile(
+  profile: StudentProfile | null = PROFILE,
+  evidence: { achievements?: number; activities?: number } = {},
+) {
   return render(
     <ProfileClient
       displayName="Demo Student"
@@ -49,6 +52,8 @@ function renderProfile(profile: StudentProfile | null = PROFILE) {
       profile={profile}
       documents={[]}
       activeApplications={0}
+      achievementEntries={evidence.achievements ?? 0}
+      activityEntries={evidence.activities ?? 0}
       workEntries={0}
       testScores={0}
       isMentor={false}
@@ -119,6 +124,14 @@ describe('profile section groups', () => {
     expect(screen.getAllByText('Not started')).toHaveLength(8);
   });
 
+  it('counts structured achievement evidence instead of legacy profile JSON', () => {
+    renderProfile(null, { achievements: 1 });
+
+    const achievementsCard = screen.getByRole('link', { name: /Achievements/i });
+    expect(within(achievementsCard).getByText('25%')).toBeInTheDocument();
+    expect(within(achievementsCard).getByText('Continue')).toBeInTheDocument();
+  });
+
   it('threads returnTo through section card hrefs and back navigation when present', () => {
     const returnTarget = '/ai-strategy/app-99/strategy/analysis';
     render(
@@ -129,6 +142,8 @@ describe('profile section groups', () => {
         profile={PROFILE}
         documents={[]}
         activeApplications={1}
+        achievementEntries={0}
+        activityEntries={0}
         workEntries={0}
         testScores={0}
         isMentor={false}
@@ -189,6 +204,8 @@ describe('profile section groups', () => {
           profile={PROFILE}
           documents={[]}
           activeApplications={0}
+          achievementEntries={0}
+          activityEntries={0}
           workEntries={0}
           testScores={0}
           isMentor={false}

@@ -61,6 +61,8 @@ type Props = {
   profile: StudentProfile | null;
   documents: ProfileDocument[];
   activeApplications: number;
+  achievementEntries: number;
+  activityEntries: number;
   workEntries: number;
   testScores: number;
   isMentor: boolean;
@@ -99,6 +101,8 @@ function filled(value: unknown): boolean {
 type SectionInputs = {
   profile: StudentProfile | null;
   documents: ProfileDocument[];
+  achievementEntries: number;
+  activityEntries: number;
   workEntries: number;
   testScores: number;
 };
@@ -270,8 +274,8 @@ const SECTION_GROUPS: SectionGroup[] = [
         href: '/profile/achievements',
         title: 'Achievements',
         description: 'Awards, extracurriculars and leadership roles',
-        pct: ({ profile: p }) =>
-          Math.round((band(p?.achievements?.length ?? 0) + band(p?.skills?.length ?? 0)) / 2),
+        pct: ({ profile: p, achievementEntries, activityEntries }) =>
+          Math.round((band(achievementEntries + activityEntries) + band(p?.skills?.length ?? 0)) / 2),
       },
       {
         key: 'work',
@@ -737,6 +741,8 @@ export function ProfileClient({
   profile,
   documents,
   activeApplications,
+  achievementEntries = 0,
+  activityEntries = 0,
   workEntries,
   testScores,
   isMentor,
@@ -746,7 +752,14 @@ export function ProfileClient({
   applicationLabel,
 }: Props) {
   const { t } = useLanguage();
-  const input: SectionInputs = { profile, documents, workEntries, testScores };
+  const input: SectionInputs = {
+    profile,
+    documents,
+    achievementEntries,
+    activityEntries,
+    workEntries,
+    testScores,
+  };
   const strength = Math.round(
     SECTIONS.reduce((total, section) => total + section.pct(input), 0) / SECTIONS.length,
   );

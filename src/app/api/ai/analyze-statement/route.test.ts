@@ -107,17 +107,20 @@ describe('POST /api/ai/analyze-statement', () => {
         return strategyQuery;
       }
       if (table === 'student_activities') {
-        const activityQuery: Record<string, ReturnType<typeof vi.fn>> = {};
+        const activityQuery: Record<string, unknown> = {};
         activityQuery.select = vi.fn(() => activityQuery);
         activityQuery.eq = vi.fn(() => activityQuery);
         activityQuery.in = vi.fn(() => activityResultMock());
+        activityQuery.then = (resolve: (value: unknown) => unknown) => activityResultMock().then(resolve);
         return activityQuery;
       }
       if (table === 'student_achievements') {
-        const achievementQuery: Record<string, ReturnType<typeof vi.fn>> = {};
+        const achievementQuery: Record<string, unknown> = {};
         achievementQuery.select = vi.fn(() => achievementQuery);
         achievementQuery.eq = vi.fn(() => achievementQuery);
         achievementQuery.in = vi.fn(async () => ({ data: [], error: null }));
+        achievementQuery.then = (resolve: (value: unknown) => unknown) =>
+          Promise.resolve({ data: [], error: null }).then(resolve);
         return achievementQuery;
       }
       return {
@@ -206,6 +209,42 @@ describe('POST /api/ai/analyze-statement', () => {
       model: 'gpt-4o',
       max_completion_tokens: 1200,
     });
+  });
+
+  it('uses structured achievements and activities, not legacy profile JSON, in Plus statement context', async () => {
+    profileResultMock.mockResolvedValue({
+      data: {
+        plus_status: true,
+        plus_expires_at: '2099-01-01T00:00:00.000Z',
+        sop_analyses_used: 0,
+        achievements: [{ title: 'Legacy profile record' }],
+      },
+    });
+    activityResultMock.mockResolvedValue({
+      data: [{ title: 'Structured research activity', description: 'Independent project' }],
+      error: null,
+    });
+
+    const response = await POST(
+      new Request('http://localhost/api/ai/analyze-statement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'A sufficiently long personal statement for another university.' }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(profileSelectMock).toHaveBeenCalledWith(
+      expect.not.stringContaining('achievements'),
+    );
+    expect(fromMock).toHaveBeenCalledWith('student_achievements');
+    expect(fromMock).toHaveBeenCalledWith('student_activities');
+    const requestBody = JSON.parse(
+      (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body as string,
+    );
+    const prompt = JSON.stringify(requestBody.messages);
+    expect(prompt).toContain('Structured research activity');
+    expect(prompt).not.toContain('Legacy profile record');
   });
 
   it('returns 504 when the upstream AI request times out', async () => {
