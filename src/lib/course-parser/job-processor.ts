@@ -73,17 +73,24 @@ const LINK_SOURCE: Record<string, { type: string; title: string }> = {
  * entirely, which is how a row could sit in `processing` forever with nothing
  * in the logs to say why.
  */
+type ApplicationParseStatus = 'pending' | 'processing' | 'complete' | 'timeout' | 'failed';
+type ExpectedApplicationParseStatus = ApplicationParseStatus | readonly ApplicationParseStatus[];
+
 async function updateApplication(
   applicationId: string,
   fields: Record<string, unknown>,
-  expectedParseStatus?: 'pending' | 'processing',
+  expectedParseStatus?: ExpectedApplicationParseStatus,
 ): Promise<boolean> {
   const supabase = createAdminClient();
   let query = supabase
     .from('course_applications')
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq('id', applicationId);
-  if (expectedParseStatus) query = query.eq('parse_status', expectedParseStatus);
+  if (Array.isArray(expectedParseStatus)) {
+    query = query.in('parse_status', [...expectedParseStatus]);
+  } else if (expectedParseStatus) {
+    query = query.eq('parse_status', expectedParseStatus);
+  }
   const { data, error } = await query.select('id');
 
   if (error) {
@@ -111,15 +118,21 @@ async function settleApplication(
   applicationId: string,
   parseStatus: 'pending' | 'failed',
   message: string | null,
-  expectedParseStatus: 'pending' | 'processing' = 'processing',
+  expectedParseStatus: ExpectedApplicationParseStatus = 'processing',
 ): Promise<void> {
-  await updateApplication(applicationId, {
+  const transitioned = await updateApplication(applicationId, {
     parse_status: parseStatus,
     progress_percentage: 0,
   }, expectedParseStatus);
 
+  // The compare-and-set above is the ownership boundary. If another worker or
+  // the reaper won it, do not write a message into that newer state. Once the
+  // transition lands, guard the follow-up write by the new status; using the
+  // old `processing` guard here would always affect zero rows.
+  if (!transitioned) return;
+
   if (message !== null || parseStatus === 'pending') {
-    await updateApplication(applicationId, { parse_error: message }, expectedParseStatus);
+    await updateApplication(applicationId, { parse_error: message }, parseStatus);
   }
 }
 
@@ -385,8 +398,28 @@ async function setJobPhaseSafe(
   phase: string,
   guard: JobTransitionGuard,
 ): Promise<boolean> {
+  const supabase = createAdminClient();
+
+  const heartbeatWithoutPhase = async (): Promise<boolean> => {
+    let legacyQuery = supabase
+      .from('course_parse_jobs')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', jobId)
+      .eq('status', guard.expectedStatus ?? 'processing');
+    if (guard.expectedLockedBy) legacyQuery = legacyQuery.eq('locked_by', guard.expectedLockedBy);
+    const { data: legacyRows, error: legacyError } = await legacyQuery.select('id');
+    if (legacyError) {
+      console.warn('[job-processor] legacy phase heartbeat failed', {
+        jobId,
+        phase,
+        message: legacyError.message,
+      });
+      return false;
+    }
+    return Array.isArray(legacyRows) && legacyRows.length > 0;
+  };
+
   try {
-    const supabase = createAdminClient();
     let query = supabase
       .from('course_parse_jobs')
       .update({ phase, updated_at: new Date().toISOString() })
@@ -399,9 +432,14 @@ async function setJobPhaseSafe(
         ? String((error as { code?: unknown }).code ?? '')
         : '';
       const message = error instanceof Error ? error.message : String(error);
-      // Phase tracking is an additive column. Older deployments can still
-      // process jobs; only a genuine state/ownership miss should stop a worker.
-      if (code === '42703' || (code === 'PGRST204' && message.includes('phase'))) return true;
+      // Phase tracking is an additive column. On an older deployment, retry a
+      // guarded heartbeat without `phase` so the worker still refreshes
+      // `updated_at` and, importantly, still proves its status/lease is alive.
+      // Only the explicit missing-phase errors qualify; network, RLS, and
+      // unknown failures must be treated as a lost lease.
+      if (code === '42703' || (code === 'PGRST204' && message.toLowerCase().includes('phase'))) {
+        return heartbeatWithoutPhase();
+      }
       console.warn('[job-processor] phase heartbeat failed', { jobId, phase, message });
       return false;
     }
@@ -413,9 +451,16 @@ async function setJobPhaseSafe(
     const message = typeof error === 'object' && error !== null && 'message' in error
       ? String((error as { message?: unknown }).message ?? '')
       : String(error);
-    // Additive column; non-fatal on older schemas. Network/unknown failures
-    // are treated as a lost lease so this worker cannot write stale state.
-    if (code === '42703' || (code === 'PGRST204' && message.includes('phase'))) return true;
+    // A thrown missing-column response can still be handled by the same
+    // guarded legacy heartbeat. Network/unknown failures are treated as a lost
+    // lease so this worker cannot write stale state.
+    if (code === '42703' || (code === 'PGRST204' && message.toLowerCase().includes('phase'))) {
+      try {
+        return heartbeatWithoutPhase();
+      } catch {
+        return false;
+      }
+    }
     console.warn('[job-processor] phase heartbeat threw', { jobId, phase, message });
     return false;
   }
@@ -452,7 +497,7 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     if (!(await updateApplication(job.application_id, {
       parse_status: 'processing',
       progress_percentage: 20,
-    }))) {
+    }, ['pending', 'processing']))) {
       throw new JobStateChangedError();
     }
 

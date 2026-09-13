@@ -217,13 +217,12 @@ describe('POST /api/applications/[id]/retry-parse', () => {
       })),
     });
 
-    const jobUpdateMock = vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockResolvedValue({ data: [{ id: 'job-1', status: 'pending' }], error: null }),
-        }),
-      }),
-    });
+    const jobUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [{ id: 'job-1', status: 'pending' }], error: null }),
+    };
+    jobUpdateChain.eq.mockReturnValue(jobUpdateChain);
+    const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
     const appUpdateChain = {
       eq: vi.fn(),
       select: vi.fn().mockResolvedValue({ data: [{ id: appId, parse_status: 'pending' }], error: null }),

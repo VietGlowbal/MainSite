@@ -171,7 +171,7 @@ export async function POST(
 
     // 6. Reset or create the parse job in pending state with guarded update
     if (job) {
-      const { data: updatedJob, error: updateJobError } = await adminDb
+      let jobRetryQuery = adminDb
         .from('course_parse_jobs')
         .update({
           status: 'pending',
@@ -186,8 +186,12 @@ export async function POST(
           updated_at: isoNow,
         })
         .eq('id', job.id)
-        .eq('status', job.status) // Guarded by observed status
-        .select('id, status');
+        .eq('status', job.status); // Guarded by observed status
+      // If two retries race while the row remains in the same terminal state,
+      // the activity timestamp is the second compare-and-set component. This
+      // keeps manual retry history idempotent instead of allowing both writes.
+      if (job.updated_at) jobRetryQuery = jobRetryQuery.eq('updated_at', job.updated_at);
+      const { data: updatedJob, error: updateJobError } = await jobRetryQuery.select('id, status');
 
       if (updateJobError) {
         console.error('Failed to update parse job for retry:', updateJobError);
@@ -210,7 +214,7 @@ export async function POST(
     }
 
     // 7. Update application state to pending (correct queued state), guarded by observed status
-    const { data: updatedApplications, error: updateAppError } = await adminDb
+    let appRetryQuery = adminDb
       .from('course_applications')
       .update({
         parse_status: 'pending',
@@ -219,8 +223,9 @@ export async function POST(
         updated_at: isoNow,
       })
       .eq('id', id)
-      .eq('parse_status', application.parse_status)
-      .select('id, parse_status');
+      .eq('parse_status', application.parse_status);
+    if (application.updated_at) appRetryQuery = appRetryQuery.eq('updated_at', application.updated_at);
+    const { data: updatedApplications, error: updateAppError } = await appRetryQuery.select('id, parse_status');
 
     if (updateAppError) {
       console.error('Failed to update application parse status:', updateAppError);

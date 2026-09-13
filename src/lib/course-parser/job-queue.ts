@@ -248,7 +248,7 @@ export async function updateJobStatus(
  */
 export async function recordJobFailure(
   jobId: string,
-  failureMessage: string,
+  failureMessage: string | Error,
   shouldRetry: boolean,
   guard: JobTransitionGuard = { expectedStatus: 'processing' },
 ): Promise<boolean> {
@@ -274,7 +274,7 @@ export async function recordJobFailure(
   const attempts = job?.attempts ?? 1;
 
   const update: Record<string, unknown> = {
-    error_message: failureMessage,
+    error_message: failureMessage instanceof Error ? failureMessage.message : failureMessage,
     locked_by: null,
     updated_at: new Date().toISOString(),
   };
