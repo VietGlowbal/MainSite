@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -406,6 +406,23 @@ function ApplicationRow({
   const urlLabel = courseUrlLabel(app.courseUrl);
   const pending = isPending(app);
   const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+  const [isStale, setIsStale] = useState(false);
+
+  useEffect(() => {
+    if (!pending || !app.updatedAt) return;
+    const updatedMs = new Date(app.updatedAt).getTime();
+    if (Number.isNaN(updatedMs)) return;
+
+    const checkStale = () => {
+      if (Date.now() - updatedMs > 5 * 60 * 1000) {
+        setIsStale(true);
+      }
+    };
+    checkStale();
+    const interval = setInterval(checkStale, 10_000);
+    return () => clearInterval(interval);
+  }, [pending, app.updatedAt]);
+
   const urgency = deadlineUrgency(app.deadline);
   const workspaceHref = `/apply/${app.id}`;
 
@@ -452,12 +469,21 @@ function ApplicationRow({
             </p>
             {course ? <p className="text-gb-md text-fg-tertiary">{course}</p> : null}
 
-            {pending ? (
+            {pending && !isStale ? (
               <div className="flex max-w-sm flex-col gap-gb-md">
                 <ProgressBar label="Reading the course page" size="sm" />
                 <ResearchingInline>
                   GlowBal&rsquo;s AI is reading the course page and building your checklist…
                 </ResearchingInline>
+              </div>
+            ) : null}
+
+            {pending && isStale ? (
+              <div className="flex flex-col gap-gb-sm">
+                <p className="text-gb-sm text-fg-secondary">
+                  Reading this course page is taking longer than usual. You can wait or retry.
+                </p>
+                <RetryParse applicationId={app.id} />
               </div>
             ) : null}
 

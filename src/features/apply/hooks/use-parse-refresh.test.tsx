@@ -91,4 +91,25 @@ describe('useParseRefresh', () => {
     expect(fetchMock).toHaveBeenCalledTimes(callsAtCeiling);
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
+
+  it('refreshes immediately when parse status signals stale or timeout phase', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: 'app-1',
+        parseStatus: 'processing',
+        phase: 'timeout',
+        isStale: true,
+        canRetry: true,
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderHook(() => useParseRefresh(pending));
+
+    await act(() => vi.advanceTimersByTimeAsync(8_000));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
 });

@@ -371,6 +371,18 @@ async function linkUniversity(
   }
 }
 
+async function setJobPhaseSafe(jobId: string, phase: string): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    await supabase
+      .from('course_parse_jobs')
+      .update({ phase, updated_at: new Date().toISOString() })
+      .eq('id', jobId);
+  } catch {
+    // Additive column; non-fatal on older schemas
+  }
+}
+
 /**
  * Process one claimed parse job.
  */
@@ -380,12 +392,14 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
       parse_status: 'processing',
       progress_percentage: 20,
     });
+    await setJobPhaseSafe(job.id, 'fetching');
 
     const result = await extractCourse(job.course_url);
 
     if (!result.ok) {
       const willRetry = RETRYABLE[result.reason] && job.attempts < job.max_attempts;
       await recordJobFailure(job.id, result.reason, willRetry);
+      await setJobPhaseSafe(job.id, willRetry ? 'queued' : 'failed');
       await settleApplication(
         job.application_id,
         willRetry ? 'pending' : 'failed',
@@ -398,17 +412,24 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
       };
     }
 
+    await updateApplication(job.application_id, {
+      parse_status: 'processing',
+      progress_percentage: 70,
+    });
+    await setJobPhaseSafe(job.id, 'validating');
+
     const counts = await writeChecklist(job.application_id, result.data);
     await writeSources(job.application_id, result.data);
     await updateApplication(job.application_id, applicationFields(result.data, job.course_url));
     // Clears any message left by an earlier failed attempt.
-    await updateApplication(job.application_id, { parse_error: null });
+    await updateApplication(job.application_id, { parse_error: null, progress_percentage: 100 });
 
     const resolved = await linkUniversity(job.application_id, result.data, job.course_url);
 
     await updateJobStatus(job.id, 'complete', {
       parsed_data: result.data as unknown as Record<string, unknown>,
     });
+    await setJobPhaseSafe(job.id, 'ready');
 
     console.log('[job-processor] complete', {
       applicationId: job.application_id,
@@ -422,6 +443,7 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     const message = error instanceof Error ? error.message : 'Unknown error';
     const willRetry = job.attempts < job.max_attempts;
     await recordJobFailure(job.id, message, willRetry);
+    await setJobPhaseSafe(job.id, willRetry ? 'queued' : 'failed');
     await settleApplication(
       job.application_id,
       willRetry ? 'pending' : 'failed',

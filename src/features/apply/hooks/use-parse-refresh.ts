@@ -20,7 +20,18 @@ async function pollStatus(id: string): Promise<PollResult> {
     if (response.status === 401 || response.status === 403) return 'stop';
     if (response.status === 404) return 'changed';
     if (!response.ok) return 'retry';
-    const body = (await response.json()) as { parseStatus?: string | null };
+    const body = (await response.json()) as {
+      parseStatus?: string | null;
+      isStale?: boolean;
+      canRetry?: boolean;
+      phase?: string | null;
+    };
+
+    // If the server signals the job is stale or failed, treat as changed so UI updates
+    if (body.isStale || body.canRetry || body.phase === 'timeout' || body.phase === 'failed') {
+      return 'changed';
+    }
+
     return isParsePending(body.parseStatus) ? 'pending' : 'changed';
   } catch {
     return 'retry';
