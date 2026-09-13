@@ -19,7 +19,7 @@ vi.mock('@/components/site-navigation', () => ({
   SiteNavigation: mocks.navigation,
 }));
 
-import UniversitiesPage from '@/app/universities/page';
+import UniversitiesPage from '@/app/universities/(directory)/page';
 
 describe('UniversitiesPage performance', () => {
   beforeEach(() => {
@@ -50,7 +50,7 @@ describe('UniversitiesPage performance', () => {
   });
 
   it('isolates session-aware navigation from the directory hydration boundary', () => {
-    const page = readFileSync('src/app/universities/page.tsx', 'utf8');
+    const page = readFileSync('src/app/universities/(directory)/page.tsx', 'utf8');
     const client = readFileSync('src/app/universities/university-list-client.tsx', 'utf8');
 
     expect(page).toContain('<SiteNavigation tone="light" showSaved locale={locale} />');
@@ -60,7 +60,7 @@ describe('UniversitiesPage performance', () => {
 
   it('does not remount cards after identity hydration or load the globe video in its skeleton', () => {
     const client = readFileSync('src/app/universities/university-list-client.tsx', 'utf8');
-    const loading = readFileSync('src/app/universities/loading.tsx', 'utf8');
+    const loading = readFileSync('src/app/universities/(directory)/loading.tsx', 'utf8');
 
     expect(client).not.toContain("key={authState?.id ?? 'guest'}");
     expect(loading).not.toContain('PageLoaderOverlay');

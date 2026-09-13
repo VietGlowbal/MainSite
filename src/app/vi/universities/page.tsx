@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import UniversitiesPage from '../../universities/page';
+import UniversitiesPage from '../../universities/(directory)/page';
 import type { UniversityRawSearchParams } from '@/features/universities/directory-query';
 import { SITE_URL } from '@/lib/site-url';
 import { buildViLocaleAlternates } from '@/lib/seo/alternates';

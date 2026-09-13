@@ -1,5 +1,26 @@
 # Current project status
 
+Working tree 2026-09-13 (404 page on site chrome): `src/app/not-found.tsx` rebuilt on `SiteNavigation` (light) +
+shared `Footer` + design-system tokens (`Button` primary/secondary lg, `bg-brand-subtle` featured icon, display-sm
+heading); the legacy `.glow-card`/`.glow-button-*` classes are gone. A 404 has no pathname of its own, so it cannot use
+`OWN_CHROME_ROUTES`; it always ships its own header and relies on the `body:has(… [data-testid='nav-header'])` rule in
+`globals.css` to hide the global one. Copy is looked up from `@/lib/i18n-catalog` directly because an unmatched
+`/vi/...` URL renders outside `src/app/vi/layout.tsx` (catalog not primed).
+Measured: `npm run typecheck` clean, scoped ESLint clean; Playwright on `next dev` — `/this-page-does-not-exist` (404),
+`/vi/khong-ton-tai` (404, Vietnamese copy), 390px mobile, and `/universities/99999999` each show exactly one visible
+header and the footer.
+
+Working tree 2026-09-13 (soft-404 fix on `/universities/*`): `src/app/universities/loading.tsx` (the card-grid skeleton)
+wrapped every child segment in Suspense, so Next committed `200` before `/universities/[id]` could call `notFound()`, and
+`/universities/vinuni`'s permanent redirect degraded to a client-side redirect. The list `page.tsx` + `loading.tsx` moved
+into the `universities/(directory)/` route group (URL unchanged); `vi/universities/page.tsx` and
+`src/__tests__/universities-page-performance.test.ts` follow the new path. Trade-off: detail pages no longer show an
+instant (and wrongly shaped) skeleton on client navigation — the global route loader still covers it.
+Measured on `next dev`, browser and Googlebot UA alike: `/universities/99999999` 200 → **404** (+noindex);
+`/universities/vinuni` 200 → **308** → `/universities/97`; `/universities`, `/universities/1` still 200; skeleton still
+streams on `/universities` only. `npx vitest run src/__tests__/universities-page-performance.test.ts` 6/6, scoped ESLint
+clean, `npm run typecheck` clean after `npx next typegen` (stale `.next/types/validator.ts` otherwise points at the old
+path — local only). `build`/`verify:pr`/e2e not run.
 Working tree 2026-09-13 (Admin AI report review dark-mode contrast fix for alert notice and reflections):
 Fixed dark-mode contrast degradation reported on `/admin/ai-report-review` (`media_1789300035930.png`):
 When the user's OS or browser has `prefers-color-scheme: dark`, Tailwind's default media query activated `dark:` classes

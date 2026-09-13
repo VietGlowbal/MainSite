@@ -14,7 +14,7 @@ import { revalidateTag } from 'next/cache';
  * rewrite rather than a hunt through four scattered call sites.
  *
  * Current producers:
- *   universities   -> getAllUniversities            (src/app/universities/page.tsx)
+ *   universities   -> getAllUniversities            (src/app/universities/(directory)/page.tsx)
  *                     getHomeIndex                  (src/lib/home-search.ts)
  *                     getMatchingCatalogue          (src/features/universities/api/
  *                                                    university-matching-loader.ts)

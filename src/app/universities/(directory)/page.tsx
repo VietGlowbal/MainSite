@@ -13,7 +13,7 @@ import {
   getLocalizedFooter,
 } from '@/features/marketing/navigation';
 import { Footer } from '@/shared/ui/footer';
-import { UniversityListClient } from './university-list-client';
+import { UniversityListClient } from '../university-list-client';
 
 import { SITE_URL } from '@/lib/site-url';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';

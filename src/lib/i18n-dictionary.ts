@@ -3376,6 +3376,8 @@ export const translations: Record<string, string> = {
   'If you&rsquo;re having trouble unsubscribing, please contact us at': 'Nếu bạn gặp khó khăn khi hủy đăng ký, hãy liên hệ với chúng tôi tại',
   'If you’re having trouble unsubscribing, please contact us at': 'Nếu bạn gặp khó khăn khi hủy đăng ký, hãy liên hệ với chúng tôi tại',
   'Lost in space': 'Lạc giữa không gian',
+  'The page you’re looking for doesn’t exist. It may have been moved or never existed.': 'Trang bạn đang tìm không tồn tại. Có thể trang đã bị chuyển đi hoặc chưa từng tồn tại.',
+  'Page not found': 'Không tìm thấy trang',
   'Browse universities': 'Xem các trường đại học',
   'Anything else?': 'Còn điều gì khác không?',
   'Extracurricular certificates, degrees, or achievements we should take into account.': 'Các chứng chỉ ngoại khóa, bằng cấp hoặc thành tích khác mà chúng tôi nên xem xét.',
