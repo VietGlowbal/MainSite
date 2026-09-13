@@ -95,7 +95,7 @@ Working tree 2026-09-13 (feedback hardening - Task 2 postgraduate & PhD onboardi
   - Coercion helpers `readPgAcademicDraft`, `readPhdAcademicDraft`, `pgAcademicFromProfile`, and `phdAcademicFromProfile` defensively hydrate structured JSONB as well as canonical fallback columns.
 - Measured:
   - 291 unit tests in `src/features/onboarding/` passed (including 14 in `pg-phd-branching.test.ts` and 238 in `academic-grading.test.ts`).
-  - 6 component tests in `src/components/__tests__/onboarding-wizard-branching.test.tsx` passed (UG/PG/PhD control visibility and persistence payload isolation).
+  - 7 component tests in `src/components/__tests__/onboarding-wizard-branching.test.tsx` passed (UG/PG/PhD control visibility, persistence payload isolation, and cross-level test filtering).
   - 2 component tests in `src/components/__tests__/onboarding-wizard-completion.test.tsx` passed.
   - `npm run typecheck` passed cleanly (0 errors).
   - Scoped ESLint passed with 0 errors / 0 warnings.
