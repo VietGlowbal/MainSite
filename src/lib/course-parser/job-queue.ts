@@ -327,7 +327,12 @@ export async function reapStaleParseJobs(
   const staleJobs = (processingJobs || []).filter((job) => {
     const started = job.started_at ? new Date(job.started_at).getTime() : null;
     const updated = job.updated_at ? new Date(job.updated_at).getTime() : null;
-    const effectiveTime = started ?? updated;
+    // `updated_at` is the lease heartbeat written by the worker as it moves
+    // through parsing phases. Prefer it over the original claim time so a
+    // long-running but still active job is not reaped merely because it was
+    // claimed more than the stale threshold ago. Fall back to `started_at`
+    // for legacy rows that predate reliable update timestamps.
+    const effectiveTime = updated ?? started;
     return effectiveTime !== null && effectiveTime <= cutoffMs;
   });
 

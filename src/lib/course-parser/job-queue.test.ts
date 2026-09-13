@@ -251,5 +251,55 @@ describe('course-parser job-queue', () => {
       expect(jobUpdateMock).not.toHaveBeenCalled();
       expect(appUpdateMock).not.toHaveBeenCalled();
     });
+
+    it('uses the latest heartbeat instead of the original claim time', async () => {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
+      const heartbeatingJob = {
+        id: 'job-heartbeating-1',
+        application_id: 'app-heartbeating-1',
+        status: 'processing',
+        attempts: 1,
+        max_attempts: 3,
+        started_at: tenMinutesAgo,
+        updated_at: oneMinuteAgo,
+        error_message: null,
+      };
+
+      const jobUpdateMock = vi.fn();
+      const appUpdateMock = vi.fn();
+
+      mocks.admin.mockReturnValue({
+        from: vi.fn((table: string) => {
+          if (table === 'course_parse_jobs') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [heartbeatingJob], error: null }),
+              }),
+              update: jobUpdateMock,
+            };
+          }
+          if (table === 'course_applications') {
+            return {
+              update: appUpdateMock,
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({ data: [], error: null }),
+                }),
+              }),
+            };
+          }
+          return {};
+        }),
+      });
+
+      const result = await reapStaleParseJobs(5);
+
+      expect(result.reaped).toBe(0);
+      expect(result.recovered).toBe(0);
+      expect(result.failed).toBe(0);
+      expect(jobUpdateMock).not.toHaveBeenCalled();
+      expect(appUpdateMock).not.toHaveBeenCalled();
+    });
   });
 });
