@@ -1,5 +1,16 @@
 # Current project status
 
+Working tree 2026-09-13 (404 page on site chrome): `src/app/not-found.tsx` rebuilt on `SiteNavigation` (light) +
+shared `Footer` + design-system tokens (`Button` primary/secondary lg, `bg-brand-subtle` featured icon, display-sm
+heading); the legacy `.glow-card`/`.glow-button-*` classes are gone. A 404 has no pathname of its own, so it cannot use
+`OWN_CHROME_ROUTES`; it always ships its own header and relies on the `body:has(… [data-testid='nav-header'])` rule in
+`globals.css` to hide the global one. Copy is looked up from `@/lib/i18n-catalog` directly because an unmatched
+`/vi/...` URL renders outside `src/app/vi/layout.tsx` (catalog not primed). Known, not fixed: `/universities/<missing id>`
+shows this page with HTTP 200, not 404 (streamed `notFound()`).
+Measured: `npm run typecheck` clean, scoped ESLint clean; Playwright on `next dev` — `/this-page-does-not-exist` (404),
+`/vi/khong-ton-tai` (404, Vietnamese copy), 390px mobile, and `/universities/99999999` each show exactly one visible
+header and the footer.
+
 Working tree 2026-09-13 (CI red since 2026-09-11 — stale matching test fixture): `verify:pr` failed on every
 push/PR after `5f741a9c`, which made `generateApplicationMatchingReport` reuse a previous matching report only
 when its `sourcePersonalReportVersionId` equals the Personal Report in use. Test 8 in
