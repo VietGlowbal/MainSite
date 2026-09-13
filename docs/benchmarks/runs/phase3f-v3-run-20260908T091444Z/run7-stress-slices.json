@@ -1,0 +1,183 @@
+{
+  "PDF": {
+    "critical_cases": 97,
+    "correct": 7,
+    "safe_unresolved": 29,
+    "incorrect": 0,
+    "coverage_loss": 61,
+    "critical_precision": {
+      "numerator": 7,
+      "denominator": 7,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 14,
+    "programmes_discovered": 14,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 22,
+      "FETCH": 27,
+      "EXTRACTION": 2,
+      "CONFLICT": 3,
+      "SOURCE_SELECTION": 7
+    }
+  },
+  "multilingual": {
+    "critical_cases": 70,
+    "correct": 5,
+    "safe_unresolved": 30,
+    "incorrect": 0,
+    "coverage_loss": 35,
+    "critical_precision": {
+      "numerator": 5,
+      "denominator": 5,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 10,
+    "programmes_discovered": 10,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 12,
+      "EXTRACTION": 6,
+      "CONFLICT": 3,
+      "FETCH": 7,
+      "SOURCE_SELECTION": 7
+    }
+  },
+  "related-party": {
+    "critical_cases": 55,
+    "correct": 6,
+    "safe_unresolved": 18,
+    "incorrect": 0,
+    "coverage_loss": 31,
+    "critical_precision": {
+      "numerator": 6,
+      "denominator": 6,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 8,
+    "programmes_discovered": 8,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 21,
+      "EXTRACTION": 2,
+      "SOURCE_SELECTION": 7,
+      "CONFLICT": 1
+    }
+  },
+  "historical": {
+    "critical_cases": 225,
+    "correct": 19,
+    "safe_unresolved": 78,
+    "incorrect": 0,
+    "coverage_loss": 128,
+    "critical_precision": {
+      "numerator": 19,
+      "denominator": 19,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 33,
+    "programmes_discovered": 33,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 62,
+      "FETCH": 48,
+      "CONFLICT": 4,
+      "EXTRACTION": 7,
+      "SOURCE_SELECTION": 7
+    }
+  },
+  "identity-edge": {
+    "critical_cases": 111,
+    "correct": 9,
+    "safe_unresolved": 35,
+    "incorrect": 0,
+    "coverage_loss": 67,
+    "critical_precision": {
+      "numerator": 9,
+      "denominator": 9,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 16,
+    "programmes_discovered": 16,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 31,
+      "FETCH": 21,
+      "EXTRACTION": 7,
+      "CONFLICT": 1,
+      "SOURCE_SELECTION": 7
+    }
+  },
+  "conflict-capable": {
+    "critical_cases": 232,
+    "correct": 21,
+    "safe_unresolved": 84,
+    "incorrect": 0,
+    "coverage_loss": 127,
+    "critical_precision": {
+      "numerator": 21,
+      "denominator": 21,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 34,
+    "programmes_discovered": 34,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 68,
+      "FETCH": 41,
+      "CONFLICT": 4,
+      "EXTRACTION": 7,
+      "SOURCE_SELECTION": 7
+    }
+  },
+  "adversarial": {
+    "critical_cases": 185,
+    "correct": 16,
+    "safe_unresolved": 69,
+    "incorrect": 0,
+    "coverage_loss": 100,
+    "critical_precision": {
+      "numerator": 16,
+      "denominator": 16,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 27,
+    "programmes_discovered": 27,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 49,
+      "FETCH": 34,
+      "CONFLICT": 4,
+      "EXTRACTION": 6,
+      "SOURCE_SELECTION": 7
+    }
+  },
+  "structured/catalogue": {
+    "critical_cases": 115,
+    "correct": 10,
+    "safe_unresolved": 32,
+    "incorrect": 0,
+    "coverage_loss": 73,
+    "critical_precision": {
+      "numerator": 10,
+      "denominator": 10,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 17,
+    "programmes_discovered": 17,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 30,
+      "FETCH": 41,
+      "EXTRACTION": 2
+    }
+  }
+}

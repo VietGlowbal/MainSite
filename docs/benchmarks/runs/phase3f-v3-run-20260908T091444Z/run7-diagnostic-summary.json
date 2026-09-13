@@ -1,0 +1,523 @@
+{
+  "run_id": "phase3f-v3-run-20260908T091444Z",
+  "execution_commit": "6a2511fd2ec83294a43fc1645cb2438b14f4ea3d",
+  "pipeline_output_sha256": "e6b1018f08ce4c0a71ba28b4aa20fd76439a6326f6e9a3e008d83771d46dd3f9",
+  "source_metrics": {
+    "sources_discovered": 367,
+    "sources_fetched": 364,
+    "HTML": 345,
+    "PDF": 19,
+    "structured_MIME": 0,
+    "parser_attempts": 364,
+    "parser_non_empty": 364,
+    "parser_failures": 0,
+    "crawl_errors": 55,
+    "ACCESS_BLOCKED_fetch_errors": 37,
+    "fetch_stage_failures": 45,
+    "error_codes": {
+      "ADMISSION_RETRY_EXTRACTION_FAILED": 1,
+      "BLOCKED_BY_ROBOTS": 13,
+      "DISCOVERY_WARNING": 3,
+      "HTTP_403": 24,
+      "HTTP_404": 7,
+      "PROGRAMME_IDENTITY_MISMATCH": 6,
+      "UNSAFE_URL": 1
+    }
+  },
+  "provider_metrics": {
+    "calls": 271,
+    "logical_requests": 277,
+    "request_attempts": 277,
+    "cache_hits": 1,
+    "flash_calls": 271,
+    "pro_calls": 0,
+    "prompt_tokens": 2139293,
+    "completion_tokens": 271483,
+    "failures": 10,
+    "group_failures": 3,
+    "rate_limit_responses": 0,
+    "retry_after_present": 0,
+    "retry_attempts": 0,
+    "rate_limit_retries": 0,
+    "transport_retries": 0,
+    "response_retries": 0,
+    "rate_limit_recoveries": 0,
+    "terminal_rate_limit_failures": 0,
+    "max_in_flight": 1,
+    "failure_details": [
+      {
+        "programme_id": "4e1d764c-27d1-55eb-88c1-19a22eba4efa",
+        "programme_name": "Admission And Regulations",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: DeepSeek output was truncated."
+      },
+      {
+        "programme_id": "231d9152-5632-59f0-accd-6d3049a449fa",
+        "programme_name": "Admission E.Shtml",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: facts[4].value.document_type is invalid."
+      },
+      {
+        "programme_id": "14a69766-85f8-5b07-bfa9-0d48a4edba53",
+        "programme_name": "Admission E.Shtml",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: facts[5].value.document_type is invalid."
+      }
+    ]
+  },
+  "assertion_metrics": {
+    "total": 1702,
+    "effective_non_null": 618,
+    "field_candidates": 582,
+    "non_null": 618,
+    "rejected": 182,
+    "review": 324,
+    "drops": 6,
+    "effective_non_null_definition": "pipeline assertions_non_null metric"
+  },
+  "field_pipeline": {
+    "programme_identity": {
+      "candidate_count": 28,
+      "non_null_candidate_or_assertion": 30,
+      "assertion_count": 42,
+      "non_null_assertion_count": 30,
+      "effective_assertion_count": 28,
+      "effective_non_null_assertion_count": 24,
+      "selected_count": 24
+    },
+    "credential": {
+      "candidate_count": 30,
+      "non_null_candidate_or_assertion": 30,
+      "assertion_count": 40,
+      "non_null_assertion_count": 30,
+      "effective_assertion_count": 29,
+      "effective_non_null_assertion_count": 27,
+      "selected_count": 26
+    },
+    "programme_status": {
+      "candidate_count": 22,
+      "non_null_candidate_or_assertion": 22,
+      "assertion_count": 58,
+      "non_null_assertion_count": 22,
+      "effective_assertion_count": 28,
+      "effective_non_null_assertion_count": 0,
+      "selected_count": 0
+    },
+    "tuition": {
+      "candidate_count": 37,
+      "non_null_candidate_or_assertion": 56,
+      "assertion_count": 69,
+      "non_null_assertion_count": 56,
+      "effective_assertion_count": 36,
+      "effective_non_null_assertion_count": 31,
+      "selected_count": 23
+    },
+    "application_deadline": {
+      "candidate_count": 32,
+      "non_null_candidate_or_assertion": 46,
+      "assertion_count": 161,
+      "non_null_assertion_count": 46,
+      "effective_assertion_count": 113,
+      "effective_non_null_assertion_count": 30,
+      "selected_count": 29
+    },
+    "english_requirement": {
+      "candidate_count": 9,
+      "non_null_candidate_or_assertion": 26,
+      "assertion_count": 167,
+      "non_null_assertion_count": 26,
+      "effective_assertion_count": 112,
+      "effective_non_null_assertion_count": 22,
+      "selected_count": 22
+    },
+    "major_admissions_requirement": {
+      "candidate_count": 78,
+      "non_null_candidate_or_assertion": 103,
+      "assertion_count": 344,
+      "non_null_assertion_count": 103,
+      "effective_assertion_count": 257,
+      "effective_non_null_assertion_count": 88,
+      "selected_count": 83
+    }
+  },
+  "projection_states": {
+    "FOUND": 22,
+    "NEEDS_REVIEW": 161,
+    "CONFLICTING_SOURCES": 5,
+    "ACCESS_BLOCKED": 49,
+    "SOURCE_NOT_FOUND": 7,
+    "FETCH_FAILED": 0,
+    "PARSE_FAILED": 0,
+    "EXTRACTION_FAILED": 8,
+    "STALE_ONLY": 0,
+    "NOT_EVALUATED": 0,
+    "NOT_REQUIRED": 0,
+    "NOT_PUBLISHED": 0
+  },
+  "metrics": {
+    "programme_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "programme_discovery_recall_by_institution": {
+      "Cornell": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Duke": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "ETH Zurich": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Harvard": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "MIT": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Northwestern": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Princeton": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Sorbonne Université": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "UCLA": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Michigan": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Tokyo": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Université de Montréal": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      }
+    },
+    "programme_discovery_institution_floor": {
+      "status": "AVAILABLE",
+      "min_value": 1.0,
+      "threshold": 0.8,
+      "violating_institutions": []
+    },
+    "required_source_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "critical_field_precision": {
+      "numerator": 22,
+      "denominator": 22,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "critical_field_recall_resolved_coverage": {
+      "numerator": 22,
+      "denominator": 122,
+      "value": 0.18032786885245902,
+      "status": "AVAILABLE"
+    },
+    "safe_unresolved_correctness": {
+      "numerator": 87,
+      "denominator": 124,
+      "value": 0.7016129032258065,
+      "status": "AVAILABLE"
+    },
+    "product_safe_evidence_entailment": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null,
+      "status": "NOT_AVAILABLE"
+    },
+    "false_current_critical_count": 0,
+    "identity_merge_violations": 0,
+    "critical_unresolved_conflict_promoted_count": 0,
+    "critical_source_not_found_promoted_count": 0,
+    "critical_stale_only_promoted_count": 0,
+    "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+    "product_safe_without_durable_provenance_count": 0,
+    "truth_comparison_failures": 0,
+    "coverage_loss_count": 137
+  },
+  "safety": {
+    "false_current_critical_count": 0,
+    "identity_merge_violations": 0,
+    "critical_unresolved_conflict_promoted_count": 0,
+    "critical_source_not_found_promoted_count": 0,
+    "critical_stale_only_promoted_count": 0,
+    "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+    "product_safe_without_durable_provenance_count": 0
+  },
+  "error_taxonomy": {
+    "DISCOVERY": 0,
+    "SOURCE_SELECTION": 7,
+    "FETCH": 48,
+    "PARSING": 0,
+    "EXTRACTION": 8,
+    "APPLICABILITY": 0,
+    "TEMPORAL": 0,
+    "CONFLICT": 4,
+    "RECOVERY": 0,
+    "IDENTITY": 0,
+    "QUALITY_POLICY": 70,
+    "PROMOTION": 0,
+    "GROUND_TRUTH_AMBIGUOUS": 6
+  },
+  "identity": {
+    "FOUND": 22,
+    "correct_FOUND": 22,
+    "incorrect_FOUND": 0,
+    "NEEDS_REVIEW": 5,
+    "ACCESS_BLOCKED": 7,
+    "EXTRACTION_FAILED": 1,
+    "comparison_classes": {
+      "EXACT_EQUIVALENT": 13,
+      "CANONICALLY_EQUIVALENT": 8,
+      "OFFICIAL_ALIAS_EQUIVALENT": 1,
+      "CREDENTIAL_AWARE_EQUIVALENT": 0,
+      "WRONG_GRANULARITY": 0,
+      "NOT_EQUIVALENT": 0,
+      "APPLICABILITY_FAILURE": 0,
+      "AMBIGUOUS": 0
+    },
+    "unresolved_no_class": 14
+  },
+  "direct_evidence": {
+    "population_direct": 83,
+    "population_material": 104,
+    "direct": {
+      "total": 83,
+      "ACCESS_BLOCKED": 8,
+      "CONFLICTING_SOURCES": 1,
+      "EXTRACTION_FAILED": 2,
+      "FOUND": 19,
+      "NEEDS_REVIEW": 49,
+      "SOURCE_NOT_FOUND": 4,
+      "assertion_present_unresolved": 47,
+      "correct": 19
+    },
+    "material": {
+      "total": 104,
+      "ACCESS_BLOCKED": 9,
+      "CONFLICTING_SOURCES": 1,
+      "EXTRACTION_FAILED": 3,
+      "FOUND": 22,
+      "NEEDS_REVIEW": 65,
+      "SOURCE_NOT_FOUND": 4,
+      "assertion_present_unresolved": 58,
+      "correct": 22
+    },
+    "method": "Established runtime candidate/assertion audit population used for Run #6 comparison."
+  },
+  "comparison": {
+    "run5": {
+      "run_id": "phase3f-v3-run-20260907T145934Z",
+      "classification": "FAIL — QUALITY",
+      "sources_fetched": 360,
+      "provider_calls": 271,
+      "tokens": 2419983,
+      "assertions": 1697,
+      "effective_non_null_assertions": 610,
+      "states": {
+        "FOUND": 25,
+        "NEEDS_REVIEW": 161,
+        "CONFLICTING_SOURCES": 6,
+        "ACCESS_BLOCKED": 49,
+        "SOURCE_NOT_FOUND": 0,
+        "FETCH_FAILED": 0,
+        "PARSE_FAILED": 0,
+        "EXTRACTION_FAILED": 11,
+        "STALE_ONLY": 0,
+        "NOT_EVALUATED": 0,
+        "NOT_REQUIRED": 0,
+        "NOT_PUBLISHED": 0
+      },
+      "incorrect_concrete": 5,
+      "identity_incorrect": 5,
+      "programme_status_incorrect": 0,
+      "critical_precision": {
+        "numerator": 20,
+        "denominator": 25,
+        "value": 0.8,
+        "status": "AVAILABLE"
+      },
+      "resolved_coverage": {
+        "numerator": 20,
+        "denominator": 122,
+        "value": 0.16393442622950818,
+        "status": "AVAILABLE"
+      },
+      "safe_unresolved": {
+        "numerator": 88,
+        "denominator": 124,
+        "value": 0.7096774193548387,
+        "status": "AVAILABLE"
+      },
+      "safety": {
+        "false_current_critical_count": 0,
+        "identity_merge_violations": 0,
+        "critical_unresolved_conflict_promoted_count": 0,
+        "critical_source_not_found_promoted_count": 0,
+        "critical_stale_only_promoted_count": 0,
+        "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+        "product_safe_without_durable_provenance_count": 0
+      }
+    },
+    "run6": {
+      "run_id": "phase3f-v3-run-20260908T040003Z",
+      "classification": "FAIL — SAFETY",
+      "sources_fetched": 358,
+      "provider_calls": 255,
+      "tokens": 2266255,
+      "assertions": 1636,
+      "effective_non_null_assertions": 592,
+      "states": {
+        "FOUND": 23,
+        "NEEDS_REVIEW": 155,
+        "CONFLICTING_SOURCES": 4,
+        "ACCESS_BLOCKED": 49,
+        "SOURCE_NOT_FOUND": 7,
+        "FETCH_FAILED": 0,
+        "PARSE_FAILED": 0,
+        "EXTRACTION_FAILED": 14,
+        "STALE_ONLY": 0,
+        "NOT_EVALUATED": 0,
+        "NOT_REQUIRED": 0,
+        "NOT_PUBLISHED": 0
+      },
+      "incorrect_concrete": 1,
+      "identity_incorrect": 0,
+      "programme_status_incorrect": 1,
+      "critical_precision": {
+        "numerator": 22,
+        "denominator": 22,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "resolved_coverage": {
+        "numerator": 22,
+        "denominator": 122,
+        "value": 0.18032786885245902,
+        "status": "AVAILABLE"
+      },
+      "safe_unresolved": {
+        "numerator": 86,
+        "denominator": 124,
+        "value": 0.6935483870967742,
+        "status": "AVAILABLE"
+      },
+      "safety": {
+        "false_current_critical_count": 1,
+        "identity_merge_violations": 0,
+        "critical_unresolved_conflict_promoted_count": 0,
+        "critical_source_not_found_promoted_count": 0,
+        "critical_stale_only_promoted_count": 0,
+        "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+        "product_safe_without_durable_provenance_count": 0
+      }
+    },
+    "run7": {
+      "run_id": "phase3f-v3-run-20260908T091444Z",
+      "classification": "FAIL — QUALITY",
+      "sources_fetched": 364,
+      "provider_calls": 271,
+      "tokens": 2410776,
+      "assertions": 1702,
+      "effective_non_null_assertions": 614,
+      "states": {
+        "FOUND": 22,
+        "NEEDS_REVIEW": 161,
+        "CONFLICTING_SOURCES": 5,
+        "ACCESS_BLOCKED": 49,
+        "SOURCE_NOT_FOUND": 7,
+        "FETCH_FAILED": 0,
+        "PARSE_FAILED": 0,
+        "EXTRACTION_FAILED": 8,
+        "STALE_ONLY": 0,
+        "NOT_EVALUATED": 0,
+        "NOT_REQUIRED": 0,
+        "NOT_PUBLISHED": 0
+      },
+      "incorrect_concrete": 0,
+      "identity_incorrect": 0,
+      "programme_status_incorrect": 0,
+      "critical_precision": {
+        "numerator": 22,
+        "denominator": 22,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "resolved_coverage": {
+        "numerator": 22,
+        "denominator": 122,
+        "value": 0.18032786885245902,
+        "status": "AVAILABLE"
+      },
+      "safe_unresolved": {
+        "numerator": 87,
+        "denominator": 124,
+        "value": 0.7016129032258065,
+        "status": "AVAILABLE"
+      },
+      "safety": {
+        "false_current_critical_count": 0,
+        "identity_merge_violations": 0,
+        "critical_unresolved_conflict_promoted_count": 0,
+        "critical_source_not_found_promoted_count": 0,
+        "critical_stale_only_promoted_count": 0,
+        "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+        "product_safe_without_durable_provenance_count": 0
+      }
+    },
+    "story": {
+      "run5": "identity correctness failure; precision 80%; safety zero",
+      "run6": "identity fixed; precision 100%; one false-current safety failure",
+      "run7": "identity incorrect zero; precision 100%; all safety counters zero; quality remains blocked by safe-unresolved correctness"
+    }
+  },
+  "validation": {
+    "status": "PENDING_FINAL_VALIDATION"
+  }
+}

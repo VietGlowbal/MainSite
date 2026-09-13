@@ -1,0 +1,166 @@
+{
+  "run5": {
+    "run_id": "phase3f-v3-run-20260907T145934Z",
+    "classification": "FAIL — QUALITY",
+    "sources_fetched": 360,
+    "provider_calls": 271,
+    "tokens": 2419983,
+    "assertions": 1697,
+    "effective_non_null_assertions": 618,
+    "states": {
+      "FOUND": 25,
+      "NEEDS_REVIEW": 161,
+      "CONFLICTING_SOURCES": 6,
+      "ACCESS_BLOCKED": 49,
+      "SOURCE_NOT_FOUND": 0,
+      "FETCH_FAILED": 0,
+      "PARSE_FAILED": 0,
+      "EXTRACTION_FAILED": 11,
+      "STALE_ONLY": 0,
+      "NOT_EVALUATED": 0,
+      "NOT_REQUIRED": 0,
+      "NOT_PUBLISHED": 0
+    },
+    "incorrect_concrete": 5,
+    "identity_incorrect": 5,
+    "programme_status_incorrect": 0,
+    "critical_precision": {
+      "numerator": 20,
+      "denominator": 25,
+      "value": 0.8,
+      "status": "AVAILABLE"
+    },
+    "resolved_coverage": {
+      "numerator": 20,
+      "denominator": 122,
+      "value": 0.16393442622950818,
+      "status": "AVAILABLE"
+    },
+    "safe_unresolved": {
+      "numerator": 88,
+      "denominator": 124,
+      "value": 0.7096774193548387,
+      "status": "AVAILABLE"
+    },
+    "safety": {
+      "false_current_critical_count": 0,
+      "identity_merge_violations": 0,
+      "critical_unresolved_conflict_promoted_count": 0,
+      "critical_source_not_found_promoted_count": 0,
+      "critical_stale_only_promoted_count": 0,
+      "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+      "product_safe_without_durable_provenance_count": 0
+    }
+  },
+  "run6": {
+    "run_id": "phase3f-v3-run-20260908T040003Z",
+    "classification": "FAIL — SAFETY",
+    "sources_fetched": 358,
+    "provider_calls": 255,
+    "tokens": 2266255,
+    "assertions": 1636,
+    "effective_non_null_assertions": 595,
+    "states": {
+      "FOUND": 23,
+      "NEEDS_REVIEW": 155,
+      "CONFLICTING_SOURCES": 4,
+      "ACCESS_BLOCKED": 49,
+      "SOURCE_NOT_FOUND": 7,
+      "FETCH_FAILED": 0,
+      "PARSE_FAILED": 0,
+      "EXTRACTION_FAILED": 14,
+      "STALE_ONLY": 0,
+      "NOT_EVALUATED": 0,
+      "NOT_REQUIRED": 0,
+      "NOT_PUBLISHED": 0
+    },
+    "incorrect_concrete": 1,
+    "identity_incorrect": 0,
+    "programme_status_incorrect": 1,
+    "critical_precision": {
+      "numerator": 22,
+      "denominator": 22,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "resolved_coverage": {
+      "numerator": 22,
+      "denominator": 122,
+      "value": 0.18032786885245902,
+      "status": "AVAILABLE"
+    },
+    "safe_unresolved": {
+      "numerator": 86,
+      "denominator": 124,
+      "value": 0.6935483870967742,
+      "status": "AVAILABLE"
+    },
+    "safety": {
+      "false_current_critical_count": 1,
+      "identity_merge_violations": 0,
+      "critical_unresolved_conflict_promoted_count": 0,
+      "critical_source_not_found_promoted_count": 0,
+      "critical_stale_only_promoted_count": 0,
+      "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+      "product_safe_without_durable_provenance_count": 0
+    }
+  },
+  "run7": {
+    "run_id": "phase3f-v3-run-20260908T091444Z",
+    "classification": "FAIL — QUALITY",
+    "sources_fetched": 364,
+    "provider_calls": 271,
+    "tokens": 2410776,
+    "assertions": 1702,
+    "effective_non_null_assertions": 618,
+    "states": {
+      "FOUND": 22,
+      "NEEDS_REVIEW": 161,
+      "CONFLICTING_SOURCES": 5,
+      "ACCESS_BLOCKED": 49,
+      "SOURCE_NOT_FOUND": 7,
+      "FETCH_FAILED": 0,
+      "PARSE_FAILED": 0,
+      "EXTRACTION_FAILED": 8,
+      "STALE_ONLY": 0,
+      "NOT_EVALUATED": 0,
+      "NOT_REQUIRED": 0,
+      "NOT_PUBLISHED": 0
+    },
+    "incorrect_concrete": 0,
+    "identity_incorrect": 0,
+    "programme_status_incorrect": 0,
+    "critical_precision": {
+      "numerator": 22,
+      "denominator": 22,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "resolved_coverage": {
+      "numerator": 22,
+      "denominator": 122,
+      "value": 0.18032786885245902,
+      "status": "AVAILABLE"
+    },
+    "safe_unresolved": {
+      "numerator": 87,
+      "denominator": 124,
+      "value": 0.7016129032258065,
+      "status": "AVAILABLE"
+    },
+    "safety": {
+      "false_current_critical_count": 0,
+      "identity_merge_violations": 0,
+      "critical_unresolved_conflict_promoted_count": 0,
+      "critical_source_not_found_promoted_count": 0,
+      "critical_stale_only_promoted_count": 0,
+      "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+      "product_safe_without_durable_provenance_count": 0
+    }
+  },
+  "story": {
+    "run5": "identity correctness failure; precision 80%; safety zero",
+    "run6": "identity fixed; precision 100%; one false-current safety failure",
+    "run7": "identity incorrect zero; precision 100%; all safety counters zero; quality remains blocked by safe-unresolved correctness"
+  }
+}

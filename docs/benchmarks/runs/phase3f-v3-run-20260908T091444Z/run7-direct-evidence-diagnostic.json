@@ -1,0 +1,27 @@
+{
+  "population_direct": 83,
+  "population_material": 104,
+  "direct": {
+    "total": 83,
+    "ACCESS_BLOCKED": 8,
+    "CONFLICTING_SOURCES": 1,
+    "EXTRACTION_FAILED": 2,
+    "FOUND": 19,
+    "NEEDS_REVIEW": 49,
+    "SOURCE_NOT_FOUND": 4,
+    "assertion_present_unresolved": 47,
+    "correct": 19
+  },
+  "material": {
+    "total": 104,
+    "ACCESS_BLOCKED": 9,
+    "CONFLICTING_SOURCES": 1,
+    "EXTRACTION_FAILED": 3,
+    "FOUND": 22,
+    "NEEDS_REVIEW": 65,
+    "SOURCE_NOT_FOUND": 4,
+    "assertion_present_unresolved": 58,
+    "correct": 22
+  },
+  "method": "Established runtime candidate/assertion audit population used for Run #6 comparison."
+}

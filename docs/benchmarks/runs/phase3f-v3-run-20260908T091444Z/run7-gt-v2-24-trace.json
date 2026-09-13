@@ -1,0 +1,53 @@
+{
+  "case_id": "GT-V2-24-programme_status",
+  "source_url": "https://admission.umontreal.ca/programmes/dess-en-apprentissage-automatique/",
+  "source_authority": "OFFICIAL",
+  "source_native_text": "Automne 2027; Deposer la demande d admission; Du 1er aout 2026 au 1er fevrier 2027.",
+  "llm_candidate": "f19bbac8-76c9-5a9f-80c4-a88cd28c87c2",
+  "structured_status_candidate": "",
+  "status_value": null,
+  "temporal_metadata": {
+    "explicit_current_open_status": false,
+    "target_cycle_in_evidence": false,
+    "temporal_state": "UNKNOWN",
+    "evidence": null
+  },
+  "programme_applicability": {
+    "scope": null,
+    "applicability_state": "UNKNOWN",
+    "assertion_audience": null,
+    "target_audience": "French + international",
+    "proved": true,
+    "reason": null
+  },
+  "assertion_provenance": {
+    "raw_refs": [
+      "7476126a-50d5-489d-b537-ef1929306313"
+    ],
+    "assertion_refs": [
+      "f19bbac8-76c9-5a9f-80c4-a88cd28c87c2"
+    ],
+    "durable": false
+  },
+  "assertion_construction": {
+    "candidate_count": 1,
+    "non_null_candidate_count": 0
+  },
+  "assertion_selection": {
+    "reason": "no_non_null_candidate",
+    "selected_ids": []
+  },
+  "acceptance_result": {
+    "reasons": [
+      "NO_VALUE"
+    ],
+    "rejection": [
+      "NO_VALUE"
+    ]
+  },
+  "projection_result": {
+    "state": "NEEDS_REVIEW",
+    "value": null
+  },
+  "first_incorrect_stage_run6": "ACCEPTANCE"
+}

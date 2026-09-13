@@ -1,0 +1,156 @@
+{
+  "programme_identity": {
+    "critical_cases": 36,
+    "correct": 22,
+    "safe_unresolved": 0,
+    "incorrect": 0,
+    "coverage_loss": 14,
+    "critical_precision": {
+      "numerator": 22,
+      "denominator": 22,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "scoreable": 36,
+    "operational_failure": 9,
+    "false_current": 0,
+    "product_safe_errors": 0,
+    "resolved_coverage": {
+      "numerator": 22,
+      "denominator": 34,
+      "value": 0.6470588235294118
+    }
+  },
+  "credential": {
+    "critical_cases": 36,
+    "correct": 0,
+    "safe_unresolved": 3,
+    "incorrect": 0,
+    "coverage_loss": 33,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "scoreable": 36,
+    "operational_failure": 8,
+    "false_current": 0,
+    "product_safe_errors": 0,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 30,
+      "value": 0.0
+    }
+  },
+  "programme_status": {
+    "critical_cases": 36,
+    "correct": 0,
+    "safe_unresolved": 24,
+    "incorrect": 0,
+    "coverage_loss": 12,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "scoreable": 36,
+    "operational_failure": 12,
+    "false_current": 0,
+    "product_safe_errors": 0,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    }
+  },
+  "tuition": {
+    "critical_cases": 33,
+    "correct": 0,
+    "safe_unresolved": 14,
+    "incorrect": 0,
+    "coverage_loss": 19,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "scoreable": 33,
+    "operational_failure": 7,
+    "false_current": 0,
+    "product_safe_errors": 0,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 11,
+      "value": 0.0
+    }
+  },
+  "application_deadline": {
+    "critical_cases": 36,
+    "correct": 0,
+    "safe_unresolved": 24,
+    "incorrect": 0,
+    "coverage_loss": 12,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "scoreable": 36,
+    "operational_failure": 9,
+    "false_current": 0,
+    "product_safe_errors": 0,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 4,
+      "value": 0.0
+    }
+  },
+  "english_requirement": {
+    "critical_cases": 36,
+    "correct": 0,
+    "safe_unresolved": 10,
+    "incorrect": 0,
+    "coverage_loss": 26,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "scoreable": 36,
+    "operational_failure": 9,
+    "false_current": 0,
+    "product_safe_errors": 0,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 24,
+      "value": 0.0
+    }
+  },
+  "major_admissions_requirement": {
+    "critical_cases": 33,
+    "correct": 0,
+    "safe_unresolved": 12,
+    "incorrect": 0,
+    "coverage_loss": 21,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "scoreable": 33,
+    "operational_failure": 9,
+    "false_current": 0,
+    "product_safe_errors": 0,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 19,
+      "value": 0.0
+    }
+  }
+}

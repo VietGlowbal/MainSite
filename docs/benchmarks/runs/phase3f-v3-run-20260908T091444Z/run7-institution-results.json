@@ -1,0 +1,206 @@
+{
+  "Cornell": {
+    "critical_cases": 21,
+    "correct": 3,
+    "safe_unresolved": 6,
+    "incorrect": 0,
+    "coverage_loss": 12,
+    "critical_precision": {
+      "numerator": 3,
+      "denominator": 3,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 1
+  },
+  "Duke": {
+    "critical_cases": 19,
+    "correct": 3,
+    "safe_unresolved": 7,
+    "incorrect": 0,
+    "coverage_loss": 9,
+    "critical_precision": {
+      "numerator": 3,
+      "denominator": 3,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 0
+  },
+  "ETH Zurich": {
+    "critical_cases": 21,
+    "correct": 3,
+    "safe_unresolved": 9,
+    "incorrect": 0,
+    "coverage_loss": 9,
+    "critical_precision": {
+      "numerator": 3,
+      "denominator": 3,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 0
+  },
+  "Harvard": {
+    "critical_cases": 18,
+    "correct": 1,
+    "safe_unresolved": 2,
+    "incorrect": 0,
+    "coverage_loss": 15,
+    "critical_precision": {
+      "numerator": 1,
+      "denominator": 1,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 13
+  },
+  "MIT": {
+    "critical_cases": 21,
+    "correct": 3,
+    "safe_unresolved": 11,
+    "incorrect": 0,
+    "coverage_loss": 7,
+    "critical_precision": {
+      "numerator": 3,
+      "denominator": 3,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 0
+  },
+  "Northwestern": {
+    "critical_cases": 20,
+    "correct": 3,
+    "safe_unresolved": 10,
+    "incorrect": 0,
+    "coverage_loss": 7,
+    "critical_precision": {
+      "numerator": 3,
+      "denominator": 3,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 1
+  },
+  "Princeton": {
+    "critical_cases": 21,
+    "correct": 0,
+    "safe_unresolved": 3,
+    "incorrect": 0,
+    "coverage_loss": 18,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 14
+  },
+  "Sorbonne Université": {
+    "critical_cases": 21,
+    "correct": 2,
+    "safe_unresolved": 11,
+    "incorrect": 0,
+    "coverage_loss": 8,
+    "critical_precision": {
+      "numerator": 2,
+      "denominator": 2,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 0
+  },
+  "UCLA": {
+    "critical_cases": 21,
+    "correct": 1,
+    "safe_unresolved": 11,
+    "incorrect": 0,
+    "coverage_loss": 9,
+    "critical_precision": {
+      "numerator": 1,
+      "denominator": 1,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 0
+  },
+  "University of Michigan": {
+    "critical_cases": 21,
+    "correct": 0,
+    "safe_unresolved": 3,
+    "incorrect": 0,
+    "coverage_loss": 18,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 14
+  },
+  "University of Tokyo": {
+    "critical_cases": 21,
+    "correct": 0,
+    "safe_unresolved": 2,
+    "incorrect": 0,
+    "coverage_loss": 19,
+    "critical_precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 16
+  },
+  "Université de Montréal": {
+    "critical_cases": 21,
+    "correct": 3,
+    "safe_unresolved": 12,
+    "incorrect": 0,
+    "coverage_loss": 6,
+    "critical_precision": {
+      "numerator": 3,
+      "denominator": 3,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes_expected": 3,
+    "programmes_discovered": 3,
+    "programme_discovery_recall": 1.0,
+    "operational_loss": 4
+  }
+}
