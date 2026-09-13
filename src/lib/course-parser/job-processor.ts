@@ -394,7 +394,15 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     });
     await setJobPhaseSafe(job.id, 'fetching');
 
-    const result = await extractCourse(job.course_url);
+    const result = await extractCourse(job.course_url, async (phase) => {
+      if (phase === 'extracting') {
+        await setJobPhaseSafe(job.id, 'extracting');
+        await updateApplication(job.application_id, {
+          parse_status: 'processing',
+          progress_percentage: 45,
+        });
+      }
+    });
 
     if (!result.ok) {
       const willRetry = RETRYABLE[result.reason] && job.attempts < job.max_attempts;

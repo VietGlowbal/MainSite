@@ -305,7 +305,7 @@ export interface StaleJobReapResult {
  * - Stranded application rows in `processing` with no active job are also reconciled.
  */
 export async function reapStaleParseJobs(
-  staleThresholdMinutes = 5
+  staleThresholdMinutes = 10
 ): Promise<StaleJobReapResult> {
   const supabase = createAdminClient();
   const cutoffMs = Date.now() - staleThresholdMinutes * 60 * 1000;
@@ -338,23 +338,27 @@ export async function reapStaleParseJobs(
 
     if (canRetry) {
       const nextAttemptAt = computeNextAttemptAt(attempts);
-      const { error: jobUpdateError } = await supabase
+      // Concurrency guard: update only if still in 'processing' status to avoid racing completions
+      const { data: updatedJobRows, error: jobUpdateError } = await supabase
         .from('course_parse_jobs')
         .update({
           status: 'pending',
           locked_by: null,
           next_attempt_at: nextAttemptAt,
           error_message: 'Job processing timed out; re-enqueued for retry.',
+          phase: 'queued',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', job.id);
+        .eq('id', job.id)
+        .eq('status', 'processing')
+        .select('id, status');
 
-      if (jobUpdateError) {
-        console.error('[job-queue] Failed to recover stale job:', job.id, jobUpdateError);
+      if (jobUpdateError || !updatedJobRows || updatedJobRows.length === 0) {
+        // Job was completed or claimed concurrently; do not overwrite
         continue;
       }
 
-      // Settle the application row back to pending so UI shows queued/waiting state
+      // Settle the application row back to pending, guarded by parse_status='processing'
       await supabase
         .from('course_applications')
         .update({
@@ -363,7 +367,8 @@ export async function reapStaleParseJobs(
           parse_error: null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', job.application_id);
+        .eq('id', job.application_id)
+        .eq('parse_status', 'processing');
 
       details.push({
         id: job.id,
@@ -373,18 +378,21 @@ export async function reapStaleParseJobs(
         reason: 'Stale processing lease expired; re-enqueued to pending with backoff.',
       });
     } else {
-      const { error: jobUpdateError } = await supabase
+      // Concurrency guard for exhausted attempts
+      const { data: updatedJobRows, error: jobUpdateError } = await supabase
         .from('course_parse_jobs')
         .update({
           status: 'failed',
           completed_at: new Date().toISOString(),
           error_message: 'Course parsing timed out after maximum attempts.',
+          phase: 'failed',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', job.id);
+        .eq('id', job.id)
+        .eq('status', 'processing')
+        .select('id, status');
 
-      if (jobUpdateError) {
-        console.error('[job-queue] Failed to mark exhausted stale job failed:', job.id, jobUpdateError);
+      if (jobUpdateError || !updatedJobRows || updatedJobRows.length === 0) {
         continue;
       }
 
@@ -396,7 +404,8 @@ export async function reapStaleParseJobs(
           parse_error: 'Reading this course page timed out. You can try again.',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', job.application_id);
+        .eq('id', job.application_id)
+        .eq('parse_status', 'processing');
 
       details.push({
         id: job.id,
@@ -408,7 +417,7 @@ export async function reapStaleParseJobs(
     }
   }
 
-  // Also defensively reconcile any application stuck in 'processing' whose updated_at <= cutoffIso
+  // Defensively reconcile any application stuck in 'processing' whose updated_at <= cutoffIso
   try {
     const { data: strandedApps } = await supabase
       .from('course_applications')
@@ -432,16 +441,30 @@ export async function reapStaleParseJobs(
           await supabase
             .from('course_applications')
             .update({ parse_status: 'complete', updated_at: new Date().toISOString() })
-            .eq('id', app.id);
-        } else if (job?.status === 'failed') {
+            .eq('id', app.id)
+            .eq('parse_status', 'processing');
+        } else if (job?.status === 'pending') {
+          // Reconcile application to pending queued state
+          await supabase
+            .from('course_applications')
+            .update({
+              parse_status: 'pending',
+              progress_percentage: 0,
+              parse_error: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', app.id)
+            .eq('parse_status', 'processing');
+        } else if (job?.status === 'failed' || job?.status === 'timeout') {
           await supabase
             .from('course_applications')
             .update({
               parse_status: 'failed',
-              parse_error: job.error_message || 'Reading this course page failed.',
+              parse_error: job.error_message || 'Reading this course page failed. You can try again.',
               updated_at: new Date().toISOString(),
             })
-            .eq('id', app.id);
+            .eq('id', app.id)
+            .eq('parse_status', 'processing');
         } else if (!job) {
           // No job at all; mark application failed so student can retry
           await supabase
@@ -451,7 +474,8 @@ export async function reapStaleParseJobs(
               parse_error: 'Course reading was interrupted. You can try again.',
               updated_at: new Date().toISOString(),
             })
-            .eq('id', app.id);
+            .eq('id', app.id)
+            .eq('parse_status', 'processing');
         }
       }
     }

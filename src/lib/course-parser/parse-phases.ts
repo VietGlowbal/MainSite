@@ -89,6 +89,21 @@ export function mapStatusToPhase(options: {
   if (status === 'timeout' || isStale) return 'timeout';
   if (status === 'pending') return 'queued';
 
+  // If in processing, ignore a backfilled or mismatched 'queued' phase
+  if (status === 'processing') {
+    if (
+      phase &&
+      phase !== 'queued' &&
+      (phase === 'fetching' || phase === 'extracting' || phase === 'validating')
+    ) {
+      return phase;
+    }
+    const progress = progressPercentage ?? 0;
+    if (progress >= 80) return 'validating';
+    if (progress >= 40) return 'extracting';
+    return 'fetching';
+  }
+
   // If explicit phase is stored and valid, use it
   if (
     phase === 'queued' ||
@@ -100,14 +115,6 @@ export function mapStatusToPhase(options: {
     phase === 'failed'
   ) {
     return phase;
-  }
-
-  // If in processing, infer phase from progress percentage
-  if (status === 'processing') {
-    const progress = progressPercentage ?? 0;
-    if (progress >= 80) return 'validating';
-    if (progress >= 40) return 'extracting';
-    return 'fetching';
   }
 
   return 'queued';

@@ -49,8 +49,26 @@ describe('course-parser job-queue', () => {
         error_message: null,
       };
 
-      const jobUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-      const appUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+      const createJobUpdateChain = (jobId: string) => {
+        const chain: { eq: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+          eq: vi.fn(() => chain),
+          select: vi.fn().mockResolvedValue({ data: [{ id: jobId, status: 'processing' }], error: null }),
+          then: (resolve) => Promise.resolve({ data: [{ id: jobId, status: 'processing' }], error: null }).then(resolve),
+        };
+        return chain;
+      };
+      const createAppUpdateChain = () => {
+        const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+          eq: vi.fn(() => chain),
+          then: (resolve) => Promise.resolve({ error: null }).then(resolve),
+        };
+        return chain;
+      };
+
+      const jobUpdateChain = createJobUpdateChain(staleJob.id);
+      const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+      const appUpdateChain = createAppUpdateChain();
+      const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
 
       mocks.admin.mockReturnValue({
         from: vi.fn((table: string) => {
@@ -115,8 +133,26 @@ describe('course-parser job-queue', () => {
         error_message: null,
       };
 
-      const jobUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-      const appUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+      const createJobUpdateChain = (jobId: string) => {
+        const chain: { eq: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+          eq: vi.fn(() => chain),
+          select: vi.fn().mockResolvedValue({ data: [{ id: jobId, status: 'processing' }], error: null }),
+          then: (resolve) => Promise.resolve({ data: [{ id: jobId, status: 'processing' }], error: null }).then(resolve),
+        };
+        return chain;
+      };
+      const createAppUpdateChain = () => {
+        const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+          eq: vi.fn(() => chain),
+          then: (resolve) => Promise.resolve({ error: null }).then(resolve),
+        };
+        return chain;
+      };
+
+      const jobUpdateChain = createJobUpdateChain(exhaustedJob.id);
+      const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+      const appUpdateChain = createAppUpdateChain();
+      const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
 
       mocks.admin.mockReturnValue({
         from: vi.fn((table: string) => {

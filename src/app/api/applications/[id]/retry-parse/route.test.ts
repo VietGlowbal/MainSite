@@ -215,8 +215,26 @@ describe('POST /api/applications/[id]/retry-parse', () => {
       })),
     });
 
-    const jobUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-    const appUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+    const createJobUpdateChain = () => {
+      const chain: { eq: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+        eq: vi.fn(() => chain),
+        select: vi.fn().mockResolvedValue({ data: [{ id: 'job-1', status: 'pending' }], error: null }),
+        then: (resolve) => Promise.resolve({ data: [{ id: 'job-1', status: 'pending' }], error: null }).then(resolve),
+      };
+      return chain;
+    };
+    const createAppUpdateChain = () => {
+      const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+        eq: vi.fn(() => chain),
+        then: (resolve) => Promise.resolve({ error: null }).then(resolve),
+      };
+      return chain;
+    };
+
+    const jobUpdateChain = createJobUpdateChain();
+    const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+    const appUpdateChain = createAppUpdateChain();
+    const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
 
     mocks.adminClient.mockReturnValue({
       from: vi.fn((table: string) => {
@@ -277,15 +295,15 @@ describe('POST /api/applications/[id]/retry-parse', () => {
     );
   });
 
-  it('allows retry for stale processing job (>5 minutes)', async () => {
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  it('allows retry for stale processing job (>10 minutes)', async () => {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     mocks.userClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn().mockResolvedValue({
-              data: { id: appId, user_id: userId, parse_status: 'processing', updated_at: tenMinutesAgo },
+              data: { id: appId, user_id: userId, parse_status: 'processing', updated_at: fifteenMinutesAgo },
               error: null,
             }),
           })),
@@ -293,8 +311,26 @@ describe('POST /api/applications/[id]/retry-parse', () => {
       })),
     });
 
-    const jobUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-    const appUpdateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+    const createJobUpdateChain = () => {
+      const chain: { eq: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+        eq: vi.fn(() => chain),
+        select: vi.fn().mockResolvedValue({ data: [{ id: 'job-stale', status: 'pending' }], error: null }),
+        then: (resolve) => Promise.resolve({ data: [{ id: 'job-stale', status: 'pending' }], error: null }).then(resolve),
+      };
+      return chain;
+    };
+    const createAppUpdateChain = () => {
+      const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+        eq: vi.fn(() => chain),
+        then: (resolve) => Promise.resolve({ error: null }).then(resolve),
+      };
+      return chain;
+    };
+
+    const jobUpdateChain = createJobUpdateChain();
+    const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+    const appUpdateChain = createAppUpdateChain();
+    const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
 
     mocks.adminClient.mockReturnValue({
       from: vi.fn((table: string) => {
@@ -307,7 +343,7 @@ describe('POST /api/applications/[id]/retry-parse', () => {
                     id: 'job-stale',
                     status: 'processing',
                     attempts: 1,
-                    updated_at: tenMinutesAgo,
+                    updated_at: fifteenMinutesAgo,
                   },
                   error: null,
                 }),

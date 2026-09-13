@@ -531,11 +531,15 @@ function normalise(raw: unknown, pageUrl: string): CourseExtraction | null {
  * can tell "the site blocked us" from "the model is not configured" and decide
  * whether a retry could ever succeed.
  */
-export async function extractCourse(url: string): Promise<ExtractionResult> {
+export async function extractCourse(
+  url: string,
+  onPhase?: (phase: 'fetching' | 'extracting') => Promise<void> | void,
+): Promise<ExtractionResult> {
   if (!isOpenAIConfigured()) {
     return { ok: false, reason: 'not_configured' };
   }
 
+  await onPhase?.('fetching');
   const content = await fetchCoursePageText(url);
   if (content === null) {
     return { ok: false, reason: 'fetch_failed' };
@@ -544,6 +548,7 @@ export async function extractCourse(url: string): Promise<ExtractionResult> {
     return { ok: false, reason: 'empty_page' };
   }
 
+  await onPhase?.('extracting');
   let completion;
   try {
     completion = await openai.chat.completions.create(

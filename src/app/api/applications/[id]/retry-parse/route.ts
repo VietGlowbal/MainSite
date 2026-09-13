@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createParseJob } from '@/lib/course-parser/job-queue';
 
-const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+// 10-minute threshold compatible with historical claim lease
+const STALE_THRESHOLD_MS = 10 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_RETRIES_PER_WINDOW = 3;
 
@@ -15,10 +16,15 @@ const MAX_RETRIES_PER_WINDOW = 3;
  * Idempotency & Safety:
  * - If parse is already complete, preserves completed output and returns 200 without changes.
  * - If parse is already pending/queued, returns 200 without creating duplicate work.
- * - If parse is actively processing (not stale), returns 200 to avoid duplicate active jobs.
- * - If parse is failed, timeout, or stale-recoverable (>5 min inactivity), safely re-enqueues
- *   the job as 'pending' with attempts reset and resets application parse_status to 'pending'.
- * - Enforces rate limiting (max 3 manual retries per hour per application).
+ * - If a job is actively processing (not stale), returns active 200 even if application
+ *   parse_status temporarily disagrees, avoiding resetting active in-flight work.
+ * - If parse is failed, timeout, or stale-recoverable (>10 min inactivity), safely re-enqueues
+ *   the job as 'pending' with attempts reset for worker pickup and resets application
+ *   parse_status to 'pending'.
+ * - Guarded updates: guards the job update with the observed status so concurrent completions
+ *   are not clobbered.
+ * - Rate limiting: enforces maximum 3 retries per hour, tracked via both attempts and
+ *   durable retry history in parsed_data so resetting worker attempts cannot defeat rate limits.
  */
 export async function POST(
   request: NextRequest,
@@ -59,11 +65,11 @@ export async function POST(
     // Fetch parse job
     const { data: job } = await adminDb
       .from('course_parse_jobs')
-      .select('id, status, attempts, updated_at, started_at')
+      .select('id, status, attempts, updated_at, started_at, parsed_data')
       .eq('application_id', id)
       .maybeSingle();
 
-    // 1. Idempotent check: already complete
+    // 1. Idempotent check: already complete (preserve completed output)
     if (application.parse_status === 'complete' || job?.status === 'complete') {
       return NextResponse.json({
         success: true,
@@ -85,17 +91,22 @@ export async function POST(
       });
     }
 
-    // 3. Stale check if currently processing
+    // 3. Stale & active check: determine based on both job.status and application.parse_status
     const now = Date.now();
+    const isJobProcessing = job?.status === 'processing';
+    const isAppProcessing = application.parse_status === 'processing';
+    const isProcessing = isJobProcessing || isAppProcessing;
+
     const effectiveUpdatedAt = job?.updated_at
       ? new Date(job.updated_at).getTime()
       : application.updated_at
         ? new Date(application.updated_at).getTime()
         : now;
-    const isStale =
-      application.parse_status === 'processing' && now - effectiveUpdatedAt > STALE_THRESHOLD_MS;
 
-    if (application.parse_status === 'processing' && !isStale) {
+    const isStale = isProcessing && now - effectiveUpdatedAt > STALE_THRESHOLD_MS;
+
+    // If a job is processing and not stale, return active even if app parse_status disagrees
+    if (isProcessing && !isStale) {
       return NextResponse.json({
         success: true,
         parseStatus: 'processing',
@@ -120,23 +131,41 @@ export async function POST(
       );
     }
 
-    // 5. Rate limiting: maximum retries per hour
-    if (job) {
-      const windowStart = now - RATE_LIMIT_WINDOW_MS;
-      const jobUpdatedTime = new Date(job.updated_at).getTime();
-      if (jobUpdatedTime > windowStart && job.attempts >= MAX_RETRIES_PER_WINDOW) {
-        return NextResponse.json(
-          { error: `Rate limit exceeded. Maximum ${MAX_RETRIES_PER_WINDOW} retries per hour.` },
-          { status: 429 }
-        );
-      }
+    // 5. Rate limiting: enforce max retries per hour
+    const parsedDataObj = (
+      job?.parsed_data && typeof job.parsed_data === 'object' ? job.parsed_data : {}
+    ) as Record<string, unknown>;
+
+    const existingRetries = Array.isArray(parsedDataObj.manual_retries)
+      ? (parsedDataObj.manual_retries as string[])
+      : [];
+
+    const recentRetries = existingRetries.filter((ts) => {
+      const t = new Date(ts).getTime();
+      return !Number.isNaN(t) && now - t < RATE_LIMIT_WINDOW_MS;
+    });
+
+    const windowStart = now - RATE_LIMIT_WINDOW_MS;
+    const jobUpdatedTime = job?.updated_at ? new Date(job.updated_at).getTime() : 0;
+    const legacyAttemptsExhausted =
+      Boolean(job) && jobUpdatedTime > windowStart && (job?.attempts ?? 0) >= MAX_RETRIES_PER_WINDOW;
+
+    if (recentRetries.length >= MAX_RETRIES_PER_WINDOW || legacyAttemptsExhausted) {
+      return NextResponse.json(
+        { error: `Rate limit exceeded. Maximum ${MAX_RETRIES_PER_WINDOW} retries per hour.` },
+        { status: 429 }
+      );
     }
 
     const isoNow = new Date().toISOString();
+    const nextParsedData = {
+      ...parsedDataObj,
+      manual_retries: [...recentRetries, isoNow],
+    };
 
-    // 6. Reset or create the parse job in pending state
+    // 6. Reset or create the parse job in pending state with guarded update
     if (job) {
-      const { error: updateJobError } = await adminDb
+      const { data: updatedJob, error: updateJobError } = await adminDb
         .from('course_parse_jobs')
         .update({
           status: 'pending',
@@ -147,13 +176,24 @@ export async function POST(
           completed_at: null,
           next_attempt_at: isoNow,
           error_message: null,
+          parsed_data: nextParsedData,
           updated_at: isoNow,
         })
-        .eq('id', job.id);
+        .eq('id', job.id)
+        .eq('status', job.status) // Guarded by observed status
+        .select('id, status');
 
       if (updateJobError) {
         console.error('Failed to update parse job for retry:', updateJobError);
         return NextResponse.json({ error: 'Failed to retry parsing' }, { status: 500 });
+      }
+
+      if (!updatedJob || updatedJob.length === 0) {
+        // Status transitioned concurrently (e.g. completed by worker)
+        return NextResponse.json({
+          success: true,
+          message: 'Parse job was updated concurrently.',
+        });
       }
     } else if (application.course_url) {
       await createParseJob(
@@ -163,7 +203,7 @@ export async function POST(
       );
     }
 
-    // 7. Update application state to pending (correct queued state)
+    // 7. Update application state to pending (correct queued state), guarded by observed status
     const { error: updateAppError } = await adminDb
       .from('course_applications')
       .update({
@@ -172,7 +212,8 @@ export async function POST(
         parse_error: null,
         updated_at: isoNow,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('parse_status', application.parse_status);
 
     if (updateAppError) {
       console.error('Failed to update application parse status:', updateAppError);
