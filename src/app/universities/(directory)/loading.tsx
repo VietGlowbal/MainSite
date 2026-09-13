@@ -6,6 +6,17 @@ import { Container } from '@/shared/ui/container';
  * Mirrors the rebuilt page (Figma 105:8300): hero, search row, chip rows and a
  * 3x3 card grid. Uses `animate-pulse` over token surfaces rather than the old
  * `glowbal-skeleton` legacy class, so nothing here depends on globals.css.
+ *
+ * ⚠️ WHY THIS LIVES IN THE `(directory)` ROUTE GROUP. A `loading.tsx` wraps its
+ * segment AND every child segment in a Suspense boundary. At
+ * `src/app/universities/` it also wrapped `/universities/[id]` and `/vinuni`,
+ * and a Suspense fallback makes Next commit the `200` header before the page
+ * runs — so `notFound()` for a missing university shipped the 404 UI with HTTP
+ * 200 (a "soft 404"), while `/vi/universities/<id>`, which has no loading file
+ * above it, returned a real 404. It also showed this card-grid skeleton on
+ * detail pages, which look nothing like it. The group keeps the URL at
+ * `/universities` and scopes the skeleton to the list alone. Do not move it
+ * back up a level.
  */
 function Bar({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-gb-md bg-surface-muted ${className}`} />;
