@@ -1,0 +1,249 @@
+{
+  "programme_identity": {
+    "state_counts": {
+      "FOUND": 21,
+      "ACCESS_BLOCKED": 8,
+      "NEEDS_REVIEW": 4,
+      "EXTRACTION_FAILED": 2,
+      "SOURCE_NOT_FOUND": 1
+    },
+    "found": 21,
+    "correct_found": 21,
+    "incorrect_found": 0,
+    "precision": {
+      "numerator": 21,
+      "denominator": 21,
+      "value": 100.0
+    },
+    "safe_unresolved": 0,
+    "coverage_loss": 15,
+    "operational_loss": 11,
+    "resolved_coverage": {
+      "numerator": 21,
+      "denominator": 34,
+      "value": 61.76
+    },
+    "candidate_count_created": 26,
+    "effective_candidate_count": 26,
+    "effective_non_null_candidate_count": 22,
+    "assertion_count": 41,
+    "non_null_assertion_count": 27,
+    "selected_assertion_count": 22,
+    "components": [
+      "programme_identity"
+    ]
+  },
+  "credential": {
+    "state_counts": {
+      "NEEDS_REVIEW": 25,
+      "ACCESS_BLOCKED": 8,
+      "CONFLICTING_SOURCES": 1,
+      "SOURCE_NOT_FOUND": 1,
+      "EXTRACTION_FAILED": 1
+    },
+    "found": 0,
+    "correct_found": 0,
+    "incorrect_found": 0,
+    "precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "safe_unresolved": 3,
+    "coverage_loss": 33,
+    "operational_loss": 10,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 30,
+      "value": 0.0
+    },
+    "candidate_count_created": 28,
+    "effective_candidate_count": 27,
+    "effective_non_null_candidate_count": 25,
+    "assertion_count": 40,
+    "non_null_assertion_count": 28,
+    "selected_assertion_count": 24,
+    "components": [
+      "credential"
+    ]
+  },
+  "programme_status": {
+    "state_counts": {
+      "NEEDS_REVIEW": 22,
+      "ACCESS_BLOCKED": 8,
+      "EXTRACTION_FAILED": 5,
+      "SOURCE_NOT_FOUND": 1
+    },
+    "found": 0,
+    "correct_found": 0,
+    "incorrect_found": 0,
+    "precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "safe_unresolved": 22,
+    "coverage_loss": 14,
+    "operational_loss": 14,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "candidate_count_created": 21,
+    "effective_candidate_count": 26,
+    "effective_non_null_candidate_count": 0,
+    "assertion_count": 56,
+    "non_null_assertion_count": 20,
+    "selected_assertion_count": 0,
+    "components": [
+      "programme_status"
+    ]
+  },
+  "tuition": {
+    "state_counts": {
+      "NEEDS_REVIEW": 26,
+      "ACCESS_BLOCKED": 8,
+      "SOURCE_NOT_FOUND": 1,
+      "EXTRACTION_FAILED": 1
+    },
+    "found": 0,
+    "correct_found": 0,
+    "incorrect_found": 0,
+    "precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "safe_unresolved": 15,
+    "coverage_loss": 18,
+    "operational_loss": 10,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 11,
+      "value": 0.0
+    },
+    "candidate_count_created": 34,
+    "effective_candidate_count": 34,
+    "effective_non_null_candidate_count": 29,
+    "assertion_count": 70,
+    "non_null_assertion_count": 55,
+    "selected_assertion_count": 21,
+    "components": [
+      "tuition"
+    ]
+  },
+  "application_deadline": {
+    "state_counts": {
+      "NEEDS_REVIEW": 25,
+      "ACCESS_BLOCKED": 8,
+      "EXTRACTION_FAILED": 2,
+      "SOURCE_NOT_FOUND": 1
+    },
+    "found": 0,
+    "correct_found": 0,
+    "incorrect_found": 0,
+    "precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "safe_unresolved": 22,
+    "coverage_loss": 14,
+    "operational_loss": 11,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 4,
+      "value": 0.0
+    },
+    "candidate_count_created": 32,
+    "effective_candidate_count": 131,
+    "effective_non_null_candidate_count": 34,
+    "assertion_count": 195,
+    "non_null_assertion_count": 48,
+    "selected_assertion_count": 30,
+    "components": [
+      "priority_deadline",
+      "final_deadline",
+      "funding_deadline",
+      "international_deadline",
+      "rolling_admission"
+    ]
+  },
+  "english_requirement": {
+    "state_counts": {
+      "NEEDS_REVIEW": 25,
+      "ACCESS_BLOCKED": 8,
+      "EXTRACTION_FAILED": 2,
+      "SOURCE_NOT_FOUND": 1
+    },
+    "found": 0,
+    "correct_found": 0,
+    "incorrect_found": 0,
+    "precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "safe_unresolved": 8,
+    "coverage_loss": 28,
+    "operational_loss": 11,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 22,
+      "value": 0.0
+    },
+    "candidate_count_created": 19,
+    "effective_candidate_count": 130,
+    "effective_non_null_candidate_count": 36,
+    "assertion_count": 200,
+    "non_null_assertion_count": 40,
+    "selected_assertion_count": 23,
+    "components": [
+      "ielts_overall",
+      "ielts_subscores",
+      "toefl",
+      "duolingo",
+      "standardized_tests"
+    ]
+  },
+  "major_admissions_requirement": {
+    "state_counts": {
+      "NEEDS_REVIEW": 26,
+      "ACCESS_BLOCKED": 8,
+      "SOURCE_NOT_FOUND": 1,
+      "EXTRACTION_FAILED": 1
+    },
+    "found": 0,
+    "correct_found": 0,
+    "incorrect_found": 0,
+    "precision": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null
+    },
+    "safe_unresolved": 12,
+    "coverage_loss": 21,
+    "operational_loss": 10,
+    "resolved_coverage": {
+      "numerator": 0,
+      "denominator": 17,
+      "value": 0.0
+    },
+    "candidate_count_created": 48,
+    "effective_candidate_count": 187,
+    "effective_non_null_candidate_count": 55,
+    "assertion_count": 262,
+    "non_null_assertion_count": 60,
+    "selected_assertion_count": 91,
+    "components": [
+      "minimum_degree",
+      "minimum_gpa",
+      "gpa_scale",
+      "subject_prerequisites",
+      "admission_difficulty",
+      "work_experience",
+      "portfolio"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "json_jsonl_schema": "PASS (14 JSON files; 6997 JSONL records parsed; output/score population 252/252)",
+  "benchmark_v3_integrity": "PASS",
+  "v3_hashes": {
+    "artifacts.ground_truth_v3": "af91cf8d7df798edff98fa15588e4399800d06e6b9eed59a0b751590491dbafc",
+    "artifacts.roster_v2": "7518c63696e7a29ef3d4f3584b2338995d86e5d06d478d192d28562926394139",
+    "artifacts.identity_contract_v2": "634dac0462ae3ccd5825114030e14b20ce49d9fa15625ad0078bba59c584b0a0",
+    "artifacts.scorer_contract_v2_markdown": "71b93dc291e33dccb065e9629db24546236df0f2fd18f57160c8651ee671070f",
+    "artifacts.scorer_contract_v2_json": "86d651860b25e3a3bef1ffe3b6e172b21a1f930febdb31c886b43930981579c8",
+    "artifacts.machine_scorer": "68e9a7412c4fd3dd8d933e549ef343dcd63f4ee2685cdf2316051b765128bad7",
+    "artifacts.adjudication_matrix": "985268067e143e20e0888eee5fc5f7a925fc6e1a0dc456dc27e65d1c6c2ca948",
+    "artifacts.human_review_log": "4c687cfaff97728b42bd1caebe97838b78000dcb17c40a4d009e4c6103d869de",
+    "immutable_v2_hashes.docs/benchmarks/2026-09-01-phase-3f-ground-truth-v2-frozen.jsonl": "97308474e88eecc8165a94aae4a9bcfe104ec8da6807efdd0a2ad8de74e8e0d4",
+    "immutable_v2_hashes.docs/benchmarks/2026-08-30-phase-3f-roster-v2.md": "7518c63696e7a29ef3d4f3584b2338995d86e5d06d478d192d28562926394139",
+    "immutable_v2_hashes.docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md": "47c2b2446dbd0ba2e9ebdd955ba972999ed76de4c7e8f188edea9f43ba837e91",
+    "immutable_v2_hashes.docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.json": "720bc47dde66fce4ceb740cf766e28433bc5553b1882ca87da06e861ae890d99",
+    "lineage.v2_manifest": "b63aac2da88e0eb5068cf2f37cb44427107c8b5f1f7c399f1ff695400d849ddd"
+  },
+  "runs_1_7_integrity": "PASS",
+  "run8_artifact_integrity": "PASS",
+  "secret_scan": "PASS (0 credential values or token-like literals in Run #8 artifacts; pre-existing documentation/test literals were excluded as non-secret fixtures)",
+  "git_diff_check": "PASS",
+  "full_ingestion_suite": "PASS (389 passed in 13.15s)",
+  "focused_remediation_suites": "PASS (87 passed in 0.89s)",
+  "compileall": "PASS",
+  "pre_run_clean_v3_preflight": "PASS (provider calls 0; clean worktree)",
+  "post_run_frozen_hash_validation": "PASS",
+  "scorer_v2": "PASS (frozen score-result hash verified)",
+  "provider_calls_after_connectivity": 0,
+  "node22": "PASS (v22.15.0)",
+  "node24": "DEFERRED / UNVERIFIED by user decision",
+  "pipeline_output_sha256": "87ec1dc88da485c746edbca5615cf00c7543cf3111a66d2949fcb6f4fd4bf74f"
+}

@@ -1,0 +1,2951 @@
+{
+  "run_id": "phase3f-v3-run-20260908T134122Z",
+  "candidate_count": 42,
+  "class_counts": {
+    "C": 30,
+    "E": 9,
+    "D": 3
+  },
+  "candidates": [
+    {
+      "case_id": "GT-V2-04-application_deadline",
+      "field": "application_deadline",
+      "institution": "Harvard",
+      "programme": "Computer Science",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid",
+          "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "1a390642-06b8-5d00-b6cd-1bc702af92bd",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/programs/computer-science",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:41:24+00:00"
+        },
+        {
+          "error_id": "975d8a9d-0a16-5136-a280-6caeafe85c81",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/programs/computer-science",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:43:39+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-04-programme_status",
+      "field": "programme_status",
+      "institution": "Harvard",
+      "programme": "Computer Science",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid",
+          "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "1a390642-06b8-5d00-b6cd-1bc702af92bd",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/programs/computer-science",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:41:24+00:00"
+        },
+        {
+          "error_id": "975d8a9d-0a16-5136-a280-6caeafe85c81",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/programs/computer-science",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:43:39+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-06-application_deadline",
+      "field": "application_deadline",
+      "institution": "Harvard",
+      "programme": "Electrical Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid",
+          "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "bde598a8-0965-5513-ae7f-935acf18626f",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:41:27+00:00"
+        },
+        {
+          "error_id": "b78df607-8b8d-5feb-ac77-f722c763c2ee",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:43:43+00:00"
+        },
+        {
+          "error_id": "d994b957-b598-5bc9-9ae7-a09d842be79d",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:12+00:00"
+        },
+        {
+          "error_id": "3ca94cdb-7bca-5213-8916-016d0c4d5ad6",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:14+00:00"
+        },
+        {
+          "error_id": "df31c52d-6f47-52de-bd90-0b048778d567",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:45+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-06-credential",
+      "field": "credential",
+      "institution": "Harvard",
+      "programme": "Electrical Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid",
+          "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "bde598a8-0965-5513-ae7f-935acf18626f",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:41:27+00:00"
+        },
+        {
+          "error_id": "b78df607-8b8d-5feb-ac77-f722c763c2ee",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:43:43+00:00"
+        },
+        {
+          "error_id": "d994b957-b598-5bc9-9ae7-a09d842be79d",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:12+00:00"
+        },
+        {
+          "error_id": "3ca94cdb-7bca-5213-8916-016d0c4d5ad6",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:14+00:00"
+        },
+        {
+          "error_id": "df31c52d-6f47-52de-bd90-0b048778d567",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:45+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-06-programme_identity",
+      "field": "programme_identity",
+      "institution": "Harvard",
+      "programme": "Electrical Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid",
+          "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "bde598a8-0965-5513-ae7f-935acf18626f",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:41:27+00:00"
+        },
+        {
+          "error_id": "b78df607-8b8d-5feb-ac77-f722c763c2ee",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:43:43+00:00"
+        },
+        {
+          "error_id": "d994b957-b598-5bc9-9ae7-a09d842be79d",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:12+00:00"
+        },
+        {
+          "error_id": "3ca94cdb-7bca-5213-8916-016d0c4d5ad6",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:14+00:00"
+        },
+        {
+          "error_id": "df31c52d-6f47-52de-bd90-0b048778d567",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:45+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-06-programme_status",
+      "field": "programme_status",
+      "institution": "Harvard",
+      "programme": "Electrical Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid",
+          "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://college.harvard.edu/admissions",
+          "https://college.harvard.edu/financial-aid"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "configured_source_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "bde598a8-0965-5513-ae7f-935acf18626f",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:41:27+00:00"
+        },
+        {
+          "error_id": "b78df607-8b8d-5feb-ac77-f722c763c2ee",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:43:43+00:00"
+        },
+        {
+          "error_id": "d994b957-b598-5bc9-9ae7-a09d842be79d",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:12+00:00"
+        },
+        {
+          "error_id": "3ca94cdb-7bca-5213-8916-016d0c4d5ad6",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "configured_source_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:14+00:00"
+        },
+        {
+          "error_id": "df31c52d-6f47-52de-bd90-0b048778d567",
+          "institution_id": "harvard-us",
+          "url": "https://handbook.college.harvard.edu/sites/g/files/omnuum5551/files/2026-03/Fields%20of%20Concentration_0.pdf",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:45+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-08-application_deadline",
+      "field": "application_deadline",
+      "institution": "Princeton",
+      "programme": "Computer Science",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions/applying-princeton"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "ec2d8065-d98b-5671-a984-e804d09c7015",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/computer-science",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/computer-science",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        },
+        {
+          "error_id": "b5bced8e-0a0c-5585-acff-26f91f034a32",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/computer-science",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:46:01+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-08-programme_status",
+      "field": "programme_status",
+      "institution": "Princeton",
+      "programme": "Computer Science",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions/applying-princeton"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "ec2d8065-d98b-5671-a984-e804d09c7015",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/computer-science",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/computer-science",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        },
+        {
+          "error_id": "b5bced8e-0a0c-5585-acff-26f91f034a32",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/computer-science",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:46:01+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-09-application_deadline",
+      "field": "application_deadline",
+      "institution": "Princeton",
+      "programme": "Chemical and Biological Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admission.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.princeton.edu/",
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c7c1e3fd-1c82-5739-b970-fc77a15c6468",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "retryable": false,
+          "created_at": "2026-09-08T13:44:25+00:00"
+        },
+        {
+          "error_id": "78fa9cde-1186-5be3-bb5c-106e4b2cf616",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-09-credential",
+      "field": "credential",
+      "institution": "Princeton",
+      "programme": "Chemical and Biological Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admission.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.princeton.edu/",
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c7c1e3fd-1c82-5739-b970-fc77a15c6468",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "retryable": false,
+          "created_at": "2026-09-08T13:44:25+00:00"
+        },
+        {
+          "error_id": "78fa9cde-1186-5be3-bb5c-106e4b2cf616",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-09-english_requirement",
+      "field": "english_requirement",
+      "institution": "Princeton",
+      "programme": "Chemical and Biological Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admission.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.princeton.edu/",
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c7c1e3fd-1c82-5739-b970-fc77a15c6468",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "retryable": false,
+          "created_at": "2026-09-08T13:44:25+00:00"
+        },
+        {
+          "error_id": "78fa9cde-1186-5be3-bb5c-106e4b2cf616",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-09-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "institution": "Princeton",
+      "programme": "Chemical and Biological Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admission.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.princeton.edu/",
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c7c1e3fd-1c82-5739-b970-fc77a15c6468",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "retryable": false,
+          "created_at": "2026-09-08T13:44:25+00:00"
+        },
+        {
+          "error_id": "78fa9cde-1186-5be3-bb5c-106e4b2cf616",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-09-programme_identity",
+      "field": "programme_identity",
+      "institution": "Princeton",
+      "programme": "Chemical and Biological Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admission.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.princeton.edu/",
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c7c1e3fd-1c82-5739-b970-fc77a15c6468",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "retryable": false,
+          "created_at": "2026-09-08T13:44:25+00:00"
+        },
+        {
+          "error_id": "78fa9cde-1186-5be3-bb5c-106e4b2cf616",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-09-programme_status",
+      "field": "programme_status",
+      "institution": "Princeton",
+      "programme": "Chemical and Biological Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admission.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.princeton.edu/",
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c7c1e3fd-1c82-5739-b970-fc77a15c6468",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "retryable": false,
+          "created_at": "2026-09-08T13:44:25+00:00"
+        },
+        {
+          "error_id": "78fa9cde-1186-5be3-bb5c-106e4b2cf616",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-09-tuition",
+      "field": "tuition",
+      "institution": "Princeton",
+      "programme": "Chemical and Biological Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admission.princeton.edu/",
+          "https://gradschool.princeton.edu/admissions",
+          "https://finaid.princeton.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.princeton.edu/",
+          "https://finaid.princeton.edu/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c7c1e3fd-1c82-5739-b970-fc77a15c6468",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "retryable": false,
+          "created_at": "2026-09-08T13:44:25+00:00"
+        },
+        {
+          "error_id": "78fa9cde-1186-5be3-bb5c-106e4b2cf616",
+          "institution_id": "princeton-us",
+          "url": "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study/chemical-and-biological-engineering",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T13:45:28+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-13-programme_status",
+      "field": "programme_status",
+      "institution": "Northwestern",
+      "programme": "Liberal Arts and Music",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://catalogs.northwestern.edu/undergraduate/dual-bachelors-degrees/liberal-arts-music/",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 2987
+          }
+        ],
+        "configured_source_register": [
+          "https://admissions.northwestern.edu/",
+          "https://www.northwestern.edu/sfs/",
+          "https://www.bienen.northwestern.edu/admissions/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admissions.northwestern.edu/",
+          "https://www.northwestern.edu/sfs/"
+        ]
+      },
+      "candidate_present": true,
+      "non_null_candidate_present": false,
+      "assertion_present": true,
+      "non_null_assertion_present": false,
+      "source_errors": [],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": [
+          {
+            "assertion_id": "7f02d507-8eef-5d6b-b558-189232ce68fd",
+            "component_field": "programme_status",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://catalogs.northwestern.edu/undergraduate/dual-bachelors-degrees/liberal-arts-music/",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "GT-V2-17-programme_status",
+      "field": "programme_status",
+      "institution": "Cornell",
+      "programme": "Computer Science",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://catalog.cornell.edu/programs/computer-science-bs/",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 45936
+          }
+        ],
+        "configured_source_register": [
+          "https://admissions.cornell.edu/",
+          "https://finaid.cornell.edu/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admissions.cornell.edu/",
+          "https://finaid.cornell.edu/"
+        ]
+      },
+      "candidate_present": true,
+      "non_null_candidate_present": false,
+      "assertion_present": true,
+      "non_null_assertion_present": false,
+      "source_errors": [],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": [
+          {
+            "assertion_id": "bb394b41-0e39-5947-bd33-378f0ffc81d1",
+            "component_field": "programme_status",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://catalog.cornell.edu/programs/computer-science-bs/",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "GT-V2-23-application_deadline",
+      "field": "application_deadline",
+      "institution": "Université de Montréal",
+      "programme": "Maîtrise en informatique",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 24036
+          }
+        ],
+        "configured_source_register": [
+          "https://admission.umontreal.ca/",
+          "https://registraire.umontreal.ca/droits-de-scolarite/",
+          "https://admission.umontreal.ca/programmes/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.umontreal.ca/",
+          "https://registraire.umontreal.ca/droits-de-scolarite/",
+          "https://admission.umontreal.ca/programmes/"
+        ]
+      },
+      "candidate_present": true,
+      "non_null_candidate_present": false,
+      "assertion_present": true,
+      "non_null_assertion_present": false,
+      "source_errors": [],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": [
+          {
+            "assertion_id": "ff25cb2a-e4b6-5e79-97e7-7cb633ae0af2",
+            "component_field": "priority_deadline",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          },
+          {
+            "assertion_id": "589c9659-0d98-50cb-8f92-77e9b3a1accb",
+            "component_field": "final_deadline",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          },
+          {
+            "assertion_id": "7367c24e-178b-5498-a936-18358a713fb4",
+            "component_field": "funding_deadline",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          },
+          {
+            "assertion_id": "e091895e-676a-5bbf-9839-40a26c4eaa74",
+            "component_field": "international_deadline",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "GT-V2-23-programme_status",
+      "field": "programme_status",
+      "institution": "Université de Montréal",
+      "programme": "Maîtrise en informatique",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 24036
+          }
+        ],
+        "configured_source_register": [
+          "https://admission.umontreal.ca/",
+          "https://registraire.umontreal.ca/droits-de-scolarite/",
+          "https://admission.umontreal.ca/programmes/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://admission.umontreal.ca/",
+          "https://registraire.umontreal.ca/droits-de-scolarite/",
+          "https://admission.umontreal.ca/programmes/"
+        ]
+      },
+      "candidate_present": true,
+      "non_null_candidate_present": false,
+      "assertion_present": true,
+      "non_null_assertion_present": false,
+      "source_errors": [],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": [
+          {
+            "assertion_id": "53b969e6-6ef0-5eb6-9d57-ac33b1669f49",
+            "component_field": "programme_status",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "GT-V2-25-programme_status",
+      "field": "programme_status",
+      "institution": "University of Tokyo",
+      "programme": "Computer Science, IIS",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 2719
+          }
+        ],
+        "configured_source_register": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://www.u-tokyo.ac.jp/en/current-students/tuition.html"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf"
+        ]
+      },
+      "candidate_present": true,
+      "non_null_candidate_present": false,
+      "assertion_present": true,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "admission_coverage_retry_extraction",
+          "code": "ADMISSION_RETRY_EXTRACTION_FAILED",
+          "retryable": false
+        },
+        {
+          "error_id": "a6998dc5-c2e7-5f2a-99b9-c451273f4a91",
+          "institution_id": "tokyo-jp",
+          "url": "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "stage": "admission_coverage_retry_extraction",
+          "error_code": "ADMISSION_RETRY_EXTRACTION_FAILED",
+          "message": "Extraction group academics_admissions failed: facts[1].value.document_type is invalid.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:05:40+00:00"
+        }
+      ],
+      "extraction_errors": [
+        {
+          "stage": "admission_coverage_retry_extraction",
+          "code": "ADMISSION_RETRY_EXTRACTION_FAILED",
+          "retryable": false
+        },
+        {
+          "error_id": "a6998dc5-c2e7-5f2a-99b9-c451273f4a91",
+          "institution_id": "tokyo-jp",
+          "url": "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "stage": "admission_coverage_retry_extraction",
+          "error_code": "ADMISSION_RETRY_EXTRACTION_FAILED",
+          "message": "Extraction group academics_admissions failed: facts[1].value.document_type is invalid.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:05:40+00:00"
+        }
+      ],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": [
+          {
+            "assertion_id": "45a7f3a8-17f0-5221-b883-26623d25d120",
+            "component_field": "programme_status",
+            "value_present": false,
+            "accepted_for_runtime_found": false,
+            "acceptance_reasons": [
+              "NO_VALUE"
+            ],
+            "candidate_value": null,
+            "assertion_value": null,
+            "source_url": "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+            "source_authority": null,
+            "source_relationship": null,
+            "source_type": null,
+            "source_publication_date": null,
+            "academic_cycle": null,
+            "intake": null,
+            "audience": null,
+            "scope": null,
+            "applicability_state": "UNKNOWN",
+            "temporal_state": "UNKNOWN",
+            "evidence": null,
+            "applicability_evidence": null,
+            "raw_document_id": null,
+            "epistemic_state": "OBSERVED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "GT-V2-26-application_deadline",
+      "field": "application_deadline",
+      "institution": "University of Tokyo",
+      "programme": "Information and Communication Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://www.u-tokyo.ac.jp/en/current-students/tuition.html"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "400c3b64-df39-5184-9647-c92e06dc0ba5",
+          "institution_id": "tokyo-jp",
+          "url": "https://i-web2.i.u-tokyo.ac.jp/edu/course/ice/admission_e.shtml",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:00:21+00:00"
+        },
+        {
+          "error_id": "46199667-c3aa-51a8-ae00-89b6b89658ee",
+          "institution_id": "tokyo-jp",
+          "url": "https://i-web2.i.u-tokyo.ac.jp/edu/course/ice/admission_e.shtml",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:02:23+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-26-programme_status",
+      "field": "programme_status",
+      "institution": "University of Tokyo",
+      "programme": "Information and Communication Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://www.u-tokyo.ac.jp/en/current-students/tuition.html"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "400c3b64-df39-5184-9647-c92e06dc0ba5",
+          "institution_id": "tokyo-jp",
+          "url": "https://i-web2.i.u-tokyo.ac.jp/edu/course/ice/admission_e.shtml",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:00:21+00:00"
+        },
+        {
+          "error_id": "46199667-c3aa-51a8-ae00-89b6b89658ee",
+          "institution_id": "tokyo-jp",
+          "url": "https://i-web2.i.u-tokyo.ac.jp/edu/course/ice/admission_e.shtml",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:02:23+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-26-tuition",
+      "field": "tuition",
+      "institution": "University of Tokyo",
+      "programme": "Information and Communication Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://www.u-tokyo.ac.jp/en/current-students/tuition.html"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "400c3b64-df39-5184-9647-c92e06dc0ba5",
+          "institution_id": "tokyo-jp",
+          "url": "https://i-web2.i.u-tokyo.ac.jp/edu/course/ice/admission_e.shtml",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:00:21+00:00"
+        },
+        {
+          "error_id": "46199667-c3aa-51a8-ae00-89b6b89658ee",
+          "institution_id": "tokyo-jp",
+          "url": "https://i-web2.i.u-tokyo.ac.jp/edu/course/ice/admission_e.shtml",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:02:23+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-27-credential",
+      "field": "credential",
+      "institution": "University of Tokyo",
+      "programme": "ITASIA",
+      "runtime_state": "SOURCE_NOT_FOUND",
+      "runtime_value": null,
+      "root_cause_class": "D",
+      "first_divergent_stage": "SOURCE_SELECTION",
+      "classification_basis": "the selected URL failed while an official alternate source frontier was persisted",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://www.u-tokyo.ac.jp/en/current-students/tuition.html",
+          "https://itasia.iii.u-tokyo.ac.jp/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://itasia.iii.u-tokyo.ac.jp/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_404",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "2c682406-8806-5e37-bbe7-4a9ff11eca85",
+          "institution_id": "tokyo-jp",
+          "url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_404",
+          "message": "HTTP 404 for https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "retryable": false,
+          "created_at": "2026-09-08T14:02:24+00:00"
+        },
+        {
+          "error_id": "b3e27f78-633d-5268-8803-9b99149d0db1",
+          "institution_id": "tokyo-jp",
+          "url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:04:02+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-27-programme_status",
+      "field": "programme_status",
+      "institution": "University of Tokyo",
+      "programme": "ITASIA",
+      "runtime_state": "SOURCE_NOT_FOUND",
+      "runtime_value": null,
+      "root_cause_class": "D",
+      "first_divergent_stage": "SOURCE_SELECTION",
+      "classification_basis": "the selected URL failed while an official alternate source frontier was persisted",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://www.u-tokyo.ac.jp/en/current-students/tuition.html",
+          "https://itasia.iii.u-tokyo.ac.jp/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://itasia.iii.u-tokyo.ac.jp/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_404",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "2c682406-8806-5e37-bbe7-4a9ff11eca85",
+          "institution_id": "tokyo-jp",
+          "url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_404",
+          "message": "HTTP 404 for https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "retryable": false,
+          "created_at": "2026-09-08T14:02:24+00:00"
+        },
+        {
+          "error_id": "b3e27f78-633d-5268-8803-9b99149d0db1",
+          "institution_id": "tokyo-jp",
+          "url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:04:02+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-27-tuition",
+      "field": "tuition",
+      "institution": "University of Tokyo",
+      "programme": "ITASIA",
+      "runtime_state": "SOURCE_NOT_FOUND",
+      "runtime_value": null,
+      "root_cause_class": "D",
+      "first_divergent_stage": "SOURCE_SELECTION",
+      "classification_basis": "the selected URL failed while an official alternate source frontier was persisted",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://www.u-tokyo.ac.jp/en/current-students/tuition.html",
+          "https://itasia.iii.u-tokyo.ac.jp/"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2026_ja_2025-2-28.pdf",
+          "https://itasia.iii.u-tokyo.ac.jp/"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_404",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "2c682406-8806-5e37-bbe7-4a9ff11eca85",
+          "institution_id": "tokyo-jp",
+          "url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_404",
+          "message": "HTTP 404 for https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "retryable": false,
+          "created_at": "2026-09-08T14:02:24+00:00"
+        },
+        {
+          "error_id": "b3e27f78-633d-5268-8803-9b99149d0db1",
+          "institution_id": "tokyo-jp",
+          "url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:04:02+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-31-application_deadline",
+      "field": "application_deadline",
+      "institution": "Sorbonne Université",
+      "programme": "Licence d’informatique, parcours monodisciplinaire",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c410ac7f-254e-5351-a1d7-e8433db46b3e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:05:24+00:00"
+        },
+        {
+          "error_id": "53b11d74-66e7-5f92-b0ce-c435f989effb",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:07:09+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-31-english_requirement",
+      "field": "english_requirement",
+      "institution": "Sorbonne Université",
+      "programme": "Licence d’informatique, parcours monodisciplinaire",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c410ac7f-254e-5351-a1d7-e8433db46b3e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:05:24+00:00"
+        },
+        {
+          "error_id": "53b11d74-66e7-5f92-b0ce-c435f989effb",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:07:09+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-31-programme_status",
+      "field": "programme_status",
+      "institution": "Sorbonne Université",
+      "programme": "Licence d’informatique, parcours monodisciplinaire",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c410ac7f-254e-5351-a1d7-e8433db46b3e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:05:24+00:00"
+        },
+        {
+          "error_id": "53b11d74-66e7-5f92-b0ce-c435f989effb",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:07:09+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-31-tuition",
+      "field": "tuition",
+      "institution": "Sorbonne Université",
+      "programme": "Licence d’informatique, parcours monodisciplinaire",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "BLOCKED_BY_ROBOTS",
+          "retryable": false
+        },
+        {
+          "stage": "identity_validation",
+          "code": "PROGRAMME_IDENTITY_MISMATCH",
+          "retryable": false
+        },
+        {
+          "error_id": "c410ac7f-254e-5351-a1d7-e8433db46b3e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "deep_fetch",
+          "error_code": "BLOCKED_BY_ROBOTS",
+          "message": "Path is disallowed by robots policy.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:05:24+00:00"
+        },
+        {
+          "error_id": "53b11d74-66e7-5f92-b0ce-c435f989effb",
+          "institution_id": "sorbonne-fr",
+          "url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "stage": "identity_validation",
+          "error_code": "PROGRAMME_IDENTITY_MISMATCH",
+          "message": "Extraction provider reported that sources do not match the target programme.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:07:09+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-32-application_deadline",
+      "field": "application_deadline",
+      "institution": "Sorbonne Université",
+      "programme": "Master Informatique, MIND",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 10601
+          }
+        ],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "extraction_provider",
+          "code": "CONTEXT_LIMIT",
+          "retryable": false
+        },
+        {
+          "error_id": "70af1cb1-0649-5562-9ca3-afd8fbd6b99e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+          "stage": "extraction_provider",
+          "error_code": "CONTEXT_LIMIT",
+          "message": "Extraction group identity_offering failed: DeepSeek output was truncated.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:10+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-32-english_requirement",
+      "field": "english_requirement",
+      "institution": "Sorbonne Université",
+      "programme": "Master Informatique, MIND",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 10601
+          }
+        ],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "extraction_provider",
+          "code": "CONTEXT_LIMIT",
+          "retryable": false
+        },
+        {
+          "error_id": "70af1cb1-0649-5562-9ca3-afd8fbd6b99e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+          "stage": "extraction_provider",
+          "error_code": "CONTEXT_LIMIT",
+          "message": "Extraction group identity_offering failed: DeepSeek output was truncated.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:10+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-32-programme_status",
+      "field": "programme_status",
+      "institution": "Sorbonne Université",
+      "programme": "Master Informatique, MIND",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 10601
+          }
+        ],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "extraction_provider",
+          "code": "CONTEXT_LIMIT",
+          "retryable": false
+        },
+        {
+          "error_id": "70af1cb1-0649-5562-9ca3-afd8fbd6b99e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+          "stage": "extraction_provider",
+          "error_code": "CONTEXT_LIMIT",
+          "message": "Extraction group identity_offering failed: DeepSeek output was truncated.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:10+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-32-tuition",
+      "field": "tuition",
+      "institution": "Sorbonne Université",
+      "programme": "Master Informatique, MIND",
+      "runtime_state": "EXTRACTION_FAILED",
+      "runtime_value": null,
+      "root_cause_class": "E",
+      "first_divergent_stage": "EXTRACTION",
+      "classification_basis": "source text was fetched but extraction produced no usable non-null assertion",
+      "source_availability": {
+        "field_source_count": 1,
+        "field_sources": [
+          {
+            "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+            "status": 200,
+            "content_type": "text/html",
+            "authority": "OFFICIAL",
+            "published_at": null,
+            "text_length": 10601
+          }
+        ],
+        "configured_source_register": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ],
+        "fetched_alternate_official_sources": [
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://www.sorbonne-universite.fr/formation-et-vie-etudiante/candidater-et-sinscrire/modalites-dinscription-et-couts-des-etudes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/candidatures-et-inscriptions/arretes",
+          "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique"
+        ]
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "extraction_provider",
+          "code": "CONTEXT_LIMIT",
+          "retryable": false
+        },
+        {
+          "error_id": "70af1cb1-0649-5562-9ca3-afd8fbd6b99e",
+          "institution_id": "sorbonne-fr",
+          "url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+          "stage": "extraction_provider",
+          "error_code": "CONTEXT_LIMIT",
+          "message": "Extraction group identity_offering failed: DeepSeek output was truncated.",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:10+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-35-application_deadline",
+      "field": "application_deadline",
+      "institution": "University of Michigan",
+      "programme": "Aerospace Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admissions.umich.edu/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "a4649767-0cee-518c-9b7a-b92d65af0c4d",
+          "institution_id": "michigan-us",
+          "url": "https://aero.engin.umich.edu/",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://aero.engin.umich.edu/",
+          "retryable": false,
+          "created_at": "2026-09-08T14:06:57+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-35-programme_status",
+      "field": "programme_status",
+      "institution": "University of Michigan",
+      "programme": "Aerospace Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admissions.umich.edu/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "a4649767-0cee-518c-9b7a-b92d65af0c4d",
+          "institution_id": "michigan-us",
+          "url": "https://aero.engin.umich.edu/",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://aero.engin.umich.edu/",
+          "retryable": false,
+          "created_at": "2026-09-08T14:06:57+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-35-tuition",
+      "field": "tuition",
+      "institution": "University of Michigan",
+      "programme": "Aerospace Engineering",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://admissions.umich.edu/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "a4649767-0cee-518c-9b7a-b92d65af0c4d",
+          "institution_id": "michigan-us",
+          "url": "https://aero.engin.umich.edu/",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://aero.engin.umich.edu/",
+          "retryable": false,
+          "created_at": "2026-09-08T14:06:57+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-36-application_deadline",
+      "field": "application_deadline",
+      "institution": "University of Michigan",
+      "programme": "Applied Economics",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://rackham.umich.edu/admissions/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "3d236b3c-1989-556c-b688-13ad8a772e8d",
+          "institution_id": "michigan-us",
+          "url": "https://lsa.umich.edu/econ/mae.html",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://lsa.umich.edu/econ/mae.html",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:33+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-36-english_requirement",
+      "field": "english_requirement",
+      "institution": "University of Michigan",
+      "programme": "Applied Economics",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://rackham.umich.edu/admissions/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "3d236b3c-1989-556c-b688-13ad8a772e8d",
+          "institution_id": "michigan-us",
+          "url": "https://lsa.umich.edu/econ/mae.html",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://lsa.umich.edu/econ/mae.html",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:33+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-36-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "institution": "University of Michigan",
+      "programme": "Applied Economics",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://rackham.umich.edu/admissions/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "3d236b3c-1989-556c-b688-13ad8a772e8d",
+          "institution_id": "michigan-us",
+          "url": "https://lsa.umich.edu/econ/mae.html",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://lsa.umich.edu/econ/mae.html",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:33+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-36-programme_status",
+      "field": "programme_status",
+      "institution": "University of Michigan",
+      "programme": "Applied Economics",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://rackham.umich.edu/admissions/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "3d236b3c-1989-556c-b688-13ad8a772e8d",
+          "institution_id": "michigan-us",
+          "url": "https://lsa.umich.edu/econ/mae.html",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://lsa.umich.edu/econ/mae.html",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:33+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    },
+    {
+      "case_id": "GT-V2-36-tuition",
+      "field": "tuition",
+      "institution": "University of Michigan",
+      "programme": "Applied Economics",
+      "runtime_state": "ACCESS_BLOCKED",
+      "runtime_value": null,
+      "root_cause_class": "C",
+      "first_divergent_stage": "FETCH",
+      "classification_basis": "non-retryable access failure left no fetched field evidence",
+      "source_availability": {
+        "field_source_count": 0,
+        "field_sources": [],
+        "configured_source_register": [
+          "https://rackham.umich.edu/admissions/",
+          "https://finaid.umich.edu/"
+        ],
+        "fetched_alternate_official_sources": []
+      },
+      "candidate_present": false,
+      "non_null_candidate_present": false,
+      "assertion_present": false,
+      "non_null_assertion_present": false,
+      "source_errors": [
+        {
+          "stage": "deep_fetch",
+          "code": "HTTP_403",
+          "retryable": false
+        },
+        {
+          "error_id": "3d236b3c-1989-556c-b688-13ad8a772e8d",
+          "institution_id": "michigan-us",
+          "url": "https://lsa.umich.edu/econ/mae.html",
+          "stage": "deep_fetch",
+          "error_code": "HTTP_403",
+          "message": "HTTP 403 for https://lsa.umich.edu/econ/mae.html",
+          "retryable": false,
+          "created_at": "2026-09-08T14:08:33+00:00"
+        }
+      ],
+      "extraction_errors": [],
+      "selected_assertions": {
+        "selected_assertion_ids": [],
+        "selection_reason": "no_non_null_candidate",
+        "selected_candidates": []
+      }
+    }
+  ]
+}

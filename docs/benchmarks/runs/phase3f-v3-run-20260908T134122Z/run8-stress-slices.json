@@ -1,0 +1,198 @@
+{
+  "PDF": {
+    "critical_cases": 98,
+    "correct": 7,
+    "safe_unresolved": 27,
+    "incorrect": 1,
+    "coverage_loss": 63,
+    "critical_precision": {
+      "numerator": 7,
+      "denominator": 7,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 14,
+    "programmes_discovered": 14,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 19,
+      "FETCH": 27,
+      "EXTRACTION": 9,
+      "CONFLICT": 1,
+      "SOURCE_SELECTION": 7
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 1
+  },
+  "multilingual": {
+    "critical_cases": 70,
+    "correct": 4,
+    "safe_unresolved": 24,
+    "incorrect": 0,
+    "coverage_loss": 42,
+    "critical_precision": {
+      "numerator": 4,
+      "denominator": 4,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 10,
+    "programmes_discovered": 10,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 8,
+      "EXTRACTION": 12,
+      "CONFLICT": 1,
+      "FETCH": 14,
+      "SOURCE_SELECTION": 7
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 0
+  },
+  "related-party": {
+    "critical_cases": 56,
+    "correct": 6,
+    "safe_unresolved": 15,
+    "incorrect": 1,
+    "coverage_loss": 34,
+    "critical_precision": {
+      "numerator": 6,
+      "denominator": 6,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 8,
+    "programmes_discovered": 8,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 18,
+      "EXTRACTION": 9,
+      "SOURCE_SELECTION": 7
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 1
+  },
+  "historical": {
+    "critical_cases": 231,
+    "correct": 18,
+    "safe_unresolved": 73,
+    "incorrect": 6,
+    "coverage_loss": 134,
+    "critical_precision": {
+      "numerator": 18,
+      "denominator": 18,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 33,
+    "programmes_discovered": 33,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 58,
+      "FETCH": 55,
+      "EXTRACTION": 13,
+      "CONFLICT": 1,
+      "SOURCE_SELECTION": 7
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 6
+  },
+  "identity-edge": {
+    "critical_cases": 112,
+    "correct": 8,
+    "safe_unresolved": 33,
+    "incorrect": 1,
+    "coverage_loss": 70,
+    "critical_precision": {
+      "numerator": 8,
+      "denominator": 8,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 16,
+    "programmes_discovered": 16,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 29,
+      "FETCH": 28,
+      "EXTRACTION": 5,
+      "CONFLICT": 1,
+      "SOURCE_SELECTION": 7
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 1
+  },
+  "conflict-capable": {
+    "critical_cases": 238,
+    "correct": 20,
+    "safe_unresolved": 79,
+    "incorrect": 6,
+    "coverage_loss": 133,
+    "critical_precision": {
+      "numerator": 20,
+      "denominator": 20,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 34,
+    "programmes_discovered": 34,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 64,
+      "FETCH": 48,
+      "EXTRACTION": 13,
+      "CONFLICT": 1,
+      "SOURCE_SELECTION": 7
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 6
+  },
+  "adversarial": {
+    "critical_cases": 189,
+    "correct": 15,
+    "safe_unresolved": 64,
+    "incorrect": 4,
+    "coverage_loss": 106,
+    "critical_precision": {
+      "numerator": 15,
+      "denominator": 15,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 27,
+    "programmes_discovered": 27,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 45,
+      "FETCH": 41,
+      "EXTRACTION": 12,
+      "CONFLICT": 1,
+      "SOURCE_SELECTION": 7
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 4
+  },
+  "structured/catalogue": {
+    "critical_cases": 119,
+    "correct": 10,
+    "safe_unresolved": 32,
+    "incorrect": 4,
+    "coverage_loss": 73,
+    "critical_precision": {
+      "numerator": 10,
+      "denominator": 10,
+      "value": 1.0
+    },
+    "unsafe_promotion_count": 0,
+    "programmes": 17,
+    "programmes_discovered": 17,
+    "programme_discovery_recall": 1.0,
+    "major_failure_classes": {
+      "QUALITY_POLICY": 30,
+      "FETCH": 41,
+      "EXTRACTION": 2
+    },
+    "incorrect_concrete": 0,
+    "non_concrete_other_mismatch": 4
+  }
+}
