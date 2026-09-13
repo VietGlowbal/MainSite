@@ -65,6 +65,14 @@ Polished visual styling across `/admin/ai-report-review` based on admin user rev
    even when companion metadata keys (`schemaVersion`, `generatedAt`) exist. At `depth === 0`, top-level scalars
    and narratives are grouped into a cohesive "Report Overview" card rather than isolated single-property cards.
 Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+Working tree 2026-09-13 (feedback hardening):
+
+- Canonical student evidence: profile achievements now link to the structured Reflection achievement/activity editor; the profile writes only skills, Profile completeness counts structured achievement/activity evidence, and the general Plus statement-analysis context reads those structured entities. Existing confirmed candidate snapshots remain immutable. No legacy `student_profiles.achievements` migration was applied; feature-gated legacy consumers still require a separately reviewed retirement/migration plan.
+- Final Check: an action-first summary now presents blockers, unreviewed items, critical/conflict findings, and one next action before inventory. Deterministic readiness remains secondary and retains its explicit non-admission disclaimer; no score, persistence, schema, or AI logic changed. The Last checked timestamp follows the selected language (`en-GB`/`vi-VN`).
+- CV start: the primary route is labelled Create my CV, with known profile/application information described as automatic prefill; the secondary route is Already have a CV? / Upload for review. Existing routes and template selection are retained.
+
+Measured: focused Vitest passed for profile/statement evidence (23 tests), CV start (2 tests), and Final Check (7 tests); `npm run typecheck` and scoped ESLint passed for the relevant changes; `git diff --check` passed. Full repository verification is tracked separately in the feedback-hardening handoff.
+
 Working tree 2026-09-13 (CV start flow newcomer labels & copy update):
 In `CvStartFlow.tsx`, updated builder entry card title and action to "Create my CV" with newcomer copy explaining known profile/application info usage. Updated upload card title to "Already have a CV?" and action to "Upload for review" while retaining evidence-based feedback copy. Template selection and route destinations remain unchanged.
 Measured: `CvStartFlow.test.tsx` (2 tests) passed; scoped ESLint passed with 0 errors; `git diff --check` passed.
