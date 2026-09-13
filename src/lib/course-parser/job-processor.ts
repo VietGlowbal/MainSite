@@ -406,9 +406,18 @@ async function setJobPhaseSafe(
       return false;
     }
     return Array.isArray(data) && data.length > 0;
-  } catch {
-    // Additive column; non-fatal on older schemas.
-    return true;
+  } catch (error) {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code ?? '')
+      : '';
+    const message = typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : String(error);
+    // Additive column; non-fatal on older schemas. Network/unknown failures
+    // are treated as a lost lease so this worker cannot write stale state.
+    if (code === '42703' || (code === 'PGRST204' && message.includes('phase'))) return true;
+    console.warn('[job-processor] phase heartbeat threw', { jobId, phase, message });
+    return false;
   }
 }
 

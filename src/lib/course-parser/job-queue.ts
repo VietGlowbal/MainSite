@@ -58,6 +58,14 @@ export type JobStatusUpdate = Partial<Pick<CourseParseJob, 'parsed_data' | 'erro
   phase?: string | null;
 };
 
+function isMissingPhaseColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: unknown; message?: unknown };
+  const code = String(candidate.code ?? '').toUpperCase();
+  if (code === '42703') return true;
+  return code === 'PGRST204' && String(candidate.message ?? '').toLowerCase().includes('phase');
+}
+
 const RETRY_BASE_MINUTES = 5;
 
 /**
@@ -205,14 +213,23 @@ export async function updateJobStatus(
     if (status === 'pending') update.phase = 'queued';
   }
 
-  let query = supabase
-    .from('course_parse_jobs')
-    .update(update)
-    .eq('id', jobId)
-    .eq('status', expectedStatus);
-  if (guard.expectedLockedBy) query = query.eq('locked_by', guard.expectedLockedBy);
+  const runUpdate = async (payload: Record<string, unknown>) => {
+    let query = supabase
+      .from('course_parse_jobs')
+      .update(payload)
+      .eq('id', jobId)
+      .eq('status', expectedStatus);
+    if (guard.expectedLockedBy) query = query.eq('locked_by', guard.expectedLockedBy);
+    return query.select('id');
+  };
 
-  const { data: updatedRows, error } = await query.select('id');
+  let result = await runUpdate(update);
+  if (result.error && isMissingPhaseColumnError(result.error) && Object.hasOwn(update, 'phase')) {
+    const legacyUpdate = { ...update };
+    delete legacyUpdate.phase;
+    result = await runUpdate(legacyUpdate);
+  }
+  const { data: updatedRows, error } = result;
 
   if (error) {
     console.error('Failed to update job status:', error);
@@ -273,13 +290,22 @@ export async function recordJobFailure(
     update.completed_at = new Date().toISOString();
   }
 
-  let updateQuery = supabase
-    .from('course_parse_jobs')
-    .update(update)
-    .eq('id', jobId)
-    .eq('status', expectedStatus);
-  if (guard.expectedLockedBy) updateQuery = updateQuery.eq('locked_by', guard.expectedLockedBy);
-  const { data: updatedRows, error: updateError } = await updateQuery.select('id');
+  const runUpdate = async (payload: Record<string, unknown>) => {
+    let updateQuery = supabase
+      .from('course_parse_jobs')
+      .update(payload)
+      .eq('id', jobId)
+      .eq('status', expectedStatus);
+    if (guard.expectedLockedBy) updateQuery = updateQuery.eq('locked_by', guard.expectedLockedBy);
+    return updateQuery.select('id');
+  };
+  let result = await runUpdate(update);
+  if (result.error && isMissingPhaseColumnError(result.error) && Object.hasOwn(update, 'phase')) {
+    const legacyUpdate = { ...update };
+    delete legacyUpdate.phase;
+    result = await runUpdate(legacyUpdate);
+  }
+  const { data: updatedRows, error: updateError } = result;
 
   if (updateError) {
     console.error('Failed to record job failure:', updateError);
