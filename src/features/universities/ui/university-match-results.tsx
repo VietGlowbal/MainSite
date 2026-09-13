@@ -87,6 +87,7 @@ export function UniversityMatchResults({
   demo?: boolean;
 }) {
   const t = useT();
+  const [showAll, setShowAll] = useState(false);
   const [recommendationFilter, setRecommendationFilter] = useState<RecommendationBand | null>(null);
   const [selectivityFilter, setSelectivityFilter] = useState<SelectivityContext | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(RECOMMENDATION_UI_CONFIG.initialVisibleResults);
@@ -114,7 +115,10 @@ export function UniversityMatchResults({
     const selectivityMatches = selectivityFilter === null || result.selectivityContext === selectivityFilter;
     return recommendationMatches && selectivityMatches;
   }), [recommendation.results, recommendationFilter, selectivityFilter]);
+
   const visibleResults = filteredResults.slice(0, visibleCount);
+  const bestFits = filteredResults.slice(0, 3);
+  const worthConsidering = filteredResults.slice(3, 6);
 
   const changeRecommendationFilter = (filter: RecommendationBand | null) => {
     setRecommendationFilter(filter);
@@ -168,27 +172,68 @@ export function UniversityMatchResults({
           {filteredResults.length === 0 ? (
             <FilteredEmptyState onShowAll={resetFilters} t={t} />
           ) : (
-            <>
+            <div className="flex flex-col gap-gb-3xl">
               <p className="text-gb-sm text-fg-tertiary" aria-live="polite">
                 {t('Showing {visible} of {total} recommendations', {
-                  visible: visibleResults.length,
+                  visible: showAll ? visibleResults.length : Math.min(filteredResults.length, 6),
                   total: filteredResults.length,
                 })}
               </p>
-              <ol className="grid gap-gb-2xl lg:grid-cols-2">
-                {visibleResults.map((result) => <UniversityRecommendationCard key={result.universityId} result={result} t={t} />)}
-              </ol>
-              {visibleCount < filteredResults.length ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="self-start"
-                  onClick={() => setVisibleCount((current) => current + RECOMMENDATION_UI_CONFIG.loadMoreIncrement)}
-                >
-                  {t('Show more recommendations')}
-                </Button>
-              ) : null}
-            </>
+
+              {showAll ? (
+                renderRecommendationSection({
+                  title: 'Explore All',
+                  headingId: 'explore-all-heading',
+                  results: visibleResults,
+                  t,
+                  action: (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowAll(false)}
+                    >
+                      {t('Back to shortlist')}
+                    </Button>
+                  ),
+                  children: visibleCount < filteredResults.length ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="self-start"
+                      onClick={() => setVisibleCount((current) => current + RECOMMENDATION_UI_CONFIG.loadMoreIncrement)}
+                    >
+                      {t('Show more recommendations')}
+                    </Button>
+                  ) : null,
+                })
+              ) : (
+                <>
+                  {renderRecommendationSection({
+                    title: 'Best Fits',
+                    headingId: 'best-fits-heading',
+                    results: bestFits,
+                    t,
+                  })}
+                  {renderRecommendationSection({
+                    title: 'Worth Considering',
+                    headingId: 'worth-considering-heading',
+                    results: worthConsidering,
+                    t,
+                  })}
+                  {filteredResults.length > 6 ? (
+                    <div className="flex flex-col items-start gap-gb-md">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowAll(true)}
+                      >
+                        {t('Explore All')}
+                      </Button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
           )}
           <p className="max-w-gb-width-xl text-gb-sm text-fg-muted">
             {t("These recommendations are based on your preferences and currently available university data. They are not predictions of admission outcomes. Always verify programme requirements, tuition, and deadlines on the university's official website.")}
@@ -304,6 +349,42 @@ function ErrorState({ t }: { t: ReturnType<typeof useT> }) {
       <p className="text-gb-md text-fg-tertiary">{t('There was a problem loading university data. Please try again later or continue with the university directory.')}</p>
       <Link href="/universities" className="text-gb-sm font-medium text-fg-brand hover:underline">{t('Open university directory')}</Link>
     </Panel>
+  );
+}
+
+function renderRecommendationSection({
+  title,
+  headingId,
+  results,
+  t,
+  action,
+  children,
+}: {
+  title: string;
+  headingId: string;
+  results: RecommendationResult[];
+  t: ReturnType<typeof useT>;
+  action?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  if (results.length === 0 && !children) return null;
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-gb-md">
+      <div className="flex flex-wrap items-center justify-between gap-gb-sm">
+        <h3 id={headingId} className="text-gb-lg font-semibold text-fg">
+          {t(title)}
+        </h3>
+        {action}
+      </div>
+      {results.length > 0 ? (
+        <ol className="grid gap-gb-2xl lg:grid-cols-2">
+          {results.map((result) => (
+            <UniversityRecommendationCard key={result.universityId} result={result} t={t} />
+          ))}
+        </ol>
+      ) : null}
+      {children}
+    </section>
   );
 }
 

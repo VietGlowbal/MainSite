@@ -22,6 +22,11 @@ export const translations: Record<string, string> = {
   // canonical values. Entries declared later in this object deliberately win
   // when an established product translation already exists for the same word.
   ...FIELD_OF_STUDY_TRANSLATIONS,
+  'Best Fits': 'Phù hợp nhất',
+  'Worth Considering': 'Đáng cân nhắc',
+  'Explore All': 'Khám phá tất cả',
+  'Explore all recommendations': 'Khám phá tất cả gợi ý',
+  'Back to shortlist': 'Quay lại danh sách rút gọn',
 
   // ── Navigation ───────────────────────────────────────────────────────────
   Home: 'Trang chủ',
