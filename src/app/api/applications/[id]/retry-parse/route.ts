@@ -80,8 +80,10 @@ export async function POST(
       });
     }
 
-    // 2. Idempotent check: already pending/queued
-    if (application.parse_status === 'pending' && job?.status === 'pending') {
+    // 2. Idempotent check: already pending/queued. Trust the queue row when it
+    // disagrees with a stale application projection; resetting an already
+    // queued job would unnecessarily discard its retry schedule.
+    if (job?.status === 'pending') {
       return NextResponse.json({
         success: true,
         parseStatus: 'pending',
@@ -97,7 +99,10 @@ export async function POST(
     const isAppProcessing = application.parse_status === 'processing';
     const isProcessing = isJobProcessing || isAppProcessing;
 
-    const effectiveUpdatedAt = job?.updated_at
+    // A failed/pending job's updated_at is not an active lease. When the
+    // application projection still says processing, use its own timestamp so
+    // a fresh failure cannot hide an actually stale application row.
+    const effectiveUpdatedAt = isJobProcessing && job?.updated_at
       ? new Date(job.updated_at).getTime()
       : application.updated_at
         ? new Date(application.updated_at).getTime()
@@ -106,7 +111,7 @@ export async function POST(
     const isStale = isProcessing && now - effectiveUpdatedAt > STALE_THRESHOLD_MS;
 
     // If a job is processing and not stale, return active even if app parse_status disagrees
-    if (isProcessing && !isStale) {
+    if ((isJobProcessing || (isAppProcessing && !job)) && !isStale) {
       return NextResponse.json({
         success: true,
         parseStatus: 'processing',

@@ -200,6 +200,61 @@ describe('POST /api/applications/[id]/retry-parse', () => {
     expect(adminUpdateMock).not.toHaveBeenCalled();
   });
 
+  it('does not let a fresh failed job hide a stale processing application', async () => {
+    const staleApplication = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const freshJob = new Date(Date.now() - 30 * 1000).toISOString();
+    mocks.userClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { id: appId, user_id: userId, parse_status: 'processing', updated_at: staleApplication },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    const jobUpdateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          select: vi.fn().mockResolvedValue({ data: [{ id: 'job-1', status: 'pending' }], error: null }),
+        }),
+      }),
+    });
+    const appUpdateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    });
+
+    mocks.adminClient.mockReturnValue({
+      from: vi.fn((table: string) => {
+        if (table === 'course_parse_jobs') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'job-1', status: 'failed', attempts: 1, updated_at: freshJob, parsed_data: {} },
+                  error: null,
+                }),
+              })),
+            })),
+            update: jobUpdateMock,
+          };
+        }
+        return { update: appUpdateMock };
+      }),
+    });
+
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: appId }) });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(expect.objectContaining({ parseStatus: 'pending', phase: 'queued' }));
+    expect(jobUpdateMock).toHaveBeenCalled();
+  });
+
   it('successfully retries failed parsing by re-enqueuing to pending with attempts=0', async () => {
     mocks.userClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
