@@ -9,7 +9,8 @@ mismatch case (no reuse). Local-only trap: `5f741a9c` also removed `apply/[appli
 and stale `.next/types` + `.next/dev/types` make `npm run typecheck` fail locally (CI is unaffected — fresh
 checkout); run `npx next typegen` and clear `.next/dev/types`.
 Measured: `npm run verify:pr` passes — typecheck, strict typecheck, lint (0 errors, 5 pre-existing warnings),
-`test:ci` 399/399 files, 3735 pass / 2 todo, `build:ci` (150 static pages).
+`test:ci` 399/399 files, 3735 pass / 2 todo, `build:ci` (150 static pages). Re-run after merging `8aa0db0c`
+(admin review polish, below): `verify:pr` passes, 3736 pass / 2 todo, coverage 72.13/62.5/71.78/74.72.
 
 Working tree 2026-09-13 (Admin AI report review executive pipeline, segmented tabs, and scalar confidence fix):
 Polished visual styling across `/admin/ai-report-review` based on admin user review feedback and UI audit:
