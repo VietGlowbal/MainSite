@@ -8,7 +8,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: mocks.admin }));
 
-import { claimPendingJobs, reapStaleParseJobs } from './job-queue';
+import {
+  claimPendingJobs,
+  reapStaleParseJobs,
+  recordJobFailure,
+  updateJobStatus,
+} from './job-queue';
 
 describe('course-parser job-queue', () => {
   beforeEach(() => {
@@ -201,6 +206,9 @@ describe('course-parser job-queue', () => {
           parse_error: expect.stringContaining('Reading this course page timed out'),
         }),
       );
+      expect(jobUpdateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ locked_by: null }),
+      );
     });
 
     it('ignores active processing jobs updated recently', async () => {
@@ -300,6 +308,68 @@ describe('course-parser job-queue', () => {
       expect(result.failed).toBe(0);
       expect(jobUpdateMock).not.toHaveBeenCalled();
       expect(appUpdateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('guarded worker transitions', () => {
+    it('does not overwrite a job reclaimed after the failure read', async () => {
+      const updateChain: {
+        eq: ReturnType<typeof vi.fn>;
+        select: ReturnType<typeof vi.fn>;
+      } = {
+        eq: vi.fn(),
+        select: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      updateChain.eq.mockReturnValue(updateChain);
+      const updateMock = vi.fn().mockReturnValue(updateChain);
+
+      const readChain: {
+        eq: ReturnType<typeof vi.fn>;
+        maybeSingle: ReturnType<typeof vi.fn>;
+      } = {
+        eq: vi.fn(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { attempts: 1 }, error: null }),
+      };
+      readChain.eq.mockReturnValue(readChain);
+
+      mocks.admin.mockReturnValue({
+        from: vi.fn(() => ({
+          select: vi.fn(() => readChain),
+          update: updateMock,
+        })),
+      });
+
+      await expect(
+        recordJobFailure('job-race', 'fetch_failed', true),
+      ).resolves.toBe(false);
+
+      expect(updateMock).toHaveBeenCalledOnce();
+      expect(updateChain.eq).toHaveBeenCalledWith('status', 'processing');
+    });
+
+    it('requires the observed processing state for terminal status updates', async () => {
+      const updateChain: {
+        eq: ReturnType<typeof vi.fn>;
+        select: ReturnType<typeof vi.fn>;
+      } = {
+        eq: vi.fn(),
+        select: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      updateChain.eq.mockReturnValue(updateChain);
+      const updateMock = vi.fn().mockReturnValue(updateChain);
+
+      mocks.admin.mockReturnValue({
+        from: vi.fn(() => ({ update: updateMock })),
+      });
+
+      await expect(
+        updateJobStatus('job-race', 'complete', { parsed_data: {} }),
+      ).resolves.toBe(false);
+
+      expect(updateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'complete', phase: 'ready' }),
+      );
+      expect(updateChain.eq).toHaveBeenCalledWith('status', 'processing');
     });
   });
 });

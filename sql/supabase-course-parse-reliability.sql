@@ -4,7 +4,9 @@
 -- Additive migration for course parse job watchdog and granular phase tracking.
 --
 -- NOTE: Existing `sql/supabase-job-claim-resilience.sql` is a historical migration
--- and remains unmodified. This file is purely additive and idempotent.
+-- and remains unmodified. This file is the additive follow-up that aligns its
+-- claim RPC with the worker/reaper heartbeat semantics. Apply the resilience
+-- migration first so `locked_by` exists before this function is replaced.
 --
 -- All changes are safe, nullable, and backward-compatible with existing schemas:
 -- - `phase` is nullable with NO default, ensuring historical or in-flight
@@ -23,3 +25,77 @@ COMMENT ON COLUMN public.course_parse_jobs.phase IS
 CREATE INDEX IF NOT EXISTS idx_course_parse_jobs_watchdog
   ON public.course_parse_jobs (status, updated_at)
   WHERE status = 'processing';
+
+-- 3. One authoritative stale-lease clock
+--
+-- `updated_at` is the worker heartbeat. `started_at` is retained only as a
+-- fallback for legacy rows that predate reliable heartbeat writes. The claim
+-- RPC and the application reaper must use the same effective activity time;
+-- otherwise a live worker can be reclaimed merely because its original claim
+-- is old. This replaces the function body without dropping any data or
+-- changing its existing return contract.
+CREATE INDEX IF NOT EXISTS idx_course_parse_jobs_stale_activity
+  ON public.course_parse_jobs (updated_at, started_at)
+  WHERE status = 'processing';
+
+CREATE OR REPLACE FUNCTION public.claim_course_parse_jobs(
+  worker_id TEXT,
+  batch_size INT DEFAULT 5
+)
+RETURNS SETOF public.course_parse_jobs
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF worker_id IS NULL OR worker_id = '' THEN
+    RAISE EXCEPTION 'worker_id cannot be null or empty';
+  END IF;
+  IF batch_size IS NULL OR batch_size < 1 THEN
+    RAISE EXCEPTION 'batch_size must be at least 1';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(worker_id));
+
+  -- A gateway timeout can hide a successful claim. Return this worker's
+  -- existing lease before attempting to claim more work, as the historical
+  -- resilience RPC did.
+  RETURN QUERY
+  SELECT *
+  FROM public.course_parse_jobs
+  WHERE status = 'processing' AND locked_by = worker_id
+  ORDER BY COALESCE(updated_at, started_at) ASC
+  LIMIT batch_size;
+  IF FOUND THEN RETURN; END IF;
+
+  RETURN QUERY
+  UPDATE public.course_parse_jobs
+  SET
+    status = 'processing',
+    attempts = attempts + 1,
+    started_at = NOW(),
+    next_attempt_at = NULL,
+    locked_by = worker_id,
+    phase = 'fetching',
+    updated_at = NOW()
+  WHERE id IN (
+    SELECT id
+    FROM public.course_parse_jobs
+    WHERE (
+      (status = 'pending' AND (next_attempt_at IS NULL OR next_attempt_at <= NOW()))
+      OR (
+        status = 'processing'
+        AND COALESCE(updated_at, started_at) < NOW() - INTERVAL '10 minutes'
+      )
+    )
+      AND attempts < max_attempts
+    ORDER BY COALESCE(updated_at, started_at) ASC NULLS FIRST, created_at ASC
+    LIMIT batch_size
+    FOR UPDATE SKIP LOCKED
+  )
+  RETURNING *;
+END;
+$$;
+
+COMMENT ON FUNCTION public.claim_course_parse_jobs(TEXT, INT) IS
+'Atomically claims course parse jobs. Stale processing leases are measured by the latest updated_at heartbeat, falling back to started_at only for legacy rows.';

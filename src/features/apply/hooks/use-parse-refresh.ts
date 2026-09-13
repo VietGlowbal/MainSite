@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import { isParsePending } from '../domain/course-name';
 
 const POLL_MS = 4000;
-const POLL_CEILING_MS = 4 * 60 * 1000;
+// Reaping occurs after ten minutes of heartbeat inactivity. Keep polling a
+// little longer so a job reclaimed between minutes 4 and 10 becomes visible
+// without a manual refresh, while retaining a hard upper bound.
+const POLL_CEILING_MS = 12 * 60 * 1000;
 
 type ParseTarget = {
   id: string;

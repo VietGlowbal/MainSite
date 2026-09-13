@@ -41,6 +41,23 @@ export interface CourseParseJob {
   phase?: string | null;
 }
 
+/**
+ * Compare-and-set guard for worker-owned transitions.
+ *
+ * Reapers and manual retries are allowed to move a job out of `processing`.
+ * Every worker write therefore carries the state it observed when it claimed
+ * the job; a stale worker can never write through a later transition.
+ */
+export interface JobTransitionGuard {
+  expectedStatus?: ParseJobStatus;
+  expectedLockedBy?: string;
+}
+
+export type JobStatusUpdate = Partial<Pick<CourseParseJob, 'parsed_data' | 'error_message'>> & {
+  /** Fine-grained phase is additive and may be absent on older deployments. */
+  phase?: string | null;
+};
+
 const RETRY_BASE_MINUTES = 5;
 
 /**
@@ -166,9 +183,11 @@ export async function claimPendingJobs(
 export async function updateJobStatus(
   jobId: string,
   status: ParseJobStatus,
-  data: Partial<Pick<CourseParseJob, 'parsed_data' | 'error_message'>> = {}
-): Promise<void> {
+  data: JobStatusUpdate = {},
+  guard: JobTransitionGuard = {},
+): Promise<boolean> {
   const supabase = createAdminClient();
+  const expectedStatus = guard.expectedStatus ?? (status === 'processing' ? 'pending' : 'processing');
 
   const update: Record<string, unknown> = {
     status,
@@ -179,16 +198,30 @@ export async function updateJobStatus(
   if (status === 'complete' || status === 'failed' || status === 'timeout') {
     update.completed_at = new Date().toISOString();
   }
+  if (data.phase === undefined) {
+    if (status === 'complete') update.phase = 'ready';
+    if (status === 'failed') update.phase = 'failed';
+    if (status === 'timeout') update.phase = 'timeout';
+    if (status === 'pending') update.phase = 'queued';
+  }
 
-  const { error } = await supabase
+  let query = supabase
     .from('course_parse_jobs')
     .update(update)
-    .eq('id', jobId);
+    .eq('id', jobId)
+    .eq('status', expectedStatus);
+  if (guard.expectedLockedBy) query = query.eq('locked_by', guard.expectedLockedBy);
+
+  const { data: updatedRows, error } = await query.select('id');
 
   if (error) {
     console.error('Failed to update job status:', error);
     throw error;
   }
+
+  // A zero-row update means the reaper/retry path won the compare-and-set
+  // race. Callers must not continue by settling the application as if they won.
+  return Array.isArray(updatedRows) && updatedRows.length > 0;
 }
 
 /**
@@ -198,42 +231,62 @@ export async function updateJobStatus(
  */
 export async function recordJobFailure(
   jobId: string,
-  error: string,
-  shouldRetry: boolean
-): Promise<void> {
+  failureMessage: string,
+  shouldRetry: boolean,
+  guard: JobTransitionGuard = { expectedStatus: 'processing' },
+): Promise<boolean> {
   const supabase = createAdminClient();
+  const expectedStatus = guard.expectedStatus ?? 'processing';
 
-  // Read current attempts to compute backoff.
-  const { data: job } = await supabase
+  // Read attempts only while the worker still owns the expected active state.
+  // This avoids using a stale snapshot after a reaper/retry has reclaimed it.
+  let jobQuery = supabase
     .from('course_parse_jobs')
     .select('attempts')
     .eq('id', jobId)
-    .single();
+    .eq('status', expectedStatus);
+  if (guard.expectedLockedBy) jobQuery = jobQuery.eq('locked_by', guard.expectedLockedBy);
+  const { data: job, error: readError } = await jobQuery.maybeSingle();
+
+  if (readError) {
+    console.error('Failed to read job before recording failure:', readError);
+    throw readError;
+  }
+  if (!job) return false;
 
   const attempts = job?.attempts ?? 1;
 
   const update: Record<string, unknown> = {
-    error_message: error,
+    error_message: failureMessage,
+    locked_by: null,
     updated_at: new Date().toISOString(),
   };
 
   if (shouldRetry) {
     update.status = 'pending';
+    update.phase = 'queued';
     update.next_attempt_at = computeNextAttemptAt(attempts);
+    update.completed_at = null;
   } else {
     update.status = 'failed';
+    update.phase = 'failed';
     update.completed_at = new Date().toISOString();
   }
 
-  const { error: updateError } = await supabase
+  let updateQuery = supabase
     .from('course_parse_jobs')
     .update(update)
-    .eq('id', jobId);
+    .eq('id', jobId)
+    .eq('status', expectedStatus);
+  if (guard.expectedLockedBy) updateQuery = updateQuery.eq('locked_by', guard.expectedLockedBy);
+  const { data: updatedRows, error: updateError } = await updateQuery.select('id');
 
   if (updateError) {
     console.error('Failed to record job failure:', updateError);
     throw updateError;
   }
+
+  return Array.isArray(updatedRows) && updatedRows.length > 0;
 }
 
 /**
@@ -388,6 +441,7 @@ export async function reapStaleParseJobs(
         .from('course_parse_jobs')
         .update({
           status: 'failed',
+          locked_by: null,
           completed_at: new Date().toISOString(),
           error_message: 'Course parsing timed out after maximum attempts.',
           phase: 'failed',

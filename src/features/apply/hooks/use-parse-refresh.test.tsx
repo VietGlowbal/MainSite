@@ -74,7 +74,7 @@ describe('useParseRefresh', () => {
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
-  it('stops polling at the four-minute ceiling', async () => {
+  it('keeps polling through the stale-recovery window and stops at the twelve-minute ceiling', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -83,13 +83,31 @@ describe('useParseRefresh', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderHook(() => useParseRefresh(pending));
 
-    await act(() => vi.advanceTimersByTimeAsync(260_000));
+    await act(() => vi.advanceTimersByTimeAsync(740_000));
     const callsAtCeiling = fetchMock.mock.calls.length;
     await act(() => vi.advanceTimersByTimeAsync(60_000));
 
     expect(callsAtCeiling).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(callsAtCeiling);
     expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a completion discovered after the old four-minute horizon', async () => {
+    let complete = false;
+    const fetchMock = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 'app-1', parseStatus: complete ? 'complete' : 'processing' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderHook(() => useParseRefresh(pending));
+
+    await act(() => vi.advanceTimersByTimeAsync(300_000));
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    complete = true;
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it('refreshes immediately when parse status signals stale or timeout phase', async () => {

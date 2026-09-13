@@ -56,7 +56,9 @@ export async function GET(
       // Safe fallback if admin client or table isn't accessible
     }
 
-    const lastUpdatedAt = job?.updated_at || application.updated_at || new Date().toISOString();
+    // `updated_at` is the authoritative worker heartbeat. Fall back to the
+    // original claim time only for legacy rows that predate heartbeat writes.
+    const lastUpdatedAt = job?.updated_at || job?.started_at || application.updated_at || new Date().toISOString();
     const updatedTime = new Date(lastUpdatedAt).getTime();
     const isProcessing = application.parse_status === 'processing' || job?.status === 'processing';
     const isStale = isProcessing && !Number.isNaN(updatedTime) && Date.now() - updatedTime > STALE_THRESHOLD_MS;

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createParseJob } from '@/lib/course-parser/job-queue';
 
-// 10-minute threshold compatible with historical claim lease
+// 10-minute threshold shared by the claim RPC, worker reaper, and status API.
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_RETRIES_PER_WINDOW = 3;
@@ -102,8 +102,8 @@ export async function POST(
     // A failed/pending job's updated_at is not an active lease. When the
     // application projection still says processing, use its own timestamp so
     // a fresh failure cannot hide an actually stale application row.
-    const effectiveUpdatedAt = isJobProcessing && job?.updated_at
-      ? new Date(job.updated_at).getTime()
+    const effectiveUpdatedAt = isJobProcessing && (job?.updated_at || job?.started_at)
+      ? new Date(job.updated_at || job.started_at!).getTime()
       : application.updated_at
         ? new Date(application.updated_at).getTime()
         : now;
@@ -151,7 +151,8 @@ export async function POST(
     });
 
     const windowStart = now - RATE_LIMIT_WINDOW_MS;
-    const jobUpdatedTime = job?.updated_at ? new Date(job.updated_at).getTime() : 0;
+    const jobActivityAt = job?.updated_at || job?.started_at;
+    const jobUpdatedTime = jobActivityAt ? new Date(jobActivityAt).getTime() : 0;
     const legacyAttemptsExhausted =
       Boolean(job) && jobUpdatedTime > windowStart && (job?.attempts ?? 0) >= MAX_RETRIES_PER_WINDOW;
 
@@ -209,7 +210,7 @@ export async function POST(
     }
 
     // 7. Update application state to pending (correct queued state), guarded by observed status
-    const { error: updateAppError } = await adminDb
+    const { data: updatedApplications, error: updateAppError } = await adminDb
       .from('course_applications')
       .update({
         parse_status: 'pending',
@@ -218,13 +219,46 @@ export async function POST(
         updated_at: isoNow,
       })
       .eq('id', id)
-      .eq('parse_status', application.parse_status);
+      .eq('parse_status', application.parse_status)
+      .select('id, parse_status');
 
     if (updateAppError) {
       console.error('Failed to update application parse status:', updateAppError);
       return NextResponse.json(
         { error: 'Failed to update application status' },
         { status: 500 }
+      );
+    }
+
+    if (!updatedApplications || updatedApplications.length === 0) {
+      // Another retry, reaper, or worker changed the application projection
+      // after the initial read. Do not report success while the job and
+      // application disagree; return the state that won the race so the UI can
+      // converge without a second destructive reset.
+      const { data: currentApplication } = await adminDb
+        .from('course_applications')
+        .select('parse_status')
+        .eq('id', id)
+        .maybeSingle();
+      if (currentApplication?.parse_status === 'pending') {
+        return NextResponse.json({
+          success: true,
+          parseStatus: 'pending',
+          phase: 'queued',
+          alreadyQueued: true,
+        });
+      }
+      if (currentApplication?.parse_status === 'complete') {
+        return NextResponse.json({
+          success: true,
+          parseStatus: 'complete',
+          phase: 'ready',
+          alreadyComplete: true,
+        });
+      }
+      return NextResponse.json(
+        { error: 'Application state changed while retrying. Refresh and try again.' },
+        { status: 409 },
       );
     }
 

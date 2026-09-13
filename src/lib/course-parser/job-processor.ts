@@ -19,7 +19,12 @@ import {
   type ExtractionFailure,
 } from './extract-course';
 import { resolveUniversity } from '@/features/universities/api';
-import { updateJobStatus, recordJobFailure, type CourseParseJob } from './job-queue';
+import {
+  updateJobStatus,
+  recordJobFailure,
+  type CourseParseJob,
+  type JobTransitionGuard,
+} from './job-queue';
 
 export interface ProcessResult {
   applicationId: string;
@@ -71,12 +76,15 @@ const LINK_SOURCE: Record<string, { type: string; title: string }> = {
 async function updateApplication(
   applicationId: string,
   fields: Record<string, unknown>,
+  expectedParseStatus?: 'pending' | 'processing',
 ): Promise<boolean> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  let query = supabase
     .from('course_applications')
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq('id', applicationId);
+  if (expectedParseStatus) query = query.eq('parse_status', expectedParseStatus);
+  const { data, error } = await query.select('id');
 
   if (error) {
     console.error('[job-processor] application update failed', {
@@ -86,7 +94,7 @@ async function updateApplication(
     });
     return false;
   }
-  return true;
+  return Array.isArray(data) && data.length > 0;
 }
 
 /**
@@ -103,14 +111,15 @@ async function settleApplication(
   applicationId: string,
   parseStatus: 'pending' | 'failed',
   message: string | null,
+  expectedParseStatus: 'pending' | 'processing' = 'processing',
 ): Promise<void> {
   await updateApplication(applicationId, {
     parse_status: parseStatus,
     progress_percentage: 0,
-  });
+  }, expectedParseStatus);
 
   if (message !== null || parseStatus === 'pending') {
-    await updateApplication(applicationId, { parse_error: message });
+    await updateApplication(applicationId, { parse_error: message }, expectedParseStatus);
   }
 }
 
@@ -371,43 +380,91 @@ async function linkUniversity(
   }
 }
 
-async function setJobPhaseSafe(jobId: string, phase: string): Promise<void> {
+async function setJobPhaseSafe(
+  jobId: string,
+  phase: string,
+  guard: JobTransitionGuard,
+): Promise<boolean> {
   try {
     const supabase = createAdminClient();
-    await supabase
+    let query = supabase
       .from('course_parse_jobs')
       .update({ phase, updated_at: new Date().toISOString() })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('status', guard.expectedStatus ?? 'processing');
+    if (guard.expectedLockedBy) query = query.eq('locked_by', guard.expectedLockedBy);
+    const { data, error } = await query.select('id');
+    if (error) {
+      const code = typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code ?? '')
+        : '';
+      const message = error instanceof Error ? error.message : String(error);
+      // Phase tracking is an additive column. Older deployments can still
+      // process jobs; only a genuine state/ownership miss should stop a worker.
+      if (code === '42703' || (code === 'PGRST204' && message.includes('phase'))) return true;
+      console.warn('[job-processor] phase heartbeat failed', { jobId, phase, message });
+      return false;
+    }
+    return Array.isArray(data) && data.length > 0;
   } catch {
-    // Additive column; non-fatal on older schemas
+    // Additive column; non-fatal on older schemas.
+    return true;
   }
+}
+
+class JobStateChangedError extends Error {
+  constructor() {
+    super('Parse job state changed while the worker was processing it.');
+    this.name = 'JobStateChangedError';
+  }
+}
+
+function stateChangedResult(job: CourseParseJob): ProcessResult {
+  return {
+    applicationId: job.application_id,
+    status: 'retry',
+    reason: 'Parse job was reclaimed or completed by another worker.',
+  };
 }
 
 /**
  * Process one claimed parse job.
  */
 export async function processParseJob(job: CourseParseJob): Promise<ProcessResult> {
+  const workerGuard: JobTransitionGuard = {
+    expectedStatus: 'processing',
+    ...(job.locked_by ? { expectedLockedBy: job.locked_by } : {}),
+  };
+
   try {
-    await updateApplication(job.application_id, {
+    if (!(await setJobPhaseSafe(job.id, 'fetching', workerGuard))) {
+      return stateChangedResult(job);
+    }
+    if (!(await updateApplication(job.application_id, {
       parse_status: 'processing',
       progress_percentage: 20,
-    });
-    await setJobPhaseSafe(job.id, 'fetching');
+    }))) {
+      throw new JobStateChangedError();
+    }
 
     const result = await extractCourse(job.course_url, async (phase) => {
       if (phase === 'extracting') {
-        await setJobPhaseSafe(job.id, 'extracting');
-        await updateApplication(job.application_id, {
+        if (!(await setJobPhaseSafe(job.id, 'extracting', workerGuard))) {
+          throw new JobStateChangedError();
+        }
+        if (!(await updateApplication(job.application_id, {
           parse_status: 'processing',
           progress_percentage: 45,
-        });
+        }, 'processing'))) {
+          throw new JobStateChangedError();
+        }
       }
     });
 
     if (!result.ok) {
       const willRetry = RETRYABLE[result.reason] && job.attempts < job.max_attempts;
-      await recordJobFailure(job.id, result.reason, willRetry);
-      await setJobPhaseSafe(job.id, willRetry ? 'queued' : 'failed');
+      const transitioned = await recordJobFailure(job.id, result.reason, willRetry, workerGuard);
+      if (!transitioned) return stateChangedResult(job);
       await settleApplication(
         job.application_id,
         willRetry ? 'pending' : 'failed',
@@ -420,24 +477,33 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
       };
     }
 
-    await updateApplication(job.application_id, {
+    if (!(await updateApplication(job.application_id, {
       parse_status: 'processing',
       progress_percentage: 70,
-    });
-    await setJobPhaseSafe(job.id, 'validating');
+    }, 'processing'))) {
+      throw new JobStateChangedError();
+    }
+    if (!(await setJobPhaseSafe(job.id, 'validating', workerGuard))) {
+      return stateChangedResult(job);
+    }
 
     const counts = await writeChecklist(job.application_id, result.data);
     await writeSources(job.application_id, result.data);
-    await updateApplication(job.application_id, applicationFields(result.data, job.course_url));
+    if (!(await updateApplication(job.application_id, applicationFields(result.data, job.course_url), 'processing'))) {
+      throw new JobStateChangedError();
+    }
     // Clears any message left by an earlier failed attempt.
-    await updateApplication(job.application_id, { parse_error: null, progress_percentage: 100 });
+    if (!(await updateApplication(job.application_id, { parse_error: null, progress_percentage: 100 }, 'processing'))) {
+      throw new JobStateChangedError();
+    }
 
     const resolved = await linkUniversity(job.application_id, result.data, job.course_url);
 
-    await updateJobStatus(job.id, 'complete', {
+    const transitioned = await updateJobStatus(job.id, 'complete', {
       parsed_data: result.data as unknown as Record<string, unknown>,
-    });
-    await setJobPhaseSafe(job.id, 'ready');
+      phase: 'ready',
+    }, workerGuard);
+    if (!transitioned) return stateChangedResult(job);
 
     console.log('[job-processor] complete', {
       applicationId: job.application_id,
@@ -448,10 +514,11 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
 
     return { applicationId: job.application_id, status: 'complete' };
   } catch (error) {
+    if (error instanceof JobStateChangedError) return stateChangedResult(job);
     const message = error instanceof Error ? error.message : 'Unknown error';
     const willRetry = job.attempts < job.max_attempts;
-    await recordJobFailure(job.id, message, willRetry);
-    await setJobPhaseSafe(job.id, willRetry ? 'queued' : 'failed');
+    const transitioned = await recordJobFailure(job.id, message, willRetry, workerGuard);
+    if (!transitioned) return stateChangedResult(job);
     await settleApplication(
       job.application_id,
       willRetry ? 'pending' : 'failed',

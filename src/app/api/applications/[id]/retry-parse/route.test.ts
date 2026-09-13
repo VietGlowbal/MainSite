@@ -224,11 +224,12 @@ describe('POST /api/applications/[id]/retry-parse', () => {
         }),
       }),
     });
-    const appUpdateMock = vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      }),
-    });
+    const appUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [{ id: appId, parse_status: 'pending' }], error: null }),
+    };
+    appUpdateChain.eq.mockReturnValue(appUpdateChain);
+    const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
 
     mocks.adminClient.mockReturnValue({
       from: vi.fn((table: string) => {
@@ -279,8 +280,13 @@ describe('POST /api/applications/[id]/retry-parse', () => {
       return chain;
     };
     const createAppUpdateChain = () => {
-      const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+      const chain: {
+        eq: ReturnType<typeof vi.fn>;
+        select: ReturnType<typeof vi.fn>;
+        then: (resolve: (v: unknown) => unknown) => Promise<unknown>;
+      } = {
         eq: vi.fn(() => chain),
+        select: vi.fn().mockResolvedValue({ data: [{ id: appId, parse_status: 'pending' }], error: null }),
         then: (resolve) => Promise.resolve({ error: null }).then(resolve),
       };
       return chain;
@@ -375,8 +381,13 @@ describe('POST /api/applications/[id]/retry-parse', () => {
       return chain;
     };
     const createAppUpdateChain = () => {
-      const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+      const chain: {
+        eq: ReturnType<typeof vi.fn>;
+        select: ReturnType<typeof vi.fn>;
+        then: (resolve: (v: unknown) => unknown) => Promise<unknown>;
+      } = {
         eq: vi.fn(() => chain),
+        select: vi.fn().mockResolvedValue({ data: [{ id: appId, parse_status: 'pending' }], error: null }),
         then: (resolve) => Promise.resolve({ error: null }).then(resolve),
       };
       return chain;
@@ -424,6 +435,69 @@ describe('POST /api/applications/[id]/retry-parse', () => {
         parse_status: 'pending',
       }),
     );
+  });
+
+  it('returns a conflict when the application projection changes before retry update lands', async () => {
+    mocks.userClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { id: appId, user_id: userId, parse_status: 'failed', updated_at: new Date().toISOString() },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    const jobUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [{ id: 'job-race', status: 'pending' }], error: null }),
+    };
+    jobUpdateChain.eq.mockReturnValue(jobUpdateChain);
+    const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+    const appUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    appUpdateChain.eq.mockReturnValue(appUpdateChain);
+    const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
+
+    mocks.adminClient.mockReturnValue({
+      from: vi.fn((table: string) => {
+        if (table === 'course_parse_jobs') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'job-race', status: 'failed', attempts: 1, updated_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), parsed_data: {} },
+                  error: null,
+                }),
+              })),
+            })),
+            update: jobUpdateMock,
+          };
+        }
+        return {
+          update: appUpdateMock,
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { parse_status: 'processing' }, error: null }),
+            })),
+          })),
+        };
+      }),
+    });
+
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: appId }) });
+    expect(res.status).toBe(409);
+    await expect(res.json()).resolves.toEqual({
+      error: 'Application state changed while retrying. Refresh and try again.',
+    });
+    expect(jobUpdateMock).toHaveBeenCalledOnce();
+    expect(appUpdateMock).toHaveBeenCalledOnce();
   });
 
   it('enforces 429 rate limit when maximum retries exceeded in window', async () => {
