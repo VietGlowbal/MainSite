@@ -1,20 +1,16 @@
 # Current project status
 
-Working tree 2026-09-08: Remediation 10 completed against sealed Official
-Run #5 without modifying its output or Benchmark V3. The five incorrect
-identity `FOUND` values were traced generically: three now score correctly and
-two conservatively remain `NEEDS_REVIEW`; incorrect concrete `FOUND` is 0 in
-offline replay. The 20 previously-correct identity controls did not regress,
-and the bounded 12-programme diagnostic smoke produced 7/7 correct concrete
-critical values with all seven safety counters at 0. The high-value acceptance
-audit covered 46 cases/89 rows; all blockers were justified, so no broad
-quality-policy relaxation was made. The missing clean-checkpoint fixtures
-`supabase-crawl-acquisition-v3.sql` and `supabase-identity-promotion-v3.sql`
-are restored for the Remediation-10 checkpoint; the full ingestion suite passes
-375/375, scorer and preflight/Remediation-10 tests pass 25/25, compileall and
-V3 integrity checks pass. A clean committed checkout is required before any
-`FULL BENCHMARK RUN #6` authorization; it was not run. Slice F remains
-**NO-GO**.
+Working tree 2026-09-08: Official Benchmark V3 Run #6 completed from clean
+execution revision `38dad5b0e30f7bffff75f6eec9fc2a87c484c484` using DeepSeek
+`deepseek-v4-flash`. The run sealed pipeline output
+`b0bacb90c6c4b315cdf9bc710bdb69ac4349b204b754d6265a6809c1a0251b62` and scored
+`FAIL — SAFETY`: discovery was 36/36, critical precision was 22/22, identity
+incorrect `FOUND` fell from 5 to 0, and one `GT-V2-24-programme_status` unsafe
+current-status promotion remained. Run #5 and Runs #1–#4 integrity passed.
+The corrected full ingestion suite passes 375/375; Remediation-10, Remediation-9,
+V3 preflight, and Scorer-v2 focused tests pass; compileall, artifact validation,
+secret scan, and frozen hash checks pass. No pipeline, Benchmark V3, or
+Remediation 11 change was made. Slice F remains **NO-GO**.
 
 Working tree 2026-09-07: The Phase 3F V3 execution checkpoint repair is
 committed and pushed at `7e4b840e011c4b616304bcc69eca7a2c92857d8c`. A fresh

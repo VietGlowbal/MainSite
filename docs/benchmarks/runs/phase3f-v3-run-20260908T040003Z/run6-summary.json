@@ -1,0 +1,1373 @@
+{
+  "run_id": "phase3f-v3-run-20260908T040003Z",
+  "classification": "FAIL — SAFETY",
+  "pipeline_output_sha256": "b0bacb90c6c4b315cdf9bc710bdb69ac4349b204b754d6265a6809c1a0251b62",
+  "source_metrics": {
+    "discovered": 358,
+    "fetched": 358,
+    "html": 338,
+    "pdf": 20,
+    "structured": 0,
+    "parser_attempts": 358,
+    "parser_nonempty": 358,
+    "parser_failures": 0,
+    "crawl_errors": 57,
+    "blocked_errors": 40,
+    "fetch_errors": 46
+  },
+  "provider": {
+    "calls": 255,
+    "logical_requests": 262,
+    "request_attempts": 262,
+    "cache_hits": 3,
+    "flash_calls": 255,
+    "pro_calls": 0,
+    "prompt_tokens": 2009742,
+    "completion_tokens": 256513,
+    "failures": 13,
+    "group_failures": 6,
+    "rate_limit_responses": 0,
+    "retry_after_present": 0,
+    "retry_attempts": 0,
+    "rate_limit_retries": 0,
+    "transport_retries": 0,
+    "response_retries": 0,
+    "rate_limit_recoveries": 0,
+    "terminal_rate_limit_failures": 0,
+    "max_in_flight": 1,
+    "failure_details": [
+      {
+        "programme_id": "e8272126-46a0-50d1-8f90-6c2813246947",
+        "programme_name": "Computer Science",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: facts[2].value.published_acceptance_rate must be 0..100 or null."
+      },
+      {
+        "programme_id": "4e1d764c-27d1-55eb-88c1-19a22eba4efa",
+        "programme_name": "Admission And Regulations",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: DeepSeek output was truncated."
+      },
+      {
+        "programme_id": "231d9152-5632-59f0-accd-6d3049a449fa",
+        "programme_name": "Admission E.Shtml",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: facts[4].value.document_type is invalid."
+      },
+      {
+        "programme_id": "14a69766-85f8-5b07-bfa9-0d48a4edba53",
+        "programme_name": "Admission E.Shtml",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: facts[5].value.document_type is invalid."
+      },
+      {
+        "programme_id": "9d3966b3-1e93-52c3-be0e-499d337462b4",
+        "programme_name": "Master Informatique",
+        "extraction_group": "identity_offering",
+        "error": "Extraction group identity_offering failed: DeepSeek output was truncated."
+      },
+      {
+        "programme_id": "b719156c-eb3d-5150-9461-0b8e07a938e7",
+        "programme_name": "Mads.Si.Umich.Edu",
+        "extraction_group": "language",
+        "error": "Extraction group language failed: facts[0].evidence is required."
+      }
+    ]
+  },
+  "pipeline_metrics": {
+    "institutions_total": 12,
+    "institutions_completed": 12,
+    "institutions_blocked": 0,
+    "school_profiles_attempted": 0,
+    "school_profiles_extracted": 0,
+    "programmes_discovered": 36,
+    "deep_programmes_attempted": 36,
+    "deep_programmes_extracted": 27,
+    "admission_retry_programmes": 24,
+    "admission_retry_sources": 54,
+    "coverage_retry_programmes": 26,
+    "coverage_retry_sources": 9,
+    "coverage_retry_groups": 47,
+    "status_preflight_attempted": 0,
+    "status_preflight_inactive_candidates": 0,
+    "sources_fetched": 358,
+    "scrapy_links_discovered": 0,
+    "render_attempts": 0,
+    "render_successes": 0,
+    "graph_guided_sources": 0,
+    "source_excerpt_fallback_assertions": 57,
+    "assertions_total": 1636,
+    "assertions_non_null": 595,
+    "assertions_rejected": 148,
+    "assertions_needs_review": 341,
+    "field_candidates_created_total": 566,
+    "runtime_assertions_created_total": 1636,
+    "candidate_to_assertion_drop_total": 1,
+    "field_candidates_created_by_field": {
+      "programme_identity": 27,
+      "credential": 28,
+      "intakes": 15,
+      "priority_deadline": 10,
+      "final_deadline": 14,
+      "application_url": 14,
+      "programme_focus": 25,
+      "curriculum_overview": 51,
+      "specialisations": 13,
+      "learning_outcomes": 24,
+      "minimum_degree": 10,
+      "subject_prerequisites": 17,
+      "admission_difficulty": 15,
+      "standardized_tests": 14,
+      "required_documents": 12,
+      "recommendation_letters": 14,
+      "sop_essay_requirements": 18,
+      "graduation_certificate": 17,
+      "academic_transcript": 19,
+      "application_fee": 5,
+      "tuition": 34,
+      "additional_fees": 21,
+      "scholarships": 56,
+      "programme_status": 22,
+      "toefl": 6,
+      "ielts_overall": 2,
+      "duolingo": 2,
+      "career_outcomes": 22,
+      "academic_cycle": 18,
+      "minimum_gpa": 7,
+      "gpa_scale": 4,
+      "work_experience": 2,
+      "portfolio": 1,
+      "international_deadline": 2,
+      "funding_deadline": 3,
+      "rolling_admission": 2
+    },
+    "runtime_assertions_created_by_field": {
+      "programme_identity": 41,
+      "credential": 40,
+      "programme_status": 57,
+      "programme_focus": 39,
+      "curriculum_overview": 64,
+      "specialisations": 38,
+      "learning_outcomes": 43,
+      "academic_cycle": 46,
+      "intakes": 37,
+      "priority_deadline": 41,
+      "funding_deadline": 37,
+      "international_deadline": 36,
+      "final_deadline": 43,
+      "rolling_admission": 36,
+      "minimum_degree": 37,
+      "minimum_gpa": 38,
+      "gpa_scale": 36,
+      "subject_prerequisites": 39,
+      "admission_difficulty": 37,
+      "ielts_overall": 45,
+      "ielts_subscores": 36,
+      "toefl": 42,
+      "duolingo": 40,
+      "standardized_tests": 38,
+      "work_experience": 36,
+      "portfolio": 36,
+      "required_documents": 40,
+      "recommendation_letters": 39,
+      "sop_essay_requirements": 47,
+      "graduation_certificate": 55,
+      "academic_transcript": 46,
+      "application_fee": 39,
+      "application_url": 38,
+      "tuition": 61,
+      "additional_fees": 52,
+      "scholarships": 84,
+      "career_outcomes": 41,
+      "employment_outcomes": 36
+    },
+    "candidate_to_assertion_drop_reason": {
+      "DUPLICATE_ASSERTION_ID": 1
+    },
+    "shared_bundles_upserted": 99,
+    "inherited_assertions": 69,
+    "inherited_field_slots": 58,
+    "selective_extraction_programmes": 11,
+    "extraction_fields_skipped": 58,
+    "approved_baseline_programmes": 0,
+    "approved_baseline_assertions": 0,
+    "acquisition_intents": 0,
+    "source_candidates_generated": 0,
+    "source_candidates_admitted": 0,
+    "source_candidates_rejected": 0,
+    "acquisition_discovery_failures": 0,
+    "errors": 57,
+    "started_at": "2026-09-08T04:00:04+00:00",
+    "completed_at": "2026-09-08T04:27:39+00:00",
+    "elapsed_seconds": 1654.831
+  },
+  "projection_states": {
+    "NEEDS_REVIEW": 155,
+    "FOUND": 23,
+    "ACCESS_BLOCKED": 49,
+    "CONFLICTING_SOURCES": 4,
+    "EXTRACTION_FAILED": 14,
+    "SOURCE_NOT_FOUND": 7
+  },
+  "run5_projection_states": {
+    "NEEDS_REVIEW": 161,
+    "FOUND": 25,
+    "CONFLICTING_SOURCES": 6,
+    "ACCESS_BLOCKED": 49,
+    "EXTRACTION_FAILED": 11
+  },
+  "score_metrics": {
+    "programme_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "programme_discovery_recall_by_institution": {
+      "Cornell": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Duke": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "ETH Zurich": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Harvard": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "MIT": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Northwestern": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Princeton": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Sorbonne Université": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "UCLA": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Michigan": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "University of Tokyo": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      },
+      "Université de Montréal": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0,
+        "status": "AVAILABLE"
+      }
+    },
+    "programme_discovery_institution_floor": {
+      "status": "AVAILABLE",
+      "min_value": 1.0,
+      "threshold": 0.8,
+      "violating_institutions": []
+    },
+    "required_source_discovery_recall": {
+      "numerator": 36,
+      "denominator": 36,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "critical_field_precision": {
+      "numerator": 22,
+      "denominator": 22,
+      "value": 1.0,
+      "status": "AVAILABLE"
+    },
+    "critical_field_recall_resolved_coverage": {
+      "numerator": 22,
+      "denominator": 122,
+      "value": 0.18032786885245902,
+      "status": "AVAILABLE"
+    },
+    "safe_unresolved_correctness": {
+      "numerator": 86,
+      "denominator": 124,
+      "value": 0.6935483870967742,
+      "status": "AVAILABLE"
+    },
+    "product_safe_evidence_entailment": {
+      "numerator": 0,
+      "denominator": 0,
+      "value": null,
+      "status": "NOT_AVAILABLE"
+    },
+    "false_current_critical_count": 1,
+    "identity_merge_violations": 0,
+    "critical_unresolved_conflict_promoted_count": 0,
+    "critical_source_not_found_promoted_count": 0,
+    "critical_stale_only_promoted_count": 0,
+    "prohibited_high_volatility_inferred_critical_promoted_count": 0,
+    "product_safe_without_durable_provenance_count": 0,
+    "truth_comparison_failures": 1,
+    "coverage_loss_count": 137
+  },
+  "error_taxonomy": {
+    "DISCOVERY": 0,
+    "SOURCE_SELECTION": 7,
+    "FETCH": 48,
+    "PARSING": 0,
+    "EXTRACTION": 14,
+    "APPLICABILITY": 0,
+    "TEMPORAL": 0,
+    "CONFLICT": 2,
+    "RECOVERY": 0,
+    "IDENTITY": 0,
+    "QUALITY_POLICY": 67,
+    "PROMOTION": 1,
+    "GROUND_TRUTH_AMBIGUOUS": 6
+  },
+  "p0": {
+    "CONFLICT": [
+      "GT-V2-11-tuition",
+      "GT-V2-25-credential"
+    ],
+    "QUALITY_POLICY": [
+      "GT-V2-24-programme_status"
+    ]
+  },
+  "p1": {
+    "EXTRACTION": [
+      "GT-V2-13-programme_status",
+      "GT-V2-18-programme_status",
+      "GT-V2-23-major_admissions_requirement",
+      "GT-V2-24-english_requirement",
+      "GT-V2-25-programme_identity",
+      "GT-V2-25-programme_status",
+      "GT-V2-32-application_deadline",
+      "GT-V2-32-credential",
+      "GT-V2-32-english_requirement",
+      "GT-V2-32-major_admissions_requirement",
+      "GT-V2-32-programme_identity",
+      "GT-V2-32-programme_status",
+      "GT-V2-32-tuition",
+      "GT-V2-34-english_requirement"
+    ],
+    "FETCH": [
+      "GT-V2-04-application_deadline",
+      "GT-V2-04-credential",
+      "GT-V2-04-english_requirement",
+      "GT-V2-04-major_admissions_requirement",
+      "GT-V2-04-programme_identity",
+      "GT-V2-04-programme_status",
+      "GT-V2-04-tuition",
+      "GT-V2-06-application_deadline",
+      "GT-V2-06-credential",
+      "GT-V2-06-english_requirement",
+      "GT-V2-06-major_admissions_requirement",
+      "GT-V2-06-programme_identity",
+      "GT-V2-06-programme_status",
+      "GT-V2-08-application_deadline",
+      "GT-V2-08-credential",
+      "GT-V2-08-english_requirement",
+      "GT-V2-08-major_admissions_requirement",
+      "GT-V2-08-programme_identity",
+      "GT-V2-08-programme_status",
+      "GT-V2-08-tuition",
+      "GT-V2-09-application_deadline",
+      "GT-V2-09-credential",
+      "GT-V2-09-english_requirement",
+      "GT-V2-09-major_admissions_requirement",
+      "GT-V2-09-programme_identity",
+      "GT-V2-09-programme_status",
+      "GT-V2-09-tuition",
+      "GT-V2-26-application_deadline",
+      "GT-V2-26-credential",
+      "GT-V2-26-english_requirement",
+      "GT-V2-26-major_admissions_requirement",
+      "GT-V2-26-programme_identity",
+      "GT-V2-26-programme_status",
+      "GT-V2-26-tuition",
+      "GT-V2-35-application_deadline",
+      "GT-V2-35-credential",
+      "GT-V2-35-english_requirement",
+      "GT-V2-35-major_admissions_requirement",
+      "GT-V2-35-programme_identity",
+      "GT-V2-35-programme_status",
+      "GT-V2-35-tuition",
+      "GT-V2-36-application_deadline",
+      "GT-V2-36-credential",
+      "GT-V2-36-english_requirement",
+      "GT-V2-36-major_admissions_requirement",
+      "GT-V2-36-programme_identity",
+      "GT-V2-36-programme_status",
+      "GT-V2-36-tuition"
+    ],
+    "QUALITY_POLICY": [
+      "GT-V2-01-application_deadline",
+      "GT-V2-01-credential",
+      "GT-V2-01-tuition",
+      "GT-V2-02-credential",
+      "GT-V2-03-application_deadline",
+      "GT-V2-03-credential",
+      "GT-V2-03-tuition",
+      "GT-V2-05-credential",
+      "GT-V2-05-english_requirement",
+      "GT-V2-07-credential",
+      "GT-V2-07-english_requirement",
+      "GT-V2-07-programme_identity",
+      "GT-V2-07-tuition",
+      "GT-V2-10-credential",
+      "GT-V2-10-english_requirement",
+      "GT-V2-10-major_admissions_requirement",
+      "GT-V2-10-tuition",
+      "GT-V2-11-credential",
+      "GT-V2-11-english_requirement",
+      "GT-V2-12-credential",
+      "GT-V2-12-english_requirement",
+      "GT-V2-13-credential",
+      "GT-V2-13-english_requirement",
+      "GT-V2-13-tuition",
+      "GT-V2-14-credential",
+      "GT-V2-15-english_requirement",
+      "GT-V2-15-tuition",
+      "GT-V2-16-application_deadline",
+      "GT-V2-16-credential",
+      "GT-V2-16-english_requirement",
+      "GT-V2-16-major_admissions_requirement",
+      "GT-V2-16-tuition",
+      "GT-V2-17-credential",
+      "GT-V2-17-english_requirement",
+      "GT-V2-17-tuition",
+      "GT-V2-18-credential",
+      "GT-V2-18-english_requirement",
+      "GT-V2-18-tuition",
+      "GT-V2-19-credential",
+      "GT-V2-19-programme_identity",
+      "GT-V2-20-credential",
+      "GT-V2-20-english_requirement",
+      "GT-V2-20-major_admissions_requirement",
+      "GT-V2-21-credential",
+      "GT-V2-21-english_requirement",
+      "GT-V2-21-major_admissions_requirement",
+      "GT-V2-21-programme_identity",
+      "GT-V2-24-credential",
+      "GT-V2-24-major_admissions_requirement",
+      "GT-V2-25-english_requirement",
+      "GT-V2-25-major_admissions_requirement",
+      "GT-V2-28-credential",
+      "GT-V2-28-english_requirement",
+      "GT-V2-28-major_admissions_requirement",
+      "GT-V2-29-credential",
+      "GT-V2-29-english_requirement",
+      "GT-V2-29-major_admissions_requirement",
+      "GT-V2-30-credential",
+      "GT-V2-30-english_requirement",
+      "GT-V2-30-major_admissions_requirement",
+      "GT-V2-31-credential",
+      "GT-V2-31-major_admissions_requirement",
+      "GT-V2-33-credential",
+      "GT-V2-34-credential",
+      "GT-V2-34-major_admissions_requirement",
+      "GT-V2-34-programme_identity"
+    ],
+    "SOURCE_SELECTION": [
+      "GT-V2-27-application_deadline",
+      "GT-V2-27-credential",
+      "GT-V2-27-english_requirement",
+      "GT-V2-27-major_admissions_requirement",
+      "GT-V2-27-programme_identity",
+      "GT-V2-27-programme_status",
+      "GT-V2-27-tuition"
+    ]
+  },
+  "assertions": [
+    [
+      "programme_identity",
+      "programme_identity",
+      27,
+      23,
+      41,
+      23,
+      23
+    ],
+    [
+      "credential",
+      "credential",
+      28,
+      25,
+      40,
+      25,
+      24
+    ],
+    [
+      "programme_status",
+      "programme_status",
+      22,
+      1,
+      57,
+      1,
+      1
+    ],
+    [
+      "tuition",
+      "tuition",
+      34,
+      28,
+      61,
+      28,
+      22
+    ],
+    [
+      "application_deadline",
+      "priority_deadline,final_deadline,funding_deadline,international_deadline",
+      29,
+      32,
+      157,
+      32,
+      31
+    ],
+    [
+      "english_requirement",
+      "ielts_overall,ielts_subscores,toefl,duolingo",
+      10,
+      24,
+      163,
+      24,
+      23
+    ],
+    [
+      "major_admissions_requirement",
+      "minimum_degree,minimum_gpa,subject_prerequisites,standardized_tests,work_experience,portfolio,required_documents,recommendation_letters,sop_essay_requirements",
+      95,
+      108,
+      350,
+      108,
+      97
+    ]
+  ],
+  "fields": {
+    "programme_identity": {
+      "FOUND": 22,
+      "correct_FOUND": 22,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 4,
+      "CONFLICTING_SOURCES": 0,
+      "ACCESS_BLOCKED": 7,
+      "EXTRACTION_FAILED": 2,
+      "coverage_loss": 14,
+      "operational_loss": 10,
+      "precision_num": 22,
+      "precision_den": 22,
+      "safe_unresolved": 0,
+      "new_FOUND_vs_R5": []
+    },
+    "credential": {
+      "FOUND": 0,
+      "correct_FOUND": 0,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 26,
+      "CONFLICTING_SOURCES": 1,
+      "ACCESS_BLOCKED": 7,
+      "EXTRACTION_FAILED": 1,
+      "coverage_loss": 33,
+      "operational_loss": 9,
+      "precision_num": 0,
+      "precision_den": 0,
+      "safe_unresolved": 3,
+      "new_FOUND_vs_R5": []
+    },
+    "programme_status": {
+      "FOUND": 1,
+      "correct_FOUND": 0,
+      "incorrect_FOUND": 1,
+      "NEEDS_REVIEW": 23,
+      "CONFLICTING_SOURCES": 0,
+      "ACCESS_BLOCKED": 7,
+      "EXTRACTION_FAILED": 4,
+      "coverage_loss": 12,
+      "operational_loss": 12,
+      "precision_num": 0,
+      "precision_den": 0,
+      "safe_unresolved": 23,
+      "new_FOUND_vs_R5": [
+        "GT-V2-24-programme_status"
+      ]
+    },
+    "tuition": {
+      "FOUND": 0,
+      "correct_FOUND": 0,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 24,
+      "CONFLICTING_SOURCES": 3,
+      "ACCESS_BLOCKED": 7,
+      "EXTRACTION_FAILED": 1,
+      "coverage_loss": 18,
+      "operational_loss": 8,
+      "precision_num": 0,
+      "precision_den": 0,
+      "safe_unresolved": 15,
+      "new_FOUND_vs_R5": []
+    },
+    "application_deadline": {
+      "FOUND": 0,
+      "correct_FOUND": 0,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 27,
+      "CONFLICTING_SOURCES": 0,
+      "ACCESS_BLOCKED": 7,
+      "EXTRACTION_FAILED": 1,
+      "coverage_loss": 12,
+      "operational_loss": 9,
+      "precision_num": 0,
+      "precision_den": 0,
+      "safe_unresolved": 24,
+      "new_FOUND_vs_R5": []
+    },
+    "english_requirement": {
+      "FOUND": 0,
+      "correct_FOUND": 0,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 25,
+      "CONFLICTING_SOURCES": 0,
+      "ACCESS_BLOCKED": 7,
+      "EXTRACTION_FAILED": 3,
+      "coverage_loss": 27,
+      "operational_loss": 11,
+      "precision_num": 0,
+      "precision_den": 0,
+      "safe_unresolved": 9,
+      "new_FOUND_vs_R5": []
+    },
+    "major_admissions_requirement": {
+      "FOUND": 0,
+      "correct_FOUND": 0,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 26,
+      "CONFLICTING_SOURCES": 0,
+      "ACCESS_BLOCKED": 7,
+      "EXTRACTION_FAILED": 2,
+      "coverage_loss": 21,
+      "operational_loss": 10,
+      "precision_num": 0,
+      "precision_den": 0,
+      "safe_unresolved": 12,
+      "new_FOUND_vs_R5": []
+    }
+  },
+  "institutions": [
+    [
+      "Cornell",
+      3,
+      3,
+      "100.00%",
+      3,
+      6,
+      0,
+      12,
+      "3/3 (100.00%)",
+      0,
+      1
+    ],
+    [
+      "Duke",
+      3,
+      3,
+      "100.00%",
+      3,
+      7,
+      0,
+      9,
+      "3/3 (100.00%)",
+      0,
+      0
+    ],
+    [
+      "ETH Zurich",
+      3,
+      3,
+      "100.00%",
+      3,
+      9,
+      0,
+      9,
+      "3/3 (100.00%)",
+      0,
+      0
+    ],
+    [
+      "Harvard",
+      3,
+      3,
+      "100.00%",
+      1,
+      2,
+      0,
+      15,
+      "1/1 (100.00%)",
+      0,
+      13
+    ],
+    [
+      "MIT",
+      3,
+      3,
+      "100.00%",
+      3,
+      11,
+      0,
+      7,
+      "3/3 (100.00%)",
+      0,
+      0
+    ],
+    [
+      "Northwestern",
+      3,
+      3,
+      "100.00%",
+      3,
+      10,
+      0,
+      7,
+      "3/3 (100.00%)",
+      0,
+      1
+    ],
+    [
+      "Princeton",
+      3,
+      3,
+      "100.00%",
+      0,
+      3,
+      0,
+      18,
+      "0/0 (n/a)",
+      0,
+      14
+    ],
+    [
+      "Sorbonne Université",
+      3,
+      3,
+      "100.00%",
+      2,
+      9,
+      0,
+      10,
+      "2/2 (100.00%)",
+      0,
+      7
+    ],
+    [
+      "UCLA",
+      3,
+      3,
+      "100.00%",
+      1,
+      11,
+      0,
+      9,
+      "1/1 (100.00%)",
+      0,
+      0
+    ],
+    [
+      "University of Michigan",
+      3,
+      3,
+      "100.00%",
+      0,
+      3,
+      0,
+      18,
+      "0/0 (n/a)",
+      0,
+      15
+    ],
+    [
+      "University of Tokyo",
+      3,
+      3,
+      "100.00%",
+      0,
+      2,
+      0,
+      19,
+      "0/0 (n/a)",
+      0,
+      16
+    ],
+    [
+      "Université de Montréal",
+      3,
+      3,
+      "100.00%",
+      3,
+      13,
+      1,
+      4,
+      "3/3 (100.00%)",
+      1,
+      2
+    ]
+  ],
+  "stress": [
+    [
+      "PDF",
+      14,
+      14,
+      97,
+      7,
+      26,
+      0,
+      64,
+      {
+        "CONFLICT": 1,
+        "EXTRACTION": 10,
+        "FETCH": 27,
+        "GROUND_TRUTH_AMBIGUOUS": 1,
+        "QUALITY_POLICY": 19,
+        "SOURCE_SELECTION": 7
+      }
+    ],
+    [
+      "multilingual",
+      10,
+      10,
+      70,
+      5,
+      29,
+      1,
+      35,
+      {
+        "CONFLICT": 1,
+        "EXTRACTION": 11,
+        "FETCH": 7,
+        "PROMOTION": 1,
+        "QUALITY_POLICY": 10,
+        "SOURCE_SELECTION": 7
+      }
+    ],
+    [
+      "related-party",
+      8,
+      8,
+      55,
+      6,
+      14,
+      1,
+      34,
+      {
+        "EXTRACTION": 9,
+        "GROUND_TRUTH_AMBIGUOUS": 1,
+        "PROMOTION": 1,
+        "QUALITY_POLICY": 19,
+        "SOURCE_SELECTION": 7
+      }
+    ],
+    [
+      "historical",
+      33,
+      33,
+      225,
+      19,
+      76,
+      1,
+      129,
+      {
+        "CONFLICT": 2,
+        "EXTRACTION": 14,
+        "FETCH": 48,
+        "GROUND_TRUTH_AMBIGUOUS": 6,
+        "PROMOTION": 1,
+        "QUALITY_POLICY": 59,
+        "SOURCE_SELECTION": 7
+      }
+    ],
+    [
+      "identity-edge",
+      16,
+      16,
+      111,
+      9,
+      37,
+      1,
+      64,
+      {
+        "CONFLICT": 1,
+        "EXTRACTION": 4,
+        "FETCH": 21,
+        "GROUND_TRUTH_AMBIGUOUS": 1,
+        "PROMOTION": 1,
+        "QUALITY_POLICY": 32,
+        "SOURCE_SELECTION": 7
+      }
+    ],
+    [
+      "conflict-capable",
+      34,
+      34,
+      232,
+      21,
+      84,
+      0,
+      127,
+      {
+        "CONFLICT": 2,
+        "EXTRACTION": 13,
+        "FETCH": 41,
+        "GROUND_TRUTH_AMBIGUOUS": 6,
+        "QUALITY_POLICY": 64,
+        "SOURCE_SELECTION": 7
+      }
+    ],
+    [
+      "adversarial",
+      27,
+      27,
+      185,
+      16,
+      67,
+      1,
+      101,
+      {
+        "CONFLICT": 2,
+        "EXTRACTION": 13,
+        "FETCH": 34,
+        "GROUND_TRUTH_AMBIGUOUS": 4,
+        "PROMOTION": 1,
+        "QUALITY_POLICY": 46,
+        "SOURCE_SELECTION": 7
+      }
+    ],
+    [
+      "structured/catalogue",
+      17,
+      17,
+      115,
+      10,
+      32,
+      0,
+      73,
+      {
+        "EXTRACTION": 2,
+        "FETCH": 41,
+        "GROUND_TRUTH_AMBIGUOUS": 4,
+        "QUALITY_POLICY": 30
+      }
+    ]
+  ],
+  "evidence": {
+    "direct-support": {
+      "cases": 83,
+      "FOUND": 19,
+      "correct_FOUND": 19,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 47,
+      "ACCESS_BLOCKED": 8,
+      "EXTRACTION_FAILED": 4,
+      "CONFLICTING_SOURCES": 1,
+      "assertion_present_unresolved": 44,
+      "assertion_present_unresolved_diagnostics": 86
+    },
+    "material-evidence": {
+      "cases": 104,
+      "FOUND": 22,
+      "correct_FOUND": 22,
+      "incorrect_FOUND": 0,
+      "NEEDS_REVIEW": 62,
+      "ACCESS_BLOCKED": 9,
+      "EXTRACTION_FAILED": 6,
+      "CONFLICTING_SOURCES": 1,
+      "assertion_present_unresolved": 54,
+      "assertion_present_unresolved_diagnostics": 99
+    }
+  },
+  "identity": {
+    "FOUND": 22,
+    "correct_FOUND": 22,
+    "incorrect_FOUND": 0,
+    "NEEDS_REVIEW": 4,
+    "ACCESS_BLOCKED": 7,
+    "EXTRACTION_FAILED": 2,
+    "comparison_classes": {
+      "CANONICALLY_EQUIVALENT": 8,
+      "EXACT_EQUIVALENT": 13,
+      "null": 14,
+      "OFFICIAL_ALIAS_EQUIVALENT": 1
+    },
+    "five_cases": [
+      [
+        "GT-V2-22-programme_identity",
+        "FOUND",
+        "Baccalauréat en informatique",
+        "FAIL",
+        "NOT_EQUIVALENT",
+        "FOUND",
+        "Baccalauréat en informatique",
+        "PASS",
+        "EXACT_EQUIVALENT"
+      ],
+      [
+        "GT-V2-23-programme_identity",
+        "FOUND",
+        "Maîtrise en informatique",
+        "FAIL",
+        "NOT_EQUIVALENT",
+        "FOUND",
+        "Maîtrise en informatique",
+        "PASS",
+        "EXACT_EQUIVALENT"
+      ],
+      [
+        "GT-V2-25-programme_identity",
+        "FOUND",
+        "Master of Information Science and Technology",
+        "FAIL",
+        "NOT_EQUIVALENT",
+        "EXTRACTION_FAILED",
+        null,
+        "COVERAGE_LOSS",
+        null
+      ],
+      [
+        "GT-V2-33-programme_identity",
+        "FOUND",
+        "Parcours Systèmes et Applications Répartis (SAR)",
+        "FAIL",
+        "WRONG_GRANULARITY",
+        "FOUND",
+        "Parcours Systèmes et Applications Répartis (SAR)",
+        "PASS",
+        "EXACT_EQUIVALENT"
+      ],
+      [
+        "GT-V2-34-programme_identity",
+        "FOUND",
+        "Master of Applied Data Science (MADS)",
+        "FAIL",
+        null,
+        "NEEDS_REVIEW",
+        null,
+        "COVERAGE_LOSS",
+        null
+      ]
+    ],
+    "controls": {
+      "retained_correct": 19,
+      "new_unresolved": 1,
+      "new_incorrect": 0,
+      "rows": [
+        [
+          "GT-V2-01-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Artificial Intelligence and Decision Making (Course 6-4)"
+        ],
+        [
+          "GT-V2-02-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Master of Science in Computational Science and Engineering"
+        ],
+        [
+          "GT-V2-03-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Chemical Engineering (Course 10)"
+        ],
+        [
+          "GT-V2-05-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Data Science"
+        ],
+        [
+          "GT-V2-10-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Accelerated Daytime MBA"
+        ],
+        [
+          "GT-V2-11-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "AI + Materials Master of Engineering"
+        ],
+        [
+          "GT-V2-12-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Master of Engineering in BME"
+        ],
+        [
+          "GT-V2-13-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "BA/BMus in Liberal Arts and Music"
+        ],
+        [
+          "GT-V2-14-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Information Systems, MS Data Science Specialization"
+        ],
+        [
+          "GT-V2-15-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "BA/BMus, BS/BMus, BA/BAMus, or BS/BAMus in Communication and Music"
+        ],
+        [
+          "GT-V2-16-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Applied Economics and Management (MPS)"
+        ],
+        [
+          "GT-V2-17-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Computer Science (BS)"
+        ],
+        [
+          "GT-V2-18-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Information Science (BS)"
+        ],
+        [
+          "GT-V2-20-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Biostatistics MPH"
+        ],
+        [
+          "GT-V2-24-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "DESS en apprentissage automatique"
+        ],
+        [
+          "GT-V2-27-programme_identity",
+          "FOUND",
+          "SOURCE_NOT_FOUND",
+          "COVERAGE_LOSS",
+          null
+        ],
+        [
+          "GT-V2-28-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Master Data Science"
+        ],
+        [
+          "GT-V2-29-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Master Cyber Security"
+        ],
+        [
+          "GT-V2-30-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "Master Robotics, Systems and Control"
+        ],
+        [
+          "GT-V2-31-programme_identity",
+          "FOUND",
+          "FOUND",
+          "PASS",
+          "LICENCE D’INFORMATIQUE PARCOURS MONODISCIPLINAIRE"
+        ]
+      ]
+    }
+  },
+  "offender": {
+    "case_id": "GT-V2-24-programme_status",
+    "runtime_state": "FOUND",
+    "runtime_value": "accepting_applications",
+    "expected_state": "NEEDS_REVIEW",
+    "expected_value": null,
+    "source": "https://admission.umontreal.ca/programmes/dess-en-apprentissage-automatique/",
+    "outcome": "UNSAFE_UNRESOLVED_VALUE"
+  },
+  "control_audit": [
+    {
+      "case_id": "GT-V2-01-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-02-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-02-tuition",
+      "field": "tuition",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-15-application_deadline",
+      "field": "application_deadline",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-15-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-22-english_requirement",
+      "field": "english_requirement",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-22-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-09-programme_identity",
+      "field": "programme_identity",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "ACCESS_BLOCKED",
+      "value": null,
+      "outcome": "COVERAGE_LOSS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-09-credential",
+      "field": "credential",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "ACCESS_BLOCKED",
+      "value": null,
+      "outcome": "COVERAGE_LOSS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-15-credential",
+      "field": "credential",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-22-credential",
+      "field": "credential",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-23-credential",
+      "field": "credential",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "NEEDS_REVIEW",
+      "value": null,
+      "outcome": "SAFE_UNRESOLVED_PASS",
+      "unsupported_concrete_promotion": false
+    },
+    {
+      "case_id": "GT-V2-27-credential",
+      "field": "credential",
+      "truth_state": "NEEDS_REVIEW",
+      "state": "SOURCE_NOT_FOUND",
+      "value": null,
+      "outcome": "COVERAGE_LOSS",
+      "unsupported_concrete_promotion": false
+    }
+  ],
+  "tuition_blocker_reason_occurrences": {
+    "scope_applicability": 18,
+    "temporal": 37,
+    "term": 14,
+    "audience": 3,
+    "coa_confusion": 0,
+    "fee_period_validation": 4
+  }
+}
