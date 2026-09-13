@@ -7,21 +7,30 @@ describe('CvStartFlow', () => {
   it('requires a format, then sends both actions through that format', async () => {
     render(<CvStartFlow applicationId="app-1" />);
 
-    expect(screen.queryByRole('link', { name: 'Start building your CV' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Upload' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Create my CV' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Upload for review' })).not.toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Create my CV' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Already have a CV?' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Known profile and application information is used when available/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Upload or paste an existing CV to receive evidence-based feedback/i),
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Choose now' })[0]);
-    expect(screen.getByRole('link', { name: 'Start building your CV' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Create my CV' })).toHaveAttribute(
       'href',
       '/apply/app-1/cv-builder?template=technical',
     );
-    expect(screen.getByRole('link', { name: 'Upload' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Upload for review' })).toHaveAttribute(
       'href',
       '/apply/app-1/cv-review?template=technical',
     );
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Choose now' })[1]);
-    expect(screen.getByRole('link', { name: 'Start building your CV' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Create my CV' })).toHaveAttribute(
       'href',
       '/apply/app-1/cv-builder?template=academic',
     );

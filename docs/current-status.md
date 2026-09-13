@@ -65,6 +65,10 @@ Polished visual styling across `/admin/ai-report-review` based on admin user rev
    even when companion metadata keys (`schemaVersion`, `generatedAt`) exist. At `depth === 0`, top-level scalars
    and narratives are grouped into a cohesive "Report Overview" card rather than isolated single-property cards.
 Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+Working tree 2026-09-13 (CV start flow newcomer labels & copy update):
+In `CvStartFlow.tsx`, updated builder entry card title and action to "Create my CV" with newcomer copy explaining known profile/application info usage. Updated upload card title to "Already have a CV?" and action to "Upload for review" while retaining evidence-based feedback copy. Template selection and route destinations remain unchanged.
+Measured: `CvStartFlow.test.tsx` (2 tests) passed; scoped ESLint passed with 0 errors; `git diff --check` passed.
+
 
 Working tree 2026-09-13 (Admin AI report review nested grid collision fix & achievement/reflection separation):
 Resolved text overlap bug in `StructuredDataView` where scalars inside nested item cards (width ~300px)

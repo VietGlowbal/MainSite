@@ -115,8 +115,20 @@ export function CvStartFlow({ applicationId }: { applicationId: string }) {
       <section id="cv-start" aria-labelledby="cv-start-heading" className="mt-28">
         <h2 id="cv-start-heading" className="text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"><T k="Where would you like to start?" /></h2>
         <div className="mt-8 grid gap-10 md:grid-cols-2">
-          <StartCard title="Build from scratch" description="Bring your experience together into a target profile and an English CV for the programme" href={template ? `/apply/${applicationId}/cv-builder${query}` : null} actionLabel="Start building your CV" icon={<SparkleIcon className="size-5" />} />
-          <StartCard title="Input" description="Upload or paste an existing CV to receive evidence-based feedback" href={template ? `/apply/${applicationId}/cv-review${query}` : null} actionLabel="Upload" icon={<UploadIcon />} />
+          <StartCard
+            title="Create my CV"
+            description="Bring your experience together into a targeted English CV. Known profile and application information is used when available."
+            href={template ? `/apply/${applicationId}/cv-builder${query}` : null}
+            actionLabel="Create my CV"
+            icon={<SparkleIcon className="size-5" />}
+          />
+          <StartCard
+            title="Already have a CV?"
+            description="Upload or paste an existing CV to receive evidence-based feedback"
+            href={template ? `/apply/${applicationId}/cv-review${query}` : null}
+            actionLabel="Upload for review"
+            icon={<UploadIcon />}
+          />
         </div>
       </section>
     </>
