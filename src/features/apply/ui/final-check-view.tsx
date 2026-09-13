@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useT } from '@/lib/i18n';
+import { useLanguage, useT } from '@/lib/i18n';
 import {
   ACTION_TIER_LABELS,
   ACTION_TIER_MEANINGS,
@@ -103,7 +103,8 @@ export function FinalCheckView({
   check: FinalCheckRecord | null;
   migrationMissing: boolean;
 }) {
-  const t = useT();
+  const { t, lang } = useLanguage();
+  const locale = lang === 'vi' ? 'vi-VN' : 'en-GB';
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -176,7 +177,7 @@ export function FinalCheckView({
             </Panel>
           ) : null}
           <p className="text-gb-xs text-fg-muted">
-            {t('Last checked')}: {new Date(check.createdAt).toLocaleString('vi-VN')}
+            {t('Last checked')}: {new Date(check.createdAt).toLocaleString(locale)}
           </p>
         </>
       ) : (

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { LanguageProvider } from '@/lib/i18n';
 import type { ComponentState, FinalCheckRecord, Readiness } from '../domain';
 import { READINESS_DISCLAIMER } from '../domain';
 import { FinalCheckView } from './final-check-view';
@@ -241,5 +242,43 @@ describe('FinalCheckView', () => {
         name: 'Application materials complete',
       }),
     ).toBeInTheDocument();
+  });
+
+  it('formats Last checked date with en-GB for English and vi-VN for Vietnamese', () => {
+    const { unmount } = render(
+      <LanguageProvider defaultLang="en">
+        <FinalCheckView
+          applicationId="app-1"
+          universityName="Cambridge"
+          courseName="MPhil in Machine Learning"
+          components={baseComponents}
+          liveReadiness={mockReadiness}
+          check={mockCheck}
+          migrationMissing={false}
+        />
+      </LanguageProvider>,
+    );
+
+    const expectedEnDate = new Date(mockCheck.createdAt).toLocaleString('en-GB');
+    expect(screen.getByText(new RegExp(expectedEnDate))).toBeInTheDocument();
+
+    unmount();
+
+    render(
+      <LanguageProvider defaultLang="vi">
+        <FinalCheckView
+          applicationId="app-1"
+          universityName="Cambridge"
+          courseName="MPhil in Machine Learning"
+          components={baseComponents}
+          liveReadiness={mockReadiness}
+          check={mockCheck}
+          migrationMissing={false}
+        />
+      </LanguageProvider>,
+    );
+
+    const expectedViDate = new Date(mockCheck.createdAt).toLocaleString('vi-VN');
+    expect(screen.getByText(new RegExp(expectedViDate))).toBeInTheDocument();
   });
 });
