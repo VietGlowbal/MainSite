@@ -488,6 +488,78 @@ describe('OnboardingWizard branching (UG, PG, PhD)', () => {
     expect(screen.queryByText('SAT')).not.toBeInTheDocument();
   });
 
+  it('clears the previous PG branch when a student switches to PhD', async () => {
+    window.localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        answers: {
+          study_level: 'postgraduate',
+          subjects: 'Technology',
+          countries: 'Open to ideas',
+          budget: 'Under $15k',
+          campus: 'Flexible',
+          academic: { curriculum: [], scales: {}, grades: {} },
+          pg_academic: {
+            degree: 'BSc Computer Science',
+            institution: 'NUS',
+            field_of_study: 'Computer Science',
+            gpa_scale: '4.0 scale',
+            gpa: '3.8',
+            completion_year: '2024',
+          },
+          phd_academic: {
+            bachelor_degree: 'Stale bachelor draft',
+            master_degree: '',
+            institution: '',
+            research_experience: 'Stale research draft',
+            publications: '',
+            research_direction: 'Stale direction',
+            supervisor_fit: 'Stale fit',
+          },
+          tests: {
+            english: ['None yet'],
+            englishScores: {},
+            standardized: ['GRE'],
+            standardizedScores: { GRE: '320' },
+          },
+          support: 'Scholarships and funding',
+        },
+      }),
+    );
+
+    render(<OnboardingWizard isSignedIn />);
+    const phdChoice = await screen.findByRole('button', { name: 'PhD' });
+    fireEvent.click(phdChoice);
+
+    const step6 = await screen.findByRole('button', { name: /Question 6/ });
+    await waitFor(() => expect(step6).toBeEnabled());
+    fireEvent.click(step6);
+
+    expect(screen.getByLabelText(/Bachelor's degree & institution/i)).toHaveValue('');
+    expect(screen.queryByLabelText(/Bachelor \/ Current degree/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      const saved = JSON.parse(window.localStorage.getItem(DRAFT_KEY) ?? '{}') as { answers?: Record<string, unknown> };
+      expect(saved.answers?.pg_academic).toEqual({
+        degree: '',
+        institution: '',
+        field_of_study: '',
+        gpa_scale: '4.0 scale',
+        gpa: '',
+        classification: '',
+        completion_year: '',
+      });
+      expect(saved.answers?.phd_academic).toEqual({
+        bachelor_degree: '',
+        master_degree: '',
+        institution: '',
+        research_experience: '',
+        publications: '',
+        research_direction: '',
+        supervisor_fit: '',
+      });
+    });
+  });
+
   it('falls back only when the additive academic columns are missing', async () => {
     window.localStorage.setItem(
       DRAFT_KEY,
