@@ -206,9 +206,9 @@ function ReflectionCallout({
   if (!starFields.length && !story && !takeaways && !status) return null;
 
   return (
-    <div className="mt-gb-xs rounded-gb-lg border-l-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30 p-gb-md flex flex-col gap-gb-sm text-gb-xs min-w-0">
+    <div className="mt-gb-xs rounded-gb-lg border-l-4 border-indigo-500 bg-indigo-50/60 p-gb-md flex flex-col gap-gb-sm text-gb-xs min-w-0">
       <div className="flex items-center justify-between gap-gb-xs">
-        <div className="flex items-center gap-gb-xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+        <div className="flex items-center gap-gb-xs font-semibold uppercase tracking-wider text-indigo-700">
           <span aria-hidden="true">💭</span>
           <span>Student Reflection (Góc suy ngẫm)</span>
         </div>
@@ -226,7 +226,7 @@ function ReflectionCallout({
               <span className="font-semibold uppercase tracking-wide text-fg-muted text-gb-xxs">
                 {humanize(field)}:
               </span>
-              <p className="text-fg leading-relaxed break-words italic pl-gb-xs border-l border-indigo-200 dark:border-indigo-800">
+              <p className="text-fg leading-relaxed break-words italic pl-gb-xs border-l border-indigo-200">
                 {content}
               </p>
             </div>
@@ -886,20 +886,20 @@ function StrategyRenderer({ output }: { output: RecordValue }) {
 function LegacyRenderer({ output }: { output: unknown }) {
   return (
     <div className="flex flex-col gap-gb-xl">
-      <div className="rounded-gb-xl border border-amber-300/80 dark:border-amber-700/60 bg-gradient-to-r from-amber-50 to-amber-100/40 dark:from-amber-950/40 dark:to-amber-900/20 p-gb-lg shadow-gb-xxs flex items-start gap-gb-md">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-gb-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-          <KitIcon art={ICONS.zap} frame={18} className="text-amber-600 dark:text-amber-400" />
+      <div className="rounded-gb-xl border border-amber-200 border-l-4 border-l-amber-500 bg-amber-50/70 p-gb-lg shadow-gb-xxs flex items-start gap-gb-md">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-gb-lg bg-amber-100 text-amber-700 border border-amber-200/80">
+          <KitIcon art={ICONS.zap} frame={16} className="text-amber-600" />
         </div>
         <div className="flex flex-col gap-gb-xxs min-w-0">
           <div className="flex items-center gap-gb-xs flex-wrap">
-            <span className="font-semibold text-gb-sm text-amber-950 dark:text-amber-100">
+            <span className="font-semibold text-gb-sm text-amber-950">
               Legacy or partially validated output
             </span>
-            <span className="rounded-full bg-amber-200/80 dark:bg-amber-800/60 px-gb-xs py-gb-xxs text-gb-xxs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+            <span className="rounded-full bg-amber-100 border border-amber-300 px-gb-xs py-gb-xxs text-gb-xxs font-bold uppercase tracking-wider text-amber-900">
               Notice
             </span>
           </div>
-          <p className="text-gb-xs text-amber-900 dark:text-amber-200/90 leading-relaxed font-medium">
+          <p className="text-gb-xs text-amber-900 leading-relaxed font-normal">
             The report contract is older or contains historical references that no longer validate. The stored content is shown below in a readable form; raw JSON remains available in Technical.
           </p>
         </div>
@@ -1295,7 +1295,7 @@ function FlowNode({
                   Viewing
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                <span className="flex items-center gap-1 text-emerald-600 font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Stored report
                 </span>

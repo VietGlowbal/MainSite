@@ -1,5 +1,19 @@
 # Current project status
 
+Working tree 2026-09-13 (Admin AI report review dark-mode contrast fix for alert notice and reflections):
+Fixed dark-mode contrast degradation reported on `/admin/ai-report-review` (`media_1789300035930.png`):
+When the user's OS or browser has `prefers-color-scheme: dark`, Tailwind's default media query activated `dark:` classes
+on `LegacyRenderer` (`dark:from-amber-950/40`, `dark:text-amber-200/90`) and `ReflectionCallout` while the application
+surface remained white (`bg-surface = #ffffff`). This produced a muddy grayish-brown banner with nearly invisible pale
+yellow text (contrast ~1.5:1).
+1. `LegacyRenderer`: Redesigned with solid light-theme styling using a warm pastel fill (`bg-amber-50/70`), clean amber border
+   (`border-amber-200`), authoritative amber warning stripe (`border-l-4 border-l-amber-500`), sharp dark brown heading
+   (`text-amber-950`, contrast 14:1), distinct amber Notice pill (`bg-amber-100 border border-amber-300 text-amber-900`),
+   and high-contrast dark amber body text (`text-amber-900`, contrast 8.2:1).
+2. Removed all rogue `dark:` modifiers across `LegacyRenderer`, `ReflectionCallout`, and `FlowNode` that conflicted with
+   the light theme shell.
+Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+
 Working tree 2026-09-13 (CI red since 2026-09-11 — stale matching test fixture): `verify:pr` failed on every
 push/PR after `5f741a9c`, which made `generateApplicationMatchingReport` reuse a previous matching report only
 when its `sourcePersonalReportVersionId` equals the Personal Report in use. Test 8 in
@@ -21,7 +35,7 @@ Polished visual styling across `/admin/ai-report-review` based on admin user rev
    (`bg-surface-subtle border border-line p-1 rounded-gb-xl`) with icons (`✨ Output`, `📥 Inputs`, `⚙️ Technical`)
    and count badges, integrated cleanly beside the panel header on desktop.
 3. High-Contrast Legacy Alert (`LegacyRenderer`): Replaced washed-out amber text with high-contrast, sharp dark amber
-   typography (`text-amber-950 dark:text-amber-100`), an icon badge, and a distinct "Notice" pill.
+   typography (`text-amber-950`), an icon badge, and a distinct "Notice" pill.
 4. Metric & Narrative Bug Fix (`isNarrativeKey` & `renderScalarValue`): Fixed a false positive where `evidence`
    sub-string matched `overallEvidenceConfidence: "low"`, causing it to render as a full-width blockquote with thick
    red border. Metric keys (confidence, status, rating, score, count, date, etc.) are strictly excluded from narrative
