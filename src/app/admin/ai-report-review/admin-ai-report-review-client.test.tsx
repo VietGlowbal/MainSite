@@ -29,7 +29,8 @@ describe('AdminAiReportReviewClient', () => {
     expect(screen.getByRole('tab', { name: 'Technical' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'View Matching Report' }));
 
-    expect(screen.getByText(/Unsupported report format/)).toBeInTheDocument();
+    expect(screen.getByText(/Legacy or partially validated output/)).toBeInTheDocument();
+    expect(screen.getByText('matching output')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Technical' }));
     expect(screen.getByText('matching-hash')).toBeInTheDocument();
   });

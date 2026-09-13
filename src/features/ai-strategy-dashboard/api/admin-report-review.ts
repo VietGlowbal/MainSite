@@ -80,26 +80,59 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value ? value : null;
 }
 
+function normaliseStoredOutput(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return value;
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function hasKeys(value: unknown, keys: string[]): value is Record<string, unknown> {
+  const item = record(value);
+  return Boolean(item && keys.every((key) => key in item));
+}
+
 export function detectAdminAiReportOutput(kind: ReviewKind, value: unknown): {
   format: AdminAiReportOutputFormat;
   output: unknown;
 } {
+  const candidate = normaliseStoredOutput(value);
   if (kind === 'personal') {
-    const parsed = personalReportV2Schema.safeParse(value);
+    const parsed = personalReportV2Schema.safeParse(candidate);
     return parsed.success
       ? { format: 'personal_report_v2', output: parsed.data }
-      : { format: 'unknown', output: value };
+      : hasKeys(candidate, ['coreIdentity', 'drivingForce', 'signaturePattern', 'emergingThemes', 'personalPositioning', 'proofOfMe'])
+        ? { format: 'personal_report_v2', output: candidate }
+        : { format: 'unknown', output: candidate };
   }
   if (kind === 'matching') {
-    const v3 = matchingReportV3Schema.safeParse(value);
+    const v3 = matchingReportV3Schema.safeParse(candidate);
     if (v3.success) return { format: 'matching_report_v3', output: v3.data };
-    const v2 = matchingReportV2Schema.safeParse(value);
+    const matchingRecord = record(candidate);
+    if (matchingRecord?.contractVersion === 'matching-report-v3' || hasKeys(candidate, ['overall', 'universityFit', 'programmeFit'])) {
+      return { format: 'matching_report_v3', output: candidate };
+    }
+    const v2 = matchingReportV2Schema.safeParse(candidate);
     return v2.success
       ? { format: 'matching_report_v2', output: v2.data }
-      : { format: 'unknown', output: value };
+      : matchingRecord?.contractVersion === 'matching-report-v2'
+        ? { format: 'matching_report_v2', output: candidate }
+        : { format: 'unknown', output: candidate };
   }
-  const v3 = strategyReportV3FromRow({ report_v2: value });
-  return v3 ? { format: 'strategy_report_v3', output: v3 } : { format: 'unknown', output: value };
+  const v3 = strategyReportV3FromRow({ report_v2: candidate });
+  if (v3) return { format: 'strategy_report_v3', output: v3 };
+  if (hasKeys(candidate, ['strategicOverview', 'profileDevelopmentStrategy', 'strategicRoadmap'])) {
+    return { format: 'strategy_report_v3', output: candidate };
+  }
+  return { format: 'unknown', output: candidate };
 }
 
 async function authorizeAdmin(): Promise<{ ok: true } | AdminFailure> {

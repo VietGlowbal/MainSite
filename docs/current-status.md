@@ -5,8 +5,9 @@ now validates stored output against the canonical Personal V2, Matching V3/V2 an
 Strategy V3 schemas before rendering semantic read-only sections. Detail tabs are
 Output, Inputs and Technical; raw JSON is secondary and exact persisted snapshot,
 analysis, personal-report and target-profile lineage is loaded only for the selected
-application. Unknown output remains visible as a safe fallback. Measured: focused
-admin review tests (4), base/strict TypeScript, scoped ESLint and `git diff --check` pass.
+application. Unknown and partially validated historical output remains readable in
+Output, with raw JSON as a secondary Technical view. Measured: focused admin review
+tests (5), base/strict TypeScript, scoped ESLint and `git diff --check` pass.
 
 Working tree 2026-09-11 (CV format selection prominent red border):
 `FormatCard` in `CvStartFlow.tsx` enhanced with prominent 2px brand border (`border-2 border-brand`),

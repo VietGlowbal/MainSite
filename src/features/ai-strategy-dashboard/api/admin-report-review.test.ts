@@ -19,4 +19,15 @@ describe('detectAdminAiReportOutput', () => {
     expect(detectAdminAiReportOutput('matching', { contractVersion: 'future' }).format).toBe('unknown');
     expect(detectAdminAiReportOutput('matching', { contractVersion: 'future' }).output).toEqual({ contractVersion: 'future' });
   });
+
+  it('keeps a known matching contract readable when historical references no longer validate', () => {
+    const result = detectAdminAiReportOutput('matching', {
+      contractVersion: 'matching-report-v3',
+      overall: { summary: 'A persisted summary' },
+      universityFit: {},
+      programmeFit: {},
+    });
+    expect(result.format).toBe('matching_report_v3');
+    expect(result.output).toMatchObject({ contractVersion: 'matching-report-v3' });
+  });
 });
