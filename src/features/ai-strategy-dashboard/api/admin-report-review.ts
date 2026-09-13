@@ -1,6 +1,9 @@
 import { isAdmin } from '@/server/auth/auth-helpers';
 import { createAdminClient } from '@/server/db/admin';
 import { createClient } from '@/server/db/server';
+import { personalReportV2Schema } from '@/features/apply/domain/personal-report';
+import { matchingReportV2Schema, matchingReportV3Schema } from '@/lib/ai/matching/domain';
+import { strategyReportV3FromRow } from '@/lib/ai/strategy-v3/domain';
 
 const REVIEW_LIMIT = 100;
 const SOURCE_LIMIT = 300;
@@ -16,6 +19,19 @@ type ReportActivity = {
 };
 
 type Source = { label: string; value: string | null };
+
+export type AdminAiReportOutputFormat =
+  | 'personal_report_v2'
+  | 'matching_report_v3'
+  | 'matching_report_v2'
+  | 'strategy_report_v3'
+  | 'unknown';
+
+export type AdminAiReportInputSection = {
+  label: string;
+  persisted: boolean;
+  value: unknown;
+};
 
 export type AdminAiReportReviewListItem = {
   applicationId: string;
@@ -36,7 +52,11 @@ export type AdminAiReportReviewNode = {
   promptVersion: string | null;
   inputHash: string | null;
   sources: Source[];
+  outputFormat: AdminAiReportOutputFormat;
   output: unknown;
+  rawOutput: unknown;
+  inputs: { sections: AdminAiReportInputSection[] };
+  metadata: Record<string, unknown>;
 };
 
 export type AdminAiReportReview = {
@@ -58,6 +78,28 @@ function asRows(value: unknown): Record<string, unknown>[] {
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value ? value : null;
+}
+
+export function detectAdminAiReportOutput(kind: ReviewKind, value: unknown): {
+  format: AdminAiReportOutputFormat;
+  output: unknown;
+} {
+  if (kind === 'personal') {
+    const parsed = personalReportV2Schema.safeParse(value);
+    return parsed.success
+      ? { format: 'personal_report_v2', output: parsed.data }
+      : { format: 'unknown', output: value };
+  }
+  if (kind === 'matching') {
+    const v3 = matchingReportV3Schema.safeParse(value);
+    if (v3.success) return { format: 'matching_report_v3', output: v3.data };
+    const v2 = matchingReportV2Schema.safeParse(value);
+    return v2.success
+      ? { format: 'matching_report_v2', output: v2.data }
+      : { format: 'unknown', output: value };
+  }
+  const v3 = strategyReportV3FromRow({ report_v2: value });
+  return v3 ? { format: 'strategy_report_v3', output: v3 } : { format: 'unknown', output: value };
 }
 
 async function authorizeAdmin(): Promise<{ ok: true } | AdminFailure> {
@@ -182,8 +224,94 @@ function unavailableNode(kind: ReviewKind, title: string, sources: Source[]): Ad
     promptVersion: null,
     inputHash: null,
     sources,
+    outputFormat: 'unknown',
     output: null,
+    rawOutput: null,
+    inputs: { sections: [] },
+    metadata: {},
   };
+}
+
+function metadataFromRow(row: Record<string, unknown>, output: unknown): Record<string, unknown> {
+  const reportMetadata = output && typeof output === 'object' && 'metadata' in output
+    ? (output as { metadata?: unknown }).metadata
+    : null;
+  const metadata = reportMetadata && typeof reportMetadata === 'object'
+    ? { ...(reportMetadata as Record<string, unknown>) }
+    : {};
+  for (const [key, value] of [
+    ['reportContractVersion', row.report_contract_version],
+    ['engineVersion', row.matching_engine_version ?? row.f5_engine_version],
+    ['generationMetadata', row.generation_metadata],
+  ] as const) {
+    if (value !== null && value !== undefined && metadata[key] === undefined) metadata[key] = value;
+  }
+  return metadata;
+}
+
+async function exactRow(
+  admin: ReturnType<typeof createAdminClient>,
+  table: string,
+  id: string | null,
+  select: string,
+): Promise<Record<string, unknown> | null> {
+  if (!id) return null;
+  const result = await admin.from(table).select(select).eq('id', id).maybeSingle();
+  if (result.error) {
+    console.warn(`Admin AI report review input read failed for ${table}`, result.error.message);
+    return null;
+  }
+  return (result.data as Record<string, unknown> | null) ?? null;
+}
+
+async function inputSections(
+  admin: ReturnType<typeof createAdminClient>,
+  applicationId: string,
+  kind: ReviewKind,
+  row: Record<string, unknown> | null,
+  output: unknown,
+): Promise<{ sections: AdminAiReportInputSection[] }> {
+  if (!row) return { sections: [] };
+  const sections: AdminAiReportInputSection[] = [];
+  const add = (label: string, value: unknown, persisted = true) => sections.push({ label, value, persisted });
+  const snapshotId = text(row.confirmed_snapshot_id) ?? text((output as { metadata?: { confirmedSnapshotId?: unknown } } | null)?.metadata?.confirmedSnapshotId);
+  const sourceAnalysisId = text(row.source_analysis_version_id) ?? text(row.source_analysis_id) ?? text((output as { metadata?: { sourceAnalysisVersionId?: unknown } } | null)?.metadata?.sourceAnalysisVersionId);
+  const snapshot = await exactRow(admin, 'confirmed_candidate_snapshots', snapshotId, 'id,payload,schema_version,confirmed_at');
+  const analysis = await exactRow(admin, 'application_profile_analysis_versions', sourceAnalysisId, 'id,structured_outputs,evidence_bank,module_versions,generation_metadata,input_hash,created_at,confirmed_snapshot_id');
+  if (kind === 'personal') {
+    add('Confirmed candidate snapshot', snapshot ? { payload: snapshot.payload, schemaVersion: snapshot.schema_version, confirmedAt: snapshot.confirmed_at } : null, Boolean(snapshot));
+    add('Profile analysis inputs', analysis ? { structuredOutputs: analysis.structured_outputs, evidenceBank: analysis.evidence_bank, moduleVersions: analysis.module_versions, generationMetadata: analysis.generation_metadata } : null, Boolean(analysis));
+    add('Structured evaluation diagnostics', row.structured_evaluation ?? null, row.structured_evaluation != null);
+    return { sections };
+  }
+  const personalId = text(row.source_personal_report_version_id) ?? text((output as { metadata?: { personalReportVersionId?: unknown } } | null)?.metadata?.personalReportVersionId);
+  const personal = await exactRow(admin, 'student_personal_report_versions', personalId, 'id,report_v2,structured_evaluation,confirmed_snapshot_id,source_analysis_version_id,input_hash,created_at');
+  if (kind === 'matching') {
+    add('Personal Report version', personal ? { id: personal.id, report: personal.report_v2, evaluation: personal.structured_evaluation } : null, Boolean(personal));
+    add('Confirmed candidate snapshot', snapshot ? { payload: snapshot.payload, schemaVersion: snapshot.schema_version, confirmedAt: snapshot.confirmed_at } : null, Boolean(snapshot));
+    add('Profile analysis inputs', analysis ? { structuredOutputs: analysis.structured_outputs, evidenceBank: analysis.evidence_bank, moduleVersions: analysis.module_versions, generationMetadata: analysis.generation_metadata } : null, Boolean(analysis));
+    const targetId = text(row.target_profile_version_id) ?? text((output as { metadata?: { targetProfileVersionId?: unknown } } | null)?.metadata?.targetProfileVersionId);
+    const target = await exactRow(admin, 'programme_target_profile_versions', targetId, 'id,profile,schema_version,extraction_prompt_version,created_at');
+    add('Target programme profile', target ? { id: target.id, profile: target.profile, schemaVersion: target.schema_version, createdAt: target.created_at } : null, Boolean(target));
+    return { sections };
+  }
+  add('Personal Report source', personal ? { id: personal.id, report: personal.report_v2 } : null, Boolean(personal));
+  const matchingId = text(row.source_match_analysis_id);
+  const matching = await exactRow(admin, 'application_match_analyses', matchingId, 'id,report_v2,created_at,input_hash,report_contract_version,matching_engine_version');
+  add('Matching Report source', matching ? { id: matching.id, report: matching.report_v2, createdAt: matching.created_at } : null, Boolean(matching));
+  add('Confirmed candidate snapshot', snapshot ? { payload: snapshot.payload, schemaVersion: snapshot.schema_version, confirmedAt: snapshot.confirmed_at } : null, Boolean(snapshot));
+  add('Profile analysis inputs', analysis ? { structuredOutputs: analysis.structured_outputs, evidenceBank: analysis.evidence_bank, moduleVersions: analysis.module_versions } : null, Boolean(analysis));
+  const metadata = output && typeof output === 'object' && 'metadata' in output ? (output as { metadata?: Record<string, unknown> }).metadata : null;
+  if (metadata && typeof metadata === 'object') {
+    const targetId = text(metadata.targetProfileVersionId);
+    const target = await exactRow(admin, 'programme_target_profile_versions', targetId, 'id,profile,schema_version,extraction_prompt_version,created_at');
+    add('Target programme profile', target ? { id: target.id, profile: target.profile, schemaVersion: target.schema_version, createdAt: target.created_at } : null, Boolean(target));
+    const scholarshipId = text(metadata.selectedScholarshipVersionId);
+    if (scholarshipId) add('Selected scholarship version', { id: scholarshipId }, false);
+  }
+  if (sections.length === 0) add('Exact historical input', null, false);
+  void applicationId;
+  return { sections };
 }
 
 function availableNode(
@@ -193,6 +321,7 @@ function availableNode(
   sources: Source[],
   output: unknown,
 ): AdminAiReportReviewNode {
+  const parsed = detectAdminAiReportOutput(kind, output);
   return {
     id: text(row.id) ?? kind,
     kind,
@@ -203,7 +332,11 @@ function availableNode(
     promptVersion: text(row.prompt_version),
     inputHash: text(row.input_hash),
     sources,
-    output,
+    outputFormat: parsed.format,
+    output: parsed.output,
+    rawOutput: output,
+    inputs: { sections: [] },
+    metadata: metadataFromRow(row, parsed.output),
   };
 }
 
@@ -238,7 +371,7 @@ export async function getAdminAiReportReview(applicationId: string): Promise<Adm
       .limit(1)
       .maybeSingle(),
     admin.from('application_strategy_recommendations')
-      .select('id,report_v2,input_hash,prompt_version,model_name,created_at,source_personal_report_version_id,source_match_analysis_id')
+      .select('id,report_v2,input_hash,prompt_version,model_name,created_at,source_analysis_id,source_personal_report_version_id,source_match_analysis_id')
       .eq('application_id', applicationId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -256,6 +389,9 @@ export async function getAdminAiReportReview(applicationId: string): Promise<Adm
   const personalRow = personal.data as Record<string, unknown> | null;
   const matchingRow = matching.data as Record<string, unknown> | null;
   const strategyRow = strategy.data as Record<string, unknown> | null;
+  const outputMetadata = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && 'metadata' in value
+    ? ((value as { metadata?: unknown }).metadata && typeof (value as { metadata?: unknown }).metadata === 'object' ? (value as { metadata: Record<string, unknown> }).metadata : {})
+    : {};
   const nodes: AdminAiReportReviewNode[] = [
     personalRow
       ? availableNode('personal', 'Personal Report', personalRow, [
@@ -268,9 +404,9 @@ export async function getAdminAiReportReview(applicationId: string): Promise<Adm
         ]),
     matchingRow
       ? availableNode('matching', 'Matching Report', matchingRow, [
-          { label: 'Personal Report version', value: text(matchingRow.source_personal_report_version_id) },
-          { label: 'Candidate snapshot', value: text(matchingRow.confirmed_snapshot_id) },
-          { label: 'Target programme profile', value: text(matchingRow.target_profile_version_id) },
+          { label: 'Personal Report version', value: text(matchingRow.source_personal_report_version_id) ?? text(outputMetadata(matchingRow.report_v2).personalReportVersionId) },
+          { label: 'Candidate snapshot', value: text(matchingRow.confirmed_snapshot_id) ?? text(outputMetadata(matchingRow.report_v2).confirmedSnapshotId) },
+          { label: 'Target programme profile', value: text(matchingRow.target_profile_version_id) ?? text(outputMetadata(matchingRow.report_v2).targetProfileVersionId) },
         ], matchingRow.report_v2)
       : unavailableNode('matching', 'Matching Report', [
           { label: 'Personal Report version', value: null },
@@ -279,14 +415,25 @@ export async function getAdminAiReportReview(applicationId: string): Promise<Adm
         ]),
     strategyRow
       ? availableNode('strategy', 'Strategy Report', strategyRow, [
-          { label: 'Personal Report version', value: text(strategyRow.source_personal_report_version_id) },
-          { label: 'Matching Report', value: text(strategyRow.source_match_analysis_id) },
+          { label: 'Personal Report version', value: text(strategyRow.source_personal_report_version_id) ?? text(outputMetadata(strategyRow.report_v2).personalReportVersionId) },
+          { label: 'Matching Report', value: text(strategyRow.source_match_analysis_id) ?? text(outputMetadata(strategyRow.report_v2).matchingReportId) },
+          { label: 'Candidate snapshot', value: text(outputMetadata(strategyRow.report_v2).confirmedSnapshotId) },
+          { label: 'Target programme profile', value: text(outputMetadata(strategyRow.report_v2).targetProfileVersionId) },
         ], strategyRow.report_v2)
       : unavailableNode('strategy', 'Strategy Report', [
           { label: 'Personal Report version', value: null },
           { label: 'Matching Report', value: null },
         ]),
   ];
+
+  await Promise.all(nodes.map(async (node) => {
+    if (!node.available) return;
+    const row = node.kind === 'personal' ? personalRow : node.kind === 'matching' ? matchingRow : strategyRow;
+    node.inputs = await inputSections(admin, applicationId, node.kind, row, node.output);
+    if (node.kind === 'personal' && personalRow?.structured_evaluation != null) {
+      node.metadata = { ...node.metadata, structuredEvaluation: personalRow.structured_evaluation };
+    }
+  }));
 
   return {
     ok: true,

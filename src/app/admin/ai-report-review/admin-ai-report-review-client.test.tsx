@@ -13,9 +13,9 @@ const review: AdminAiReportReview = {
     availableReports: ['personal', 'matching', 'strategy'],
   },
   nodes: [
-    { id: 'personal', kind: 'personal' as const, title: 'Personal Report', available: true, generatedAt: '2026-09-10T00:00:00.000Z', modelName: 'gpt-test', promptVersion: 'personal-v1', inputHash: 'personal-hash', sources: [{ label: 'Candidate snapshot', value: 'snapshot-1' }], output: { report: 'personal output' } },
-    { id: 'matching', kind: 'matching' as const, title: 'Matching Report', available: true, generatedAt: '2026-09-11T00:00:00.000Z', modelName: 'gpt-test', promptVersion: 'matching-v1', inputHash: 'matching-hash', sources: [{ label: 'Personal Report version', value: 'personal-1' }], output: { report: 'matching output' } },
-    { id: 'strategy', kind: 'strategy' as const, title: 'Strategy Report', available: true, generatedAt: '2026-09-12T00:00:00.000Z', modelName: 'gpt-test', promptVersion: 'strategy-v1', inputHash: 'strategy-hash', sources: [{ label: 'Matching Report', value: 'matching-1' }], output: { report: 'strategy output' } },
+    { id: 'personal', kind: 'personal' as const, title: 'Personal Report', available: true, generatedAt: '2026-09-10T00:00:00.000Z', modelName: 'gpt-test', promptVersion: 'personal-v1', inputHash: 'personal-hash', sources: [{ label: 'Candidate snapshot', value: 'snapshot-1' }], outputFormat: 'personal_report_v2', output: { overallEvidenceConfidence: 'high', coreIdentity: { headline: 'Builder', recurringRole: 'Builder', recurringBehaviours: ['Builds'] }, drivingForce: { headline: 'Curiosity', repeatedMotivations: ['Curiosity'] }, signaturePattern: { headline: 'Learn by doing', steps: [] }, emergingThemes: { themes: [] }, personalPositioning: { statement: 'Builder', whyThisFits: [] }, proofOfMe: { cards: [] } }, rawOutput: { overallEvidenceConfidence: 'high' }, inputs: { sections: [] }, metadata: {} },
+    { id: 'matching', kind: 'matching' as const, title: 'Matching Report', available: true, generatedAt: '2026-09-11T00:00:00.000Z', modelName: 'gpt-test', promptVersion: 'matching-v1', inputHash: 'matching-hash', sources: [{ label: 'Personal Report version', value: 'personal-1' }], outputFormat: 'unknown', output: { report: 'matching output' }, rawOutput: { report: 'matching output' }, inputs: { sections: [] }, metadata: {} },
+    { id: 'strategy', kind: 'strategy' as const, title: 'Strategy Report', available: true, generatedAt: '2026-09-12T00:00:00.000Z', modelName: 'gpt-test', promptVersion: 'strategy-v1', inputHash: 'strategy-hash', sources: [{ label: 'Matching Report', value: 'matching-1' }], outputFormat: 'unknown', output: { report: 'strategy output' }, rawOutput: { report: 'strategy output' }, inputs: { sections: [] }, metadata: {} },
   ],
 };
 
@@ -23,10 +23,21 @@ describe('AdminAiReportReviewClient', () => {
   it('shows the selected report output when an admin follows the graph', () => {
     render(<AdminAiReportReviewClient items={[review.application]} initialReview={review} />);
 
-    expect(screen.getByText(/personal output/)).toBeInTheDocument();
+    expect(screen.getAllByText('Builder').length).toBeGreaterThan(0);
+    expect(screen.getByRole('tab', { name: 'Output' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Inputs' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Technical' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'View Matching Report' }));
 
-    expect(screen.getByText(/matching output/)).toBeInTheDocument();
+    expect(screen.getByText(/Unsupported report format/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Technical' }));
     expect(screen.getByText('matching-hash')).toBeInTheDocument();
+  });
+
+  it('keeps raw JSON secondary and exposes it from Technical', () => {
+    render(<AdminAiReportReviewClient items={[review.application]} initialReview={review} />);
+    expect(screen.queryByText('"overallEvidenceConfidence"')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Technical' }));
+    expect(screen.getByText(/overallEvidenceConfidence/)).toBeInTheDocument();
   });
 });

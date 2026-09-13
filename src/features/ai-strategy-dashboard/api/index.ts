@@ -25,4 +25,5 @@ export {
   type AdminAiReportReview,
   type AdminAiReportReviewListItem,
   type AdminAiReportReviewNode,
+  type AdminAiReportInputSection,
 } from './admin-report-review';
