@@ -443,4 +443,46 @@ describe('OnboardingWizard branching (UG, PG, PhD)', () => {
     expect(payload).not.toHaveProperty('postgraduate_academic');
     expect(payload).not.toHaveProperty('phd_academic');
   });
+
+  it('does not persist hidden UG standardized tests when a PG draft contains stale values', async () => {
+    window.localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        answers: {
+          study_level: 'postgraduate',
+          subjects: 'Technology',
+          countries: 'Open to ideas',
+          budget: 'Under $15k',
+          campus: 'Flexible',
+          academic: { curriculum: [], scales: {}, grades: {} },
+          pg_academic: {
+            degree: 'BSc Computer Science',
+            institution: 'NUS',
+            field_of_study: 'Software Engineering',
+            gpa_scale: '4.0 scale',
+            gpa: '3.8',
+            completion_year: '2024',
+          },
+          tests: {
+            english: ['None yet'],
+            englishScores: {},
+            standardized: ['SAT'],
+            standardizedScores: { SAT: '1450' },
+          },
+          support: 'Scholarships and funding',
+        },
+      }),
+    );
+
+    render(<OnboardingWizard isSignedIn />);
+
+    const step7 = await screen.findByRole('button', { name: /Question 7/ });
+    await waitFor(() => expect(step7).toBeEnabled());
+    fireEvent.click(step7);
+
+    // The stale SAT answer is not a valid PG test selection, so the step remains
+    // blocked until the student explicitly chooses GRE/GMAT/None yet.
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    expect(screen.queryByText('SAT')).not.toBeInTheDocument();
+  });
 });

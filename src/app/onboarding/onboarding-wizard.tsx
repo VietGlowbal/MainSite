@@ -133,6 +133,9 @@ const pgStandardizedTestOptions: MultiSelectOption[] = [
   { value: 'None yet', label: 'None yet' },
 ];
 
+const UG_STANDARDIZED_TESTS = new Set(standardizedTestOptions.map(({ value }) => value));
+const PG_STANDARDIZED_TESTS = new Set(pgStandardizedTestOptions.map(({ value }) => value));
+
 const pgScaleOptions = [
   '4.0 scale',
   '10-point scale',
@@ -312,11 +315,16 @@ function isAnswered(answers: Answers, key: StepKey): boolean {
       // PhD collects relevant language proficiency only
       return englishValid;
     }
+    const allowedStandardized = answers.study_level === 'postgraduate'
+      ? PG_STANDARDIZED_TESTS
+      : UG_STANDARDIZED_TESTS;
+    const selectedStandardized = answers.tests.standardized.filter((test) => allowedStandardized.has(test));
     return (
       englishValid &&
-      answers.tests.standardized.length > 0 &&
+      selectedStandardized.length > 0 &&
+      selectedStandardized.length === answers.tests.standardized.length &&
       testScoresValid(
-        answers.tests.standardized,
+        selectedStandardized,
         answers.tests.standardizedScores,
         STANDARDIZED_TEST_FORMATS,
       )
@@ -612,7 +620,31 @@ export function OnboardingWizard({
   }, [answers, draftRead]);
 
   function update(key: Exclude<StepKey, 'academic' | 'tests'>, value: string) {
-    setAnswers((p) => ({ ...p, [key]: value }));
+    if (key !== 'study_level') {
+      setAnswers((p) => ({ ...p, [key]: value }));
+      return;
+    }
+
+    // A draft can contain tests selected under a different study level. Keep
+    // the answers in memory, but never carry hidden UG tests into PG (or
+    // graduate tests into UG/PhD), where they must not be rendered or saved.
+    const allowedStandardized = value === 'postgraduate'
+      ? PG_STANDARDIZED_TESTS
+      : value === 'phd'
+        ? new Set<string>()
+        : UG_STANDARDIZED_TESTS;
+    setAnswers((p) => {
+      const standardized = p.tests.standardized.filter((test) => allowedStandardized.has(test));
+      return {
+        ...p,
+        study_level: value,
+        tests: {
+          ...p.tests,
+          standardized,
+          standardizedScores: keepScores(standardized, p.tests.standardizedScores),
+        },
+      };
+    });
   }
 
   function updateAcademic(patch: Partial<Academic>) {
@@ -848,17 +880,19 @@ export function OnboardingWizard({
         updated_at: now,
       }));
 
-    const standardizedRows =
-      answers.study_level === 'phd'
-        ? []
-        : answers.tests.standardized
-            .filter((testType) => testType !== NONE_YET)
-            .map((testType) => ({
-              user_id: userId,
-              test_type: testType,
-              score: (answers.tests.standardizedScores[testType] ?? '').trim() || null,
-              updated_at: now,
-            }));
+    const allowedStandardized = answers.study_level === 'postgraduate'
+      ? PG_STANDARDIZED_TESTS
+      : UG_STANDARDIZED_TESTS;
+    const standardizedRows = answers.study_level === 'phd'
+      ? []
+      : answers.tests.standardized
+          .filter((testType) => testType !== NONE_YET && allowedStandardized.has(testType))
+          .map((testType) => ({
+            user_id: userId,
+            test_type: testType,
+            score: (answers.tests.standardizedScores[testType] ?? '').trim() || null,
+            updated_at: now,
+          }));
 
     const writes = [];
     if (englishRows.length > 0) {
