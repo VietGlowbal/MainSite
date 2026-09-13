@@ -1,13 +1,16 @@
 # Current project status
 
-Working tree 2026-09-13 (Admin AI report review console v2): `/admin/ai-report-review`
-now validates stored output against the canonical Personal V2, Matching V3/V2 and
-Strategy V3 schemas before rendering semantic read-only sections. Detail tabs are
-Output, Inputs and Technical; raw JSON is secondary and exact persisted snapshot,
-analysis, personal-report and target-profile lineage is loaded only for the selected
-application. Unknown and partially validated historical output remains readable in
-Output, with raw JSON as a secondary Technical view. Measured: focused admin review
-tests (5), base/strict TypeScript, scoped ESLint and `git diff --check` pass.
+Working tree 2026-09-13 (Admin AI report review layout & UI redesign): `/admin/ai-report-review`
+output and input views reformatted for high readability and administrative review efficiency.
+Single-property root wrappers like `{ report: ... }` are automatically unwrapped to elevate
+major sections (`Overview`, `Snapshot`, `Analytics`, etc.) into top-level semantic cards with
+dividers and headers. Summaries and narrative blocks are highlighted in executive callouts
+(`border-l-4 border-brand bg-brand-subtle/30`), scalar metrics (confidence, coverage, fit rating, status)
+render as responsive KPI tiles with color-coded chip badges (`safe-chip`, `info-chip`, `brand-chip`),
+object arrays such as `themeMaturity` render as responsive 2-column item cards with status/confidence/evidence
+chips, and reference lists (e.g. 28+ evidence refs) collapse into clean disclosure accordions.
+Legacy warning banner upgraded with amber notice styling.
+Measured: focused admin review tests (6: 3 client + 3 API), `npm run typecheck`, scoped ESLint, and `git diff --check` pass.
 
 Working tree 2026-09-11 (CV format selection prominent red border):
 `FormatCard` in `CvStartFlow.tsx` enhanced with prominent 2px brand border (`border-2 border-brand`),
