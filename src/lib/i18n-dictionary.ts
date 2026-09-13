@@ -26,7 +26,6 @@ export const translations: Record<string, string> = {
   'Recommendation filters': 'Bộ lọc đề xuất',
   'Current / Latest institution (optional)': 'Trường hiện tại / gần nhất (không bắt buộc)',
   'Best Fits': 'Phù hợp nhất',
-  'Worth Considering': 'Đáng cân nhắc',
   'Explore All': 'Khám phá tất cả',
   'Explore all recommendations': 'Khám phá tất cả gợi ý',
   'Back to shortlist': 'Quay lại danh sách rút gọn',

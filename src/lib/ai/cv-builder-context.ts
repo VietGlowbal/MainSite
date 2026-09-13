@@ -75,7 +75,6 @@ const SOURCE_FIELDS = {
     'goals',
     'career_interests',
     'skills',
-    'achievements',
     'academic_background',
     'profile_summary',
     'bio',
