@@ -246,4 +246,58 @@ describe('AdminAiReportReviewClient', () => {
       screen.getByText(/I genuinely enjoy building automated systems and exploring machine learning algorithms\./)
     ).toBeInTheDocument();
   });
+
+  it('renders executive pipeline step badges, unwraps root report with companion keys, and formats string confidence as badge', () => {
+    const reportWithLowConfidence: AdminAiReportReview = {
+      application: review.application,
+      nodes: [
+        {
+          id: 'personal',
+          kind: 'personal',
+          title: 'Personal Report',
+          available: true,
+          generatedAt: '2026-09-13T09:06:00.000Z',
+          modelName: 'gpt-test',
+          promptVersion: 'personal-v1',
+          inputHash: 'personal-hash',
+          sources: [],
+          outputFormat: 'unknown',
+          output: {
+            schemaVersion: '1.0',
+            generatedAt: '2026-09-13T09:06:00.000Z',
+            report: {
+              overallEvidenceConfidence: 'low',
+              coreThemes: {
+                headline: 'Self-directed technologist',
+                status: 'emerging',
+              },
+            },
+          },
+          rawOutput: {},
+          inputs: { sections: [] },
+          metadata: {},
+        },
+      ],
+    };
+
+    render(
+      <AdminAiReportReviewClient
+        items={[reportWithLowConfidence.application]}
+        initialReview={reportWithLowConfidence}
+      />
+    );
+
+    // Verify pipeline step badge
+    expect(screen.getByText('Step 1')).toBeInTheDocument();
+    expect(screen.getByText('Viewing')).toBeInTheDocument();
+
+    // Verify root report unwrapped and companion schemaVersion omitted
+    expect(screen.queryByRole('heading', { level: 3, name: 'Report' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Report Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Core Themes' })).toBeInTheDocument();
+
+    // Verify overallEvidenceConfidence is rendered as a badge tile rather than a narrative
+    expect(screen.getByText('Overall Evidence Confidence')).toBeInTheDocument();
+    expect(screen.getByText('Low')).toBeInTheDocument();
+  });
 });

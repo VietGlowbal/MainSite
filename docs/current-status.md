@@ -11,6 +11,25 @@ checkout); run `npx next typegen` and clear `.next/dev/types`.
 Measured: `npm run verify:pr` passes — typecheck, strict typecheck, lint (0 errors, 5 pre-existing warnings),
 `test:ci` 399/399 files, 3735 pass / 2 todo, `build:ci` (150 static pages).
 
+Working tree 2026-09-13 (Admin AI report review executive pipeline, segmented tabs, and scalar confidence fix):
+Polished visual styling across `/admin/ai-report-review` based on admin user review feedback and UI audit:
+1. Stepper Pipeline (`ReportFlow` & `FlowNode`): Upgraded floating cards into an executive multi-step pipeline with
+   step badges (`STEP 1`, `STEP 2`, `STEP 3`), report icons (👤, 🎯, 🧭), active halo/ring branding (`ring-2 ring-brand/20`),
+   pulse indicators, and clean connecting chevrons between steps.
+2. Segmented Pill Tabs (`DetailPanel`): Replaced loose underline tabs with a sleek tactile segmented control
+   (`bg-surface-subtle border border-line p-1 rounded-gb-xl`) with icons (`✨ Output`, `📥 Inputs`, `⚙️ Technical`)
+   and count badges, integrated cleanly beside the panel header on desktop.
+3. High-Contrast Legacy Alert (`LegacyRenderer`): Replaced washed-out amber text with high-contrast, sharp dark amber
+   typography (`text-amber-950 dark:text-amber-100`), an icon badge, and a distinct "Notice" pill.
+4. Metric & Narrative Bug Fix (`isNarrativeKey` & `renderScalarValue`): Fixed a false positive where `evidence`
+   sub-string matched `overallEvidenceConfidence: "low"`, causing it to render as a full-width blockquote with thick
+   red border. Metric keys (confidence, status, rating, score, count, date, etc.) are strictly excluded from narrative
+   classification, and string confidence values (`low`, `medium`, `high`) are now formatted as color-coded chip badges.
+5. Root "Report" Unwrapping (`StructuredDataView`): Relaxed root unwrap logic to cleanly unpack `{ report: { ... } }`
+   even when companion metadata keys (`schemaVersion`, `generatedAt`) exist. At `depth === 0`, top-level scalars
+   and narratives are grouped into a cohesive "Report Overview" card rather than isolated single-property cards.
+Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+
 Working tree 2026-09-13 (Admin AI report review nested grid collision fix & achievement/reflection separation):
 Resolved text overlap bug in `StructuredDataView` where scalars inside nested item cards (width ~300px)
 were crushed into 4 columns under `lg:grid-cols-4`. Nested scalar grids (`depth >= 2`) now cap at 2 columns
