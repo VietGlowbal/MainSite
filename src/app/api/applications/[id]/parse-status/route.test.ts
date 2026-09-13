@@ -116,7 +116,7 @@ describe('GET /api/applications/[id]/parse-status', () => {
     );
   });
 
-  it('detects stale processing job (>5 min) and exposes canRetry=true and phase=timeout', async () => {
+  it('detects stale processing job (>10 min) and exposes canRetry=true and phase=timeout', async () => {
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
     mocks.userClient.mockResolvedValue({

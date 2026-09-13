@@ -12,7 +12,7 @@ import { processParseJob } from '@/lib/course-parser/job-processor';
  * onto the course_applications row.
  *
  * Includes an automated watchdog / reaper path: stale processing leases
- * (jobs older than 5 minutes without completion) are recovered or failed
+ * (jobs older than 10 minutes without a heartbeat) are recovered or failed
  * before new pending jobs are claimed.
  *
  * This replaces the need to run scripts/course-parse-worker.mjs as a long-lived
@@ -45,7 +45,7 @@ async function handle(request: NextRequest) {
   // Run watchdog to reclaim any stale or deadlocked processing jobs
   let reapedSummary = { reaped: 0, recovered: 0, failed: 0 };
   try {
-    reapedSummary = await reapStaleParseJobs(5);
+    reapedSummary = await reapStaleParseJobs(10);
   } catch (reapError) {
     console.error('[process-parse-jobs] Watchdog reap error (non-fatal):', reapError);
   }

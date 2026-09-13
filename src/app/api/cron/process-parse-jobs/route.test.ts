@@ -52,7 +52,7 @@ describe('GET/POST /api/cron/process-parse-jobs', () => {
     expect(res.status).toBe(200);
 
     // Watchdog invoked before claiming jobs
-    expect(mocks.reapStaleParseJobs).toHaveBeenCalledWith(5);
+    expect(mocks.reapStaleParseJobs).toHaveBeenCalledWith(10);
     expect(mocks.claimPendingJobs).toHaveBeenCalledWith(expect.any(String), 5);
 
     const body = await res.json();

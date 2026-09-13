@@ -414,7 +414,9 @@ function ApplicationRow({
     if (Number.isNaN(updatedMs)) return;
 
     const checkStale = () => {
-      if (Date.now() - updatedMs > 5 * 60 * 1000) {
+      // Match the parse-status/retry endpoints so the visible Retry action is
+      // accepted by the API as soon as the UI offers it.
+      if (Date.now() - updatedMs > 10 * 60 * 1000) {
         setIsStale(true);
       }
     };

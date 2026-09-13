@@ -3,7 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { mapStatusToPhase, classifyParseError } from '@/lib/course-parser/parse-phases';
 
-const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+// Keep this aligned with the worker lease and retry endpoint. A status response
+// must not advertise Retry before the retry route will accept the same job.
+const STALE_THRESHOLD_MS = 10 * 60 * 1000;
 
 export async function GET(
   request: NextRequest,
