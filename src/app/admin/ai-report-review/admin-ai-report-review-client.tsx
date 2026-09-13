@@ -7,6 +7,7 @@ import type {
   AdminAiReportReviewListItem,
   AdminAiReportReviewNode,
 } from '@/features/ai-strategy-dashboard/api';
+import { PERSONAL_REFLECTION_QUESTIONS } from '@/features/apply/domain';
 import { Badge, type BadgeVariant, ICONS, KitIcon, Panel, PanelHeader } from '@/shared/ui';
 
 type DetailState =
@@ -48,7 +49,16 @@ function scalar(value: unknown): string | null {
 }
 
 function isNarrativeKey(key: string): boolean {
-  return /summary|description|statement|narrative|rationale|headline|overview|notes|takeaway/i.test(key);
+  return /summary|description|statement|narrative|rationale|headline|overview|notes|takeaway|takeaways|quote|citation|prompt|answer|context|action|result|learning|story|detail|evidence/i.test(
+    key
+  );
+}
+
+function isIdentityKey(key: string): boolean {
+  if (/^id$/i.test(key)) return true;
+  if (/(^id$|[a-z0-9]Id$|_id$|_ids$|ids$|refs$|hash$|schemaVersion|createdAt|confirmedAt)/.test(key)) return true;
+  if (/(documentId|snapshotId|applicationId|analysisId|evidenceId|profileId|activityId|userId|programmeId|universityId)/i.test(key)) return true;
+  return false;
 }
 
 function getBadgeVariant(key: string, val: string): BadgeVariant {
@@ -86,7 +96,7 @@ function getBadgeVariant(key: string, val: string): BadgeVariant {
 }
 
 function renderScalarValue(key: string, val: string) {
-  const isStatusOrRating = /status|rating|alignment|classification|kind|tier|coverage/i.test(key);
+  const isStatusOrRating = /status|rating|alignment|classification|kind|tier|coverage|category|level/i.test(key);
   const isConfidence = /confidence/i.test(key);
 
   if (isConfidence) {
@@ -110,6 +120,127 @@ function renderScalarValue(key: string, val: string) {
   return <span>{val}</span>;
 }
 
+function SourcesCitationList({ sources }: { sources: unknown[] }) {
+  const list = sources.filter((s): s is RecordValue => Boolean(s && typeof s === 'object'));
+  if (!list.length) return null;
+
+  return (
+    <div className="flex flex-col gap-gb-xs min-w-0">
+      <span className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted">
+        Verified Sources ({list.length})
+      </span>
+      <div className="flex flex-col gap-gb-xs min-w-0">
+        {list.map((src, idx) => {
+          const fileName = scalar(src.fileName);
+          const page = scalar(src.page);
+          const quote = scalar(src.quote);
+          return (
+            <div
+              key={idx}
+              className="rounded-gb-lg border border-line bg-surface p-gb-sm flex flex-col gap-gb-xs min-w-0"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-gb-xs min-w-0">
+                <div className="flex items-center gap-gb-xs font-medium text-fg min-w-0 truncate text-gb-xs">
+                  <span className="shrink-0 text-fg-muted" aria-hidden="true">📄</span>
+                  <span className="truncate font-medium" title={fileName ?? 'Document'}>
+                    {fileName ?? 'Document'}
+                  </span>
+                </div>
+                {page ? (
+                  <span className="rounded-full bg-surface-muted px-gb-sm py-gb-xxs font-mono text-gb-xxs text-fg-secondary shrink-0">
+                    Page {page}
+                  </span>
+                ) : null}
+              </div>
+              {quote ? (
+                <blockquote className="border-l-2 border-brand/50 pl-gb-sm italic text-fg-secondary text-gb-xs leading-relaxed break-words">
+                  &ldquo;{quote}&rdquo;
+                </blockquote>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ReflectionCallout({
+  reflection,
+  reflectionCard,
+}: {
+  reflection?: unknown;
+  reflectionCard?: unknown;
+}) {
+  const refObj = reflection && typeof reflection === 'object' ? (reflection as RecordValue) : null;
+  const cardObj = reflectionCard && typeof reflectionCard === 'object' ? (reflectionCard as RecordValue) : null;
+
+  if (!refObj && !cardObj) return null;
+
+  const starFields: [string, string][] = [];
+  if (refObj) {
+    for (const k of ['context', 'action', 'result', 'learning']) {
+      const val = scalar(refObj[k]);
+      if (val) starFields.push([k, val]);
+    }
+  }
+
+  const story = cardObj ? scalar(cardObj.story) : null;
+  const takeaways = cardObj ? scalar(cardObj.takeaways) : null;
+  const status = cardObj ? scalar(cardObj.status) : null;
+
+  if (!starFields.length && !story && !takeaways && !status) return null;
+
+  return (
+    <div className="mt-gb-xs rounded-gb-lg border-l-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30 p-gb-md flex flex-col gap-gb-sm text-gb-xs min-w-0">
+      <div className="flex items-center justify-between gap-gb-xs">
+        <div className="flex items-center gap-gb-xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+          <span aria-hidden="true">💭</span>
+          <span>Student Reflection (Góc suy ngẫm)</span>
+        </div>
+        {status ? (
+          <Badge variant={status === 'confirmed' ? 'safe-chip' : 'neutral-chip'}>
+            {humanize(status)}
+          </Badge>
+        ) : null}
+      </div>
+
+      {starFields.length > 0 ? (
+        <div className="flex flex-col gap-gb-xs">
+          {starFields.map(([field, content]) => (
+            <div key={field} className="flex flex-col gap-gb-xxs">
+              <span className="font-semibold uppercase tracking-wide text-fg-muted text-gb-xxs">
+                {humanize(field)}:
+              </span>
+              <p className="text-fg leading-relaxed break-words italic pl-gb-xs border-l border-indigo-200 dark:border-indigo-800">
+                {content}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {story ? (
+        <div className="flex flex-col gap-gb-xxs">
+          <span className="font-semibold uppercase tracking-wide text-fg-muted text-gb-xxs">
+            Confirmed Story:
+          </span>
+          <p className="text-fg leading-relaxed break-words">{story}</p>
+        </div>
+      ) : null}
+
+      {takeaways ? (
+        <div className="flex flex-col gap-gb-xxs">
+          <span className="font-semibold uppercase tracking-wide text-fg-muted text-gb-xxs">
+            Key Takeaways:
+          </span>
+          <p className="text-fg leading-relaxed break-words">{takeaways}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentity?: boolean }) {
   const rawTitle = scalar(item.name ?? item.title ?? item.headline ?? item.label ?? item.theme);
   const rawStatus = scalar(item.status ?? item.alignment ?? item.classification);
@@ -119,24 +250,29 @@ function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentit
   const title = rawTitle ? humanize(rawTitle) : null;
   const status = rawStatus ? humanize(rawStatus) : null;
 
+  const sources = Array.isArray(item.sources) ? item.sources : null;
+  const hasReflection = Boolean(item.reflection || item.reflectionCard);
+
   const entries = Object.entries(item).filter(([k]) => {
-    if (omitIdentity && /(^id$|_id$|ids$|refs$|hash|schemaVersion|createdAt|confirmedAt)/i.test(k)) {
+    if (omitIdentity && isIdentityKey(k)) {
       return false;
     }
     if (rawTitle && /(^name$|^title$|^headline$|^theme$)/i.test(k)) return false;
     if (rawStatus && /(^status$|^alignment$|^classification$)/i.test(k)) return false;
     if (rawConfidence !== undefined && /confidence/i.test(k)) return false;
     if (count && /(^evidenceCount$|^count$)/i.test(k)) return false;
+    if (sources && k === 'sources') return false;
+    if (hasReflection && (k === 'reflection' || k === 'reflectionCard')) return false;
     return true;
   });
 
   return (
-    <div className="rounded-gb-xl border border-line bg-surface-subtle/40 p-gb-lg hover:border-line-strong transition-colors flex flex-col gap-gb-sm">
-      <div className="flex flex-wrap items-start justify-between gap-gb-xs">
-        <h4 className="font-semibold text-gb-sm text-fg">
+    <div className="rounded-gb-xl border border-line bg-surface-subtle/40 p-gb-lg hover:border-line-strong transition-colors flex flex-col gap-gb-sm min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-gb-xs min-w-0">
+        <h4 className="font-semibold text-gb-sm text-fg break-words min-w-0">
           {title ?? 'Item'}
         </h4>
-        <div className="flex flex-wrap items-center gap-gb-xs">
+        <div className="flex flex-wrap items-center gap-gb-xs shrink-0">
           {status ? (
             <Badge variant={getBadgeVariant('status', status)}>{status}</Badge>
           ) : null}
@@ -156,9 +292,19 @@ function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentit
       </div>
 
       {entries.length > 0 ? (
-        <div className="mt-gb-xs border-t border-line/40 pt-gb-sm">
+        <div className="mt-gb-xs border-t border-line/40 pt-gb-sm min-w-0">
           <StructuredDataView value={Object.fromEntries(entries)} omitIdentity={omitIdentity} depth={2} />
         </div>
+      ) : null}
+
+      {sources && sources.length > 0 ? (
+        <div className="mt-gb-xs border-t border-line/40 pt-gb-sm min-w-0">
+          <SourcesCitationList sources={sources} />
+        </div>
+      ) : null}
+
+      {hasReflection ? (
+        <ReflectionCallout reflection={item.reflection} reflectionCard={item.reflectionCard} />
       ) : null}
     </div>
   );
@@ -206,7 +352,7 @@ function StructuredDataView({
   }
 
   const entries = Object.entries(targetValue).filter(
-    ([key]) => !omitIdentity || !/(^id$|_id$|ids$|refs$|hash|schemaVersion|createdAt|confirmedAt)/i.test(key)
+    ([key]) => !omitIdentity || !isIdentityKey(key)
   );
 
   if (!entries.length) return <span className="text-fg-muted">No human-readable value persisted</span>;
@@ -256,32 +402,41 @@ function StructuredDataView({
   }
 
   return (
-    <div className="flex flex-col gap-gb-lg">
+    <div className="flex flex-col gap-gb-lg min-w-0">
       {/* 1. Narrative Callouts */}
       {narratives.map(([k, v]) => (
         <div
           key={k}
-          className="rounded-gb-lg border-l-4 border-brand bg-brand-subtle/30 p-gb-lg text-gb-sm leading-relaxed text-fg"
+          className="rounded-gb-lg border-l-4 border-brand bg-brand-subtle/30 p-gb-lg text-gb-sm leading-relaxed text-fg min-w-0"
         >
           <span className="block text-gb-xs font-semibold uppercase tracking-wider text-fg-brand mb-gb-xs">
             {humanize(k)}
           </span>
-          <p className="text-gb-sm leading-relaxed text-fg">{v}</p>
+          <p className="text-gb-sm leading-relaxed text-fg break-words">{v}</p>
         </div>
       ))}
 
       {/* 2. KPI / Scalar Metric Tiles */}
       {scalars.length > 0 ? (
-        <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-gb-md">
+        <dl
+          className={`grid gap-gb-sm ${
+            depth >= 2
+              ? 'grid-cols-1 sm:grid-cols-2'
+              : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+          }`}
+        >
           {scalars.map(([k, v]) => (
             <div
               key={k}
-              className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs"
+              className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0"
             >
-              <dt className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted">
+              <dt
+                className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted truncate"
+                title={humanize(k)}
+              >
                 {humanize(k)}
               </dt>
-              <dd className="text-gb-sm font-semibold text-fg">
+              <dd className="text-gb-sm font-semibold text-fg min-w-0 break-words">
                 {renderScalarValue(k, v)}
               </dd>
             </div>
@@ -299,12 +454,20 @@ function StructuredDataView({
           );
         }
 
+        if (k === 'sources') {
+          return <SourcesCitationList key={k} sources={items} />;
+        }
+
         const isAllObjects = items.every((it) => it && typeof it === 'object' && !Array.isArray(it));
         if (isAllObjects) {
+          const icon = k === 'achievements' ? '🏆 ' : k === 'activities' ? '🎯 ' : '';
           return (
-            <div key={k} className="flex flex-col gap-gb-sm">
+            <div key={k} className="flex flex-col gap-gb-sm min-w-0">
               <div className="flex items-center justify-between">
-                <h4 className="text-gb-sm font-semibold text-fg">{humanize(k)}</h4>
+                <h4 className="text-gb-sm font-semibold text-fg">
+                  {icon}
+                  {humanize(k)}
+                </h4>
                 <span className="rounded-full bg-surface-muted px-gb-md py-gb-xxs text-gb-xs font-medium text-fg-muted">
                   {items.length} {items.length === 1 ? 'item' : 'items'}
                 </span>
@@ -668,30 +831,250 @@ function OutputRenderer({ node }: { node: AdminAiReportReviewNode }) {
   return <LegacyRenderer output={node.output} />;
 }
 
+function PersonalReflectionSection({ answers }: { answers: RecordValue | null }) {
+  if (!answers || Object.keys(answers).length === 0) {
+    return <span className="text-gb-xs text-fg-muted">No personal reflection answers recorded</span>;
+  }
+
+  const items: Array<{ key: string; label: string; heading: string; answer: string }> = [];
+  for (const q of PERSONAL_REFLECTION_QUESTIONS) {
+    const val = scalar(answers[q.key]);
+    if (val) {
+      items.push({ key: q.key, label: q.shortLabel, heading: q.heading, answer: val });
+    }
+  }
+
+  const knownKeys = new Set<string>(PERSONAL_REFLECTION_QUESTIONS.map((q) => q.key));
+  for (const [k, v] of Object.entries(answers)) {
+    if (!knownKeys.has(k)) {
+      const val = scalar(v);
+      if (val) {
+        items.push({ key: k, label: humanize(k), heading: humanize(k), answer: val });
+      }
+    }
+  }
+
+  if (!items.length) {
+    return <span className="text-gb-xs text-fg-muted">No reflection text available</span>;
+  }
+
+  return (
+    <div className="flex flex-col gap-gb-md min-w-0">
+      {items.map((item, idx) => (
+        <div
+          key={item.key}
+          className="rounded-gb-xl border border-line bg-surface-subtle/30 p-gb-lg flex flex-col gap-gb-xs min-w-0"
+        >
+          <div className="flex items-center justify-between gap-gb-xs">
+            <span className="text-gb-xs font-semibold uppercase tracking-wider text-fg-brand">
+              Question {idx + 1}: {item.label}
+            </span>
+          </div>
+          <h5 className="font-semibold text-gb-sm text-fg leading-snug">{item.heading}</h5>
+          <blockquote className="mt-gb-xs rounded-gb-lg border-l-4 border-brand bg-surface p-gb-md text-gb-sm leading-relaxed text-fg italic break-words shadow-gb-xs">
+            &ldquo;{item.answer}&rdquo;
+          </blockquote>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function extractSnapshotParts(value: unknown) {
+  if (!value || typeof value !== 'object') return null;
+  const val = value as RecordValue;
+  const payload = (val.payload && typeof val.payload === 'object' ? val.payload : val) as RecordValue;
+  const reflection = (payload.reflection && typeof payload.reflection === 'object' ? payload.reflection : payload) as RecordValue;
+
+  const achievements = Array.isArray(reflection.achievements) ? (reflection.achievements as RecordValue[]) : [];
+  const activities = Array.isArray(reflection.activities) ? (reflection.activities as RecordValue[]) : [];
+  const personalReflection =
+    reflection.personalReflection && typeof reflection.personalReflection === 'object'
+      ? (reflection.personalReflection as RecordValue)
+      : null;
+  const documents = Array.isArray(payload.documents) ? (payload.documents as RecordValue[]) : [];
+  const followUpAnswers = Array.isArray(payload.followUpAnswers) ? (payload.followUpAnswers as RecordValue[]) : [];
+
+  if (!achievements.length && !activities.length && !personalReflection) {
+    return null;
+  }
+
+  const profileEntries = Object.entries(reflection).filter(
+    ([k]) => !['achievements', 'activities', 'personalReflection'].includes(k) && !isIdentityKey(k)
+  );
+
+  return {
+    profile: Object.fromEntries(profileEntries),
+    achievements,
+    activities,
+    personalReflection,
+    documents,
+    followUpAnswers,
+  };
+}
+
+function CandidateSnapshotView({
+  parts,
+}: {
+  parts: NonNullable<ReturnType<typeof extractSnapshotParts>>;
+}) {
+  return (
+    <div className="flex flex-col gap-gb-2xl min-w-0">
+      {/* 1. Academic & General Profile */}
+      {Object.keys(parts.profile).length > 0 ? (
+        <div className="flex flex-col gap-gb-md">
+          <div className="flex items-center gap-gb-xs pb-gb-xs border-b border-line/60">
+            <span aria-hidden="true">🎓</span>
+            <h4 className="font-semibold text-gb-sm text-fg">Academic & Profile Baseline</h4>
+          </div>
+          <StructuredDataView value={parts.profile} omitIdentity depth={2} />
+        </div>
+      ) : null}
+
+      {/* 2. Achievements (Thành tích) */}
+      <div className="flex flex-col gap-gb-md">
+        <div className="flex items-center justify-between pb-gb-xs border-b border-line/60">
+          <div className="flex items-center gap-gb-xs">
+            <span aria-hidden="true">🏆</span>
+            <h4 className="font-semibold text-gb-sm text-fg">Achievements (Thành tích)</h4>
+          </div>
+          <span className="rounded-full bg-surface-muted px-gb-md py-gb-xxs text-gb-xs font-medium text-fg-muted">
+            {parts.achievements.length} verified {parts.achievements.length === 1 ? 'achievement' : 'achievements'}
+          </span>
+        </div>
+        {parts.achievements.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gb-md">
+            {parts.achievements.map((item, idx) => (
+              <ObjectItemCard key={idx} item={item} omitIdentity />
+            ))}
+          </div>
+        ) : (
+          <span className="text-gb-xs text-fg-muted">No achievements recorded in snapshot.</span>
+        )}
+      </div>
+
+      {/* 3. Activities (Hoạt động ngoại khóa) */}
+      <div className="flex flex-col gap-gb-md">
+        <div className="flex items-center justify-between pb-gb-xs border-b border-line/60">
+          <div className="flex items-center gap-gb-xs">
+            <span aria-hidden="true">🎯</span>
+            <h4 className="font-semibold text-gb-sm text-fg">Activities & Extracurriculars (Hoạt động)</h4>
+          </div>
+          <span className="rounded-full bg-surface-muted px-gb-md py-gb-xxs text-gb-xs font-medium text-fg-muted">
+            {parts.activities.length} {parts.activities.length === 1 ? 'activity' : 'activities'}
+          </span>
+        </div>
+        {parts.activities.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gb-md">
+            {parts.activities.map((item, idx) => (
+              <ObjectItemCard key={idx} item={item} omitIdentity />
+            ))}
+          </div>
+        ) : (
+          <span className="text-gb-xs text-fg-muted">No activities recorded in snapshot.</span>
+        )}
+      </div>
+
+      {/* 4. Personal Reflection (Suy ngẫm cá nhân) */}
+      <div className="flex flex-col gap-gb-md">
+        <div className="flex items-center justify-between pb-gb-xs border-b border-line/60">
+          <div className="flex items-center gap-gb-xs">
+            <span aria-hidden="true">💭</span>
+            <div>
+              <h4 className="font-semibold text-gb-sm text-fg">Personal Reflection (Suy ngẫm cá nhân)</h4>
+              <p className="text-gb-xs text-fg-muted">
+                Candidate answers to core reflective questions
+              </p>
+            </div>
+          </div>
+          <span className="rounded-full bg-brand-subtle px-gb-md py-gb-xxs text-gb-xs font-medium text-fg-brand">
+            {Object.keys(parts.personalReflection ?? {}).length} answered
+          </span>
+        </div>
+        <PersonalReflectionSection answers={parts.personalReflection} />
+      </div>
+
+      {/* 5. Uploaded Documents & Follow-Ups */}
+      {parts.documents.length > 0 || parts.followUpAnswers.length > 0 ? (
+        <details className="group rounded-gb-lg border border-line bg-surface-subtle/30 p-gb-md">
+          <summary className="cursor-pointer font-semibold text-gb-sm text-fg flex items-center justify-between select-none">
+            <span className="flex items-center gap-gb-xs">
+              <span className="text-fg-muted group-open:rotate-90 transition-transform text-gb-xs">▶</span>
+              <span>Uploaded documents & Follow-up answers</span>
+            </span>
+            <span className="rounded-full bg-surface-muted px-gb-md py-gb-xxs text-gb-xs font-medium text-fg-muted">
+              {parts.documents.length} docs · {parts.followUpAnswers.length} follow-ups
+            </span>
+          </summary>
+          <div className="mt-gb-md border-t border-line/50 pt-gb-md flex flex-col gap-gb-md">
+            {parts.documents.length > 0 ? (
+              <div className="flex flex-col gap-gb-xs">
+                <span className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted">
+                  Evidence Documents
+                </span>
+                <div className="flex flex-wrap gap-gb-xs">
+                  {parts.documents.map((doc, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-gb-xs rounded-full border border-line bg-surface px-gb-md py-gb-xxs text-gb-xs text-fg-secondary"
+                    >
+                      <span aria-hidden="true" className="text-fg-muted">📄</span>
+                      <span>{scalar(doc.fileName) ?? `Document ${idx + 1}`}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {parts.followUpAnswers.length > 0 ? (
+              <div className="flex flex-col gap-gb-xs">
+                <span className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted">
+                  Follow-up Answers
+                </span>
+                <StructuredDataView value={parts.followUpAnswers} omitIdentity depth={2} />
+              </div>
+            ) : null}
+          </div>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
 function InputsView({ sections }: { sections: AdminAiReportInputSection[] }) {
   if (!sections.length) {
     return <p className="text-gb-sm text-fg-muted">Exact historical input not persisted.</p>;
   }
   return (
     <div className="flex flex-col gap-gb-xl">
-      {sections.map((section) => (
-        <section
-          key={section.label}
-          className="rounded-gb-xl border border-line bg-surface p-gb-xl shadow-gb-xs flex flex-col gap-gb-lg"
-        >
-          <div className="flex items-center justify-between border-b border-line pb-gb-md">
-            <h3 className="font-display text-gb-md font-semibold text-fg tracking-tight">
-              {section.label}
-            </h3>
-            {section.persisted ? (
-              <Badge variant="safe-chip">Persisted</Badge>
+      {sections.map((section) => {
+        const snapshotParts =
+          section.label.toLowerCase().includes('candidate snapshot')
+            ? extractSnapshotParts(section.value)
+            : null;
+
+        return (
+          <section
+            key={section.label}
+            className="rounded-gb-xl border border-line bg-surface p-gb-xl shadow-gb-xs flex flex-col gap-gb-lg"
+          >
+            <div className="flex items-center justify-between border-b border-line pb-gb-md">
+              <h3 className="font-display text-gb-md font-semibold text-fg tracking-tight">
+                {section.label}
+              </h3>
+              {section.persisted ? (
+                <Badge variant="safe-chip">Persisted</Badge>
+              ) : (
+                <Badge variant="neutral-chip">Not saved</Badge>
+              )}
+            </div>
+            {snapshotParts ? (
+              <CandidateSnapshotView parts={snapshotParts} />
             ) : (
-              <Badge variant="neutral-chip">Not saved</Badge>
+              <StructuredDataView value={section.value} omitIdentity depth={1} />
             )}
-          </div>
-          <StructuredDataView value={section.value} omitIdentity depth={1} />
-        </section>
-      ))}
+          </section>
+        );
+      })}
     </div>
   );
 }

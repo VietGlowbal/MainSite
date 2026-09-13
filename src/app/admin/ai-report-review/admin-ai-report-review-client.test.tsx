@@ -122,4 +122,128 @@ describe('AdminAiReportReviewClient', () => {
     // Collapsible references
     expect(screen.getByText('5 items')).toBeInTheDocument();
   });
+
+  it('partitions candidate snapshot into distinct sections and separates achievements from reflections', () => {
+    const candidateSnapshotReview: AdminAiReportReview = {
+      application: review.application,
+      nodes: [
+        {
+          id: 'personal',
+          kind: 'personal',
+          title: 'Personal Report',
+          available: true,
+          generatedAt: '2026-09-12T00:00:00.000Z',
+          modelName: 'gpt-test',
+          promptVersion: 'personal-v1',
+          inputHash: 'personal-hash',
+          sources: [],
+          outputFormat: 'personal_report_v2',
+          output: { overallEvidenceConfidence: 'high' },
+          rawOutput: {},
+          inputs: {
+            sections: [
+              {
+                label: 'Confirmed candidate snapshot',
+                persisted: true,
+                value: {
+                  payload: {
+                    reflection: {
+                      educationLevel: 'High school',
+                      gpa: 3.9,
+                      achievements: [
+                        {
+                          id: 'ach-1',
+                          title: 'National Mathematics Olympiad',
+                          category: 'competition',
+                          level: 'national',
+                          year: 2024,
+                          sources: [
+                            {
+                              fileName: 'CV - Dương Hoàng Yến (2).pdf',
+                              page: 3,
+                              quote: '90% Scholarship for High School (A levels) for 2 consecutive years',
+                              documentId: 'doc-uuid-a07ac8f4',
+                            },
+                          ],
+                          reflection: {
+                            context: 'Entered a high-stakes national contest.',
+                            learning: 'Developed rigorous analytical problem-solving skills.',
+                          },
+                          reflectionCard: {
+                            story: 'Trained intensively for 6 months.',
+                            status: 'confirmed',
+                          },
+                        },
+                      ],
+                      activities: [
+                        {
+                          id: 'act-1',
+                          title: 'Robotics Club Leader',
+                          category: 'leadership',
+                          period: '2023 - 2024',
+                        },
+                      ],
+                      personalReflection: {
+                        q1: 'I genuinely enjoy building automated systems and exploring machine learning algorithms.',
+                      },
+                    },
+                    documents: [
+                      { id: 'doc-1', fileName: 'Academic Transcript.pdf' },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+          metadata: {},
+        },
+      ],
+    };
+
+    render(
+      <AdminAiReportReviewClient
+        items={[candidateSnapshotReview.application]}
+        initialReview={candidateSnapshotReview}
+      />
+    );
+
+    // Switch to Inputs tab
+    fireEvent.click(screen.getByRole('tab', { name: 'Inputs' }));
+
+    // Verify distinct section headers
+    expect(screen.getByText('Academic & Profile Baseline')).toBeInTheDocument();
+    expect(screen.getByText('Achievements (Thành tích)')).toBeInTheDocument();
+    expect(screen.getByText(/1 verified achievement/)).toBeInTheDocument();
+    expect(screen.getByText('Activities & Extracurriculars (Hoạt động)')).toBeInTheDocument();
+    expect(screen.getByText('Personal Reflection (Suy ngẫm cá nhân)')).toBeInTheDocument();
+
+    // Verify achievement facts
+    expect(screen.getByText('National Mathematics Olympiad')).toBeInTheDocument();
+    expect(screen.getByText('Competition')).toBeInTheDocument();
+    expect(screen.getByText('National')).toBeInTheDocument();
+    expect(screen.getByText('2024')).toBeInTheDocument();
+
+    // Verify sources citation format (not squished, documentId omitted)
+    expect(screen.getByText('Verified Sources (1)')).toBeInTheDocument();
+    expect(screen.getByText('CV - Dương Hoàng Yến (2).pdf')).toBeInTheDocument();
+    expect(screen.getByText('Page 3')).toBeInTheDocument();
+    expect(
+      screen.getByText(/90% Scholarship for High School \(A levels\) for 2 consecutive years/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('doc-uuid-a07ac8f4')).not.toBeInTheDocument();
+
+    // Verify distinct Student Reflection callout inside achievement card
+    expect(screen.getByText('Student Reflection (Góc suy ngẫm)')).toBeInTheDocument();
+    expect(screen.getByText('Entered a high-stakes national contest.')).toBeInTheDocument();
+    expect(screen.getByText('Developed rigorous analytical problem-solving skills.')).toBeInTheDocument();
+    expect(screen.getByText('Trained intensively for 6 months.')).toBeInTheDocument();
+
+    // Verify Personal Reflection Q&A section
+    expect(
+      screen.getByText(/What topics, activities, or problems do you genuinely enjoy exploring\?/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/I genuinely enjoy building automated systems and exploring machine learning algorithms\./)
+    ).toBeInTheDocument();
+  });
 });

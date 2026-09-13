@@ -1,5 +1,17 @@
 # Current project status
 
+Working tree 2026-09-13 (Admin AI report review nested grid collision fix & achievement/reflection separation):
+Resolved text overlap bug in `StructuredDataView` where scalars inside nested item cards (width ~300px)
+were crushed into 4 columns under `lg:grid-cols-4`. Nested scalar grids (`depth >= 2`) now cap at 2 columns
+with `min-w-0 break-words`. Expanded `isNarrativeKey` to recognize citations, quotes, and reflective stories,
+and `isIdentityKey` to omit camelCase internal IDs (`documentId`, `snapshotId`, etc.) when `omitIdentity` is set.
+Implemented dedicated `SourcesCitationList` to render document sources with file icon, page pill, and italic blockquote.
+Distinctly separated Candidate Snapshot into 4 clear sections: Academic & Profile Baseline, Achievements (Thành tích),
+Activities & Extracurriculars (Hoạt động), and Personal Reflection (Suy ngẫm cá nhân - 7 core questions with human titles).
+Inside achievement and activity cards, factual parameters are presented cleanly on top and student reflections
+are isolated into a dedicated callout box (`💭 Student Reflection (Góc suy ngẫm)`).
+Measured: focused review tests (7: 4 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+
 Working tree 2026-09-13 (Admin AI report review layout & UI redesign): `/admin/ai-report-review`
 output and input views reformatted for high readability and administrative review efficiency.
 Single-property root wrappers like `{ report: ... }` are automatically unwrapped to elevate
