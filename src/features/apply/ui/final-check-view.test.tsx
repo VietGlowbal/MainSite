@@ -11,9 +11,8 @@ vi.mock('next/navigation', () => ({
 
 const mockReadiness: Readiness = {
   percent: 75,
-  state: 'moderate',
+  state: 'nearly_there',
   criticalActions: 1,
-  attached: ['cv', 'essay'],
   missing: ['supporting'],
   unreviewed: ['essay'],
   excluded: ['lor'],
@@ -28,9 +27,10 @@ const baseComponents: ComponentState[] = [
 
 const mockCheck: FinalCheckRecord = {
   id: 'check-1',
-  applicationId: 'app-1',
   createdAt: '2026-09-10T12:00:00Z',
+  promptVersion: '1.0',
   readiness: mockReadiness,
+  components: baseComponents,
   documentReviews: [
     {
       key: 'cv',
