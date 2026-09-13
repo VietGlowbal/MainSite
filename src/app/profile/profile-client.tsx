@@ -451,12 +451,12 @@ function ProfileHero({
         for turning its own label off.
       */}
       <div className="flex shrink-0 flex-col items-center gap-gb-lg self-stretch rounded-gb-xl border border-line-on-inverse p-gb-2xl text-center md:w-[240px] md:self-auto">
-        <p className="text-gb-sm font-semibold text-fg-on-inverse">Profile strength</p>
+        <p className="text-gb-sm font-semibold text-fg-on-inverse">{t('Profile completeness')}</p>
         <ScoreRing value={strength} measure="progress" size="lg" showLabel={false} />
         <p className="text-gb-xs text-fg-on-inverse-muted">
-          {strength >= 80
-            ? 'Strong profile. Your matches and plans will be sharper for it.'
-            : 'Fill in more sections for better course matches and stronger plans.'}
+          {t(
+            'This shows how much of your profile information is filled in. It is not an assessment of applicant quality or admission chances.',
+          )}
         </p>
       </div>
     </section>

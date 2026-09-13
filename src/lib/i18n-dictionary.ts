@@ -860,6 +860,9 @@ export const translations: Record<string, string> = {
   'Get a personalised plan and smart recommendations.':
     'Nhận một kế hoạch cá nhân hóa và các gợi ý thông minh.',
   'Profile strength': 'Độ hoàn thiện hồ sơ',
+  'Profile completeness': 'Độ hoàn thiện hồ sơ',
+  'This shows how much of your profile information is filled in. It is not an assessment of applicant quality or admission chances.':
+    'Chỉ số này cho biết mức độ thông tin hồ sơ đã được điền. Đây không phải là đánh giá chất lượng ứng viên hay cơ hội trúng tuyển.',
   'Improve profile': 'Cải thiện hồ sơ',
   'Your documents': 'Tài liệu của bạn',
   'Academic transcript': 'Bảng điểm học tập',
