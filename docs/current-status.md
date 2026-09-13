@@ -1,5 +1,25 @@
 # Current project status
 
+Working tree 2026-09-13 (cookie Configure dialog — more control, obvious refusal): the privacy-settings modal in
+`src/components/privacy/consent-boundary.tsx` was one checkbox. It now opens with **Reject all optional cookies** /
+**Accept all cookies** side by side at equal weight (Reject is first and takes focus; both save and close), then a
+locked *Necessary — Always on* card and an *Analytics* card with a new `Toggle` primitive (`src/shared/ui/toggle.tsx`,
+kit md toggle, not in the GlowBal Figma file) plus a visible On/Off word. Each card's "What's included" lists the real
+cookies/services (`NECESSARY_ITEMS` / `ANALYTICS_ITEMS`). Owner chose this over per-service switches; no invented
+marketing/functional categories. Consent record, cookie format and policy version are unchanged — nobody is re-prompted.
+Banner buttons untouched (§9 decision stands). Details in [known-issues.md §9](known-issues.md).
+**Found and fixed on the way:** `home-partners.tsx` put its heading at inline `z-index: 201` (logos up to 200) with no
+stacking context, so it painted over every `Modal` (`z-[100]`) on `/` — the new, taller dialog had "Find a university"
+and the orbit heading drawn over its own text. The orbit stage now has `isolate`.
+Measured: `npx vitest run` consent + i18n-required + analytics 3 files / 21 passed (4 new consent tests), marketing
+6 files / 35 passed; `npm run typecheck` and `typecheck:strict` clean; ESLint clean on the 5 changed source files;
+`npm run build` passes. Playwright on `next start`: desktop EN, `/vi`, and 390px — Reject focused on open, switch knob
+moves 20px, no horizontal overflow, no overlap after the `isolate` fix. Not run: full `npm test`, `verify:pr`, E2E.
+**Open, pre-existing, not changed:** the first `/vi` load after a cold server start renders the consent banner *and*
+dialog in English (reproduced 1 of 3 loads, always the first; later loads Vietnamese). Likely cause: `primeCatalog`
+replaces the catalog object, and `LanguageProvider`'s memoized `t` in the root layout is not re-rendered when
+`<ViCatalog />` primes it after first render.
+
 Working tree 2026-09-13 (404 page on site chrome): `src/app/not-found.tsx` rebuilt on `SiteNavigation` (light) +
 shared `Footer` + design-system tokens (`Button` primary/secondary lg, `bg-brand-subtle` featured icon, display-sm
 heading); the legacy `.glow-card`/`.glow-button-*` classes are gone. A 404 has no pathname of its own, so it cannot use
