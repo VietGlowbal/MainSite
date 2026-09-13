@@ -147,10 +147,18 @@ describe('generateApplicationMatchingReport', () => {
 
   it('8. passes the previous complete V2 report for selective reuse', async () => {
     const { supabase } = setup();
-    const previous = { id: 'previous', reportV2: { metadata: { reusedCriterionIds: [] } } };
+    const previous = { id: 'previous', sourcePersonalReportVersionId: 'personal-1', reportV2: { metadata: { reusedCriterionIds: [] } } };
     mocks.getLatest.mockResolvedValue({ record: previous, migrationMissing: false });
     await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
     expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({ previousReport: previous.reportV2 }));
+  });
+
+  it('8b. does not reuse a previous report composed from a different Personal Report version', async () => {
+    const { supabase } = setup();
+    const previous = { id: 'previous', sourcePersonalReportVersionId: 'personal-0', reportV2: { metadata: { reusedCriterionIds: [] } } };
+    mocks.getLatest.mockResolvedValue({ record: previous, migrationMissing: false });
+    await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+    expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({ previousReport: null, previousV3Report: null }));
   });
 
   it('9. does not insert when criterion validation fails', async () => {

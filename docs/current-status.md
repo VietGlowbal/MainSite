@@ -1,5 +1,16 @@
 # Current project status
 
+Working tree 2026-09-13 (CI red since 2026-09-11 — stale matching test fixture): `verify:pr` failed on every
+push/PR after `5f741a9c`, which made `generateApplicationMatchingReport` reuse a previous matching report only
+when its `sourcePersonalReportVersionId` equals the Personal Report in use. Test 8 in
+`src/lib/ai/matching/generation.test.ts` still mocked a previous record without that field, so the composer
+correctly received `previousReport: null`. Fixture now carries the matching lineage; new test 8b pins the
+mismatch case (no reuse). Local-only trap: `5f741a9c` also removed `apply/[applicationId]/lor-feedback/page`,
+and stale `.next/types` + `.next/dev/types` make `npm run typecheck` fail locally (CI is unaffected — fresh
+checkout); run `npx next typegen` and clear `.next/dev/types`.
+Measured: `npm run verify:pr` passes — typecheck, strict typecheck, lint (0 errors, 5 pre-existing warnings),
+`test:ci` 399/399 files, 3735 pass / 2 todo, `build:ci` (150 static pages).
+
 Working tree 2026-09-13 (Admin AI report review nested grid collision fix & achievement/reflection separation):
 Resolved text overlap bug in `StructuredDataView` where scalars inside nested item cards (width ~300px)
 were crushed into 4 columns under `lg:grid-cols-4`. Nested scalar grids (`depth >= 2`) now cap at 2 columns
