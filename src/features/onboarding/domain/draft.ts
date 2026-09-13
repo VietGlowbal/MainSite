@@ -141,6 +141,27 @@ export const EMPTY_TESTS: Tests = {
   standardizedScores: {},
 };
 
+/**
+ * Keep only the academic draft that belongs to the selected study level.
+ *
+ * The browser draft is shared across onboarding versions and used to retain a
+ * PG/PhD object after a student switched to another level. That stale object
+ * was invisible in the UI but could reappear on a later reload or be mistaken
+ * for active evidence. We intentionally clear inactive level drafts instead of
+ * maintaining a second, inactive draft store; changing level is therefore a
+ * clean new branch while the canonical profile rows remain untouched.
+ */
+export function resetInactiveLevelDrafts(
+  nextStudyLevel: string,
+  pgAcademic: PgAcademic,
+  phdAcademic: PhdAcademic,
+): { pgAcademic: PgAcademic; phdAcademic: PhdAcademic } {
+  return {
+    pgAcademic: nextStudyLevel === 'postgraduate' ? pgAcademic : { ...EMPTY_PG_ACADEMIC },
+    phdAcademic: nextStudyLevel === 'phd' ? phdAcademic : { ...EMPTY_PHD_ACADEMIC },
+  };
+}
+
 // ── Untrusted-value coercion ────────────────────────────────────────────────
 
 function toStringList(value: unknown): string[] {

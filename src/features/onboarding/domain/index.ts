@@ -34,6 +34,7 @@ export {
   readPgAcademicDraft,
   readPhdAcademicDraft,
   readTestsDraft,
+  resetInactiveLevelDrafts,
   testScoresValid,
   toCurriculumList,
 } from './draft';

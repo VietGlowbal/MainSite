@@ -27,6 +27,7 @@ import {
   readPgAcademicDraft,
   readPhdAcademicDraft,
   readTestsDraft,
+  resetInactiveLevelDrafts,
   scalesFor,
   testScoresValid,
   toCurriculumGrades,
@@ -190,6 +191,22 @@ const EMPTY_ANSWERS: Answers = {
  */
 const GPA_COLUMN_MAX = 99.99;
 
+/**
+ * The PG/PhD JSONB columns are additive and may not exist in an older
+ * deployment. Only the database's explicit missing-column signals qualify for
+ * the compatibility fallback; permissions, constraints, network failures, and
+ * unknown errors must remain visible to the caller.
+ */
+function isExpectedAcademicSchemaError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: unknown; message?: unknown };
+  const code = String(candidate.code ?? '').toUpperCase();
+  if (code === '42703') return true;
+  if (code !== 'PGRST204') return false;
+  const message = String(candidate.message ?? '').toLowerCase();
+  return message.includes('postgraduate_academic') || message.includes('phd_academic');
+}
+
 /** The one message the format layer does not own: an empty required box. */
 const GRADE_REQUIRED = 'Enter your grade so we can match you accurately.';
 
@@ -278,17 +295,33 @@ function mergeDraft(base: Answers, draft: Record<string, unknown> | null): Answe
   const academic = readAcademicDraft(draft['academic']);
   if (academic && !academicComplete(merged.academic)) merged.academic = academic;
 
+  // Only hydrate the branch selected by this draft. Older versions kept both
+  // objects in localStorage, so importing an inactive branch would make it
+  // unexpectedly active after a level switch.
   const pg = readPgAcademicDraft(draft['pg_academic']);
-  if (pg && !pgAcademicComplete(merged.pg_academic)) merged.pg_academic = pg;
+  if (merged.study_level === 'postgraduate' && pg && !pgAcademicComplete(merged.pg_academic)) {
+    merged.pg_academic = pg;
+  }
 
   const phd = readPhdAcademicDraft(draft['phd_academic']);
-  if (phd && !phdAcademicComplete(merged.phd_academic)) merged.phd_academic = phd;
+  if (merged.study_level === 'phd' && phd && !phdAcademicComplete(merged.phd_academic)) {
+    merged.phd_academic = phd;
+  }
 
   const tests = readTestsDraft(draft['tests']);
   if (tests && merged.tests.english.length === 0 && merged.tests.standardized.length === 0) {
     merged.tests = tests;
   }
-  return merged;
+  const activeDrafts = resetInactiveLevelDrafts(
+    merged.study_level,
+    merged.pg_academic,
+    merged.phd_academic,
+  );
+  return {
+    ...merged,
+    pg_academic: activeDrafts.pgAcademic,
+    phd_academic: activeDrafts.phdAcademic,
+  };
 }
 
 /** The two structured steps; everything else is a plain string. */
@@ -373,6 +406,10 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
    * than trust the schema, coerce whatever arrives into the list the UI is
    * typed for. Delete this once every environment is known to be converted.
    */
+  const pgAcademic = pgAcademicFromProfile(initialProfile as unknown as Record<string, unknown>);
+  const phdAcademic = phdAcademicFromProfile(initialProfile as unknown as Record<string, unknown>);
+  const activeDrafts = resetInactiveLevelDrafts(firstStudyLevel, pgAcademic, phdAcademic);
+
   return {
     study_level: firstStudyLevel,
     subjects: firstSubject,
@@ -380,8 +417,8 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
     budget: initialProfile.budget_range || '',
     campus: firstCampus,
     academic: buildInitialAcademic(initialProfile),
-    pg_academic: pgAcademicFromProfile(initialProfile as unknown as Record<string, unknown>),
-    phd_academic: phdAcademicFromProfile(initialProfile as unknown as Record<string, unknown>),
+    pg_academic: activeDrafts.pgAcademic,
+    phd_academic: activeDrafts.phdAcademic,
     // Test results live in their own tables, which this component is not given.
     // A returning student re-enters them; the upserts below are keyed on
     // (user_id, test_type) so nothing duplicates.
@@ -635,9 +672,12 @@ export function OnboardingWizard({
         : UG_STANDARDIZED_TESTS;
     setAnswers((p) => {
       const standardized = p.tests.standardized.filter((test) => allowedStandardized.has(test));
+      const activeDrafts = resetInactiveLevelDrafts(value, p.pg_academic, p.phd_academic);
       return {
         ...p,
         study_level: value,
+        pg_academic: activeDrafts.pgAcademic,
+        phd_academic: activeDrafts.phdAcademic,
         tests: {
           ...p.tests,
           standardized,
@@ -821,9 +861,8 @@ export function OnboardingWizard({
           .filter(Boolean)
           .join('\n\n');
       }
-      if (answers.phd_academic.research_direction.trim()) {
-        profilePayload.goals = answers.phd_academic.research_direction.trim();
-      }
+      // Research direction belongs to the dedicated PhD academic structure;
+      // never overwrite the student's generic profile goals from this branch.
     } else {
       // Undergraduate
       const grades = collectCurriculumGrades(answers.academic);
@@ -853,7 +892,7 @@ export function OnboardingWizard({
         .from('student_profiles')
         .upsert(profilePayload, { onConflict: 'user_id' });
       if (
-        res.error &&
+        isExpectedAcademicSchemaError(res.error) &&
         (profilePayload.postgraduate_academic !== undefined ||
           profilePayload.phd_academic !== undefined)
       ) {
@@ -1251,7 +1290,7 @@ export function OnboardingWizard({
 
               <Input
                 name="phd-institution"
-                label={t('Current / Latest institution')}
+                label={t('Current / Latest institution (optional)')}
                 placeholder={t('e.g. National University of Singapore')}
                 value={answers.phd_academic.institution}
                 onChange={(e) => updatePhdAcademic({ institution: e.target.value })}

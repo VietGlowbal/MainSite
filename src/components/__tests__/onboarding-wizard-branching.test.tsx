@@ -367,7 +367,9 @@ describe('OnboardingWizard branching (UG, PG, PhD)', () => {
     expect(payload.current_institution).toBe('NTU');
     expect(payload.current_qualification).toBe('MSc AI, NTU');
     expect(payload.academic_background).toBe('Lab research 2 years\n\n1 journal paper');
-    expect(payload.goals).toBe('Generative AI');
+    // Research direction remains inside phd_academic and must not overwrite
+    // generic goals previously entered through Profile.
+    expect(payload).not.toHaveProperty('goals');
 
     // Unrelated level payloads must be omitted (NOT set to null)
     expect(payload).not.toHaveProperty('curriculum');
@@ -484,5 +486,108 @@ describe('OnboardingWizard branching (UG, PG, PhD)', () => {
     // blocked until the student explicitly chooses GRE/GMAT/None yet.
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     expect(screen.queryByText('SAT')).not.toBeInTheDocument();
+  });
+
+  it('falls back only when the additive academic columns are missing', async () => {
+    window.localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        answers: {
+          study_level: 'postgraduate',
+          subjects: 'Technology',
+          countries: 'Open to ideas',
+          budget: 'Under $15k',
+          campus: 'Flexible',
+          academic: { curriculum: [], scales: {}, grades: {} },
+          pg_academic: {
+            degree: 'BSc Computer Science',
+            institution: 'NUS',
+            field_of_study: 'Computer Science',
+            gpa_scale: '4.0 scale',
+            gpa: '3.8',
+            completion_year: '2024',
+          },
+          tests: {
+            english: ['None yet'],
+            englishScores: {},
+            standardized: ['GRE'],
+            standardizedScores: { GRE: '320' },
+          },
+          support: 'Scholarships and funding',
+        },
+      }),
+    );
+
+    let profileAttempts = 0;
+    mockUpsert.mockImplementation((table: string) => {
+      if (table === 'student_profiles' && profileAttempts++ === 0) {
+        return Promise.resolve({
+          error: { code: '42703', message: 'column postgraduate_academic does not exist' },
+        });
+      }
+      return Promise.resolve({ error: null });
+    });
+
+    render(<OnboardingWizard isSignedIn />);
+    const step8 = await screen.findByRole('button', { name: /Question 8/ });
+    await waitFor(() => expect(step8).toBeEnabled());
+    fireEvent.click(step8);
+    fireEvent.click(screen.getByRole('button', { name: 'Save & see matches' }));
+
+    await waitFor(() => {
+      expect(mockUpsert.mock.calls.filter((call) => call[0] === 'student_profiles')).toHaveLength(2);
+    });
+    expect(mockPush).toHaveBeenCalledWith('/universities');
+  });
+
+  it('propagates non-schema profile errors instead of hiding them with a fallback write', async () => {
+    window.localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        answers: {
+          study_level: 'phd',
+          subjects: 'Technology',
+          countries: 'Open to ideas',
+          budget: 'Under $15k',
+          campus: 'Flexible',
+          academic: { curriculum: [], scales: {}, grades: {} },
+          phd_academic: {
+            bachelor_degree: 'BSc Computer Science, NUS',
+            master_degree: '',
+            institution: '',
+            research_experience: 'NLP lab research',
+            publications: '',
+            research_direction: 'Multimodal models',
+            supervisor_fit: 'Language systems group',
+          },
+          tests: {
+            english: ['IELTS Academic'],
+            englishScores: { 'IELTS Academic': '7.5' },
+            standardized: [],
+            standardizedScores: {},
+          },
+          support: 'Scholarships and funding',
+        },
+      }),
+    );
+
+    mockUpsert.mockImplementation((table: string) => {
+      if (table === 'student_profiles') {
+        return Promise.resolve({
+          error: { code: '42501', message: 'new row violates row-level security policy' },
+        });
+      }
+      return Promise.resolve({ error: null });
+    });
+
+    render(<OnboardingWizard isSignedIn />);
+    const step8 = await screen.findByRole('button', { name: /Question 8/ });
+    await waitFor(() => expect(step8).toBeEnabled());
+    fireEvent.click(step8);
+    fireEvent.click(screen.getByRole('button', { name: 'Save & see matches' }));
+
+    await waitFor(() => expect(screen.getByText('new row violates row-level security policy')).toBeInTheDocument());
+    expect(mockUpsert.mock.calls.filter((call) => call[0] === 'student_profiles')).toHaveLength(1);
+    expect(mockPush).not.toHaveBeenCalledWith('/universities');
   });
 });

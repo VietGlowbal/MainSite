@@ -10,6 +10,7 @@ import {
   readAcademicDraft,
   readPgAcademicDraft,
   readPhdAcademicDraft,
+  resetInactiveLevelDrafts,
 } from './draft';
 
 describe('PG and PhD branching domain helpers', () => {
@@ -158,6 +159,62 @@ describe('PG and PhD branching domain helpers', () => {
       expect(phdAcademicComplete({ ...base, master_degree: '' })).toBe(true);
       // Valid with publications
       expect(phdAcademicComplete({ ...base, publications: '1 NeurIPS workshop paper' })).toBe(true);
+    });
+
+    it('intentionally keeps current/latest institution optional', () => {
+      expect(
+        phdAcademicComplete({
+          bachelor_degree: 'BSc Computer Science, NUS',
+          master_degree: '',
+          institution: '',
+          research_experience: 'Two years in an NLP lab',
+          publications: '',
+          research_direction: 'Multimodal models',
+          supervisor_fit: 'Interested in the language systems group',
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe('resetInactiveLevelDrafts', () => {
+    const pg = {
+      degree: 'BSc Computer Science',
+      institution: 'NUS',
+      field_of_study: 'Computer Science',
+      gpa_scale: '4.0 scale',
+      gpa: '3.8',
+      classification: '',
+      completion_year: '2024',
+    };
+    const phd = {
+      bachelor_degree: 'BSc Computer Science, NUS',
+      master_degree: 'MSc AI, NTU',
+      institution: 'NTU',
+      research_experience: 'NLP lab',
+      publications: 'One paper',
+      research_direction: 'Multimodal models',
+      supervisor_fit: 'Language systems group',
+    };
+
+    it.each([
+      ['undergraduate', 'postgraduate'],
+      ['undergraduate', 'phd'],
+      ['postgraduate', 'undergraduate'],
+      ['postgraduate', 'phd'],
+      ['phd', 'undergraduate'],
+      ['phd', 'postgraduate'],
+    ])('clears inactive drafts on %s -> %s', (_from, to) => {
+      const next = resetInactiveLevelDrafts(to, pg, phd);
+      if (to === 'postgraduate') {
+        expect(next.pgAcademic).toEqual(pg);
+        expect(next.phdAcademic).toEqual(EMPTY_PHD_ACADEMIC);
+      } else if (to === 'phd') {
+        expect(next.pgAcademic).toEqual(EMPTY_PG_ACADEMIC);
+        expect(next.phdAcademic).toEqual(phd);
+      } else {
+        expect(next.pgAcademic).toEqual(EMPTY_PG_ACADEMIC);
+        expect(next.phdAcademic).toEqual(EMPTY_PHD_ACADEMIC);
+      }
     });
   });
 
