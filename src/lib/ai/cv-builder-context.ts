@@ -19,6 +19,8 @@ type ContextInput = {
   course: JsonRecord;
   profile: JsonRecord;
   workExperiences: JsonRecord[];
+  achievements?: JsonRecord[];
+  activities?: JsonRecord[];
 };
 
 export type CvBuilderSourceEntry = { ref: string; value: string };
@@ -156,32 +158,104 @@ export function buildCvBuilderContextData(input: ContextInput): CvBuilderContext
           },
         ]
       : [];
-  const entries = input.workExperiences
+  const workEntries = input.workExperiences
     .filter((work): work is Record<string, unknown> => Boolean(work))
     .map((work, index) => ({
-    id: text(work.id) || `work-${index + 1}`,
-    category: 'experience' as const,
-    title: text(work.role) || 'Experience',
-    ...(text(work.company) ? { organization: text(work.company) } : {}),
-    ...(text(work.start_date) ? { startDate: text(work.start_date) } : {}),
-    ...(work.is_current
-      ? { endDate: 'Present' }
-      : text(work.end_date)
-        ? { endDate: text(work.end_date) }
-        : {}),
-    contributions: [
-      {
-        id: `K${String(index + 1).padStart(3, '0')}`,
-        framework: /lead|manager|mentor/i.test(text(work.role))
-          ? ('led' as const)
-          : ('improved' as const),
-        text:
-          text(work.description) ||
-          `${text(work.role) || 'Contributed'} at ${text(work.company) || 'the organization'}.`,
-      },
-    ],
+      id: text(work.id) || `work-${index + 1}`,
+      category: 'experience' as const,
+      title: text(work.role) || 'Experience',
+      ...(text(work.company) ? { organization: text(work.company) } : {}),
+      ...(text(work.start_date) ? { startDate: text(work.start_date) } : {}),
+      ...(work.is_current
+        ? { endDate: 'Present' }
+        : text(work.end_date)
+          ? { endDate: text(work.end_date) }
+          : {}),
+      contributions: [
+        {
+          id: `K${String(index + 1).padStart(3, '0')}`,
+          framework: /lead|manager|mentor/i.test(text(work.role))
+            ? ('led' as const)
+            : ('improved' as const),
+          text:
+            text(work.description) ||
+            `${text(work.role) || 'Contributed'} at ${text(work.company) || 'the organization'}.`,
+        },
+      ],
     }));
-  const achievements = array(profile.achievements);
+
+  const activityEntries = (input.activities ?? [])
+    .filter((act): act is Record<string, unknown> => Boolean(act))
+    .map((act, index) => {
+      const cat = text(act.category);
+      const category: 'experience' | 'project' | 'activity' | 'research' | 'volunteering' =
+        cat === 'research'
+          ? 'research'
+          : cat === 'volunteering' || cat === 'community_project'
+            ? 'volunteering'
+            : cat === 'innovation'
+              ? 'project'
+              : 'activity';
+      return {
+        id: text(act.id) || `activity-${index + 1}`,
+        category,
+        title: text(act.title) || 'Activity',
+        ...(text(act.organisation) ? { organization: text(act.organisation) } : {}),
+        ...(text(act.period) ? { startDate: text(act.period) } : {}),
+        contributions: [
+          {
+            id: `A${String(index + 1).padStart(3, '0')}`,
+            framework: /lead|founder|presid|direct/i.test(text(act.title))
+              ? ('led' as const)
+              : ('improved' as const),
+            text:
+              text(act.description) ||
+              `${text(act.title) || 'Contributed'} with ${text(act.organisation) || 'the organization'}.`,
+          },
+        ],
+      };
+    });
+
+  const entries = [...workEntries, ...activityEntries].slice(0, 20);
+
+  const structuredAwards = (input.achievements ?? [])
+    .filter((ach): ach is Record<string, unknown> => Boolean(ach))
+    .map((ach, index) => ({
+      id: text(ach.id) || `award-${index + 1}`,
+      title: text(ach.title) || 'Award',
+      ...(text(ach.organisation) || text(ach.competition)
+        ? { issuer: text(ach.organisation) || text(ach.competition) }
+        : {}),
+      ...(text(ach.year) ? { date: text(ach.year) } : {}),
+      ...(text(ach.detail) ? { description: text(ach.detail).slice(0, 500) } : {}),
+    }));
+
+  // Backward compatibility for historical profile rows or test fixtures
+  const legacyAchievements = Array.isArray(profile.achievements)
+    ? profile.achievements
+        .map((item, index) => {
+          if (typeof item === 'string' && item.trim()) {
+            return { id: `award-${index + 1}`, title: item.trim() };
+          }
+          if (item && typeof item === 'object') {
+            const row = item as Record<string, unknown>;
+            const title = text(row.title);
+            if (!title) return null;
+            return {
+              id: text(row.id) || `award-${index + 1}`,
+              title,
+              ...(text(row.year) ? { date: text(row.year) } : {}),
+              ...(text(row.description) ? { description: text(row.description).slice(0, 500) } : {}),
+            };
+          }
+          return null;
+        })
+        .filter(
+          (a): a is { id: string; title: string; date?: string; description?: string } => Boolean(a),
+        )
+    : [];
+
+  const awards = (structuredAwards.length > 0 ? structuredAwards : legacyAchievements).slice(0, 12);
   const skills = array(profile.skills);
 
   return {
@@ -203,10 +277,7 @@ export function buildCvBuilderContextData(input: ContextInput): CvBuilderContext
       },
       education,
       entries,
-      awards: achievements.map((title, index) => ({
-        id: `award-${index + 1}`,
-        title,
-      })),
+      awards,
       skillGroups: skills.length
         ? [{ id: 'skills-1', label: 'Core skills', skills: skills.slice(0, 12) }]
         : [],
@@ -237,18 +308,36 @@ export async function loadCvBuilderContext(
       .eq('user_id', user.id)
       .maybeSingle(),
   );
-  const profilePromise = Promise.resolve(supabase
-    .from('student_profiles')
-    .select(
-      'phone,location,current_institution,current_qualification,target_subjects,graduation_year,academic_background,predicted_grades,goals,career_interests,achievements,skills,profile_summary,bio',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle());
-  const workExperiencesPromise = Promise.resolve(supabase
-    .from('work_experiences')
-    .select('id,company,role,start_date,end_date,is_current,description')
-    .eq('user_id', user.id)
-    .order('start_date', { ascending: false }));
+  const profilePromise = Promise.resolve(
+    supabase
+      .from('student_profiles')
+      .select(
+        'phone,location,current_institution,current_qualification,target_subjects,graduation_year,academic_background,predicted_grades,goals,career_interests,skills,profile_summary,bio',
+      )
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  );
+  const workExperiencesPromise = Promise.resolve(
+    supabase
+      .from('work_experiences')
+      .select('id,company,role,start_date,end_date,is_current,description')
+      .eq('user_id', user.id)
+      .order('start_date', { ascending: false }),
+  );
+  const achievementsPromise = Promise.resolve(
+    supabase
+      .from('student_achievements')
+      .select('id,category,title,competition,organisation,level,year,detail')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true }),
+  );
+  const activitiesPromise = Promise.resolve(
+    supabase
+      .from('student_activities')
+      .select('id,category,title,organisation,level,period,description')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true }),
+  );
 
   const { data: application, error: applicationError } = await applicationPromise;
   if (applicationError || !application) return null;
@@ -335,9 +424,16 @@ export async function loadCvBuilderContext(
           sources('university', b).length - sources('university', a).length,
       )[0] ?? initialUniversity;
   }
-  const [{ data: profile }, { data: workExperiences }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: workExperiences },
+    { data: achievements },
+    { data: activities },
+  ] = await Promise.all([
     profilePromise,
     workExperiencesPromise,
+    achievementsPromise,
+    activitiesPromise,
   ]);
 
   const metadata = user.userMetadata ?? user.user_metadata ?? {};
@@ -368,5 +464,7 @@ export async function loadCvBuilderContext(
       },
     profile: profile ?? null,
     workExperiences: (workExperiences ?? []) as JsonRecord[],
+    achievements: (achievements ?? []) as JsonRecord[],
+    activities: (activities ?? []) as JsonRecord[],
   });
 }

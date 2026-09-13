@@ -66,12 +66,15 @@ Polished visual styling across `/admin/ai-report-review` based on admin user rev
    and narratives are grouped into a cohesive "Report Overview" card rather than isolated single-property cards.
 Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
 Working tree 2026-09-13 (feedback hardening):
+Working tree 2026-09-13 (feedback hardening - Task 1 canonical student data):
 
-- Canonical student evidence: profile achievements now link to the structured Reflection achievement/activity editor; the profile writes only skills, Profile completeness counts structured achievement/activity evidence, and the general Plus statement-analysis context reads those structured entities. Existing confirmed candidate snapshots remain immutable. No legacy `student_profiles.achievements` migration was applied; feature-gated legacy consumers still require a separately reviewed retirement/migration plan.
+- Canonical student evidence: eliminated active legacy `student_profiles.achievements` reads across scholarship search (`/api/scholarships/search`), CV builder context (`src/lib/ai/cv-builder-context.ts`), and feature-gated VinUni statement analysis (`/api/ai/analyze-statement-aacc`), replacing them with structured queries to canonical `student_achievements` and `student_activities`.
+- Pure in-memory profile-only consumers (`src/lib/admission-fit.ts` and `src/lib/ai/match-insights.ts`) in the matcher UI remain documented/deferred without inventing artificial sync. Confirmed candidate snapshots remain immutable.
+- Deprecated legacy `StudentProfile.achievements` in `src/lib/types.ts` while retaining `nationality` and backward compatibility for historical rows without destructive schema migrations.
 - Final Check: an action-first summary now presents blockers, unreviewed items, critical/conflict findings, and one next action before inventory. Deterministic readiness remains secondary and retains its explicit non-admission disclaimer; no score, persistence, schema, or AI logic changed. The Last checked timestamp follows the selected language (`en-GB`/`vi-VN`).
 - CV start: the primary route is labelled Create my CV, with known profile/application information described as automatic prefill; the secondary route is Already have a CV? / Upload for review. Existing routes and template selection are retained.
 
-Measured: focused Vitest passed for profile/statement evidence (23 tests), CV start (2 tests), and Final Check (7 tests); `npm run typecheck` and scoped ESLint passed for the relevant changes; `git diff --check` passed. Full repository verification is tracked separately in the feedback-hardening handoff.
+Measured: focused Vitest passed for scholarship search (2 tests), CV builder context (6 tests), VinUni AACC route (11 tests), profile/statement evidence (23 tests), CV start (2 tests), and Final Check (7 tests); `npm run typecheck` passed cleanly (0 errors); scoped ESLint passed with 0 errors; `git diff --check` passed.
 
 Working tree 2026-09-13 (CV start flow newcomer labels & copy update):
 In `CvStartFlow.tsx`, updated builder entry card title and action to "Create my CV" with newcomer copy explaining known profile/application info usage. Updated upload card title to "Already have a CV?" and action to "Upload for review" while retaining evidence-based feedback copy. Template selection and route destinations remain unchanged.

@@ -36,6 +36,11 @@ export type StudentProfile = {
   bio?: string | null;
   location?: string | null;
   nationality?: string | null;
+  /**
+   * @deprecated Legacy JSON field on student_profiles. Canonical achievements are stored in
+   * `student_achievements` and activities in `student_activities`. Retained for backwards
+   * compatibility with historical rows without destructive migration.
+   */
   achievements?: { id: string; title: string; description: string; year: string }[] | null;
   skills?: string[] | null;
   onboarding_completed?: boolean;
