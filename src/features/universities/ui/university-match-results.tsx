@@ -175,7 +175,7 @@ export function UniversityMatchResults({
             <div className="flex flex-col gap-gb-3xl">
               <p className="text-gb-sm text-fg-tertiary" aria-live="polite">
                 {t('Showing {visible} of {total} recommendations', {
-                  visible: showAll ? visibleResults.length : Math.min(filteredResults.length, 6),
+                  visible: showAll ? visibleResults.length : bestFits.length + worthConsidering.length,
                   total: filteredResults.length,
                 })}
               </p>
@@ -215,8 +215,8 @@ export function UniversityMatchResults({
                     t,
                   })}
                   {renderRecommendationSection({
-                    title: 'Worth Considering',
-                    headingId: 'worth-considering-heading',
+                    title: 'Next-ranked options',
+                    headingId: 'next-ranked-options-heading',
                     results: worthConsidering,
                     t,
                   })}
@@ -265,7 +265,11 @@ function RecommendationFilters({
   const selectivityContexts: SelectivityContext[] = ['highly_selective', 'selective', 'lower_selectivity', 'not_assessed'];
 
   return (
-    <div className="flex flex-col gap-gb-lg rounded-gb-lg border border-line bg-surface-muted p-gb-xl">
+    <div
+      role="group"
+      aria-label={t('Recommendation filters')}
+      className="flex flex-col gap-gb-lg rounded-gb-lg border border-line bg-surface-muted p-gb-xl"
+    >
       <div className="flex flex-col gap-gb-xs">
         <p className="text-gb-sm font-semibold text-fg">{t('Recommendation')}</p>
         <div className="flex flex-wrap gap-gb-sm">

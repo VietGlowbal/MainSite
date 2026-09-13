@@ -126,6 +126,7 @@ describe('UniversityMatchResults', () => {
       resultFixture({ universityId: 2, universityName: 'Second University', recommendationRank: 2, recommendationBand: 'good_fit', selectivityContext: 'highly_selective' }),
     )} />);
 
+    expect(screen.getByRole('group', { name: 'Recommendation filters' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Top pick' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Highly selective overall' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Show all' })).toBeDisabled();
@@ -258,7 +259,7 @@ describe('UniversityMatchResults', () => {
     expect(screen.getAllByLabelText(/Recommendation rank/)).toHaveLength(6);
     expect(screen.getByText('Showing 6 of 30 recommendations')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Worth Considering' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Explore All' }));
     expect(screen.getByRole('heading', { name: 'Explore All' })).toBeInTheDocument();
@@ -277,7 +278,7 @@ describe('UniversityMatchResults', () => {
     expect(screen.getByText('Showing 12 of 15 recommendations')).toBeInTheDocument();
   });
 
-  it('renders exact six-result split into Best Fits (top 3) and Worth Considering (next 3) with Explore All toggle', () => {
+  it('renders exact six-result split into Best Fits (top 3) and next-ranked options (next 3) with Explore All toggle', () => {
     const results = Array.from({ length: 7 }, (_, index) => resultFixture({
       universityId: index + 1,
       universityName: `University ${index + 1}`,
@@ -288,7 +289,7 @@ describe('UniversityMatchResults', () => {
     render(<UniversityMatchResults recommendation={recommendationWith(...results)} />);
 
     expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Worth Considering' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
     expect(screen.getByLabelText('Recommendation rank 1')).toBeInTheDocument();
     expect(screen.getByLabelText('Recommendation rank 2')).toBeInTheDocument();
     expect(screen.getByLabelText('Recommendation rank 3')).toBeInTheDocument();
@@ -311,7 +312,7 @@ describe('UniversityMatchResults', () => {
 
     fireEvent.click(backButton);
     expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Worth Considering' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Recommendation rank 7')).not.toBeInTheDocument();
     expect(screen.getByText('Showing 6 of 7 recommendations')).toBeInTheDocument();
   });
@@ -325,12 +326,12 @@ describe('UniversityMatchResults', () => {
     render(<UniversityMatchResults recommendation={recommendationWith(...results)} />);
 
     expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Worth Considering' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Next-ranked options' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Explore All' })).not.toBeInTheDocument();
     expect(screen.getByText('Showing 3 of 3 recommendations')).toBeInTheDocument();
   });
 
-  it('renders Best Fits and Worth Considering without Explore All when results are between 4 and 6', () => {
+  it('renders Best Fits and next-ranked options without Explore All when results are between 4 and 6', () => {
     const results = Array.from({ length: 5 }, (_, index) => resultFixture({
       universityId: index + 1,
       universityName: `University ${index + 1}`,
@@ -339,7 +340,7 @@ describe('UniversityMatchResults', () => {
     render(<UniversityMatchResults recommendation={recommendationWith(...results)} />);
 
     expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Worth Considering' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Explore All' })).not.toBeInTheDocument();
     expect(screen.getByText('Showing 5 of 5 recommendations')).toBeInTheDocument();
   });
