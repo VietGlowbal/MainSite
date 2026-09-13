@@ -49,7 +49,14 @@ function scalar(value: unknown): string | null {
 }
 
 function isNarrativeKey(key: string): boolean {
-  return /summary|description|statement|narrative|rationale|headline|overview|notes|takeaway|takeaways|quote|citation|prompt|answer|context|action|result|learning|story|detail|evidence/i.test(
+  if (
+    /confidence|status|rating|alignment|score|count|level|tier|category|coverage|date|at$|index|version/i.test(
+      key
+    )
+  ) {
+    return false;
+  }
+  return /summary|description|statement|narrative|rationale|headline|overview|notes|takeaway|takeaways|quote|citation|prompt|answer|context|action|result|learning|story|detail/i.test(
     key
   );
 }
@@ -69,7 +76,9 @@ function getBadgeVariant(key: string, val: string): BadgeVariant {
     lower === 'comprehensive' ||
     lower === 'complete' ||
     lower === 'safe' ||
-    lower === 'persisted'
+    lower === 'persisted' ||
+    lower === 'ready' ||
+    lower === 'confirmed'
   ) {
     return 'safe-chip';
   }
@@ -111,10 +120,15 @@ function renderScalarValue(key: string, val: string) {
         </div>
       );
     }
+    return <Badge variant={getBadgeVariant('confidence', val)}>{humanize(val)}</Badge>;
   }
 
   if (isStatusOrRating) {
     return <Badge variant={getBadgeVariant(key, val)}>{humanize(val)}</Badge>;
+  }
+
+  if (/date|generatedAt|createdAt|timestamp/i.test(key) && !Number.isNaN(Date.parse(val))) {
+    return <span className="font-mono text-gb-xs text-fg-secondary">{formatDate(val)}</span>;
   }
 
   return <span>{val}</span>;
@@ -339,16 +353,29 @@ function StructuredDataView({
   if (typeof value !== 'object') return <span>{String(value)}</span>;
 
   let targetValue = value as RecordValue;
-  // If top-level object only contains a single 'report' object wrapper, unwrap it for cleaner hierarchy
+  // If top-level object contains a 'report' object wrapper, unwrap it for cleaner hierarchy
   if (
     depth === 0 &&
     'report' in targetValue &&
-    Object.keys(targetValue).length === 1 &&
     targetValue.report !== null &&
     typeof targetValue.report === 'object' &&
     !Array.isArray(targetValue.report)
   ) {
-    targetValue = targetValue.report as RecordValue;
+    const reportObj = targetValue.report as RecordValue;
+    const companionKeys = Object.keys(targetValue).filter(
+      (k) => k !== 'report' && !isIdentityKey(k)
+    );
+    if (companionKeys.length === 0) {
+      targetValue = reportObj;
+    } else {
+      targetValue = {
+        ...companionKeys.reduce<RecordValue>((acc, k) => {
+          acc[k] = targetValue[k];
+          return acc;
+        }, {}),
+        ...reportObj,
+      };
+    }
   }
 
   const entries = Object.entries(targetValue).filter(
@@ -357,11 +384,69 @@ function StructuredDataView({
 
   if (!entries.length) return <span className="text-fg-muted">No human-readable value persisted</span>;
 
-  // At depth 0, render each entry as a prominent section card
+  // At depth 0, separate top-level scalars/narratives into an Overview card and render complex children as section cards
   if (depth === 0) {
+    const topNarratives: [string, string][] = [];
+    const topScalars: [string, string][] = [];
+    const topSections: [string, unknown][] = [];
+
+    for (const [k, child] of entries) {
+      const s = scalar(child);
+      if (s !== null) {
+        if (isNarrativeKey(k) || (typeof child === 'string' && child.length > 60 && child.includes(' '))) {
+          topNarratives.push([k, s]);
+        } else {
+          topScalars.push([k, s]);
+        }
+      } else {
+        topSections.push([k, child]);
+      }
+    }
+
     return (
       <div className="flex flex-col gap-gb-xl">
-        {entries.map(([key, child]) => (
+        {topNarratives.length > 0 || topScalars.length > 0 ? (
+          <section className="rounded-gb-xl border border-line bg-surface p-gb-xl shadow-gb-xs flex flex-col gap-gb-lg">
+            <div className="flex items-center justify-between border-b border-line pb-gb-md">
+              <h3 className="font-display text-gb-md font-semibold text-fg tracking-tight">
+                Report Overview
+              </h3>
+            </div>
+            {topNarratives.map(([k, v]) => (
+              <div
+                key={k}
+                className="rounded-gb-lg border-l-4 border-brand bg-brand-subtle/30 p-gb-lg text-gb-sm leading-relaxed text-fg min-w-0"
+              >
+                <span className="block text-gb-xs font-semibold uppercase tracking-wider text-fg-brand mb-gb-xs">
+                  {humanize(k)}
+                </span>
+                <p className="text-gb-sm leading-relaxed text-fg break-words">{v}</p>
+              </div>
+            ))}
+            {topScalars.length > 0 ? (
+              <dl className="grid gap-gb-sm grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                {topScalars.map(([k, v]) => (
+                  <div
+                    key={k}
+                    className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0"
+                  >
+                    <dt
+                      className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted truncate"
+                      title={humanize(k)}
+                    >
+                      {humanize(k)}
+                    </dt>
+                    <dd className="text-gb-sm font-semibold text-fg min-w-0 break-words">
+                      {renderScalarValue(k, v)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+          </section>
+        ) : null}
+
+        {topSections.map(([key, child]) => (
           <section
             key={key}
             className="rounded-gb-xl border border-line bg-surface p-gb-xl shadow-gb-xs flex flex-col gap-gb-lg"
@@ -801,14 +886,23 @@ function StrategyRenderer({ output }: { output: RecordValue }) {
 function LegacyRenderer({ output }: { output: unknown }) {
   return (
     <div className="flex flex-col gap-gb-xl">
-      <div className="rounded-gb-xl border border-amber-500/30 bg-amber-500/10 p-gb-lg text-gb-sm text-amber-950 dark:text-amber-200 flex flex-col gap-gb-xs">
-        <div className="flex items-center gap-gb-sm font-semibold text-amber-900 dark:text-amber-100">
-          <KitIcon art={ICONS.zap} frame={16} className="text-amber-600 dark:text-amber-400" />
-          <span>Legacy or partially validated output</span>
+      <div className="rounded-gb-xl border border-amber-300/80 dark:border-amber-700/60 bg-gradient-to-r from-amber-50 to-amber-100/40 dark:from-amber-950/40 dark:to-amber-900/20 p-gb-lg shadow-gb-xxs flex items-start gap-gb-md">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-gb-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+          <KitIcon art={ICONS.zap} frame={18} className="text-amber-600 dark:text-amber-400" />
         </div>
-        <p className="text-gb-xs text-amber-800 dark:text-amber-300">
-          The report contract is older or contains historical references that no longer validate. The stored content is shown below in a readable form; raw JSON remains available in Technical.
-        </p>
+        <div className="flex flex-col gap-gb-xxs min-w-0">
+          <div className="flex items-center gap-gb-xs flex-wrap">
+            <span className="font-semibold text-gb-sm text-amber-950 dark:text-amber-100">
+              Legacy or partially validated output
+            </span>
+            <span className="rounded-full bg-amber-200/80 dark:bg-amber-800/60 px-gb-xs py-gb-xxs text-gb-xxs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+              Notice
+            </span>
+          </div>
+          <p className="text-gb-xs text-amber-900 dark:text-amber-200/90 leading-relaxed font-medium">
+            The report contract is older or contains historical references that no longer validate. The stored content is shown below in a readable form; raw JSON remains available in Technical.
+          </p>
+        </div>
       </div>
       <StructuredDataView value={output} />
     </div>
@@ -1152,12 +1246,17 @@ function TechnicalView({ node }: { node: AdminAiReportReviewNode }) {
 function FlowNode({
   node,
   selected,
+  stepIndex,
   onSelect,
 }: {
   node: AdminAiReportReviewNode;
   selected: boolean;
+  stepIndex: number;
   onSelect: (id: string) => void;
 }) {
+  const icon =
+    node.kind === 'personal' ? '👤' : node.kind === 'matching' ? '🎯' : '🧭';
+
   return (
     <button
       type="button"
@@ -1165,19 +1264,74 @@ function FlowNode({
       aria-pressed={selected}
       aria-label={`View ${node.title}`}
       onClick={() => onSelect(node.id)}
-      className={`min-w-44 rounded-gb-xl border p-gb-xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-gb-2xl border p-gb-lg text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand flex-1 min-w-[200px] ${
         node.available
           ? selected
-            ? 'border-brand bg-surface-hover text-fg'
-            : 'border-line bg-surface text-fg hover:border-line-strong hover:bg-surface-hover'
-          : 'cursor-not-allowed border-line bg-surface-subtle text-fg-muted'
+            ? 'border-brand bg-surface shadow-gb-sm ring-2 ring-brand/20'
+            : 'border-line bg-surface hover:border-line-strong hover:bg-surface-hover/80 hover:shadow-gb-xxs'
+          : 'cursor-not-allowed border-line/60 bg-surface-subtle/50 opacity-60'
       }`}
     >
-      <span className="block text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
-        {node.available ? 'Stored report' : 'Waiting on report'}
-      </span>
-      <span className="mt-gb-xs block text-gb-md font-semibold">{node.title}</span>
-      <span className="mt-gb-xs block text-gb-xs text-fg-tertiary">{formatDate(node.generatedAt)}</span>
+      {selected ? <div className="absolute top-0 left-0 right-0 h-1 bg-brand" /> : null}
+
+      <div className="flex flex-col gap-gb-xs w-full">
+        <div className="flex items-center justify-between gap-gb-xs">
+          <span
+            className={`rounded-full px-gb-sm py-gb-xxs text-gb-xxs font-bold uppercase tracking-wider ${
+              selected
+                ? 'bg-brand text-white'
+                : node.available
+                ? 'bg-surface-muted text-fg-secondary'
+                : 'bg-surface-muted/60 text-fg-muted'
+            }`}
+          >
+            Step {stepIndex}
+          </span>
+          <div className="flex items-center gap-1.5 text-gb-xxs font-medium">
+            {node.available ? (
+              selected ? (
+                <span className="flex items-center gap-1 text-fg-brand font-semibold">
+                  <span className="h-2 w-2 rounded-full bg-brand animate-pulse" />
+                  Viewing
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Stored report
+                </span>
+              )
+            ) : (
+              <span className="flex items-center gap-1 text-fg-muted font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-fg-muted/40" />
+                Waiting on report
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-gb-sm mt-gb-xs">
+          <span className="text-gb-lg shrink-0" aria-hidden="true">
+            {icon}
+          </span>
+          <span
+            className={`text-gb-md font-semibold tracking-tight ${
+              selected ? 'text-fg font-bold' : 'text-fg'
+            }`}
+          >
+            {node.title}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-gb-md flex items-center justify-between border-t border-line/50 pt-gb-xs text-gb-xxs text-fg-muted">
+        <span className="flex items-center gap-1">
+          <span aria-hidden="true">🕒</span>
+          <span>{formatDate(node.generatedAt)}</span>
+        </span>
+        {node.promptVersion ? (
+          <span className="font-mono text-fg-muted/80">{node.promptVersion}</span>
+        ) : null}
+      </div>
     </button>
   );
 }
@@ -1192,14 +1346,48 @@ function ReportFlow({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div aria-label="AI report flow" className="flex flex-col items-stretch gap-gb-md md:flex-row md:items-center">
+    <div
+      aria-label="AI report flow"
+      className="flex flex-col items-stretch gap-gb-sm md:flex-row md:items-center"
+    >
       {review.nodes.map((node, index) => (
-        <div key={node.kind} className="flex min-w-0 flex-1 flex-col gap-gb-md md:flex-row md:items-center">
-          <FlowNode node={node} selected={node.id === selectedNodeId} onSelect={onSelect} />
+        <div
+          key={node.kind}
+          className="flex min-w-0 flex-1 flex-col gap-gb-sm md:flex-row md:items-center"
+        >
+          <FlowNode
+            node={node}
+            selected={node.id === selectedNodeId}
+            stepIndex={index + 1}
+            onSelect={onSelect}
+          />
           {index < review.nodes.length - 1 ? (
-            <span aria-hidden="true" className="self-center text-gb-lg font-semibold text-brand md:shrink-0">
-              →
-            </span>
+            <div
+              aria-hidden="true"
+              className="flex items-center justify-center shrink-0 text-fg-muted md:px-gb-xs py-gb-xxs md:py-0"
+            >
+              <div className="hidden md:flex items-center gap-0.5 text-fg-muted/60">
+                <div className="h-0.5 w-3 bg-line-strong" />
+                <svg
+                  className="w-4 h-4 text-fg-muted/80 -ml-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <div className="flex md:hidden items-center justify-center text-fg-muted/60">
+                <svg
+                  className="w-4 h-4 text-fg-muted/80"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           ) : null}
         </div>
       ))}
@@ -1210,34 +1398,56 @@ function ReportFlow({
 function DetailPanel({ node }: { node: AdminAiReportReviewNode }) {
   const [tab, setTab] = useState<'output' | 'inputs' | 'technical'>('output');
 
+  const tabMeta = [
+    { value: 'output' as const, label: 'Output', icon: '✨', count: null },
+    {
+      value: 'inputs' as const,
+      label: 'Inputs',
+      icon: '📥',
+      count: node.inputs.sections.length || null,
+    },
+    { value: 'technical' as const, label: 'Technical', icon: '⚙️', count: null },
+  ];
+
   return (
     <Panel className="flex flex-col gap-gb-xl">
-      <PanelHeader
-        title={node.title}
-        description="Read-only canonical output, reconstructed inputs and technical lineage."
-      />
-      <div role="tablist" aria-label="Report detail">
-        <div className="flex flex-wrap gap-gb-xs border-b border-line">
-          {([
-            ['output', 'Output'],
-            ['inputs', 'Inputs'],
-            ['technical', 'Technical'],
-          ] as const).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={tab === value}
-              onClick={() => setTab(value)}
-              className={`rounded-t-gb-lg px-gb-xl py-gb-md text-gb-sm font-semibold transition-colors border-b-2 -mb-px ${
-                tab === value
-                  ? 'border-brand bg-brand-subtle/30 text-fg-brand'
-                  : 'border-transparent text-fg-muted hover:text-fg hover:bg-surface-hover'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      <div className="flex flex-col gap-gb-md sm:flex-row sm:items-center sm:justify-between border-b border-line pb-gb-lg">
+        <PanelHeader
+          title={node.title}
+          description="Read-only canonical output, reconstructed inputs and technical lineage."
+        />
+        <div role="tablist" aria-label="Report detail" className="shrink-0">
+          <div className="inline-flex p-1 rounded-gb-xl bg-surface-subtle border border-line gap-1">
+            {tabMeta.map(({ value, label, icon, count }) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-label={label}
+                aria-selected={tab === value}
+                onClick={() => setTab(value)}
+                className={`flex items-center gap-gb-xs rounded-gb-lg px-gb-lg py-gb-xs text-gb-sm font-semibold transition-all ${
+                  tab === value
+                    ? 'bg-surface text-fg shadow-gb-xs border border-line/80'
+                    : 'text-fg-secondary hover:text-fg hover:bg-surface-hover/50 border border-transparent'
+                }`}
+              >
+                <span aria-hidden="true">{icon}</span>
+                <span>{label}</span>
+                {count !== null ? (
+                  <span
+                    className={`rounded-full px-gb-xs py-gb-xxs text-gb-xxs font-mono ${
+                      tab === value
+                        ? 'bg-brand-subtle text-fg-brand font-semibold'
+                        : 'bg-surface-muted text-fg-muted'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {tab === 'output' ? (
@@ -1299,14 +1509,19 @@ export function AdminAiReportReviewClient({
   return (
     <div className="flex flex-col gap-gb-3xl">
       <Panel className="flex flex-col gap-gb-md">
-        <label htmlFor="ai-report-application" className="text-gb-sm font-semibold text-fg">
-          Select an application
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="ai-report-application" className="text-gb-sm font-semibold text-fg">
+            Select an application
+          </label>
+          <span className="rounded-full bg-surface-muted px-gb-sm py-gb-xxs text-gb-xs text-fg-muted font-medium">
+            {items.length} applications
+          </span>
+        </div>
         <select
           id="ai-report-application"
           value={applicationId}
           onChange={(event) => void selectApplication(event.target.value)}
-          className="w-full rounded-gb-xl border border-line bg-surface px-gb-xl py-gb-lg text-gb-sm text-fg focus:outline-none focus:ring-2 focus:ring-brand"
+          className="w-full rounded-gb-xl border border-line bg-surface px-gb-xl py-gb-lg text-gb-sm font-medium text-fg shadow-gb-xxs transition-colors hover:border-line-strong focus:outline-none focus:ring-2 focus:ring-brand"
         >
           {items.map((item) => (
             <option key={item.applicationId} value={item.applicationId}>
