@@ -66,6 +66,26 @@ Polished visual styling across `/admin/ai-report-review` based on admin user rev
    and narratives are grouped into a cohesive "Report Overview" card rather than isolated single-property cards.
 Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
 Working tree 2026-09-13 (feedback hardening):
+Working tree 2026-09-13 (feedback hardening - Task 2 postgraduate & PhD onboarding branching):
+
+- Preserved existing 8-step wizard structure with branching governed by `answers.study_level`:
+  - Undergraduate (UG): retains curriculum multi-select, grading scales, grades, graduation year, English tests, and UG standardized tests (SAT/ACT/AP/IB/A-Level/GCSE/None yet).
+  - Postgraduate (PG): collects bachelor/current degree, institution, field of study, graduate grading scales (4.0, 10-point, 100%, UK Honours, Other), GPA/classification, completion year; Step 7 renders English proficiency and graduate admission tests (GRE, GMAT, None yet), strictly hiding UG standardized tests (SAT/ACT/AP/IGCSE).
+  - PhD: collects bachelor degree & institution (mandatory), master's degree & institution, current institution, research experience, optional publications & research outputs textarea, intended research direction, and supervisor/research fit context; Step 7 renders English proficiency only, strictly hiding all standardized test selectors.
+- Additive database & persistence contracts:
+  - Created idempotent migration `sql/supabase-pg-phd-onboarding.sql` adding nullable `postgraduate_academic JSONB` and `phd_academic JSONB` to `student_profiles`.
+  - Level-specific saves strictly omit unrelated fields (no nulling or overwriting of `curriculum`, `curriculum_grades`, or opposite level JSONB payloads), preserving existing user data across revisions.
+  - Graceful fallback in `saveProfile`: if additive JSONB columns are absent on an unmigrated database, automatically retries omitting those columns while persisting canonical projection columns (`current_institution`, `current_qualification`, `graduation_year`, `gpa_value`, `academic_background`, `goals`).
+  - Standardized scores write to `standardized_test_scores` (GRE/GMAT for PG), and English scores write to `english_test_scores`.
+  - Coercion helpers `readPgAcademicDraft`, `readPhdAcademicDraft`, `pgAcademicFromProfile`, and `phdAcademicFromProfile` defensively hydrate structured JSONB as well as canonical fallback columns.
+- Measured:
+  - 291 unit tests in `src/features/onboarding/` passed (including 14 in `pg-phd-branching.test.ts` and 238 in `academic-grading.test.ts`).
+  - 6 component tests in `src/components/__tests__/onboarding-wizard-branching.test.tsx` passed (UG/PG/PhD control visibility and persistence payload isolation).
+  - 2 component tests in `src/components/__tests__/onboarding-wizard-completion.test.tsx` passed.
+  - `npm run typecheck` passed cleanly (0 errors).
+  - Scoped ESLint passed with 0 errors / 0 warnings.
+  - `git diff --check` passed cleanly.
+
 Working tree 2026-09-13 (feedback hardening - Task 1 canonical student data):
 
 - Canonical student evidence: eliminated active legacy `student_profiles.achievements` reads across scholarship search (`/api/scholarships/search`), CV builder context (`src/lib/ai/cv-builder-context.ts`), and feature-gated VinUni statement analysis (`/api/ai/analyze-statement-aacc`), replacing them with structured queries to canonical `student_achievements` and `student_activities`.

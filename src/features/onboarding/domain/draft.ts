@@ -27,6 +27,7 @@
  */
 
 import {
+  PG_GRADE_FORMATS,
   defaultScaleFor,
   gradeFormatFor,
   scalesFor,
@@ -56,6 +57,41 @@ export type Academic = {
   scales: Record<string, string>;
   /** curriculum → the grade, exactly as typed. */
   grades: Record<string, string>;
+  /** Undergraduate graduation timing (optional / draft). */
+  graduation_year?: string;
+};
+
+/**
+ * Postgraduate Academic Information.
+ *
+ * Collects bachelor/current degree, institution, field/program,
+ * GPA/classification, and completion timing.
+ */
+export type PgAcademic = {
+  degree: string;
+  institution: string;
+  field_of_study: string;
+  gpa_scale: string;
+  gpa: string;
+  classification?: string;
+  completion_year: string;
+};
+
+/**
+ * PhD Academic & Research Information.
+ *
+ * Collects bachelor/master history where applicable, research
+ * experience/output/publications, intended research direction,
+ * and supervisor/research-fit context.
+ */
+export type PhdAcademic = {
+  bachelor_degree: string;
+  master_degree: string;
+  institution: string;
+  research_experience: string;
+  publications?: string;
+  research_direction: string;
+  supervisor_fit: string;
 };
 
 /**
@@ -80,6 +116,24 @@ export type Tests = {
 };
 
 export const EMPTY_ACADEMIC: Academic = { curriculum: [], scales: {}, grades: {} };
+export const EMPTY_PG_ACADEMIC: PgAcademic = {
+  degree: '',
+  institution: '',
+  field_of_study: '',
+  gpa_scale: '4.0 scale',
+  gpa: '',
+  classification: '',
+  completion_year: '',
+};
+export const EMPTY_PHD_ACADEMIC: PhdAcademic = {
+  bachelor_degree: '',
+  master_degree: '',
+  institution: '',
+  research_experience: '',
+  publications: '',
+  research_direction: '',
+  supervisor_fit: '',
+};
 export const EMPTY_TESTS: Tests = {
   english: [],
   englishScores: {},
@@ -128,6 +182,7 @@ export type AcademicProfileSource = {
   curriculum_grades?: unknown;
   gpa_scale?: string | null | undefined;
   gpa_value?: number | null | undefined;
+  graduation_year?: number | null | undefined;
 };
 
 /**
@@ -164,7 +219,15 @@ export function academicFromProfile(profile: AcademicProfileSource): Academic {
     if (scales[name] === undefined) scales[name] = defaultScaleFor(name);
   }
 
-  return { curriculum, scales, grades: keepScores(curriculum, grades) };
+  const graduation_year =
+    profile.graduation_year != null ? String(profile.graduation_year) : undefined;
+
+  return {
+    curriculum,
+    scales,
+    grades: keepScores(curriculum, grades),
+    ...(graduation_year ? { graduation_year } : {}),
+  };
 }
 
 /**
@@ -227,7 +290,19 @@ export function readAcademicDraft(value: unknown): Academic | null {
     if (scales[name] === undefined) scales[name] = defaultScaleFor(name);
   }
 
-  return { curriculum, scales, grades: keepScores(curriculum, grades) };
+  const graduation_year =
+    typeof draft['graduation_year'] === 'string'
+      ? draft['graduation_year']
+      : typeof draft['graduation_year'] === 'number'
+        ? String(draft['graduation_year'])
+        : undefined;
+
+  return {
+    curriculum,
+    scales,
+    grades: keepScores(curriculum, grades),
+    ...(graduation_year ? { graduation_year } : {}),
+  };
 }
 
 /**
@@ -302,4 +377,141 @@ export function collectCurriculumGrades(academic: Academic): CurriculumGrade[] {
     rows.push({ curriculum, scale: format.scale, grade, value: format.toNumber(grade) });
   }
   return rows;
+}
+
+/** Read saved postgraduate draft answers from untrusted JSON. */
+export function readPgAcademicDraft(value: unknown): PgAcademic | null {
+  if (value === null || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const degree = typeof raw['degree'] === 'string' ? raw['degree'] : '';
+  const institution = typeof raw['institution'] === 'string' ? raw['institution'] : '';
+  const field_of_study = typeof raw['field_of_study'] === 'string' ? raw['field_of_study'] : '';
+  const gpa_scale =
+    typeof raw['gpa_scale'] === 'string' && raw['gpa_scale'] in PG_GRADE_FORMATS
+      ? raw['gpa_scale']
+      : '4.0 scale';
+  const gpa = typeof raw['gpa'] === 'string' ? raw['gpa'] : '';
+  const classification = typeof raw['classification'] === 'string' ? raw['classification'] : '';
+  const completion_year =
+    typeof raw['completion_year'] === 'string'
+      ? raw['completion_year']
+      : typeof raw['completion_year'] === 'number'
+        ? String(raw['completion_year'])
+        : '';
+
+  if (!degree && !institution && !field_of_study && !gpa && !completion_year) {
+    return null;
+  }
+
+  return {
+    degree,
+    institution,
+    field_of_study,
+    gpa_scale,
+    gpa,
+    classification,
+    completion_year,
+  };
+}
+
+/** Read saved PhD draft answers from untrusted JSON. */
+export function readPhdAcademicDraft(value: unknown): PhdAcademic | null {
+  if (value === null || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const bachelor_degree = typeof raw['bachelor_degree'] === 'string' ? raw['bachelor_degree'] : '';
+  const master_degree = typeof raw['master_degree'] === 'string' ? raw['master_degree'] : '';
+  const institution = typeof raw['institution'] === 'string' ? raw['institution'] : '';
+  const research_experience =
+    typeof raw['research_experience'] === 'string' ? raw['research_experience'] : '';
+  const publications = typeof raw['publications'] === 'string' ? raw['publications'] : '';
+  const research_direction =
+    typeof raw['research_direction'] === 'string' ? raw['research_direction'] : '';
+  const supervisor_fit = typeof raw['supervisor_fit'] === 'string' ? raw['supervisor_fit'] : '';
+
+  if (
+    !bachelor_degree &&
+    !master_degree &&
+    !institution &&
+    !research_experience &&
+    !publications &&
+    !research_direction &&
+    !supervisor_fit
+  ) {
+    return null;
+  }
+
+  return {
+    bachelor_degree,
+    master_degree,
+    institution,
+    research_experience,
+    publications,
+    research_direction,
+    supervisor_fit,
+  };
+}
+
+/** Restore postgraduate academic data from a StudentProfile row or fallback columns. */
+export function pgAcademicFromProfile(profile: Record<string, unknown> | null | undefined): PgAcademic {
+  if (!profile) return { ...EMPTY_PG_ACADEMIC };
+  if (profile['postgraduate_academic'] && typeof profile['postgraduate_academic'] === 'object') {
+    const fromStructured = readPgAcademicDraft(profile['postgraduate_academic']);
+    if (fromStructured) return fromStructured;
+  }
+  return {
+    degree: typeof profile['current_qualification'] === 'string' ? profile['current_qualification'] : '',
+    institution: typeof profile['current_institution'] === 'string' ? profile['current_institution'] : '',
+    field_of_study:
+      Array.isArray(profile['target_subjects']) && profile['target_subjects'][0]
+        ? String(profile['target_subjects'][0])
+        : '',
+    gpa_scale:
+      typeof profile['gpa_scale'] === 'string' && profile['gpa_scale'] in PG_GRADE_FORMATS
+        ? profile['gpa_scale']
+        : '4.0 scale',
+    gpa: profile['gpa_value'] != null ? String(profile['gpa_value']) : '',
+    classification: '',
+    completion_year: profile['graduation_year'] != null ? String(profile['graduation_year']) : '',
+  };
+}
+
+/** Restore PhD academic/research data from a StudentProfile row or fallback columns. */
+export function phdAcademicFromProfile(profile: Record<string, unknown> | null | undefined): PhdAcademic {
+  if (!profile) return { ...EMPTY_PHD_ACADEMIC };
+  if (profile['phd_academic'] && typeof profile['phd_academic'] === 'object') {
+    const fromStructured = readPhdAcademicDraft(profile['phd_academic']);
+    if (fromStructured) return fromStructured;
+  }
+  return {
+    bachelor_degree: '',
+    master_degree: typeof profile['current_qualification'] === 'string' ? profile['current_qualification'] : '',
+    institution: typeof profile['current_institution'] === 'string' ? profile['current_institution'] : '',
+    research_experience: typeof profile['academic_background'] === 'string' ? profile['academic_background'] : '',
+    publications: '',
+    research_direction: typeof profile['goals'] === 'string' ? profile['goals'] : '',
+    supervisor_fit: '',
+  };
+}
+
+/** PG academic is complete when degree, institution, field, and GPA on its scale are provided. */
+export function pgAcademicComplete(pg: PgAcademic | null | undefined): boolean {
+  if (!pg) return false;
+  if (!pg.degree.trim() || !pg.institution.trim() || !pg.field_of_study.trim() || !pg.gpa.trim()) {
+    return false;
+  }
+  const format = PG_GRADE_FORMATS[pg.gpa_scale];
+  if (format && format.check(pg.gpa) !== null) {
+    return false;
+  }
+  return true;
+}
+
+/** PhD academic is complete when bachelor history, research direction, experience, and fit context are provided. */
+export function phdAcademicComplete(phd: PhdAcademic | null | undefined): boolean {
+  if (!phd) return false;
+  const hasBachelor = Boolean(phd.bachelor_degree.trim());
+  const hasDirection = Boolean(phd.research_direction.trim());
+  const hasExperience = Boolean(phd.research_experience.trim());
+  const hasFit = Boolean(phd.supervisor_fit.trim());
+  return hasBachelor && hasDirection && hasExperience && hasFit;
 }

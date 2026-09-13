@@ -464,7 +464,81 @@ export const STANDARDIZED_TEST_FORMATS: Record<string, GradeFormat> = {
     shape: mixedList('[A-G]\\*?', '[1-9]'),
     example: '9, 8, A*',
   }),
+  GRE: numericScale({
+    scale: 'GRE total',
+    fieldLabel: 'Total score',
+    placeholder: '320',
+    hint: 'Reported as Verbal + Quant (260 to 340).',
+    min: 260,
+    max: 340,
+    decimals: 0,
+  }),
+  GMAT: numericScale({
+    scale: 'GMAT total',
+    fieldLabel: 'Total score',
+    placeholder: '680',
+    hint: 'Reported score (200 to 805).',
+    min: 200,
+    max: 805,
+    decimals: 0,
+  }),
 };
+
+/** Postgraduate GPA / degree grading formats. */
+export const PG_GRADE_FORMATS: Record<string, GradeFormat> = {
+  '4.0 scale': numericScale({
+    scale: '4.0 scale',
+    fieldLabel: 'Current GPA (0–4.0)',
+    placeholder: '3.6',
+    hint: 'Cumulative GPA on a 4.0 scale.',
+    min: 0,
+    max: 4,
+    decimals: 2,
+  }),
+  '10-point scale': numericScale({
+    scale: '10-point scale',
+    fieldLabel: 'Current GPA (0–10)',
+    placeholder: '8.2',
+    hint: 'Cumulative average on a 10-point scale.',
+    min: 0,
+    max: 10,
+    decimals: 2,
+  }),
+  '100% Percentage': numericScale({
+    scale: '100% Percentage',
+    fieldLabel: 'Percentage / Average mark (0–100%)',
+    placeholder: '85',
+    hint: 'Overall percentage mark out of 100.',
+    min: 0,
+    max: 100,
+    decimals: 2,
+  }),
+  'UK Honours classification': {
+    scale: 'UK Honours classification',
+    fieldLabel: 'Degree classification',
+    placeholder: 'First Class / 2:1',
+    hint: 'First Class (1st), Upper Second (2:1), Lower Second (2:2), etc.',
+    numeric: false,
+    check(raw) {
+      const text = raw.trim();
+      return text.length > 0 ? null : { message: 'Enter your degree classification.', vars: {} };
+    },
+    toNumber: () => null,
+  },
+  'Other / Letter grade': {
+    scale: 'Other / Letter grade',
+    fieldLabel: 'GPA / Grade / Classification',
+    placeholder: 'A / Distinction',
+    hint: 'Your degree result or grading summary.',
+    numeric: false,
+    check(raw) {
+      const text = raw.trim();
+      return text.length > 0 ? null : { message: 'Enter your academic result.', vars: {} };
+    },
+    toNumber: () => null,
+  },
+};
+
 
 // ── Câu 6 answers, as saved ─────────────────────────────────────────────────
 

@@ -43,7 +43,7 @@ describe('no scale accepts typing that is not a grade', () => {
 
   it('covers every scale in the module', () => {
     // Guards against a scale being added without landing in the sweep above.
-    expect(every.length).toBe(10 + 5 + 6);
+    expect(every.length).toBe(10 + 5 + 8);
   });
 });
 
@@ -220,6 +220,26 @@ describe('standardized test scores', () => {
     expect(gcse.check('abc123def')).not.toBeNull();
     expect(gcse.check('A9')).not.toBeNull();
     expect(gcse.check('A 9')).toBeNull();
+  });
+
+  it('holds GRE to whole numbers inside 260–340', () => {
+    const gre = STANDARDIZED_TEST_FORMATS['GRE']!;
+    expect(gre.check('320')).toBeNull();
+    expect(gre.check('260')).toBeNull();
+    expect(gre.check('340')).toBeNull();
+    expect(gre.check('259')).not.toBeNull();
+    expect(gre.check('341')).not.toBeNull();
+    expect(gre.check('320.5')).not.toBeNull();
+  });
+
+  it('holds GMAT to whole numbers inside 200–805', () => {
+    const gmat = STANDARDIZED_TEST_FORMATS['GMAT']!;
+    expect(gmat.check('680')).toBeNull();
+    expect(gmat.check('200')).toBeNull();
+    expect(gmat.check('805')).toBeNull();
+    expect(gmat.check('199')).not.toBeNull();
+    expect(gmat.check('806')).not.toBeNull();
+    expect(gmat.check('700.5')).not.toBeNull();
   });
 });
 

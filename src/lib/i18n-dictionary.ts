@@ -1296,6 +1296,64 @@ export const translations: Record<string, string> = {
   'Standardized Test': 'Kỳ thi chuẩn hóa',
   'Your score': 'Điểm của bạn',
 
+  // PG & PhD onboarding branching
+  'Tell us about your bachelor or current degree, institution, and academic results.':
+    'Cho chúng tôi biết về bằng đại học/hiện tại, trường và kết quả học tập của bạn.',
+  'Academic & Research Information': 'Thông tin học thuật & nghiên cứu',
+  'Tell us about your degree history, research experience, and intended direction.':
+    'Chia sẻ về quá trình học tập, kinh nghiệm nghiên cứu và định hướng của bạn.',
+  'Add your English proficiency and any graduate test scores (GRE/GMAT) you have.':
+    'Thêm kết quả tiếng Anh và các bài thi sau đại học (GRE/GMAT) nếu có.',
+  'Language Proficiency': 'Trình độ ngôn ngữ',
+  'Add any English language test results you already have.':
+    'Thêm kết quả bài thi tiếng Anh bạn đã có.',
+  'Bachelor / Current degree': 'Bằng Cử nhân / Bằng hiện tại',
+  'e.g. Bachelor of Science, Bachelor of Engineering': 'Ví dụ: Cử nhân Khoa học, Cử nhân Kỹ thuật',
+  'Institution name': 'Tên trường / Cơ sở đào tạo',
+  'e.g. National University of Singapore': 'Ví dụ: National University of Singapore',
+  'Field of study / Major': 'Ngành học / Chuyên ngành',
+  'e.g. Computer Science, Finance': 'Ví dụ: Khoa học máy tính, Tài chính',
+  '100% Percentage': 'Thang điểm 100%',
+  'Percentage / Average mark (0–100%)': 'Điểm trung bình / phần trăm (0–100%)',
+  'UK Honours classification': 'Xếp loại bằng Anh (UK Honours)',
+  'Degree classification': 'Xếp loại bằng tốt nghiệp',
+  'Other / Letter grade': 'Khác / Điểm chữ',
+  'GPA / Classification': 'GPA / Xếp loại',
+  'Graduation / Completion year': 'Năm tốt nghiệp / Hoàn thành',
+  'Expected or actual graduation year': 'Năm tốt nghiệp dự kiến hoặc thực tế',
+  'Year of graduation or expected completion': 'Năm tốt nghiệp hoặc dự kiến hoàn thành',
+  'Graduate admission test': 'Bài thi chuẩn hóa sau đại học',
+  'Graduate Admission Test': 'Bài thi chuẩn hóa sau đại học',
+  'GRE total': 'Tổng điểm GRE',
+  'GMAT total': 'Tổng điểm GMAT',
+  'Current / Latest institution': 'Trường hiện tại / gần nhất',
+  "Master's degree & institution (if applicable)": 'Bằng Thạc sĩ & trường đào tạo (nếu có)',
+  "Bachelor's degree & institution": 'Bằng Cử nhân & trường đào tạo',
+  'Research experience & publications': 'Kinh nghiệm nghiên cứu & công bố',
+  'Research experience': 'Kinh nghiệm nghiên cứu',
+  'Describe your lab experience, research projects, methodologies, or thesis work...':
+    'Mô tả kinh nghiệm phòng lab, dự án nghiên cứu, phương pháp luận hoặc luận văn...',
+  'Describe your lab experience, research projects, publications, or thesis work...':
+    'Mô tả kinh nghiệm phòng lab, dự án nghiên cứu, bài báo khoa học hoặc luận văn...',
+  'Publications & research outputs (optional)': 'Công bố khoa học & kết quả nghiên cứu (nếu có)',
+  'e.g. Papers, conference proceedings, preprints, patents, or thesis titles...':
+    'Ví dụ: Bài báo khoa học, kỷ yếu hội nghị, preprint, bằng sáng chế hoặc tên luận văn...',
+  'Intended research direction': 'Định hướng nghiên cứu dự kiến',
+  'Describe your target research topics, questions, or methodologies...':
+    'Mô tả đề tài, câu hỏi nghiên cứu hoặc phương pháp bạn quan tâm...',
+  'Supervisor / Research fit context': 'Giáo sư hướng dẫn / Định hướng phù hợp',
+  'Identify potential supervisors, labs, or faculty alignments you are interested in...':
+    'Nêu các giáo sư, nhóm nghiên cứu hoặc phòng lab bạn quan tâm hướng dẫn...',
+  'Enter your degree or current qualification.': 'Vui lòng nhập bằng cấp hoặc trình độ hiện tại.',
+  'Enter your university or institution name.': 'Vui lòng nhập tên trường đại học hoặc cơ sở đào tạo.',
+  'Enter your field of study or major.': 'Vui lòng nhập ngành học hoặc chuyên ngành.',
+  'Enter your research experience or publications summary.':
+    'Vui lòng nhập tóm tắt kinh nghiệm nghiên cứu hoặc công bố.',
+  'Enter your intended research direction.': 'Vui lòng nhập định hướng nghiên cứu dự kiến.',
+  'Enter your supervisor or research fit context.':
+    'Vui lòng nhập thông tin giáo sư hoặc định hướng nghiên cứu phù hợp.',
+
+
   // Curricula. The exam-board names are proper nouns and stay as they are.
   'Vietnamese National Curriculum': 'Chương trình Giáo dục Phổ thông Việt Nam',
   'Others...': 'Khác...',

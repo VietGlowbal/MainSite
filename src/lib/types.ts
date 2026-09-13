@@ -78,6 +78,16 @@ export type StudentProfile = {
   study_mode_preference?: string | null;
   target_intake?: string | null;
   application_cycle_year?: number | null;
+  /**
+   * Additive JSONB payload for postgraduate applicants:
+   * bachelor degree, institution, field_of_study, gpa, classification, completion_year.
+   */
+  postgraduate_academic?: Record<string, unknown> | null;
+  /**
+   * Additive JSONB payload for PhD applicants:
+   * degree history, research experience, publications, research direction, supervisor fit.
+   */
+  phd_academic?: Record<string, unknown> | null;
 };
 
 export type WorkExperience = {
