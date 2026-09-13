@@ -1,0 +1,2707 @@
+{
+  "generated_at": "2026-09-07T15:26:17+00:00",
+  "programme_count": 28,
+  "decision_counts": {
+    "APPLICANT_DATA_REQUIRED": 28
+  },
+  "document_coverage": {
+    "recommendation_letter": {
+      "known": 17,
+      "total": 28,
+      "coverage_ratio": 0.6071
+    },
+    "statement_of_purpose": {
+      "known": 7,
+      "total": 24,
+      "coverage_ratio": 0.2917
+    },
+    "graduation_certificate": {
+      "known": 6,
+      "total": 28,
+      "coverage_ratio": 0.2143
+    },
+    "academic_transcript": {
+      "known": 17,
+      "total": 28,
+      "coverage_ratio": 0.6071
+    },
+    "application_essay_set": {
+      "known": 4,
+      "total": 4,
+      "coverage_ratio": 1.0
+    }
+  },
+  "programmes": [
+    {
+      "programme_id": "9c6eaffc-13e0-526d-b61e-09c42a9d8389",
+      "institution_id": "mit-us",
+      "programme_name": "Artifical Intelligence Decision Making Course 6 4",
+      "official_url": "https://catalog.mit.edu/degree-charts/artifical-intelligence-decision-making-course-6-4/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalog.mit.edu/mit/undergraduate-education/admissions/",
+              "source_type": "programme_admission",
+              "evidence": "Applicant Interviews MIT offers most applicants the opportunity to interview with a member of the MIT Educational Council.",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalog.mit.edu/mit/undergraduate-education/career/global-education-career-development/",
+              "source_type": "career_outcome",
+              "evidence": "If you have an impressive academic record, strong extracurricular experiences, desire to make a difference in society, and are looking for funding for graduate school or independent research, consider applying for a distinguished fellowship.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "621cac6b-df3b-50ab-8f61-697ba096a283",
+      "institution_id": "princeton-us",
+      "programme_name": "Astrophysical Sciences",
+      "official_url": "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/astrophysical-sciences",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 2,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "teacher_recommendation",
+              "requirement_status": "required",
+              "required_count": 2,
+              "application_stage": "initial_application",
+              "details": "Two (2) Teacher Recommendations. Please ask two of your teachers who have taught you in higher level courses (e.g., AP, IB Higher/Standard Level, A-Levels, etc.) in different academic areas of study to complete and send the teacher recommendation forms, available on the Common Application website."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admission.princeton.edu/apply/application-checklist",
+              "source_type": "programme_admission",
+              "evidence": "Two (2) Teacher Recommendations. Please ask two of your teachers who have taught you in higher level courses (e.g., AP, IB Higher/Standard Level, A-Levels, etc.) in different academic areas of study to complete and send the teacher recommendation forms, available on the Common Application website.",
+              "academic_cycle": null,
+              "confidence": 0.95,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "application_essay_set",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "Princeton-specific Questions. In addition to the questions provided by the Common Application, all applicants must submit the Princeton-specific Questions."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admission.princeton.edu/apply/application-checklist",
+              "source_type": "programme_admission",
+              "evidence": "Princeton-specific Questions. In addition to the questions provided by the Common Application, all applicants must submit the Princeton-specific Questions.",
+              "academic_cycle": null,
+              "confidence": 0.95,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": 1,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admission.princeton.edu/apply/application-checklist",
+              "source_type": "programme_admission",
+              "evidence": "An official transcript must be sent by a school counselor or school official.",
+              "academic_cycle": null,
+              "confidence": 0.95,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "7eee9335-7edc-582b-a0b8-c30a69d5bcc4",
+      "institution_id": "harvard-us",
+      "programme_name": "Data Science",
+      "official_url": "https://gsas.harvard.edu/program/data-science",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gsas.harvard.edu/program/data-science",
+              "source_type": "programme_overview",
+              "evidence": "Data Science",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gsas.harvard.edu/program/data-science",
+              "source_type": "programme_overview",
+              "evidence": "Data Science",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gsas.harvard.edu/program/data-science",
+              "source_type": "programme_overview",
+              "evidence": "Data Science",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gsas.harvard.edu/program/data-science",
+              "source_type": "programme_overview",
+              "evidence": "Data Science",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "0984102d-2472-54ad-bc53-ccf6ae969970",
+      "institution_id": "mit-us",
+      "programme_name": "Master Computational Science Engineering",
+      "official_url": "https://catalog.mit.edu/degree-charts/master-computational-science-engineering/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "letters of evaluation from individuals familiar with the applicant's capabilities"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalog.mit.edu/mit/graduate-education/admissions/",
+              "source_type": "programme_admission",
+              "evidence": "letters of evaluation from individuals familiar with the applicant's capabilities",
+              "academic_cycle": null,
+              "confidence": 0.8,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalog.mit.edu/mit/graduate-education/admissions/",
+              "source_type": "programme_admission",
+              "evidence": "academic records",
+              "academic_cycle": null,
+              "confidence": 0.8,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "42164b4d-8b05-56b6-9b2d-807d217c5190",
+      "institution_id": "mit-us",
+      "programme_name": "Chemical Engineering Course 10",
+      "official_url": "https://catalog.mit.edu/degree-charts/chemical-engineering-course-10/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalog.mit.edu/mit/undergraduate-education/career/global-education-career-development/",
+              "source_type": "career_outcome",
+              "evidence": "If you have an impressive academic record, strong extracurricular experiences, desire to make a difference in society, and are looking for funding for graduate school or independent research, consider applying for a distinguished fellowship.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "9d8018ca-e553-59b8-8fbc-45ebc149c946",
+      "institution_id": "duke-us",
+      "programme_name": "Accelerated Daytime Mba",
+      "official_url": "https://www.fuqua.duke.edu/programs/accelerated-daytime-mba",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 3,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": 3,
+              "application_stage": "initial_application",
+              "details": "Letters of recommendation are required; do not submit beyond the required three."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "letters of recommendation beyond the required three",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Statement of purpose is required."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "Statement of purpose",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "other",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Transcripts are required."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "Transcripts",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "2847c3d4-ef60-5cff-9575-eec0449262d1",
+      "institution_id": "cornell-us",
+      "programme_name": "Applied Economics Management Mps",
+      "official_url": "https://catalog.cornell.edu/programs/applied-economics-management-mps/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 2,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "One from a current or former instructor addressing your academic potential"
+            },
+            {
+              "component_type": "professional_recommendation",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "One from an advisor, mentor, coach or supervisor addressing your professional potential"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://business.cornell.edu/admissions/graduate/mps-aem/",
+              "source_type": "programme_admission",
+              "evidence": "Submission of two letters of recommendation is required: One from a current or former instructor addressing your academic potential One from an advisor, mentor, coach or supervisor addressing your professional potential",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": 1,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Academic statement of purpose within 500 words describing academic interests, background, reasons for pursuing graduate studies, and professional goals."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://business.cornell.edu/admissions/graduate/mps-aem/",
+              "source_type": "programme_admission",
+              "evidence": "Please use the academic statement of purpose to describe, within 500 words: (1) your academic interests, (2) your academic background, preparation, and training, including any relevant professional experiences, (3) your reasons for pursuing graduate studies in this specific program and (4) your professional goals.",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://business.cornell.edu/admissions/graduate/mps-aem/",
+              "source_type": "programme_admission",
+              "evidence": "Submit unofficial transcripts from all colleges or universities attended. If admitted, you will be required to provide official transcripts for verification.",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "aea0b19c-7703-5960-8c49-4ba702ab2391",
+      "institution_id": "duke-us",
+      "programme_name": "Meng Ai Materials",
+      "official_url": "https://mems.duke.edu/academics/masters/meng-ai-materials/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 3,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": 3,
+              "application_stage": "initial_application",
+              "details": "Letters of recommendation are required; do not submit beyond the required three."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "letters of recommendation beyond the required three",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Statement of purpose is required."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "Statement of purpose",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "other",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Transcripts are required."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "Transcripts",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "8d959461-a734-5029-a849-d1ab39a36400",
+      "institution_id": "cornell-us",
+      "programme_name": "Computer Science",
+      "official_url": "https://catalog.cornell.edu/programs/computer-science-bs/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalog.cornell.edu/general-information/admissions/",
+              "source_type": "programme_admission",
+              "evidence": "Official Transcript(s) We require individuals to submit their official secondary/high school transcript(s) as part of their application.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "a2a8b0da-4d25-5749-8cc3-2cc37bdc9cf0",
+      "institution_id": "northwestern-us",
+      "programme_name": "Communication Music",
+      "official_url": "https://catalogs.northwestern.edu/undergraduate/dual-bachelors-degrees/communication-music/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 1,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "counselor_recommendation",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Counselor recommendation"
+            },
+            {
+              "component_type": "teacher_recommendation",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "At least one teacher recommendation"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admissions.northwestern.edu/apply/",
+              "source_type": "programme_admission",
+              "evidence": "Counselor recommendation At least one teacher recommendation",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "application_essay_set",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "The following question is required for all Common Application and Coalition with Scoir applicants (optional for QuestBridge applicants). Please respond in 300 words or fewer: We want to be sure we’re considering your application in the context of your personal experiences: What aspects of your background (your identity, your school setting, your community, your household, etc.) have most shaped how you see yourself engaging in Northwestern’s community, be it academically, extracurricularly, culturally, politically, socially, or otherwise?"
+            },
+            {
+              "component_type": "short_response",
+              "requirement_status": "optional",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "We encourage you to answer at least one and no more than two of the following questions. Please respond in fewer than 200 words per question: Painting “The Rock” is a tradition at Northwestern that invites all forms of expression—students promote campus events or extracurricular groups, support social or activist causes, show their Wildcat spirit (what we call “Purple Pride”), celebrate their culture, and more. What would you paint on The Rock, and why? Northwestern fosters a distinctively interdisciplinary culture. We believe discovery and innovation thrive at the intersection of diverse ideas, perspectives, and academic interests. Within this setting, if you could dream up an undergraduate class, research project, or creative effort (a start-up, a design prototype, a performance, etc.), what would it be? Who might be some ideal classmates or collaborators? Community and belonging matter at Northwestern. Tell us about one or more communities, networks, or student groups you see yourself connecting with on campus. Northwestern’s location is special: on the shore of Lake Michigan, steps from downtown Evanston, just a few miles from Chicago. What aspects of our location are most compelling to you, and why? Northwestern is a place where people with diverse backgrounds from all over the world can study, live, and talk with one another. This range of experiences and viewpoints immeasurably enriches learning. How might your individual background contribute to this diversity of perspectives in Northwestern’s classrooms and around our campus?"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admissions.northwestern.edu/apply/requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "The following question is required for all Common Application and Coalition with Scoir applicants (optional for QuestBridge applicants). Please respond in 300 words or fewer: We want to be sure we’re considering your application in the context of your personal experiences: What aspects of your background (your identity, your school setting, your community, your household, etc.) have most shaped how you see yourself engaging in Northwestern’s community, be it academically, extracurricularly, culturally, politically, socially, or otherwise?",
+              "academic_cycle": "2026-27",
+              "confidence": 0.95,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admissions.northwestern.edu/apply/",
+              "source_type": "programme_admission",
+              "evidence": "Official secondary school transcript (s) from all schools attended and school report from most recently attended school",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "1f5c3147-865a-56e8-9168-527f6a2d6406",
+      "institution_id": "duke-us",
+      "programme_name": "Meng Bme",
+      "official_url": "https://bme.duke.edu/academics/masters/meng-bme/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 3,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": 3,
+              "application_stage": "initial_application",
+              "details": "Letters of recommendation are required; do not submit beyond the required three."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "letters of recommendation beyond the required three",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Statement of purpose is required."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "Statement of purpose",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "other",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Transcripts are required."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://gradschool.duke.edu/admissions/application-instructions/",
+              "source_type": "programme_admission",
+              "evidence": "Transcripts",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "63e6cb13-6925-5bf8-823e-01dea2a3a6fd",
+      "institution_id": "cornell-us",
+      "programme_name": "Information Science",
+      "official_url": "https://catalog.cornell.edu/programs/information-science-bs/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalog.cornell.edu/programs/information-science-bs/",
+              "source_type": "programme_overview",
+              "evidence": "Outstanding financial obligations will not impact the awarding of a degree otherwise earned or a student’s ability to access their official transcript.",
+              "academic_cycle": null,
+              "confidence": 0.2,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "464da1a9-7f66-55f7-82e8-2b36360c139f",
+      "institution_id": "northwestern-us",
+      "programme_name": "Information Systems Ms Data Science Specialization",
+      "official_url": "https://catalogs.northwestern.edu/sps/graduate/information-systems/information-systems-ms-data-science-specialization/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admissions.northwestern.edu/apply/requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "Below, you can find help related to application components, such as your letters of recommendation or personal statements, and answers to common questions.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://catalogs.northwestern.edu/sps/graduate/information-systems/information-systems-ms-data-science-specialization/",
+              "source_type": "programme_overview",
+              "evidence": "This specialization provides technical and leadership training required for key positions in information technology, data science and analytics.",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "ad7b9514-92f6-5e56-8c03-78ea97f56408",
+      "institution_id": "ucla-us",
+      "programme_name": "Biostatistics Mph",
+      "official_url": "https://grad.ucla.edu/programs/school-of-public-health/biostatistics-department/biostatistics-mph/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://grad.ucla.edu/programs/school-of-public-health/biostatistics-department/biostatistics-mph/",
+              "source_type": "programme_overview",
+              "evidence": "Admission Requirements",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://grad.ucla.edu/programs/school-of-public-health/biostatistics-department/biostatistics-mph/",
+              "source_type": "programme_overview",
+              "evidence": "Admission Requirements",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://grad.ucla.edu/programs/school-of-public-health/biostatistics-department/biostatistics-mph/",
+              "source_type": "programme_overview",
+              "evidence": "Admission Requirements",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://grad.ucla.edu/admissions/international-applicants/",
+              "source_type": "international_admission",
+              "evidence": "When applying to a UCLA graduate program, international applicants should upload unofficial transcripts from all academic institutions she or he attended into the Application for Graduate Admission.",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "4e1d764c-27d1-55eb-88c1-19a22eba4efa",
+      "institution_id": "udem-ca",
+      "programme_name": "Admission And Regulations",
+      "official_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+              "source_type": "programme_overview",
+              "evidence": "Assurez-vous de sélectionner vos choix pour afficher les conditions d’admissibilité qui s’appliquent à vous.",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "d689124b-9203-5b33-b4ee-1808a87f0ef6",
+      "institution_id": "ucla-us",
+      "programme_name": "Graduate Admissions",
+      "official_url": "https://www.cs.ucla.edu/graduate-admissions/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://www.cs.ucla.edu/graduate-admissions/",
+              "source_type": "programme_admission",
+              "evidence": "letters of recommendation",
+              "academic_cycle": null,
+              "confidence": 0.3,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Personal statement is mentioned as a topic on the FAQ page."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://www.cs.ucla.edu/graduate-admissions/",
+              "source_type": "programme_overview",
+              "evidence": "personal statement",
+              "academic_cycle": null,
+              "confidence": 0.2,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://www.cs.ucla.edu/graduate-admissions/",
+              "source_type": "programme_overview",
+              "evidence": "official transcripts",
+              "academic_cycle": null,
+              "confidence": 0.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": true,
+          "conflict_reasons": [
+            "CONFLICTING_APPLICATION_STAGE"
+          ],
+          "evidence": [
+            {
+              "source_url": "https://grad.ucla.edu/admissions/international-applicants/",
+              "source_type": "international_admission",
+              "evidence": "international applicants should upload unofficial transcripts from all academic institutions she or he attended into the Application for Graduate Admission",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            },
+            {
+              "source_url": "https://grad.ucla.edu/admissions/international-applicants/",
+              "source_type": "international_admission",
+              "evidence": "If admitted to UCLA, applicants must submit official, final academic records.",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "f4d405cc-a97a-5d3b-8a24-2d01940d8570",
+      "institution_id": "udem-ca",
+      "programme_name": "Baccalaureat En Informatique",
+      "official_url": "https://admission.umontreal.ca/programmes/baccalaureat-en-informatique/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "programme_id": "3f25221b-114f-5e9a-b2d4-2113791e9357",
+      "institution_id": "ucla-us",
+      "programme_name": "Public Affairs Major Curriculum",
+      "official_url": "https://luskin.ucla.edu/undergraduate-program/academic-programs/public-affairs-major-curriculum/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate",
+        "recommendation_letter"
+      ],
+      "later_stage_documents": [
+        "academic_transcript"
+      ],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "application_essay_set",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "The personal insight questions are a key part of your UC application."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admission.ucla.edu/apply",
+              "source_type": "programme_admission",
+              "evidence": "The personal insight questions are a key part of your UC application.",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": 1,
+          "count_scope": "document_total",
+          "application_stage": "enrollment",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admission.ucla.edu/apply/first-year",
+              "source_type": "programme_admission",
+              "evidence": "July 1 Send your final, official transcripts to admissions.",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "41f49f88-74e4-5006-8048-a756f30504db",
+      "institution_id": "northwestern-us",
+      "programme_name": "Liberal Arts Music",
+      "official_url": "https://catalogs.northwestern.edu/undergraduate/dual-bachelors-degrees/liberal-arts-music/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 1,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "counselor_recommendation",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "Counselor recommendation"
+            },
+            {
+              "component_type": "teacher_recommendation",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "At least one teacher recommendation"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admissions.northwestern.edu/apply/",
+              "source_type": "programme_admission",
+              "evidence": "Counselor recommendation At least one teacher recommendation",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "application_essay_set",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "component_breakdown",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "application_essay",
+              "requirement_status": "required",
+              "required_count": 1,
+              "application_stage": "initial_application",
+              "details": "The following question is required for all Common Application and Coalition with Scoir applicants (optional for QuestBridge applicants). Please respond in 300 words or fewer: We want to be sure we’re considering your application in the context of your personal experiences: What aspects of your background (your identity, your school setting, your community, your household, etc.) have most shaped how you see yourself engaging in Northwestern’s community, be it academically, extracurricularly, culturally, politically, socially, or otherwise?"
+            },
+            {
+              "component_type": "short_response",
+              "requirement_status": "optional",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "We encourage you to answer at least one and no more than two of the following questions. Please respond in fewer than 200 words per question: Painting “The Rock” is a tradition at Northwestern that invites all forms of expression—students promote campus events or extracurricular groups, support social or activist causes, show their Wildcat spirit (what we call “Purple Pride”), celebrate their culture, and more. What would you paint on The Rock, and why? Northwestern fosters a distinctively interdisciplinary culture. We believe discovery and innovation thrive at the intersection of diverse ideas, perspectives, and academic interests. Within this setting, if you could dream up an undergraduate class, research project, or creative effort (a start-up, a design prototype, a performance, etc.), what would it be? Who might be some ideal classmates or collaborators? Community and belonging matter at Northwestern. Tell us about one or more communities, networks, or student groups you see yourself connecting with on campus. Northwestern’s location is special: on the shore of Lake Michigan, steps from downtown Evanston, just a few miles from Chicago. What aspects of our location are most compelling to you, and why? Northwestern is a place where people with diverse backgrounds from all over the world can study, live, and talk with one another. This range of experiences and viewpoints immeasurably enriches learning. How might your individual background contribute to this diversity of perspectives in Northwestern’s classrooms and around our campus?"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admissions.northwestern.edu/apply/requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "The following question is required for all Common Application and Coalition with Scoir applicants (optional for QuestBridge applicants). Please respond in 300 words or fewer: We want to be sure we’re considering your application in the context of your personal experiences: What aspects of your background (your identity, your school setting, your community, your household, etc.) have most shaped how you see yourself engaging in Northwestern’s community, be it academically, extracurricularly, culturally, politically, socially, or otherwise?",
+              "academic_cycle": "2026-27",
+              "confidence": 0.95,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://admissions.northwestern.edu/apply/",
+              "source_type": "programme_admission",
+              "evidence": "Official secondary school transcript (s) from all schools attended and school report from most recently attended school",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "417d7b78-e750-53d2-907e-060cc5512cdf",
+      "institution_id": "udem-ca",
+      "programme_name": "Dess En Apprentissage Automatique",
+      "official_url": "https://admission.umontreal.ca/programmes/dess-en-apprentissage-automatique/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "programme_id": "62fe6a06-f177-54be-b4d8-a143455b86bf",
+      "institution_id": "eth-zurich-ch",
+      "programme_name": "Cyber Security",
+      "official_url": "https://ethz.ch/en/studies/master/degree-programmes/engineering-sciences/cyber-security.html",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "letters of recommendation"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/en/studies/master/application/profile-requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "the letters of recommendation",
+              "academic_cycle": null,
+              "confidence": 0.8,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/content/dam/ethz/common/docs/weisungssammlung/files-en/admission-master.pdf",
+              "source_type": "pdf",
+              "evidence": "the overall grade is indicated on an official degree document (diploma or bachelor’s degree certificate, transcript of records or diploma certificate); and b.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/en/studies/master/application/language-requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "Academic documents (transcript of records, enrolment confirmation, Diploma Supplement) can also be accepted as confirmations on the language of instruction",
+              "academic_cycle": null,
+              "confidence": 0.8,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "b36e94c3-95df-576c-a3f5-709f6ebf00b1",
+      "institution_id": "eth-zurich-ch",
+      "programme_name": "Data Science",
+      "official_url": "https://ethz.ch/en/studies/master/degree-programmes/engineering-sciences/data-science.html",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "Letters of recommendation are part of the application."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/en/studies/master/application/profile-requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "the letter of motivation and the letters of recommendation",
+              "academic_cycle": null,
+              "confidence": 0.8,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/content/dam/ethz/common/docs/weisungssammlung/files-en/admission-master.pdf",
+              "source_type": "pdf",
+              "evidence": "the overall grade is indicated on an official degree document (diploma or bachelor’s degree certificate, transcript of records or diploma certificate); and b.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/en/studies/master/application/language-requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "Academic documents (transcript of records, enrolment confirmation, Diploma Supplement) can also be accepted as confirmations on the language of instruction",
+              "academic_cycle": null,
+              "confidence": 0.8,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "53e0f722-22e1-5b05-acae-4dfbcb184cb0",
+      "institution_id": "tokyo-jp",
+      "programme_name": "Admissions Soon",
+      "official_url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": 2,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": 2,
+              "application_stage": "initial_application",
+              "details": "Two Evaluations for the ITASIA Program* The applicant will request two evaluations at the beginning of the online application process. To complete the request, you will need the official or institutional email address and the URL of the institutional web page or homepage of each referee. The two external referees will receive an email with instructions on how to complete the online evaluation form. These evaluations should be written by referees who can evaluate your academic potential for postgraduate study, including your skills, accomplishments and character. They may be completed in either English or Japanese. At least one recommender must be from outside of the GSII."
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+              "source_type": "programme_admission",
+              "evidence": "Two Evaluations for the ITASIA Program* The applicant will request two evaluations at the beginning of the online application process. To complete the request, you will need the official or institutional email address and the URL of the institutional web page or homepage of each referee. The two external referees will receive an email with instructions on how to complete the online evaluation form. These evaluations should be written by referees who can evaluate your academic potential for postgraduate study, including your skills, accomplishments and character. They may be completed in either English or Japanese. At least one recommender must be from outside of the GSII.",
+              "academic_cycle": null,
+              "confidence": 1.0,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://itasia.iii.u-tokyo.ac.jp/admissions-guidelines",
+              "source_type": "scholarship",
+              "evidence": "Official proof of graduation and receipt of degree* (PDF ) • A copy of an official document of graduation and receipt of degree, certified with the seal/stamp of the university from which the applicant graduated.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://itasia.iii.u-tokyo.ac.jp/tuition",
+              "source_type": "tuition",
+              "evidence": "Monbukagakusho (MEXT) Scholarship Program Chinese Government Graduate Student Overseas Study Program (国家建设高水平大学公派研究生项目) Scholarships at Time of Application Some applicants with exceptional academic records may be awarded scholarships or stipends at the recommendation of the University of Tokyo.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "1816e7cb-d12d-5fe6-87c2-67b7f8e38a69",
+      "institution_id": "sorbonne-fr",
+      "programme_name": "Licence Dinformatique Parcours Monodisciplinaire",
+      "official_url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [
+        "academic_transcript",
+        "graduation_certificate"
+      ],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "enrollment",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://www.sorbonne-universite.fr/sites/default/files/media/2026-07/Guide_PJweb_2026_2027.pdf",
+              "source_type": "pdf",
+              "evidence": "Le dépôt des pièces justificatives est une des dernières étapes du processus de l’inscription administrative à Sorbonne Université",
+              "academic_cycle": "2026-2027",
+              "confidence": 0.7,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "enrollment",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://www.sorbonne-universite.fr/sites/default/files/media/2026-07/Guide_PJweb_2026_2027.pdf",
+              "source_type": "pdf",
+              "evidence": "Le dépôt des pièces justificatives est une des dernières étapes du processus de l’inscription administrative à Sorbonne Université",
+              "academic_cycle": "2026-2027",
+              "confidence": 0.7,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "56c54c3d-9a9e-5a63-8434-55173fcecb3d",
+      "institution_id": "eth-zurich-ch",
+      "programme_name": "Robotics Systems And Control",
+      "official_url": "https://ethz.ch/en/studies/master/degree-programmes/engineering-sciences/robotics-systems-and-control.html",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "primary_component",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [
+            {
+              "component_type": "academic_recommendation",
+              "requirement_status": "required",
+              "required_count": null,
+              "application_stage": "initial_application",
+              "details": "letters of recommendation are part of the application"
+            }
+          ],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/en/studies/master/application/profile-requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "the letter of motivation and the letters of recommendation",
+              "academic_cycle": null,
+              "confidence": 0.9,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/content/dam/ethz/common/docs/weisungssammlung/files-en/admission-master.pdf",
+              "source_type": "pdf",
+              "evidence": "the overall grade is indicated on an official degree document (diploma or bachelor’s degree certificate, transcript of records or diploma certificate); and b.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://ethz.ch/en/studies/master/application/language-requirements.html",
+              "source_type": "programme_admission",
+              "evidence": "Academic documents (transcript of records, enrolment confirmation, Diploma Supplement) can also be accepted as confirmations on the language of instruction",
+              "academic_cycle": null,
+              "confidence": 0.8,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "14a69766-85f8-5b07-bfa9-0d48a4edba53",
+      "institution_id": "tokyo-jp",
+      "programme_name": "Admission E.Shtml",
+      "official_url": "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "graduation_certificate",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "initial_application",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://www.i.u-tokyo.ac.jp/edu/course/cs/cs_admission_guide2027_en.pdf",
+              "source_type": "pdf",
+              "evidence": "Together with the application form, submit a Letter of Recommendation.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "required",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": [
+            {
+              "source_url": "https://www.i.u-tokyo.ac.jp/edu/entra/entra_e.shtml",
+              "source_type": "programme_overview",
+              "evidence": "Please keep the original of the Academic Transcript submitted as a copy during the admission process, as it is required at the time of enrollment procedure.",
+              "academic_cycle": null,
+              "confidence": 0.65,
+              "verification_status": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programme_id": "198c7c34-7b6d-574c-baaf-32dc64798907",
+      "institution_id": "sorbonne-fr",
+      "programme_name": "Parcours Sar",
+      "official_url": "https://sciences.sorbonne-universite.fr/formation-sciences/masters/master-informatique/parcours-sar",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "programme_id": "b719156c-eb3d-5150-9461-0b8e07a938e7",
+      "institution_id": "michigan-us",
+      "programme_name": "Mads.Si.Umich.Edu",
+      "official_url": "https://mads.si.umich.edu/",
+      "decision": "APPLICANT_DATA_REQUIRED",
+      "missing_documents": [],
+      "unknown_documents": [
+        "academic_transcript",
+        "graduation_certificate",
+        "recommendation_letter",
+        "statement_of_purpose"
+      ],
+      "later_stage_documents": [],
+      "requirements": [
+        {
+          "document_type": "recommendation_letter",
+          "source_field": "recommendation_letters",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "statement_of_purpose",
+          "source_field": "sop_essay_requirements",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "graduation_certificate",
+          "source_field": "graduation_certificate",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        },
+        {
+          "document_type": "academic_transcript",
+          "source_field": "academic_transcript",
+          "requirement_status": "unknown",
+          "required_count": null,
+          "count_scope": "document_total",
+          "application_stage": "unknown",
+          "accepted_alternatives": [],
+          "components": [],
+          "conflict": false,
+          "conflict_reasons": [],
+          "evidence": []
+        }
+      ]
+    }
+  ]
+}

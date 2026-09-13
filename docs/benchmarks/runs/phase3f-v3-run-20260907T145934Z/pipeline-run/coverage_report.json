@@ -1,0 +1,470 @@
+{
+  "run_name": "phase3f-v3-first-real",
+  "generated_at": "2026-09-07T15:26:17+00:00",
+  "metrics": {
+    "institutions_total": 12,
+    "institutions_completed": 12,
+    "institutions_blocked": 0,
+    "school_profiles_attempted": 0,
+    "school_profiles_extracted": 0,
+    "programmes_discovered": 36,
+    "deep_programmes_attempted": 36,
+    "deep_programmes_extracted": 28,
+    "admission_retry_programmes": 27,
+    "admission_retry_sources": 60,
+    "coverage_retry_programmes": 27,
+    "coverage_retry_sources": 5,
+    "coverage_retry_groups": 55,
+    "status_preflight_attempted": 0,
+    "status_preflight_inactive_candidates": 0,
+    "sources_fetched": 360,
+    "scrapy_links_discovered": 0,
+    "render_attempts": 0,
+    "render_successes": 0,
+    "graph_guided_sources": 0,
+    "source_excerpt_fallback_assertions": 65,
+    "assertions_total": 1697,
+    "assertions_non_null": 618,
+    "assertions_rejected": 186,
+    "assertions_needs_review": 349,
+    "field_candidates_created_total": 584,
+    "runtime_assertions_created_total": 1697,
+    "candidate_to_assertion_drop_total": 4,
+    "field_candidates_created_by_field": {
+      "programme_identity": 29,
+      "credential": 30,
+      "intakes": 18,
+      "priority_deadline": 11,
+      "final_deadline": 15,
+      "application_url": 15,
+      "programme_focus": 23,
+      "curriculum_overview": 59,
+      "subject_prerequisites": 18,
+      "standardized_tests": 12,
+      "recommendation_letters": 15,
+      "application_fee": 8,
+      "tuition": 40,
+      "additional_fees": 33,
+      "scholarships": 41,
+      "academic_transcript": 21,
+      "programme_status": 21,
+      "sop_essay_requirements": 18,
+      "career_outcomes": 24,
+      "graduation_certificate": 17,
+      "specialisations": 16,
+      "minimum_degree": 11,
+      "admission_difficulty": 13,
+      "academic_cycle": 19,
+      "learning_outcomes": 24,
+      "minimum_gpa": 6,
+      "duolingo": 1,
+      "gpa_scale": 2,
+      "required_documents": 12,
+      "ielts_overall": 1,
+      "toefl": 5,
+      "international_deadline": 2,
+      "funding_deadline": 3,
+      "rolling_admission": 1
+    },
+    "runtime_assertions_created_by_field": {
+      "programme_identity": 43,
+      "credential": 41,
+      "programme_status": 58,
+      "programme_focus": 38,
+      "curriculum_overview": 75,
+      "specialisations": 39,
+      "learning_outcomes": 49,
+      "academic_cycle": 48,
+      "intakes": 38,
+      "priority_deadline": 42,
+      "funding_deadline": 37,
+      "international_deadline": 36,
+      "final_deadline": 44,
+      "rolling_admission": 36,
+      "minimum_degree": 37,
+      "minimum_gpa": 37,
+      "gpa_scale": 36,
+      "subject_prerequisites": 41,
+      "admission_difficulty": 39,
+      "ielts_overall": 46,
+      "ielts_subscores": 36,
+      "toefl": 44,
+      "duolingo": 39,
+      "standardized_tests": 37,
+      "work_experience": 36,
+      "portfolio": 36,
+      "required_documents": 41,
+      "recommendation_letters": 39,
+      "sop_essay_requirements": 49,
+      "graduation_certificate": 59,
+      "academic_transcript": 47,
+      "application_fee": 38,
+      "application_url": 38,
+      "tuition": 85,
+      "additional_fees": 57,
+      "scholarships": 76,
+      "career_outcomes": 44,
+      "employment_outcomes": 36
+    },
+    "candidate_to_assertion_drop_reason": {
+      "DUPLICATE_FACT": 2,
+      "DUPLICATE_ASSERTION_ID": 2
+    },
+    "shared_bundles_upserted": 85,
+    "inherited_assertions": 63,
+    "inherited_field_slots": 46,
+    "selective_extraction_programmes": 11,
+    "extraction_fields_skipped": 46,
+    "approved_baseline_programmes": 0,
+    "approved_baseline_assertions": 0,
+    "acquisition_intents": 0,
+    "source_candidates_generated": 0,
+    "source_candidates_admitted": 0,
+    "source_candidates_rejected": 0,
+    "acquisition_discovery_failures": 0,
+    "errors": 56,
+    "started_at": "2026-09-07T14:59:35+00:00",
+    "completed_at": "2026-09-07T15:26:17+00:00",
+    "elapsed_seconds": 1602.018
+  },
+  "extraction_provider": {
+    "calls": 271,
+    "logical_requests": 276,
+    "request_attempts": 276,
+    "cache_hits": 0,
+    "flash_calls": 271,
+    "pro_calls": 0,
+    "prompt_tokens": 2156714,
+    "completion_tokens": 263269,
+    "failures": 11,
+    "group_failures": 4,
+    "rate_limit_responses": 0,
+    "retry_after_present": 0,
+    "retry_attempts": 0,
+    "rate_limit_retries": 0,
+    "transport_retries": 0,
+    "response_retries": 0,
+    "rate_limit_recoveries": 0,
+    "terminal_rate_limit_failures": 0,
+    "max_in_flight": 1,
+    "failure_details": [
+      {
+        "programme_id": "e8272126-46a0-50d1-8f90-6c2813246947",
+        "programme_name": "Computer Science",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: facts[3].value.published_acceptance_rate must be 0..100 or null."
+      },
+      {
+        "programme_id": "621cac6b-df3b-50ab-8f61-697ba096a283",
+        "programme_name": "Astrophysical Sciences",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: DeepSeek output was truncated."
+      },
+      {
+        "programme_id": "d689124b-9203-5b33-b4ee-1808a87f0ef6",
+        "programme_name": "Graduate Admissions",
+        "extraction_group": "academics_admissions",
+        "error": "Extraction group academics_admissions failed: facts[4].value.application_stage is invalid."
+      },
+      {
+        "programme_id": "9d3966b3-1e93-52c3-be0e-499d337462b4",
+        "programme_name": "Master Informatique",
+        "extraction_group": "identity_offering",
+        "error": "Extraction group identity_offering failed: DeepSeek output was truncated."
+      }
+    ]
+  },
+  "crawler_runtime": {
+    "discovery_backend": "native",
+    "render_policy": "off",
+    "target_fields": [],
+    "run_mode": "full",
+    "skip_school_profile": false,
+    "programme_concurrency_per_institution": 1
+  },
+  "coverage": {
+    "non_null_assertion_ratio": 0.3485,
+    "unique_field_slots": 1368,
+    "applicable_field_slots": 1363,
+    "non_null_field_slots": 475,
+    "not_applicable_field_slots": 5,
+    "field_coverage": {
+      "programme_identity": {
+        "applicable_slots": 36,
+        "non_null_slots": 25,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.6944
+      },
+      "credential": {
+        "applicable_slots": 36,
+        "non_null_slots": 25,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.6944
+      },
+      "programme_status": {
+        "applicable_slots": 36,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "programme_focus": {
+        "applicable_slots": 36,
+        "non_null_slots": 26,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.7222
+      },
+      "curriculum_overview": {
+        "applicable_slots": 36,
+        "non_null_slots": 27,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.75
+      },
+      "specialisations": {
+        "applicable_slots": 36,
+        "non_null_slots": 13,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.3611
+      },
+      "learning_outcomes": {
+        "applicable_slots": 36,
+        "non_null_slots": 21,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5833
+      },
+      "academic_cycle": {
+        "applicable_slots": 36,
+        "non_null_slots": 7,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.1944
+      },
+      "intakes": {
+        "applicable_slots": 36,
+        "non_null_slots": 20,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5556
+      },
+      "priority_deadline": {
+        "applicable_slots": 36,
+        "non_null_slots": 8,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.2222
+      },
+      "funding_deadline": {
+        "applicable_slots": 36,
+        "non_null_slots": 2,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0556
+      },
+      "international_deadline": {
+        "applicable_slots": 36,
+        "non_null_slots": 3,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0833
+      },
+      "final_deadline": {
+        "applicable_slots": 36,
+        "non_null_slots": 19,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5278
+      },
+      "rolling_admission": {
+        "applicable_slots": 36,
+        "non_null_slots": 1,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0278
+      },
+      "minimum_degree": {
+        "applicable_slots": 31,
+        "non_null_slots": 10,
+        "not_applicable_slots": 5,
+        "coverage_ratio": 0.3226
+      },
+      "minimum_gpa": {
+        "applicable_slots": 36,
+        "non_null_slots": 5,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.1389
+      },
+      "gpa_scale": {
+        "applicable_slots": 36,
+        "non_null_slots": 2,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0556
+      },
+      "subject_prerequisites": {
+        "applicable_slots": 36,
+        "non_null_slots": 13,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.3611
+      },
+      "admission_difficulty": {
+        "applicable_slots": 36,
+        "non_null_slots": 21,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5833
+      },
+      "ielts_overall": {
+        "applicable_slots": 36,
+        "non_null_slots": 11,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.3056
+      },
+      "ielts_subscores": {
+        "applicable_slots": 36,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "toefl": {
+        "applicable_slots": 36,
+        "non_null_slots": 12,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.3333
+      },
+      "duolingo": {
+        "applicable_slots": 36,
+        "non_null_slots": 1,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0278
+      },
+      "standardized_tests": {
+        "applicable_slots": 36,
+        "non_null_slots": 13,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.3611
+      },
+      "work_experience": {
+        "applicable_slots": 36,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "portfolio": {
+        "applicable_slots": 36,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "required_documents": {
+        "applicable_slots": 36,
+        "non_null_slots": 19,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5278
+      },
+      "recommendation_letters": {
+        "applicable_slots": 36,
+        "non_null_slots": 18,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5
+      },
+      "sop_essay_requirements": {
+        "applicable_slots": 36,
+        "non_null_slots": 11,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.3056
+      },
+      "graduation_certificate": {
+        "applicable_slots": 36,
+        "non_null_slots": 8,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.2222
+      },
+      "academic_transcript": {
+        "applicable_slots": 36,
+        "non_null_slots": 24,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.6667
+      },
+      "application_fee": {
+        "applicable_slots": 36,
+        "non_null_slots": 7,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.1944
+      },
+      "application_url": {
+        "applicable_slots": 36,
+        "non_null_slots": 18,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5
+      },
+      "tuition": {
+        "applicable_slots": 36,
+        "non_null_slots": 23,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.6389
+      },
+      "additional_fees": {
+        "applicable_slots": 36,
+        "non_null_slots": 16,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.4444
+      },
+      "scholarships": {
+        "applicable_slots": 36,
+        "non_null_slots": 26,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.7222
+      },
+      "career_outcomes": {
+        "applicable_slots": 36,
+        "non_null_slots": 20,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.5556
+      },
+      "employment_outcomes": {
+        "applicable_slots": 36,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "vision": {
+        "applicable_slots": 0,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "mission": {
+        "applicable_slots": 0,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "core_values": {
+        "applicable_slots": 0,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      },
+      "student_development_goals": {
+        "applicable_slots": 0,
+        "non_null_slots": 0,
+        "not_applicable_slots": 0,
+        "coverage_ratio": 0.0
+      }
+    },
+    "note": "Coverage uses unique applicable entity/field slots and excludes rejected audit records. Coverage is not accuracy; human QA must validate high-risk fields."
+  },
+  "shadow_quality": {
+    "evaluation_count": 28,
+    "assessment_count": 1064,
+    "state_counts": {
+      "FOUND": 775,
+      "CONFLICTING_SOURCES": 55,
+      "NEEDS_REVIEW": 234
+    },
+    "recovery_intents": 289,
+    "conflicts_detected": 288,
+    "inferences_generated": 0,
+    "note": "Slice C shadow quality is semantic and policy-driven; its assessments and plans do not change promotion or canonical reads."
+  },
+  "best_result": {
+    "effective_non_null_assertions": 610,
+    "effective_non_null_field_slots": 475,
+    "selected_current_fields": 475,
+    "selected_cached_fields": 0,
+    "comparable_fields": 0,
+    "stable_fields": 0,
+    "stability_ratio": null,
+    "note": "Effective assertions are the selected product-facing bundle. Audit assertions remain in field_assertions.jsonl."
+  }
+}
