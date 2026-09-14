@@ -114,24 +114,32 @@ function renderScalarValue(key: string, val: string) {
       const pct = Math.round(num * 100);
       const variant: BadgeVariant = num >= 0.8 ? 'safe-chip' : num >= 0.5 ? 'info-chip' : 'brand-chip';
       return (
-        <div className="flex items-center gap-gb-xs">
+        <div className="flex items-center gap-gb-xs flex-wrap min-w-0">
           <Badge variant={variant}>{pct}%</Badge>
-          <span className="text-gb-xs text-fg-muted font-mono">({val})</span>
+          <span className="text-gb-xs text-fg-muted font-mono truncate">({val})</span>
         </div>
       );
     }
-    return <Badge variant={getBadgeVariant('confidence', val)}>{humanize(val)}</Badge>;
+    return (
+      <Badge variant={getBadgeVariant('confidence', val)} className="max-w-full truncate">
+        {humanize(val)}
+      </Badge>
+    );
   }
 
   if (isStatusOrRating) {
-    return <Badge variant={getBadgeVariant(key, val)}>{humanize(val)}</Badge>;
+    return (
+      <Badge variant={getBadgeVariant(key, val)} className="max-w-full truncate">
+        {humanize(val)}
+      </Badge>
+    );
   }
 
   if (/date|generatedAt|createdAt|timestamp/i.test(key) && !Number.isNaN(Date.parse(val))) {
-    return <span className="font-mono text-gb-xs text-fg-secondary">{formatDate(val)}</span>;
+    return <span className="font-mono text-gb-xs text-fg-secondary break-words">{formatDate(val)}</span>;
   }
 
-  return <span>{val}</span>;
+  return <span className="break-words">{val}</span>;
 }
 
 function SourcesCitationList({ sources }: { sources: unknown[] }) {
@@ -255,9 +263,34 @@ function ReflectionCallout({
   );
 }
 
-function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentity?: boolean }) {
-  const rawTitle = scalar(item.name ?? item.title ?? item.headline ?? item.label ?? item.theme);
-  const rawStatus = scalar(item.status ?? item.alignment ?? item.classification);
+function ObjectItemCard({ item, omitIdentity = true }: { item: RecordValue; omitIdentity?: boolean }) {
+  const titleEntryKey =
+    'name' in item && scalar(item.name)
+      ? 'name'
+      : 'title' in item && scalar(item.title)
+      ? 'title'
+      : 'headline' in item && scalar(item.headline)
+      ? 'headline'
+      : 'label' in item && scalar(item.label)
+      ? 'label'
+      : 'theme' in item && scalar(item.theme)
+      ? 'theme'
+      : null;
+  const rawTitle = titleEntryKey ? scalar(item[titleEntryKey]) : null;
+
+  const statusEntryKey =
+    'status' in item && scalar(item.status)
+      ? 'status'
+      : 'alignment' in item && scalar(item.alignment)
+      ? 'alignment'
+      : 'classification' in item && scalar(item.classification)
+      ? 'classification'
+      : 'kind' in item && scalar(item.kind)
+      ? 'kind'
+      : 'category' in item && scalar(item.category)
+      ? 'category'
+      : null;
+  const rawStatus = statusEntryKey ? scalar(item[statusEntryKey]) : null;
   const rawConfidence = item.confidence ?? item.confidenceScore;
   const count = scalar(item.evidenceCount ?? item.count);
 
@@ -271,8 +304,8 @@ function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentit
     if (omitIdentity && isIdentityKey(k)) {
       return false;
     }
-    if (rawTitle && /(^name$|^title$|^headline$|^theme$)/i.test(k)) return false;
-    if (rawStatus && /(^status$|^alignment$|^classification$)/i.test(k)) return false;
+    if (rawTitle && /(^name$|^title$|^headline$|^theme$|^label$)/i.test(k)) return false;
+    if (statusEntryKey && k === statusEntryKey) return false;
     if (rawConfidence !== undefined && /confidence/i.test(k)) return false;
     if (count && /(^evidenceCount$|^count$)/i.test(k)) return false;
     if (sources && k === 'sources') return false;
@@ -326,6 +359,16 @@ function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentit
 
 function ValueList({ values, omitIdentity }: { values: unknown[]; omitIdentity?: boolean }) {
   if (!values.length) return <span className="text-fg-muted">Not available</span>;
+  const isAllObjects = values.every((it) => it && typeof it === 'object' && !Array.isArray(it));
+  if (isAllObjects) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-gb-md">
+        {values.map((item, index) => (
+          <ObjectItemCard key={index} item={item as RecordValue} omitIdentity={omitIdentity} />
+        ))}
+      </div>
+    );
+  }
   return (
     <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl">
       {values.map((value, index) => (
@@ -339,7 +382,7 @@ function ValueList({ values, omitIdentity }: { values: unknown[]; omitIdentity?:
 
 function StructuredDataView({
   value,
-  omitIdentity = false,
+  omitIdentity = true,
   depth = 0,
 }: {
   value: unknown;
@@ -428,7 +471,7 @@ function StructuredDataView({
                 {topScalars.map(([k, v]) => (
                   <div
                     key={k}
-                    className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0"
+                    className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0 overflow-hidden"
                   >
                     <dt
                       className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted truncate"
@@ -436,7 +479,7 @@ function StructuredDataView({
                     >
                       {humanize(k)}
                     </dt>
-                    <dd className="text-gb-sm font-semibold text-fg min-w-0 break-words">
+                    <dd className="text-gb-sm font-semibold text-fg min-w-0 max-w-full break-words overflow-hidden">
                       {renderScalarValue(k, v)}
                     </dd>
                   </div>
@@ -513,7 +556,7 @@ function StructuredDataView({
           {scalars.map(([k, v]) => (
             <div
               key={k}
-              className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0"
+              className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0 overflow-hidden"
             >
               <dt
                 className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted truncate"
@@ -521,7 +564,7 @@ function StructuredDataView({
               >
                 {humanize(k)}
               </dt>
-              <dd className="text-gb-sm font-semibold text-fg min-w-0 break-words">
+              <dd className="text-gb-sm font-semibold text-fg min-w-0 max-w-full break-words overflow-hidden">
                 {renderScalarValue(k, v)}
               </dd>
             </div>

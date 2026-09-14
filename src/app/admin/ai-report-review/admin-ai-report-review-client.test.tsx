@@ -300,4 +300,68 @@ describe('AdminAiReportReviewClient', () => {
     expect(screen.getByText('Overall Evidence Confidence')).toBeInTheDocument();
     expect(screen.getByText('Low')).toBeInTheDocument();
   });
+
+  it('formats evidence reference cards cleanly without internal UUIDs, duplicated label tiles, or overflowing badges', () => {
+    const evidenceRefReview: AdminAiReportReview = {
+      application: review.application,
+      nodes: [
+        {
+          id: 'strategy',
+          kind: 'strategy',
+          title: 'Strategy Report',
+          available: true,
+          generatedAt: '2026-09-12T00:00:00.000Z',
+          modelName: 'gpt-test',
+          promptVersion: 'strategy-v1',
+          inputHash: 'strategy-hash',
+          sources: [],
+          outputFormat: 'unknown',
+          output: {
+            report: {
+              evidenceRefs: [
+                {
+                  id: 'achievement:5706aa95-09f2-4567-b340-4b83a38ab567',
+                  kind: 'structured_achievement',
+                  label: 'Runner-Up – The Global Futures Challenge',
+                },
+                {
+                  id: 'achievement:a9c68f73-d10d-4d50-9dab-ad8debcb4e3',
+                  kind: 'structured_achievement',
+                  label: 'Top 20 of the IEO Essay Challenge',
+                },
+              ],
+            },
+          },
+          rawOutput: {},
+          inputs: { sections: [] },
+          metadata: {},
+        },
+      ],
+    };
+
+    render(
+      <AdminAiReportReviewClient
+        items={[evidenceRefReview.application]}
+        initialReview={evidenceRefReview}
+      />
+    );
+
+    // Verify Evidence Refs section heading
+    expect(screen.getByText('Evidence Refs')).toBeInTheDocument();
+
+    // Verify titles are rendered in the card header
+    expect(screen.getByText('Runner Up – The Global Futures Challenge')).toBeInTheDocument();
+    expect(screen.getByText('Top 20 Of The IEO Essay Challenge')).toBeInTheDocument();
+
+    // Verify kind is extracted into a badge in the header
+    const kindBadges = screen.getAllByText('Structured Achievement');
+    expect(kindBadges.length).toBe(2);
+
+    // Verify internal UUIDs are omitted
+    expect(screen.queryByText(/5706aa95-09f2-4567-b340-4b83a38ab567/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/a9c68f73-d10d-4d50-9dab-ad8debcb4e3/)).not.toBeInTheDocument();
+
+    // Verify label is not duplicated inside the card as a separate dl/dd tile
+    expect(screen.queryByText('LABEL')).not.toBeInTheDocument();
+  });
 });

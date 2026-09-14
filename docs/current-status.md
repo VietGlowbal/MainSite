@@ -1,5 +1,21 @@
 # Current project status
 
+Working tree 2026-09-14 (Admin AI report review badge overflow fix and clean evidence ref cards):
+Fixed badge overflow and duplicated scalar tiles reported on `/admin/ai-report-review` (`media_1789359428846.png`):
+When rendering item cards (such as evidence references in `evidenceRefs`), three issues degraded readability:
+1. Long badges like `Structured Achievement` in 2-column nested grids (`depth >= 2`) overflowed their scalar tile borders due to `whitespace-nowrap`.
+2. The card title field (e.g. `label: "Runner-Up - The Global Futures Challenge"`) was not excluded from item entries, causing the title to repeat as an interior scalar tile right below the card header.
+3. Technical database IDs (`id: "achievement:5706aa95-09f2-4567-b340-4b83a38ab567"`) were rendered inside cards, breaking UUID strings across 6 lines.
+Fixes:
+1. `ObjectItemCard`:
+   - Extracted `item.kind` and `item.category` into `rawStatus` so item kinds (e.g. `structured_achievement`) are rendered cleanly in the card header as humanized badges (`Structured Achievement`).
+   - Tracked consumed keys for title and status, and excluded both `label` and whichever status/kind key was extracted from interior entries.
+   - Defaulted `omitIdentity` to `true` across `ObjectItemCard` and `StructuredDataView` so internal technical IDs are kept in the `Technical` tab and not displayed on human review cards.
+   - When all fields are consumed (e.g. `EvidenceRef` with only `id`, `kind`, `label`), the empty interior grid is hidden, producing a compact, elegant reference card with title and kind badge.
+2. `ValueList`: Extended `ValueList` to render `ObjectItemCard` 2-column grids when all array items are objects.
+3. `renderScalarValue`: Added `className="max-w-full truncate"` to `<Badge>` and `overflow-hidden max-w-full break-words` to `<dd>` and tile containers to guarantee scalar badges never overflow their parent container.
+Measured: focused review tests (9: 6 client + 3 API), `npm run typecheck`, scoped ESLint, and `git diff --check` pass.
+
 Working tree 2026-09-13 (404 page on site chrome): `src/app/not-found.tsx` rebuilt on `SiteNavigation` (light) +
 shared `Footer` + design-system tokens (`Button` primary/secondary lg, `bg-brand-subtle` featured icon, display-sm
 heading); the legacy `.glow-card`/`.glow-button-*` classes are gone. A 404 has no pathname of its own, so it cannot use
