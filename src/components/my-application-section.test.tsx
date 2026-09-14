@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CourseApplication } from '@/lib/apply-types';
 
 const mocks = vi.hoisted(() => ({ prefetch: vi.fn() }));
@@ -12,6 +12,10 @@ import { MyApplicationSection } from '@/app/apply/my-application-section';
 
 describe('MyApplicationSection workspace prefetch', () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('prefetches an application workspace only after hover or keyboard focus', () => {
     render(
@@ -42,5 +46,99 @@ describe('MyApplicationSection workspace prefetch', () => {
 
     expect(mocks.prefetch).toHaveBeenCalledTimes(2);
     expect(mocks.prefetch).toHaveBeenLastCalledWith('/apply/app-1');
+  });
+
+  it('uses the parser status heartbeat instead of application updated_at for stale UI', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ parseStatus: 'processing', isStale: false, error: null }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ parseStatus: 'processing', isStale: true, error: null }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <MyApplicationSection
+        applications={[
+          {
+            id: 'app-stale-ui',
+            universityName: 'Example University',
+            courseName: '',
+            courseUrl: 'https://example.edu/course',
+            userId: 'user-1',
+            status: 'researching',
+            progressPercentage: 20,
+            parseStatus: 'processing',
+            importStatus: 'complete',
+            // Deliberately old application projection; the server heartbeat is fresh.
+            updatedAt: '2020-01-01T00:00:00Z',
+            createdAt: '2020-01-01T00:00:00Z',
+          } as CourseApplication,
+        ]}
+        logoByUniversityId={{}}
+        strategyReadyById={{}}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/applications/app-stale-ui/parse-status',
+      { cache: 'no-store' },
+    );
+    expect(screen.queryByText(/taking longer than usual/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(screen.getByText(/taking longer than usual/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it('does not expose Retry while the parser job is active behind a failed app projection', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        parseStatus: 'failed',
+        active: true,
+        isStale: false,
+        canRetry: false,
+        error: 'A previous attempt failed',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <MyApplicationSection
+        applications={[{
+          id: 'app-active-worker',
+          universityName: 'Example University',
+          courseName: '',
+          courseUrl: 'https://example.edu/course',
+          userId: 'user-1',
+          status: 'researching',
+          progressPercentage: 20,
+          parseStatus: 'failed',
+          parseError: 'A previous attempt failed',
+          importStatus: 'complete',
+          updatedAt: '2020-01-01T00:00:00Z',
+          createdAt: '2020-01-01T00:00:00Z',
+        } as CourseApplication]}
+        logoByUniversityId={{}}
+        strategyReadyById={{}}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/AI is reading the course page/i)).toBeInTheDocument();
   });
 });

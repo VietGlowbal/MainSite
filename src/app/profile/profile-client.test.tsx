@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { LanguageProvider } from '@/lib/i18n';
 import type { StudentProfile } from '@/lib/types';
 import { ProfileClient } from './profile-client';
 
@@ -39,7 +40,10 @@ const PROFILE = {
   target_intake: '2027-09',
 } as unknown as StudentProfile;
 
-function renderProfile(profile: StudentProfile | null = PROFILE) {
+function renderProfile(
+  profile: StudentProfile | null = PROFILE,
+  evidence: { achievements?: number; activities?: number } = {},
+) {
   return render(
     <ProfileClient
       displayName="Demo Student"
@@ -48,6 +52,8 @@ function renderProfile(profile: StudentProfile | null = PROFILE) {
       profile={profile}
       documents={[]}
       activeApplications={0}
+      achievementEntries={evidence.achievements ?? 0}
+      activityEntries={evidence.activities ?? 0}
       workEntries={0}
       testScores={0}
       isMentor={false}
@@ -118,6 +124,14 @@ describe('profile section groups', () => {
     expect(screen.getAllByText('Not started')).toHaveLength(8);
   });
 
+  it('counts structured achievement evidence instead of legacy profile JSON', () => {
+    renderProfile(null, { achievements: 1 });
+
+    const achievementsCard = screen.getByRole('link', { name: /Achievements/i });
+    expect(within(achievementsCard).getByText('25%')).toBeInTheDocument();
+    expect(within(achievementsCard).getByText('Continue')).toBeInTheDocument();
+  });
+
   it('threads returnTo through section card hrefs and back navigation when present', () => {
     const returnTarget = '/ai-strategy/app-99/strategy/analysis';
     render(
@@ -128,6 +142,8 @@ describe('profile section groups', () => {
         profile={PROFILE}
         documents={[]}
         activeApplications={1}
+        achievementEntries={0}
+        activityEntries={0}
         workEntries={0}
         testScores={0}
         isMentor={false}
@@ -158,5 +174,52 @@ describe('profile section groups', () => {
       'href',
       `/profile/personal?return=${encodeURIComponent(returnTarget)}`,
     );
+  });
+
+  it('renders profile completeness and neutral explanation in the hero instead of profile strength', () => {
+    renderProfile();
+
+    expect(screen.getByText('Profile completeness')).toBeInTheDocument();
+    expect(screen.queryByText('Profile strength')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'This shows how much of your profile information is filled in. It is not an assessment of applicant quality or admission chances.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Strong profile\. Your matches and plans will be sharper for it\./i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Fill in more sections for better course matches and stronger plans\./i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('translates profile completeness and its neutral explanation to Vietnamese', () => {
+    render(
+      <LanguageProvider defaultLang="vi">
+        <ProfileClient
+          displayName="Demo Student"
+          email="demo@example.com"
+          memberSince="Jan 2026"
+          profile={PROFILE}
+          documents={[]}
+          activeApplications={0}
+          achievementEntries={0}
+          activityEntries={0}
+          workEntries={0}
+          testScores={0}
+          isMentor={false}
+          plusStatus={false}
+          plusPlan={null}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText('Độ hoàn thiện hồ sơ')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Chỉ số này cho biết mức độ thông tin hồ sơ đã được điền. Đây không phải là đánh giá chất lượng ứng viên hay cơ hội trúng tuyển.',
+      ),
+    ).toBeInTheDocument();
   });
 });

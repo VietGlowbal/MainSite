@@ -19,7 +19,13 @@ import {
   type ExtractionFailure,
 } from './extract-course';
 import { resolveUniversity } from '@/features/universities/api';
-import { updateJobStatus, recordJobFailure, type CourseParseJob } from './job-queue';
+import {
+  updateJobStatus,
+  recordJobFailure,
+  isMissingPhaseColumnError,
+  type CourseParseJob,
+  type JobTransitionGuard,
+} from './job-queue';
 
 export interface ProcessResult {
   applicationId: string;
@@ -68,15 +74,25 @@ const LINK_SOURCE: Record<string, { type: string; title: string }> = {
  * entirely, which is how a row could sit in `processing` forever with nothing
  * in the logs to say why.
  */
+type ApplicationParseStatus = 'pending' | 'processing' | 'complete' | 'timeout' | 'failed';
+type ExpectedApplicationParseStatus = ApplicationParseStatus | readonly ApplicationParseStatus[];
+
 async function updateApplication(
   applicationId: string,
   fields: Record<string, unknown>,
+  expectedParseStatus?: ExpectedApplicationParseStatus,
 ): Promise<boolean> {
   const supabase = createAdminClient();
-  const { error } = await supabase
+  let query = supabase
     .from('course_applications')
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq('id', applicationId);
+  if (Array.isArray(expectedParseStatus)) {
+    query = query.in('parse_status', [...expectedParseStatus]);
+  } else if (expectedParseStatus) {
+    query = query.eq('parse_status', expectedParseStatus);
+  }
+  const { data, error } = await query.select('id');
 
   if (error) {
     console.error('[job-processor] application update failed', {
@@ -86,7 +102,7 @@ async function updateApplication(
     });
     return false;
   }
-  return true;
+  return Array.isArray(data) && data.length > 0;
 }
 
 /**
@@ -103,14 +119,21 @@ async function settleApplication(
   applicationId: string,
   parseStatus: 'pending' | 'failed',
   message: string | null,
+  expectedParseStatus: ExpectedApplicationParseStatus = 'processing',
 ): Promise<void> {
-  await updateApplication(applicationId, {
+  const transitioned = await updateApplication(applicationId, {
     parse_status: parseStatus,
     progress_percentage: 0,
-  });
+  }, expectedParseStatus);
+
+  // The compare-and-set above is the ownership boundary. If another worker or
+  // the reaper won it, do not write a message into that newer state. Once the
+  // transition lands, guard the follow-up write by the new status; using the
+  // old `processing` guard here would always affect zero rows.
+  if (!transitioned) return;
 
   if (message !== null || parseStatus === 'pending') {
-    await updateApplication(applicationId, { parse_error: message });
+    await updateApplication(applicationId, { parse_error: message }, parseStatus);
   }
 }
 
@@ -371,21 +394,152 @@ async function linkUniversity(
   }
 }
 
+async function setJobPhaseSafe(
+  jobId: string,
+  phase: string,
+  guard: JobTransitionGuard,
+): Promise<boolean> {
+  const supabase = createAdminClient();
+
+  const heartbeatWithoutPhase = async (): Promise<boolean> => {
+    let legacyQuery = supabase
+      .from('course_parse_jobs')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', jobId)
+      .eq('status', guard.expectedStatus ?? 'processing');
+    if (guard.expectedLockedBy) legacyQuery = legacyQuery.eq('locked_by', guard.expectedLockedBy);
+    const { data: legacyRows, error: legacyError } = await legacyQuery.select('id');
+    if (legacyError) {
+      console.warn('[job-processor] legacy phase heartbeat failed', {
+        jobId,
+        phase,
+        message: legacyError.message,
+      });
+      return false;
+    }
+    return Array.isArray(legacyRows) && legacyRows.length > 0;
+  };
+
+  try {
+    let query = supabase
+      .from('course_parse_jobs')
+      .update({ phase, updated_at: new Date().toISOString() })
+      .eq('id', jobId)
+      .eq('status', guard.expectedStatus ?? 'processing');
+    if (guard.expectedLockedBy) query = query.eq('locked_by', guard.expectedLockedBy);
+    const { data, error } = await query.select('id');
+    if (error) {
+      // Phase tracking is an additive column. On an older deployment, retry a
+      // guarded heartbeat without `phase` so the worker still refreshes
+      // `updated_at` and, importantly, still proves its status/lease is alive.
+      // Only the explicit missing-phase errors qualify; network, RLS, and
+      // unknown failures must be treated as a lost lease.
+      if (isMissingPhaseColumnError(error)) {
+        return heartbeatWithoutPhase();
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn('[job-processor] phase heartbeat failed', { jobId, phase, message });
+      return false;
+    }
+    return Array.isArray(data) && data.length > 0;
+  } catch (error) {
+    // A thrown missing-column response can still be handled by the same
+    // guarded legacy heartbeat. Network/unknown failures are treated as a lost
+    // lease so this worker cannot write stale state.
+    if (isMissingPhaseColumnError(error)) {
+      try {
+        return heartbeatWithoutPhase();
+      } catch {
+        return false;
+      }
+    }
+    const message = typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : String(error);
+    console.warn('[job-processor] phase heartbeat threw', { jobId, phase, message });
+    return false;
+  }
+}
+
+class JobStateChangedError extends Error {
+  constructor() {
+    super('Parse job state changed while the worker was processing it.');
+    this.name = 'JobStateChangedError';
+  }
+}
+
+function stateChangedResult(job: CourseParseJob): ProcessResult {
+  return {
+    applicationId: job.application_id,
+    status: 'retry',
+    reason: 'Parse job was reclaimed or completed by another worker.',
+  };
+}
+
 /**
  * Process one claimed parse job.
  */
 export async function processParseJob(job: CourseParseJob): Promise<ProcessResult> {
+  const workerGuard: JobTransitionGuard = {
+    expectedStatus: 'processing',
+    ...(job.locked_by ? { expectedLockedBy: job.locked_by } : {}),
+  };
+
   try {
-    await updateApplication(job.application_id, {
+    // A retry/reaper can legitimately leave a claimed job pending while a
+    // concurrent worker finishes the application projection.  Check the
+    // terminal projection before doing any fetch or parser side effects so a
+    // newly claimed worker closes the job instead of reopening completed work.
+    try {
+      const supabase = createAdminClient();
+      const { data: currentApplication, error: applicationReadError } = await supabase
+        .from('course_applications')
+        .select('parse_status')
+        .eq('id', job.application_id)
+        .maybeSingle();
+      if (!applicationReadError && currentApplication?.parse_status === 'complete') {
+        const transitioned = await updateJobStatus(job.id, 'complete', {
+          phase: 'ready',
+        }, workerGuard);
+        return transitioned
+          ? { applicationId: job.application_id, status: 'complete' }
+          : stateChangedResult(job);
+      }
+    } catch (error) {
+      // A defensive read failure must not make the job disappear. Continue
+      // through the normal guarded worker path, which will record a retryable
+      // failure if the underlying store is unavailable.
+      console.warn('[job-processor] completion projection check failed', error);
+    }
+
+    if (!(await setJobPhaseSafe(job.id, 'fetching', workerGuard))) {
+      return stateChangedResult(job);
+    }
+    if (!(await updateApplication(job.application_id, {
       parse_status: 'processing',
       progress_percentage: 20,
-    });
+    }, ['pending', 'processing']))) {
+      throw new JobStateChangedError();
+    }
 
-    const result = await extractCourse(job.course_url);
+    const result = await extractCourse(job.course_url, async (phase) => {
+      if (phase === 'extracting') {
+        if (!(await setJobPhaseSafe(job.id, 'extracting', workerGuard))) {
+          throw new JobStateChangedError();
+        }
+        if (!(await updateApplication(job.application_id, {
+          parse_status: 'processing',
+          progress_percentage: 45,
+        }, 'processing'))) {
+          throw new JobStateChangedError();
+        }
+      }
+    });
 
     if (!result.ok) {
       const willRetry = RETRYABLE[result.reason] && job.attempts < job.max_attempts;
-      await recordJobFailure(job.id, result.reason, willRetry);
+      const transitioned = await recordJobFailure(job.id, result.reason, willRetry, workerGuard);
+      if (!transitioned) return stateChangedResult(job);
       await settleApplication(
         job.application_id,
         willRetry ? 'pending' : 'failed',
@@ -398,17 +552,41 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
       };
     }
 
+    if (!(await updateApplication(job.application_id, {
+      parse_status: 'processing',
+      progress_percentage: 70,
+    }, 'processing'))) {
+      throw new JobStateChangedError();
+    }
+    if (!(await setJobPhaseSafe(job.id, 'validating', workerGuard))) {
+      return stateChangedResult(job);
+    }
+
+    // Checklist/source writes are externally visible side effects. Re-check
+    // the lease immediately before them so a worker that lost ownership during
+    // extraction cannot leave artifacts after a reaper or retry has reclaimed
+    // the job. The guarded heartbeat also refreshes the authoritative activity
+    // timestamp for a healthy worker.
+    if (!(await setJobPhaseSafe(job.id, 'validating', workerGuard))) {
+      return stateChangedResult(job);
+    }
     const counts = await writeChecklist(job.application_id, result.data);
     await writeSources(job.application_id, result.data);
-    await updateApplication(job.application_id, applicationFields(result.data, job.course_url));
+    if (!(await updateApplication(job.application_id, applicationFields(result.data, job.course_url), 'processing'))) {
+      throw new JobStateChangedError();
+    }
     // Clears any message left by an earlier failed attempt.
-    await updateApplication(job.application_id, { parse_error: null });
+    if (!(await updateApplication(job.application_id, { parse_error: null, progress_percentage: 100 }, 'processing'))) {
+      throw new JobStateChangedError();
+    }
 
     const resolved = await linkUniversity(job.application_id, result.data, job.course_url);
 
-    await updateJobStatus(job.id, 'complete', {
+    const transitioned = await updateJobStatus(job.id, 'complete', {
       parsed_data: result.data as unknown as Record<string, unknown>,
-    });
+      phase: 'ready',
+    }, workerGuard);
+    if (!transitioned) return stateChangedResult(job);
 
     console.log('[job-processor] complete', {
       applicationId: job.application_id,
@@ -419,9 +597,11 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
 
     return { applicationId: job.application_id, status: 'complete' };
   } catch (error) {
+    if (error instanceof JobStateChangedError) return stateChangedResult(job);
     const message = error instanceof Error ? error.message : 'Unknown error';
     const willRetry = job.attempts < job.max_attempts;
-    await recordJobFailure(job.id, message, willRetry);
+    const transitioned = await recordJobFailure(job.id, message, willRetry, workerGuard);
+    if (!transitioned) return stateChangedResult(job);
     await settleApplication(
       job.application_id,
       willRetry ? 'pending' : 'failed',

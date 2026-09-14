@@ -140,22 +140,85 @@ describe('buildCvBuilderContextData', () => {
     expect(context.limitations.join(' ')).toMatch(/awaiting review/i);
     expect(context.validSourceRefs.has('course:course_name')).toBe(true);
   });
+
+  it('prefers canonical structured achievements and activities over legacy profile JSON', () => {
+    const context = buildCvBuilderContextData({
+      user: { id: 'user-1', email: 'alex@example.com', name: 'Alex Nguyen' },
+      application: {
+        id: 'app-1',
+        universityName: 'Example University',
+        programmeName: 'Computer Science',
+      },
+      university: null,
+      course: null,
+      profile: {
+        achievements: ['Legacy profile achievement string'],
+        skills: ['TypeScript'],
+      },
+      workExperiences: [],
+      achievements: [
+        {
+          id: 'ach-1',
+          title: 'National Olympiad Gold',
+          competition: 'National Science Contest',
+          organisation: 'Ministry of Education',
+          year: '2025',
+          detail: 'First prize in physics',
+        },
+      ],
+      activities: [
+        {
+          id: 'act-1',
+          category: 'volunteering',
+          title: 'Community Coding Club',
+          organisation: 'Local Center',
+          period: '2024 - 2025',
+          description: 'Taught coding to under-represented youth',
+        },
+      ],
+    });
+
+    expect(context.prefill.awards).toHaveLength(1);
+    expect(context.prefill.awards[0]).toEqual({
+      id: 'ach-1',
+      title: 'National Olympiad Gold',
+      issuer: 'Ministry of Education',
+      date: '2025',
+      description: 'First prize in physics',
+    });
+
+    expect(context.prefill.entries).toHaveLength(1);
+    expect(context.prefill.entries[0]).toMatchObject({
+      id: 'act-1',
+      category: 'volunteering',
+      title: 'Community Coding Club',
+      organization: 'Local Center',
+      startDate: '2024 - 2025',
+    });
+    expect(context.prefill.entries[0].contributions[0].text).toBe(
+      'Taught coding to under-represented youth',
+    );
+  });
 });
 
 describe('loadCvBuilderContext', () => {
-  it('starts the narrow application, profile and work reads together without loading a workspace', async () => {
+  it('starts the narrow application, profile, work, achievement, and activity reads together', async () => {
     const started: string[] = [];
+    const selects: Record<string, string[]> = {};
     let resolveApplication!: (value: unknown) => void;
     const applicationResult = new Promise((resolve) => {
       resolveApplication = resolve;
     });
 
-    const query = (result: Promise<unknown> | unknown) => {
+    const query = (table: string, result: Promise<unknown> | unknown) => {
       const resolved = Promise.resolve(result).then((value) => value);
       const builder: Record<string, unknown> = {};
       const chain = () => builder;
       Object.assign(builder, {
-        select: chain,
+        select: vi.fn((columns: string) => {
+          selects[table] = (selects[table] ?? []).concat(columns);
+          return builder;
+        }),
         eq: chain,
         ilike: chain,
         order: chain,
@@ -168,9 +231,11 @@ describe('loadCvBuilderContext', () => {
     const supabase = {
       from: vi.fn((table: string) => {
         started.push(table);
-        if (table === 'course_applications') return query(applicationResult);
-        if (table === 'work_experiences') return query({ data: [], error: null });
-        return query({ data: null, error: null });
+        if (table === 'course_applications') return query(table, applicationResult);
+        if (table === 'work_experiences') return query(table, { data: [], error: null });
+        if (table === 'student_achievements') return query(table, { data: [], error: null });
+        if (table === 'student_activities') return query(table, { data: [], error: null });
+        return query(table, { data: null, error: null });
       }),
     };
     mocks.createClient.mockResolvedValue(supabase);
@@ -184,7 +249,16 @@ describe('loadCvBuilderContext', () => {
     });
 
     await vi.waitFor(() => expect(started).toContain('course_applications'));
-    expect(started).toEqual(expect.arrayContaining(['student_profiles', 'work_experiences']));
+    expect(started).toEqual(
+      expect.arrayContaining([
+        'student_profiles',
+        'work_experiences',
+        'student_achievements',
+        'student_activities',
+      ]),
+    );
+    const profileSelect = selects['student_profiles']?.join(' ') ?? '';
+    expect(profileSelect).not.toContain('achievements');
     expect(mocks.fetchApplicationWorkspace).not.toHaveBeenCalled();
 
     resolveApplication({ data: null, error: null });

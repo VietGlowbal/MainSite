@@ -27,6 +27,13 @@ Fixes:
 3. `renderScalarValue`: Added `className="max-w-full truncate"` to `<Badge>` and `overflow-hidden max-w-full break-words` to `<dd>` and tile containers to guarantee scalar badges never overflow their parent container.
 Measured: focused review tests (9: 6 client + 3 API), `npm run typecheck`, scoped ESLint, and `git diff --check` pass.
 
+Working tree 2026-09-14 (feedback-hardening remediation, review-ready):
+- Branch reconciliation confirmed `feat/feedback-product-hardening` is based on `origin/main` with no feature overlap; after the remediation commits the branch is 31 commits ahead and 0 behind. Unrelated dirty `services/data-ingestion/*` and environment files remain preserved and are outside the feature diff.
+- i18n hardening: `node scripts/check-i18n.mjs --all` reports 0 missing static keys, 0 missing no-auto keys, and 0 placeholder mismatches after adding the required EN/VI dictionary entries. Strict Final Check type errors were narrowed with real guards and typed fixtures; no unsafe casts were added.
+- Course parsing now uses activity-timestamp CAS guards for stale reaping, narrow missing-`phase` compatibility fallback, terminal application/job reconciliation, and a final worker lease check before checklist/source side effects. The list UI reads `/parse-status` for stale/retry state instead of inferring lease age from `course_applications.updated_at`; the endpoint exposes `active` so a lagging application projection cannot offer Retry while a worker lease is healthy.
+- Required migration order (do not reorder): baseline schemas and, only if needed, the baseline `sql/supabase-claim-parse-jobs.sql`; `sql/supabase-pg-phd-onboarding.sql`; `sql/supabase-job-claim-resilience.sql`; `sql/supabase-course-parse-reliability.sql`; then application deployment. The baseline claim script must run only before resilience; never rerun it after resilience/reliability, because that would restore `started_at`-only stale semantics. No live migration was executed.
+- Measured remediation gates: `check-i18n.mjs --all` passed with 0 missing keys; strict and normal typechecks passed; focused onboarding (311), course lifecycle (76), matcher (58), canonical evidence (66), migration-order (1), and parser-status/list (10) tests passed; `npm run test:ci` passed 409/409 files (3,860 passed, 2 todo); `npm run lint` passed with 5 pre-existing warnings; `npm run build` passed (150 pages); `git diff --check` passed. The exact `npm test -- --maxWorkers=1` run had two unrelated candidate-confirmation timeouts/assertion failures under repository-wide Windows load, while that file passes alone (17/17) and the CI-style run passes. `npm run verify:pr` remains environment-blocked because this workstation exposes Node 22.15.0 and the repository requires Node 24.19.0 (`.node-version`).
+
 Working tree 2026-09-13 (404 page on site chrome): `src/app/not-found.tsx` rebuilt on `SiteNavigation` (light) +
 shared `Footer` + design-system tokens (`Button` primary/secondary lg, `bg-brand-subtle` featured icon, display-sm
 heading); the legacy `.glow-card`/`.glow-button-*` classes are gone. A 404 has no pathname of its own, so it cannot use
@@ -92,6 +99,63 @@ Polished visual styling across `/admin/ai-report-review` based on admin user rev
    even when companion metadata keys (`schemaVersion`, `generatedAt`) exist. At `depth === 0`, top-level scalars
    and narratives are grouped into a cohesive "Report Overview" card rather than isolated single-property cards.
 Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+Working tree 2026-09-13 (feedback hardening):
+Final self-test for feedback-hardening handoff (2026-09-13):
+- Combined targeted suites for the four remaining tasks: 20 test files / 405 tests passed.
+- Full serial `npm test -- --maxWorkers=1`: 406/407 files passed, 3,846 passed, 2 todo; the sole failure is the known Windows `check-i18n.integration.test.ts` environment/checker failure. The four route timeouts seen under parallel load pass when run alone.
+- `npm run typecheck -- --pretty false` passed; `npm run lint` passed with 0 errors and the same five pre-existing warnings; `npm run build` passed (150 static pages generated).
+- `git diff --check` passed. No live database migration was executed; the two additive SQL files still require deployment review.
+
+Working tree 2026-09-13 (feedback hardening - Task 4 course-reading async reliability):
+
+- Course-parser async reliability & watchdog architecture:
+  - Additive watchdog reaper (`reapStaleParseJobs` in `src/lib/course-parser/job-queue.ts`) integrated into `/api/cron/process-parse-jobs`: safely identifies processing leases inactive for >10 minutes using the latest `updated_at` heartbeat (falling back to legacy `started_at`), reclaims recoverable jobs (`attempts < max_attempts`) to `pending` with exponential backoff and sets application `parse_status: 'pending'`, and marks exhausted or deadlocked jobs as `failed` with actionable user-facing messages. Uses status-guarded updates (`.eq('status', 'processing').select()`) to eliminate race conditions with concurrent completions, clears failed leases, and defensively reconciles stranded application records.
+  - Granular parse phases (`src/lib/course-parser/parse-phases.ts`): provides coherent execution phases `queued -> fetching -> extracting -> validating -> ready` (and `timeout` / `failed`), while safely mapping to/from legacy `pending / processing / complete / timeout / failed` strings. Progresses through `fetching` and `extracting` via `extractCourse` phase hooks.
+  - Enhanced parse status API (`/api/applications/[id]/parse-status`): returns `phase`, `lastUpdatedAt`, `isStale`, `canRetry`, `error`, `errorType` ('retryable' vs 'terminal'), while preserving legacy `parseStatus` and `progressPercentage` contracts for existing clients.
+  - Idempotent retry API (`/api/applications/[id]/retry-parse`): preserves completed output (idempotent 200 without overwriting data), prevents duplicate active jobs (idempotent 200 on pending and non-stale processing checking both job and application state), allows retries on failed/timeout/stale (>10 min) work, uses guarded job/application updates (including observed `updated_at`) and explicit zero-row conflict handling, and enforces a rate limit window (max 3 retries/hour) tracked durably in `parsed_data.manual_retries`.
+  - Worker transitions (`job-queue.ts` / `job-processor.ts`) now use compare-and-set status/ownership guards, zero-row detection, and a guarded `updated_at` heartbeat fallback when the additive `phase` column is not yet deployed; failure settlement writes `parse_error` only after its status transition lands.
+  - UI & polling responsiveness (`use-parse-refresh.ts` and `my-application-section.tsx`): detects stale or timeout phases and triggers refresh immediately; UI replaces indefinite "AI is reading..." with actionable "Taking longer than usual... Try again" (using pure `useEffect` render timing) and error messaging with retry actions. Polling remains bounded at 12 minutes so the 10-minute reaper horizon is observable.
+  - SQL safety: created additive migration `sql/supabase-course-parse-reliability.sql` adding nullable `phase` column (no default, preventing invalid queued status backfilling on active jobs), a partial watchdog index, and a replacement claim RPC using the same `COALESCE(updated_at, started_at)` activity clock and 10-minute threshold. No destructive operations or live migration assumptions.
+- Measured:
+  - Course-parser/apply targeted coverage is included in the 20-file / 405-test run above; queue race, retry zero-row, stale heartbeat, and polling-horizon regressions pass.
+  - Full TypeScript typecheck (`npm run typecheck`) passed cleanly (0 errors).
+  - Scoped ESLint passed with 0 errors / 0 warnings.
+  - `git diff --check` passed cleanly.
+
+Working tree 2026-09-13 (feedback hardening - Task 2 postgraduate & PhD onboarding branching):
+
+- Preserved existing 8-step wizard structure with branching governed by `answers.study_level`:
+  - Undergraduate (UG): retains curriculum multi-select, grading scales, grades, graduation year, English tests, and UG standardized tests (SAT/ACT/AP/IB/A-Level/GCSE/None yet).
+  - Postgraduate (PG): collects bachelor/current degree, institution, field of study, graduate grading scales (4.0, 10-point, 100%, UK Honours, Other), GPA/classification, completion year; Step 7 renders English proficiency and graduate admission tests (GRE, GMAT, None yet), strictly hiding UG standardized tests (SAT/ACT/AP/IGCSE).
+  - PhD: collects bachelor degree & institution (mandatory), master's degree & institution, current institution, research experience, optional publications & research outputs textarea, intended research direction, and supervisor/research fit context; Step 7 renders English proficiency only, strictly hiding all standardized test selectors.
+- Additive database & persistence contracts:
+  - Created idempotent migration `sql/supabase-pg-phd-onboarding.sql` adding nullable `postgraduate_academic JSONB` and `phd_academic JSONB` to `student_profiles`.
+  - Level-specific saves strictly omit unrelated fields (no nulling or overwriting of `curriculum`, `curriculum_grades`, or opposite level JSONB payloads), preserving existing user data across revisions.
+  - Graceful fallback in `saveProfile`: if additive JSONB columns are absent on an unmigrated database, automatically retries omitting those columns while persisting canonical projection columns (`current_institution`, `current_qualification`, `graduation_year`, `gpa_value`, `academic_background`, `goals`).
+  - Standardized scores write to `standardized_test_scores` (GRE/GMAT for PG), and English scores write to `english_test_scores`.
+  - Coercion helpers `readPgAcademicDraft`, `readPhdAcademicDraft`, `pgAcademicFromProfile`, and `phdAcademicFromProfile` defensively hydrate structured JSONB as well as canonical fallback columns.
+- Measured:
+  - 291 unit tests in `src/features/onboarding/` passed (including 14 in `pg-phd-branching.test.ts` and 238 in `academic-grading.test.ts`).
+  - 11 component tests in `src/components/__tests__/onboarding-wizard-branching.test.tsx` passed (UG/PG/PhD control visibility, persistence payload isolation, cross-level draft clearing, and schema-error fallback restrictions).
+  - 2 component tests in `src/components/__tests__/onboarding-wizard-completion.test.tsx` passed.
+  - `npm run typecheck` passed cleanly (0 errors).
+  - Scoped ESLint passed with 0 errors / 0 warnings.
+  - `git diff --check` passed cleanly.
+
+Working tree 2026-09-13 (feedback hardening - Task 1 canonical student data):
+
+- Canonical student evidence: eliminated active legacy `student_profiles.achievements` reads across scholarship search (`/api/scholarships/search`), CV builder context (`src/lib/ai/cv-builder-context.ts`), and feature-gated VinUni statement analysis (`/api/ai/analyze-statement-aacc`), replacing them with structured queries to canonical `student_achievements` and `student_activities`.
+- Pure in-memory profile-only consumers (`src/lib/admission-fit.ts` and `src/lib/ai/match-insights.ts`) in the matcher UI remain documented/deferred without inventing artificial sync. Confirmed candidate snapshots remain immutable.
+- Deprecated legacy `StudentProfile.achievements` in `src/lib/types.ts` while retaining `nationality` and backward compatibility for historical rows without destructive schema migrations.
+- Final Check: an action-first summary now presents blockers, unreviewed items, critical/conflict findings, and one next action before inventory. Deterministic readiness remains secondary and retains its explicit non-admission disclaimer; no score, persistence, schema, or AI logic changed. The Last checked timestamp follows the selected language (`en-GB`/`vi-VN`).
+- CV start: the primary route is labelled Create my CV, with known profile/application information described as automatic prefill; the secondary route is Already have a CV? / Upload for review. Existing routes and template selection are retained.
+
+Measured: focused Vitest passed for scholarship search (2 tests), CV builder context (6 tests), VinUni AACC route (11 tests), profile/statement evidence (23 tests), CV start (2 tests), and Final Check (7 tests); `npm run typecheck` passed cleanly (0 errors); scoped ESLint passed with 0 errors; `git diff --check` passed.
+
+Working tree 2026-09-13 (CV start flow newcomer labels & copy update):
+In `CvStartFlow.tsx`, updated builder entry card title and action to "Create my CV" with newcomer copy explaining known profile/application info usage. Updated upload card title to "Already have a CV?" and action to "Upload for review" while retaining evidence-based feedback copy. Template selection and route destinations remain unchanged.
+Measured: `CvStartFlow.test.tsx` (2 tests) passed; scoped ESLint passed with 0 errors; `git diff --check` passed.
+
 
 Working tree 2026-09-13 (Admin AI report review nested grid collision fix & achievement/reflection separation):
 Resolved text overlap bug in `StructuredDataView` where scalars inside nested item cards (width ~300px)

@@ -4,26 +4,36 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { notifyNavigationOnboardingCompleted } from '@/components/navigation-session';
 import { SiteNavigation } from '@/components/site-navigation';
-import { Button, Input, MultiSelect, Radio } from '@/shared/ui';
+import { Button, Input, MultiSelect, Radio, Textarea } from '@/shared/ui';
 import type { MultiSelectOption } from '@/shared/ui';
 import {
   EMPTY_ACADEMIC,
+  EMPTY_PG_ACADEMIC,
+  EMPTY_PHD_ACADEMIC,
   EMPTY_TESTS,
   ENGLISH_TEST_FORMATS,
+  PG_GRADE_FORMATS,
   STANDARDIZED_TEST_FORMATS,
   academicComplete,
   collectCurriculumGrades,
   defaultScaleFor,
   gradeFormatFor,
   keepScores,
+  pgAcademicComplete,
+  pgAcademicFromProfile,
+  phdAcademicComplete,
+  phdAcademicFromProfile,
   readAcademicDraft,
+  readPgAcademicDraft,
+  readPhdAcademicDraft,
   readTestsDraft,
+  resetInactiveLevelDrafts,
   scalesFor,
   testScoresValid,
   toCurriculumGrades,
   toCurriculumList,
 } from '@/features/onboarding/domain';
-import type { Academic, GradeFormat, Tests } from '@/features/onboarding/domain';
+import type { Academic, GradeFormat, PgAcademic, PhdAcademic, Tests } from '@/features/onboarding/domain';
 // Not from the '@/shared/ui' barrel — see the note on the re-export there: the
 // hook is used in ~40 places, and reaching through the barrel for it drags the
 // whole design system into each one's graph and into the coverage denominator.
@@ -117,6 +127,24 @@ const standardizedTestOptions: MultiSelectOption[] = [
   { value: 'None yet', label: 'None yet' },
 ];
 
+/** Graduate standardized test options for Postgraduate applicants (GRE / GMAT). */
+const pgStandardizedTestOptions: MultiSelectOption[] = [
+  { value: 'GRE', label: 'GRE' },
+  { value: 'GMAT', label: 'GMAT' },
+  { value: 'None yet', label: 'None yet' },
+];
+
+const UG_STANDARDIZED_TESTS = new Set(standardizedTestOptions.map(({ value }) => value));
+const PG_STANDARDIZED_TESTS = new Set(pgStandardizedTestOptions.map(({ value }) => value));
+
+const pgScaleOptions = [
+  '4.0 scale',
+  '10-point scale',
+  '100% Percentage',
+  'UK Honours classification',
+  'Other / Letter grade',
+];
+
 /** "None yet" means the student has no result, so it excludes every sibling. */
 const NONE_YET = 'None yet';
 
@@ -134,6 +162,8 @@ type Answers = {
   budget: string;
   campus: string;
   academic: Academic;
+  pg_academic: PgAcademic;
+  phd_academic: PhdAcademic;
   tests: Tests;
   support: string;
 };
@@ -145,6 +175,8 @@ const EMPTY_ANSWERS: Answers = {
   budget: '',
   campus: '',
   academic: EMPTY_ACADEMIC,
+  pg_academic: EMPTY_PG_ACADEMIC,
+  phd_academic: EMPTY_PHD_ACADEMIC,
   tests: EMPTY_TESTS,
   support: '',
 };
@@ -158,6 +190,29 @@ const EMPTY_ANSWERS: Answers = {
  * an un-migrated project saving rather than erroring.
  */
 const GPA_COLUMN_MAX = 99.99;
+
+/**
+ * The PG/PhD JSONB columns are additive and may not exist in an older
+ * deployment. Only the database's explicit missing-column signals qualify for
+ * the compatibility fallback; permissions, constraints, network failures, and
+ * unknown errors must remain visible to the caller.
+ */
+function isExpectedAcademicSchemaError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown };
+  const code = String(candidate.code ?? '').toUpperCase();
+  const context = [candidate.message, candidate.details, candidate.hint]
+    .filter((value) => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  const mentionsAcademicColumn =
+    context.includes('postgraduate_academic') || context.includes('phd_academic');
+  // 42703 is also used for arbitrary missing columns. Require the server's
+  // diagnostic to name one of the additive fields before hiding the failure.
+  if (code === '42703') return mentionsAcademicColumn;
+  if (code !== 'PGRST204') return false;
+  return mentionsAcademicColumn;
+}
 
 /** The one message the format layer does not own: an empty required box. */
 const GRADE_REQUIRED = 'Enter your grade so we can match you accurately.';
@@ -240,23 +295,40 @@ function readDraft(): Record<string, unknown> | null {
 function mergeDraft(base: Answers, draft: Record<string, unknown> | null): Answers {
   if (draft === null) return base;
   const merged = { ...base };
-  for (const k of Object.keys(EMPTY_ANSWERS) as StepKey[]) {
-    // The structured steps are objects, so "empty" is not falsiness —
-    // a draft wins whenever the profile did not supply the step.
-    if (k === 'academic') {
-      const academic = readAcademicDraft(draft[k]);
-      if (academic && !isAnswered(merged, k)) merged[k] = academic;
-      continue;
-    }
-    if (k === 'tests') {
-      const tests = readTestsDraft(draft[k]);
-      if (tests && !isAnswered(merged, k)) merged[k] = tests;
-      continue;
-    }
+  for (const k of ['study_level', 'subjects', 'countries', 'budget', 'campus', 'support'] as const) {
     const value = draft[k];
     if (!merged[k] && typeof value === 'string' && value !== '') merged[k] = value;
   }
-  return merged;
+  const academic = readAcademicDraft(draft['academic']);
+  if (academic && !academicComplete(merged.academic)) merged.academic = academic;
+
+  // Only hydrate the branch selected by this draft. Older versions kept both
+  // objects in localStorage, so importing an inactive branch would make it
+  // unexpectedly active after a level switch.
+  const pg = readPgAcademicDraft(draft['pg_academic']);
+  if (merged.study_level === 'postgraduate' && pg && !pgAcademicComplete(merged.pg_academic)) {
+    merged.pg_academic = pg;
+  }
+
+  const phd = readPhdAcademicDraft(draft['phd_academic']);
+  if (merged.study_level === 'phd' && phd && !phdAcademicComplete(merged.phd_academic)) {
+    merged.phd_academic = phd;
+  }
+
+  const tests = readTestsDraft(draft['tests']);
+  if (tests && merged.tests.english.length === 0 && merged.tests.standardized.length === 0) {
+    merged.tests = tests;
+  }
+  const activeDrafts = resetInactiveLevelDrafts(
+    merged.study_level,
+    merged.pg_academic,
+    merged.phd_academic,
+  );
+  return {
+    ...merged,
+    pg_academic: activeDrafts.pgAcademic,
+    phd_academic: activeDrafts.phdAcademic,
+  };
 }
 
 /** The two structured steps; everything else is a plain string. */
@@ -266,14 +338,33 @@ function isStructured(key: StepKey): key is 'academic' | 'tests' {
 
 /** Has this step been answered enough to move on? */
 function isAnswered(answers: Answers, key: StepKey): boolean {
-  if (key === 'academic') return academicComplete(answers.academic);
+  if (key === 'academic') {
+    if (answers.study_level === 'postgraduate') {
+      return pgAcademicComplete(answers.pg_academic);
+    }
+    if (answers.study_level === 'phd') {
+      return phdAcademicComplete(answers.phd_academic);
+    }
+    return academicComplete(answers.academic);
+  }
   if (key === 'tests') {
-    return (
+    const englishValid =
       answers.tests.english.length > 0 &&
-      answers.tests.standardized.length > 0 &&
-      testScoresValid(answers.tests.english, answers.tests.englishScores, ENGLISH_TEST_FORMATS) &&
+      testScoresValid(answers.tests.english, answers.tests.englishScores, ENGLISH_TEST_FORMATS);
+    if (answers.study_level === 'phd') {
+      // PhD collects relevant language proficiency only
+      return englishValid;
+    }
+    const allowedStandardized = answers.study_level === 'postgraduate'
+      ? PG_STANDARDIZED_TESTS
+      : UG_STANDARDIZED_TESTS;
+    const selectedStandardized = answers.tests.standardized.filter((test) => allowedStandardized.has(test));
+    return (
+      englishValid &&
+      selectedStandardized.length > 0 &&
+      selectedStandardized.length === answers.tests.standardized.length &&
       testScoresValid(
-        answers.tests.standardized,
+        selectedStandardized,
         answers.tests.standardizedScores,
         STANDARDIZED_TEST_FORMATS,
       )
@@ -322,6 +413,10 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
    * than trust the schema, coerce whatever arrives into the list the UI is
    * typed for. Delete this once every environment is known to be converted.
    */
+  const pgAcademic = pgAcademicFromProfile(initialProfile as unknown as Record<string, unknown>);
+  const phdAcademic = phdAcademicFromProfile(initialProfile as unknown as Record<string, unknown>);
+  const activeDrafts = resetInactiveLevelDrafts(firstStudyLevel, pgAcademic, phdAcademic);
+
   return {
     study_level: firstStudyLevel,
     subjects: firstSubject,
@@ -329,6 +424,8 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
     budget: initialProfile.budget_range || '',
     campus: firstCampus,
     academic: buildInitialAcademic(initialProfile),
+    pg_academic: activeDrafts.pgAcademic,
+    phd_academic: activeDrafts.phdAcademic,
     // Test results live in their own tables, which this component is not given.
     // A returning student re-enters them; the upserts below are keyed on
     // (user_id, test_type) so nothing duplicates.
@@ -373,7 +470,15 @@ function buildInitialAcademic(profile: StudentProfile): Academic {
     if (scales[name] === undefined) scales[name] = defaultScaleFor(name);
   }
 
-  return { curriculum, scales, grades };
+  const graduation_year =
+    profile.graduation_year != null ? String(profile.graduation_year) : undefined;
+
+  return {
+    curriculum,
+    scales,
+    grades,
+    ...(graduation_year ? { graduation_year } : {}),
+  };
 }
 
 function mapRegionToCountries(region: string): string[] {
@@ -559,11 +664,46 @@ export function OnboardingWizard({
   }, [answers, draftRead]);
 
   function update(key: Exclude<StepKey, 'academic' | 'tests'>, value: string) {
-    setAnswers((p) => ({ ...p, [key]: value }));
+    if (key !== 'study_level') {
+      setAnswers((p) => ({ ...p, [key]: value }));
+      return;
+    }
+
+    // A draft can contain tests selected under a different study level. Keep
+    // the answers in memory, but never carry hidden UG tests into PG (or
+    // graduate tests into UG/PhD), where they must not be rendered or saved.
+    const allowedStandardized = value === 'postgraduate'
+      ? PG_STANDARDIZED_TESTS
+      : value === 'phd'
+        ? new Set<string>()
+        : UG_STANDARDIZED_TESTS;
+    setAnswers((p) => {
+      const standardized = p.tests.standardized.filter((test) => allowedStandardized.has(test));
+      const activeDrafts = resetInactiveLevelDrafts(value, p.pg_academic, p.phd_academic);
+      return {
+        ...p,
+        study_level: value,
+        pg_academic: activeDrafts.pgAcademic,
+        phd_academic: activeDrafts.phdAcademic,
+        tests: {
+          ...p.tests,
+          standardized,
+          standardizedScores: keepScores(standardized, p.tests.standardizedScores),
+        },
+      };
+    });
   }
 
   function updateAcademic(patch: Partial<Academic>) {
     setAnswers((p) => ({ ...p, academic: { ...p.academic, ...patch } }));
+  }
+
+  function updatePgAcademic(patch: Partial<PgAcademic>) {
+    setAnswers((p) => ({ ...p, pg_academic: { ...p.pg_academic, ...patch } }));
+  }
+
+  function updatePhdAcademic(patch: Partial<PhdAcademic>) {
+    setAnswers((p) => ({ ...p, phd_academic: { ...p.phd_academic, ...patch } }));
   }
 
   /**
@@ -652,73 +792,133 @@ export function OnboardingWizard({
     }
 
     const profile = answersToProfile(answers);
-    const grades = collectCurriculumGrades(answers.academic);
-    /*
-     * `gpa_scale` / `gpa_value` keep holding ONE comparable number, because that
-     * is what a check against `universities.gpa_range` reads. The first ticked
-     * curriculum whose scale produces a number wins — an IB student who also
-     * ticked AP contributes the AP GPA rather than "38", which would compare as
-     * a 38.0 GPA. Letter-only students contribute no number at all, and that is
-     * correct: there isn't one.
-     */
-    const comparable = grades.find(
-      (row) => row.value !== null && row.value <= GPA_COLUMN_MAX,
-    );
-    const saveProfile = (completedAt: string) => supabase.from('student_profiles').upsert(
-      {
-        user_id: userData.user.id,
-        study_level: profile.study_level,
-        target_subjects: profile.target_subjects,
-        preferred_countries: profile.preferred_countries,
-        budget_range: profile.budget_range,
-        // No `academic_background`, `goals`, or `career_interests` key. This
-        // questionnaire does not collect those richer profile fields, so
-        // omitting them preserves anything the student already saved there.
-        campus_preferences: profile.campus_preferences,
-        support_needs: profile.support_needs,
-        /*
-         * Câu 6.
-         *
-         * `curriculum` keeps EVERY selection, in a TEXT[] column: the frame
-         * draws checkboxes and a student can genuinely sit two curricula at
-         * once (Vietnamese National plus AP is common). Saving only the first
-         * would drop a tick the student watched themselves make.
-         *
-         * `curriculum_grades` is the grade for each of those ticks, with the
-         * scale it was measured on. It is the only place a two-curriculum
-         * student's second grade — or an IB total, which is not a GPA — can land
-         * without being relabelled as something else.
-         */
-        curriculum: answers.academic.curriculum.length > 0 ? answers.academic.curriculum : null,
-        curriculum_grades: grades.length > 0 ? grades : null,
-        gpa_scale: comparable?.scale ?? null,
-        gpa_value: comparable?.value ?? null,
-        onboarding_completed: true,
-        onboarding_completed_at: completedAt,
-        updated_at: completedAt,
-      },
-      { onConflict: 'user_id' },
-    );
-    /*
-     * Câu 7 writes to two score tables rather than to student_profiles.
-     * Completion is held back until these writes succeed. The navigation uses
-     * that flag to retire the one-time CTA, so marking it early would hide the
-     * recovery path while some answers were still missing.
-     *
-     * "None yet" means the student has no result, so nothing is written.
-     */
+    const completedAt = new Date().toISOString();
     const userId = userData.user.id;
-    const now = new Date().toISOString();
+    const now = completedAt;
 
-    // Each test carries ITS OWN score. See the note on `Tests`: one shared
-    // number written across several test types is invented data.
+    const profilePayload: Record<string, unknown> = {
+      user_id: userId,
+      study_level: profile.study_level,
+      target_subjects: profile.target_subjects,
+      preferred_countries: profile.preferred_countries,
+      budget_range: profile.budget_range,
+      campus_preferences: profile.campus_preferences,
+      support_needs: profile.support_needs,
+      onboarding_completed: true,
+      onboarding_completed_at: completedAt,
+      updated_at: completedAt,
+    };
+
+    if (answers.study_level === 'postgraduate') {
+      const gpaNum = !isNaN(parseFloat(answers.pg_academic.gpa))
+        ? parseFloat(answers.pg_academic.gpa)
+        : null;
+      profilePayload.postgraduate_academic = {
+        degree: answers.pg_academic.degree.trim(),
+        institution: answers.pg_academic.institution.trim(),
+        field_of_study: answers.pg_academic.field_of_study.trim(),
+        gpa_scale: answers.pg_academic.gpa_scale,
+        gpa: answers.pg_academic.gpa.trim(),
+        classification: answers.pg_academic.classification?.trim() || null,
+        completion_year: answers.pg_academic.completion_year.trim() || null,
+      };
+      if (answers.pg_academic.institution.trim()) {
+        profilePayload.current_institution = answers.pg_academic.institution.trim();
+      }
+      if (answers.pg_academic.degree.trim()) {
+        profilePayload.current_qualification = answers.pg_academic.degree.trim();
+      }
+      if (answers.pg_academic.completion_year.trim()) {
+        const yr = parseInt(answers.pg_academic.completion_year.trim(), 10);
+        if (!isNaN(yr)) profilePayload.graduation_year = yr;
+      }
+      if (answers.pg_academic.gpa_scale) {
+        profilePayload.gpa_scale = answers.pg_academic.gpa_scale;
+      }
+      if (gpaNum != null && gpaNum <= GPA_COLUMN_MAX) {
+        profilePayload.gpa_value = gpaNum;
+      }
+    } else if (answers.study_level === 'phd') {
+      profilePayload.phd_academic = {
+        bachelor_degree: answers.phd_academic.bachelor_degree.trim() || null,
+        master_degree: answers.phd_academic.master_degree.trim() || null,
+        institution: answers.phd_academic.institution.trim() || null,
+        research_experience: answers.phd_academic.research_experience.trim(),
+        publications: answers.phd_academic.publications?.trim() || null,
+        research_direction: answers.phd_academic.research_direction.trim(),
+        supervisor_fit: answers.phd_academic.supervisor_fit.trim(),
+      };
+      if (answers.phd_academic.institution.trim()) {
+        profilePayload.current_institution = answers.phd_academic.institution.trim();
+      }
+      const qual =
+        answers.phd_academic.master_degree.trim() ||
+        answers.phd_academic.bachelor_degree.trim();
+      if (qual) {
+        profilePayload.current_qualification = qual;
+      }
+      if (
+        answers.phd_academic.research_experience.trim() ||
+        answers.phd_academic.publications?.trim()
+      ) {
+        profilePayload.academic_background = [
+          answers.phd_academic.research_experience.trim(),
+          answers.phd_academic.publications?.trim(),
+        ]
+          .filter(Boolean)
+          .join('\n\n');
+      }
+      // Research direction belongs to the dedicated PhD academic structure;
+      // never overwrite the student's generic profile goals from this branch.
+    } else {
+      // Undergraduate
+      const grades = collectCurriculumGrades(answers.academic);
+      const comparable = grades.find(
+        (row) => row.value !== null && row.value <= GPA_COLUMN_MAX,
+      );
+      if (answers.academic.curriculum.length > 0) {
+        profilePayload.curriculum = answers.academic.curriculum;
+      }
+      if (grades.length > 0) {
+        profilePayload.curriculum_grades = grades;
+      }
+      if (comparable?.scale) {
+        profilePayload.gpa_scale = comparable.scale;
+      }
+      if (comparable?.value != null) {
+        profilePayload.gpa_value = comparable.value;
+      }
+      if (answers.academic.graduation_year) {
+        const yr = parseInt(answers.academic.graduation_year, 10);
+        if (!isNaN(yr)) profilePayload.graduation_year = yr;
+      }
+    }
+
+    const saveProfile = async () => {
+      const res = await supabase
+        .from('student_profiles')
+        .upsert(profilePayload, { onConflict: 'user_id' });
+      if (
+        isExpectedAcademicSchemaError(res.error) &&
+        (profilePayload.postgraduate_academic !== undefined ||
+          profilePayload.phd_academic !== undefined)
+      ) {
+        const fallbackPayload = { ...profilePayload };
+        delete fallbackPayload.postgraduate_academic;
+        delete fallbackPayload.phd_academic;
+        return supabase
+          .from('student_profiles')
+          .upsert(fallbackPayload, { onConflict: 'user_id' });
+      }
+      return res;
+    };
+
+    // Each test carries ITS OWN score.
     const englishRows = answers.tests.english
       .filter((testType) => testType !== NONE_YET)
       .map((testType) => ({
         user_id: userId,
         test_type: testType,
-        // The score is checked on its own scale before it gets here, so this is
-        // the number the student typed — not a `parseFloat` best guess.
         overall_score:
           ENGLISH_TEST_FORMATS[testType]?.toNumber(
             answers.tests.englishScores[testType] ?? '',
@@ -726,14 +926,19 @@ export function OnboardingWizard({
         updated_at: now,
       }));
 
-    const standardizedRows = answers.tests.standardized
-      .filter((testType) => testType !== NONE_YET)
-      .map((testType) => ({
-        user_id: userId,
-        test_type: testType,
-        score: (answers.tests.standardizedScores[testType] ?? '').trim() || null,
-        updated_at: now,
-      }));
+    const allowedStandardized = answers.study_level === 'postgraduate'
+      ? PG_STANDARDIZED_TESTS
+      : UG_STANDARDIZED_TESTS;
+    const standardizedRows = answers.study_level === 'phd'
+      ? []
+      : answers.tests.standardized
+          .filter((testType) => testType !== NONE_YET && allowedStandardized.has(testType))
+          .map((testType) => ({
+            user_id: userId,
+            test_type: testType,
+            score: (answers.tests.standardizedScores[testType] ?? '').trim() || null,
+            updated_at: now,
+          }));
 
     const writes = [];
     if (englishRows.length > 0) {
@@ -756,11 +961,24 @@ export function OnboardingWizard({
       }
     }
 
-    // This is the commit point for the first-time experience. Score rows have
-    // succeeded, and the profile answers now land together with the completion
-    // flag, so navigation can safely replace onboarding with Strategy Master.
-    const completedAt = new Date().toISOString();
-    const { error: completionError } = await saveProfile(completedAt);
+    try {
+      await supabase.from('student_onboarding_responses').upsert(
+        {
+          user_id: userId,
+          flow_id: 'onboarding_wizard',
+          flow_version: 2,
+          answers: answers as unknown as Record<string, unknown>,
+          completed_steps: STEPS.length,
+          status: 'completed',
+          updated_at: completedAt,
+        },
+        { onConflict: 'user_id,flow_id,flow_version' },
+      );
+    } catch {
+      // Gracefully continue if table does not exist or is not available
+    }
+
+    const { error: completionError } = await saveProfile();
 
     if (completionError) {
       setMessage(completionError.message);
@@ -783,6 +1001,29 @@ export function OnboardingWizard({
   // The single-choice steps compare against this; the two structured steps
   // never reach a `Choice`, so an empty string is the safe value for them.
   const currentAnswer = isStructured(current.key) ? '' : answers[current.key];
+
+  let currentTitle = current.title;
+  let currentBody = current.body;
+  if (current.key === 'academic') {
+    if (answers.study_level === 'postgraduate') {
+      currentTitle = 'Academic Information';
+      currentBody =
+        'Tell us about your bachelor or current degree, institution, and academic results.';
+    } else if (answers.study_level === 'phd') {
+      currentTitle = 'Academic & Research Information';
+      currentBody =
+        'Tell us about your degree history, research experience, and intended direction.';
+    }
+  } else if (current.key === 'tests') {
+    if (answers.study_level === 'postgraduate') {
+      currentTitle = 'Academic Information';
+      currentBody =
+        'Add your English proficiency and any graduate test scores (GRE/GMAT) you have.';
+    } else if (answers.study_level === 'phd') {
+      currentTitle = 'Language Proficiency';
+      currentBody = 'Add any English language test results you already have.';
+    }
+  }
 
   /**
    * The last step the progress bar will jump to.
@@ -888,8 +1129,8 @@ export function OnboardingWizard({
         {/* Question */}
         <div className="mt-gb-4xl flex flex-col gap-gb-2xl">
           <div className="flex flex-col gap-gb-sm">
-            <h2 className="text-gb-display-xs font-semibold text-fg">{t(current.title)}</h2>
-            <p className="text-gb-md text-fg-tertiary">{t(current.body)}</p>
+            <h2 className="text-gb-display-xs font-semibold text-fg">{t(currentTitle)}</h2>
+            <p className="text-gb-md text-fg-tertiary">{t(currentBody)}</p>
           </div>
 
           {current.key === 'study_level' ? (
@@ -938,19 +1179,185 @@ export function OnboardingWizard({
             </div>
           ) : null}
 
-          {/* Câu 6 — Figma 375:11536.
-              The frame draws ONE grading-scale list and ONE "Current GPA" box
-              under the checkbox list. These are per curriculum instead: see the
-              note on `Academic` for why a shared box cannot hold the answer of
-              a student sitting two curricula, or of an IB student, who has no
-              GPA at all. Each block carries its curriculum as a heading, which
-              is the treatment the frame gives the scale list. */}
-          {current.key === 'academic' ? (
+          {/* Câu 6 — Academic background / degree history */}
+          {current.key === 'academic' && answers.study_level === 'postgraduate' ? (
             <div className="flex flex-col gap-gb-3xl">
-              {/* The frame's placeholder here reads "Select a GPA" over a list
-                  of curricula, which describes the step rather than the field
-                  and misdirects on the one screen where the two are easy to
-                  confuse. Corrected; the frame should be too. */}
+              <Input
+                name="pg-degree"
+                label={t('Bachelor / Current degree')}
+                placeholder={t('e.g. Bachelor of Science, Bachelor of Engineering')}
+                required
+                value={answers.pg_academic.degree}
+                onChange={(e) => updatePgAcademic({ degree: e.target.value })}
+                onBlur={() => setShowRequired(true)}
+                {...(showRequired && !answers.pg_academic.degree.trim()
+                  ? { error: t('Enter your degree or current qualification.') }
+                  : {})}
+              />
+
+              <Input
+                name="pg-institution"
+                label={t('Institution name')}
+                placeholder={t('e.g. National University of Singapore')}
+                required
+                value={answers.pg_academic.institution}
+                onChange={(e) => updatePgAcademic({ institution: e.target.value })}
+                onBlur={() => setShowRequired(true)}
+                {...(showRequired && !answers.pg_academic.institution.trim()
+                  ? { error: t('Enter your university or institution name.') }
+                  : {})}
+              />
+
+              <Input
+                name="pg-field"
+                label={t('Field of study / Major')}
+                placeholder={t('e.g. Computer Science, Finance')}
+                required
+                value={answers.pg_academic.field_of_study}
+                onChange={(e) => updatePgAcademic({ field_of_study: e.target.value })}
+                onBlur={() => setShowRequired(true)}
+                {...(showRequired && !answers.pg_academic.field_of_study.trim()
+                  ? { error: t('Enter your field of study or major.') }
+                  : {})}
+              />
+
+              <fieldset>
+                <legend className="text-gb-sm font-medium text-fg-secondary">
+                  {t('How are you graded?')}
+                </legend>
+                <div className="mt-gb-md flex flex-col gap-gb-lg sm:flex-row sm:flex-wrap sm:gap-gb-2xl">
+                  {pgScaleOptions.map((scale) => (
+                    <Radio
+                      key={scale}
+                      name="pg-scale"
+                      value={scale}
+                      label={t(scale)}
+                      checked={answers.pg_academic.gpa_scale === scale}
+                      onChange={() => {
+                        updatePgAcademic({ gpa_scale: scale, gpa: '' });
+                      }}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+
+              {(() => {
+                const pgFormat = PG_GRADE_FORMATS[answers.pg_academic.gpa_scale];
+                const pgGradeProblem = gradeError(pgFormat, answers.pg_academic.gpa, showRequired);
+                return (
+                  <Input
+                    name="pg-gpa"
+                    label={t(pgFormat?.fieldLabel ?? 'GPA / Classification')}
+                    required
+                    hint={t(pgFormat?.hint ?? '')}
+                    inputMode={pgFormat?.numeric ? 'decimal' : 'text'}
+                    value={answers.pg_academic.gpa}
+                    onChange={(e) => updatePgAcademic({ gpa: e.target.value })}
+                    onBlur={() => setShowRequired(true)}
+                    placeholder={pgFormat?.placeholder ?? '3.5'}
+                    {...(pgGradeProblem ? { error: t(pgGradeProblem.message, pgGradeProblem.vars) } : {})}
+                  />
+                );
+              })()}
+
+              <Input
+                name="pg-completion-year"
+                label={t('Graduation / Completion year')}
+                placeholder="2025"
+                hint={t('Year of graduation or expected completion')}
+                inputMode="numeric"
+                value={answers.pg_academic.completion_year}
+                onChange={(e) => updatePgAcademic({ completion_year: e.target.value })}
+              />
+            </div>
+          ) : null}
+
+          {current.key === 'academic' && answers.study_level === 'phd' ? (
+            <div className="flex flex-col gap-gb-3xl">
+              <Input
+                name="phd-bachelor"
+                label={t("Bachelor's degree & institution")}
+                placeholder={t('e.g. BSc Computer Science, NUS (2020)')}
+                required
+                value={answers.phd_academic.bachelor_degree}
+                onChange={(e) => updatePhdAcademic({ bachelor_degree: e.target.value })}
+                onBlur={() => setShowRequired(true)}
+                {...(showRequired && !answers.phd_academic.bachelor_degree.trim()
+                  ? { error: t('Enter your degree or current qualification.') }
+                  : {})}
+              />
+
+              <Input
+                name="phd-master"
+                label={t("Master's degree & institution (if applicable)")}
+                placeholder={t('e.g. MSc Data Science, NTU (2022)')}
+                value={answers.phd_academic.master_degree}
+                onChange={(e) => updatePhdAcademic({ master_degree: e.target.value })}
+              />
+
+              <Input
+                name="phd-institution"
+                label={t('Current / Latest institution (optional)')}
+                placeholder={t('e.g. National University of Singapore')}
+                value={answers.phd_academic.institution}
+                onChange={(e) => updatePhdAcademic({ institution: e.target.value })}
+              />
+
+              <Textarea
+                name="phd-research-experience"
+                label={t('Research experience')}
+                placeholder={t('Describe your lab experience, research projects, methodologies, or thesis work...')}
+                required
+                value={answers.phd_academic.research_experience}
+                onChange={(e) => updatePhdAcademic({ research_experience: e.target.value })}
+                onBlur={() => setShowRequired(true)}
+                rows={3}
+                {...(showRequired && !answers.phd_academic.research_experience.trim()
+                  ? { error: t('Enter your research experience or publications summary.') }
+                  : {})}
+              />
+
+              <Textarea
+                name="phd-publications"
+                label={t('Publications & research outputs (optional)')}
+                placeholder={t('e.g. Papers, conference proceedings, preprints, patents, or thesis titles...')}
+                value={answers.phd_academic.publications ?? ''}
+                onChange={(e) => updatePhdAcademic({ publications: e.target.value })}
+                rows={2}
+              />
+
+              <Textarea
+                name="phd-research-direction"
+                label={t('Intended research direction')}
+                placeholder={t('Describe your target research topics, questions, or methodologies...')}
+                required
+                value={answers.phd_academic.research_direction}
+                onChange={(e) => updatePhdAcademic({ research_direction: e.target.value })}
+                onBlur={() => setShowRequired(true)}
+                rows={3}
+                {...(showRequired && !answers.phd_academic.research_direction.trim()
+                  ? { error: t('Enter your intended research direction.') }
+                  : {})}
+              />
+
+              <Textarea
+                name="phd-supervisor-fit"
+                label={t('Supervisor / Research fit context')}
+                placeholder={t('Identify potential supervisors, labs, or faculty alignments you are interested in...')}
+                required
+                value={answers.phd_academic.supervisor_fit}
+                onChange={(e) => updatePhdAcademic({ supervisor_fit: e.target.value })}
+                onBlur={() => setShowRequired(true)}
+                rows={3}
+                {...(showRequired && !answers.phd_academic.supervisor_fit.trim()
+                  ? { error: t('Enter your supervisor or research fit context.') }
+                  : {})}
+              />
+            </div>
+          ) : null}
+
+          {current.key === 'academic' && answers.study_level !== 'postgraduate' && answers.study_level !== 'phd' ? (
+            <div className="flex flex-col gap-gb-3xl">
               <MultiSelect
                 name="curriculum"
                 label={t('Curriculum')}
@@ -1008,16 +1415,12 @@ export function OnboardingWizard({
                         required
                         hint={t(format.hint)}
                         inputMode={format.numeric ? 'decimal' : 'text'}
-                        // The browser's own validation is off: it fires on submit
-                        // and this wizard has no <form>. `error` is the channel.
                         value={raw}
                         onChange={(e) =>
                           updateAcademic({
                             grades: { ...answers.academic.grades, [curriculum]: e.target.value },
                           })
                         }
-                        // Leaving a box empty is what turns the "required"
-                        // message on — see the note on `showRequired`.
                         onBlur={() => setShowRequired(true)}
                         placeholder={format.placeholder}
                         {...(problem ? { error: t(problem.message, problem.vars) } : {})}
@@ -1026,13 +1429,20 @@ export function OnboardingWizard({
                   </div>
                 );
               })}
+
+              <Input
+                name="ug-graduation-year"
+                label={t('Graduation year')}
+                placeholder="2026"
+                hint={t('Expected or actual graduation year')}
+                inputMode="numeric"
+                value={answers.academic.graduation_year ?? ''}
+                onChange={(e) => updateAcademic({ graduation_year: e.target.value })}
+              />
             </div>
           ) : null}
 
-          {/* Câu 7 — Figma 375:11616. Two independent test groups. The frame
-              gives each ONE score box; these give one per chosen test, because
-              the picker is multi-select and a shared number would be written to
-              every test type. See the note on `Tests`. */}
+          {/* Câu 7 — Standardized tests / Language proficiency */}
           {current.key === 'tests' ? (
             <div className="flex flex-col gap-gb-3xl">
               <MultiSelect
@@ -1069,40 +1479,89 @@ export function OnboardingWizard({
                   />
                 ))}
 
-              <MultiSelect
-                name="standardizedTest"
-                label={t('Standardized test')}
-                placeholder={t('Standardized Test')}
-                options={standardizedTestOptions}
-                value={answers.tests.standardized}
-                onChange={(next) => {
-                  const standardized = pickTests(next, answers.tests.standardized);
-                  updateTests({
-                    standardized,
-                    standardizedScores: keepScores(
-                      standardized,
-                      answers.tests.standardizedScores,
-                    ),
-                  });
-                }}
-              />
-
-              {answers.tests.standardized
-                .filter((test) => test !== NONE_YET)
-                .map((test) => (
-                  <ScoreField
-                    key={test}
-                    group="standardized"
-                    test={test}
-                    format={STANDARDIZED_TEST_FORMATS[test]}
-                    value={answers.tests.standardizedScores[test] ?? ''}
-                    onChange={(score) =>
+              {answers.study_level === 'postgraduate' ? (
+                <>
+                  <MultiSelect
+                    name="standardizedTest"
+                    label={t('Graduate admission test')}
+                    placeholder={t('Graduate Admission Test')}
+                    options={pgStandardizedTestOptions}
+                    value={answers.tests.standardized}
+                    onChange={(next) => {
+                      const standardized = pickTests(next, answers.tests.standardized);
                       updateTests({
-                        standardizedScores: { ...answers.tests.standardizedScores, [test]: score },
-                      })
-                    }
+                        standardized,
+                        standardizedScores: keepScores(
+                          standardized,
+                          answers.tests.standardizedScores,
+                        ),
+                      });
+                    }}
                   />
-                ))}
+
+                  {answers.tests.standardized
+                    .filter((test) => test !== NONE_YET)
+                    .map((test) => (
+                      <ScoreField
+                        key={test}
+                        group="standardized"
+                        test={test}
+                        format={STANDARDIZED_TEST_FORMATS[test]}
+                        value={answers.tests.standardizedScores[test] ?? ''}
+                        onChange={(score) =>
+                          updateTests({
+                            standardizedScores: {
+                              ...answers.tests.standardizedScores,
+                              [test]: score,
+                            },
+                          })
+                        }
+                      />
+                    ))}
+                </>
+              ) : null}
+
+              {answers.study_level !== 'postgraduate' && answers.study_level !== 'phd' ? (
+                <>
+                  <MultiSelect
+                    name="standardizedTest"
+                    label={t('Standardized test')}
+                    placeholder={t('Standardized Test')}
+                    options={standardizedTestOptions}
+                    value={answers.tests.standardized}
+                    onChange={(next) => {
+                      const standardized = pickTests(next, answers.tests.standardized);
+                      updateTests({
+                        standardized,
+                        standardizedScores: keepScores(
+                          standardized,
+                          answers.tests.standardizedScores,
+                        ),
+                      });
+                    }}
+                  />
+
+                  {answers.tests.standardized
+                    .filter((test) => test !== NONE_YET)
+                    .map((test) => (
+                      <ScoreField
+                        key={test}
+                        group="standardized"
+                        test={test}
+                        format={STANDARDIZED_TEST_FORMATS[test]}
+                        value={answers.tests.standardizedScores[test] ?? ''}
+                        onChange={(score) =>
+                          updateTests({
+                            standardizedScores: {
+                              ...answers.tests.standardizedScores,
+                              [test]: score,
+                            },
+                          })
+                        }
+                      />
+                    ))}
+                </>
+              ) : null}
             </div>
           ) : null}
 

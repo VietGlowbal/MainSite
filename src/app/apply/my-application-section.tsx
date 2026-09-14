@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -154,6 +154,90 @@ function DeadlineCountdown({ tone, days }: { tone: DeadlineTone; days: number })
 
 function isPending(app: CourseApplication): boolean {
   return isParsePending(app.parseStatus);
+}
+
+type AuthoritativeParseState = {
+  status: CourseApplication['parseStatus'] | null;
+  active: boolean;
+  isStale: boolean;
+  canRetry: boolean;
+  error: string | null;
+};
+
+/**
+ * The list must not derive lease age from `course_applications.updated_at`.
+ * That timestamp also changes for unrelated edits, while the parser worker's
+ * heartbeat lives on the parse-job row. Read the same status endpoint used by
+ * the workspace/retry flow so Retry is shown only when the backend agrees.
+ */
+export function useAuthoritativeParseState(
+  applicationId: string,
+  pending: boolean,
+): AuthoritativeParseState {
+  const [state, setState] = useState<AuthoritativeParseState>({
+    status: null,
+    // Be conservative until the endpoint confirms that no worker lease is
+    // active. A failed application projection can briefly lag an active job.
+    active: pending,
+    isStale: false,
+    canRetry: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    if (!pending) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const refresh = async () => {
+      try {
+        const response = await fetch(`/api/applications/${applicationId}/parse-status`, {
+          cache: 'no-store',
+        });
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as {
+          parseStatus?: CourseApplication['parseStatus'];
+          active?: boolean;
+          isStale?: boolean;
+          canRetry?: boolean;
+          error?: string | null;
+        };
+        if (cancelled) return;
+        const status = body.parseStatus ?? null;
+        setState({
+          status,
+          active: Boolean(body.active),
+          isStale: Boolean(body.isStale),
+          canRetry: Boolean(body.canRetry),
+          error: body.error ?? null,
+        });
+        // Stop once the server reports a terminal state. The parent will
+        // normally refresh the row, but this avoids a detached row polling
+        // forever when a terminal transition happens between page refreshes.
+        if (status && !body.active && !isParsePending(status) && interval) {
+          clearInterval(interval);
+          interval = undefined;
+        }
+      } catch {
+        // A transient status request failure must not invent a stale lease.
+      }
+    };
+
+    void refresh();
+    interval = setInterval(() => void refresh(), 10_000);
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, [applicationId, pending]);
+
+  return state;
 }
 
 function courseLine(app: CourseApplication): string | null {
@@ -405,7 +489,16 @@ function ApplicationRow({
   const university = displayUniversityName(app.universityName);
   const urlLabel = courseUrlLabel(app.courseUrl);
   const pending = isPending(app);
-  const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+  const hasFailure = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+  const authoritative = useAuthoritativeParseState(app.id, pending || hasFailure);
+  const rowActive = authoritative.active || (authoritative.status === null && (pending || hasFailure));
+  const rowPending = rowActive || (pending && (
+    authoritative.status === null || isParsePending(authoritative.status)
+  ));
+  const failed = !rowActive && (hasFailure
+    || (pending && (authoritative.status === 'failed' || authoritative.status === 'timeout')));
+  const isStale = !rowActive && authoritative.isStale;
+
   const urgency = deadlineUrgency(app.deadline);
   const workspaceHref = `/apply/${app.id}`;
 
@@ -452,7 +545,7 @@ function ApplicationRow({
             </p>
             {course ? <p className="text-gb-md text-fg-tertiary">{course}</p> : null}
 
-            {pending ? (
+            {rowPending && !isStale ? (
               <div className="flex max-w-sm flex-col gap-gb-md">
                 <ProgressBar label="Reading the course page" size="sm" />
                 <ResearchingInline>
@@ -461,10 +554,19 @@ function ApplicationRow({
               </div>
             ) : null}
 
+            {rowPending && isStale ? (
+              <div className="flex flex-col gap-gb-sm">
+                <p className="text-gb-sm text-fg-secondary">
+                  Reading this course page is taking longer than usual. You can wait or retry.
+                </p>
+                <RetryParse applicationId={app.id} />
+              </div>
+            ) : null}
+
             {failed ? (
               <div className="flex flex-col gap-gb-sm">
                 <p className="text-gb-sm text-fg-error">
-                  {app.parseError ?? 'We could not read that course page.'}
+                  {app.parseError ?? authoritative.error ?? 'We could not read that course page.'}
                 </p>
                 <RetryParse applicationId={app.id} />
               </div>

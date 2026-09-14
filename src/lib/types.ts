@@ -36,6 +36,11 @@ export type StudentProfile = {
   bio?: string | null;
   location?: string | null;
   nationality?: string | null;
+  /**
+   * @deprecated Legacy JSON field on student_profiles. Canonical achievements are stored in
+   * `student_achievements` and activities in `student_activities`. Retained for backwards
+   * compatibility with historical rows without destructive migration.
+   */
   achievements?: { id: string; title: string; description: string; year: string }[] | null;
   skills?: string[] | null;
   onboarding_completed?: boolean;
@@ -73,6 +78,16 @@ export type StudentProfile = {
   study_mode_preference?: string | null;
   target_intake?: string | null;
   application_cycle_year?: number | null;
+  /**
+   * Additive JSONB payload for postgraduate applicants:
+   * bachelor degree, institution, field_of_study, gpa, classification, completion_year.
+   */
+  postgraduate_academic?: Record<string, unknown> | null;
+  /**
+   * Additive JSONB payload for PhD applicants:
+   * degree history, research experience, publications, research direction, supervisor fit.
+   */
+  phd_academic?: Record<string, unknown> | null;
 };
 
 export type WorkExperience = {

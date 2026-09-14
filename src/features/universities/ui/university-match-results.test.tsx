@@ -126,6 +126,7 @@ describe('UniversityMatchResults', () => {
       resultFixture({ universityId: 2, universityName: 'Second University', recommendationRank: 2, recommendationBand: 'good_fit', selectivityContext: 'highly_selective' }),
     )} />);
 
+    expect(screen.getByRole('group', { name: 'Recommendation filters' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Top pick' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Highly selective overall' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Show all' })).toBeDisabled();
@@ -255,15 +256,125 @@ describe('UniversityMatchResults', () => {
     }));
     render(<UniversityMatchResults recommendation={recommendationWith(...results)} />);
 
+    expect(screen.getAllByLabelText(/Recommendation rank/)).toHaveLength(6);
+    expect(screen.getByText('Showing 6 of 30 recommendations')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Explore All' }));
+    expect(screen.getByRole('heading', { name: 'Explore All' })).toBeInTheDocument();
     expect(screen.getAllByLabelText(/Recommendation rank/)).toHaveLength(12);
+    expect(screen.getByText('Showing 12 of 30 recommendations')).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: 'Show more recommendations' }));
     expect(screen.getAllByLabelText(/Recommendation rank/)).toHaveLength(24);
+    expect(screen.getByText('Showing 24 of 30 recommendations')).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: 'Show more recommendations' }));
     expect(screen.getAllByLabelText(/Recommendation rank/)).toHaveLength(30);
     expect(screen.queryByRole('button', { name: 'Show more recommendations' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Good fit' }));
     expect(screen.getByText('Showing 12 of 15 recommendations')).toBeInTheDocument();
+  });
+
+  it('renders exact six-result split into Best Fits (top 3) and next-ranked options (next 3) with Explore All toggle', () => {
+    const results = Array.from({ length: 7 }, (_, index) => resultFixture({
+      universityId: index + 1,
+      universityName: `University ${index + 1}`,
+      recommendationRank: index + 1,
+      recommendationBand: 'top_pick',
+      selectivityContext: 'not_assessed',
+    }));
+    render(<UniversityMatchResults recommendation={recommendationWith(...results)} />);
+
+    expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendation rank 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendation rank 2')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendation rank 3')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendation rank 4')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendation rank 5')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendation rank 6')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Recommendation rank 7')).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 6 of 7 recommendations')).toBeInTheDocument();
+
+    const exploreButton = screen.getByRole('button', { name: 'Explore All' });
+    expect(exploreButton).toBeInTheDocument();
+
+    fireEvent.click(exploreButton);
+    expect(screen.getByRole('heading', { name: 'Explore All' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendation rank 7')).toBeInTheDocument();
+    expect(screen.getByText('Showing 7 of 7 recommendations')).toBeInTheDocument();
+
+    const backButton = screen.getByRole('button', { name: 'Back to shortlist' });
+    expect(backButton).toBeInTheDocument();
+
+    fireEvent.click(backButton);
+    expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Recommendation rank 7')).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 6 of 7 recommendations')).toBeInTheDocument();
+  });
+
+  it('renders only Best Fits section when 3 or fewer results exist', () => {
+    const results = Array.from({ length: 3 }, (_, index) => resultFixture({
+      universityId: index + 1,
+      universityName: `University ${index + 1}`,
+      recommendationRank: index + 1,
+    }));
+    render(<UniversityMatchResults recommendation={recommendationWith(...results)} />);
+
+    expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Next-ranked options' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Explore All' })).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 3 of 3 recommendations')).toBeInTheDocument();
+  });
+
+  it('renders Best Fits and next-ranked options without Explore All when results are between 4 and 6', () => {
+    const results = Array.from({ length: 5 }, (_, index) => resultFixture({
+      universityId: index + 1,
+      universityName: `University ${index + 1}`,
+      recommendationRank: index + 1,
+    }));
+    render(<UniversityMatchResults recommendation={recommendationWith(...results)} />);
+
+    expect(screen.getByRole('heading', { name: 'Best Fits' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Next-ranked options' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Explore All' })).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 5 of 5 recommendations')).toBeInTheDocument();
+  });
+
+  it('surfaces exact deterministic reasons, warnings, budget compatibility, and university links', () => {
+    render(<UniversityMatchResults recommendation={recommendationWith(
+      resultFixture({
+        universityId: 42,
+        universityName: 'Explanatory University',
+        reasons: [
+          { code: 'BUDGET_COMPATIBLE' },
+          { code: 'SUBJECT_MATCH', value: 'Computer Science' },
+          { code: 'DESTINATION_MATCH', value: 'Canada' },
+          { code: 'CAMPUS_MATCH' },
+        ],
+        warnings: [
+          { code: 'SCHOLARSHIP_DEPENDENT_BUDGET' },
+          { code: 'COST_NEEDS_VERIFICATION' },
+        ],
+      }),
+    )} />);
+
+    expect(screen.getByText('Published tuition fits within your maximum annual budget')).toBeInTheDocument();
+    expect(screen.getByText('The programme matches your subject preference: Computer Science')).toBeInTheDocument();
+    expect(screen.getByText('The country matches your destination preference')).toBeInTheDocument();
+    expect(screen.getByText('The campus information matches your preference')).toBeInTheDocument();
+    expect(screen.getByText('Your budget depends on scholarships, so affordability needs verification')).toBeInTheDocument();
+    expect(screen.getByText('Tuition currency or annual period needs verification')).toBeInTheDocument();
+
+    const universityLinks = screen.getAllByRole('link', { name: /Explanatory University|View university details/ });
+    expect(universityLinks.length).toBeGreaterThanOrEqual(2);
+    for (const link of universityLinks) {
+      expect(link).toHaveAttribute('href', '/universities/42');
+    }
   });
 
   it('distinguishes incomplete profile from an infrastructure error', () => {

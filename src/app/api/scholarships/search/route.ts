@@ -54,12 +54,22 @@ export async function POST(request: Request) {
     );
   }
 
-  // Fetch user profile for eligibility matching
-  const { data: profile } = await supabase
-    .from('student_profiles')
-    .select('nationality, country_of_residence, gpa, degree_level, subject_area, financial_need, achievements')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  // Fetch user profile and structured evidence for eligibility matching
+  const [{ data: profile }, { data: achievements }, { data: activities }] = await Promise.all([
+    supabase
+      .from('student_profiles')
+      .select('nationality, country_of_residence, gpa, degree_level, subject_area, financial_need')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('student_achievements')
+      .select('title, category, level, year')
+      .eq('user_id', user.id),
+    supabase
+      .from('student_activities')
+      .select('title, category, level, period')
+      .eq('user_id', user.id),
+  ]);
 
   const systemPrompt = `You are an expert scholarship researcher. For each course application, find the BEST scholarships the student could realistically apply for.
 
@@ -102,6 +112,12 @@ Return JSON: { "scholarships": [...] }`;
     )
     .join('\n');
 
+  const evidenceItems: string[] = [
+    ...(achievements ?? []).map((a) => [a.title, a.year].filter(Boolean).join(' ')),
+    ...(activities ?? []).map((a) => [a.title, a.period].filter(Boolean).join(' ')),
+  ].filter(Boolean);
+  const achievementsSummary = evidenceItems.length > 0 ? evidenceItems.join('; ') : 'Not specified';
+
   const profileDescription = profile
     ? `Student profile:
 - Nationality: ${profile.nationality || 'Unknown'}
@@ -110,7 +126,7 @@ Return JSON: { "scholarships": [...] }`;
 - Current level: ${profile.degree_level || 'Unknown'}
 - Subject area: ${profile.subject_area || 'Unknown'}
 - Financial need: ${profile.financial_need || 'Not specified'}
-- Achievements: ${profile.achievements || 'Not specified'}`
+- Achievements & activities: ${achievementsSummary}`
     : 'No profile available — provide general scholarships.';
 
   const userPrompt = `Find the best scholarships for this student's course applications:

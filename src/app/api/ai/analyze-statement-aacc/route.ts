@@ -166,18 +166,33 @@ export async function POST(request: Request) {
       if (!workspace) {
         return NextResponse.json({ error: 'Application not found' }, { status: 404 });
       }
-      const profile =
+      const [{ data: profileRow }, { data: achievements }, { data: activities }] =
         process.env.VINUNI_PROFILE_CONTEXT_ENABLED === 'true'
-          ? (
-              await supabase!
+          ? await Promise.all([
+              supabase!
                 .from('student_profiles')
                 .select(
-                  'academic_background, grades_summary, goals, career_interests, achievements, skills, profile_summary, bio',
+                  'academic_background, grades_summary, goals, career_interests, skills, profile_summary, bio',
                 )
                 .eq('user_id', user!.id)
-                .maybeSingle()
-            ).data
-          : null;
+                .maybeSingle(),
+              supabase!
+                .from('student_achievements')
+                .select('title, detail, competition, organisation, level, year')
+                .eq('user_id', user!.id),
+              supabase!
+                .from('student_activities')
+                .select('title, description, organisation, level, period')
+                .eq('user_id', user!.id),
+            ])
+          : [{ data: null }, { data: null }, { data: null }];
+      const profile = profileRow
+        ? {
+            ...profileRow,
+            ...(achievements && achievements.length > 0 ? { achievements } : {}),
+            ...(activities && activities.length > 0 ? { activities } : {}),
+          }
+        : null;
       v2Input = {
         essayPrompt,
         ...(requestedSections ? { requestedSections } : {}),

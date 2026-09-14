@@ -1,6 +1,11 @@
 -- ============================================================================
 -- PHASE 15, TASK 15.1: Atomic Job Claiming for Course Parse Worker
 -- ============================================================================
+-- BASELINE ONLY: if this historical claim setup is needed on a new database,
+-- run it before `supabase-job-claim-resilience.sql` and
+-- `supabase-course-parse-reliability.sql`. Never rerun it after those files;
+-- its started_at-only implementation would replace the heartbeat-aware claim.
+--
 -- This file contains the PostgreSQL RPC function for atomically claiming
 -- pending course parse jobs using FOR UPDATE SKIP LOCKED to prevent
 -- race conditions between multiple workers.
