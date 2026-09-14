@@ -15,6 +15,15 @@ export {
   consentCookieAssignment,
   serialiseConsentCookie,
 } from './consent-cookie';
+/**
+ * Attributes for the Supabase session cookies. All three Supabase clients must
+ * pass the same object, or a token refresh rewrites the cookie without them.
+ */
+export {
+  SUPABASE_AUTH_COOKIE_OPTIONS,
+  supabaseAuthCookieOptions,
+  type SupabaseAuthCookieOptions,
+} from './supabase-auth-cookie';
 export {
   MONTH_ABBREVIATIONS,
   MONTH_NAMES,
