@@ -8,6 +8,7 @@ import { NavigationSessionProvider } from '@/components/navigation-session';
 import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
 import { headers } from 'next/headers';
+import { NONCE_HEADER } from '@/shared/lib';
 import { DomTranslator } from '@/lib/dom-translate';
 import { StrategyHelpButton } from '@/features/marketing/strategy-help';
 import { GlobalLoadingOverlay } from '@/shared/ui/loading-overlay';
@@ -116,7 +117,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = (await headers()).get('x-glowbal-locale') === 'vi' ? 'vi' : 'en';
+  const requestHeaders = await headers();
+  const locale = requestHeaders.get('x-glowbal-locale') === 'vi' ? 'vi' : 'en';
+  // Set by src/proxy.ts alongside the page's CSP. Next stamps it on its own
+  // scripts; only scripts mounted through next/script need it passed by hand.
+  const nonce = requestHeaders.get(NONCE_HEADER) ?? undefined;
 
   // Warm up connections to the CDNs that serve LCP imagery, so image-heavy
   // routes don't pay full DNS + TLS latency on first paint. React hoists
@@ -170,7 +175,7 @@ export default async function RootLayout({
         <NavigationSessionProvider>
           <NavigationRolesProvider>
             <LanguageProvider defaultLang={locale}>
-              <ConsentBoundary>
+              <ConsentBoundary nonce={nonce}>
                 <NavReveal />
                 {/* Puts the globe loader up during client-side navigation. Renders
                     nothing itself — it only drives the loading store. */}

@@ -1,5 +1,52 @@
 # Current project status
 
+Working tree 2026-09-14 (CSP report → **enforced Content Security Policy**): review said "only
+`Content-Security-Policy-Report-Only` on every route; `unsafe-inline`/`unsafe-eval` present; `upgrade-insecure-requests`
+ignored". **All three true of production** (live headers checked). Now `src/proxy.ts` sends, per page request, an
+enforced `Content-Security-Policy` — `script-src 'nonce-…' 'strict-dynamic' 'self'` (no `unsafe-inline`, `unsafe-eval`
+in dev only), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests` — plus a
+report-only header carrying the unverified origin allowlists. Builder: `src/shared/lib/content-security-policy.ts`;
+nonce reaches GA via `x-nonce` → root layout → `ConsentBoundary`. The static CSP in `next.config.ts` is gone (must not
+return). No caching cost: every page was already dynamic (`private, no-store`, `MISS` on 7 live routes); the ineffective
+`Vercel-CDN-Cache-Control` on `/universities` (3 × MISS) was removed because a cached page would carry a stale nonce.
+New `src/instrumentation-client.ts` sets Zod `jitless` so Zod 4's `Function("")` probe no longer trips the CSP on 40
+routes. Full record, including the one remaining harmless violation (essay pages ship `crypto-browserify` via
+`vinuni-grounded-evaluation` → `node:crypto`), in [known-issues.md §0k](known-issues.md).
+Measured (local `next build` + `next start`, Chromium): real HTML — 22/23 `<script>` carry the header's nonce, the 23rd
+is JSON-LD. Injection probe with the served CSP vs. stripped: parser-inserted `<script>`, inline handler in HTML,
+`innerHTML` handler, `eval`, `new Function` all **blocked** (all ran without CSP); Next still hydrates. New
+`tests/e2e/csp.spec.ts` (guest crawl of 10 routes + detail pages, injection test, signed-in crawl incl. essay page) all
+pass; report-only violations 0 guest, 1 signed-in (the known essay eval). E2E run: 27 passed, 1 skipped, **1 failed —
+`signed-in.spec.ts` "scholarship focus mode": the cookie banner intercepts the click** (test never dismisses it; not
+re-run on a pre-change build, so "pre-existing" is inferred, not measured). `npm run typecheck`, `typecheck:strict`,
+ESLint on changed files, `npm test` 402 files / 3760 passed, `npm run build` pass. Not run: a deployed check of the
+headers, `verify:pr`, production CSP reports (there is no reporting endpoint).
+
+Working tree 2026-09-14 (auth cookie report → `Secure` added, `Strict`/`HttpOnly` declined): report said the `sb-*`
+session cookies are `HttpOnly: false`, `Secure: false`, `SameSite: Lax` and readable from `document.cookie`, proposing
+`HttpOnly` + `Secure` + `Strict` + HTTPS + rotation. **Accurate** — those are `@supabase/ssr` 0.10.2 defaults and no
+client overrode them. Shipped the one safe part: `SUPABASE_AUTH_COOKIE_OPTIONS` (`src/shared/lib/supabase-auth-cookie.ts`,
+`secure` in production, `lax`, `/`) is now passed as `cookieOptions` by all three clients — `src/proxy.ts`,
+`src/server/db/server.ts`, `src/lib/supabase/client.ts`. HTTPS was already enforced (live: http → 308, HSTS
+`max-age=63072000`). `Strict` and `HttpOnly` were **declined because each breaks sign-in**; reasoning and the real XSS
+lever (enforcing CSP) in [known-issues.md §0k](known-issues.md). Existing sessions pick up `Secure` on their next token
+refresh; nobody is signed out (cookie name unchanged). Measured: library-emitted attributes via a scratch script —
+production `{path:"/",sameSite:"lax",httpOnly:false,maxAge:34560000,secure:true}`, development `secure:false`;
+`npm run typecheck` and `typecheck:strict` clean; ESLint clean on the 6 changed files; `npm test` 400 files / 3747
+passed (first run had 2 × 5s timeouts while typecheck ran in parallel, clean on re-run); `npm run build` passes. Not
+run: E2E, a signed-in check of the real `Set-Cookie` on a deployment, the Supabase dashboard session settings.
+
+Working tree 2026-09-14 (CORS report → avatars bucket listing): the report "CORS reflects any origin
+(https://evil.example.com) / `Access-Control-Allow-Origin: *`" is **not ours**. Live probes: `glowbal-education.com`
+pages, `/api/*` and preflights send no `Access-Control-*` header; the header comes from Supabase's gateway
+(`/rest/v1` echoes origin, `/auth/v1` echoes + `Allow-Credentials: true`), which Supabase documents as fixed platform
+behaviour. No ambient credential exists on `*.supabase.co` (only `__cf_bm`), so nothing to fix in code — full reasoning
+in [known-issues.md §0j](known-issues.md). The real anon-key exposure still open was **`avatars` bucket listing** (8
+entries, 6 user-id folders) from a `to public` SELECT policy. Written, **NOT YET RUN**:
+`sql/supabase-avatars-no-anon-listing.sql` (drops it, adds owner-scoped SELECT so `MentorSignupForm`'s `upsert: true`
+upload keeps working). Measured: anon `/rest/v1/` → 401; anon bucket index → `[]`; public avatar URL with no auth → 200.
+Not run: the migration itself, any test suite (no TS changed).
+
 Working tree 2026-09-14 (Admin AI report output now mirrors the readable student sections):
 `/admin/ai-report-review` no longer feeds canonical Personal, Matching, or Strategy Report objects
 through the generic key/value debugger. Personal reuses the student-facing snapshot, six complete
