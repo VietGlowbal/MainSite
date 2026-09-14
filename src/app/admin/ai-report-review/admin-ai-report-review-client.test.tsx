@@ -20,6 +20,180 @@ const review: AdminAiReportReview = {
 };
 
 describe('AdminAiReportReviewClient', () => {
+  it('renders Personal Report in the same six readable chapters shown to students', () => {
+    const personalReview: AdminAiReportReview = {
+      application: review.application,
+      nodes: [
+        {
+          ...review.nodes[0],
+          output: {
+            overallEvidenceConfidence: 'high',
+            coreIdentity: {
+              available: true,
+              confidence: 'high',
+              headline: 'Evidence-led builder',
+              interpretation: 'Turns ambiguous problems into practical systems.',
+              recurringRole: 'Builder',
+              valueOrientation: 'Useful impact',
+              recurringBehaviours: ['Builds prototypes', 'Tests assumptions'],
+              observations: ['Repeatedly moves from research to a working prototype.'],
+              stillDeveloping: ['Needs more externally verified outcomes.'],
+              evidenceRefs: ['internal-evidence-id'],
+            },
+            drivingForce: {
+              available: true,
+              confidence: 'medium',
+              headline: 'Curiosity directed at useful outcomes',
+              explanation: 'The same motivation appears across research and community work.',
+              repeatedMotivations: ['Understanding complex systems', 'Helping other learners'],
+            },
+            signaturePattern: {
+              available: true,
+              confidence: 'high',
+              patternStrength: 'established',
+              supportingExperienceCount: 3,
+              steps: [
+                { key: 'trigger', label: 'Trigger', description: 'Finds an unclear problem', examples: ['Robotics club'] },
+                { key: 'response', label: 'Response', description: 'Takes ownership', examples: [] },
+              ],
+              distinctiveness: 'Combines technical depth with practical ownership.',
+            },
+            emergingThemes: {
+              available: true,
+              narrative: 'Technology and education recur across the profile.',
+              themes: [
+                {
+                  theme: 'Technology for learning',
+                  statusLabel: 'Established theme',
+                  explanation: 'Appears in three separate experiences.',
+                  supportingExperiences: ['Robotics club', 'Peer tutoring'],
+                  limitation: 'Impact evidence is still mostly self-reported.',
+                },
+              ],
+            },
+            personalPositioning: {
+              available: true,
+              confidence: 'high',
+              statement: 'A builder who makes complex technology useful for learners.',
+              authentic: true,
+              differentiated: true,
+              coherent: true,
+              directionAligned: true,
+              credible: false,
+              whyThisFits: ['Supported by repeated building and teaching experiences.'],
+              whatPreventsStrongerPositioning: ['Needs one externally verified impact result.'],
+            },
+            proofOfMe: {
+              available: true,
+              narrative: 'The strongest proof comes from sustained technical leadership.',
+              cards: [
+                {
+                  activityId: 'internal-activity-id',
+                  title: 'Robotics Club',
+                  role: 'Team lead',
+                  personalContribution: 'Designed the control system and mentored four members.',
+                  outcome: 'Reached the national final.',
+                  competenciesDemonstrated: ['Systems thinking', 'Leadership'],
+                  supports: ['Builder positioning'],
+                  evidenceStrength: 'strong',
+                  verificationStatus: 'verified',
+                },
+              ],
+            },
+            overallSummary: {
+              paragraphs: ['The profile is coherent, evidence-led and ready for targeted development.'],
+            },
+          },
+        },
+      ],
+    };
+
+    render(<AdminAiReportReviewClient items={[personalReview.application]} initialReview={personalReview} />);
+
+    for (const chapter of ['Core Identity', 'Driving Forces', 'Proven Capabilities', 'Social Proof', 'Areas for Growth', 'Long-Term Vision']) {
+      expect(screen.getByRole('heading', { level: 2, name: chapter })).toBeInTheDocument();
+    }
+    expect(screen.getByText('Who they consistently are')).toBeInTheDocument();
+    expect(screen.getByText('Evidence-led builder')).toBeInTheDocument();
+    expect(screen.getByText('A builder who makes complex technology useful for learners.')).toBeInTheDocument();
+    expect(screen.getByText('Robotics Club')).toBeInTheDocument();
+    expect(screen.getByText('Reached the national final.')).toBeInTheDocument();
+    expect(screen.getByText('The profile is coherent, evidence-led and ready for targeted development.')).toBeInTheDocument();
+    expect(screen.queryByText('internal-evidence-id')).not.toBeInTheDocument();
+    expect(screen.queryByText('internal-activity-id')).not.toBeInTheDocument();
+  });
+
+  it('renders Matching Report as student-facing fit chapters instead of nested field tiles', () => {
+    const matchingReview: AdminAiReportReview = {
+      application: review.application,
+      nodes: [{
+        ...review.nodes[1],
+        outputFormat: 'matching_report_v3',
+        output: {
+          overall: { summary: 'The student has a credible academic fit with one evidence gap.', overallAlignmentScore: 78, evidenceCoverage: 72, confidence: 0.82 },
+          universityFit: { score: 80, status: 'assessed', confidence: 0.84, coverage: 76, summary: 'Strong values and academic alignment.', metrics: { academicReadiness: { id: 'academicReadiness', score: 82, status: 'assessed', confidence: 0.85, coverage: 80, summary: 'Academic preparation is strong.', submetrics: [] } } },
+          programmeFit: { score: 75, status: 'assessed', confidence: 0.8, coverage: 70, summary: 'Good programme fit with limited direct exposure.', metrics: { capability: { id: 'capability', score: 79, status: 'assessed', confidence: 0.8, coverage: 74, summary: 'Relevant capabilities are visible.', submetrics: [] } }, strongestAlignment: ['capability'], potentialGap: 'Limited formal computing coursework.', strategicInterpretation: 'Lead with applied systems work.' },
+          keyTakeaways: { strongestFit: { title: 'Strongest fit', body: 'Applied problem solving is the clearest match.' }, competitiveAdvantage: { title: 'Competitive advantage', body: 'Combines technical building with peer teaching.' }, criticalGap: { title: 'Critical gap', body: 'Needs stronger academic computing evidence.' }, strategicDirection: { title: 'Strategic direction', body: 'Connect projects to programme outcomes.' } },
+          strengths: [{ title: 'Applied builder', description: 'Repeatedly converts ideas into working systems.' }],
+          gaps: [{ title: 'Academic depth', description: 'Formal computing evidence is still limited.' }],
+          positioningOpportunities: [{ title: 'Technology for learning', description: 'Use the teaching thread as a differentiator.' }],
+          hardRequirements: [{ label: 'English language requirement', status: 'unknown', applicantValue: null, requiredValue: 'IELTS 7.0', explanation: 'No valid score was found.' }],
+          scholarshipAlignment: null,
+          evidenceIndex: [],
+          targetSourceIndex: [],
+        },
+      }],
+    };
+
+    render(<AdminAiReportReviewClient items={[matchingReview.application]} initialReview={matchingReview} />);
+
+    for (const heading of ['University Fit', 'Programme Fit', 'Key Takeaways & Strategic Direction', 'Hard Requirements & Eligibility']) {
+      expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
+    }
+    expect(screen.getByText('Strong values and academic alignment.')).toBeInTheDocument();
+    expect(screen.getByText('Applied builder')).toBeInTheDocument();
+    expect(screen.getByText('IELTS 7.0')).toBeInTheDocument();
+    expect(screen.queryByText('Academic Readiness', { selector: 'dt' })).not.toBeInTheDocument();
+  });
+
+  it('renders Strategy Report as overview, development, narrative, and roadmap chapters', () => {
+    const strategyReview: AdminAiReportReview = {
+      application: review.application,
+      nodes: [{
+        ...review.nodes[2],
+        outputFormat: 'strategy_report_v3',
+        output: {
+          strategicOverview: {
+            currentPosition: { summary: 'A coherent builder profile with uneven evidence.', profileStrength: { statement: 'Technical ownership is clear.' }, keyChallenge: { statement: 'External impact proof is limited.' } },
+            strategicOpportunity: { statement: 'Connect technical work to education outcomes.' },
+            strategicGoal: { directionOfImprovement: 'Deepen verified impact.', communicationGoal: 'Present one coherent builder narrative.' },
+            expectedOutcome: 'A credible and differentiated application story.',
+            topPriorities: [{ rank: 1, title: 'Verify project impact', why: 'Current outcomes are self-reported.', suggestedDirection: 'Collect usage and mentor evidence.', interventionKind: 'add_evidence', factors: { impact: 4, relevance: 4, evidenceGap: 4, feasibility: 3, urgency: 4, rawPriority: 768 } }],
+          },
+          profileDevelopmentStrategy: {
+            areas: [{ label: 'Evidence', category: 'evidence', status: 'develop', diagnosis: 'Good claims, limited verification.', whyItMatters: 'Admissions readers need proof.', suggestedDirection: 'Verify the strongest two outcomes.' }],
+            activityAnalyses: [{ title: 'Robotics Club', classification: 'maintain', diagnosis: 'Strong sustained leadership.', recommendedMove: 'Quantify team and competition outcomes.', dimensions: { impact: { status: 'developing', statement: 'Outcome exists but is not quantified.' } } }],
+          },
+          narrativeStrategy: { coreNarrativeDirection: { originTrigger: 'Curiosity about automation.', recurringMotivation: 'Making systems useful.', actions: ['Built prototypes'], capabilitiesDeveloped: ['Systems thinking'], emergingDirection: 'Technology for learning', insight: 'The thread is strongest when linked to users.' }, supportingThemes: [{ title: 'Useful technology', significance: 'Connects building and teaching.' }], narrativeTension: { observedGap: 'Impact is claimed more than demonstrated.', whyItMatters: 'It weakens credibility.', possibleDirection: 'Add external proof.' }, narrativeOptions: [{ title: 'Builder for learners', centralIdea: 'Make complex systems useful.', whyItEmerges: 'Repeated building and teaching.', whatCouldStrengthenIt: 'Verified adoption data.', strategicFit: 'high' }] },
+          strategicRoadmap: [{ name: 'Strengthen Foundation', phaseKey: 'strengthen_foundation', goal: 'Verify the evidence base.', estimatedTimeline: 'Weeks 1–2', keyActions: ['Collect mentor confirmation'], deliverables: [{ label: 'Evidence pack', kind: 'evidence' }], successCriteria: ['Two outcomes independently verified'] }],
+          evidenceIndex: [],
+          targetSourceIndex: [],
+        },
+      }],
+    };
+
+    render(<AdminAiReportReviewClient items={[strategyReview.application]} initialReview={strategyReview} />);
+
+    for (const heading of ['Strategic Overview', 'Profile Development Strategy', 'Narrative Strategy', 'Strategic Roadmap']) {
+      expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
+    }
+    expect(screen.getByText('Verify project impact')).toBeInTheDocument();
+    expect(screen.getByText('Good claims, limited verification.')).toBeInTheDocument();
+    expect(screen.getByText('Robotics Club')).toBeInTheDocument();
+    expect(screen.getByText('Strengthen Foundation')).toBeInTheDocument();
+    expect(screen.queryByText('Raw Priority')).not.toBeInTheDocument();
+  });
+
   it('shows the selected report output when an admin follows the graph', () => {
     render(<AdminAiReportReviewClient items={[review.application]} initialReview={review} />);
 

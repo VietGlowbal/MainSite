@@ -1,5 +1,16 @@
 # Current project status
 
+Working tree 2026-09-14 (Admin AI report output now mirrors the readable student sections):
+`/admin/ai-report-review` no longer feeds canonical Personal, Matching, or Strategy Report objects
+through the generic key/value debugger. Personal follows its six student chapters; Matching separates
+university fit, programme fit, takeaways, strengths/gaps/opportunities, and eligibility; Strategy
+separates its overview, profile development, narrative, and roadmap. Each read-only section presents
+headlines, synthesis, scores/statuses, recommendations, proof, and next actions while omitting internal
+identifiers and `rawPriority`; raw JSON remains in Technical and legacy/unknown contracts retain the
+generic renderer. Measured: focused admin review tests (9), base and strict TypeScript, scoped ESLint,
+`git diff --check`, and the production build pass; the build retains the three known dynamic-filesystem
+tracing warnings from `src/lib/geo-content.ts`.
+
 Working tree 2026-09-14 (Admin AI report review badge overflow fix and clean evidence ref cards):
 Fixed badge overflow and duplicated scalar tiles reported on `/admin/ai-report-review` (`media_1789359428846.png`):
 When rendering item cards (such as evidence references in `evidenceRefs`), three issues degraded readability:
