@@ -162,11 +162,14 @@ describe('FinalCheckView', () => {
       { key: 'essay', status: 'draft', updatedAt: null },
     ];
 
+    const firstReview = mockCheck.documentReviews[0];
+    if (!firstReview) throw new Error('Expected a document review fixture');
+
     const checkWithConflictOnly: FinalCheckRecord = {
       ...mockCheck,
       documentReviews: [
         {
-          ...mockCheck.documentReviews[0],
+          ...firstReview,
           tier: 'strategic',
         },
       ],

@@ -56,6 +56,40 @@ export const FINAL_CHECK_TRANSLATIONS: Record<string, string> = {
   'Attach at least two of your application documents, then run the check. With less than that there is nothing to cross-reference.':
     'Hãy bổ sung ít nhất hai tài liệu trong hồ sơ rồi chạy kiểm tra. Ít hơn thế thì không có gì để đối chiếu chéo.',
 
+  // Action-first summary
+  Blocker: 'Điểm chặn',
+  'Attach {component}': 'Đính kèm {component}',
+  'This required component is missing. Attach or upload it before submission.':
+    'Thành phần bắt buộc này còn thiếu. Hãy đính kèm hoặc tải lên trước khi nộp hồ sơ.',
+  'Critical finding': 'Phát hiện nghiêm trọng',
+  'Resolve critical finding in {component}': 'Xử lý phát hiện nghiêm trọng trong {component}',
+  'Narrative conflict': 'Mâu thuẫn trong câu chuyện',
+  'Resolve conflict: {checkName}': 'Giải quyết mâu thuẫn: {checkName}',
+  'Review draft {component}': 'Rà soát bản nháp {component}',
+  'This component is currently written as a draft and needs a complete review.':
+    'Thành phần này hiện là bản nháp và cần được rà soát đầy đủ.',
+  'Strategic action': 'Hành động chiến lược',
+  'Strengthen {component}': 'Củng cố {component}',
+  Ready: 'Sẵn sàng',
+  'Application materials complete': 'Tài liệu hồ sơ đã hoàn tất',
+  'All required components are attached and reviewed without critical blockers.':
+    'Tất cả thành phần bắt buộc đã được đính kèm và rà soát, không còn điểm chặn nghiêm trọng.',
+  'Action-first summary': 'Tóm tắt ưu tiên hành động',
+  'Immediate priorities and blockers to address before submitting your application.':
+    'Ưu tiên và điểm chặn cần xử lý trước khi nộp hồ sơ.',
+  'Priority next action': 'Hành động ưu tiên tiếp theo',
+  Blockers: 'Điểm chặn',
+  'No missing components. All required documents are attached.':
+    'Không còn thành phần thiếu. Tất cả tài liệu bắt buộc đã được đính kèm.',
+  'Drafts needing review': 'Bản nháp cần rà soát',
+  'No unreviewed drafts. All attached documents have been reviewed.':
+    'Không còn bản nháp chưa rà soát. Tất cả tài liệu đính kèm đã được rà soát.',
+  'Critical findings & conflicts': 'Phát hiện nghiêm trọng & mâu thuẫn',
+  'No critical document findings or narrative conflicts found.':
+    'Không tìm thấy phát hiện nghiêm trọng nào trong tài liệu hoặc mâu thuẫn trong câu chuyện.',
+  'Run final check to analyze document quality and consistency.':
+    'Chạy kiểm tra lần cuối để phân tích chất lượng và tính nhất quán của tài liệu.',
+
   // Document review
   'Document by document': 'Rà soát từng tài liệu',
   'Each document is judged on what it is meant to do, not on whether it is well written.':

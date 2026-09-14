@@ -220,6 +220,11 @@ function ActionSummarySection({
   const narrativeConflicts =
     check?.narrativeAudit?.checks.filter((c) => c.verdict === 'conflict') ?? [];
   const strategicReviews = check?.documentReviews.filter((r) => r.tier === 'strategic') ?? [];
+  const primaryBlocker = blockers[0];
+  const primaryCritical = criticalReviews[0];
+  const primaryConflict = narrativeConflicts[0];
+  const primaryDraft = drafts[0];
+  const primaryStrategic = strategicReviews[0];
 
   // One clear next action chosen from the highest-priority available item
   let nextAction: {
@@ -229,16 +234,14 @@ function ActionSummarySection({
     badgeVariant: BadgeVariant;
   };
 
-  if (blockers.length > 0) {
-    const primaryBlocker = blockers[0];
+  if (primaryBlocker) {
     nextAction = {
       category: t('Blocker'),
       title: t('Attach {component}', { component: t(COMPONENT_LABELS[primaryBlocker.key]) }),
       detail: t('This required component is missing. Attach or upload it before submission.'),
       badgeVariant: 'reach',
     };
-  } else if (criticalReviews.length > 0) {
-    const primaryCritical = criticalReviews[0];
+  } else if (primaryCritical) {
     nextAction = {
       category: t('Critical finding'),
       title: t('Resolve critical finding in {component}', {
@@ -247,8 +250,7 @@ function ActionSummarySection({
       detail: primaryCritical.recommendedAction || primaryCritical.gap,
       badgeVariant: 'reach',
     };
-  } else if (narrativeConflicts.length > 0) {
-    const primaryConflict = narrativeConflicts[0];
+  } else if (primaryConflict) {
     nextAction = {
       category: t('Narrative conflict'),
       title: t('Resolve conflict: {checkName}', {
@@ -257,16 +259,14 @@ function ActionSummarySection({
       detail: primaryConflict.detail,
       badgeVariant: 'reach',
     };
-  } else if (drafts.length > 0) {
-    const primaryDraft = drafts[0];
+  } else if (primaryDraft) {
     nextAction = {
       category: t('Needs review'),
       title: t('Review draft {component}', { component: t(COMPONENT_LABELS[primaryDraft.key]) }),
       detail: t('This component is currently written as a draft and needs a complete review.'),
       badgeVariant: 'info-chip',
     };
-  } else if (strategicReviews.length > 0) {
-    const primaryStrategic = strategicReviews[0];
+  } else if (primaryStrategic) {
     nextAction = {
       category: t('Strategic action'),
       title: t('Strengthen {component}', { component: t(COMPONENT_LABELS[primaryStrategic.key]) }),

@@ -25,6 +25,16 @@ export const translations: Record<string, string> = {
   'Next-ranked options': 'Các lựa chọn tiếp theo',
   'Recommendation filters': 'Bộ lọc đề xuất',
   'Current / Latest institution (optional)': 'Trường hiện tại / gần nhất (không bắt buộc)',
+  GRE: 'GRE',
+  GMAT: 'GMAT',
+  'Reading this course page is taking longer than usual. You can wait or retry.':
+    'Đọc trang khóa học này đang mất nhiều thời gian hơn bình thường. Bạn có thể chờ hoặc thử lại.',
+  'Achievements & skills': 'Thành tích & kỹ năng',
+  'Awards, activities, work evidence and reflections are managed together so applications and reports use the same facts.':
+    'Giải thưởng, hoạt động, kinh nghiệm làm việc và suy ngẫm được quản lý cùng nhau để hồ sơ và báo cáo dùng chung một nguồn thông tin.',
+  'Manage achievements and activities': 'Quản lý thành tích và hoạt động',
+  'Create my CV': 'Tạo CV của tôi',
+  'Already have a CV?': 'Bạn đã có CV?',
   'Best Fits': 'Phù hợp nhất',
   'Explore All': 'Khám phá tất cả',
   'Explore all recommendations': 'Khám phá tất cả gợi ý',
@@ -1333,6 +1343,8 @@ export const translations: Record<string, string> = {
   'Graduate Admission Test': 'Bài thi chuẩn hóa sau đại học',
   'GRE total': 'Tổng điểm GRE',
   'GMAT total': 'Tổng điểm GMAT',
+  'e.g. BSc Computer Science, NUS (2020)': 'Ví dụ: Cử nhân Khoa học máy tính, NUS (2020)',
+  'e.g. MSc Data Science, NTU (2022)': 'Ví dụ: Thạc sĩ Khoa học dữ liệu, NTU (2022)',
   'Current / Latest institution': 'Trường hiện tại / gần nhất',
   "Master's degree & institution (if applicable)": 'Bằng Thạc sĩ & trường đào tạo (nếu có)',
   "Bachelor's degree & institution": 'Bằng Cử nhân & trường đào tạo',
@@ -1413,6 +1425,16 @@ export const translations: Record<string, string> = {
     'Chỉ chọn nếu trường bạn cộng trọng số cho lớp AP và honours.',
   'Your overall average as a percentage.':
     'Điểm trung bình chung của bạn tính theo phần trăm.',
+  'Reported as Verbal + Quant (260 to 340).': 'Báo cáo theo Verbal + Quant (260 đến 340).',
+  'Reported score (200 to 805).': 'Điểm được báo cáo (200 đến 805).',
+  'Cumulative GPA on a 4.0 scale.': 'GPA tích lũy trên thang điểm 4.0.',
+  'Cumulative average on a 10-point scale.': 'Điểm trung bình tích lũy trên thang điểm 10.',
+  'Overall percentage mark out of 100.': 'Điểm phần trăm tổng thể trên thang 100.',
+  'First Class (1st), Upper Second (2:1), Lower Second (2:2), etc.':
+    'Hạng Nhất (1st), Hạng Nhì cao (2:1), Hạng Nhì (2:2), v.v.',
+  'Enter your degree classification.': 'Nhập xếp loại bằng tốt nghiệp của bạn.',
+  'Your degree result or grading summary.': 'Kết quả bằng cấp hoặc tóm tắt điểm của bạn.',
+  'Enter your academic result.': 'Nhập kết quả học tập của bạn.',
   'Start with the number — for example 18/20 or 87%.':
     'Bắt đầu bằng con số — ví dụ 18/20 hoặc 87%.',
   'Half bands only — 0 to 9.': 'Chỉ theo nửa band — 0 đến 9.',
