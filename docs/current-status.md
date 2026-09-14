@@ -1,5 +1,16 @@
 # Current project status
 
+Working tree 2026-09-14 (CORS report → avatars bucket listing): the report "CORS reflects any origin
+(https://evil.example.com) / `Access-Control-Allow-Origin: *`" is **not ours**. Live probes: `glowbal-education.com`
+pages, `/api/*` and preflights send no `Access-Control-*` header; the header comes from Supabase's gateway
+(`/rest/v1` echoes origin, `/auth/v1` echoes + `Allow-Credentials: true`), which Supabase documents as fixed platform
+behaviour. No ambient credential exists on `*.supabase.co` (only `__cf_bm`), so nothing to fix in code — full reasoning
+in [known-issues.md §0j](known-issues.md). The real anon-key exposure still open was **`avatars` bucket listing** (8
+entries, 6 user-id folders) from a `to public` SELECT policy. Written, **NOT YET RUN**:
+`sql/supabase-avatars-no-anon-listing.sql` (drops it, adds owner-scoped SELECT so `MentorSignupForm`'s `upsert: true`
+upload keeps working). Measured: anon `/rest/v1/` → 401; anon bucket index → `[]`; public avatar URL with no auth → 200.
+Not run: the migration itself, any test suite (no TS changed).
+
 Working tree 2026-09-14 (Admin AI report output now mirrors the readable student sections):
 `/admin/ai-report-review` no longer feeds canonical Personal, Matching, or Strategy Report objects
 through the generic key/value debugger. Personal reuses the student-facing snapshot, six complete

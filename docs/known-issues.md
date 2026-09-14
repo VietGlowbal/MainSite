@@ -706,6 +706,47 @@ real problem instead of sending a user who merely mistyped off to the reset flow
 Still missing: nothing in the password story. What this page does *not* do is
 list active sessions or offer 2FA — neither has been asked for.
 
+## 0j. ✅ NOT A BUG — "CORS reflects any origin / `Access-Control-Allow-Origin: *`" is Supabase's gateway, not us; the real exposure was `avatars` listing
+
+Reported by the 21/08 Beta Product Review (CORS wildcard, rated Low) and again
+on 2026-09-14 as "reflects https://evil.example.com". Measured 2026-09-14 with
+`Origin: https://evil.example.com`:
+
+| Host | What comes back |
+|---|---|
+| `glowbal-education.com` (pages, `/api/*`, OPTIONS preflight) | **No** `Access-Control-*` header at all. Browsers refuse cross-origin reads of our responses. |
+| `<ref>.supabase.co/rest/v1/*` | `Access-Control-Allow-Origin` echoes the origin; preflight answers `*` |
+| `<ref>.supabase.co/auth/v1/*` | echoes the origin **and** `Access-Control-Allow-Credentials: true` |
+
+**Why this is not a vulnerability, and why there is nothing to change:**
+
+* **Not configurable.** Supabase documents the permissive gateway CORS as
+  platform behaviour: "the auth boundary for Supabase APIs is the `apikey`
+  header rather than the request origin". There is no dashboard setting for
+  REST/Auth/Storage. Only Edge Functions set their own CORS, and we have none.
+* **CORS only limits browsers.** The anon key ships in our JS bundle by design;
+  `curl` ignores CORS entirely. Restricting the origin would stop nothing an
+  attacker cannot already do from a script.
+* **`Allow-Credentials: true` has nothing to carry.** The session lives on
+  *our* domain (`@supabase/ssr` cookies, `SameSite=Lax`) and reaches Supabase
+  as an explicit `Authorization: Bearer` header our own JS attaches. The only
+  cookie `*.supabase.co` sets is Cloudflare's `__cf_bm` bot token. A page on
+  evil.example.com has no way to make the browser send a student's JWT.
+
+**What actually matters is what the anon key can reach**, so check that
+instead of the header. Status 2026-09-14:
+
+* `GET /rest/v1/` (OpenAPI dump) → `401`, service role only. Closed.
+* Anon-executable `SECURITY DEFINER` RPCs → closed (§0g).
+* `POST /storage/v1/object/list/avatars` → **still returns 8 entries, 6 of
+  them user-id folders.** Caused by the `to public` SELECT policy in
+  `sql/supabase-missing-tables.sql`, which a public bucket never needed for
+  reading. Fix written: `sql/supabase-avatars-no-anon-listing.sql` (replaces
+  it with an owner-scoped SELECT so mentor `upsert` uploads keep working).
+  **NOT YET RUN** — confirm with the verify block at the top of that file.
+* No shared rate limit in front of the Supabase API — Supabase's own Auth rate
+  limits apply; REST relies on RLS. Same gap as audit H7 for our routes.
+
 ---
 
 ## 0d. `application_recommendations` genUI columns — the detail-page content block
