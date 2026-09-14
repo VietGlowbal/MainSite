@@ -7,7 +7,9 @@ university fit, programme fit, takeaways, strengths/gaps/opportunities, and elig
 separates its overview, profile development, narrative, and roadmap. Each read-only section presents
 headlines, synthesis, scores/statuses, recommendations, proof, and next actions while omitting internal
 identifiers and `rawPriority`; raw JSON remains in Technical and legacy/unknown contracts retain the
-generic renderer. Measured: focused admin review tests (9), base and strict TypeScript, scoped ESLint,
+generic renderer. The Personal detector unwraps the persisted `{ report, evaluation }` container so
+the canonical report reaches the readable renderer while evaluation diagnostics remain secondary.
+Measured: focused admin review tests (13 across API and client), base and strict TypeScript, scoped ESLint,
 `git diff --check`, and the production build pass; the build retains the three known dynamic-filesystem
 tracing warnings from `src/lib/geo-content.ts`.
 
