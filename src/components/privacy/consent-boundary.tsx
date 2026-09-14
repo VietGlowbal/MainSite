@@ -187,7 +187,18 @@ function writeLocalConsent(record: ConsentRecord): void {
   }
 }
 
-export function ConsentBoundary({ children }: { children: React.ReactNode }) {
+export function ConsentBoundary({
+  children,
+  nonce,
+}: {
+  children: React.ReactNode;
+  /**
+   * The request's CSP nonce, from the root layout. next/script injects GA's
+   * inline bootstrap and only stamps a nonce it is handed — without this the
+   * enforced `script-src` blocks GA for every visitor who accepted analytics.
+   */
+  nonce?: string | undefined;
+}) {
   const t = useT();
   const [ready, setReady] = useState(false);
   const [consent, setConsent] = useState<ConsentRecord | null>(null);
@@ -259,7 +270,7 @@ export function ConsentBoundary({ children }: { children: React.ReactNode }) {
        * `afterInteractive` strategy, i.e. after hydration, so it stays off the
        * critical path the /ai-strategy FCP/LCP work is measuring.
        */}
-      {consentAllows(consent, 'analytics') && GA_MEASUREMENT_ID ? <GoogleAnalytics gaId={GA_MEASUREMENT_ID} /> : null}
+      {consentAllows(consent, 'analytics') && GA_MEASUREMENT_ID ? <GoogleAnalytics gaId={GA_MEASUREMENT_ID} {...(nonce ? { nonce } : {})} /> : null}
 
       {showBanner ? (
         <aside
