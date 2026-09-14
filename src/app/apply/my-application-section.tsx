@@ -158,7 +158,9 @@ function isPending(app: CourseApplication): boolean {
 
 type AuthoritativeParseState = {
   status: CourseApplication['parseStatus'] | null;
+  active: boolean;
   isStale: boolean;
+  canRetry: boolean;
   error: string | null;
 };
 
@@ -174,7 +176,11 @@ export function useAuthoritativeParseState(
 ): AuthoritativeParseState {
   const [state, setState] = useState<AuthoritativeParseState>({
     status: null,
+    // Be conservative until the endpoint confirms that no worker lease is
+    // active. A failed application projection can briefly lag an active job.
+    active: pending,
     isStale: false,
+    canRetry: false,
     error: null,
   });
 
@@ -196,20 +202,24 @@ export function useAuthoritativeParseState(
         if (!response.ok || cancelled) return;
         const body = (await response.json()) as {
           parseStatus?: CourseApplication['parseStatus'];
+          active?: boolean;
           isStale?: boolean;
+          canRetry?: boolean;
           error?: string | null;
         };
         if (cancelled) return;
         const status = body.parseStatus ?? null;
         setState({
           status,
+          active: Boolean(body.active),
           isStale: Boolean(body.isStale),
+          canRetry: Boolean(body.canRetry),
           error: body.error ?? null,
         });
         // Stop once the server reports a terminal state. The parent will
         // normally refresh the row, but this avoids a detached row polling
         // forever when a terminal transition happens between page refreshes.
-        if (status && !isParsePending(status) && interval) {
+        if (status && !body.active && !isParsePending(status) && interval) {
           clearInterval(interval);
           interval = undefined;
         }
@@ -479,13 +489,15 @@ function ApplicationRow({
   const university = displayUniversityName(app.universityName);
   const urlLabel = courseUrlLabel(app.courseUrl);
   const pending = isPending(app);
-  const authoritative = useAuthoritativeParseState(app.id, pending);
-  const rowPending = pending && (
+  const hasFailure = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+  const authoritative = useAuthoritativeParseState(app.id, pending || hasFailure);
+  const rowActive = authoritative.active || (authoritative.status === null && (pending || hasFailure));
+  const rowPending = rowActive || (pending && (
     authoritative.status === null || isParsePending(authoritative.status)
-  );
-  const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout'
-    || (pending && (authoritative.status === 'failed' || authoritative.status === 'timeout'));
-  const isStale = rowPending && authoritative.isStale;
+  ));
+  const failed = !rowActive && (hasFailure
+    || (pending && (authoritative.status === 'failed' || authoritative.status === 'timeout')));
+  const isStale = !rowActive && authoritative.isStale;
 
   const urgency = deadlineUrgency(app.deadline);
   const workspaceHref = `/apply/${app.id}`;

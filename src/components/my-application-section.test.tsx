@@ -99,4 +99,46 @@ describe('MyApplicationSection workspace prefetch', () => {
     expect(screen.getByText(/taking longer than usual/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
   });
+
+  it('does not expose Retry while the parser job is active behind a failed app projection', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        parseStatus: 'failed',
+        active: true,
+        isStale: false,
+        canRetry: false,
+        error: 'A previous attempt failed',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <MyApplicationSection
+        applications={[{
+          id: 'app-active-worker',
+          universityName: 'Example University',
+          courseName: '',
+          courseUrl: 'https://example.edu/course',
+          userId: 'user-1',
+          status: 'researching',
+          progressPercentage: 20,
+          parseStatus: 'failed',
+          parseError: 'A previous attempt failed',
+          importStatus: 'complete',
+          updatedAt: '2020-01-01T00:00:00Z',
+          createdAt: '2020-01-01T00:00:00Z',
+        } as CourseApplication]}
+        logoByUniversityId={{}}
+        strategyReadyById={{}}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/AI is reading the course page/i)).toBeInTheDocument();
+  });
 });

@@ -63,12 +63,14 @@ export async function GET(
     const isProcessing = application.parse_status === 'processing' || job?.status === 'processing';
     const isStale = isProcessing && !Number.isNaN(updatedTime) && Date.now() - updatedTime > STALE_THRESHOLD_MS;
 
-    const canRetry =
+    const active = isProcessing && !isStale;
+    const canRetry = !active && (
       application.parse_status === 'failed' ||
       application.parse_status === 'timeout' ||
       job?.status === 'failed' ||
       job?.status === 'timeout' ||
-      isStale;
+      isStale
+    );
 
     const phase = mapStatusToPhase({
       status: application.parse_status,
@@ -86,6 +88,7 @@ export async function GET(
       progressPercentage: application.progress_percentage ?? 0,
       phase,
       lastUpdatedAt,
+      active,
       isStale,
       canRetry,
       error,

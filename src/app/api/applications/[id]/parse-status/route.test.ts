@@ -173,6 +173,57 @@ describe('GET /api/applications/[id]/parse-status', () => {
     );
   });
 
+  it('suppresses retry while a worker lease is active despite a stale application projection', async () => {
+    mocks.userClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: {
+                id: appId,
+                user_id: userId,
+                parse_status: 'failed',
+                progress_percentage: 0,
+                parse_error: 'A previous attempt failed',
+                updated_at: new Date().toISOString(),
+              },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    mocks.adminClient.mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                status: 'processing',
+                phase: 'extracting',
+                attempts: 1,
+                max_attempts: 3,
+                updated_at: new Date().toISOString(),
+                started_at: new Date().toISOString(),
+              },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: appId }) });
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual(expect.objectContaining({
+      active: true,
+      isStale: false,
+      canRetry: false,
+    }));
+  });
+
   it('classifies retryable and terminal errors accurately', async () => {
     mocks.userClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
