@@ -19,6 +19,16 @@ export {
  * Attributes for the Supabase session cookies. All three Supabase clients must
  * pass the same object, or a token refresh rewrites the cookie without them.
  */
+/**
+ * The per-request Content Security Policy and its nonce. Built in src/proxy.ts;
+ * the root layout reads the nonce back through `NONCE_HEADER`.
+ */
+export {
+  NONCE_HEADER,
+  buildContentSecurityPolicy,
+  createNonce,
+  type ContentSecurityPolicy,
+} from './content-security-policy';
 export {
   SUPABASE_AUTH_COOKIE_OPTIONS,
   supabaseAuthCookieOptions,
