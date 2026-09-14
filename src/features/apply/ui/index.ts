@@ -22,6 +22,11 @@ export { localizeIntakeCopy, localizeIntakeOption } from './intake-copy';
 export { SearchableMultiSelectGrid } from './searchable-grid';
 export type { GridItem } from './searchable-grid';
 export { PersonalReportV2View } from './personal-report-v2-view';
+export {
+  ApplicantSnapshotView,
+  KeyTakeawaysView,
+  PersonalReportPrintView,
+} from './personal-report';
 export { MatchingReportView } from './matching-report-view';
 export { ResearchProgress, ResearchingInline } from './research-progress';
 export { AchievementCard, ActivityCard } from './achievement-cards';

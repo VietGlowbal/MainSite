@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -94,7 +94,7 @@ describe('ConsentBoundary', () => {
     expect(analyticsConsentedFromCookie(consentCookie())).toBe(true);
   });
 
-  it('allows the footer trigger to reopen settings and reject analytics', async () => {
+  it('allows the footer trigger to reopen settings and switch analytics off', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(
       CONSENT_STORAGE_KEY,
@@ -109,14 +109,86 @@ describe('ConsentBoundary', () => {
     await waitFor(() => expect(screen.getByTestId('vercel-analytics')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Privacy settings' }));
     expect(screen.getByRole('dialog', { name: 'Privacy settings' })).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox', { name: /Non-essential analytics/ }));
-    await user.click(screen.getByRole('button', { name: 'Save privacy preferences' }));
+    const analytics = screen.getByRole('switch', { name: 'Analytics' });
+    expect(analytics).toBeChecked();
+    await user.click(analytics);
+    await user.click(screen.getByRole('button', { name: 'Save my choices' }));
 
     expect(screen.queryByTestId('vercel-analytics')).not.toBeInTheDocument();
     expect(parseStoredConsent(window.localStorage.getItem(CONSENT_STORAGE_KEY))).toMatchObject({
       analytics: false,
     });
     expect(analyticsConsentedFromCookie(consentCookie())).toBe(false);
+  });
+
+  it('refuses everything optional in one click from Configure', async () => {
+    // Configure is the only refusal the banner offers (known-issues §9), so the
+    // refusal inside it must be the first thing a visitor meets: it is the
+    // first button in the dialog, which is where Modal puts focus on open.
+    const user = userEvent.setup();
+    render(
+      <ConsentBoundary>
+        <p>content</p>
+      </ConsentBoundary>,
+    );
+
+    await screen.findByRole('complementary', { name: 'Cookie preferences' });
+    await user.click(screen.getByRole('button', { name: 'Configure' }));
+
+    const reject = screen.getByRole('button', { name: 'Reject all optional cookies' });
+    expect(reject).toHaveFocus();
+    expect(screen.getByRole('switch', { name: 'Analytics' })).not.toBeChecked();
+    await user.click(reject);
+
+    expect(screen.queryByRole('dialog', { name: 'Privacy settings' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Cookie preferences' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('vercel-analytics')).not.toBeInTheDocument();
+    expect(parseStoredConsent(window.localStorage.getItem(CONSENT_STORAGE_KEY))).toMatchObject({
+      analytics: false,
+    });
+    expect(analyticsConsentedFromCookie(consentCookie())).toBe(false);
+  });
+
+  it('shows necessary cookies as always on, with a switch only for the optional category', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConsentBoundary>
+        <p>content</p>
+      </ConsentBoundary>,
+    );
+
+    await screen.findByRole('complementary', { name: 'Cookie preferences' });
+    await user.click(screen.getByRole('button', { name: 'Configure' }));
+
+    const necessary = screen.getByRole('region', { name: 'Necessary' });
+    expect(within(necessary).getByText('Always on')).toBeInTheDocument();
+    expect(within(necessary).queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
+  });
+
+  it('keeps Accept all and the switch unavailable while the browser sends a privacy signal', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window.navigator, 'globalPrivacyControl', { value: true, configurable: true });
+    try {
+      render(
+        <ConsentBoundary>
+          <ConsentSettingsTrigger />
+        </ConsentBoundary>,
+      );
+
+      // A privacy signal decides on mount, so no banner: settings come from the footer.
+      await waitFor(() =>
+        expect(parseStoredConsent(window.localStorage.getItem(CONSENT_STORAGE_KEY))).toMatchObject({
+          analytics: false,
+        }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Privacy settings' }));
+
+      expect(screen.getByRole('button', { name: 'Accept all cookies' })).toBeDisabled();
+      expect(screen.getByRole('switch', { name: 'Analytics' })).toBeDisabled();
+    } finally {
+      delete (window.navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl;
+    }
   });
 
   it('mirrors a pre-existing stored choice into the cookie on mount', async () => {

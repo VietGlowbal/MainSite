@@ -2342,6 +2342,18 @@ What did not change, and must not:
   decision.
 - **Configure is now load-bearing.** It is the only way to refuse from the
   banner, so it cannot be dropped or hidden behind an overflow.
+- **Inside Configure, refusing is one click and comes first** (owner's pick,
+  2026-09-13, of "categories + reject all" over per-service switches). The
+  dialog opens with *Reject all optional cookies* and *Accept all cookies* side
+  by side at equal weight; Reject is the first focusable element, so it holds
+  focus on open. Below them: a locked *Necessary — Always on* card and an
+  *Analytics* card with one `Toggle` (`src/shared/ui/toggle.tsx`) and a visible
+  On/Off word. Each card's "What's included" lists the real cookies/services
+  behind it (`NECESSARY_ITEMS` / `ANALYTICS_ITEMS` in `consent-boundary.tsx`) —
+  **adding a tracker means adding its row there.** No marketing/functional
+  card: the site sets none, and a switch that controls nothing misinforms.
+  Asserted by *refuses everything optional in one click from Configure*. The
+  consent record and cookie format are unchanged, so nobody is re-prompted.
 - The previous labels were "Accept non-essential" / "Reject non-essential" /
   "Configure". `'Reject non-essential'` has been removed from
   `i18n-dictionary.ts`; `'Accept Essential Cookies'` replaces it, and `Accept`

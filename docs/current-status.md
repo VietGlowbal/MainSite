@@ -2,7 +2,8 @@
 
 Working tree 2026-09-14 (Admin AI report output now mirrors the readable student sections):
 `/admin/ai-report-review` no longer feeds canonical Personal, Matching, or Strategy Report objects
-through the generic key/value debugger. Personal follows its six student chapters; Matching separates
+through the generic key/value debugger. Personal reuses the student-facing snapshot, six complete
+chapters, evidence visualisations, takeaways, and closing summary in a read-only screen mode; Matching separates
 university fit, programme fit, takeaways, strengths/gaps/opportunities, and eligibility; Strategy
 separates its overview, profile development, narrative, and roadmap. Each read-only section presents
 headlines, synthesis, scores/statuses, recommendations, proof, and next actions while omitting internal
@@ -35,6 +36,25 @@ Working tree 2026-09-14 (feedback-hardening remediation, review-ready):
 - Course parsing now uses activity-timestamp CAS guards for stale reaping, narrow missing-`phase` compatibility fallback, terminal application/job reconciliation, and a final worker lease check before checklist/source side effects. The list UI reads `/parse-status` for stale/retry state instead of inferring lease age from `course_applications.updated_at`; the endpoint exposes `active` so a lagging application projection cannot offer Retry while a worker lease is healthy.
 - Required migration order (do not reorder): baseline schemas and, only if needed, the baseline `sql/supabase-claim-parse-jobs.sql`; `sql/supabase-pg-phd-onboarding.sql`; `sql/supabase-job-claim-resilience.sql`; `sql/supabase-course-parse-reliability.sql`; then application deployment. The baseline claim script must run only before resilience; never rerun it after resilience/reliability, because that would restore `started_at`-only stale semantics. No live migration was executed.
 - Measured remediation gates: `check-i18n.mjs --all` passed with 0 missing keys; strict and normal typechecks passed; focused onboarding (311), course lifecycle (76), matcher (58), canonical evidence (66), migration-order (1), and parser-status/list (10) tests passed; `npm run test:ci` passed 409/409 files (3,860 passed, 2 todo); `npm run lint` passed with 5 pre-existing warnings; `npm run build` passed (150 pages); `git diff --check` passed. The exact `npm test -- --maxWorkers=1` run had two unrelated candidate-confirmation timeouts/assertion failures under repository-wide Windows load, while that file passes alone (17/17) and the CI-style run passes. `npm run verify:pr` remains environment-blocked because this workstation exposes Node 22.15.0 and the repository requires Node 24.19.0 (`.node-version`).
+Working tree 2026-09-13 (cookie Configure dialog — more control, obvious refusal): the privacy-settings modal in
+`src/components/privacy/consent-boundary.tsx` was one checkbox. It now opens with **Reject all optional cookies** /
+**Accept all cookies** side by side at equal weight (Reject is first and takes focus; both save and close), then a
+locked *Necessary — Always on* card and an *Analytics* card with a new `Toggle` primitive (`src/shared/ui/toggle.tsx`,
+kit md toggle, not in the GlowBal Figma file) plus a visible On/Off word. Each card's "What's included" lists the real
+cookies/services (`NECESSARY_ITEMS` / `ANALYTICS_ITEMS`). Owner chose this over per-service switches; no invented
+marketing/functional categories. Consent record, cookie format and policy version are unchanged — nobody is re-prompted.
+Banner buttons untouched (§9 decision stands). Details in [known-issues.md §9](known-issues.md).
+**Found and fixed on the way:** `home-partners.tsx` put its heading at inline `z-index: 201` (logos up to 200) with no
+stacking context, so it painted over every `Modal` (`z-[100]`) on `/` — the new, taller dialog had "Find a university"
+and the orbit heading drawn over its own text. The orbit stage now has `isolate`.
+Measured: `npx vitest run` consent + i18n-required + analytics 3 files / 21 passed (4 new consent tests), marketing
+6 files / 35 passed; `npm run typecheck` and `typecheck:strict` clean; ESLint clean on the 5 changed source files;
+`npm run build` passes. Playwright on `next start`: desktop EN, `/vi`, and 390px — Reject focused on open, switch knob
+moves 20px, no horizontal overflow, no overlap after the `isolate` fix. Not run: full `npm test`, `verify:pr`, E2E.
+**Open, pre-existing, not changed:** the first `/vi` load after a cold server start renders the consent banner *and*
+dialog in English (reproduced 1 of 3 loads, always the first; later loads Vietnamese). Likely cause: `primeCatalog`
+replaces the catalog object, and `LanguageProvider`'s memoized `t` in the root layout is not re-rendered when
+`<ViCatalog />` primes it after first render.
 
 Working tree 2026-09-13 (404 page on site chrome): `src/app/not-found.tsx` rebuilt on `SiteNavigation` (light) +
 shared `Footer` + design-system tokens (`Button` primary/secondary lg, `bg-brand-subtle` featured icon, display-sm
