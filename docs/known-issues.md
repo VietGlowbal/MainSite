@@ -17,7 +17,7 @@ are regression records for fixed bugs, not open work:
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
 | §0g anon-callable SECURITY DEFINER RPCs | ✅ **RESOLVED 2026-09-05.** `sql/supabase-rpc-privilege-hardening.sql` has been applied: `pg_proc.proacl` now reads `{postgres=X,service_role=X}` for all 26 mutating definer functions, `anon` and `authenticated` hold no EXECUTE. Verified from the live catalog, not from the file. The six definer functions `anon` can still execute are the five TRIGGER functions the migration deliberately left alone (PostgREST does not expose a function returning `trigger`) plus `confirm_application_candidate_snapshot`, which raises `42501` when `auth.uid()` is NULL. Evidence: `sql/introspect.sql` run 2026-09-05T16:26Z, `docs/audit-2026-09-05-database.md` §2. Historical detail below. ~~🔴 OPEN, most urgent item in this file.~~ Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN** — re-confirmed still live 2026-09-04 by calling all five as `anon` (200/204, real `plan` disclosed for a real `user_id`) and by catalog (`has_function_privilege('anon', …)` true for all 11 definer functions). The migration is **verified correct and complete** against the live catalog — run it as-is. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. **Partial update 2026-09-05:** `get_user_entitlement` now returns `42501 permission denied` to `anon` when called with the anon key, so that one disclosure is closed. The other definer functions were **not** re-verified — they mutate, so they cannot be probed read-only. Confirm the rest from `pg_proc.proacl` (run `sql/introspect.sql` §3) before closing this row. |
 | §0h anon `DELETE`/`PATCH` returning 204 | ✅ **Not a vulnerability — false positive, do not re-open.** PostgREST answers a write that matched *zero* rows with `204`, and an RLS `USING` clause filters rows rather than raising. A probe against a non-existent id therefore cannot tell "blocked" from "no such row". Verified 2026-09-04 against a real row: anon `DELETE`/`PATCH` returned `[]` under `return=representation` and the row survived. See §0h. |
-| §0k session cookie attributes | `Secure` shipped 2026-09-14 via one shared `cookieOptions` object. **Do not switch to `SameSite=Strict` or `HttpOnly`** — each breaks sign-in (Google OAuth return; 27 browser-side Supabase callers). The real XSS lever is enforcing the CSP. See §0k. |
+| §0k session cookies + CSP | `Secure` shipped 2026-09-14 via one shared `cookieOptions` object. **Do not switch to `SameSite=Strict` or `HttpOnly`** — each breaks sign-in (Google OAuth return; 27 browser-side Supabase callers). CSP **enforced** 2026-09-14 (nonce + `strict-dynamic`, set per request in `src/proxy.ts`) — **never add a static CSP to next.config.ts**. See §0k. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1d duplicate universities | ✅ Merged 2026-09-03, confirmed live (99 rows, 0 collisions). **Read before deleting any `universities` row** — 13 tables FK to it and 4 cascade. Scholarship *coverage* (374 of 2,877 linked) is a separate, still-open problem. |
@@ -770,11 +770,9 @@ The observation was **correct** — they are `@supabase/ssr` defaults
 can already act as the student — `fetch('/api/…')` carries the cookies and the
 in-page Supabase client carries the token. What `HttpOnly` would add is stopping
 the refresh token being carried off for use after the tab closes. **The lever
-that actually reduces XSS is enforcing the CSP**, which is still
-`Content-Security-Policy-Report-Only` with `'unsafe-inline' 'unsafe-eval'`
-(see the nonce plan in `next.config.ts`). Current raw-HTML surface is small: 5
-`dangerouslySetInnerHTML`, four JSON-LD through `serializeJsonLd`, one static
-keyframes string.
+that actually reduces XSS is the CSP, enforced since 2026-09-14 — see below.**
+Current raw-HTML surface is small: 5 `dangerouslySetInnerHTML`, four JSON-LD
+through `serializeJsonLd`, one static keyframes string.
 
 **If `HttpOnly` is wanted later:** move every browser-side Supabase call behind
 route handlers or server actions, issue signed upload URLs from the server,
@@ -786,6 +784,66 @@ everyone out of every client-side feature.
 The three clients must pass the same object — each rewrites the cookie on token
 refresh, so one left on library defaults strips `Secure` again. Do not add a
 `name`: it renames the cookie and signs every user out.
+
+### Content Security Policy — enforced 2026-09-14
+
+Review finding (extends B1PR 3.1 / 5.1.2): "only `Content-Security-Policy-Report-Only`,
+no enforced CSP on any route; `unsafe-inline` and `unsafe-eval` active;
+`upgrade-insecure-requests` ignored". All three were true of production — the
+last because browsers ignore that directive inside a report-only policy.
+
+| Header (set per page request by `src/proxy.ts`) | Directives |
+|---|---|
+| `Content-Security-Policy` — **enforced** | `script-src 'nonce-…' 'strict-dynamic' 'self'` (`'unsafe-eval'` only when `NODE_ENV=development`), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests` |
+| `Content-Security-Policy-Report-Only` | the same three script directives, plus `default-src`, `style-src`, `img-src`, `font-src`, `connect-src`, `frame-src`, `form-action` |
+
+Built by `src/shared/lib/content-security-policy.ts`. Next reads the nonce off
+the forwarded request's CSP header and stamps its own scripts; `next/script`
+does not, so the nonce goes `x-nonce` → root layout → `ConsentBoundary` →
+`<GoogleAnalytics nonce>`.
+
+Decisions that will look wrong without the reasoning:
+
+* **⚠️ No CSP in `next.config.ts`, ever.** Browsers enforce every CSP header
+  they receive; a static one has no nonce and blocks all of Next's inline
+  scripts — the site stops hydrating.
+* **No caching was lost.** The root layout reads `headers()`, so every page was
+  already dynamic (`private, no-store`, `X-Vercel-Cache: MISS` on `/`, `/vi`,
+  `/about`, `/universities`, `/scholarships`, `/news`, `/auth`). The proxy's
+  `Vercel-CDN-Cache-Control` on `/universities` was removed: 3 × MISS, and a
+  cached page would carry a stale nonce under a fresh policy.
+* **No `'unsafe-inline'` / `https:` fallback.** Every browser that can run the
+  ES2022 bundle supports nonces. `'self'` stays for Safari 10–15.3 (nonces, but
+  no `'strict-dynamic'`); CSP3 browsers ignore it.
+* **Allowlists stay report-only** until checked: the old report-only header had
+  no reporting endpoint, so it never collected anything. Local crawl evidence
+  so far: 0 report-only violations on guest routes, 1 signed-in (below).
+  `style-src` must keep `'unsafe-inline'` even when enforced — a nonce cannot
+  cover `style=""` attributes.
+* **`'strict-dynamic'` lets running code insert an inline script** via
+  `document.createElement('script')`. By design (it is how Next loads chunks);
+  it needs script execution first, so it is not an injection vector.
+* **Zod 4 probes `Function("")`** when an object schema is created.
+  `src/instrumentation-client.ts` sets `jitless`, which short-circuits the probe
+  before any schema module loads.
+
+**Remaining known violation — essay pages ship Node's `crypto` polyfill.**
+`StatementWriter` → `@/lib/ai/vinuni-evaluation-v2` value-imports
+`calculateFinalScore`/`segmentEssay`/`VINUNI_EVALUATION_CONFIG` from
+`vinuni-grounded-evaluation.ts`, which imports `createHash` from `node:crypto`.
+Turbopack substitutes `crypto-browserify` — a ~620 KB chunk on
+`/apply/[id]/statement-feedback`, `/apply/[id]/lor-feedback`,
+`/ai-strategy/[id]/statement`, `/my-universities/[id]/writer`. Its asn1.js calls
+`vm.runInThisContext` inside try/catch, so the CSP refusal is harmless;
+`tests/e2e/csp.spec.ts` tolerates `eval` on exactly those routes. The fix is a
+bundle task, not a CSP one: keep `node:crypto` out of what those client
+components import.
+
+Measured 2026-09-14 on a local production build, Chromium: 22 of 23 `<script>`
+tags carry the header's nonce (the 23rd is JSON-LD). With the served CSP a
+parser-inserted `<script>`, an inline handler in HTML, an `innerHTML` handler,
+`eval` and `new Function` are all blocked; with the CSP stripped all of them
+ran. Not yet measured: the headers on a deployment.
 
 ---
 

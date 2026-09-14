@@ -32,54 +32,21 @@ const nextConfig: NextConfig = {
    * Production served ONLY `Strict-Transport-Security` (Vercel's own) until
    * 2026-09-04 — verified with a live request, not assumed. The 21/08 Beta
    * Product Review flagged the gap; this closes the four that carry no risk of
-   * breaking a page, and ships CSP in report-only mode so it can be tuned
-   * against real traffic before it is allowed to block anything.
+   * breaking a page.
    *
-   * ⚠️ THE CSP IS `Content-Security-Policy-Report-Only` ON PURPOSE. It does not
-   * enforce. Next's App Router inlines hydration payloads and styles, so an
-   * enforcing policy without a per-request nonce breaks React hydration and
-   * every `style` attribute the moment it ships. Promoting this to the
-   * enforcing header is a real task — add nonce generation in `src/proxy.ts`,
-   * thread it through, drop `'unsafe-inline'`/`'unsafe-eval'`, THEN rename the
-   * header. Renaming it on its own will take the site down.
-   *
-   * Origins below are not guesses. `connect-src` covers Supabase REST/Auth/
-   * Realtime (wss) and Vercel's analytics beacon; `img-src` mirrors the
-   * `images.remotePatterns` list further down this file; `frame-src` exists for
-   * the document preview drawer, which previews stored PDFs in an `<iframe>`
-   * (see features/apply/ui/document-preview-drawer.tsx). Fonts are self-hosted
-   * by `next/font/google` at build time, so no external font origin is needed.
+   * ⚠️ THE CONTENT SECURITY POLICY IS NOT HERE, AND MUST NOT BE ADDED BACK.
+   * Since 2026-09-14 `src/proxy.ts` sets it per request with a fresh nonce
+   * (`src/shared/lib/content-security-policy.ts`). A static CSP header here
+   * would be enforced alongside that one, and having no nonce it would block
+   * every inline script Next emits — the site would stop hydrating.
    */
   async headers() {
-    const csp = [
-      "default-src 'self'",
-      // 'unsafe-inline'/'unsafe-eval': see the nonce note above. Report-only.
-      // googletagmanager.com serves the gtag.js that <GoogleAnalytics /> mounts.
-      // Listed even though the header is report-only: leaving it out would file a
-      // violation report on every page load, and would silently kill GA on the
-      // day this is promoted to the enforcing header.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://www.googletagmanager.com",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://upload.wikimedia.org https://commons.wikimedia.org https://en.wikipedia.org https://lh3.googleusercontent.com https://images.unsplash.com https://source.unsplash.com https://wp.technologyreview.com https://www.google.com https://drive.google.com https://unicons.vn https://vinuni.edu.vn https://lapslie.com https://www.googletagmanager.com https://*.google-analytics.com",
-      "font-src 'self' data:",
-      // GA4 beacons go to google-analytics.com (and the regional
-      // *.analytics.google.com endpoints); gtag.js also fetches its own config
-      // back from googletagmanager.com.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in https://vitals.vercel-insights.com https://va.vercel-scripts.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com",
-      "frame-src 'self' blob: https://*.supabase.co",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'self'",
-      'upgrade-insecure-requests',
-    ].join('; ');
-
     return [
       {
         source: '/:path*',
         headers: [
-          // Stops cross-origin framing. `frame-ancestors` above says the same
-          // thing for modern browsers; this is the header older ones honour.
+          // Stops cross-origin framing. The CSP's `frame-ancestors` says the
+          // same thing for modern browsers; this is the header older ones honour.
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           // Stops a browser second-guessing a declared Content-Type. Relevant
           // here because student uploads are served back from Storage.
@@ -93,9 +60,7 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
-          },
-          { key: 'Content-Security-Policy-Report-Only', value: csp },
-        ],
+          },        ],
       },
     ];
   },

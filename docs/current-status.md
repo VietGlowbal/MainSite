@@ -1,5 +1,27 @@
 # Current project status
 
+Working tree 2026-09-14 (CSP report → **enforced Content Security Policy**): review said "only
+`Content-Security-Policy-Report-Only` on every route; `unsafe-inline`/`unsafe-eval` present; `upgrade-insecure-requests`
+ignored". **All three true of production** (live headers checked). Now `src/proxy.ts` sends, per page request, an
+enforced `Content-Security-Policy` — `script-src 'nonce-…' 'strict-dynamic' 'self'` (no `unsafe-inline`, `unsafe-eval`
+in dev only), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests` — plus a
+report-only header carrying the unverified origin allowlists. Builder: `src/shared/lib/content-security-policy.ts`;
+nonce reaches GA via `x-nonce` → root layout → `ConsentBoundary`. The static CSP in `next.config.ts` is gone (must not
+return). No caching cost: every page was already dynamic (`private, no-store`, `MISS` on 7 live routes); the ineffective
+`Vercel-CDN-Cache-Control` on `/universities` (3 × MISS) was removed because a cached page would carry a stale nonce.
+New `src/instrumentation-client.ts` sets Zod `jitless` so Zod 4's `Function("")` probe no longer trips the CSP on 40
+routes. Full record, including the one remaining harmless violation (essay pages ship `crypto-browserify` via
+`vinuni-grounded-evaluation` → `node:crypto`), in [known-issues.md §0k](known-issues.md).
+Measured (local `next build` + `next start`, Chromium): real HTML — 22/23 `<script>` carry the header's nonce, the 23rd
+is JSON-LD. Injection probe with the served CSP vs. stripped: parser-inserted `<script>`, inline handler in HTML,
+`innerHTML` handler, `eval`, `new Function` all **blocked** (all ran without CSP); Next still hydrates. New
+`tests/e2e/csp.spec.ts` (guest crawl of 10 routes + detail pages, injection test, signed-in crawl incl. essay page) all
+pass; report-only violations 0 guest, 1 signed-in (the known essay eval). E2E run: 27 passed, 1 skipped, **1 failed —
+`signed-in.spec.ts` "scholarship focus mode": the cookie banner intercepts the click** (test never dismisses it; not
+re-run on a pre-change build, so "pre-existing" is inferred, not measured). `npm run typecheck`, `typecheck:strict`,
+ESLint on changed files, `npm test` 402 files / 3760 passed, `npm run build` pass. Not run: a deployed check of the
+headers, `verify:pr`, production CSP reports (there is no reporting endpoint).
+
 Working tree 2026-09-14 (auth cookie report → `Secure` added, `Strict`/`HttpOnly` declined): report said the `sb-*`
 session cookies are `HttpOnly: false`, `Secure: false`, `SameSite: Lax` and readable from `document.cookie`, proposing
 `HttpOnly` + `Secure` + `Strict` + HTTPS + rotation. **Accurate** — those are `@supabase/ssr` 0.10.2 defaults and no

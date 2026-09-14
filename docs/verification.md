@@ -93,6 +93,25 @@ attaching to a `next dev` server:
 
 Re-run a suspected flake before treating it as a regression.
 
+Not a flake, open as of 2026-09-14: `signed-in.spec.ts` → "scholarship focus
+mode keeps two independent pages and apply focus" times out because the cookie
+banner (`aside[aria-label="Cookie preferences"]`) intercepts the click on
+`scholarship-continue-to-apply`. A fresh browser context has no consent record
+and the test never dismisses the banner.
+
+### Content Security Policy (`tests/e2e/csp.spec.ts`)
+
+Run it after any change to `src/proxy.ts`, the root layout, `next/script`
+usage, or a dependency that might `eval`. A missed nonce does not throw — the
+page just stops hydrating — so this spec checks each page's Next runtime came up
+and fails on any **enforced** `securitypolicyviolation`. It prints report-only
+violations as `[csp] …`; that list is the evidence for promoting the origin
+allowlists (docs/known-issues.md §0k). It aborts GA beacons so local runs never
+record page views. Baseline 2026-09-14: 3/3 pass, 0 report-only guest, 1
+signed-in (known essay-page eval).
+
+It needs a production build — `next dev` adds `'unsafe-eval'` to the policy.
+
 ### Visual baselines
 
 `home-preview.spec.ts` and `kitchen-sink.spec.ts` hold screenshot snapshots. Any
@@ -118,6 +137,11 @@ for `npm` / `node`**, or absolute-path the project's `node_modules`.
 `tests/e2e/signed-in.spec.ts` skips unless `E2E_EMAIL` / `E2E_PASSWORD` are set.
 They are in `.env.local` (gitignored) for a dedicated test account. Never put
 those values in a committed file.
+
+⚠️ Playwright does **not** read `.env.local`, so a plain `npx playwright test`
+skips every signed-in test and still reports green. Export the two variables
+into the shell first (PowerShell, without echoing them):
+`foreach ($l in Get-Content .env.local) { if ($l -match '^(E2E_EMAIL|E2E_PASSWORD)=(.*)$') { Set-Item "env:$($Matches[1])" $Matches[2].Trim('"') } }`
 
 ### Clicking before hydration
 
