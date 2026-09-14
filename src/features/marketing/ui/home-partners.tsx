@@ -739,9 +739,14 @@ export function HomePartners({ universityIds, locale }: HomePartnersProps = {}) 
             Logo centres reach all four edges of the stage, so half a logo hangs
             over each one. The 88% cap leaves room for that at the sides; the
             section's own py-gb-9xl covers the top and bottom. */}
+        {/* `isolate` keeps the orbit's z-indexes (logos up to FOCUS_Z_INDEX, the
+            heading at ORBIT_Z_CEILING) inside this stage. Without it they compete
+            in the root stacking context and beat every Modal (z-[100]) — the
+            privacy-settings dialog had this heading and its button painted
+            over its own text. */}
         <div
           ref={stageRef}
-          className="relative mx-auto flex w-full flex-col items-center gap-gb-6xl lg:block lg:aspect-[1020/572] lg:w-[min(88%,1120px)] lg:[container-type:inline-size]"
+          className="relative isolate mx-auto flex w-full flex-col items-center gap-gb-6xl lg:block lg:aspect-[1020/572] lg:w-[min(88%,1120px)] lg:[container-type:inline-size]"
         >
           <div
             className="flex flex-col items-center gap-gb-lg lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2"

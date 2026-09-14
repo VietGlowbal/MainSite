@@ -1473,14 +1473,40 @@ export const translations: Record<string, string> = {
   'Accept Essential Cookies': 'Chấp nhận cookie cần thiết',
   Configure: 'Tùy chỉnh',
   'Privacy settings': 'Cài đặt quyền riêng tư',
-  'Necessary cookies are always available. Choose whether optional analytics may load.':
-    'Cookie cần thiết luôn được bật. Bạn có thể chọn cho phép tải phân tích tùy chọn.',
-  'Non-essential analytics': 'Phân tích không cần thiết',
-  'Analytics are optional and are not required for your account or application.':
-    'Phân tích là tùy chọn và không cần thiết cho tài khoản hoặc hồ sơ ứng tuyển của bạn.',
+  'Choose which cookies GlowBal may use. Turning off optional cookies does not limit anything you can do on GlowBal.':
+    'Chọn loại cookie GlowBal được phép sử dụng. Tắt cookie tùy chọn không làm hạn chế bất kỳ việc gì bạn làm trên GlowBal.',
+  'Reject all optional cookies': 'Từ chối tất cả cookie tùy chọn',
+  'Accept all cookies': 'Chấp nhận tất cả cookie',
+  'Or choose by category': 'Hoặc chọn theo từng loại',
+  Necessary: 'Cần thiết',
+  'Needed for GlowBal to work, so they cannot be turned off.': 'Cần để GlowBal hoạt động nên không thể tắt.',
+  'Always on': 'Luôn bật',
+  Analytics: 'Phân tích',
+  'Help us see which pages students use and how fast they load. Not needed for your account or applications.':
+    'Giúp chúng tôi biết sinh viên dùng những trang nào và trang tải nhanh ra sao. Không cần thiết cho tài khoản hay hồ sơ ứng tuyển của bạn.',
+  On: 'Bật',
+  Off: 'Tắt',
+  "What's included ({count})": 'Bao gồm những gì ({count})',
+  'Sign-in session': 'Phiên đăng nhập',
+  'Keeps you signed in while you move between pages.': 'Giữ bạn đăng nhập khi chuyển giữa các trang.',
+  Language: 'Ngôn ngữ',
+  'Remembers whether you read GlowBal in English or Vietnamese.':
+    'Ghi nhớ bạn đọc GlowBal bằng tiếng Anh hay tiếng Việt.',
+  'Your privacy choice': 'Lựa chọn quyền riêng tư của bạn',
+  'Remembers what you pick here, so we do not ask again on every page.':
+    'Ghi nhớ lựa chọn của bạn ở đây để không phải hỏi lại trên mỗi trang.',
+  'Referral code': 'Mã giới thiệu',
+  'Records which ambassador link brought you here.': 'Ghi lại đường dẫn đại sứ đã đưa bạn đến đây.',
+  'Which pages you visit and a few key steps, such as finishing an essay review. Never the content of your documents.':
+    'Các trang bạn xem và một vài bước chính, như hoàn tất nhận xét bài luận. Không bao giờ gồm nội dung tài liệu của bạn.',
+  'Anonymous page-view counts.': 'Đếm lượt xem trang ẩn danh.',
+  'How fast pages load on your device.': 'Tốc độ tải trang trên thiết bị của bạn.',
+  'Referral visit ID': 'Mã lượt truy cập giới thiệu',
+  'Tells repeat visits apart when you open an ambassador link.':
+    'Phân biệt các lượt truy cập lặp lại khi bạn mở đường dẫn đại sứ.',
   'Your browser privacy signal keeps optional analytics turned off.':
     'Tín hiệu quyền riêng tư của trình duyệt đang giữ phân tích tùy chọn ở trạng thái tắt.',
-  'Save privacy preferences': 'Lưu tùy chọn quyền riêng tư',
+  'Save my choices': 'Lưu lựa chọn của tôi',
 
   // ── Footer (Figma 104:7404) ──────────────────────────────────────────────
   'Helping students find global universities, scholarships, and application strategies.':
