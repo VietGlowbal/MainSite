@@ -1126,7 +1126,7 @@ function MatchingRenderer({ output }: { output: RecordValue }) {
   const requirementValue = output.hardRequirements ?? output.academicRequirements;
   const requirements = Array.isArray(requirementValue)
     ? recordItems(requirementValue)
-    : Object.entries(asRecord(requirementValue)).map(([key, value]) => ({
+    : Object.entries(asRecord(requirementValue)).map(([key, value]): RecordValue => ({
         label: humanize(key),
         ...(value && typeof value === 'object' ? asRecord(value) : { requiredValue: value }),
       }));
