@@ -7,7 +7,12 @@ import type {
   AdminAiReportReviewListItem,
   AdminAiReportReviewNode,
 } from '@/features/ai-strategy-dashboard/api';
-import { PERSONAL_REFLECTION_QUESTIONS } from '@/features/apply/domain';
+import { PERSONAL_REFLECTION_QUESTIONS, type PersonalReportV2 } from '@/features/apply/domain';
+import {
+  ApplicantSnapshotView,
+  KeyTakeawaysView,
+  PersonalReportPrintView,
+} from '@/features/apply/ui';
 import { Badge, type BadgeVariant, ICONS, KitIcon, Panel, PanelHeader } from '@/shared/ui';
 
 type DetailState =
@@ -740,7 +745,7 @@ function PersonalChapter({
   );
 }
 
-function PersonalRenderer({ output }: { output: RecordValue }) {
+function PersonalSummaryRenderer({ output }: { output: RecordValue }) {
   const core = asRecord(output.coreIdentity);
   const driving = asRecord(output.drivingForce);
   const signature = asRecord(output.signaturePattern);
@@ -1017,6 +1022,36 @@ function PersonalRenderer({ output }: { output: RecordValue }) {
         <section className="rounded-gb-2xl border border-brand/25 bg-brand-subtle/20 p-gb-xl sm:p-gb-2xl">
           <p className="text-gb-xs font-bold uppercase tracking-[0.14em] text-fg-brand">What this report suggests overall</p>
           <div className="mt-gb-md flex flex-col gap-gb-sm">{overallParagraphs.map((paragraph) => <p key={paragraph} className="text-gb-sm leading-relaxed text-fg-secondary">{paragraph}</p>)}</div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function PersonalRenderer({ output }: { output: RecordValue }) {
+  const hasCompleteSections = [
+    output.coreIdentity,
+    output.drivingForce,
+    output.signaturePattern,
+    output.emergingThemes,
+    output.personalPositioning,
+    output.proofOfMe,
+  ].every((section) => typeof asRecord(section).available === 'boolean');
+
+  if (!hasCompleteSections) return <PersonalSummaryRenderer output={output} />;
+
+  const report = output as PersonalReportV2;
+  return (
+    <div className="flex flex-col gap-gb-3xl" data-testid="personal-report-readable-output">
+      <div className="rounded-gb-2xl border border-line bg-surface p-gb-xl shadow-gb-xs sm:p-gb-2xl">
+        <ApplicantSnapshotView report={report} />
+      </div>
+      <PersonalReportPrintView report={report} returnTo={undefined} mode="screen" />
+      <KeyTakeawaysView report={report} />
+      {report.overallSummary?.paragraphs.length ? (
+        <section className="flex flex-col gap-gb-md rounded-gb-xl bg-surface-muted p-gb-xl" data-no-auto-translate>
+          <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">What this report suggests overall</p>
+          {report.overallSummary.paragraphs.map((paragraph) => <p key={paragraph} className="text-gb-sm leading-relaxed text-fg-tertiary">{paragraph}</p>)}
         </section>
       ) : null}
     </div>

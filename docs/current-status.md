@@ -2,7 +2,8 @@
 
 Working tree 2026-09-14 (Admin AI report output now mirrors the readable student sections):
 `/admin/ai-report-review` no longer feeds canonical Personal, Matching, or Strategy Report objects
-through the generic key/value debugger. Personal follows its six student chapters; Matching separates
+through the generic key/value debugger. Personal reuses the student-facing snapshot, six complete
+chapters, evidence visualisations, takeaways, and closing summary in a read-only screen mode; Matching separates
 university fit, programme fit, takeaways, strengths/gaps/opportunities, and eligibility; Strategy
 separates its overview, profile development, narrative, and roadmap. Each read-only section presents
 headlines, synthesis, scores/statuses, recommendations, proof, and next actions while omitting internal

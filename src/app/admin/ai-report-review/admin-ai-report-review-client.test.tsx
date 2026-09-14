@@ -39,6 +39,7 @@ describe('AdminAiReportReviewClient', () => {
               observations: ['Repeatedly moves from research to a working prototype.'],
               stillDeveloping: ['Needs more externally verified outcomes.'],
               evidenceRefs: ['internal-evidence-id'],
+              insufficientData: null,
             },
             drivingForce: {
               available: true,
@@ -46,6 +47,11 @@ describe('AdminAiReportReviewClient', () => {
               headline: 'Curiosity directed at useful outcomes',
               explanation: 'The same motivation appears across research and community work.',
               repeatedMotivations: ['Understanding complex systems', 'Helping other learners'],
+              evidenceRefs: [],
+              isHypothesis: true,
+              missingPersonalGrounding: null,
+              reflectionPrompt: null,
+              insufficientData: null,
             },
             signaturePattern: {
               available: true,
@@ -57,6 +63,8 @@ describe('AdminAiReportReviewClient', () => {
                 { key: 'response', label: 'Response', description: 'Takes ownership', examples: [] },
               ],
               distinctiveness: 'Combines technical depth with practical ownership.',
+              evidenceRefs: [],
+              insufficientData: null,
             },
             emergingThemes: {
               available: true,
@@ -68,8 +76,11 @@ describe('AdminAiReportReviewClient', () => {
                   explanation: 'Appears in three separate experiences.',
                   supportingExperiences: ['Robotics club', 'Peer tutoring'],
                   limitation: 'Impact evidence is still mostly self-reported.',
+                  confidence: 'high',
+                  evidenceRefs: [],
                 },
               ],
+              insufficientData: null,
             },
             personalPositioning: {
               available: true,
@@ -80,8 +91,11 @@ describe('AdminAiReportReviewClient', () => {
               coherent: true,
               directionAligned: true,
               credible: false,
+              positioningStatus: 'emerging',
               whyThisFits: ['Supported by repeated building and teaching experiences.'],
               whatPreventsStrongerPositioning: ['Needs one externally verified impact result.'],
+              evidenceRefs: [],
+              insufficientData: null,
             },
             proofOfMe: {
               available: true,
@@ -91,14 +105,40 @@ describe('AdminAiReportReviewClient', () => {
                   activityId: 'internal-activity-id',
                   title: 'Robotics Club',
                   role: 'Team lead',
+                  organisation: 'Example Lab',
+                  period: '2024–2026',
+                  evidenceSource: 'Mentor confirmation',
+                  sources: [{ fileName: 'mentor-letter.pdf' }],
                   personalContribution: 'Designed the control system and mentored four members.',
                   outcome: 'Reached the national final.',
                   competenciesDemonstrated: ['Systems thinking', 'Leadership'],
                   supports: ['Builder positioning'],
                   evidenceStrength: 'strong',
                   verificationStatus: 'verified',
+                  evidenceRefs: [],
                 },
               ],
+              insufficientData: null,
+            },
+            analytics: {
+              competencyEvidenceProfile: [],
+              narrativeIdentitySignals: [{ key: 'patternConsistency', label: 'Pattern consistency', score: 72, confidence: 'high' }],
+              signaturePatternSupport: [],
+              themeMaturity: [],
+              positioningDimensions: [],
+              evidenceSummary: {
+                totalItems: 1,
+                verification: { verified: 1, attributable: 0, stated: 0 },
+                strength: { strong: 1, moderate: 0, limited: 0 },
+                competencyClaims: { hard: 1, soft: 0, meta: 0 },
+              },
+            },
+            canvasDetails: {
+              capabilities: [{ name: 'Systems thinking', score: 78, stars: 4, band: 'strong', confidence: 'medium', evidenceCount: 2, strongEvidenceCount: 1, verifiedEvidenceCount: 1, why: 'Demonstrated across two projects.', supportingEvidence: [{ activityId: 'internal-activity-id', title: 'Prototype pilot', outcome: 'Used by peers.', evidenceStrength: 'strong', verificationStatus: 'verified' }] }],
+              motivations: [{ label: 'Making technology useful', score: 67, evidenceCount: 2, confidence: 'medium' }],
+              socialProof: [{ key: 'activities', label: 'Experiences analysed', value: 1, caption: 'Activities contributing evidence to this report', evidenceIds: [] }],
+              growthPriorities: [],
+              futurePathways: [],
             },
             overallSummary: {
               paragraphs: ['The profile is coherent, evidence-led and ready for targeted development.'],
@@ -114,11 +154,17 @@ describe('AdminAiReportReviewClient', () => {
       expect(screen.getByRole('heading', { level: 2, name: chapter })).toBeInTheDocument();
     }
     expect(screen.getByText('Who they consistently are')).toBeInTheDocument();
-    expect(screen.getByText('Evidence-led builder')).toBeInTheDocument();
-    expect(screen.getByText('A builder who makes complex technology useful for learners.')).toBeInTheDocument();
-    expect(screen.getByText('Robotics Club')).toBeInTheDocument();
+    expect(screen.getAllByText('Evidence-led builder').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('A builder who makes complex technology useful for learners.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Robotics Club').length).toBeGreaterThan(0);
     expect(screen.getByText('Reached the national final.')).toBeInTheDocument();
-    expect(screen.getByText('The profile is coherent, evidence-led and ready for targeted development.')).toBeInTheDocument();
+    expect(screen.getByText('Identity evidence profile')).toBeInTheDocument();
+    expect(screen.getByText('Making technology useful')).toBeInTheDocument();
+    expect(screen.getByText('Prototype pilot')).toBeInTheDocument();
+    expect(screen.getByText(/Example Lab/)).toBeInTheDocument();
+    expect(screen.getByText(/2024–2026/)).toBeInTheDocument();
+    expect(screen.getByText('Mentor confirmation')).toBeInTheDocument();
+    expect(screen.getAllByText('The profile is coherent, evidence-led and ready for targeted development.').length).toBeGreaterThan(0);
     expect(screen.queryByText('internal-evidence-id')).not.toBeInTheDocument();
     expect(screen.queryByText('internal-activity-id')).not.toBeInTheDocument();
   });

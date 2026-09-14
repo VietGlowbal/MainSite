@@ -56,9 +56,11 @@ function PrintChapter({
 export function PersonalReportPrintView({
   report,
   returnTo,
+  mode = 'print',
 }: {
   report: PersonalReportV2;
   returnTo: string | undefined;
+  mode?: 'print' | 'screen';
 }) {
   const t = useT();
 
@@ -69,7 +71,12 @@ export function PersonalReportPrintView({
     // components here get `onAnswered` (no interactive save flow makes sense
     // on a printed page), so their gap actions render as plain links rather
     // than the inline-answer buttons the interactive Canvas uses.
-    <div className="hidden flex-col gap-gb-3xl print:flex" aria-hidden="true">
+    <div
+      className={mode === 'screen'
+        ? 'flex flex-col gap-gb-3xl [&_a]:hidden [&_button]:hidden'
+        : 'hidden flex-col gap-gb-3xl print:flex'}
+      aria-hidden={mode === 'print' ? 'true' : undefined}
+    >
       <PrintChapter
         index={1}
         title={t('Core Identity')}
