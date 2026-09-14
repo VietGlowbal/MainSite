@@ -8,6 +8,23 @@ const STALE_THRESHOLD_MS = 10 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_RETRIES_PER_WINDOW = 3;
 
+function isMissingPhaseColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as {
+    code?: unknown;
+    message?: unknown;
+    details?: unknown;
+    hint?: unknown;
+  };
+  const code = String(candidate.code ?? '').toUpperCase();
+  const diagnostic = [candidate.message, candidate.details, candidate.hint]
+    .filter((value) => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  const mentionsPhase = /(?:column|field|property)\s*[`"']?phase[`"']?\b|[`"']?phase[`"']?\s*(?:column|field|property)|schema cache[^\n]*[`"']?phase[`"']?/i.test(diagnostic);
+  return (code === '42703' || code === 'PGRST204') && mentionsPhase;
+}
+
 /**
  * POST /api/applications/[id]/retry-parse
  *
@@ -69,8 +86,46 @@ export async function POST(
       .eq('application_id', id)
       .maybeSingle();
 
+    const reconcileCompletedJob = async (
+      expectedStatus: 'pending' | 'failed',
+      expectedUpdatedAt: string,
+    ) => {
+      if (!job) return;
+      const completeAt = new Date().toISOString();
+      const completePayload: Record<string, unknown> = {
+        status: 'complete',
+        phase: 'ready',
+        completed_at: completeAt,
+        locked_by: null,
+        updated_at: completeAt,
+      };
+      const runCompletion = async (payload: Record<string, unknown>) => adminDb
+        .from('course_parse_jobs')
+        .update(payload)
+        .eq('id', job.id)
+        .eq('status', expectedStatus)
+        .eq('updated_at', expectedUpdatedAt)
+        .select('id, status');
+      let completionResult = await runCompletion(completePayload);
+      if (completionResult.error && isMissingPhaseColumnError(completionResult.error)) {
+        const legacyPayload = { ...completePayload };
+        delete legacyPayload.phase;
+        completionResult = await runCompletion(legacyPayload);
+      }
+      if (completionResult.error) {
+        console.error('Failed to reconcile completed application job:', completionResult.error);
+      }
+    };
+
     // 1. Idempotent check: already complete (preserve completed output)
     if (application.parse_status === 'complete' || job?.status === 'complete') {
+      if (
+        application.parse_status === 'complete'
+        && (job?.status === 'pending' || job?.status === 'failed')
+        && job.updated_at
+      ) {
+        await reconcileCompletedJob(job.status, job.updated_at);
+      }
       return NextResponse.json({
         success: true,
         parseStatus: 'complete',
@@ -171,27 +226,38 @@ export async function POST(
 
     // 6. Reset or create the parse job in pending state with guarded update
     if (job) {
-      let jobRetryQuery = adminDb
-        .from('course_parse_jobs')
-        .update({
-          status: 'pending',
-          phase: 'queued',
-          attempts: 0,
-          locked_by: null,
-          started_at: null,
-          completed_at: null,
-          next_attempt_at: isoNow,
-          error_message: null,
-          parsed_data: nextParsedData,
-          updated_at: isoNow,
-        })
-        .eq('id', job.id)
-        .eq('status', job.status); // Guarded by observed status
-      // If two retries race while the row remains in the same terminal state,
-      // the activity timestamp is the second compare-and-set component. This
-      // keeps manual retry history idempotent instead of allowing both writes.
-      if (job.updated_at) jobRetryQuery = jobRetryQuery.eq('updated_at', job.updated_at);
-      const { data: updatedJob, error: updateJobError } = await jobRetryQuery.select('id, status');
+      const retryPayload: Record<string, unknown> = {
+        status: 'pending',
+        phase: 'queued',
+        attempts: 0,
+        locked_by: null,
+        started_at: null,
+        completed_at: null,
+        next_attempt_at: isoNow,
+        error_message: null,
+        parsed_data: nextParsedData,
+        updated_at: isoNow,
+      };
+      const runRetryUpdate = async (payload: Record<string, unknown>) => {
+        let query = adminDb
+          .from('course_parse_jobs')
+          .update(payload)
+          .eq('id', job.id)
+          .eq('status', job.status); // Guarded by observed status
+        // If two retries race while the row remains in the same terminal state,
+        // the activity timestamp is the second compare-and-set component. This
+        // keeps manual retry history idempotent instead of allowing both writes.
+        if (job.updated_at) query = query.eq('updated_at', job.updated_at);
+        return query.select('id, status');
+      };
+
+      let retryResult = await runRetryUpdate(retryPayload);
+      if (retryResult.error && isMissingPhaseColumnError(retryResult.error)) {
+        const legacyPayload = { ...retryPayload };
+        delete legacyPayload.phase;
+        retryResult = await runRetryUpdate(legacyPayload);
+      }
+      const { data: updatedJob, error: updateJobError } = retryResult;
 
       if (updateJobError) {
         console.error('Failed to update parse job for retry:', updateJobError);
@@ -254,6 +320,10 @@ export async function POST(
         });
       }
       if (currentApplication?.parse_status === 'complete') {
+        // The worker may have completed the application after the job CAS but
+        // before this projection update. Close the pending job with its own
+        // compare-and-set so a completed application cannot be reprocessed.
+        await reconcileCompletedJob('pending', isoNow);
         return NextResponse.json({
           success: true,
           parseStatus: 'complete',

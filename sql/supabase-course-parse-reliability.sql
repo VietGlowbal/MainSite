@@ -3,10 +3,11 @@
 -- ============================================================================
 -- Additive migration for course parse job watchdog and granular phase tracking.
 --
--- NOTE: Existing `sql/supabase-job-claim-resilience.sql` is a historical migration
--- and remains unmodified. This file is the additive follow-up that aligns its
--- claim RPC with the worker/reaper heartbeat semantics. Apply the resilience
--- migration first so `locked_by` exists before this function is replaced.
+-- NOTE: Existing `sql/supabase-job-claim-resilience.sql` is a historical
+-- prerequisite and must run before this file so `locked_by` exists before the
+-- claim function is replaced. Do not rerun the older claim script after the
+-- resilience or reliability migrations: doing so would restore started_at-only
+-- stale semantics and remove the latest heartbeat-aware claim behavior.
 --
 -- All changes are safe, nullable, and backward-compatible with existing schemas:
 -- - `phase` is nullable with NO default, ensuring historical or in-flight
@@ -99,3 +100,9 @@ $$;
 
 COMMENT ON FUNCTION public.claim_course_parse_jobs(TEXT, INT) IS
 'Atomically claims course parse jobs. Stale processing leases are measured by the latest updated_at heartbeat, falling back to started_at only for legacy rows.';
+
+-- Preserve the worker-only execution boundary when this replacement is run on
+-- a database whose historical ACLs were incomplete.  The claim RPC must never
+-- be callable by browser roles.
+REVOKE ALL ON FUNCTION public.claim_course_parse_jobs(TEXT, INT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_course_parse_jobs(TEXT, INT) TO service_role;

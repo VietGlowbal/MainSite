@@ -355,6 +355,222 @@ describe('POST /api/applications/[id]/retry-parse', () => {
     );
   });
 
+  it('falls back to the legacy job update only when phase is the missing column', async () => {
+    const old = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    mocks.userClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { id: appId, user_id: userId, parse_status: 'failed', updated_at: old },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    const jobUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn()
+        .mockResolvedValueOnce({ data: null, error: { code: '42703', message: 'column "phase" does not exist' } })
+        .mockResolvedValueOnce({ data: [{ id: 'job-phase', status: 'pending' }], error: null }),
+    };
+    jobUpdateChain.eq.mockReturnValue(jobUpdateChain);
+    const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+    const appUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [{ id: appId, parse_status: 'pending' }], error: null }),
+    };
+    appUpdateChain.eq.mockReturnValue(appUpdateChain);
+    const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
+
+    mocks.adminClient.mockReturnValue({
+      from: vi.fn((table: string) => table === 'course_parse_jobs'
+        ? {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'job-phase', status: 'failed', attempts: 1, updated_at: old, parsed_data: {} },
+                  error: null,
+                }),
+              })),
+            })),
+            update: jobUpdateMock,
+          }
+        : { update: appUpdateMock }),
+    });
+
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: appId }) });
+
+    expect(res.status).toBe(200);
+    expect(jobUpdateMock).toHaveBeenCalledTimes(2);
+    expect(jobUpdateMock.mock.calls[1][0]).not.toHaveProperty('phase');
+  });
+
+  it('propagates non-schema job update errors instead of retrying the old schema', async () => {
+    const old = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    mocks.userClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { id: appId, user_id: userId, parse_status: 'failed', updated_at: old },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    const jobUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({
+        data: null,
+        error: { code: '42501', message: 'new row violates row-level security policy' },
+      }),
+    };
+    jobUpdateChain.eq.mockReturnValue(jobUpdateChain);
+    const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+
+    mocks.adminClient.mockReturnValue({
+      from: vi.fn((table: string) => table === 'course_parse_jobs'
+        ? {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'job-permission', status: 'failed', attempts: 1, updated_at: old, parsed_data: {} },
+                  error: null,
+                }),
+              })),
+            })),
+            update: jobUpdateMock,
+          }
+        : {}),
+    });
+
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: appId }) });
+
+    expect(res.status).toBe(500);
+    expect(jobUpdateMock).toHaveBeenCalledOnce();
+  });
+
+  it('closes a pending job when the application completed during retry CAS', async () => {
+    const old = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    mocks.userClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { id: appId, user_id: userId, parse_status: 'failed', updated_at: old },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    const firstJobUpdate = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [{ id: 'job-terminal', status: 'pending' }], error: null }),
+    };
+    const completionJobUpdate = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [{ id: 'job-terminal', status: 'complete' }], error: null }),
+    };
+    firstJobUpdate.eq.mockReturnValue(firstJobUpdate);
+    completionJobUpdate.eq.mockReturnValue(completionJobUpdate);
+    const jobUpdateMock = vi.fn()
+      .mockReturnValueOnce(firstJobUpdate)
+      .mockReturnValueOnce(completionJobUpdate);
+
+    const appUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    appUpdateChain.eq.mockReturnValue(appUpdateChain);
+    const appSelectMock = vi.fn().mockReturnValue({
+      eq: vi.fn(() => ({
+        maybeSingle: vi.fn().mockResolvedValue({ data: { parse_status: 'complete' }, error: null }),
+      })),
+    });
+
+    mocks.adminClient.mockReturnValue({
+      from: vi.fn((table: string) => table === 'course_parse_jobs'
+        ? {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'job-terminal', status: 'failed', attempts: 1, updated_at: old, parsed_data: {} },
+                  error: null,
+                }),
+              })),
+            })),
+            update: jobUpdateMock,
+          }
+        : { update: vi.fn().mockReturnValue(appUpdateChain), select: appSelectMock }),
+    });
+
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: appId }) });
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual(expect.objectContaining({
+      parseStatus: 'complete',
+      alreadyComplete: true,
+    }));
+    expect(jobUpdateMock).toHaveBeenCalledTimes(2);
+    expect(jobUpdateMock.mock.calls[1][0]).toEqual(
+      expect.objectContaining({ status: 'complete', phase: 'ready' }),
+    );
+  });
+
+  it('repairs an already-complete application whose queued job is stale', async () => {
+    const old = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    mocks.userClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { id: appId, user_id: userId, parse_status: 'complete', updated_at: old },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
+    const jobUpdateChain = {
+      eq: vi.fn(),
+      select: vi.fn().mockResolvedValue({ data: [{ id: 'job-complete-repair', status: 'complete' }], error: null }),
+    };
+    jobUpdateChain.eq.mockReturnValue(jobUpdateChain);
+    const jobUpdateMock = vi.fn().mockReturnValue(jobUpdateChain);
+    mocks.adminClient.mockReturnValue({
+      from: vi.fn((table: string) => table === 'course_parse_jobs'
+        ? {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'job-complete-repair', status: 'pending', attempts: 0, updated_at: old, parsed_data: {} },
+                  error: null,
+                }),
+              })),
+            })),
+            update: jobUpdateMock,
+          }
+        : {}),
+    });
+
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: appId }) });
+
+    expect(res.status).toBe(200);
+    expect(jobUpdateMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'complete', phase: 'ready' }));
+  });
+
   it('allows retry for stale processing job (>10 minutes)', async () => {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     mocks.userClient.mockResolvedValue({

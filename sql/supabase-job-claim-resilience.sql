@@ -1,5 +1,7 @@
 -- Follow-up resilience migration for the durable job-claim RPCs.
--- Run once in the Supabase SQL editor before deploying the accompanying code.
+-- Run once, after any baseline claim/table setup and before the accompanying
+-- phase/reliability migration. Do not rerun a historical started_at-only claim
+-- script after this migration or after supabase-course-parse-reliability.sql.
 
 ALTER TABLE public.course_parse_jobs
   ADD COLUMN IF NOT EXISTS locked_by TEXT;

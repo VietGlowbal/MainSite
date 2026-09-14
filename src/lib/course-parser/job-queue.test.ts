@@ -10,6 +10,7 @@ vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: mocks.admin }));
 
 import {
   claimPendingJobs,
+  isMissingPhaseColumnError,
   reapStaleParseJobs,
   recordJobFailure,
   updateJobStatus,
@@ -63,8 +64,13 @@ describe('course-parser job-queue', () => {
         return chain;
       };
       const createAppUpdateChain = () => {
-        const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+        const chain: {
+          eq: ReturnType<typeof vi.fn>;
+          select: ReturnType<typeof vi.fn>;
+          then: (resolve: (v: unknown) => unknown) => Promise<unknown>;
+        } = {
           eq: vi.fn(() => chain),
+          select: vi.fn().mockResolvedValue({ data: [{ id: 'app-1', parse_status: 'pending' }], error: null }),
           then: (resolve) => Promise.resolve({ error: null }).then(resolve),
         };
         return chain;
@@ -147,8 +153,13 @@ describe('course-parser job-queue', () => {
         return chain;
       };
       const createAppUpdateChain = () => {
-        const chain: { eq: ReturnType<typeof vi.fn>; then: (resolve: (v: unknown) => unknown) => Promise<unknown> } = {
+        const chain: {
+          eq: ReturnType<typeof vi.fn>;
+          select: ReturnType<typeof vi.fn>;
+          then: (resolve: (v: unknown) => unknown) => Promise<unknown>;
+        } = {
           eq: vi.fn(() => chain),
+          select: vi.fn().mockResolvedValue({ data: [{ id: 'app-2', parse_status: 'failed' }], error: null }),
           then: (resolve) => Promise.resolve({ error: null }).then(resolve),
         };
         return chain;
@@ -308,6 +319,204 @@ describe('course-parser job-queue', () => {
       expect(result.failed).toBe(0);
       expect(jobUpdateMock).not.toHaveBeenCalled();
       expect(appUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a stale snapshot when a worker heartbeats before the reaper update', async () => {
+      const staleAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const staleJob = {
+        id: 'job-heartbeat-race',
+        application_id: 'app-heartbeat-race',
+        status: 'processing',
+        attempts: 1,
+        max_attempts: 3,
+        started_at: staleAt,
+        updated_at: staleAt,
+        error_message: null,
+      };
+
+      const updateChain = {
+        eq: vi.fn(),
+        is: vi.fn(),
+        select: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      updateChain.eq.mockReturnValue(updateChain);
+      updateChain.is.mockReturnValue(updateChain);
+      const updateMock = vi.fn().mockReturnValue(updateChain);
+      const appUpdateMock = vi.fn();
+
+      mocks.admin.mockReturnValue({
+        from: vi.fn((table: string) => {
+          if (table === 'course_parse_jobs') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [staleJob], error: null }),
+              }),
+              update: updateMock,
+            };
+          }
+          return {
+            update: appUpdateMock,
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                lte: vi.fn().mockResolvedValue({ data: [], error: null }),
+              }),
+            }),
+          };
+        }),
+      });
+
+      const result = await reapStaleParseJobs(5);
+
+      expect(result.reaped).toBe(0);
+      expect(updateMock).toHaveBeenCalledOnce();
+      expect(updateChain.eq).toHaveBeenCalledWith('updated_at', staleAt);
+      expect(appUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('retries a stale transition without phase only for a missing phase column', async () => {
+      const staleAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const staleJob = {
+        id: 'job-phase-compat',
+        application_id: 'app-phase-compat',
+        status: 'processing',
+        attempts: 1,
+        max_attempts: 3,
+        started_at: staleAt,
+        updated_at: staleAt,
+        error_message: null,
+      };
+      const updateChain = {
+        eq: vi.fn(),
+        is: vi.fn(),
+        select: vi.fn()
+          .mockResolvedValueOnce({
+            data: null,
+            error: { code: '42703', message: 'column "phase" does not exist' },
+          })
+          .mockResolvedValueOnce({ data: [{ id: staleJob.id, status: 'pending' }], error: null }),
+      };
+      updateChain.eq.mockReturnValue(updateChain);
+      updateChain.is.mockReturnValue(updateChain);
+      const updateMock = vi.fn().mockReturnValue(updateChain);
+      const appUpdateChain = {
+        eq: vi.fn(),
+        select: vi.fn().mockResolvedValue({ data: [{ id: staleJob.application_id, parse_status: 'pending' }], error: null }),
+      };
+      appUpdateChain.eq.mockReturnValue(appUpdateChain);
+      const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
+
+      mocks.admin.mockReturnValue({
+        from: vi.fn((table: string) => {
+          if (table === 'course_parse_jobs') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [staleJob], error: null }),
+              }),
+              update: updateMock,
+            };
+          }
+          return {
+            update: appUpdateMock,
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                lte: vi.fn().mockResolvedValue({ data: [], error: null }),
+              }),
+            }),
+          };
+        }),
+      });
+
+      const result = await reapStaleParseJobs(5);
+
+      expect(result.recovered).toBe(1);
+      expect(updateMock).toHaveBeenCalledTimes(2);
+      expect(updateMock.mock.calls[1][0]).not.toHaveProperty('phase');
+    });
+
+    it('reconciles a completed application when the reaper job CAS wins first', async () => {
+      const staleAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const staleJob = {
+        id: 'job-terminal-race',
+        application_id: 'app-terminal-race',
+        status: 'processing',
+        attempts: 1,
+        max_attempts: 3,
+        started_at: staleAt,
+        updated_at: staleAt,
+        error_message: null,
+      };
+      const firstJobUpdate = {
+        eq: vi.fn(),
+        is: vi.fn(),
+        select: vi.fn().mockResolvedValue({ data: [{ id: staleJob.id, status: 'pending' }], error: null }),
+      };
+      const completionJobUpdate = {
+        eq: vi.fn(),
+        select: vi.fn().mockResolvedValue({ data: [{ id: staleJob.id, status: 'complete' }], error: null }),
+      };
+      firstJobUpdate.eq.mockReturnValue(firstJobUpdate);
+      firstJobUpdate.is.mockReturnValue(firstJobUpdate);
+      completionJobUpdate.eq.mockReturnValue(completionJobUpdate);
+      const jobUpdateMock = vi.fn()
+        .mockReturnValueOnce(firstJobUpdate)
+        .mockReturnValueOnce(completionJobUpdate);
+
+      const appUpdateChain = {
+        eq: vi.fn(),
+        select: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      appUpdateChain.eq.mockReturnValue(appUpdateChain);
+      const appUpdateMock = vi.fn().mockReturnValue(appUpdateChain);
+      const appSelectMock = vi.fn()
+        .mockReturnValueOnce({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { parse_status: 'complete' }, error: null }),
+          }),
+        })
+        .mockReturnValueOnce({
+          eq: vi.fn().mockReturnValue({
+            lte: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        });
+
+      mocks.admin.mockReturnValue({
+        from: vi.fn((table: string) => {
+          if (table === 'course_parse_jobs') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [staleJob], error: null }),
+              }),
+              update: jobUpdateMock,
+            };
+          }
+          return { update: appUpdateMock, select: appSelectMock };
+        }),
+      });
+
+      const result = await reapStaleParseJobs(5);
+
+      expect(result.recovered).toBe(1);
+      expect(jobUpdateMock).toHaveBeenCalledTimes(2);
+      expect(jobUpdateMock.mock.calls[1][0]).toEqual(
+        expect.objectContaining({ status: 'complete', phase: 'ready' }),
+      );
+    });
+  });
+
+  describe('phase compatibility diagnostics', () => {
+    it('requires the missing-column diagnostic to name phase', () => {
+      expect(isMissingPhaseColumnError({
+        code: '42703',
+        message: 'column "phase" does not exist',
+      })).toBe(true);
+      expect(isMissingPhaseColumnError({
+        code: '42703',
+        message: 'column "obsolete_field" does not exist',
+      })).toBe(false);
+      expect(isMissingPhaseColumnError({
+        code: 'PGRST204',
+        message: 'Could not find the column in the schema cache',
+      })).toBe(false);
     });
   });
 

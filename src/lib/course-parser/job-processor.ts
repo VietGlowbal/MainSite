@@ -22,6 +22,7 @@ import { resolveUniversity } from '@/features/universities/api';
 import {
   updateJobStatus,
   recordJobFailure,
+  isMissingPhaseColumnError,
   type CourseParseJob,
   type JobTransitionGuard,
 } from './job-queue';
@@ -428,39 +429,33 @@ async function setJobPhaseSafe(
     if (guard.expectedLockedBy) query = query.eq('locked_by', guard.expectedLockedBy);
     const { data, error } = await query.select('id');
     if (error) {
-      const code = typeof error === 'object' && error !== null && 'code' in error
-        ? String((error as { code?: unknown }).code ?? '')
-        : '';
-      const message = error instanceof Error ? error.message : String(error);
       // Phase tracking is an additive column. On an older deployment, retry a
       // guarded heartbeat without `phase` so the worker still refreshes
       // `updated_at` and, importantly, still proves its status/lease is alive.
       // Only the explicit missing-phase errors qualify; network, RLS, and
       // unknown failures must be treated as a lost lease.
-      if (code === '42703' || (code === 'PGRST204' && message.toLowerCase().includes('phase'))) {
+      if (isMissingPhaseColumnError(error)) {
         return heartbeatWithoutPhase();
       }
+      const message = error instanceof Error ? error.message : String(error);
       console.warn('[job-processor] phase heartbeat failed', { jobId, phase, message });
       return false;
     }
     return Array.isArray(data) && data.length > 0;
   } catch (error) {
-    const code = typeof error === 'object' && error !== null && 'code' in error
-      ? String((error as { code?: unknown }).code ?? '')
-      : '';
-    const message = typeof error === 'object' && error !== null && 'message' in error
-      ? String((error as { message?: unknown }).message ?? '')
-      : String(error);
     // A thrown missing-column response can still be handled by the same
     // guarded legacy heartbeat. Network/unknown failures are treated as a lost
     // lease so this worker cannot write stale state.
-    if (code === '42703' || (code === 'PGRST204' && message.toLowerCase().includes('phase'))) {
+    if (isMissingPhaseColumnError(error)) {
       try {
         return heartbeatWithoutPhase();
       } catch {
         return false;
       }
     }
+    const message = typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : String(error);
     console.warn('[job-processor] phase heartbeat threw', { jobId, phase, message });
     return false;
   }
@@ -491,6 +486,32 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
   };
 
   try {
+    // A retry/reaper can legitimately leave a claimed job pending while a
+    // concurrent worker finishes the application projection.  Check the
+    // terminal projection before doing any fetch or parser side effects so a
+    // newly claimed worker closes the job instead of reopening completed work.
+    try {
+      const supabase = createAdminClient();
+      const { data: currentApplication, error: applicationReadError } = await supabase
+        .from('course_applications')
+        .select('parse_status')
+        .eq('id', job.application_id)
+        .maybeSingle();
+      if (!applicationReadError && currentApplication?.parse_status === 'complete') {
+        const transitioned = await updateJobStatus(job.id, 'complete', {
+          phase: 'ready',
+        }, workerGuard);
+        return transitioned
+          ? { applicationId: job.application_id, status: 'complete' }
+          : stateChangedResult(job);
+      }
+    } catch (error) {
+      // A defensive read failure must not make the job disappear. Continue
+      // through the normal guarded worker path, which will record a retryable
+      // failure if the underlying store is unavailable.
+      console.warn('[job-processor] completion projection check failed', error);
+    }
+
     if (!(await setJobPhaseSafe(job.id, 'fetching', workerGuard))) {
       return stateChangedResult(job);
     }
@@ -541,6 +562,14 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
       return stateChangedResult(job);
     }
 
+    // Checklist/source writes are externally visible side effects. Re-check
+    // the lease immediately before them so a worker that lost ownership during
+    // extraction cannot leave artifacts after a reaper or retry has reclaimed
+    // the job. The guarded heartbeat also refreshes the authoritative activity
+    // timestamp for a healthy worker.
+    if (!(await setJobPhaseSafe(job.id, 'validating', workerGuard))) {
+      return stateChangedResult(job);
+    }
     const counts = await writeChecklist(job.application_id, result.data);
     await writeSources(job.application_id, result.data);
     if (!(await updateApplication(job.application_id, applicationFields(result.data, job.course_url), 'processing'))) {
