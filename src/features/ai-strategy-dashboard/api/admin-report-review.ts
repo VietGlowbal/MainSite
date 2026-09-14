@@ -104,7 +104,11 @@ export function detectAdminAiReportOutput(kind: ReviewKind, value: unknown): {
   format: AdminAiReportOutputFormat;
   output: unknown;
 } {
-  const candidate = normaliseStoredOutput(value);
+  const stored = normaliseStoredOutput(value);
+  const container = record(stored);
+  const candidate = kind === 'personal' && container?.report !== undefined
+    ? normaliseStoredOutput(container.report)
+    : stored;
   if (kind === 'personal') {
     const parsed = personalReportV2Schema.safeParse(candidate);
     return parsed.success

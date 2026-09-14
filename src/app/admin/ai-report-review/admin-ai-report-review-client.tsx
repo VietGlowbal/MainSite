@@ -7,7 +7,12 @@ import type {
   AdminAiReportReviewListItem,
   AdminAiReportReviewNode,
 } from '@/features/ai-strategy-dashboard/api';
-import { PERSONAL_REFLECTION_QUESTIONS } from '@/features/apply/domain';
+import { PERSONAL_REFLECTION_QUESTIONS, type PersonalReportV2 } from '@/features/apply/domain';
+import {
+  ApplicantSnapshotView,
+  KeyTakeawaysView,
+  PersonalReportPrintView,
+} from '@/features/apply/ui';
 import { Badge, type BadgeVariant, ICONS, KitIcon, Panel, PanelHeader } from '@/shared/ui';
 
 type DetailState =
@@ -114,24 +119,32 @@ function renderScalarValue(key: string, val: string) {
       const pct = Math.round(num * 100);
       const variant: BadgeVariant = num >= 0.8 ? 'safe-chip' : num >= 0.5 ? 'info-chip' : 'brand-chip';
       return (
-        <div className="flex items-center gap-gb-xs">
+        <div className="flex items-center gap-gb-xs flex-wrap min-w-0">
           <Badge variant={variant}>{pct}%</Badge>
-          <span className="text-gb-xs text-fg-muted font-mono">({val})</span>
+          <span className="text-gb-xs text-fg-muted font-mono truncate">({val})</span>
         </div>
       );
     }
-    return <Badge variant={getBadgeVariant('confidence', val)}>{humanize(val)}</Badge>;
+    return (
+      <Badge variant={getBadgeVariant('confidence', val)} className="max-w-full truncate">
+        {humanize(val)}
+      </Badge>
+    );
   }
 
   if (isStatusOrRating) {
-    return <Badge variant={getBadgeVariant(key, val)}>{humanize(val)}</Badge>;
+    return (
+      <Badge variant={getBadgeVariant(key, val)} className="max-w-full truncate">
+        {humanize(val)}
+      </Badge>
+    );
   }
 
   if (/date|generatedAt|createdAt|timestamp/i.test(key) && !Number.isNaN(Date.parse(val))) {
-    return <span className="font-mono text-gb-xs text-fg-secondary">{formatDate(val)}</span>;
+    return <span className="font-mono text-gb-xs text-fg-secondary break-words">{formatDate(val)}</span>;
   }
 
-  return <span>{val}</span>;
+  return <span className="break-words">{val}</span>;
 }
 
 function SourcesCitationList({ sources }: { sources: unknown[] }) {
@@ -255,9 +268,34 @@ function ReflectionCallout({
   );
 }
 
-function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentity?: boolean }) {
-  const rawTitle = scalar(item.name ?? item.title ?? item.headline ?? item.label ?? item.theme);
-  const rawStatus = scalar(item.status ?? item.alignment ?? item.classification);
+function ObjectItemCard({ item, omitIdentity = true }: { item: RecordValue; omitIdentity?: boolean }) {
+  const titleEntryKey =
+    'name' in item && scalar(item.name)
+      ? 'name'
+      : 'title' in item && scalar(item.title)
+      ? 'title'
+      : 'headline' in item && scalar(item.headline)
+      ? 'headline'
+      : 'label' in item && scalar(item.label)
+      ? 'label'
+      : 'theme' in item && scalar(item.theme)
+      ? 'theme'
+      : null;
+  const rawTitle = titleEntryKey ? scalar(item[titleEntryKey]) : null;
+
+  const statusEntryKey =
+    'status' in item && scalar(item.status)
+      ? 'status'
+      : 'alignment' in item && scalar(item.alignment)
+      ? 'alignment'
+      : 'classification' in item && scalar(item.classification)
+      ? 'classification'
+      : 'kind' in item && scalar(item.kind)
+      ? 'kind'
+      : 'category' in item && scalar(item.category)
+      ? 'category'
+      : null;
+  const rawStatus = statusEntryKey ? scalar(item[statusEntryKey]) : null;
   const rawConfidence = item.confidence ?? item.confidenceScore;
   const count = scalar(item.evidenceCount ?? item.count);
 
@@ -271,8 +309,8 @@ function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentit
     if (omitIdentity && isIdentityKey(k)) {
       return false;
     }
-    if (rawTitle && /(^name$|^title$|^headline$|^theme$)/i.test(k)) return false;
-    if (rawStatus && /(^status$|^alignment$|^classification$)/i.test(k)) return false;
+    if (rawTitle && /(^name$|^title$|^headline$|^theme$|^label$)/i.test(k)) return false;
+    if (statusEntryKey && k === statusEntryKey) return false;
     if (rawConfidence !== undefined && /confidence/i.test(k)) return false;
     if (count && /(^evidenceCount$|^count$)/i.test(k)) return false;
     if (sources && k === 'sources') return false;
@@ -326,6 +364,16 @@ function ObjectItemCard({ item, omitIdentity }: { item: RecordValue; omitIdentit
 
 function ValueList({ values, omitIdentity }: { values: unknown[]; omitIdentity?: boolean }) {
   if (!values.length) return <span className="text-fg-muted">Not available</span>;
+  const isAllObjects = values.every((it) => it && typeof it === 'object' && !Array.isArray(it));
+  if (isAllObjects) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-gb-md">
+        {values.map((item, index) => (
+          <ObjectItemCard key={index} item={item as RecordValue} omitIdentity={omitIdentity} />
+        ))}
+      </div>
+    );
+  }
   return (
     <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl">
       {values.map((value, index) => (
@@ -339,7 +387,7 @@ function ValueList({ values, omitIdentity }: { values: unknown[]; omitIdentity?:
 
 function StructuredDataView({
   value,
-  omitIdentity = false,
+  omitIdentity = true,
   depth = 0,
 }: {
   value: unknown;
@@ -428,7 +476,7 @@ function StructuredDataView({
                 {topScalars.map(([k, v]) => (
                   <div
                     key={k}
-                    className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0"
+                    className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0 overflow-hidden"
                   >
                     <dt
                       className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted truncate"
@@ -436,7 +484,7 @@ function StructuredDataView({
                     >
                       {humanize(k)}
                     </dt>
-                    <dd className="text-gb-sm font-semibold text-fg min-w-0 break-words">
+                    <dd className="text-gb-sm font-semibold text-fg min-w-0 max-w-full break-words overflow-hidden">
                       {renderScalarValue(k, v)}
                     </dd>
                   </div>
@@ -513,7 +561,7 @@ function StructuredDataView({
           {scalars.map(([k, v]) => (
             <div
               key={k}
-              className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0"
+              className="rounded-gb-lg border border-line/70 bg-surface-subtle/60 p-gb-md flex flex-col gap-gb-xs min-w-0 overflow-hidden"
             >
               <dt
                 className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted truncate"
@@ -521,7 +569,7 @@ function StructuredDataView({
               >
                 {humanize(k)}
               </dt>
-              <dd className="text-gb-sm font-semibold text-fg min-w-0 break-words">
+              <dd className="text-gb-sm font-semibold text-fg min-w-0 max-w-full break-words overflow-hidden">
                 {renderScalarValue(k, v)}
               </dd>
             </div>
@@ -642,243 +690,546 @@ function StructuredDataView({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function asRecord(value: unknown): RecordValue {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as RecordValue) : {};
+}
+
+function recordItems(value: unknown): RecordValue[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is RecordValue => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    : [];
+}
+
+function textItems(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map(scalar).filter((item): item is string => Boolean(item))
+    : [];
+}
+
+function ReadableList({ items }: { items: string[] }) {
+  if (!items.length) return <p className="text-gb-sm text-fg-muted">Not available in this report version.</p>;
   return (
-    <section className="rounded-gb-xl border border-line bg-surface p-gb-xl shadow-gb-xs flex flex-col gap-gb-lg">
-      <div className="flex items-center justify-between border-b border-line pb-gb-md">
-        <h3 className="font-display text-gb-md font-semibold text-fg tracking-tight">{title}</h3>
-      </div>
-      {children}
+    <ul className="flex list-disc flex-col gap-gb-sm pl-gb-xl text-gb-sm leading-relaxed text-fg-secondary">
+      {items.map((item) => <li key={item}>{item}</li>)}
+    </ul>
+  );
+}
+
+function PersonalChapter({
+  index,
+  title,
+  description,
+  eyebrow = 'Personal Canvas',
+  children,
+}: {
+  index: number;
+  title: string;
+  description: string;
+  eyebrow?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-gb-2xl border border-line bg-surface shadow-gb-xs">
+      <header className="grid gap-gb-md border-b border-line bg-surface-subtle/50 p-gb-xl sm:grid-cols-[4rem_1fr] sm:p-gb-2xl">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-brand/30 bg-brand-subtle text-gb-md font-bold text-fg-brand">
+          {String(index).padStart(2, '0')}
+        </div>
+        <div>
+          <p className="text-gb-xs font-bold uppercase tracking-[0.14em] text-fg-brand">{eyebrow}</p>
+          <h2 className="mt-gb-xxs font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">{title}</h2>
+          <p className="mt-gb-xs max-w-3xl text-gb-sm leading-relaxed text-fg-tertiary">{description}</p>
+        </div>
+      </header>
+      <div className="flex flex-col gap-gb-xl p-gb-xl sm:p-gb-2xl">{children}</div>
     </section>
   );
 }
 
-function PersonalRenderer({ output }: { output: RecordValue }) {
-  const sections = [
-    ['Core Identity', output.coreIdentity],
-    ['Driving Force', output.drivingForce],
-    ['Signature Pattern', output.signaturePattern],
-    ['Emerging Themes', output.emergingThemes],
-    ['Personal Positioning', output.personalPositioning],
-    ['Proof of Me', output.proofOfMe],
-  ] as const;
+function PersonalSummaryRenderer({ output }: { output: RecordValue }) {
+  const core = asRecord(output.coreIdentity);
+  const driving = asRecord(output.drivingForce);
+  const signature = asRecord(output.signaturePattern);
+  const themes = asRecord(output.emergingThemes);
+  const positioning = asRecord(output.personalPositioning);
+  const proof = asRecord(output.proofOfMe);
+  const narrative = asRecord(output.narrativeDetails);
+  const coreNarrative = asRecord(narrative.coreIdentity);
+  const drivingNarrative = asRecord(narrative.drivingForce);
+  const capabilityNarrative = asRecord(narrative.provenCapabilities);
+  const positioningNarrative = asRecord(narrative.profilePositioning);
+  const socialNarrative = asRecord(narrative.socialProof);
+  const canvas = asRecord(output.canvasDetails);
+  const proofCards = recordItems(proof.cards);
+  const themeCards = recordItems(themes.themes);
+  const patternSteps = recordItems(signature.steps);
+  const positioningOptions = recordItems(positioningNarrative.positioningOptions);
+  const canvasCapabilities = recordItems(canvas.capabilities);
+  const narrativeCapabilities = recordItems(capabilityNarrative.capabilities);
+  const capabilities = canvasCapabilities.length
+    ? canvasCapabilities
+    : narrativeCapabilities.length
+      ? narrativeCapabilities
+      : [...new Set(proofCards.flatMap((card) => textItems(card.competenciesDemonstrated)))].map((name): RecordValue => ({ name }));
+  const growthPriorities = recordItems(canvas.growthPriorities);
+  const fallbackGrowth = [...new Set([
+    ...textItems(positioning.whatPreventsStrongerPositioning),
+    ...textItems(core.stillDeveloping),
+    ...themeCards.map((theme) => scalar(theme.limitation)).filter((item): item is string => Boolean(item)),
+  ])].slice(0, 6);
+  const futurePathways = recordItems(canvas.futurePathways);
+  const overallParagraphs = textItems(asRecord(output.overallSummary).paragraphs);
+  const overviewText = scalar(asRecord(output.overview).summary)
+    ?? scalar(asRecord(output.snapshot).summary)
+    ?? scalar(narrative.snapshot);
+  const confidence = scalar(output.overallEvidenceConfidence);
+  const coreTraits = recordItems(coreNarrative.definingTraits);
+  const motivations = textItems(driving.repeatedMotivations);
+  const primaryMotivation = scalar(drivingNarrative.primaryMotivation) ?? motivations[0] ?? null;
+  const takeaways = asRecord(narrative.keyTakeaways ?? output.keyTakeaways);
 
   return (
-    <div className="flex flex-col gap-gb-xl">
-      {scalar(output.overallSummary) ? (
-        <section className="rounded-gb-xl border border-line bg-surface p-gb-xl shadow-gb-xs flex flex-col gap-gb-md">
-          <div className="flex items-center justify-between border-b border-line pb-gb-md">
-            <h3 className="font-display text-gb-md font-semibold text-fg tracking-tight">Overall summary</h3>
+    <div className="flex flex-col gap-gb-2xl" data-testid="personal-report-readable-output">
+      <section className="rounded-gb-2xl border border-brand/25 bg-brand-subtle/20 p-gb-xl sm:p-gb-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-gb-lg">
+          <div className="max-w-3xl">
+            <p className="text-gb-xs font-bold uppercase tracking-[0.14em] text-fg-brand">Personal Report overview</p>
+            <h2 className="mt-gb-xs font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">The student-facing report, shown read-only</h2>
+            <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">
+              {overviewText ?? 'This version contains the six Personal Canvas chapters below.'}
+            </p>
           </div>
-          <div className="rounded-gb-lg border-l-4 border-brand bg-brand-subtle/30 p-gb-lg text-gb-sm leading-relaxed text-fg">
-            {scalar(output.overallSummary)}
+          {confidence ? <Badge variant={getBadgeVariant('confidence', confidence)}>{humanize(confidence)} evidence confidence</Badge> : null}
+        </div>
+      </section>
+
+      <PersonalChapter
+        index={1}
+        title="Core Identity"
+        description="The recurring roles, behaviours and patterns that describe who the student consistently shows themselves to be."
+      >
+        <div>
+          <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Core Identity</p>
+          <h3 className="mt-gb-xs font-display text-gb-display-xs font-semibold text-fg">Who they consistently are</h3>
+          {scalar(core.headline) ? <p className="mt-gb-md text-gb-lg font-semibold text-fg">{scalar(core.headline)}</p> : null}
+          <p className="mt-gb-sm max-w-4xl text-gb-sm leading-relaxed text-fg-secondary">
+            {scalar(coreNarrative.identityStatement) ?? scalar(core.interpretation) ?? 'No identity interpretation was persisted for this version.'}
+          </p>
+        </div>
+        {(scalar(core.recurringRole) || scalar(core.valueOrientation)) ? (
+          <div className="grid gap-gb-md sm:grid-cols-2">
+            {[['Recurring role', core.recurringRole], ['Value orientation', core.valueOrientation]].map(([label, value]) => scalar(value) ? (
+              <div key={label as string} className="rounded-gb-xl border border-line bg-surface-subtle/50 p-gb-lg">
+                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{label as string}</p>
+                <p className="mt-gb-xs text-gb-base font-semibold text-fg">{scalar(value)}</p>
+              </div>
+            ) : null)}
+          </div>
+        ) : null}
+        {textItems(core.observations).length ? (
+          <div className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+            <p className="mb-gb-sm text-gb-xs font-bold uppercase tracking-wider text-fg-brand">What GlowBal observed</p>
+            <ReadableList items={textItems(core.observations)} />
+          </div>
+        ) : null}
+        {(coreTraits.length || textItems(core.recurringBehaviours).length) ? (
+          <div>
+            <h3 className="text-gb-base font-semibold text-fg">Defining traits and key characteristics</h3>
+            <div className="mt-gb-md grid gap-gb-md md:grid-cols-2">
+              {(coreTraits.length ? coreTraits : textItems(core.recurringBehaviours).map((characteristic): RecordValue => ({ characteristic }))).map((trait, index) => (
+                <article key={scalar(trait.characteristic) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+                  <h4 className="font-semibold text-fg">{scalar(trait.characteristic) ?? 'Characteristic'}</h4>
+                  {scalar(trait.insight) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(trait.insight)}</p> : null}
+                  {scalar(trait.whyItMatters) ? <p className="mt-gb-sm rounded-gb-lg bg-surface-subtle p-gb-md text-gb-sm text-fg-secondary"><span className="font-semibold text-fg">Why it matters:</span> {scalar(trait.whyItMatters)}</p> : null}
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <div className="rounded-gb-xl border border-line bg-surface-subtle/35 p-gb-lg">
+          <div className="flex flex-wrap items-center justify-between gap-gb-sm">
+            <div>
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Signature Pattern</p>
+              <h3 className="mt-gb-xxs text-gb-base font-semibold text-fg">The behavioural sequence that repeats</h3>
+            </div>
+            <div className="flex flex-wrap gap-gb-xs">
+              {scalar(signature.patternStrength) ? <Badge variant={getBadgeVariant('status', String(signature.patternStrength))}>{humanize(String(signature.patternStrength))}</Badge> : null}
+              {scalar(signature.supportingExperienceCount) ? <Badge variant="neutral-chip">{scalar(signature.supportingExperienceCount)} supporting experiences</Badge> : null}
+            </div>
+          </div>
+          {patternSteps.length ? (
+            <div className="mt-gb-lg grid gap-gb-md md:grid-cols-2">
+              {patternSteps.map((step, index) => (
+                <article key={scalar(step.key) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+                  <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{index + 1}. {scalar(step.label) ?? humanize(String(step.key ?? 'Step'))}</p>
+                  <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg">{scalar(step.description) ?? 'Not available'}</p>
+                  {textItems(step.examples).length ? <p className="mt-gb-sm text-gb-xs text-fg-muted">Examples: {textItems(step.examples).join(', ')}</p> : null}
+                </article>
+              ))}
+            </div>
+          ) : <p className="mt-gb-md text-gb-sm text-fg-muted">No repeatable sequence was persisted.</p>}
+          {scalar(signature.distinctiveness) ? <p className="mt-gb-md text-gb-sm leading-relaxed text-fg-secondary">{scalar(signature.distinctiveness)}</p> : null}
+        </div>
+      </PersonalChapter>
+
+      <PersonalChapter
+        index={2}
+        title="Driving Forces"
+        description="What repeatedly motivates the student's choices, where those motivations appear, and how confidently the evidence supports them."
+      >
+        <div>
+          <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Driving Force</p>
+          <h3 className="mt-gb-xs font-display text-gb-display-xs font-semibold text-fg">What consistently motivates them</h3>
+          {scalar(driving.headline) ? <p className="mt-gb-md text-gb-lg font-semibold text-fg">{scalar(driving.headline)}</p> : null}
+          <p className="mt-gb-sm max-w-4xl text-gb-sm leading-relaxed text-fg-secondary">{scalar(drivingNarrative.strategicInterpretation) ?? scalar(driving.explanation) ?? 'No motivation interpretation was persisted.'}</p>
+        </div>
+        <div className="grid gap-gb-md md:grid-cols-3">
+          <div className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Primary motivation</p>
+            <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{primaryMotivation ?? 'Not available'}</p>
+          </div>
+          <div className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+            <p className="mb-gb-sm text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Repeated choices</p>
+            <ReadableList items={textItems(drivingNarrative.repeatedChoices).length ? textItems(drivingNarrative.repeatedChoices) : motivations.slice(1)} />
+          </div>
+          <div className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+            <p className="mb-gb-sm text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Underlying values</p>
+            <ReadableList items={textItems(drivingNarrative.underlyingValues)} />
+          </div>
+        </div>
+        {textItems(drivingNarrative.recurringProblems).length ? <div><h3 className="mb-gb-sm text-gb-base font-semibold text-fg">Recurring problems</h3><ReadableList items={textItems(drivingNarrative.recurringProblems)} /></div> : null}
+        {scalar(driving.missingPersonalGrounding) || scalar(driving.reflectionPrompt) ? (
+          <div className="rounded-gb-xl border border-line bg-surface-subtle p-gb-lg text-gb-sm leading-relaxed text-fg-secondary">
+            {scalar(driving.missingPersonalGrounding) ? <p>{scalar(driving.missingPersonalGrounding)}</p> : null}
+            {scalar(driving.reflectionPrompt) ? <p className="mt-gb-xs"><span className="font-semibold text-fg">Reflection prompt:</span> {scalar(driving.reflectionPrompt)}</p> : null}
+          </div>
+        ) : null}
+      </PersonalChapter>
+
+      <PersonalChapter
+        index={3}
+        title="Proven Capabilities"
+        description="What the evidence demonstrates the student can do, how those strengths combine, and the positioning they create."
+      >
+        {scalar(capabilityNarrative.overview) ? <p className="max-w-4xl text-gb-sm leading-relaxed text-fg-secondary">{scalar(capabilityNarrative.overview)}</p> : null}
+        <div className="grid gap-gb-md md:grid-cols-2">
+          {capabilities.length ? capabilities.map((capability, index) => {
+            const name = scalar(capability.name ?? capability.capability) ?? `Capability ${index + 1}`;
+            const score = scalar(capability.score);
+            return (
+              <article key={name} className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+                <div className="flex flex-wrap items-start justify-between gap-gb-sm">
+                  <h3 className="text-gb-base font-semibold text-fg">{name}</h3>
+                  <div className="flex flex-wrap gap-gb-xs">
+                    {scalar(capability.band) ? <Badge variant={getBadgeVariant('status', String(capability.band))}>{humanize(String(capability.band))}</Badge> : null}
+                    {score ? <Badge variant="neutral-chip">{score}/100</Badge> : null}
+                    {scalar(capability.stars) ? <Badge variant="neutral-chip">{scalar(capability.stars)}/5 evidence stars</Badge> : null}
+                  </div>
+                </div>
+                {scalar(capability.howDemonstrated ?? capability.why) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(capability.howDemonstrated ?? capability.why)}</p> : null}
+                {scalar(capability.whyItMatters) ? <p className="mt-gb-sm rounded-gb-lg bg-surface-subtle p-gb-md text-gb-sm text-fg-secondary"><span className="font-semibold text-fg">Why it matters:</span> {scalar(capability.whyItMatters)}</p> : null}
+                {textItems(capability.supportingActivities).length ? <p className="mt-gb-sm text-gb-xs text-fg-muted">Supporting activities: {textItems(capability.supportingActivities).join(', ')}</p> : null}
+              </article>
+            );
+          }) : <p className="text-gb-sm text-fg-muted">No named capabilities were persisted.</p>}
+        </div>
+        {scalar(capabilityNarrative.combinationInsight) ? <div className="rounded-gb-xl border border-line bg-surface-subtle p-gb-lg"><p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">How these capabilities combine</p><p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-secondary">{scalar(capabilityNarrative.combinationInsight)}</p></div> : null}
+        <div className="rounded-gb-xl border border-line bg-surface-subtle/35 p-gb-lg">
+          <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Personal Positioning</p>
+          <h3 className="mt-gb-xxs text-gb-base font-semibold text-fg">An evidence-grounded positioning statement</h3>
+          <p className="mt-gb-md text-gb-sm leading-relaxed text-fg-secondary">{scalar(positioningNarrative.profileNarrative) ?? scalar(positioning.statement) ?? 'No positioning statement was persisted.'}</p>
+          {positioningOptions.length ? <div className="mt-gb-md grid gap-gb-sm md:grid-cols-2">{positioningOptions.map((option, index) => <div key={scalar(option.title) ?? index} className="rounded-gb-lg border border-line bg-surface p-gb-md"><p className="font-semibold text-fg">{scalar(option.title) ?? `Option ${index + 1}`}</p><p className="mt-gb-xs text-gb-sm text-fg-secondary">{scalar(option.statement) ?? 'Not available'}</p></div>)}</div> : null}
+          <div className="mt-gb-md grid gap-gb-sm sm:grid-cols-2 lg:grid-cols-5">
+            {[['Authentic', positioning.authentic], ['Differentiated', positioning.differentiated], ['Coherent', positioning.coherent], ['Direction aligned', positioning.directionAligned], ['Credible', positioning.credible]].map(([label, value]) => (
+              <div key={label as string} className="flex items-center justify-between gap-gb-sm rounded-gb-lg border border-line bg-surface p-gb-md text-gb-sm"><span className="text-fg-secondary">{label as string}</span><Badge variant={value === true ? 'safe-chip' : 'neutral-chip'}>{value === true ? 'Yes' : 'Not yet'}</Badge></div>
+            ))}
+          </div>
+          {textItems(positioning.whyThisFits).length ? <div className="mt-gb-md"><p className="mb-gb-sm text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Why this fits</p><ReadableList items={textItems(positioning.whyThisFits)} /></div> : null}
+        </div>
+      </PersonalChapter>
+
+      <PersonalChapter
+        index={4}
+        title="Social Proof"
+        description="The tangible activities, outcomes and verification that make the claims in the profile credible."
+      >
+        {recordItems(canvas.socialProof).length ? <div className="grid gap-gb-md sm:grid-cols-2 lg:grid-cols-3">{recordItems(canvas.socialProof).map((metric, index) => <div key={scalar(metric.key) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><p className="font-display text-gb-display-xs font-semibold text-fg-brand">{scalar(metric.value) ?? '—'}</p><p className="mt-gb-xs font-semibold text-fg">{scalar(metric.label) ?? humanize(String(metric.key ?? 'Metric'))}</p>{scalar(metric.caption) ? <p className="mt-gb-xs text-gb-xs leading-relaxed text-fg-muted">{scalar(metric.caption)}</p> : null}</div>)}</div> : null}
+        {scalar(proof.narrative) ? <p className="text-gb-sm leading-relaxed text-fg-secondary">{scalar(proof.narrative)}</p> : null}
+        <div className="grid gap-gb-md md:grid-cols-2">
+          {proofCards.length ? proofCards.map((card, index) => (
+            <article key={scalar(card.title) ?? index} className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-gb-lg">
+              <div className="flex flex-wrap items-start justify-between gap-gb-sm">
+                <div><h3 className="text-gb-base font-semibold text-fg">{scalar(card.title) ?? `Evidence item ${index + 1}`}</h3>{scalar(card.role) ? <p className="mt-gb-xxs text-gb-xs text-fg-muted">{scalar(card.role)}</p> : null}</div>
+                <div className="flex flex-wrap gap-gb-xs">{scalar(card.evidenceStrength) ? <Badge variant={getBadgeVariant('status', String(card.evidenceStrength))}>{humanize(String(card.evidenceStrength))} evidence</Badge> : null}{scalar(card.verificationStatus) ? <Badge variant={getBadgeVariant('status', String(card.verificationStatus))}>{humanize(String(card.verificationStatus))}</Badge> : null}</div>
+              </div>
+              {scalar(card.personalContribution) ? <p className="text-gb-sm leading-relaxed text-fg-secondary">{scalar(card.personalContribution)}</p> : null}
+              {scalar(card.outcome) ? <p className="rounded-gb-lg bg-surface-subtle p-gb-md text-gb-sm font-semibold text-fg">{scalar(card.outcome)}</p> : null}
+              {textItems(card.competenciesDemonstrated).length ? <div className="flex flex-wrap gap-gb-xs">{textItems(card.competenciesDemonstrated).map((item) => <Badge key={item} variant="brand-chip">{item}</Badge>)}</div> : null}
+              {textItems(card.supports).length ? <p className="text-gb-xs text-fg-muted"><span className="font-semibold text-fg">Supports:</span> {textItems(card.supports).join(', ')}</p> : null}
+            </article>
+          )) : <p className="text-gb-sm text-fg-muted">No proof cards were persisted.</p>}
+        </div>
+        {scalar(socialNarrative.conclusion) ? <div className="rounded-gb-xl border border-line bg-surface-subtle p-gb-lg"><p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">What the evidence suggests</p><p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-secondary">{scalar(socialNarrative.conclusion)}</p></div> : null}
+      </PersonalChapter>
+
+      <PersonalChapter
+        index={5}
+        title="Areas for Growth"
+        description="Where current evidence is limited, what still needs development, and where stronger proof could make the profile more complete."
+      >
+        <div className="grid gap-gb-md md:grid-cols-3">
+          {growthPriorities.length ? growthPriorities.map((priority, index) => (
+            <article key={scalar(priority.title) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+              <div className="flex flex-wrap gap-gb-xs"><Badge variant="neutral-chip">Priority {index + 1}</Badge>{scalar(priority.impact) ? <Badge variant="brand-chip">{humanize(String(priority.impact))} impact</Badge> : null}{scalar(priority.effort) ? <Badge variant="neutral-chip">{humanize(String(priority.effort))} effort</Badge> : null}</div>
+              <h3 className="mt-gb-md font-semibold text-fg">{scalar(priority.title) ?? 'Growth opportunity'}</h3>
+              <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-secondary">{scalar(priority.gap) ?? 'Not available'}</p>
+              {scalar(priority.suggestedDirection) ? <p className="mt-gb-md border-t border-line pt-gb-md text-gb-sm text-fg-secondary"><span className="font-semibold text-fg">Suggested direction:</span> {scalar(priority.suggestedDirection)}</p> : null}
+            </article>
+          )) : fallbackGrowth.length ? fallbackGrowth.map((gap, index) => (
+            <article key={gap} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><Badge variant="neutral-chip">Priority {index + 1}</Badge><h3 className="mt-gb-md font-semibold text-fg">Growth opportunity</h3><p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-secondary">{gap}</p></article>
+          )) : <div className="rounded-gb-xl border border-line bg-surface-subtle p-gb-lg md:col-span-3"><p className="font-semibold text-fg">No high-confidence growth gaps identified yet.</p><p className="mt-gb-xs text-gb-sm text-fg-secondary">More reflected experiences may reveal clearer development opportunities.</p></div>}
+        </div>
+      </PersonalChapter>
+
+      <PersonalChapter
+        index={6}
+        title="Long-Term Vision"
+        description="The themes and directions emerging from repeated choices — presented as possibilities, not predictions."
+      >
+        {scalar(themes.narrative) ? <p className="max-w-4xl text-gb-sm leading-relaxed text-fg-secondary">{scalar(themes.narrative)}</p> : null}
+        {futurePathways.length ? <div><h3 className="text-gb-base font-semibold text-fg">Future pathways</h3><div className="mt-gb-md grid gap-gb-md md:grid-cols-2">{futurePathways.map((pathway, index) => <article key={scalar(pathway.label) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="flex flex-wrap items-start justify-between gap-gb-sm"><h4 className="font-semibold text-fg">{scalar(pathway.label) ?? `Pathway ${index + 1}`}</h4>{scalar(pathway.statusLabel) ? <Badge variant={getBadgeVariant('status', String(pathway.statusLabel))}>{scalar(pathway.statusLabel)}</Badge> : null}</div>{scalar(pathway.rationale) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(pathway.rationale)}</p> : null}{textItems(pathway.supportingExperiences).length ? <p className="mt-gb-sm text-gb-xs text-fg-muted">Supporting experiences: {textItems(pathway.supportingExperiences).join(', ')}</p> : null}</article>)}</div></div> : null}
+        <div>
+          <h3 className="text-gb-base font-semibold text-fg">Emerging themes</h3>
+          <div className="mt-gb-md grid gap-gb-md md:grid-cols-2">
+            {themeCards.length ? themeCards.map((theme, index) => <article key={scalar(theme.theme) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="flex flex-wrap items-start justify-between gap-gb-sm"><h4 className="font-semibold text-fg">{scalar(theme.theme) ?? `Theme ${index + 1}`}</h4>{scalar(theme.statusLabel) ? <Badge variant={getBadgeVariant('status', String(theme.statusLabel))}>{scalar(theme.statusLabel)}</Badge> : null}</div>{scalar(theme.explanation) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(theme.explanation)}</p> : null}{textItems(theme.supportingExperiences).length ? <p className="mt-gb-sm text-gb-xs text-fg-muted">Supporting experiences: {textItems(theme.supportingExperiences).join(', ')}</p> : null}{scalar(theme.limitation) ? <p className="mt-gb-sm rounded-gb-lg bg-surface-subtle p-gb-md text-gb-xs text-fg-secondary"><span className="font-semibold text-fg">Current limitation:</span> {scalar(theme.limitation)}</p> : null}</article>) : <p className="text-gb-sm text-fg-muted">No emerging themes were persisted.</p>}
+          </div>
+        </div>
+      </PersonalChapter>
+
+      {Object.keys(takeaways).length ? (
+        <section className="rounded-gb-2xl border border-line bg-surface p-gb-xl shadow-gb-xs sm:p-gb-2xl">
+          <p className="text-gb-xs font-bold uppercase tracking-[0.14em] text-fg-brand">Closing synthesis</p>
+          <h2 className="mt-gb-xs font-display text-gb-display-xs font-semibold text-fg">Key takeaways</h2>
+          <div className="mt-gb-lg grid gap-gb-md md:grid-cols-3">
+            {Object.entries(takeaways).map(([key, value]) => {
+              const item = asRecord(value);
+              return <article key={key} className="rounded-gb-xl border border-line bg-surface-subtle/40 p-gb-lg"><h3 className="font-semibold text-fg">{scalar(item.title) ?? humanize(key)}</h3><p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(item.insight ?? item.advantageStatement ?? item.growthArea ?? item.statement) ?? 'Not available'}</p>{scalar(item.whyItMatters ?? item.applicationRelevance ?? item.recommendedDirection) ? <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-muted">{scalar(item.whyItMatters ?? item.applicationRelevance ?? item.recommendedDirection)}</p> : null}</article>;
+            })}
           </div>
         </section>
       ) : null}
-      {sections.map(([title, value]) =>
-        value ? (
-          <Section key={title} title={title}>
-            <StructuredDataView value={value} depth={1} />
-          </Section>
-        ) : null
-      )}
+
+      {overallParagraphs.length ? (
+        <section className="rounded-gb-2xl border border-brand/25 bg-brand-subtle/20 p-gb-xl sm:p-gb-2xl">
+          <p className="text-gb-xs font-bold uppercase tracking-[0.14em] text-fg-brand">What this report suggests overall</p>
+          <div className="mt-gb-md flex flex-col gap-gb-sm">{overallParagraphs.map((paragraph) => <p key={paragraph} className="text-gb-sm leading-relaxed text-fg-secondary">{paragraph}</p>)}</div>
+        </section>
+      ) : null}
     </div>
   );
 }
 
-function ReferenceList({
-  ids,
-  evidence,
-  targets,
-}: {
-  ids: unknown;
-  evidence: RecordValue[];
-  targets: RecordValue[];
-}) {
-  const values = Array.isArray(ids) ? ids : [];
-  if (!values.length) return null;
-  const flatIds = values
-    .flatMap((id) => (Array.isArray(id) ? id : [id]))
-    .filter((id): id is string | number => typeof id === 'string' || typeof id === 'number');
+function PersonalRenderer({ output }: { output: RecordValue }) {
+  const hasCompleteSections = [
+    output.coreIdentity,
+    output.drivingForce,
+    output.signaturePattern,
+    output.emergingThemes,
+    output.personalPositioning,
+    output.proofOfMe,
+  ].every((section) => typeof asRecord(section).available === 'boolean');
 
-  if (!flatIds.length) return null;
+  if (!hasCompleteSections) return <PersonalSummaryRenderer output={output} />;
 
+  const report = output as PersonalReportV2;
   return (
-    <div className="flex flex-wrap gap-gb-xs items-center mt-gb-xs">
-      <span className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted mr-gb-xs">
-        References:
-      </span>
-      {flatIds.map((id) => {
-        const key = String(id);
-        const match = evidence.find((item) => item.id === key) ?? targets.find((item) => item.ref === key);
-        return (
-          <span
-            key={key}
-            className="rounded-full border border-line bg-surface-subtle px-gb-sm py-gb-xxs text-gb-xs text-fg-secondary"
-          >
-            {scalar(match?.label ?? match?.title) ?? humanize(key)}
-          </span>
-        );
-      })}
+    <div className="flex flex-col gap-gb-3xl" data-testid="personal-report-readable-output">
+      <div className="rounded-gb-2xl border border-line bg-surface p-gb-xl shadow-gb-xs sm:p-gb-2xl">
+        <ApplicantSnapshotView report={report} />
+      </div>
+      <PersonalReportPrintView report={report} returnTo={undefined} mode="screen" />
+      <KeyTakeawaysView report={report} />
+      {report.overallSummary?.paragraphs.length ? (
+        <section className="flex flex-col gap-gb-md rounded-gb-xl bg-surface-muted p-gb-xl" data-no-auto-translate>
+          <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">What this report suggests overall</p>
+          {report.overallSummary.paragraphs.map((paragraph) => <p key={paragraph} className="text-gb-sm leading-relaxed text-fg-tertiary">{paragraph}</p>)}
+        </section>
+      ) : null}
     </div>
+  );
+}
+
+function percent(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${Math.round(number <= 1 ? number * 100 : number)}%` : scalar(value);
+}
+
+function FitSummary({ fit }: { fit: RecordValue }) {
+  const metrics = Object.entries(asRecord(fit.metrics));
+  return (
+    <>
+      <div className="grid gap-gb-md sm:grid-cols-4">
+        {[
+          ['Fit score', scalar(fit.score) ? `${scalar(fit.score)}/100` : null],
+          ['Status', scalar(fit.status) ? humanize(String(fit.status)) : null],
+          ['Confidence', percent(fit.confidence)],
+          ['Evidence coverage', percent(fit.coverage)],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-muted">{label}</p>
+            <p className="mt-gb-xs text-gb-lg font-semibold text-fg">{value ?? 'Not available'}</p>
+          </div>
+        ))}
+      </div>
+      {scalar(fit.summary) ? <p className="max-w-4xl text-gb-sm leading-relaxed text-fg-secondary">{scalar(fit.summary)}</p> : null}
+      {metrics.length ? (
+        <div className="grid gap-gb-md md:grid-cols-2">
+          {metrics.map(([key, value]) => {
+            const metric = asRecord(value);
+            const submetrics = recordItems(metric.submetrics);
+            return (
+              <article key={key} className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+                <div className="flex flex-wrap items-start justify-between gap-gb-sm">
+                  <h3 className="font-semibold text-fg">{humanize(key)}</h3>
+                  <div className="flex flex-wrap gap-gb-xs">
+                    {scalar(metric.score) ? <Badge variant="neutral-chip">{scalar(metric.score)}/100</Badge> : null}
+                    {scalar(metric.status) ? <Badge variant={getBadgeVariant('status', String(metric.status))}>{humanize(String(metric.status))}</Badge> : null}
+                  </div>
+                </div>
+                {scalar(metric.summary) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(metric.summary)}</p> : null}
+                {submetrics.length ? (
+                  <div className="mt-gb-md flex flex-col gap-gb-sm border-t border-line pt-gb-md">
+                    {submetrics.map((submetric, index) => <div key={index}><div className="flex flex-wrap items-center justify-between gap-gb-xs"><span className="text-gb-sm font-medium text-fg">{humanize(String(submetric.label ?? submetric.name ?? submetric.submetricId ?? `Detail ${index + 1}`))}</span>{scalar(submetric.status) ? <Badge variant={getBadgeVariant('status', String(submetric.status))}>{humanize(String(submetric.status))}</Badge> : null}</div>{scalar(submetric.reasoning ?? submetric.summary ?? submetric.explanation) ? <p className="mt-gb-xxs text-gb-xs leading-relaxed text-fg-tertiary">{scalar(submetric.reasoning ?? submetric.summary ?? submetric.explanation)}</p> : null}</div>)}
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function NarrativeCards({ value }: { value: unknown }) {
+  const record = asRecord(value);
+  const entries = Object.entries(record);
+  const items = Array.isArray(value)
+    ? recordItems(value).map((item, index) => [String(index), item] as const)
+    : entries.some(([, item]) => item && typeof item === 'object')
+      ? entries.map(([key, item]) => [key, asRecord(item)] as const)
+      : entries.length
+        ? [['0', record] as const]
+        : [];
+  if (!items.length) return <p className="text-gb-sm text-fg-muted">Not available in this report version.</p>;
+  return (
+    <div className="grid gap-gb-md md:grid-cols-2">
+      {items.map(([key, item]) => (
+        <article key={key} className="rounded-gb-xl border border-line bg-surface p-gb-lg">
+          <div className="flex flex-wrap items-start justify-between gap-gb-sm">
+            <h3 className="font-semibold text-fg">{scalar(item.title ?? item.label ?? item.name) ?? humanize(key)}</h3>
+            {scalar(item.status ?? item.classification ?? item.strategicFit) ? <Badge variant={getBadgeVariant('status', String(item.status ?? item.classification ?? item.strategicFit))}>{humanize(String(item.status ?? item.classification ?? item.strategicFit))}</Badge> : null}
+          </div>
+          {scalar(item.body ?? item.description ?? item.summary ?? item.statement ?? item.diagnosis ?? item.explanation ?? item.significance ?? item.observedGap) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(item.body ?? item.description ?? item.summary ?? item.statement ?? item.diagnosis ?? item.explanation ?? item.significance ?? item.observedGap)}</p> : null}
+          {scalar(item.whyItMatters ?? item.suggestedDirection ?? item.strategicInterpretation ?? item.possibleDirection) ? <p className="mt-gb-sm rounded-gb-lg bg-surface-subtle p-gb-md text-gb-xs leading-relaxed text-fg-tertiary">{scalar(item.whyItMatters ?? item.suggestedDirection ?? item.strategicInterpretation ?? item.possibleDirection)}</p> : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function EvidenceIndex({ output }: { output: RecordValue }) {
+  const evidence = recordItems(output.evidenceIndex);
+  const sources = recordItems(output.targetSourceIndex);
+  if (!evidence.length && !sources.length) return null;
+  return (
+    <details className="group rounded-gb-xl border border-line bg-surface p-gb-lg">
+      <summary className="flex cursor-pointer items-center justify-between gap-gb-sm font-semibold text-fg">
+        <span>Evidence & source index</span>
+        <span className="text-gb-xs font-normal text-fg-muted">{evidence.length} evidence · {sources.length} sources</span>
+      </summary>
+      <div className="mt-gb-md grid gap-gb-sm border-t border-line pt-gb-md md:grid-cols-2">
+        {[...evidence, ...sources].map((item, index) => <article key={index} className="rounded-gb-lg bg-surface-subtle p-gb-md"><p className="text-gb-sm font-medium text-fg">{scalar(item.label ?? item.title ?? item.name) ?? `Reference ${index + 1}`}</p>{scalar(item.statement ?? item.description ?? item.quote ?? item.url) ? <p className="mt-gb-xxs break-words text-gb-xs leading-relaxed text-fg-tertiary">{scalar(item.statement ?? item.description ?? item.quote ?? item.url)}</p> : null}</article>)}
+      </div>
+    </details>
   );
 }
 
 function MatchingRenderer({ output }: { output: RecordValue }) {
-  const evidence = Array.isArray(output.evidenceIndex) ? (output.evidenceIndex as RecordValue[]) : [];
-  const targets = Array.isArray(output.targetSourceIndex) ? (output.targetSourceIndex as RecordValue[]) : [];
-  const overall = output.overall as RecordValue | undefined;
-  const groups = [
-    ['University fit', output.universityFit],
-    ['Programme fit', output.programmeFit],
-    ['Hard requirements', output.hardRequirements ?? output.academicRequirements],
-    ['Strengths', output.strengths],
-    ['Gaps', output.gaps],
-    ['Positioning opportunities', output.positioningOpportunities],
-    ['Scholarship alignment', output.scholarshipAlignment],
-  ] as const;
-
+  const overall = asRecord(output.overall);
+  const universityFit = asRecord(output.universityFit);
+  const programmeFit = asRecord(output.programmeFit ?? output.programmeAlignment);
+  const requirementValue = output.hardRequirements ?? output.academicRequirements;
+  const requirements = Array.isArray(requirementValue)
+    ? recordItems(requirementValue)
+    : Object.entries(asRecord(requirementValue)).map(([key, value]): RecordValue => ({
+        label: humanize(key),
+        ...(value && typeof value === 'object' ? asRecord(value) : { requiredValue: value }),
+      }));
   return (
-    <div className="flex flex-col gap-gb-xl">
-      <Section title="Overall assessment">
-        <StructuredDataView value={overall} depth={1} />
-        <ReferenceList
-          ids={overall?.summaryEvidenceIds ?? overall?.summaryTargetSourceRefs}
-          evidence={evidence}
-          targets={targets}
-        />
-      </Section>
-      {output.keyTakeaways ? (
-        <Section title="Key takeaways">
-          <StructuredDataView value={output.keyTakeaways} depth={1} />
-        </Section>
-      ) : null}
-      {groups.map(([title, value]) =>
-        value ? (
-          <Section key={title} title={title}>
-            <StructuredDataView value={value} depth={1} />
-            <ReferenceList
-              ids={
-                Array.isArray(value)
-                  ? value.flatMap((item) =>
-                      item && typeof item === 'object'
-                        ? [(item as RecordValue).evidenceIds, (item as RecordValue).targetSourceRefs]
-                        : []
-                    )
-                  : undefined
-              }
-              evidence={evidence}
-              targets={targets}
-            />
-          </Section>
-        ) : null
-      )}
-      <Section title="Evidence & sources">
-        <details className="group rounded-gb-lg border border-line bg-surface-subtle/30 p-gb-md">
-          <summary className="flex cursor-pointer items-center justify-between font-semibold text-gb-sm text-fg select-none">
-            <span className="flex items-center gap-gb-xs">
-              <span className="text-fg-muted group-open:rotate-90 transition-transform text-gb-xs">▶</span>
-              <span>Evidence & sources index</span>
-            </span>
-            <span className="rounded-full bg-surface-muted px-gb-md py-gb-xxs text-gb-xs font-medium text-fg-muted">
-              {evidence.length} evidence · {targets.length} sources
-            </span>
-          </summary>
-          <div className="mt-gb-md flex flex-col gap-gb-lg border-t border-line/50 pt-gb-md">
-            <StructuredDataView value={evidence} depth={1} />
-            <StructuredDataView value={targets} depth={1} />
-          </div>
-        </details>
-      </Section>
+    <div className="flex flex-col gap-gb-2xl" data-testid="matching-report-readable-output">
+      <section className="rounded-gb-2xl border border-brand/25 bg-brand-subtle/20 p-gb-xl sm:p-gb-2xl">
+        <p className="text-gb-xs font-bold uppercase tracking-[0.14em] text-fg-brand">Matching Report overview</p>
+        <div className="mt-gb-sm flex flex-wrap items-start justify-between gap-gb-lg">
+          <p className="max-w-3xl text-gb-sm leading-relaxed text-fg-secondary">{scalar(overall.summary) ?? 'University and programme alignment, shown in the same decision order as the student report.'}</p>
+          <div className="flex flex-wrap gap-gb-xs">{scalar(overall.overallAlignmentScore) ? <Badge variant="neutral-chip">{scalar(overall.overallAlignmentScore)}/100 overall fit</Badge> : null}{percent(overall.confidence) ? <Badge variant="info-chip">{percent(overall.confidence)} confidence</Badge> : null}{percent(overall.evidenceCoverage) ? <Badge variant="brand-chip">{percent(overall.evidenceCoverage)} evidence coverage</Badge> : null}</div>
+        </div>
+      </section>
+
+      <PersonalChapter index={1} eyebrow="Matching Report" title="University Fit" description="How the student's profile aligns with the university's academic environment, values and wider community."><FitSummary fit={universityFit} /></PersonalChapter>
+      <PersonalChapter index={2} eyebrow="Matching Report" title="Programme Fit" description="How the student's preparation, capabilities and direction align with the selected programme.">
+        <FitSummary fit={programmeFit} />
+        {scalar(programmeFit.potentialGap) ? <p className="rounded-gb-xl border border-line bg-surface-subtle p-gb-lg text-gb-sm text-fg-secondary"><span className="font-semibold text-fg">Potential gap:</span> {scalar(programmeFit.potentialGap)}</p> : null}
+        {scalar(programmeFit.strategicInterpretation) ? <p className="rounded-gb-xl border border-brand/20 bg-brand-subtle/20 p-gb-lg text-gb-sm text-fg-secondary"><span className="font-semibold text-fg">Strategic interpretation:</span> {scalar(programmeFit.strategicInterpretation)}</p> : null}
+      </PersonalChapter>
+      <PersonalChapter index={3} eyebrow="Matching Report" title="Key Takeaways & Strategic Direction" description="The strongest match, competitive edge, critical gap and recommended application direction."><NarrativeCards value={output.keyTakeaways} /></PersonalChapter>
+      <PersonalChapter index={4} eyebrow="Matching Report" title="Strengths, Gaps & Opportunities" description="The profile signals admissions readers are most likely to notice and how they can be positioned.">
+        {[['Strengths', output.strengths], ['Gaps', output.gaps], ['Positioning opportunities', output.positioningOpportunities]].map(([title, value]) => <div key={title as string}><h3 className="mb-gb-md text-gb-base font-semibold text-fg">{title as string}</h3><NarrativeCards value={value} /></div>)}
+        {output.scholarshipAlignment ? <div><h3 className="mb-gb-md text-gb-base font-semibold text-fg">Scholarship alignment</h3><NarrativeCards value={output.scholarshipAlignment} /></div> : null}
+      </PersonalChapter>
+      <PersonalChapter index={5} eyebrow="Matching Report" title="Hard Requirements & Eligibility" description="Confirmed, missing or unknown eligibility requirements that need action before submission.">
+        {requirements.length ? <div className="grid gap-gb-md md:grid-cols-2">{requirements.map((requirement, index) => <article key={scalar(requirement.label) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="flex flex-wrap items-start justify-between gap-gb-sm"><h3 className="font-semibold text-fg">{scalar(requirement.label) ?? `Requirement ${index + 1}`}</h3>{scalar(requirement.status) ? <Badge variant={getBadgeVariant('status', String(requirement.status))}>{humanize(String(requirement.status))}</Badge> : null}</div><dl className="mt-gb-md grid gap-gb-sm text-gb-sm sm:grid-cols-2"><div><dt className="text-gb-xs font-bold uppercase tracking-wider text-fg-muted">Applicant</dt><dd className="mt-gb-xxs text-fg">{scalar(requirement.applicantValue) ?? 'Not found'}</dd></div><div><dt className="text-gb-xs font-bold uppercase tracking-wider text-fg-muted">Required</dt><dd className="mt-gb-xxs text-fg">{scalar(requirement.requiredValue) ?? 'Not available'}</dd></div></dl>{scalar(requirement.explanation) ? <p className="mt-gb-md text-gb-sm leading-relaxed text-fg-secondary">{scalar(requirement.explanation)}</p> : null}</article>)}</div> : <p className="text-gb-sm text-fg-muted">No hard requirements were persisted in this report version.</p>}
+      </PersonalChapter>
+      <EvidenceIndex output={output} />
     </div>
   );
 }
 
 function StrategyRenderer({ output }: { output: RecordValue }) {
-  const overview = output.strategicOverview as RecordValue | undefined;
-  const profile = output.profileDevelopmentStrategy as RecordValue | undefined;
-  const roadmap = Array.isArray(output.strategicRoadmap) ? output.strategicRoadmap : [];
-  const priorities = Array.isArray(overview?.topPriorities)
-    ? overview.topPriorities.map((priority) => {
-        const item = priority as RecordValue;
-        const factors =
-          item.factors && typeof item.factors === 'object' ? { ...(item.factors as RecordValue) } : null;
-        if (factors) delete factors.rawPriority;
-        return { ...item, ...(factors ? { factors } : {}) };
-      })
-    : null;
-  const activities = Array.isArray(profile?.activityAnalyses) ? profile.activityAnalyses : [];
-
+  const overview = asRecord(output.strategicOverview);
+  const current = asRecord(overview.currentPosition);
+  const goal = asRecord(overview.strategicGoal);
+  const priorities = recordItems(overview.topPriorities);
+  const profile = asRecord(output.profileDevelopmentStrategy);
+  const activities = recordItems(profile.activityAnalyses);
+  const narrative = asRecord(output.narrativeStrategy);
+  const coreNarrative = asRecord(narrative.coreNarrativeDirection);
+  const roadmap = recordItems(output.strategicRoadmap);
   return (
-    <div className="flex flex-col gap-gb-xl">
-      <Section title="Strategic overview">
-        <StructuredDataView value={overview} depth={1} />
-      </Section>
-      <Section title="Priorities">
-        <StructuredDataView value={priorities} depth={1} />
-      </Section>
-      <Section title="Profile development">
-        <StructuredDataView value={profile?.areas} depth={1} />
-      </Section>
-      <Section title="Activities">
-        <div className="flex flex-col gap-gb-sm">
-          {activities.length ? (
-            activities.map((activity, index) => (
-              <details key={index} className="group rounded-gb-xl border border-line bg-surface-subtle/30 p-gb-lg">
-                <summary className="cursor-pointer font-semibold text-fg flex items-center justify-between">
-                  <span>{String((activity as RecordValue).title ?? `Activity ${index + 1}`)}</span>
-                  <span className="text-fg-muted group-open:rotate-90 transition-transform text-gb-xs">▶</span>
-                </summary>
-                <div className="mt-gb-md border-t border-line/40 pt-gb-md">
-                  <StructuredDataView value={activity} depth={2} />
-                </div>
-              </details>
-            ))
-          ) : (
-            <span className="text-fg-muted">Not available</span>
-          )}
-        </div>
-      </Section>
-      <Section title="Narrative strategy">
-        <StructuredDataView value={output.narrativeStrategy} depth={1} />
-      </Section>
-      <Section title="Four-phase roadmap">
-        <div className="grid gap-gb-md md:grid-cols-2">
-          {roadmap.map((phase, index) => (
-            <details key={index} className="group rounded-gb-xl border border-line bg-surface-subtle/30 p-gb-lg">
-              <summary className="cursor-pointer font-semibold text-fg flex items-center justify-between">
-                <span>
-                  {humanize(
-                    String(
-                      (phase as RecordValue).name ??
-                        (phase as RecordValue).phaseKey ??
-                        `Phase ${index + 1}`
-                    )
-                  )}
-                </span>
-                <span className="text-fg-muted group-open:rotate-90 transition-transform text-gb-xs">▶</span>
-              </summary>
-              <div className="mt-gb-md border-t border-line/40 pt-gb-md">
-                <StructuredDataView value={phase} depth={2} />
-              </div>
-            </details>
-          ))}
-        </div>
-      </Section>
-      <Section title="Evidence & sources">
-        <details className="group rounded-gb-xl border border-line bg-surface-subtle/30 p-gb-md">
-          <summary className="cursor-pointer font-semibold text-gb-sm text-fg flex items-center justify-between">
-            <span>Show evidence index</span>
-            <span className="text-fg-muted group-open:rotate-90 transition-transform text-gb-xs">▶</span>
-          </summary>
-          <div className="mt-gb-md border-t border-line/40 pt-gb-md">
-            <StructuredDataView
-              value={{ evidence: output.evidenceIndex, sources: output.targetSourceIndex }}
-              depth={1}
-            />
-          </div>
-        </details>
-      </Section>
+    <div className="flex flex-col gap-gb-2xl" data-testid="strategy-report-readable-output">
+      <PersonalChapter index={1} eyebrow="Strategy Report" title="Strategic Overview" description="The student's current position, highest-leverage opportunity, strategic goal and top priorities.">
+        {scalar(current.summary) ? <p className="max-w-4xl text-gb-sm leading-relaxed text-fg-secondary">{scalar(current.summary)}</p> : null}
+        <NarrativeCards value={[asRecord(current.profileStrength), asRecord(current.keyChallenge), asRecord(overview.strategicOpportunity)].filter((item) => Object.keys(item).length)} />
+        <div className="grid gap-gb-md md:grid-cols-2"><article className="rounded-gb-xl border border-line bg-surface p-gb-lg"><h3 className="font-semibold text-fg">Strategic goal</h3><ReadableList items={[scalar(goal.directionOfImprovement), scalar(goal.communicationGoal)].filter((item): item is string => Boolean(item))} /></article><article className="rounded-gb-xl border border-brand/20 bg-brand-subtle/20 p-gb-lg"><h3 className="font-semibold text-fg">Expected outcome</h3><p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(overview.expectedOutcome) ?? 'Not available'}</p></article></div>
+        <div><h3 className="text-gb-base font-semibold text-fg">Top strategic priorities</h3><div className="mt-gb-md flex flex-col gap-gb-md">{priorities.length ? priorities.map((priority, index) => { const factors = asRecord(priority.factors); return <article key={scalar(priority.title) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="flex flex-wrap items-start gap-gb-sm"><Badge variant="brand-chip">Priority {scalar(priority.rank) ?? index + 1}</Badge><h4 className="font-semibold text-fg">{scalar(priority.title) ?? `Priority ${index + 1}`}</h4></div>{scalar(priority.why) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(priority.why)}</p> : null}{scalar(priority.suggestedDirection) ? <p className="mt-gb-sm rounded-gb-lg bg-surface-subtle p-gb-md text-gb-sm text-fg-secondary"><span className="font-semibold text-fg">Recommended move:</span> {scalar(priority.suggestedDirection)}</p> : null}<div className="mt-gb-sm flex flex-wrap gap-gb-xs">{Object.entries(factors).filter(([key]) => key !== 'rawPriority').map(([key, value]) => scalar(value) ? <Badge key={key} variant="neutral-chip">{humanize(key)} {scalar(value)}/4</Badge> : null)}</div></article>; }) : <p className="text-gb-sm text-fg-muted">No priorities were persisted.</p>}</div></div>
+      </PersonalChapter>
+
+      <PersonalChapter index={2} eyebrow="Strategy Report" title="Profile Development Strategy" description="What to maintain, strengthen or reposition across the profile and each major activity.">
+        <NarrativeCards value={profile.areas} />
+        <div><h3 className="text-gb-base font-semibold text-fg">Activity-level evaluation</h3><div className="mt-gb-md flex flex-col gap-gb-md">{activities.length ? activities.map((activity, index) => <article key={scalar(activity.title) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="flex flex-wrap items-start justify-between gap-gb-sm"><h4 className="font-semibold text-fg">{scalar(activity.title) ?? `Activity ${index + 1}`}</h4>{scalar(activity.classification) ? <Badge variant={getBadgeVariant('status', String(activity.classification))}>{humanize(String(activity.classification))}</Badge> : null}</div>{scalar(activity.diagnosis) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(activity.diagnosis)}</p> : null}{scalar(activity.recommendedMove) ? <p className="mt-gb-sm rounded-gb-lg bg-surface-subtle p-gb-md text-gb-sm text-fg-secondary"><span className="font-semibold text-fg">Recommended move:</span> {scalar(activity.recommendedMove)}</p> : null}<div className="mt-gb-md grid gap-gb-sm sm:grid-cols-2">{Object.entries(asRecord(activity.dimensions)).map(([key, value]) => { const dimension = asRecord(value); return <div key={key} className="rounded-gb-lg border border-line p-gb-md"><div className="flex flex-wrap items-center justify-between gap-gb-xs"><span className="text-gb-sm font-medium text-fg">{humanize(key)}</span>{scalar(dimension.status) ? <Badge variant={getBadgeVariant('status', String(dimension.status))}>{humanize(String(dimension.status))}</Badge> : null}</div>{scalar(dimension.statement) ? <p className="mt-gb-xs text-gb-xs leading-relaxed text-fg-tertiary">{scalar(dimension.statement)}</p> : null}</div>; })}</div></article>) : <p className="text-gb-sm text-fg-muted">No activity analysis was persisted.</p>}</div></div>
+      </PersonalChapter>
+
+      <PersonalChapter index={3} eyebrow="Strategy Report" title="Narrative Strategy" description="The story arc that connects the student's origin, motivation, actions, capabilities and emerging direction.">
+        <div className="grid gap-gb-md md:grid-cols-5">{[['Origin', coreNarrative.originTrigger], ['Motivation', coreNarrative.recurringMotivation], ['Actions', coreNarrative.actions], ['Capabilities', coreNarrative.capabilitiesDeveloped], ['Direction', coreNarrative.emergingDirection]].map(([label, value], index) => <article key={label as string} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{index + 1}. {label as string}</p>{Array.isArray(value) ? <div className="mt-gb-sm"><ReadableList items={textItems(value)} /></div> : <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(value) ?? 'Not available'}</p>}</article>)}</div>
+        {scalar(coreNarrative.insight) ? <p className="rounded-gb-xl border border-brand/20 bg-brand-subtle/20 p-gb-lg text-gb-sm leading-relaxed text-fg-secondary">{scalar(coreNarrative.insight)}</p> : null}
+        <div><h3 className="mb-gb-md text-gb-base font-semibold text-fg">Supporting themes</h3><NarrativeCards value={narrative.supportingThemes} /></div>
+        {Object.keys(asRecord(narrative.narrativeTension)).length ? <div><h3 className="mb-gb-md text-gb-base font-semibold text-fg">Narrative tension</h3><NarrativeCards value={[asRecord(narrative.narrativeTension)]} /></div> : null}
+        <div><h3 className="mb-gb-md text-gb-base font-semibold text-fg">Narrative options</h3><div className="grid gap-gb-md md:grid-cols-2">{recordItems(narrative.narrativeOptions).map((option, index) => <article key={scalar(option.title) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="flex flex-wrap items-start justify-between gap-gb-sm"><h4 className="font-semibold text-fg">{scalar(option.title) ?? `Option ${index + 1}`}</h4>{scalar(option.strategicFit) ? <Badge variant={getBadgeVariant('status', String(option.strategicFit))}>{humanize(String(option.strategicFit))} fit</Badge> : null}</div>{scalar(option.centralIdea) ? <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-secondary">{scalar(option.centralIdea)}</p> : null}{scalar(option.whyItEmerges) ? <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-tertiary"><span className="font-semibold text-fg">Why it emerges:</span> {scalar(option.whyItEmerges)}</p> : null}{scalar(option.whatCouldStrengthenIt) ? <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-tertiary"><span className="font-semibold text-fg">What strengthens it:</span> {scalar(option.whatCouldStrengthenIt)}</p> : null}</article>)}</div></div>
+      </PersonalChapter>
+
+      <PersonalChapter index={4} eyebrow="Strategy Report" title="Strategic Roadmap" description="The sequenced actions, deliverables and success criteria that turn the strategy into an execution plan.">
+        <div className="flex flex-col gap-gb-lg">{roadmap.length ? roadmap.map((phase, index) => <article key={scalar(phase.phaseKey ?? phase.name) ?? index} className="rounded-gb-xl border border-line bg-surface p-gb-lg"><div className="flex flex-wrap items-start justify-between gap-gb-sm"><div><p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Phase {index + 1}</p><h3 className="mt-gb-xxs font-semibold text-fg">{scalar(phase.name) ?? humanize(String(phase.phaseKey ?? `Phase ${index + 1}`))}</h3></div>{scalar(phase.estimatedTimeline) ? <Badge variant="neutral-chip">{scalar(phase.estimatedTimeline)}</Badge> : null}</div>{scalar(phase.goal) ? <p className="mt-gb-md text-gb-sm leading-relaxed text-fg-secondary">{scalar(phase.goal)}</p> : null}<div className="mt-gb-md grid gap-gb-md md:grid-cols-3"><div><h4 className="mb-gb-sm text-gb-xs font-bold uppercase tracking-wider text-fg-muted">Key actions</h4><ReadableList items={textItems(phase.keyActions)} /></div><div><h4 className="mb-gb-sm text-gb-xs font-bold uppercase tracking-wider text-fg-muted">Deliverables</h4><ReadableList items={recordItems(phase.deliverables).map((item) => scalar(item.label ?? item.title ?? item.name)).filter((item): item is string => Boolean(item))} /></div><div><h4 className="mb-gb-sm text-gb-xs font-bold uppercase tracking-wider text-fg-muted">Success criteria</h4><ReadableList items={textItems(phase.successCriteria)} /></div></div></article>) : <p className="text-gb-sm text-fg-muted">No roadmap was persisted.</p>}</div>
+      </PersonalChapter>
+      <EvidenceIndex output={output} />
     </div>
   );
 }

@@ -1,5 +1,35 @@
 # Current project status
 
+Working tree 2026-09-14 (Admin AI report output now mirrors the readable student sections):
+`/admin/ai-report-review` no longer feeds canonical Personal, Matching, or Strategy Report objects
+through the generic key/value debugger. Personal reuses the student-facing snapshot, six complete
+chapters, evidence visualisations, takeaways, and closing summary in a read-only screen mode; Matching separates
+university fit, programme fit, takeaways, strengths/gaps/opportunities, and eligibility; Strategy
+separates its overview, profile development, narrative, and roadmap. Each read-only section presents
+headlines, synthesis, scores/statuses, recommendations, proof, and next actions while omitting internal
+identifiers and `rawPriority`; raw JSON remains in Technical and legacy/unknown contracts retain the
+generic renderer. The Personal detector unwraps the persisted `{ report, evaluation }` container so
+the canonical report reaches the readable renderer while evaluation diagnostics remain secondary.
+Measured: focused admin review tests (13 across API and client), base and strict TypeScript, scoped ESLint,
+`git diff --check`, and the production build pass; the build retains the three known dynamic-filesystem
+tracing warnings from `src/lib/geo-content.ts`.
+
+Working tree 2026-09-14 (Admin AI report review badge overflow fix and clean evidence ref cards):
+Fixed badge overflow and duplicated scalar tiles reported on `/admin/ai-report-review` (`media_1789359428846.png`):
+When rendering item cards (such as evidence references in `evidenceRefs`), three issues degraded readability:
+1. Long badges like `Structured Achievement` in 2-column nested grids (`depth >= 2`) overflowed their scalar tile borders due to `whitespace-nowrap`.
+2. The card title field (e.g. `label: "Runner-Up - The Global Futures Challenge"`) was not excluded from item entries, causing the title to repeat as an interior scalar tile right below the card header.
+3. Technical database IDs (`id: "achievement:5706aa95-09f2-4567-b340-4b83a38ab567"`) were rendered inside cards, breaking UUID strings across 6 lines.
+Fixes:
+1. `ObjectItemCard`:
+   - Extracted `item.kind` and `item.category` into `rawStatus` so item kinds (e.g. `structured_achievement`) are rendered cleanly in the card header as humanized badges (`Structured Achievement`).
+   - Tracked consumed keys for title and status, and excluded both `label` and whichever status/kind key was extracted from interior entries.
+   - Defaulted `omitIdentity` to `true` across `ObjectItemCard` and `StructuredDataView` so internal technical IDs are kept in the `Technical` tab and not displayed on human review cards.
+   - When all fields are consumed (e.g. `EvidenceRef` with only `id`, `kind`, `label`), the empty interior grid is hidden, producing a compact, elegant reference card with title and kind badge.
+2. `ValueList`: Extended `ValueList` to render `ObjectItemCard` 2-column grids when all array items are objects.
+3. `renderScalarValue`: Added `className="max-w-full truncate"` to `<Badge>` and `overflow-hidden max-w-full break-words` to `<dd>` and tile containers to guarantee scalar badges never overflow their parent container.
+Measured: focused review tests (9: 6 client + 3 API), `npm run typecheck`, scoped ESLint, and `git diff --check` pass.
+
 Working tree 2026-09-13 (cookie Configure dialog — more control, obvious refusal): the privacy-settings modal in
 `src/components/privacy/consent-boundary.tsx` was one checkbox. It now opens with **Reject all optional cookies** /
 **Accept all cookies** side by side at equal weight (Reject is first and takes focus; both save and close), then a

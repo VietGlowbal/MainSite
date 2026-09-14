@@ -15,6 +15,22 @@ describe('detectAdminAiReportOutput', () => {
     expect(result.format).toBe('personal_report_v2');
   });
 
+  it('unwraps the stored Personal Report from its evaluation container', () => {
+    const report = {
+      overallEvidenceConfidence: 'medium',
+      coreIdentity: {},
+      drivingForce: {},
+      signaturePattern: {},
+      emergingThemes: {},
+      personalPositioning: {},
+      proofOfMe: {},
+    };
+    const result = detectAdminAiReportOutput('personal', { report, evaluation: { confidence: 'medium' } });
+
+    expect(result.format).toBe('personal_report_v2');
+    expect(result.output).toEqual(report);
+  });
+
   it('preserves malformed output as unknown instead of throwing', () => {
     expect(detectAdminAiReportOutput('matching', { contractVersion: 'future' }).format).toBe('unknown');
     expect(detectAdminAiReportOutput('matching', { contractVersion: 'future' }).output).toEqual({ contractVersion: 'future' });
