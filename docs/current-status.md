@@ -1,5 +1,19 @@
 # Current project status
 
+Working tree 2026-09-14 (auth cookie report → `Secure` added, `Strict`/`HttpOnly` declined): report said the `sb-*`
+session cookies are `HttpOnly: false`, `Secure: false`, `SameSite: Lax` and readable from `document.cookie`, proposing
+`HttpOnly` + `Secure` + `Strict` + HTTPS + rotation. **Accurate** — those are `@supabase/ssr` 0.10.2 defaults and no
+client overrode them. Shipped the one safe part: `SUPABASE_AUTH_COOKIE_OPTIONS` (`src/shared/lib/supabase-auth-cookie.ts`,
+`secure` in production, `lax`, `/`) is now passed as `cookieOptions` by all three clients — `src/proxy.ts`,
+`src/server/db/server.ts`, `src/lib/supabase/client.ts`. HTTPS was already enforced (live: http → 308, HSTS
+`max-age=63072000`). `Strict` and `HttpOnly` were **declined because each breaks sign-in**; reasoning and the real XSS
+lever (enforcing CSP) in [known-issues.md §0k](known-issues.md). Existing sessions pick up `Secure` on their next token
+refresh; nobody is signed out (cookie name unchanged). Measured: library-emitted attributes via a scratch script —
+production `{path:"/",sameSite:"lax",httpOnly:false,maxAge:34560000,secure:true}`, development `secure:false`;
+`npm run typecheck` and `typecheck:strict` clean; ESLint clean on the 6 changed files; `npm test` 400 files / 3747
+passed (first run had 2 × 5s timeouts while typecheck ran in parallel, clean on re-run); `npm run build` passes. Not
+run: E2E, a signed-in check of the real `Set-Cookie` on a deployment, the Supabase dashboard session settings.
+
 Working tree 2026-09-14 (CORS report → avatars bucket listing): the report "CORS reflects any origin
 (https://evil.example.com) / `Access-Control-Allow-Origin: *`" is **not ours**. Live probes: `glowbal-education.com`
 pages, `/api/*` and preflights send no `Access-Control-*` header; the header comes from Supabase's gateway

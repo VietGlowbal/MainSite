@@ -17,6 +17,7 @@ are regression records for fixed bugs, not open work:
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
 | §0g anon-callable SECURITY DEFINER RPCs | ✅ **RESOLVED 2026-09-05.** `sql/supabase-rpc-privilege-hardening.sql` has been applied: `pg_proc.proacl` now reads `{postgres=X,service_role=X}` for all 26 mutating definer functions, `anon` and `authenticated` hold no EXECUTE. Verified from the live catalog, not from the file. The six definer functions `anon` can still execute are the five TRIGGER functions the migration deliberately left alone (PostgREST does not expose a function returning `trigger`) plus `confirm_application_candidate_snapshot`, which raises `42501` when `auth.uid()` is NULL. Evidence: `sql/introspect.sql` run 2026-09-05T16:26Z, `docs/audit-2026-09-05-database.md` §2. Historical detail below. ~~🔴 OPEN, most urgent item in this file.~~ Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN** — re-confirmed still live 2026-09-04 by calling all five as `anon` (200/204, real `plan` disclosed for a real `user_id`) and by catalog (`has_function_privilege('anon', …)` true for all 11 definer functions). The migration is **verified correct and complete** against the live catalog — run it as-is. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. **Partial update 2026-09-05:** `get_user_entitlement` now returns `42501 permission denied` to `anon` when called with the anon key, so that one disclosure is closed. The other definer functions were **not** re-verified — they mutate, so they cannot be probed read-only. Confirm the rest from `pg_proc.proacl` (run `sql/introspect.sql` §3) before closing this row. |
 | §0h anon `DELETE`/`PATCH` returning 204 | ✅ **Not a vulnerability — false positive, do not re-open.** PostgREST answers a write that matched *zero* rows with `204`, and an RLS `USING` clause filters rows rather than raising. A probe against a non-existent id therefore cannot tell "blocked" from "no such row". Verified 2026-09-04 against a real row: anon `DELETE`/`PATCH` returned `[]` under `return=representation` and the row survived. See §0h. |
+| §0k session cookie attributes | `Secure` shipped 2026-09-14 via one shared `cookieOptions` object. **Do not switch to `SameSite=Strict` or `HttpOnly`** — each breaks sign-in (Google OAuth return; 27 browser-side Supabase callers). The real XSS lever is enforcing the CSP. See §0k. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1d duplicate universities | ✅ Merged 2026-09-03, confirmed live (99 rows, 0 collisions). **Read before deleting any `universities` row** — 13 tables FK to it and 4 cascade. Scholarship *coverage* (374 of 2,877 linked) is a separate, still-open problem. |
@@ -746,6 +747,45 @@ instead of the header. Status 2026-09-14:
   **NOT YET RUN** — confirm with the verify block at the top of that file.
 * No shared rate limit in front of the Supabase API — Supabase's own Auth rate
   limits apply; REST relies on RLS. Same gap as audit H7 for our routes.
+
+---
+
+## 0k. Session cookies: `Secure` added 2026-09-14 — do NOT switch them to `SameSite=Strict` or `HttpOnly`
+
+Reported 2026-09-14: the `sb-*` cookies are `HttpOnly: false`, `Secure: false`,
+`SameSite: Lax`, so the tokens are readable from `document.cookie` and an XSS
+could take them. Proposed: `HttpOnly` + `Secure` + `Strict`, force HTTPS, rotate.
+The observation was **correct** — they are `@supabase/ssr` defaults
+(`DEFAULT_COOKIE_OPTIONS`) and no client overrode them.
+
+| Proposal | Outcome | Why |
+|---|---|---|
+| `Secure` | ✅ **Shipped** | `SUPABASE_AUTH_COOKIE_OPTIONS` in `src/shared/lib/supabase-auth-cookie.ts`, passed by all three clients. Production only — Safari will not store a `Secure` cookie on http://localhost. |
+| Force HTTPS | ✅ Already true | Live 2026-09-14: http → `308` to https; `Strict-Transport-Security: max-age=63072000`. |
+| `SameSite=Strict` | ❌ Declined | Cookie is withheld on any navigation arriving from another site. Google sign-in returns via `supabase.co` → `/auth/callback`, so the PKCE code-verifier cookie is missing and `exchangeCodeForSession` fails; Gmail links and Stripe/VNPay returns land signed out. `Lax` already withholds it on cross-site POST/fetch/iframe, which is the CSRF case. |
+| `HttpOnly` | ❌ Declined — needs a refactor first | `createBrowserClient` reads and writes the session through `document.cookie`. 27 client files call Supabase from the browser (profile/onboarding forms, `use-document-upload.ts` Storage uploads, `navigation-session.tsx`, `auth-form.tsx` sign-in). With `HttpOnly` they all go out anonymous and RLS returns nothing; JS also cannot overwrite an HttpOnly cookie, so refreshed tokens are dropped. |
+| Rotation | ⚠️ Supabase-side | Access tokens are short-lived JWTs; refresh tokens are single-use. Not yet confirmed in the dashboard (Auth → Sessions: reuse detection, JWT expiry, time-box/inactivity if the plan has them). Cookie `maxAge` is not the lever — the library pins it to 400 days, and clearing a cookie does not revoke its refresh token. |
+
+**Why `HttpOnly` is worth less than it sounds.** Script injected into the page
+can already act as the student — `fetch('/api/…')` carries the cookies and the
+in-page Supabase client carries the token. What `HttpOnly` would add is stopping
+the refresh token being carried off for use after the tab closes. **The lever
+that actually reduces XSS is enforcing the CSP**, which is still
+`Content-Security-Policy-Report-Only` with `'unsafe-inline' 'unsafe-eval'`
+(see the nonce plan in `next.config.ts`). Current raw-HTML surface is small: 5
+`dangerouslySetInnerHTML`, four JSON-LD through `serializeJsonLd`, one static
+keyframes string.
+
+**If `HttpOnly` is wanted later:** move every browser-side Supabase call behind
+route handlers or server actions, issue signed upload URLs from the server,
+start OAuth from a route handler so the verifier cookie is server-set, hydrate
+the nav session from the server, *then* add `httpOnly: true` to the shared
+options and delete `createBrowserClient`. Flipping the flag first signs
+everyone out of every client-side feature.
+
+The three clients must pass the same object — each rewrites the cookie on token
+refresh, so one left on library defaults strips `Secure` again. Do not add a
+`name`: it renames the cookie and signs every user out.
 
 ---
 
