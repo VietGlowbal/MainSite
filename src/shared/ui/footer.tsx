@@ -72,7 +72,7 @@ type Props = {
 
 export function Footer({ logo, tagline, columns, social, copyright, ratings }: Props) {
   return (
-    <footer className="bg-surface-inverse-deep">
+    <footer data-surface="dark" className="bg-surface-inverse-deep">
       <div className="pt-gb-7xl pb-gb-6xl">
         <Container className="flex flex-col gap-gb-6xl lg:flex-row lg:gap-gb-7xl">
           <div className="flex flex-col gap-gb-3xl lg:min-w-0 lg:flex-1">

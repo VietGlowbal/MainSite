@@ -46,6 +46,10 @@ export {
   VerifiedMark,
 } from './icons';
 export type { BrandIconArt, KitIconArt } from './icons';
+export { GlowbalIcon, IconLabel } from './glowbal-icon';
+export type { GlowbalIconSize, GlowbalIconTone, IconLabelProps } from './glowbal-icon';
+export { GLOWBAL_ICONS } from './glowbal-icons';
+export type { GlowbalIconName } from './glowbal-icons';
 export { GlobeLoader, LoadingScreen, PageLoaderOverlay, usePrefersReducedMotion } from './globe-loader';
 export type { GlobeLoaderSize } from './globe-loader';
 export { LOADING_PHRASES, nextPhraseIndex } from './loading-phrases';
