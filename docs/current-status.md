@@ -110,6 +110,8 @@ Measured: focused admin review tests (13 across API and client), base and strict
 `git diff --check`, and the production build pass; the build retains the three known dynamic-filesystem
 tracing warnings from `src/lib/geo-content.ts`.
 
+Working tree 2026-09-15 (AI cron timeout resilience deployed): raised only the two durable AI-worker route ceilings, `/api/cron/process-parse-jobs` and `/api/cron/process-personal-report-generation`, from 60 to 300 seconds; their shorter fetch/AI call limits and batch sizes remain unchanged. Applied `sql/supabase-job-claim-resilience.sql` and `sql/supabase-course-parse-reliability.sql` to production project `uooshbumyilwvbgmbixx`, including the idempotent claim-RPC replacement that drops the prior incompatible function signature first. Deployed commit `6c637b8` to production (`dpl_FL3bgobsxYy4tjYcryZ7GwehQ36A`); Vercel confirms a 300-second function timeout for both routes. Focused resilience coverage passed 9 files / 54 tests; base and strict typechecks plus lint passed; production build passed with the three existing `geo-content.ts` tracing warnings. In the first 30 minutes after deploy, Vercel reported no timeout or 5xx log entries, and production had 0 parse jobs with stale `started_at` and 0 Personal Report jobs with stale `locked_at` (both older than 10 minutes).
+
 Working tree 2026-09-14 (Admin AI report review badge overflow fix and clean evidence ref cards):
 Fixed badge overflow and duplicated scalar tiles reported on `/admin/ai-report-review` (`media_1789359428846.png`):
 When rendering item cards (such as evidence references in `evidenceRefs`), three issues degraded readability:
