@@ -14,6 +14,9 @@ changed. Before/after field-slot totals were Direct 849, H1 0, H2 0→103, H3
 The replay exports the complete programme × field matrix, donor provenance,
 rejection analysis, field summary, and programme completeness under
 [`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/).
+Focused hierarchy tests pass 22/22, the full ingestion suite passes 673/673,
+and compile, replay, CSV-structure, provenance, duplicate-key, and diff checks
+pass.
 
 Working tree 2026-09-15 Stage 1 external mass ingestion: the frozen
 `external-field-stage1-20260915` manifest (SHA-256
