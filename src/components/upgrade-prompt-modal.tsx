@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { GlowbalIcon } from '@/shared/ui/glowbal-icon';
 
 export type LimitType = 'search' | 'courses';
 
@@ -126,11 +127,9 @@ export function UpgradePromptModal({
             {/* Header with gradient */}
             <div className="bg-gradient-to-br from-pink-500 to-purple-600 px-6 py-8 text-white">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                  <path d="M2 17l10 5 10-5" />
-                  <path d="M2 12l10 5 10-5" />
-                </svg>
+                {/* Locked: this modal is the Plus gate. `current` keeps it white
+                    on the gradient header. */}
+                <GlowbalIcon name="locked" size={32} tone="current" />
               </div>
               
               <h2 id="upgrade-modal-title" className="text-2xl font-bold tracking-tight">
