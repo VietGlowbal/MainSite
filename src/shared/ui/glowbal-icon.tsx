@@ -34,8 +34,10 @@
  * `d` in currentColor, which has no way to carry a second tone.
  */
 
-import { GLOWBAL_ICONS, GLOWBAL_ICON_BOX, GLOWBAL_ICON_STROKE } from './glowbal-icons';
-import type { GlowbalIconName, IconElement } from './glowbal-icons';
+import { GLOWBAL_ICONS } from './glowbal-icon-art';
+import type { GlowbalIconName } from './glowbal-icon-art';
+import { GLOWBAL_ICON_BOX, GLOWBAL_ICON_STROKE } from './glowbal-icons';
+import type { IconElement } from './glowbal-icons';
 
 /** 16 meta line · 20 nav · 24 list row · 32 module grid · 40 feature card · 48 empty state. Nothing between. */
 export type GlowbalIconSize = 16 | 20 | 24 | 32 | 40 | 48;

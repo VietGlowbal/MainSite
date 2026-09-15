@@ -1,14 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { GlowbalIcon, IconLabel } from './glowbal-icon';
-import { GLOWBAL_ICONS, GLOWBAL_ICON_BOX } from './glowbal-icons';
-import type { GlowbalIconName } from './glowbal-icons';
+import { GLOWBAL_ICONS } from './glowbal-icon-art';
+import type { GlowbalIconName } from './glowbal-icon-art';
+import { GLOWBAL_ICONS as PLAN_ICONS, GLOWBAL_ICON_BOX } from './glowbal-icons';
+import { GLOWBAL_SHIPPED_ICONS } from './glowbal-icons-shipped';
 
 const NAMES = Object.keys(GLOWBAL_ICONS) as GlowbalIconName[];
 
 describe('GLOWBAL_ICONS', () => {
-  it('carries every icon in the plan', () => {
-    expect(NAMES).toHaveLength(72);
+  it('carries the 72 plan icons and the 27 redrawn shipped icons', () => {
+    expect(Object.keys(PLAN_ICONS)).toHaveLength(72);
+    expect(Object.keys(GLOWBAL_SHIPPED_ICONS)).toHaveLength(27);
+    expect(NAMES).toHaveLength(99);
+  });
+
+  // The merge is a spread: a shared key would silently replace one icon with another.
+  it('never lets a shipped icon shadow a plan icon', () => {
+    const plan = new Set(Object.keys(PLAN_ICONS));
+    expect(Object.keys(GLOWBAL_SHIPPED_ICONS).filter((key) => plan.has(key))).toEqual([]);
   });
 
   // The tone model is the whole system: an icon with no accent cannot name its
