@@ -79,10 +79,47 @@ the rendered box — unlike `KitIcon`'s stroked-bounds viewBox below. A migrated
 15px/13px/800 (owner's decision, 2026-09-15); the rounding is commented in
 `glowbal-icon.tsx`.
 
-**Pending:** the 27 icons that shipped as PNG sheets (Home, Strategy Master, the
-workspace tabs, …) are redrawn as vectors and in review on a design canvas. They
-are not in `GLOWBAL_ICONS` yet, so `SubNav` still draws its own inline icons.
-Every glyph on all three surfaces: `/dev/icons`.
+`GLOWBAL_ICONS` (from `glowbal-icon-art.ts`) is two sets merged: the plan's 72
+(`glowbal-icons.ts`, generated — do not hand-edit) and the 27 icons that shipped
+as PNG sheets, redrawn as vectors and approved by the owner on 2026-09-15
+(`glowbal-icons-shipped.ts`: Home, Strategy Master, the workspace tabs, …).
+Import names from the merge, never from either half; a test fails if the two
+ever share a name. A name that arrives as data (the application route model)
+goes through `isGlowbalIconName` first. Every glyph on all three surfaces, plus
+the application tab bar: `/dev/icons`.
+
+#### Where they go
+
+The handoff's mapping (groups A–J) is placed. Patterns to reuse rather than
+re-invent:
+
+- **Section headings** — a 40px icon above a centred heading (FAQ, team,
+  testimonials, about); a 16px icon beside an eyebrow (`SectionHeading` on
+  `/universities/[id]` takes `icon`); a 24px icon beside a card heading
+  (`SectionCard` on `/advisors/[id]` requires `icon`).
+- **Meta rows** — 16px beside the label, never inside a free-text value, so a
+  wrapped value still aligns (university card `dt`s, scholarship rows).
+- **Colour that carries state** — `tone="current"` and let the existing text
+  colour speak: the portal's urgent deadline, the countdown, the payment status
+  discs, the admin tabs on their dark rail.
+- **Questionnaire data** — icon keys stay strings in `features/apply/domain`
+  and render through `QuestionGlyph` (`features/apply/ui/question-chrome.tsx`):
+  a product icon name draws `GlowbalIcon`, an old `ICONS` key keeps its traced
+  art, anything else falls back to `checklist`.
+
+Deliberately NOT swapped — each is a decision, not a leftover:
+
+| Spot | Why it stays |
+|---|---|
+| University save hearts (`save-university-button.tsx`, the list card, `/apply` headings) | Figma draws the heart (522:8643) and its filled state *is* "saved"; `save` has no filled state. The scholarship shortlist did move, to `savedScholarship`, because the mapping names that icon for it. |
+| `StatusPill` glyphs | One distinct shape per status is the feature's accessibility rule; a single `applicationStatus` icon would erase it. |
+| Subject catalogue, degree levels, evidence categories | Decoration with no product meaning (Biology is not a GlowBal function). They keep their art until the design draws subject icons. |
+| `/apply` section marks (globe PNG, heart) | Figma-drawn marks (562:15622, 562:15559). |
+| Footer link columns | Figma-bound kit component; icons were not added to its text links. |
+| Kit affordances (chevrons, arrows, close, check bullets) | Not product functions — they stay `KitIcon`. |
+
+No spot exists yet for `notification` (there is no bell), `compare` (no compare
+feature) or `campusPhotos` (the only gallery is on the retired VinUni page).
 
 ### Icon sizing is not `size-6`
 
