@@ -96,6 +96,12 @@ class InferenceRecord:
     cycle_compatibility: str = "UNKNOWN"
     applicability_compatibility: str = "UNKNOWN"
     conflict_state: str = "NO_CONFLICT"
+    # Optional output binding for hierarchy results whose donor scope is
+    # broader than the programme target.  Historical inference and normal
+    # programme-scoped hierarchy records keep these unset.
+    output_scope: str | None = None
+    output_scope_entity_id: str | None = None
+    output_academic_cycle: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "supporting_assertion_ids", tuple(dict.fromkeys(self.supporting_assertion_ids)))
@@ -119,6 +125,14 @@ class InferenceRecord:
 
     def as_assertion(self) -> FieldAssertion:
         hierarchical = self.method == "hierarchical_donor" or self.inference_level != "HISTORICAL_RECURRENCE"
+        output_scope = self.output_scope or ("programme" if self.entity_type == "programme" else self.entity_type)
+        output_entity_type = (
+            "institution"
+            if output_scope in {"institution", "university", "central", "institution_wide", "graduate_school"}
+            else self.entity_type
+        )
+        output_entity_id = self.output_scope_entity_id or self.entity_id
+        output_cycle = self.output_academic_cycle if self.output_academic_cycle is not None else self.target_cycle
         evidence = (
             f"Inferred from {len(self.donor_assertion_ids or self.supporting_assertion_ids)} "
             f"independent donor assertion(s) at {self.inference_level}."
@@ -130,8 +144,8 @@ class InferenceRecord:
             validation_errors.append("HIERARCHICAL_ESTIMATE_ADVISORY")
         return FieldAssertion(
             assertion_id=stable_id("inferred-assertion", self.inference_id),
-            entity_type=self.entity_type,
-            entity_id=self.entity_id,
+            entity_type=output_entity_type,
+            entity_id=output_entity_id,
             field_name=self.field,
             value_json=self.predicted_value,
             null_reason=None,
@@ -139,9 +153,9 @@ class InferenceRecord:
             source_type="hierarchical_inference" if hierarchical else "historical_inference",
             evidence=evidence,
             evidence_locator=(f"inference:{self.inference_id}" if hierarchical else None),
-            scope="programme" if self.entity_type == "programme" else self.entity_type,
+            scope=output_scope,
             audience=None,
-            academic_cycle=self.target_cycle,
+            academic_cycle=output_cycle,
             retrieved_at=self.generated_at,
             confidence=self.confidence,
             verification_status=VerificationStatus.NEEDS_REVIEW,

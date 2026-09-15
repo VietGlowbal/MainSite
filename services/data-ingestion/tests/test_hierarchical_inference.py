@@ -151,6 +151,91 @@ class HierarchicalInferenceTests(unittest.TestCase):
         self.assertEqual(result.level, HierarchyLevel.INSTITUTION)
         self.assertEqual(result.record.donor_entity_ids, ("institution-a",))
 
+    def test_institution_finance_payload_keeps_credential_out_of_degree_and_allows_context_scope(self) -> None:
+        donor = assertion(
+            "institution-finance",
+            "institution-a",
+            value={
+                "credential": "out-of-state students",
+                "amount": 54002,
+                "currency": "USD",
+                "fee_period": "annual",
+                "audience": "international",
+            },
+            entity_type="institution",
+            scope="institution",
+            degree_level=None,
+            cycle=None,
+            authority=SourceAuthority.GOVERNMENT,
+            relationship=SourceRelationship.GOVERNMENT,
+            applicability=ApplicabilityState.UNKNOWN,
+        )
+        result = run_engine(
+            [donor],
+            institutions=[{"institution_id": "institution-a", "country": "US", "institution_type": "public"}],
+        )
+        self.assertFalse(result.abstained)
+        self.assertEqual(result.level, HierarchyLevel.INSTITUTION)
+        self.assertIsNone(result.candidates[0].donor_context.degree_level)
+        self.assertEqual(result.candidates[0].donor_context.unit_basis, "annual")
+        inferred = result.record.as_assertion()
+        self.assertEqual(inferred.entity_type, "institution")
+        self.assertEqual(inferred.entity_id, "institution-a")
+        self.assertEqual(inferred.scope, "institution")
+        self.assertEqual(inferred.academic_cycle, "")
+
+    def test_institution_finance_context_does_not_bypass_audience_gate(self) -> None:
+        donor = assertion(
+            "institution-domestic-finance",
+            "institution-a",
+            value={
+                "credential": "in-state students",
+                "amount": 50000,
+                "currency": "USD",
+                "fee_period": "annual",
+                "audience": "domestic",
+            },
+            entity_type="institution",
+            scope="institution",
+            degree_level=None,
+            audience="domestic",
+            cycle=None,
+            authority=SourceAuthority.GOVERNMENT,
+            relationship=SourceRelationship.GOVERNMENT,
+            applicability=ApplicabilityState.UNKNOWN,
+        )
+        result = run_engine(
+            [donor],
+            institutions=[{"institution_id": "institution-a", "country": "US", "institution_type": "public"}],
+        )
+        self.assertTrue(result.abstained)
+        self.assertIn("AUDIENCE_MISMATCH", {item["reason"] for item in result.rejected})
+
+    def test_institution_finance_context_preserves_shared_source_cycle(self) -> None:
+        donor = assertion(
+            "institution-cycle-finance",
+            "institution-a",
+            value={
+                "amount": 54002,
+                "currency": "USD",
+                "fee_period": "annual",
+                "audience": "international",
+            },
+            entity_type="institution",
+            scope="institution",
+            degree_level=None,
+            cycle="2026-2027",
+            authority=SourceAuthority.GOVERNMENT,
+            relationship=SourceRelationship.GOVERNMENT,
+            applicability=ApplicabilityState.UNKNOWN,
+        )
+        result = run_engine(
+            [donor],
+            institutions=[{"institution_id": "institution-a", "country": "US", "institution_type": "public"}],
+        )
+        self.assertFalse(result.abstained)
+        self.assertEqual(result.record.as_assertion().academic_cycle, "2026-2027")
+
     def test_sibling_donor_selection(self) -> None:
         sibling = {
             "programme_id": "sibling-programme",

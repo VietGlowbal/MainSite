@@ -202,6 +202,13 @@ _STRICT_FIELDS = frozenset(
         "rolling_admission",
     }
 )
+# Institution-level finance sources (for example government tuition tables)
+# describe an institution tariff, not a programme degree.  They can therefore
+# be carried as institution-scoped context when the source itself supplies the
+# audience/currency/basis dimensions.  This is deliberately narrower than the
+# general strict-field policy and does not turn institution facts into
+# programme facts.
+_INSTITUTION_CONTEXT_FIELDS = frozenset({"tuition", "additional_fees"})
 _AUTHORITY_SCORES = {
     SourceAuthority.OFFICIAL: 5,
     SourceAuthority.GOVERNMENT: 5,
@@ -317,9 +324,14 @@ def _value_metadata(assertion: FieldAssertion, *keys: str) -> Any:
 
 def _attribute(assertion: FieldAssertion, name: str) -> Any:
     if name == "degree_level":
-        return assertion.degree_level or _value_metadata(
-            assertion, "degree_level", "degree", "credential"
-        )
+        degree_keys = ["degree_level", "degree"]
+        # Finance payloads often use ``credential`` for a residency/fee label
+        # (for example, "out-of-state students"), not for an academic degree.
+        # Keep the legacy credential fallback for every other field so this
+        # repair cannot reduce degree evidence outside the proven finance case.
+        if assertion.field_name not in _INSTITUTION_CONTEXT_FIELDS:
+            degree_keys.append("credential")
+        return assertion.degree_level or _value_metadata(assertion, *degree_keys)
     if name == "audience":
         return assertion.audience or _value_metadata(
             assertion, "audience", "student_type", "residency"
@@ -759,6 +771,24 @@ class HierarchicalInferenceEngine:
                 target_id=target_id,
                 target_cycle=target_cycle or base.academic_cycle or "",
                 candidates=candidates,
+                output_scope=(
+                    "institution"
+                    if field in _INSTITUTION_CONTEXT_FIELDS
+                    and all(_scope_kind(item.assertion) == "institution" for item in candidates)
+                    else None
+                ),
+                output_scope_entity_id=(
+                    base.institution_id
+                    if field in _INSTITUTION_CONTEXT_FIELDS
+                    and all(_scope_kind(item.assertion) == "institution" for item in candidates)
+                    else None
+                ),
+                output_academic_cycle=(
+                    self._institution_output_cycle(candidates)
+                    if field in _INSTITUTION_CONTEXT_FIELDS
+                    and all(_scope_kind(item.assertion) == "institution" for item in candidates)
+                    else None
+                ),
             )
             if decision.record is not None:
                 return HierarchicalInferenceDecision(
@@ -964,10 +994,15 @@ class HierarchicalInferenceEngine:
         audience: str | None,
     ) -> tuple[bool, str, str, str]:
         strict = field in _STRICT_FIELDS
+        institution_context = (
+            level == HierarchyLevel.INSTITUTION
+            and field in _INSTITUTION_CONTEXT_FIELDS
+            and _scope_kind(assertion) == "institution"
+        )
         target_degree, donor_degree = _degree_token(target.degree_level), _degree_token(donor.degree_level)
         if target_degree and donor_degree and target_degree != donor_degree:
             return False, "DEGREE_MISMATCH", "MISMATCH", "UNKNOWN"
-        if strict and target_degree and not donor_degree:
+        if strict and target_degree and not donor_degree and not institution_context:
             return False, "DEGREE_UNKNOWN", "UNKNOWN", "UNKNOWN"
         target_audience, donor_audience = target.audience or audience, donor.audience
         if not _audience_match(target_audience, donor_audience):
@@ -978,7 +1013,7 @@ class HierarchicalInferenceEngine:
         donor_cycle = donor.academic_cycle or _attribute(assertion, "academic_cycle")
         if not _cycle_match(target_cycle_value, donor_cycle):
             return False, "CYCLE_MISMATCH", "MISMATCH", "UNKNOWN"
-        if strict and target_cycle_value and not donor_cycle:
+        if strict and target_cycle_value and not donor_cycle and not institution_context:
             return False, "CYCLE_UNKNOWN", "UNKNOWN", "UNKNOWN"
         cycle_status = "MATCH" if target_cycle_value and donor_cycle else "UNKNOWN"
         target_currency = _token(target.currency)
@@ -1029,6 +1064,7 @@ class HierarchicalInferenceEngine:
             strict
             and level in {HierarchyLevel.PARENT_ORGANISATION, HierarchyLevel.INSTITUTION}
             and applicability == ApplicabilityState.UNKNOWN.value
+            and not institution_context
             and not (assertion.applicability_source_url and assertion.applicability_evidence)
         ):
             return False, "APPLICABILITY_UNKNOWN", cycle_status, "UNKNOWN"
@@ -1047,6 +1083,9 @@ class HierarchicalInferenceEngine:
         target_id: str,
         target_cycle: str,
         candidates: list[DonorCandidate],
+        output_scope: str | None = None,
+        output_scope_entity_id: str | None = None,
+        output_academic_cycle: str | None = None,
     ) -> HierarchicalInferenceDecision:
         numeric = [_numeric_value(item.assertion.value_json) for item in candidates]
         all_numeric = all(value is not None for value in numeric)
@@ -1230,10 +1269,25 @@ class HierarchicalInferenceEngine:
                 else "UNKNOWN"
             ),
             conflict_state="CONFLICTING_DONORS" if conflict else "NO_CONFLICT",
+            output_scope=output_scope,
+            output_scope_entity_id=output_scope_entity_id,
+            output_academic_cycle=output_academic_cycle,
         )
         return HierarchicalInferenceDecision(
             record, level, "HIERARCHICAL_DONOR_SELECTED", tuple(candidates)
         )
+
+    @staticmethod
+    def _institution_output_cycle(candidates: list[DonorCandidate]) -> str:
+        """Preserve a shared source-native cycle, or explicitly keep it unknown."""
+
+        cycles = [
+            item.donor_context.academic_cycle or _attribute(item.assertion, "academic_cycle") or ""
+            for item in candidates
+        ]
+        if cycles and len(set(cycles)) == 1:
+            return str(cycles[0])
+        return ""
 
     def evaluate_population(
         self,

@@ -1,5 +1,20 @@
 # Current project status
 
+Working tree 2026-09-15 hierarchy-coverage replay: the frozen Stage 1
+population (418 programmes × 38 priority fields) was evaluated with the
+existing H1-H4 engine using accepted external semantic assertions and promoted
+deterministic metadata. A concrete finance false-negative was fixed narrowly:
+residency/fee labels in a finance payload are no longer interpreted as degree
+levels, and institution-scoped tuition/additional-fee donors may be selected at
+H2 only when their institution, audience, currency, basis, temporal and
+applicability checks remain compatible. The output keeps those values
+institution-scoped and advisory; no acceptance policy or global hierarchy gate
+changed. Before/after field-slot totals were Direct 849, H1 0, H2 0→103, H3
+82, H4 0, final 931→1,034, review 151, abstain 7,278→7,175, missing 7,524.
+The replay exports the complete programme × field matrix, donor provenance,
+rejection analysis, field summary, and programme completeness under
+[`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/).
+
 Working tree 2026-09-15 Stage 1 external mass ingestion: the frozen
 `external-field-stage1-20260915` manifest (SHA-256
 `2607bb4ae5218770f903a657443734751d93a53acb572edadc6542f0b8006277`) contains
