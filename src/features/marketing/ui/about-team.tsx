@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import Image from 'next/image';
 import type { TeamAchievementCategory, TeamMember } from '@/lib/team';
 import { useT } from '@/lib/i18n';
-import { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, Modal } from '@/shared/ui';
+import { BRAND_ICONS, BrandIcon, GlowbalIcon, ICONS, InstagramMark, KitIcon, Modal } from '@/shared/ui';
 
 /**
  * About-page team carousel — a direct port of the owner-supplied reference's
@@ -815,6 +815,7 @@ export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
     <section id="team" className="scroll-mt-gb-9xl pb-gb-9xl">
       <div className="flex flex-col gap-gb-6xl">
         <div className="mx-auto max-w-gb-width-xl text-center">
+          <GlowbalIcon name="ourTeam" size={40} className="mx-auto mb-gb-xl block" />
           <h2 className="font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
             Meet our team
           </h2>

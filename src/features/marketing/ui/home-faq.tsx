@@ -1,4 +1,4 @@
-import { Section } from '@/shared/ui';
+import { GlowbalIcon, Section } from '@/shared/ui';
 import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 
 export type FaqEntry = {
@@ -57,6 +57,7 @@ export function HomeFaq({ entries = HOME_FAQ, locale = 'en' }: { entries?: reado
   return (
     <Section containerClassName="flex flex-col gap-gb-7xl">
       <div className="mx-auto max-w-gb-width-xl text-center">
+        <GlowbalIcon name="faq" size={40} className="mx-auto mb-gb-xl block" />
         <h2 className="font-display text-gb-display-sm font-semibold text-fg md:text-gb-display-md">
           {getLocaleText(locale, 'Frequently asked questions')}
         </h2>
