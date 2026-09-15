@@ -1,6 +1,6 @@
 'use client';
 
-import { ICONS, KitIcon } from '@/shared/ui';
+import { GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
 import { questionIcon } from './question-chrome';
 
 /**
@@ -166,7 +166,7 @@ function EvidenceCardMenu({
         title={editLabel}
         className="rounded-gb-sm p-gb-xs text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
-        <KitIcon art={ICONS.edit02} frame={16} />
+        <GlowbalIcon name="edit" size={16} tone="current" />
       </button>
       <button
         type="button"
@@ -175,7 +175,7 @@ function EvidenceCardMenu({
         title={removeLabel}
         className="rounded-gb-sm p-gb-xs text-fg-muted hover:bg-surface-muted hover:text-fg-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
-        <KitIcon art={ICONS.trash} frame={16} />
+        <GlowbalIcon name="delete" size={16} tone="current" />
       </button>
     </div>
   );

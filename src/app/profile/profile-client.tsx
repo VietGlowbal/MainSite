@@ -9,6 +9,7 @@ import {
   Avatar,
   Badge,
   Button,
+  GlowbalIcon,
   ICONS,
   KitIcon,
   Panel,
@@ -665,7 +666,7 @@ function DocumentsCard({
       ) : null}
 
       <Button href={manageHref} variant="secondary" size="lg" className="w-full">
-        <KitIcon art={ICONS.uploadCloud} frame={20} />
+        <GlowbalIcon name="upload" size={20} />
         Upload a document
       </Button>
     </Panel>
