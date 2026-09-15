@@ -2,20 +2,33 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { GlowbalIcon, type GlowbalIconName } from '@/shared/ui';
 
 export type AdminTabsProps = {
   canViewPayments?: boolean;
 };
 
-const ALL_TABS = [
-  { href: '/admin', label: 'Overview', match: 'exact' as const },
-  { href: '/admin/achievers', label: 'Advisor applications', match: 'prefix' as const },
-  { href: '/admin/bookings', label: 'Bookings & payments', match: 'prefix' as const, paymentOnly: true },
-  { href: '/admin/news', label: 'News & GEO', match: 'prefix' as const },
-  { href: '/admin/users', label: 'Users', match: 'prefix' as const },
-  { href: '/admin/coordinators', label: 'Coordinators', match: 'prefix' as const },
-  { href: '/admin/planner', label: 'Planner Ops', match: 'prefix' as const },
-  { href: '/admin/ai-report-review', label: 'AI report review', match: 'prefix' as const },
+const ALL_TABS: readonly {
+  href: string;
+  label: string;
+  match: 'exact' | 'prefix';
+  icon: GlowbalIconName;
+  paymentOnly?: true;
+}[] = [
+  { href: '/admin', label: 'Overview', match: 'exact', icon: 'analytics' },
+  { href: '/admin/achievers', label: 'Advisor applications', match: 'prefix', icon: 'becomeMentor' },
+  {
+    href: '/admin/bookings',
+    label: 'Bookings & payments',
+    match: 'prefix',
+    icon: 'bookingManagement',
+    paymentOnly: true,
+  },
+  { href: '/admin/news', label: 'News & GEO', match: 'prefix', icon: 'contentCms' },
+  { href: '/admin/users', label: 'Users', match: 'prefix', icon: 'userManagement' },
+  { href: '/admin/coordinators', label: 'Coordinators', match: 'prefix', icon: 'ourTeam' },
+  { href: '/admin/planner', label: 'Planner Ops', match: 'prefix', icon: 'plannerOps' },
+  { href: '/admin/ai-report-review', label: 'AI report review', match: 'prefix', icon: 'aiInsight' },
 ];
 
 /**
@@ -44,12 +57,15 @@ export function AdminTabs({ canViewPayments = false }: AdminTabsProps) {
             key={tab.href}
             href={tab.href}
             aria-current={active ? 'page' : undefined}
-            className={`rounded-gb-full px-gb-xl py-gb-md text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+            className={`flex items-center gap-gb-sm rounded-gb-full px-gb-xl py-gb-md text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
               active
                 ? 'bg-surface text-fg'
                 : 'text-fg-on-inverse-muted hover:bg-surface-inverse hover:text-fg-on-inverse'
             }`}
           >
+            {/* `current`: the rail flips between the light active pill and the
+                dark band, so the icon follows each tab's text colour. */}
+            <GlowbalIcon name={tab.icon} size={16} tone="current" />
             {tab.label}
           </Link>
         );

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge, Button, Modal, Textarea } from '@/shared/ui';
+import { Badge, Button, GlowbalIcon, Modal, Textarea } from '@/shared/ui';
 import { computeServiceFee, computeTotal, formatMoney } from '@/lib/currency';
 import { convertToVnd } from '@/lib/payments/vnpay-shared';
 import { PaymentMethodSelector } from '@/components/payments/payment-method-selector';
@@ -199,7 +199,13 @@ export function MentorBooking({
     >
       {/* The frame labels this "Điểm mạnh" — the strengths heading, pasted
           twice. See the departure note in mentor-detail.tsx. */}
-      <h2 id="booking-heading" className="font-display text-gb-display-xs font-semibold text-fg">
+      {/* Icon and size match SectionCard in mentor-detail.tsx, so this reads
+          as one of the page's sections rather than a separate widget. */}
+      <h2
+        id="booking-heading"
+        className="flex items-center gap-gb-lg font-display text-gb-display-xs font-semibold text-fg"
+      >
+        <GlowbalIcon name="bookSession" size={24} />
         {t('Book a session')}
       </h2>
       {/* One literal, for the same two reasons as the empty state below. */}
@@ -542,13 +548,16 @@ function BookingIntake({
       <h3 className="font-display text-gb-display-xs font-semibold text-fg">
         {t('Book {name}', { name: mentorName })}
       </h3>
-      <p className="mt-gb-sm text-gb-sm text-fg-tertiary">
-        {start.toLocaleDateString(locale, {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-        })}{' '}
-        · {formatTime(slot.starts_at, locale)} · {t('{count} min', { count: durationMins })}
+      <p className="mt-gb-sm flex items-center gap-gb-sm text-gb-sm text-fg-tertiary">
+        <GlowbalIcon name="sessionLength" size={16} />
+        <span>
+          {start.toLocaleDateString(locale, {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          })}{' '}
+          · {formatTime(slot.starts_at, locale)} · {t('{count} min', { count: durationMins })}
+        </span>
       </p>
 
       <div className="mt-gb-3xl flex flex-col gap-gb-2xl">

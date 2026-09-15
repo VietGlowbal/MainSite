@@ -7,7 +7,7 @@ import {
   type AchievementValues,
   type ActivityValues,
 } from '@/features/apply/domain';
-import { DocumentPreviewDrawer, EvidenceGrid, EvidenceTabs, questionIcon, type EvidenceTabKey } from '@/features/apply/ui';
+import { DocumentPreviewDrawer, EvidenceGrid, EvidenceTabs, QuestionGlyph, type EvidenceTabKey } from '@/features/apply/ui';
 import { useEvidenceDocuments, type EvidenceDocument } from '@/features/apply/hooks';
 import { useT } from '@/lib/i18n';
 import { Button, ICONS, KitIcon } from '@/shared/ui';
@@ -58,7 +58,7 @@ function ReadOnlyCard({
           aria-hidden="true"
           className="flex size-10 shrink-0 items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand"
         >
-          <KitIcon art={questionIcon(icon)} frame={18} />
+          <QuestionGlyph icon={icon} size={20} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-gb-sm font-semibold text-fg">{title}</p>

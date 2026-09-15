@@ -8,7 +8,7 @@ import { MarketingNavigation } from '@/components/marketing-navigation';
 // page. See docs/performance.md.
 import { AboutTeam, HomeFaq } from '@/features/marketing/about';
 import { getLocalizedFooter } from '@/features/marketing/navigation';
-import { Container, Footer } from '@/shared/ui';
+import { Container, Footer, GlowbalIcon } from '@/shared/ui';
 import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 
 /**
@@ -65,6 +65,7 @@ export default async function AboutPage({ locale = 'en' }: { locale?: Locale } =
         {/* Hero — honest copy, no world map of offices GlowBal does not have. */}
         <section className="py-gb-9xl">
           <Container className="flex flex-col items-center gap-gb-xl text-center">
+            <GlowbalIcon name="aboutUs" size={40} />
             <h1 className="max-w-gb-width-xl font-display text-gb-display-sm font-semibold md:text-gb-display-md">
               {getLocaleText(locale, 'The team helping students go global')}
             </h1>

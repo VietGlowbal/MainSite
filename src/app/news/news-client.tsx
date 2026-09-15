@@ -13,6 +13,7 @@ import {
   Button,
   Container,
   Footer,
+  GlowbalIcon,
   ICONS,
   Input,
   KitIcon,
@@ -146,7 +147,12 @@ function BlogPostCard({ guide, locale = 'en' }: { guide: GeoGuide; locale?: Loca
         {/* Attribution strip: a frosted panel over a bottom-up scrim, so white
             text stays legible whatever the photo underneath is doing. */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-scrim">
-          <div className="border-t border-surface-frosted bg-surface-frosted p-gb-2xl backdrop-blur-md">
+          {/* data-surface="dark": the strip is white text over a photo, so the
+              topic's icon takes the on-dark pair rather than the page's ink. */}
+          <div
+            data-surface="dark"
+            className="border-t border-surface-frosted bg-surface-frosted p-gb-2xl backdrop-blur-md"
+          >
             <div className="flex items-start justify-between gap-gb-3xl text-gb-sm text-white">
               <div className="flex flex-col">
                 <span className="font-semibold">{formatDate(guide.publishedAt, locale)}</span>
@@ -154,7 +160,10 @@ function BlogPostCard({ guide, locale = 'en' }: { guide: GeoGuide; locale?: Loca
                   {guide.readingTimeMinutes} <span>{getLocaleText(locale, 'min read')}</span>
                 </span>
               </div>
-              <span className="shrink-0 font-semibold">{guide.topic}</span>
+              <span className="flex shrink-0 items-center gap-gb-sm font-semibold">
+                <GlowbalIcon name="newsArticle" size={16} />
+                {guide.topic}
+              </span>
             </div>
           </div>
         </div>
@@ -375,7 +384,10 @@ export function NewsClient({
             text: the separation from the tabs is the next section's padding. */}
         <section className="bg-surface-muted pt-gb-9xl">
           <Container className="flex flex-col gap-gb-lg">
-            <p className="text-gb-md font-semibold text-brand">{t('Blog')}</p>
+            <p className="flex items-center gap-gb-md text-gb-md font-semibold text-brand">
+              <GlowbalIcon name="newsArticle" size={20} />
+              {t('Blog')}
+            </p>
             <div className="flex flex-col gap-gb-4xl lg:flex-row lg:items-start">
               <h1 className="flex-1 font-display text-gb-display-sm font-medium tracking-gb-display-tight text-fg lg:max-w-gb-width-xl lg:text-gb-display-lg">
                 {t('Resource library')}

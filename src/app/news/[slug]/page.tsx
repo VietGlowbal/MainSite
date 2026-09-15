@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getGeoGuide, listGeoGuides, listLinkedPublishedGuides, listRelatedGeoGuides } from '@/lib/geo-content';
 import type { GeoGuide } from '@/lib/geo-content';
 import { NewsletterCard } from '@/components/news/newsletter-card';
+import { GlowbalIcon } from '@/shared/ui';
 import { SITE_URL } from '@/lib/site-url';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { serializeJsonLd } from '@/lib/seo/json-ld';
@@ -155,7 +156,10 @@ export default async function GuidePage({ params, locale = 'en' }: { params: Pro
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-              <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">{t(guide.topic)}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">
+                <GlowbalIcon name="guides" size={16} />
+                {t(guide.topic)}
+              </span>
               <span>{formatDate(guide.publishedAt, locale)}</span>
               <span>•</span>
               <span>{t('{minutes} min read', { minutes: guide.readingTimeMinutes })}</span>
@@ -170,15 +174,15 @@ export default async function GuidePage({ params, locale = 'en' }: { params: Pro
             </div>
             <div className="flex flex-wrap items-center gap-2.5 text-sm">
               <button className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600 transition hover:border-slate-300">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" /></svg>
+                <GlowbalIcon name="save" size={16} tone="current" />
                 {t('Save')}
               </button>
               <button className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600 transition hover:border-slate-300">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+                <GlowbalIcon name="share" size={16} tone="current" />
                 {t('Share')}
               </button>
               <button aria-label="More actions" className="flex h-[42px] w-[42px] items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
+                <GlowbalIcon name="more" size={16} tone="current" />
               </button>
             </div>
           </div>
