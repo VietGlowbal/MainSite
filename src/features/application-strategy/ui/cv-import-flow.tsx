@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useT } from '@/lib/i18n';
-import { Button, FileDropzone, ICONS, KitIcon } from '@/shared/ui';
+import { Button, FileDropzone, GlowbalIcon } from '@/shared/ui';
 import { useDocumentUpload } from '@/shared/hooks';
 import {
   SECTION_LABEL,
@@ -176,7 +176,7 @@ export function CvImportFlow({
                     >
                       <div className="flex min-w-0 items-center gap-gb-lg">
                         <span aria-hidden className="shrink-0 text-fg-muted">
-                          <KitIcon art={ICONS.uploadCloud} frame={20} />
+                          <GlowbalIcon name="documentUpload" size={20} />
                         </span>
                         <div className="flex min-w-0 flex-col">
                           <span className="truncate text-gb-sm font-semibold text-fg">

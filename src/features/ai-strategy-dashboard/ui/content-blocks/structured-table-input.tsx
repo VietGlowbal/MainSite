@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import type { ContentBlockColumn } from '@/lib/match-insights';
 import { useLanguage } from '@/lib/i18n';
-import { ICONS, Input, KitIcon, Select } from '@/shared/ui';
+import { GlowbalIcon, ICONS, Input, KitIcon, Select } from '@/shared/ui';
 import { useMediaQuery } from '../use-media-query';
 import type { BlockInputProps } from './registry';
 import { SaveStatus } from './save-status';
@@ -168,7 +168,7 @@ export function StructuredTableInput({ schema, value, onSave }: BlockInputProps<
                       aria-label={t('Remove row {n}', { n: index + 1 })}
                       className="flex items-center justify-center rounded-gb-sm p-gb-sm text-fg-tertiary hover:text-fg-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                     >
-                      <KitIcon art={ICONS.trash} frame={16} />
+                      <GlowbalIcon name="delete" size={16} tone="current" />
                     </button>
                   </td>
                 </tr>
@@ -211,7 +211,7 @@ export function StructuredTableInput({ schema, value, onSave }: BlockInputProps<
               onClick={() => removeRow(row.id)}
               className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-gb-xs self-start rounded-gb-sm border border-line px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary hover:border-line-error hover:text-fg-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              <KitIcon art={ICONS.trash} frame={16} className="shrink-0" />
+              <GlowbalIcon name="delete" size={16} tone="current" />
               {t('Remove row {n}', { n: index + 1 })}
             </button>
           </fieldset>
