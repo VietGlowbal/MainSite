@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Recommendation } from '../domain';
 import { SEEDED_CATEGORIES, STRATEGY_TOOLS, nextPriority, strategyToolHref, taskCounts } from '../domain';
 import { IconCircle } from './planner-shared';
-import { ICONS, KitIcon, Panel, ProgressBar, type KitIconArt } from '@/shared/ui';
+import { ICONS, KitIcon, Panel, ProgressBar, type GlowbalIconName } from '@/shared/ui';
 
 /**
  * Strategy Categories — requirements.md Requirement 9.2-9.3, 9.6.
@@ -26,10 +26,10 @@ import { ICONS, KitIcon, Panel, ProgressBar, type KitIconArt } from '@/shared/ui
  */
 const BOARD_CATEGORY_KEYS = ['academics', 'activities', 'personal-statement'] as const;
 
-const CATEGORY_ICON: Record<(typeof BOARD_CATEGORY_KEYS)[number], KitIconArt> = {
-  academics: ICONS.graduationCap,
-  activities: ICONS.usersTwo,
-  'personal-statement': ICONS.edit02,
+const CATEGORY_ICON: Record<(typeof BOARD_CATEGORY_KEYS)[number], GlowbalIconName> = {
+  academics: 'programs',
+  activities: 'ourTeam',
+  'personal-statement': 'essaySupport',
 };
 
 const CATEGORY_TONE: Record<(typeof BOARD_CATEGORY_KEYS)[number], 'safe' | 'info' | 'brand'> = {

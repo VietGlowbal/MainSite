@@ -1,21 +1,32 @@
 import { notFound } from 'next/navigation';
-import { GLOWBAL_ICONS, GlowbalIcon, IconLabel } from '@/shared/ui';
+import { aiStrategyApplicationNav } from '@/shared/lib/ai-strategy-route-model';
+import { GLOWBAL_ICONS, GlowbalIcon, IconLabel, SubNav } from '@/shared/ui';
 import type { GlowbalIconName, GlowbalIconSize } from '@/shared/ui';
 
 /**
  * Product icon reference. Development only.
  *
- * Every GLOWBAL_ICONS glyph on each surface its two tones resolve against, in
- * the app's real CSS environment — the check that a surface flips every icon
- * inside it with no per-call-site colour.
+ * Every GLOWBAL_ICONS glyph — the 72 from the icon plan and the 27 redrawn
+ * shipped icons — on each surface its two tones resolve against, in the app's
+ * real CSS environment: the check that a surface flips every icon inside it with
+ * no per-call-site colour. Plus the application tab bar, the one place the
+ * `brand` surface is load-bearing, since no other dev page renders it.
  *
  * Deliberately NOT a section of /dev/kitchen-sink: that page backs a screenshot
- * baseline, and 72 icons x 3 surfaces would change its height for a reason
+ * baseline, and 99 icons x 3 surfaces would change its height for a reason
  * unrelated to the tokens it guards.
  */
 
 const NAMES = Object.keys(GLOWBAL_ICONS) as GlowbalIconName[];
 const SIZES: readonly GlowbalIconSize[] = [16, 20, 24, 32, 40, 48];
+
+/** Every tab reachable, so the bar shows all of its icons. */
+const DEMO_TABS = aiStrategyApplicationNav('demo-application', {
+  analysisReady: true,
+  strategyReady: true,
+  plannerReady: true,
+  candidateConfirmed: true,
+});
 
 const SURFACES = [
   {
@@ -71,6 +82,14 @@ export default function IconsPage() {
           </ul>
         </section>
       ))}
+
+      <section className="mt-gb-4xl flex flex-col gap-gb-3xl">
+        <h2 className="text-gb-lg font-semibold">SubNav — the application tabs</h2>
+        <div data-surface="brand" className="rounded-gb-xl bg-brand px-gb-3xl pt-gb-2xl">
+          <SubNav items={DEMO_TABS} activeKey="planner" label="Demo application" tone="on-brand" />
+        </div>
+        <SubNav items={DEMO_TABS} activeKey="planner" label="Demo application, light" />
+      </section>
 
       <section className="mt-gb-4xl">
         <h2 className="mb-gb-xl text-gb-lg font-semibold">Sizes — the six approved, nothing between</h2>
