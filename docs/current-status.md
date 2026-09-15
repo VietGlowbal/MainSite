@@ -1,5 +1,26 @@
 # Current project status
 
+Working tree 2026-09-15 (product icon system — handoff v1.0, **phases 1–2 done, phase 3 started**): the owner's icon
+plan handoff (72 new two-tone icons + 27 shipped as PNG sheets; lives outside the repo) is being integrated.
+**Foundation:** `src/shared/ui/glowbal-icons.ts` (art, verbatim from the handoff), `glowbal-icon.tsx` (`GlowbalIcon`,
+`IconLabel`), exported from the barrel; tones in tokens.css (`--color-gb-icon-*` primitives, `stroke-icon-ink` /
+`stroke-icon-accent`, `data-surface` light/dark/brand). Deviations from the handoff, each commented in code: no
+`.on-dark` class (attribute only); a `brand` surface and a `tone="current"` for the rose band, filled buttons and
+hover-coloured row actions; `aria-label` instead of an svg `<title>`; `IconLabel` spans only and type fitted to the
+site scale (owner's decision). Reference page `/dev/icons` (kept off the kitchen-sink screenshot baseline).
+**Surfaces:** `Footer` (dark), `TopNav` / `Section` (from `tone`), application band (`brand`). **Migrated:** the
+hand-built `trash` / `uploadCloud` / `edit02` at 9 call sites (document row, dropzone, achievement cards, document
+panel, CV editor/workspace/import, structured table, profile) → `delete` / `upload` / `documentUpload` / `edit`.
+**Pending:** the 27 PNG icons are redrawn as vectors and in owner review on a design canvas — SubNav, the strategy
+category tiles and `IconCircle` wait on that; groups A–I of the handoff's mapping (including adding icons where none
+exist today) are not started. Details: [design-system.md](design-system.md) "Product icons".
+Measured: `glowbal-icon.test.tsx` 15 tests; `vitest related` on the migrated files 61 files / 361 passed, on the
+surface edits 60 files / 344 passed; `typecheck`, `typecheck:strict`, ESLint on all changed files clean; `/dev/icons`
+in Chrome at 1440 and 360 — computed strokes light `rgb(22,24,29)`+`rgb(225,29,72)`, dark white+`rgb(255,59,71)`,
+brand white/white, no horizontal scroll; `/dev/document-upload` screenshot shows the new glyphs. Not run: full
+`npm test`, `npm run build`, E2E (the `data-surface` attributes change no pixels, so the visual baselines are not
+expected to move — not re-run), `verify:pr`.
+
 Working tree 2026-09-14 (CSP report → **enforced Content Security Policy**): review said "only
 `Content-Security-Policy-Report-Only` on every route; `unsafe-inline`/`unsafe-eval` present; `upgrade-insecure-requests`
 ignored". **All three true of production** (live headers checked). Now `src/proxy.ts` sends, per page request, an

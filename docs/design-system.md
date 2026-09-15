@@ -45,6 +45,44 @@ exception, the loading hooks; see that row.
 | `BrandIcon` + `BRAND_ICONS` | **Filled** social marks — `KitIcon`'s stroke treatment renders them hollow, hence the split. |
 | `VerifiedMark` | The seal beside a verified mentor's name (Figma `375:21653`). Two filled paths in two colours, so not a `KitIcon`: the seal takes `currentColor` (pair it with `text-fg-verified`), the tick is hard white. Renders an accessible `title` by default — "verified" is information, not decoration. Pass `title={null}` where adjacent text already says it. |
 | `InstagramMark`, `SearchMark` | ⚠️ Not design art. Neither mark exists in Figma; these are the shapes the old site shipped. |
+| `GlowbalIcon` + `GLOWBAL_ICONS` | **The product's own icon set** — 72 two-tone glyphs from the icon plan handoff (v1.0), art copied verbatim into `glowbal-icons.ts` (generated; change it in the plan, not by hand). Use it for any icon that names a product function. `KitIcon` stays for kit affordances (chevrons, arrows, close) and for consumers not yet migrated. See "Product icons" below. |
+| `IconLabel` | The only two icon + text layouts: `left` (`nav` · `row` · `meta`) and `top` (`card` · `grid` · `empty`). Renders spans only, so it is valid inside a `<button>`. |
+
+### Product icons — `GlowbalIcon`
+
+Every glyph has two tones: **ink** (the shape) and **accent** (the one detail
+that names the function). The call site never picks a colour; the surface does,
+through `stroke-icon-ink` / `stroke-icon-accent` (tokens.css, "Surfaces"):
+
+| Surface | ink | accent |
+|---|---|---|
+| default / `data-surface="light"` | `#16181d` | brand rose |
+| `data-surface="dark"` | white | `#ff3b47` — rose is 4.2:1 on the footer |
+| `data-surface="brand"` | text colour | text colour |
+
+`Footer`, `TopNav` and `Section` set it from their tone; the application band
+(`components/application-nav.tsx`) sets `brand`. ⚠️ **A new dark or rose band
+must set it too**, or its icons draw dark ink on a dark ground.
+
+`tone`: `two-tone` (default) · `mono` (accent in the ink colour — dense tables,
+disabled rows, anywhere red already means something) · `current` (both tones
+follow the text colour — compact row actions whose colour carries state, like
+`text-fg-muted hover:text-fg-error`, and any icon inside a filled button).
+`current` and the `brand` surface are **not in the icon plan**: a fixed ink
+cannot follow a hover state, and a rose accent vanishes on rose.
+
+Sizes 16 · 20 · 24 · 32 · 40 · 48 only. The art is a true 24px box, so `size` is
+the rendered box — unlike `KitIcon`'s stroked-bounds viewBox below. A migrated
+`KitIcon frame={14}` becomes 16.
+
+`IconLabel` text sits on the site type scale, not the plan's measured
+15px/13px/800 (owner's decision, 2026-09-15); the rounding is commented in
+`glowbal-icon.tsx`.
+
+**Pending:** the 27 icons that shipped as PNG sheets (Home, Strategy Master, the
+workspace tabs, …) are redrawn as vectors and in review on a design canvas. They
+are not in `GLOWBAL_ICONS` yet, so `SubNav` still draws its own inline icons.
+Every glyph on all three surfaces: `/dev/icons`.
 
 ### Icon sizing is not `size-6`
 
