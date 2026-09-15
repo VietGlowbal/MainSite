@@ -16,6 +16,11 @@ describe('POST /api/cron/process-personal-report-generation', () => {
     mocks.process.mockResolvedValue({ claimed: 0, complete: 0, retry: 0, blocked: 0 });
   });
 
+  it('allows a queued report to finish its bounded AI stages', async () => {
+    const { maxDuration } = await import('./route');
+    expect(maxDuration).toBe(300);
+  });
+
   it('rejects callers without cron authentication', async () => {
     const { POST } = await import('./route');
     mocks.authorized.mockReturnValue(false);

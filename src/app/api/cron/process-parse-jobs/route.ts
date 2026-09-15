@@ -26,7 +26,7 @@ import { processParseJob } from '@/lib/course-parser/job-processor';
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const DEFAULT_BATCH = 5;
 const MAX_BATCH = 20;

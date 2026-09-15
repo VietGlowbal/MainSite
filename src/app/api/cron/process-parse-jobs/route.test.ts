@@ -27,6 +27,11 @@ describe('GET/POST /api/cron/process-parse-jobs', () => {
     mocks.claimPendingJobs.mockResolvedValue([]);
   });
 
+  it('allows the durable worker to finish bounded fetch and AI stages', async () => {
+    const { maxDuration } = await import('./route');
+    expect(maxDuration).toBe(300);
+  });
+
   it('rejects unauthorized requests with 401', async () => {
     mocks.isAuthorizedCron.mockReturnValue(false);
     const req = new NextRequest('http://localhost/api/cron/process-parse-jobs');
