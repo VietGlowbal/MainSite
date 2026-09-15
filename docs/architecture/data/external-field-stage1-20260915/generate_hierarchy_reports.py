@@ -975,7 +975,7 @@ Two concrete false negatives were fixed narrowly:
 
 | field | old gate/problem | real examples | safe condition now | added coverage | residual risk guard |
 |---|---|---|---|---:|---|
-| `tuition`, `additional_fees` | `DEGREE_MISMATCH` caused by treating finance `credential` labels as degrees | College Scorecard residency labels; swissuniversities domestic/foreign tariff labels | read only explicit degree keys; never infer degree from `credential` | removes the false-negative degree gate | true degree mismatches remain rejected |
+| `tuition`, `additional_fees` | finance `credential` labels could be consumed as degree metadata (`18` additional-fee H2 rejects in the baseline); remaining tuition candidate rejections are still evaluated by the normal gates | College Scorecard residency labels; swissuniversities domestic/foreign tariff labels | read only explicit degree keys for finance; never infer degree from `credential` | removes the false-negative degree gate and makes eligible finance donors visible | true degree mismatches and audience mismatches remain rejected |
 | `tuition`, `additional_fees` | strict H2 `DEGREE_UNKNOWN`, `CYCLE_UNKNOWN`, and `APPLICABILITY_UNKNOWN` rejected institution tariffs even though the source scope is institution-wide | government/official institution tariff rows matched to the same institution | H2 + institution-scoped donor + finance field; preserve institution output scope and source-native cycle (or blank when not supplied) | 87 tuition + 16 fee H2 selections | audience, currency, basis, temporal mismatch, authority, relationship and scope checks remain active |
 
 No H1/H3/H4 gates, acceptance policy, uncertainty calculation, or storage path were changed.
