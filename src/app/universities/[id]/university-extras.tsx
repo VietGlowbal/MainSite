@@ -59,7 +59,7 @@ export function UniversityExtras({
     <>
       {/* Colleges and programmes — no equivalent column exists on `universities`. */}
       <section className="flex flex-col gap-gb-2xl">
-        <SectionHeading id="programmes" eyebrow="VinUniversity">
+        <SectionHeading id="programmes" eyebrow="VinUniversity" icon="programs">
           Colleges and programmes
         </SectionHeading>
         <div className="flex flex-col gap-gb-xl">
@@ -99,7 +99,7 @@ export function UniversityExtras({
 
       {/* FAQ — also has no column equivalent. */}
       <section className="flex flex-col gap-gb-2xl">
-        <SectionHeading id="faq" eyebrow="VinUniversity">
+        <SectionHeading id="faq" eyebrow="VinUniversity" icon="faq">
           Frequently asked questions
         </SectionHeading>
         <div className="flex flex-col gap-gb-md">

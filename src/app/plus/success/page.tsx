@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getStripe } from '@/lib/stripe';
 import { getPlusPackage, computeExpiry, formatChargedAmount, isDisplayCurrency } from '@/lib/plus';
-import { Button, ICONS, KitIcon } from '@/shared/ui';
+import { Button, GlowbalIcon } from '@/shared/ui';
 
 export const metadata: Metadata = {
   title: 'Welcome to GlowBal Plus',
@@ -129,7 +129,8 @@ export default async function PlusSuccessPage({
             activated ? 'bg-brand text-on-brand' : 'bg-surface-muted text-fg-tertiary'
           }`}
         >
-          <KitIcon art={activated ? ICONS.checkCircle : ICONS.clock} frame={28} />
+          {/* `current`: the disc's fill carries the state, the icon rides on it. */}
+          <GlowbalIcon name={activated ? 'success' : 'loading'} size={32} tone="current" />
         </span>
 
         {state === 'unverified' ? (
