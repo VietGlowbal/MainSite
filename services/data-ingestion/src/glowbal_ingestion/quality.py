@@ -44,6 +44,8 @@ class SliceCQuality:
         prior_recovery: Iterable[RecoveryDecision] = (),
         round: int = 0,
         include_inference: bool = False,
+        include_hierarchical_inference: bool = False,
+        hierarchy_context: Mapping[str, object] | None = None,
         raw_documents: Iterable[Any] = (),
     ) -> QualityEvaluation:
         all_assertions = list(effective_assertions if effective_assertions is not None else assertions)
@@ -92,6 +94,27 @@ class SliceCQuality:
                     current_assessment=assessment,
                     recovery_exhausted=decision.exhausted or not decision.intents,
                     context=context,
+                )
+                if inferred is not None:
+                    inferences.append(inferred)
+        if include_hierarchical_inference:
+            for assessment, decision in zip(assessments, decisions):
+                if assessment.acceptable or assessment.state == AvailabilityState.CONFLICTING_SOURCES:
+                    continue
+                hierarchy_options = dict(hierarchy_context or {})
+                hierarchy_options.setdefault("current_assessment", assessment)
+                hierarchy_options.setdefault(
+                    "recovery_exhausted", decision.exhausted or not decision.intents
+                )
+                hierarchy_options.setdefault("context", context)
+                hierarchy_options.setdefault("audience", audience)
+                inferred = self.inference.infer_hierarchical(
+                    entity_type=entity_type or assessment.entity_type or "programme",
+                    entity_id=entity_id or assessment.entity_id or assessment.entity or "unknown",
+                    field=assessment.field,
+                    target_cycle=target_cycle or assessment.target_cycle or "",
+                    assertions=all_assertions,
+                    **hierarchy_options,
                 )
                 if inferred is not None:
                     inferences.append(inferred)

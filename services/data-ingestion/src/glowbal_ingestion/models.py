@@ -478,9 +478,23 @@ class SourceDocument(JsonRecord):
     source_authority: SourceAuthority | None = None
     source_relationship: SourceRelationship | None = None
     temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    academic_cycle: str | None = None
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
     published_at: str | None = None
     valid_from: str | None = None
     valid_to: str | None = None
+    linked_programme_id: str | None = None
+    linked_programme_url: str | None = None
+    discovered_from: str | None = None
+    anchor_text: str | None = None
 
 
 @dataclass
@@ -597,6 +611,39 @@ class FieldAssertion(JsonRecord):
     published_at: str | None = None
     valid_from: str | None = None
     valid_to: str | None = None
+    # Additive metadata used only by advisory hierarchical estimates. Native
+    # observed assertions keep these fields empty.
+    inference_id: str | None = None
+    inference_level: str | None = None
+    donor_assertion_ids: tuple[str, ...] = ()
+    donor_entity_ids: tuple[str, ...] = ()
+    hierarchy_distance: int | None = None
+    donor_similarity_signals: dict[str, float] = field(default_factory=dict)
+    support_count: int = 0
+    donor_dispersion: float | None = None
+    uncertainty_components: dict[str, float] = field(default_factory=dict)
+    uncertainty_category: str | None = None
+    inference_conflict_state: str | None = None
+    donor_policy_lineage_ids: tuple[str, ...] = ()
+    donor_source_urls: tuple[str, ...] = ()
+    cycle_compatibility: str = "UNKNOWN"
+    applicability_compatibility: str = "UNKNOWN"
+    # Source lineage additions.  These are optional so older run artifacts and
+    # local test fixtures remain readable while new semantic assertions can
+    # point directly to the acquisition run and external dataset.
+    dataset_id: str | None = None
+    acquisition_run_id: str | None = None
+
+    def __post_init__(self) -> None:
+        # JSON round-trips represent tuple lineage fields as arrays. Keep the
+        # in-memory contract stable so persisted observed assertions compare
+        # equal to their original records.
+        self.donor_assertion_ids = tuple(self.donor_assertion_ids or ())
+        self.donor_entity_ids = tuple(self.donor_entity_ids or ())
+        self.donor_policy_lineage_ids = tuple(self.donor_policy_lineage_ids or ())
+        self.donor_source_urls = tuple(self.donor_source_urls or ())
+        self.donor_similarity_signals = dict(self.donor_similarity_signals or {})
+        self.uncertainty_components = dict(self.uncertainty_components or {})
 
 
 @dataclass
@@ -656,7 +703,20 @@ class RawDocument(JsonRecord):
     source_authority: SourceAuthority | None = None
     source_relationship: SourceRelationship | None = None
     temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
     schema_version: str = "raw-document/v1"
+    # Optional additive metadata.  Keep this after the existing fields so
+    # callers that still construct RawDocument positionally retain the legacy
+    # argument order.
+    content_length: int | None = None
 
 
 @dataclass(frozen=True)

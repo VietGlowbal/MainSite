@@ -11,6 +11,8 @@
   "max_sitemap_bytes": 12582912,
   "max_sitemaps_per_institution": 20,
   "max_sitemap_urls": 50000,
+  "large_raw_object_threshold_bytes": 8388608,
+  "max_local_temp_bytes": 0,
   "max_index_pages": 40,
   "max_index_depth": 2,
   "max_deep_sources_per_programme": 12,

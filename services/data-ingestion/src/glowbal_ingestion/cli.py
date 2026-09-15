@@ -91,6 +91,15 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     run.add_argument("--run-id", default=None)
     run.add_argument(
+        "--resume",
+        default=None,
+        metavar="RUN_ID_OR_STATE",
+        help=(
+            "Continue an interrupted run from its run directory or "
+            "crawl_state.sqlite. The original config/population must match."
+        ),
+    )
+    run.add_argument(
         "--allow-unreviewed-terms",
         action="store_true",
         help=(
@@ -1340,9 +1349,56 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
         return 2
 
-    run_id = args.run_id or f"{config.run_name}-{_timestamp_run_id()}"
-    run_dir = args.output_root / run_id
-    if run_dir.exists() and any(run_dir.iterdir()):
+    resume_requested = bool(args.resume)
+    if resume_requested:
+        requested = Path(str(args.resume))
+        candidates = [requested]
+        if not requested.is_absolute():
+            candidates.extend(
+                [Path.cwd() / requested, args.output_root / requested]
+            )
+        run_dir: Path | None = None
+        for candidate in candidates:
+            resolved = candidate.expanduser().resolve()
+            if resolved.is_file() and resolved.name == "crawl_state.sqlite":
+                run_dir = resolved.parent
+                break
+            if resolved.is_dir():
+                run_dir = resolved
+                break
+        if run_dir is None:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": (
+                            "Resume state must be an existing run directory or "
+                            f"crawl_state.sqlite: {args.resume}"
+                        ),
+                    }
+                ),
+                file=sys.stderr,
+            )
+            return 2
+        run_id = run_dir.name
+        if args.run_id and str(args.run_id) != run_id:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": (
+                            "--run-id does not match the run selected by "
+                            "--resume."
+                        ),
+                    }
+                ),
+                file=sys.stderr,
+            )
+            return 2
+    else:
+        run_id = args.run_id or f"{config.run_name}-{_timestamp_run_id()}"
+        run_dir = args.output_root / run_id
+    if not resume_requested and run_dir.exists() and any(run_dir.iterdir()):
         print(
             json.dumps(
                 {
@@ -1368,6 +1424,7 @@ def main(argv: list[str] | None = None) -> int:
             render_policy=args.render_policy,
             target_fields=target_fields,
             skip_school_profile=args.skip_school_profile,
+            resume=resume_requested,
         )
         metrics = pipeline.run()
     except (OSError, RuntimeError, ValueError) as exc:

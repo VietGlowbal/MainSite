@@ -158,6 +158,22 @@ class _UnavailableSupabaseTransport:
         raise TimeoutError("simulated storage timeout")
 
 
+class _ChunkedSeekable(io.BytesIO):
+    """Seekable fixture that exposes a stream in deliberately tiny chunks."""
+
+    def __init__(self, payload: bytes, chunk_size: int) -> None:
+        super().__init__(payload)
+        self.chunk_size = chunk_size
+        self.returned_sizes: list[int] = []
+
+    def read(self, size: int = -1) -> bytes:
+        if size is None or size < 0:
+            size = self.chunk_size
+        data = super().read(min(int(size), self.chunk_size))
+        self.returned_sizes.append(len(data))
+        return data
+
+
 class RawEvidenceContractTests(unittest.TestCase):
     def test_same_content_has_distinct_snapshot_history(self) -> None:
         store = InMemoryRawEvidenceStore()
@@ -232,6 +248,65 @@ class RawEvidenceContractTests(unittest.TestCase):
         parsed = ParserRegistry.default().parse(document, b'{"fee": 123}')
         self.assertEqual(parsed.parser_id, "json-structured")
         self.assertEqual(parsed.structured_payload, {"fee": 123})
+
+    def test_json_parser_supports_bounded_durable_stream(self) -> None:
+        payload = b'{"result": {"records": [{"code": "1001O8897"}]}}'
+        document = RawDocument(
+            raw_document_id="00000000-0000-0000-0000-000000000002",
+            source_identity="source",
+            canonical_url="https://example.gov/api",
+            content_hash=content_hash(payload),
+            content_type="application/json;charset=utf-8",
+            retrieved_at="2026-08-01T00:00:00+00:00",
+            payload_location="object_store",
+            payload_reference="hash",
+            content_length=len(payload),
+        )
+        parsed = ParserRegistry.default().parse_stream(
+            document,
+            io.BytesIO(payload),
+            parser_options={"max_bytes": 8 * 1024 * 1024},
+        )
+        self.assertEqual(parsed.parser_id, "json-structured")
+        self.assertEqual(parsed.structured_payload["result"]["records"][0]["code"], "1001O8897")
+
+    def test_csv_parser_stream_handles_bom_quotes_multiline_and_compound_identity(self) -> None:
+        payload = (
+            "\ufeffUAI;AF;Formation;Description\n"
+            "0755283K;AF.other;Other;ignored\n"
+            "0755283K;AF.target;Master;\"line one;\nline two\"\n"
+            "0755283K;AF.after;After;not scanned\n"
+        ).encode("utf-8")
+        document = RawDocument(
+            raw_document_id="00000000-0000-0000-0000-000000000003",
+            source_identity="source",
+            canonical_url="https://example.gov/catalogue.csv",
+            content_hash=content_hash(payload),
+            content_type="text/csv; charset=utf-8",
+            retrieved_at="2026-08-01T00:00:00+00:00",
+            payload_location="object_store",
+            payload_reference="raw/key",
+            content_length=len(payload),
+        )
+        stream = _ChunkedSeekable(payload, chunk_size=5)
+        parsed = ParserRegistry.default().parse_stream(
+            document,
+            stream,
+            parser_options={
+                "max_bytes": len(payload),
+                "max_scan_bytes": len(payload),
+                "chunk_size": 5,
+                "target_identifiers": {"UAI": "0755283K", "AF": "AF.target"},
+                "field_evidence": {"identity_fields": ["UAI", "AF"]},
+            },
+        )
+        self.assertEqual(parsed.parser_id, "csv-structured")
+        self.assertEqual(parsed.parser_version, "3")
+        self.assertEqual(len(parsed.structured_payload), 1)
+        row = parsed.structured_payload[0]
+        self.assertEqual(row["AF"], "AF.target")
+        self.assertEqual(row["Description"], "line one;\nline two")
+        self.assertTrue(all(size <= 5 for size in stream.returned_sizes))
 
     def test_same_content_snapshots_keep_exact_assertion_provenance(self) -> None:
         first = ExtractionSource(
@@ -462,6 +537,12 @@ class RawEvidenceContractTests(unittest.TestCase):
             self.assertFalse(any((run_dir / "raw").rglob("*.*")))
             raw = retained.get_snapshot(document.raw_document_id or "")
             self.assertIsNotNone(raw)
+            self.assertEqual(document.source_class, "official_web")
+            self.assertEqual(document.adapter_id, "manual_source")
+            self.assertEqual(source.source_class, "official_web")
+            self.assertEqual(source.adapter_id, "manual_source")
+            self.assertEqual(raw.source_class, "official_web")  # type: ignore[union-attr]
+            self.assertEqual(raw.adapter_id, "manual_source")  # type: ignore[union-attr]
             reparsed = ParserRegistry.default().parse(
                 raw, retained.get_payload(raw.raw_document_id)  # type: ignore[union-attr]
             )
@@ -620,3 +701,13 @@ class AcquisitionMigrationTests(unittest.TestCase):
         self.assertNotIn("inline_payload", migration)
         self.assertNotIn("payload jsonb", migration)
         self.assertNotIn("on delete set null", migration)
+
+    def test_external_provenance_migration_targets_only_verified_staging(self) -> None:
+        migration = (
+            Path(__file__).resolve().parents[3]
+            / "supabase-external-source-provenance.sql"
+        ).read_text(encoding="utf-8").lower()
+        self.assertIn("alter table public.crawl_sources", migration)
+        self.assertIn("add column if not exists provider_id", migration)
+        self.assertNotIn("crawl_source_candidates", migration)
+        self.assertNotIn("crawl_acquisition_attempts", migration)

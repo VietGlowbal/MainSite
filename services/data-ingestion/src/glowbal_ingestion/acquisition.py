@@ -146,6 +146,11 @@ class SourceCandidate(JsonRecord):
     dataset_id: str | None = None
     retrieved_at: str | None = None
     temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
     source_identity: str | None = None
     raw_document_id: str | None = None
     adapter_metadata: dict[str, Any] = field(default_factory=dict)
@@ -187,6 +192,11 @@ class SourceCandidate(JsonRecord):
         dataset_id: str | None = None,
         retrieved_at: str | None = None,
         temporal_state: TemporalState = TemporalState.UNKNOWN,
+        source_resolution: str | None = None,
+        original_url: str | None = None,
+        capture_url: str | None = None,
+        captured_at: str | None = None,
+        archive_provider: str | None = None,
         source_identity: str | None = None,
         raw_document_id: str | None = None,
         adapter_metadata: dict[str, Any] | None = None,
@@ -222,6 +232,11 @@ class SourceCandidate(JsonRecord):
             dataset_id=dataset_id,
             retrieved_at=retrieved_at,
             temporal_state=temporal_state,
+            source_resolution=source_resolution,
+            original_url=original_url,
+            capture_url=capture_url,
+            captured_at=captured_at,
+            archive_provider=archive_provider,
             source_identity=source_identity,
             raw_document_id=raw_document_id,
             adapter_metadata=dict(adapter_metadata or {}),
@@ -242,6 +257,18 @@ class AcquisitionAttempt(JsonRecord):
     raw_document_id: str | None = None
     admission_reason: str | None = None
     source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    execution_state: str | None = None
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
+    temporal_state: TemporalState | None = None
 
     def __post_init__(self) -> None:
         _nonempty(self.attempt_id, "attempt_id")
@@ -263,6 +290,17 @@ class AcquisitionAttempt(JsonRecord):
         source_class: str | None = None,
         adapter_id: str | None = None,
         discriminator: str | None = None,
+        provider_id: str | None = None,
+        dataset_id: str | None = None,
+        source_authority: SourceAuthority | None = None,
+        source_relationship: SourceRelationship | None = None,
+        execution_state: str | None = None,
+        source_resolution: str | None = None,
+        original_url: str | None = None,
+        capture_url: str | None = None,
+        captured_at: str | None = None,
+        archive_provider: str | None = None,
+        temporal_state: TemporalState | None = None,
     ) -> "AcquisitionAttempt":
         return cls(
             attempt_id=stable_id(
@@ -284,4 +322,16 @@ class AcquisitionAttempt(JsonRecord):
             finished_at=finished_at,
             admission_reason=admission_reason,
             source_class=source_class,
+            adapter_id=adapter_id,
+            provider_id=provider_id,
+            dataset_id=dataset_id,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            execution_state=execution_state,
+            source_resolution=source_resolution,
+            original_url=original_url,
+            capture_url=capture_url,
+            captured_at=captured_at,
+            archive_provider=archive_provider,
+            temporal_state=temporal_state,
         )

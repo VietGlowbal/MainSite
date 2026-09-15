@@ -64,6 +64,34 @@ class ExtractionProviderContractTests(unittest.TestCase):
         self.assertNotEqual(base, changed_fields)
         self.assertNotEqual(base, changed_model)
 
+    def test_semantic_cache_key_changes_when_materialized_source_window_changes(self) -> None:
+        programme = SimpleNamespace(programme_id="programme-1")
+        source = ExtractionSource(
+            url="https://data.example.gov/scorecard.zip",
+            page_type="unknown",
+            title="Scorecard row",
+            text="Annual tuition: 100 [source column TUITIONFEE_IN]",
+            content_hash="a" * 64,
+            external_entity_match=True,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            state = StateStore(Path(temporary) / "state.sqlite")
+            try:
+                client = DeepSeekClient(SmokeConfig(run_name="test", institutions=()), state)
+                before = client._cache_key(
+                    programme, [source], "model", "finance", ("tuition",)
+                )
+                after = client._cache_key(
+                    programme,
+                    [ExtractionSource(**{**source.__dict__, "text": "Annual tuition: 100 (basis=annual)"})],
+                    "model",
+                    "finance",
+                    ("tuition",),
+                )
+                self.assertNotEqual(before, after)
+            finally:
+                state.close()
+
     def test_no_provider_is_valid_for_deterministic_only_execution(self) -> None:
         config = SmokeConfig(run_name="test", institutions=())
         with tempfile.TemporaryDirectory() as temporary, patch.dict(

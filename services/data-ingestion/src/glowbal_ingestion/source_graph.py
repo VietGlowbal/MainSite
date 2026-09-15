@@ -36,6 +36,11 @@ def candidate_row(
         "provider_id": candidate.provider_id, "dataset_id": candidate.dataset_id,
         "retrieved_at": candidate.retrieved_at,
         "temporal_state": candidate.temporal_state.value,
+        "source_resolution": candidate.source_resolution,
+        "original_url": candidate.original_url,
+        "capture_url": candidate.capture_url,
+        "captured_at": candidate.captured_at,
+        "archive_provider": candidate.archive_provider,
         "source_identity": candidate.source_identity,
         "raw_document_id": candidate.raw_document_id,
     }
@@ -63,6 +68,17 @@ def attempt_row(attempt: AcquisitionAttempt, *, run_id: str) -> dict[str, Any]:
         "candidate_id": attempt.candidate_id, "raw_document_id": attempt.raw_document_id,
         "status": attempt.status, "error_code": attempt.error_code.value if attempt.error_code else None,
         "retryable": attempt.retryable, "started_at": attempt.started_at, "finished_at": attempt.finished_at,
+        "source_class": attempt.source_class, "adapter_id": attempt.adapter_id,
+        "provider_id": attempt.provider_id, "dataset_id": attempt.dataset_id,
+        "source_authority": attempt.source_authority.value if attempt.source_authority else None,
+        "source_relationship": attempt.source_relationship.value if attempt.source_relationship else None,
+        "execution_state": attempt.execution_state,
+        "source_resolution": attempt.source_resolution,
+        "original_url": attempt.original_url,
+        "capture_url": attempt.capture_url,
+        "captured_at": attempt.captured_at,
+        "archive_provider": attempt.archive_provider,
+        "temporal_state": attempt.temporal_state.value if attempt.temporal_state else None,
     }
 
 

@@ -6,10 +6,11 @@ uses :mod:`raw_evidence` interfaces and core dataclasses exclusively.
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, BinaryIO, Callable
 
-from .models import RawDocument, SourceAuthority, SourceRelationship
+from .models import RawDocument, SourceAuthority, SourceRelationship, TemporalState
 from .object_store import ObjectReference, ObjectStore, ObjectStoreError
 from .raw_evidence import (
     RawEvidenceDurability,
@@ -17,7 +18,10 @@ from .raw_evidence import (
     RawEvidenceErrorCode,
     RawEvidenceStore,
     RawSnapshotInput,
+    RawSnapshotStreamInput,
+    content_hash,
 )
+from .object_store import RangeSeekableReader
 
 
 @dataclass(frozen=True)
@@ -135,6 +139,11 @@ class MongoRawEvidenceStore(RawEvidenceStore):
             retrieved_at=str(record["retrieved_at"]),
             payload_location=str(record["payload_location"]),
             payload_reference=record.get("payload_reference"),
+            content_length=(
+                int(record["content_length"])
+                if record.get("content_length") is not None
+                else None
+            ),
             http_status=record.get("http_status"),
             safe_response_headers=dict(record.get("safe_response_headers") or {}),
             published_at=record.get("published_at"),
@@ -153,6 +162,20 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                 if record.get("source_relationship")
                 else None
             ),
+            temporal_state=(
+                TemporalState(record["temporal_state"])
+                if record.get("temporal_state")
+                else TemporalState.UNKNOWN
+            ),
+            source_class=record.get("source_class"),
+            adapter_id=record.get("adapter_id"),
+            provider_id=record.get("provider_id"),
+            dataset_id=record.get("dataset_id"),
+            source_resolution=record.get("source_resolution"),
+            original_url=record.get("original_url"),
+            capture_url=record.get("capture_url"),
+            captured_at=record.get("captured_at"),
+            archive_provider=record.get("archive_provider"),
             schema_version=str(record.get("schema_version") or "raw-document/v1"),
         )
 
@@ -205,6 +228,196 @@ class MongoRawEvidenceStore(RawEvidenceStore):
         )
         return "object_store", reference.key
 
+    def _store_blob_stream(
+        self,
+        snapshot: RawSnapshotStreamInput,
+    ) -> tuple[str, str, str, int, str | None]:
+        """Persist a heavy payload directly through the configured object store."""
+        if self.object_store is None:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_PERSIST_FAILED,
+                "Streaming raw payload requires configured object storage.",
+                retryable=False,
+            )
+        put_stream = getattr(self.object_store, "put_stream", None)
+        if not callable(put_stream):
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_PERSIST_FAILED,
+                "Configured object store does not support streaming uploads.",
+                retryable=False,
+            )
+        object_key = f"raw/streams/{snapshot.acquisition_run_id or 'run'}/{snapshot.raw_document_id}"
+        metadata = {
+            key: value
+            for key, value in {
+                "provider-id": snapshot.provider_id,
+                "dataset-id": snapshot.dataset_id,
+                "source-class": snapshot.source_class,
+                "source-authority": (
+                    snapshot.source_authority.value
+                    if snapshot.source_authority
+                    else None
+                ),
+                "source-relationship": (
+                    snapshot.source_relationship.value
+                    if snapshot.source_relationship
+                    else None
+                ),
+                "temporal-state": snapshot.temporal_state.value,
+                "acquisition-run-id": snapshot.acquisition_run_id,
+                "academic-cycle": snapshot.academic_cycle,
+                "retrieved-at": snapshot.retrieved_at,
+                "object-store-bucket": getattr(
+                    getattr(self.object_store, "config", None), "bucket", None
+                ),
+            }.items()
+            if value
+        }
+        try:
+            reference = put_stream(
+                snapshot.chunks,
+                content_type=snapshot.content_type,
+                object_key=object_key,
+                metadata=metadata,
+                max_bytes=snapshot.max_bytes,
+            )
+        except ObjectStoreError as exc:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_PERSIST_FAILED,
+                "Object-store streaming persistence failed for raw evidence.",
+                retryable=exc.retryable,
+            ) from exc
+        if snapshot.expected_content_hash and reference.content_hash != snapshot.expected_content_hash:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_CORRUPT,
+                "Streamed raw payload does not match its expected content hash.",
+                retryable=False,
+            )
+        self._db()[self.BLOBS_COLLECTION].update_one(
+            {"_id": reference.content_hash},
+            {
+                "$setOnInsert": {
+                    "_id": reference.content_hash,
+                    "content_hash": reference.content_hash,
+                    "payload_location": "object_store",
+                    "object_key": reference.key,
+                    "size_bytes": reference.content_length,
+                    "object_store_bucket": getattr(
+                        getattr(self.object_store, "config", None), "bucket", None
+                    ),
+                    "content_length": reference.content_length,
+                    "content_type": reference.content_type,
+                    "created_at": snapshot.retrieved_at,
+                    "provider_id": snapshot.provider_id,
+                    "dataset_id": snapshot.dataset_id,
+                    "source_class": snapshot.source_class,
+                    "source_authority": (
+                        snapshot.source_authority.value
+                        if snapshot.source_authority
+                        else None
+                    ),
+                    "source_relationship": (
+                        snapshot.source_relationship.value
+                        if snapshot.source_relationship
+                        else None
+                    ),
+                    "temporal_state": snapshot.temporal_state.value,
+                    "canonical_url": snapshot.canonical_url,
+                    "acquisition_run_id": snapshot.acquisition_run_id,
+                }
+            },
+            upsert=True,
+        )
+        return (
+            "object_store",
+            reference.key,
+            reference.content_hash,
+            reference.content_length,
+            reference.content_type,
+        )
+
+    @staticmethod
+    def _stream_snapshot_record(
+        snapshot: RawSnapshotStreamInput,
+        *,
+        payload_reference: str,
+        payload_hash: str,
+        content_length: int,
+        content_type: str | None,
+    ) -> dict[str, Any]:
+        return {
+            "_id": snapshot.raw_document_id,
+            "source_identity": snapshot.source_identity,
+            "canonical_url": snapshot.canonical_url,
+            "content_hash": payload_hash,
+            "content_type": content_type,
+            "content_length": content_length,
+            "retrieved_at": snapshot.retrieved_at,
+            "payload_location": "object_store",
+            "payload_reference": payload_reference,
+            "http_status": snapshot.http_status,
+            "safe_response_headers": dict(snapshot.safe_response_headers),
+            "published_at": snapshot.published_at,
+            "academic_cycle": snapshot.academic_cycle,
+            "language": snapshot.language,
+            "fetch_method": snapshot.fetch_method,
+            "rendered": snapshot.rendered,
+            "acquisition_run_id": snapshot.acquisition_run_id,
+            "source_authority": snapshot.source_authority.value if snapshot.source_authority else None,
+            "source_relationship": snapshot.source_relationship.value if snapshot.source_relationship else None,
+            "temporal_state": snapshot.temporal_state.value,
+            "source_class": snapshot.source_class,
+            "adapter_id": snapshot.adapter_id,
+            "provider_id": snapshot.provider_id,
+            "dataset_id": snapshot.dataset_id,
+            "source_resolution": snapshot.source_resolution,
+            "original_url": snapshot.original_url,
+            "capture_url": snapshot.capture_url,
+            "captured_at": snapshot.captured_at,
+            "archive_provider": snapshot.archive_provider,
+            "schema_version": "raw-document/v1",
+        }
+
+    def put_snapshot_stream(self, snapshot: RawSnapshotStreamInput) -> RawDocument:
+        try:
+            self.ensure_indexes()
+            snapshots = self._db()[self.SNAPSHOTS_COLLECTION]
+            existing = snapshots.find_one({"_id": snapshot.raw_document_id})
+            if existing is not None:
+                return self._raw_document(existing)
+            location, reference, payload_hash, length, content_type = self._store_blob_stream(snapshot)
+            record = self._stream_snapshot_record(
+                snapshot,
+                payload_reference=reference,
+                payload_hash=payload_hash,
+                content_length=length,
+                content_type=content_type,
+            )
+            snapshots.update_one({"_id": snapshot.raw_document_id}, {"$setOnInsert": record}, upsert=True)
+            persisted = snapshots.find_one({"_id": snapshot.raw_document_id})
+            if persisted is None:
+                raise RawEvidenceError(
+                    RawEvidenceErrorCode.RAW_PERSIST_FAILED,
+                    "Mongo did not return the persisted streamed raw snapshot.",
+                    retryable=True,
+                )
+            return self._raw_document(persisted)
+        except RawEvidenceError as exc:
+            if exc.code == RawEvidenceErrorCode.RAW_PERSIST_FAILED:
+                raise
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_PERSIST_FAILED,
+                "Mongo streamed raw evidence persistence failed.",
+                retryable=exc.retryable,
+                cause_code=exc.code,
+            ) from exc
+        except Exception as exc:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_PERSIST_FAILED,
+                "Mongo streamed raw evidence persistence failed.",
+                retryable=True,
+            ) from exc
+
     def put_snapshot(self, snapshot: RawSnapshotInput) -> RawDocument:
         try:
             self.ensure_indexes()
@@ -229,6 +442,7 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                 "retrieved_at": snapshot.retrieved_at,
                 "payload_location": payload_location,
                 "payload_reference": payload_reference,
+                "content_length": len(snapshot.payload),
                 "http_status": snapshot.http_status,
                 "safe_response_headers": dict(snapshot.safe_response_headers),
                 "published_at": snapshot.published_at,
@@ -247,6 +461,16 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                     if snapshot.source_relationship
                     else None
                 ),
+                "temporal_state": snapshot.temporal_state.value,
+                "source_class": snapshot.source_class,
+                "adapter_id": snapshot.adapter_id,
+                "provider_id": snapshot.provider_id,
+                "dataset_id": snapshot.dataset_id,
+                "source_resolution": snapshot.source_resolution,
+                "original_url": snapshot.original_url,
+                "capture_url": snapshot.capture_url,
+                "captured_at": snapshot.captured_at,
+                "archive_provider": snapshot.archive_provider,
                 "schema_version": "raw-document/v1",
             }
             snapshots.update_one(
@@ -358,6 +582,85 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                 "Mongo raw evidence payload lookup failed.",
                 retryable=True,
             ) from exc
+
+    def _blob_for_document(self, raw_document_id: str) -> tuple[RawDocument, dict[str, Any]]:
+        document = self.get_snapshot(raw_document_id)
+        if document is None:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_NOT_FOUND,
+                "Raw snapshot does not exist.",
+                retryable=False,
+            )
+        blob = self._db()[self.BLOBS_COLLECTION].find_one({"_id": document.content_hash})
+        if blob is None:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_NOT_FOUND,
+                "Raw payload metadata does not exist.",
+                retryable=False,
+            )
+        return document, blob
+
+    def open_payload_stream(self, raw_document_id: str) -> BinaryIO:
+        document, blob = self._blob_for_document(raw_document_id)
+        if blob.get("payload_location") == "mongo_inline":
+            return io.BytesIO(bytes(blob.get("payload") or b""))
+        if self.object_store is None:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+                "Object storage is required to stream this raw payload.",
+                retryable=False,
+            )
+        opener = getattr(self.object_store, "open_stream", None)
+        if not callable(opener):
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+                "Object storage does not support streaming reads.",
+                retryable=False,
+            )
+        try:
+            return opener(
+                ObjectReference(
+                    key=str(blob["object_key"]),
+                    content_hash=document.content_hash,
+                    content_length=int(blob["content_length"]),
+                    content_type=blob.get("content_type"),
+                )
+            )
+        except ObjectStoreError as exc:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_UNAVAILABLE,
+                "Object-store raw evidence stream failed.",
+                retryable=exc.retryable,
+            ) from exc
+
+    def open_payload_seekable(self, raw_document_id: str) -> BinaryIO:
+        document, blob = self._blob_for_document(raw_document_id)
+        if blob.get("payload_location") == "mongo_inline":
+            return io.BytesIO(bytes(blob.get("payload") or b""))
+        if self.object_store is None:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+                "Object storage is required to seek this raw payload.",
+                retryable=False,
+            )
+        reference = ObjectReference(
+            key=str(blob["object_key"]),
+            content_hash=document.content_hash,
+            content_length=int(blob["content_length"]),
+            content_type=blob.get("content_type"),
+        )
+        if callable(getattr(self.object_store, "read_range", None)):
+            return RangeSeekableReader(self.object_store, reference)
+        opener = getattr(self.object_store, "open_stream", None)
+        if callable(opener):
+            stream = opener(reference)
+            if getattr(stream, "seekable", lambda: False)():
+                return stream
+        raise RawEvidenceError(
+            RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+            "Object storage does not support bounded seekable reads.",
+            retryable=False,
+        )
 
     def find_by_content_hash(self, payload_hash: str) -> list[RawDocument]:
         try:

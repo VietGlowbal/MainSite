@@ -578,6 +578,16 @@ def _source_rows(
         "source_authority",
         "source_relationship",
         "temporal_state",
+        "source_class",
+        "adapter_id",
+        "provider_id",
+        "dataset_id",
+        "academic_cycle",
+        "source_resolution",
+        "original_url",
+        "capture_url",
+        "captured_at",
+        "archive_provider",
     )
     seen_source_ids: set[str] = set()
     for record in _iter_jsonl(run_dir / "sources.jsonl"):
@@ -588,10 +598,45 @@ def _source_rows(
         yield _with_run_id(record, run_id, fields)
 
 
+def _structured_archive_member_rows(
+    run_dir: Path,
+    run_id: str,
+) -> Iterator[dict[str, Any]]:
+    """Translate bounded archive-member artifacts into additive staging rows."""
+    for record in _iter_jsonl(run_dir / "structured_archive_members.jsonl"):
+        yield {
+            "run_id": run_id,
+            "run_key": run_dir.name,
+            "derived_resource_id": record.get("derived_resource_id"),
+            "raw_document_id": record.get("raw_document_id"),
+            "provider_id": record.get("provider_id"),
+            "dataset_id": record.get("dataset_id"),
+            "source_class": record.get("source_class"),
+            "source_authority": record.get("source_authority"),
+            "source_relationship": record.get("source_relationship"),
+            "raw_object_key": record.get("raw_object_key"),
+            "raw_content_hash": record.get("raw_content_hash") or record.get("zip_content_hash"),
+            "archive_member": record.get("archive_member") or record.get("member_name"),
+            "member_content_type": record.get("member_content_type"),
+            "institution_id": record.get("institution_id"),
+            "programme_id": record.get("programme_id"),
+            "academic_cycle": record.get("academic_cycle"),
+            "rows": record.get("rows") or [],
+            "rows_scanned": record.get("rows_scanned") or 0,
+            "rows_retained": record.get("rows_retained") or 0,
+            "partial": bool(record.get("partial", False)),
+            "bounded_reason": record.get("bounded_reason"),
+            "bytes_scanned": record.get("bytes_scanned"),
+            "lineage": record.get("lineage") or {},
+            "retrieved_at": record.get("retrieved_at"),
+        }
+
+
 def _acquisition_intent_rows(
     run_dir: Path,
     run_id: str,
 ) -> Iterator[dict[str, Any]]:
+    """Translate an intent artifact without implying a live table exists."""
     fields = (
         "intent_id", "entity_type", "entity_id", "field_groups",
         "target_cycle", "audience", "preferred_source_classes",
@@ -610,6 +655,11 @@ def _source_candidate_rows(
     run_dir: Path,
     run_id: str,
 ) -> Iterator[dict[str, Any]]:
+    """Translate local candidate artifacts for diagnostics only.
+
+    The live importer deliberately does not insert these rows because the
+    current Supabase schema does not expose a source-candidate table.
+    """
     fields = (
         "candidate_id", "intent_id", "canonical_locator", "locator_type",
         "source_class", "publisher_key", "declared_authority", "relationship",
@@ -619,6 +669,8 @@ def _source_candidate_rows(
         "discovery_evidence", "fetch_strategy", "cost_class", "adapter_id",
         "adapter_version", "provider_id", "dataset_id", "retrieved_at",
         "temporal_state", "source_identity", "raw_document_id",
+        "source_resolution", "original_url", "capture_url", "captured_at",
+        "archive_provider",
     )
     for record in _iter_jsonl(run_dir / "source_candidates.jsonl"):
         row = _with_run_id(record, run_id, fields)
@@ -637,6 +689,7 @@ def _source_admission_rows(
     run_dir: Path,
     run_id: str,
 ) -> Iterator[dict[str, Any]]:
+    """Translate local admission artifacts for diagnostics only."""
     for record in _iter_jsonl(run_dir / "source_admission_decisions.jsonl"):
         factors = record.get("factor_scores")
         factors = factors if isinstance(factors, dict) else {}
@@ -668,6 +721,7 @@ def _source_discovery_evidence_rows(
     run_dir: Path,
     run_id: str,
 ) -> Iterator[dict[str, Any]]:
+    """Translate local discovery artifacts for diagnostics only."""
     fields = (
         "discovery_evidence_id", "source_candidate_id", "discovery_method",
         "evidence_summary", "source_locator", "created_at",
@@ -680,9 +734,14 @@ def _acquisition_attempt_rows(
     run_dir: Path,
     run_id: str,
 ) -> Iterator[dict[str, Any]]:
+    """Translate local attempt artifacts for diagnostics only."""
     fields = (
         "attempt_id", "intent_id", "candidate_id", "raw_document_id",
         "status", "error_code", "retryable", "started_at", "finished_at",
+        "source_class", "adapter_id", "provider_id", "dataset_id",
+        "source_authority", "source_relationship", "execution_state",
+        "source_resolution", "original_url", "capture_url", "captured_at",
+        "archive_provider", "temporal_state",
     )
     seen: set[str] = set()
     for record in _iter_jsonl(run_dir / "acquisition_attempts.jsonl"):
@@ -735,6 +794,8 @@ def _assertion_rows(
         "parser_id",
         "parser_version",
         "provider_id",
+        "dataset_id",
+        "acquisition_run_id",
         "prompt_version",
         "schema_version",
     )
@@ -962,6 +1023,9 @@ def _plan_counts(run_dir: Path) -> dict[str, int]:
         "crawl_sources": _count_records(
             _source_rows(run_dir, placeholder)
         ),
+        "crawl_external_structured_rows": _count_records(
+            _structured_archive_member_rows(run_dir, placeholder)
+        ),
         "crawl_field_assertions": _count_records(
             _assertion_rows(
                 run_dir / "field_assertions.jsonl",
@@ -990,21 +1054,6 @@ def _plan_counts(run_dir: Path) -> dict[str, int]:
         ),
         "crawl_errors": _count_records(
             _error_rows(run_dir, placeholder)
-        ),
-        "crawl_acquisition_intents": _count_records(
-            _acquisition_intent_rows(run_dir, placeholder)
-        ),
-        "crawl_source_candidates": _count_records(
-            _source_candidate_rows(run_dir, placeholder)
-        ),
-        "crawl_source_admission_decisions_v3": _count_records(
-            _source_admission_rows(run_dir, placeholder)
-        ),
-        "crawl_source_discovery_evidence_v3": _count_records(
-            _source_discovery_evidence_rows(run_dir, placeholder)
-        ),
-        "crawl_acquisition_attempts": _count_records(
-            _acquisition_attempt_rows(run_dir, placeholder)
         ),
     }
     counts["crawl_review_items"] = _count_records(
@@ -1035,24 +1084,18 @@ def _insert_batches(
         )
 
 
-def _optional_v3_tables_available(
+def _external_structured_table_available(
     client: SupabaseRestClient,
 ) -> bool:
-    """Detect unapplied additive acquisition migrations without blocking v2."""
-    tables = (
-        "crawl_acquisition_intents",
-        "crawl_source_candidates",
-        "crawl_acquisition_attempts",
-        "crawl_source_admission_decisions_v3",
-        "crawl_source_discovery_evidence_v3",
-    )
-    for table in tables:
-        try:
-            client.select(table, (("select", "*"), ("limit", "0")))
-        except SupabaseImportError as exc:
-            if "HTTP 404" in str(exc) or "PGRST205" in str(exc):
-                return False
-            raise
+    try:
+        client.select(
+            "crawl_external_structured_rows",
+            (("select", "*"), ("limit", "0")),
+        )
+    except SupabaseImportError as exc:
+        if "HTTP 404" in str(exc) or "PGRST205" in str(exc):
+            return False
+        raise
     return True
 
 
@@ -1087,24 +1130,24 @@ def import_supabase_run(
         client = SupabaseRestClient(base_url, api_key)
 
     university_ids = _resolve_university_ids(client, run_dir)
-    has_acquisition_artifacts = any(
-        counts[key] > 0
-        for key in (
-            "crawl_acquisition_intents",
-            "crawl_source_candidates",
-            "crawl_source_admission_decisions_v3",
-            "crawl_source_discovery_evidence_v3",
-            "crawl_acquisition_attempts",
+    external_structured_available = (
+        _external_structured_table_available(client)
+        if counts.get("crawl_external_structured_rows", 0) > 0
+        else False
+    )
+    # The optional acquisition/source-graph artifacts are intentionally kept
+    # run-local.  The live project does not expose those relations, and they
+    # are not required to import verified crawl staging or external structured
+    # rows.
+    counts["crawl_external_structured_staging_available"] = int(
+        external_structured_available
+    )
+    if counts.get("crawl_external_structured_rows", 0) > 0 and not external_structured_available:
+        raise SupabaseImportError(
+            "Run contains external structured rows, but the verified "
+            "crawl_external_structured_rows staging table is unavailable. "
+            "Apply supabase-external-structured-staging.sql before importing."
         )
-    )
-    acquisition_v3_available = (
-        _optional_v3_tables_available(client)
-        if has_acquisition_artifacts else False
-    )
-    # An unapplied additive migration must not break v2 imports. The result
-    # explicitly reports that the run kept its source lineage locally instead
-    # of silently implying those rows were imported.
-    counts["crawl_acquisition_v3_available"] = int(acquisition_v3_available)
 
     existing = client.select(
         "crawl_runs",
@@ -1218,41 +1261,13 @@ def import_supabase_run(
             batch_size,
             on_conflict="run_id,source_id",
         )
-        if has_acquisition_artifacts and acquisition_v3_available:
+        if counts.get("crawl_external_structured_rows", 0) > 0 and external_structured_available:
             _insert_batches(
                 client,
-                "crawl_acquisition_intents",
-                _acquisition_intent_rows(run_dir, run_id),
+                "crawl_external_structured_rows",
+                _structured_archive_member_rows(run_dir, run_id),
                 batch_size,
-                on_conflict="run_id,intent_id",
-            )
-            _insert_batches(
-                client,
-                "crawl_source_candidates",
-                _source_candidate_rows(run_dir, run_id),
-                batch_size,
-                on_conflict="run_id,candidate_id",
-            )
-            _insert_batches(
-                client,
-                "crawl_source_discovery_evidence_v3",
-                _source_discovery_evidence_rows(run_dir, run_id),
-                batch_size,
-                on_conflict="run_id,discovery_evidence_id",
-            )
-            _insert_batches(
-                client,
-                "crawl_source_admission_decisions_v3",
-                _source_admission_rows(run_dir, run_id),
-                batch_size,
-                on_conflict="run_id,admission_decision_id",
-            )
-            _insert_batches(
-                client,
-                "crawl_acquisition_attempts",
-                _acquisition_attempt_rows(run_dir, run_id),
-                batch_size,
-                on_conflict="run_id,attempt_id",
+                on_conflict="run_id,derived_resource_id",
             )
         _insert_batches(
             client,

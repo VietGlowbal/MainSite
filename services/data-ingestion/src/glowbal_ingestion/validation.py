@@ -616,6 +616,7 @@ def _programme_source_errors(
     *,
     fact: dict[str, Any],
     source: ExtractionSource | None,
+    entity_id: str | None = None,
     programme_name: str | None,
     programme_url: str | None,
 ) -> list[str]:
@@ -626,6 +627,18 @@ def _programme_source_errors(
         or not programme_name
         or not programme_url
         or str(fact.get("scope") or "") != "programme"
+    ):
+        return []
+    # A structured external record selected by an exact source-native
+    # programme identifier is already bound to this target.  Its endpoint
+    # path/title need not repeat the human-readable programme name (for
+    # example Studyinfo's valintaperuste record is titled by an application
+    # route).  Treating that exact binding as a name-mismatch would discard
+    # otherwise source-supported admissions facts.
+    if (
+        entity_id
+        and source.linked_programme_id
+        and str(source.linked_programme_id) == str(entity_id)
     ):
         return []
     source_url = str(fact.get("source_url") or "").rstrip("/")
@@ -1060,6 +1073,18 @@ def _locate_tuition_evidence(
             amount_index = source_text.find(amount_pattern, search_start)
             if amount_index < 0:
                 break
+            # Structured external materialisers place the fee credential and
+            # amount on one labelled source line.  Prefer that complete line
+            # over a character window so a model-truncated quote cannot carry
+            # an artificial suffix/prefix into evidence resolution.
+            line_start = source_text.rfind("\n", 0, amount_index) + 1
+            line_end = source_text.find("\n", amount_index)
+            if line_end < 0:
+                line_end = len(source_text)
+            line = source_text[line_start:line_end]
+            line_compact = re.sub(r"[^a-z0-9]", "", line.casefold())
+            if credential_compact in line_compact:
+                return normalize_text(line)
             window_start = max(0, amount_index - 220)
             window_end = min(
                 len(source_text),
@@ -1120,7 +1145,15 @@ def fact_to_assertion(
     source = source_map.get(source_url)
     if not source:
         errors.append("SOURCE_NOT_IN_FETCH_SET")
-    elif not evidence_supported(evidence, source.text):
+    elif field_name == "tuition" and source.external_entity_match:
+        # External structured rows already carry a deterministic entity match.
+        # Re-anchor fee evidence to the complete source line (when the fee
+        # credential and amount co-occur) before the generic substring check;
+        # this repairs model-truncated quotes without broadening acceptance.
+        located = _locate_tuition_evidence(fact.get("value"), source.text)
+        if located:
+            evidence = located
+    if source and not evidence_supported(evidence, source.text):
         if field_name == "tuition":
             located = _locate_tuition_evidence(
                 fact.get("value"),
@@ -1155,6 +1188,7 @@ def fact_to_assertion(
         _programme_source_errors(
             fact=fact,
             source=source,
+            entity_id=entity_id,
             programme_name=programme_name,
             programme_url=programme_url,
         )
@@ -1336,6 +1370,16 @@ def fact_to_assertion(
             str(fact.get("_provider_id"))
             if fact.get("_provider_id")
             else None
+        ),
+        dataset_id=(
+            str(fact.get("_dataset_id"))
+            if fact.get("_dataset_id")
+            else (source.dataset_id if source else None)
+        ),
+        acquisition_run_id=(
+            str(fact.get("_acquisition_run_id"))
+            if fact.get("_acquisition_run_id")
+            else (source.acquisition_run_id if source else None)
         ),
         prompt_version=(
             str(fact.get("_prompt_version"))

@@ -8,15 +8,17 @@ from __future__ import annotations
 
 import enum
 import hashlib
+import io
 import os
 import uuid
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import BinaryIO, Iterable, Protocol, runtime_checkable
 
 from .models import (
     RawDocument,
     SourceAuthority,
     SourceRelationship,
+    TemporalState,
     stable_id,
     utc_now_iso,
 )
@@ -78,6 +80,16 @@ class RawSnapshotInput:
     acquisition_run_id: str | None = None
     source_authority: SourceAuthority | None = None
     source_relationship: SourceRelationship | None = None
+    source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
     expected_content_hash: str | None = None
 
     def __post_init__(self) -> None:
@@ -103,6 +115,52 @@ class RawSnapshotInput:
         return content_hash(self.payload)
 
 
+@dataclass(frozen=True)
+class RawSnapshotStreamInput:
+    """Metadata plus a one-shot payload iterator for heavy raw resources."""
+
+    canonical_url: str
+    chunks: Iterable[bytes]
+    content_type: str | None
+    retrieved_at: str = field(default_factory=utc_now_iso)
+    source_identity: str | None = None
+    raw_document_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    published_at: str | None = None
+    academic_cycle: str | None = None
+    language: str | None = None
+    http_status: int | None = None
+    safe_response_headers: dict[str, str] = field(default_factory=dict)
+    fetch_method: str | None = None
+    rendered: bool = False
+    acquisition_run_id: str | None = None
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
+    expected_content_hash: str | None = None
+    max_bytes: int | None = None
+
+    def __post_init__(self) -> None:
+        if not self.canonical_url:
+            raise ValueError("Raw snapshot requires canonical_url.")
+        if self.source_identity is None:
+            object.__setattr__(
+                self,
+                "source_identity",
+                source_identity_for_url(self.canonical_url),
+            )
+        if self.max_bytes is not None and self.max_bytes < 1:
+            raise ValueError("Raw stream max_bytes must be positive when supplied.")
+
+
 @runtime_checkable
 class RawEvidenceStore(Protocol):
     """Durable raw evidence boundary used by orchestration code."""
@@ -114,9 +172,15 @@ class RawEvidenceStore(Protocol):
 
     def put_snapshot(self, snapshot: RawSnapshotInput) -> RawDocument: ...
 
+    def put_snapshot_stream(self, snapshot: RawSnapshotStreamInput) -> RawDocument: ...
+
     def get_snapshot(self, raw_document_id: str) -> RawDocument | None: ...
 
     def get_payload(self, raw_document_id: str) -> bytes: ...
+
+    def open_payload_stream(self, raw_document_id: str) -> BinaryIO: ...
+
+    def open_payload_seekable(self, raw_document_id: str) -> BinaryIO: ...
 
     def find_by_content_hash(self, payload_hash: str) -> list[RawDocument]: ...
 
@@ -160,6 +224,7 @@ class InMemoryRawEvidenceStore:
             retrieved_at=snapshot.retrieved_at,
             payload_location="memory",
             payload_reference=payload_hash,
+            content_length=len(snapshot.payload),
             http_status=snapshot.http_status,
             safe_response_headers=dict(snapshot.safe_response_headers),
             published_at=snapshot.published_at,
@@ -170,9 +235,74 @@ class InMemoryRawEvidenceStore:
             acquisition_run_id=snapshot.acquisition_run_id,
             source_authority=snapshot.source_authority,
             source_relationship=snapshot.source_relationship,
+            temporal_state=snapshot.temporal_state,
+            source_class=snapshot.source_class,
+            adapter_id=snapshot.adapter_id,
+            provider_id=snapshot.provider_id,
+            dataset_id=snapshot.dataset_id,
+            source_resolution=snapshot.source_resolution,
+            original_url=snapshot.original_url,
+            capture_url=snapshot.capture_url,
+            captured_at=snapshot.captured_at,
+            archive_provider=snapshot.archive_provider,
         )
         self._documents[document.raw_document_id] = document
         return document
+
+    def put_snapshot_stream(self, snapshot: RawSnapshotStreamInput) -> RawDocument:
+        # This adapter is explicitly a deterministic test/local implementation.
+        # Production heavy payloads use MongoRawEvidenceStore and an object
+        # store; retaining bytes here keeps the existing test contract useful.
+        pieces: list[bytes] = []
+        total = 0
+        for chunk in snapshot.chunks:
+            data = bytes(chunk)
+            total += len(data)
+            if snapshot.max_bytes is not None and total > snapshot.max_bytes:
+                raise RawEvidenceError(
+                    RawEvidenceErrorCode.RAW_PERSIST_FAILED,
+                    "Raw stream exceeds its configured byte limit.",
+                    retryable=False,
+                )
+            pieces.append(data)
+        payload = b"".join(pieces)
+        if snapshot.expected_content_hash and content_hash(payload) != snapshot.expected_content_hash:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_CORRUPT,
+                "Raw stream does not match its expected content hash.",
+                retryable=False,
+            )
+        return self.put_snapshot(
+            RawSnapshotInput(
+                canonical_url=snapshot.canonical_url,
+                payload=payload,
+                content_type=snapshot.content_type,
+                retrieved_at=snapshot.retrieved_at,
+                source_identity=snapshot.source_identity,
+                raw_document_id=snapshot.raw_document_id,
+                published_at=snapshot.published_at,
+                academic_cycle=snapshot.academic_cycle,
+                language=snapshot.language,
+                http_status=snapshot.http_status,
+                safe_response_headers=dict(snapshot.safe_response_headers),
+                fetch_method=snapshot.fetch_method,
+                rendered=snapshot.rendered,
+                acquisition_run_id=snapshot.acquisition_run_id,
+                source_authority=snapshot.source_authority,
+                source_relationship=snapshot.source_relationship,
+                source_class=snapshot.source_class,
+                adapter_id=snapshot.adapter_id,
+                provider_id=snapshot.provider_id,
+                dataset_id=snapshot.dataset_id,
+                temporal_state=snapshot.temporal_state,
+                source_resolution=snapshot.source_resolution,
+                original_url=snapshot.original_url,
+                capture_url=snapshot.capture_url,
+                captured_at=snapshot.captured_at,
+                archive_provider=snapshot.archive_provider,
+                expected_content_hash=snapshot.expected_content_hash,
+            )
+        )
 
     def get_snapshot(self, raw_document_id: str) -> RawDocument | None:
         return self._documents.get(raw_document_id)
@@ -193,6 +323,12 @@ class InMemoryRawEvidenceStore:
                 retryable=False,
             )
         return bytes(payload)
+
+    def open_payload_stream(self, raw_document_id: str) -> BinaryIO:
+        return io.BytesIO(self.get_payload(raw_document_id))
+
+    def open_payload_seekable(self, raw_document_id: str) -> BinaryIO:
+        return io.BytesIO(self.get_payload(raw_document_id))
 
     def find_by_content_hash(self, payload_hash: str) -> list[RawDocument]:
         return [

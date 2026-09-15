@@ -7,7 +7,7 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Any, Callable, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Protocol, runtime_checkable
 
 from .models import SourceAuthority, SourceRelationship, TemporalState
 
@@ -57,6 +57,47 @@ class ExtractionSource:
     source_authority: SourceAuthority | None = None
     source_relationship: SourceRelationship | None = None
     temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    academic_cycle: str | None = None
+    # A source snapshot is not necessarily tied to an academic cycle.  Keep
+    # its retrieval and source-native temporal context separate so structured
+    # datasets are never silently relabelled as programme-cycle evidence.
+    retrieved_at: str | None = None
+    source_temporal_context: str | None = None
+    # The run is kept on the source so semantic assertions can retain a
+    # complete evidence -> raw document -> acquisition run chain.  Existing
+    # callers may omit it for legacy/local fixtures.
+    acquisition_run_id: str | None = None
+    # Optional deterministic linkage copied from acquisition metadata when a
+    # provider or discovery edge actually supplied it. Absence is preserved;
+    # callers must never infer a programme link from institution membership.
+    linked_programme_id: str | None = None
+    linked_programme_url: str | None = None
+    discovered_from: str | None = None
+    anchor_text: str | None = None
+    # Catalogue routing metadata stays attached after the configured resource
+    # crosses the normal fetch/parser boundary.  Programme extraction may use
+    # only programme-resolution sources; institution/national rows remain
+    # retained evidence without being relabelled as programme facts.
+    source_resolution: str | None = None
+    expected_field_groups: tuple[str, ...] = ()
+    audience: str | None = None
+    # True only when a configured external field-bearing record contains a
+    # deterministic source-native match to the selected institution/entity.
+    # It does not grant programme scope and is retained solely to let the
+    # normal acceptance binding distinguish a proven record from topology-only
+    # external metadata.
+    external_entity_match: bool = False
+    external_entity_match_signals: tuple[str, ...] = ()
+    # Deterministic source-native catalogue metadata materialised alongside
+    # the bounded extraction context.  These observations are kept separate
+    # from semantic FieldAssertions because the product catalogue supports a
+    # small set of offering attributes (for example duration/location/mode)
+    # that are not part of the deep-field assertion schema.
+    external_metadata: tuple[Mapping[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)

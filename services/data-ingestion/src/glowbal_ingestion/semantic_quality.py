@@ -9,6 +9,14 @@ from .field_policy import (
     FieldPolicyRegistry,
     InferencePolicy,
 )
+from .hierarchical_inference import (
+    DonorCandidate,
+    EntityContext,
+    HierarchyLevel,
+    HierarchicalInferenceDecision,
+    HierarchicalInferenceEngine,
+    UncertaintyComponents,
+)
 from .inference import InferenceEngine, InferenceRecord, InferenceStatus
 from .quality import QualityEvaluation, SliceCQuality
 from .quality_models import *
@@ -27,6 +35,12 @@ __all__ = [
     "InferenceEngine",
     "InferenceRecord",
     "InferenceStatus",
+    "DonorCandidate",
+    "EntityContext",
+    "HierarchyLevel",
+    "HierarchicalInferenceDecision",
+    "HierarchicalInferenceEngine",
+    "UncertaintyComponents",
     "RecoveryBudget",
     "RecoveryDecision",
     "RecoveryPlanner",

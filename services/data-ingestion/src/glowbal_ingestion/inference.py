@@ -11,6 +11,7 @@ from typing import Any, Iterable, Mapping
 
 from .field_policy import FieldPolicy, FieldPolicyRegistry, DEFAULT_FIELD_POLICY_REGISTRY
 from .models import (
+    ApplicabilityState,
     EpistemicState,
     FieldAssertion,
     SourceAuthority,
@@ -78,10 +79,31 @@ class InferenceRecord:
     status: str = InferenceStatus.ACTIVE
     supersedes_inference_id: str | None = None
     invalidation_reason: str | None = None
+    # Hierarchical records use these additive fields to preserve donor and
+    # heuristic uncertainty lineage. Historical recurrence keeps defaults.
+    inference_level: str = "HISTORICAL_RECURRENCE"
+    donor_assertion_ids: tuple[str, ...] = ()
+    donor_entity_ids: tuple[str, ...] = ()
+    donor_policy_lineage_ids: tuple[str, ...] = ()
+    donor_source_urls: tuple[str, ...] = ()
+    hierarchy_distance: int = 0
+    donor_similarity_signals: dict[str, float] = field(default_factory=dict)
+    support_count: int = 0
+    donor_dispersion: float | None = None
+    uncertainty_components: dict[str, float] = field(default_factory=dict)
+    uncertainty_category: str = "INSUFFICIENT"
+    uncertainty_reasons: tuple[str, ...] = ()
+    cycle_compatibility: str = "UNKNOWN"
+    applicability_compatibility: str = "UNKNOWN"
+    conflict_state: str = "NO_CONFLICT"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "supporting_assertion_ids", tuple(dict.fromkeys(self.supporting_assertion_ids)))
         object.__setattr__(self, "supporting_raw_document_ids", tuple(dict.fromkeys(self.supporting_raw_document_ids)))
+        object.__setattr__(self, "donor_assertion_ids", tuple(dict.fromkeys(self.donor_assertion_ids)))
+        object.__setattr__(self, "donor_entity_ids", tuple(dict.fromkeys(self.donor_entity_ids)))
+        object.__setattr__(self, "donor_policy_lineage_ids", tuple(dict.fromkeys(self.donor_policy_lineage_ids)))
+        object.__setattr__(self, "donor_source_urls", tuple(dict.fromkeys(self.donor_source_urls)))
         object.__setattr__(self, "product_safe", False)
         object.__setattr__(self, "verification_required", True)
 
@@ -96,6 +118,16 @@ class InferenceRecord:
         return result
 
     def as_assertion(self) -> FieldAssertion:
+        hierarchical = self.method == "hierarchical_donor" or self.inference_level != "HISTORICAL_RECURRENCE"
+        evidence = (
+            f"Inferred from {len(self.donor_assertion_ids or self.supporting_assertion_ids)} "
+            f"independent donor assertion(s) at {self.inference_level}."
+            if hierarchical
+            else f"Inferred from {len(self.supporting_assertion_ids)} historical assertion(s)."
+        )
+        validation_errors = ["INFERENCE_REQUIRES_CURRENT_VERIFICATION"]
+        if hierarchical:
+            validation_errors.append("HIERARCHICAL_ESTIMATE_ADVISORY")
         return FieldAssertion(
             assertion_id=stable_id("inferred-assertion", self.inference_id),
             entity_type=self.entity_type,
@@ -104,9 +136,9 @@ class InferenceRecord:
             value_json=self.predicted_value,
             null_reason=None,
             source_url=None,
-            source_type="historical_inference",
-            evidence=f"Inferred from {len(self.supporting_assertion_ids)} historical assertion(s).",
-            evidence_locator=None,
+            source_type="hierarchical_inference" if hierarchical else "historical_inference",
+            evidence=evidence,
+            evidence_locator=(f"inference:{self.inference_id}" if hierarchical else None),
             scope="programme" if self.entity_type == "programme" else self.entity_type,
             audience=None,
             academic_cycle=self.target_cycle,
@@ -118,7 +150,25 @@ class InferenceRecord:
             epistemic_state=EpistemicState.INFERRED,
             temporal_state=TemporalState.TARGET_CYCLE_ESTIMATE,
             raw_document_id=self.supporting_raw_document_ids[0] if self.supporting_raw_document_ids else None,
-            validation_errors=["INFERENCE_REQUIRES_CURRENT_VERIFICATION"],
+            validation_errors=validation_errors,
+            inference_id=self.inference_id if hierarchical else None,
+            inference_level=self.inference_level if hierarchical else None,
+            donor_assertion_ids=self.donor_assertion_ids if hierarchical else (),
+            donor_entity_ids=self.donor_entity_ids if hierarchical else (),
+            hierarchy_distance=self.hierarchy_distance if hierarchical else None,
+            donor_similarity_signals=self.donor_similarity_signals if hierarchical else {},
+            support_count=self.support_count if hierarchical else 0,
+            donor_dispersion=self.donor_dispersion if hierarchical else None,
+            uncertainty_components=self.uncertainty_components if hierarchical else {},
+            uncertainty_category=self.uncertainty_category if hierarchical else None,
+            inference_conflict_state=self.conflict_state if hierarchical else None,
+            donor_policy_lineage_ids=self.donor_policy_lineage_ids if hierarchical else (),
+            donor_source_urls=self.donor_source_urls if hierarchical else (),
+            cycle_compatibility=self.cycle_compatibility if hierarchical else "UNKNOWN",
+            applicability_compatibility=(
+                self.applicability_compatibility if hierarchical else "UNKNOWN"
+            ),
+            applicability_state=ApplicabilityState.CONDITIONAL if hierarchical else ApplicabilityState.UNKNOWN,
         )
 
 
@@ -218,6 +268,36 @@ class InferenceEngine:
         )
 
     generate = infer
+
+    def infer_hierarchical(self, **kwargs: Any) -> InferenceRecord | None:
+        """Run the opt-in compatibility-gated donor ladder."""
+
+        from .hierarchical_inference import HierarchicalInferenceEngine
+
+        return HierarchicalInferenceEngine(
+            self.registry,
+            method_version=(
+                self.method_version
+                if self.method_version.startswith("hierarchical-")
+                else f"hierarchical-{self.method_version}"
+            ),
+        ).infer(**kwargs)
+
+    def explain_hierarchical(self, **kwargs: Any) -> Any:
+        """Return the donor decision, including abstention reasons."""
+
+        from .hierarchical_inference import HierarchicalInferenceEngine
+
+        return HierarchicalInferenceEngine(
+            self.registry,
+            method_version=(
+                self.method_version
+                if self.method_version.startswith("hierarchical-")
+                else f"hierarchical-{self.method_version}"
+            ),
+        ).explain(**kwargs)
+
+    generate_hierarchical = infer_hierarchical
 
     @staticmethod
     def confidence_decay(
