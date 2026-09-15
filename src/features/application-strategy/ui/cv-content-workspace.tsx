@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useT } from '@/lib/i18n';
-import { Button, ICONS, KitIcon } from '@/shared/ui';
+import { Button, GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
 import {
   CV_SECTION_KINDS,
   SECTION_LABEL,
@@ -278,7 +278,7 @@ export function CvContentWorkspace({
             </div>
             <div className="flex flex-wrap items-center gap-gb-lg">
               <Button size="lg" onClick={() => setImporting(true)}>
-                <KitIcon art={ICONS.uploadCloud} frame={16} />
+                <GlowbalIcon name="upload" size={16} tone="current" />
                 {documents.length > 0 ? t('Import uploaded CV') : t('Import CV')}
               </Button>
               <Button size="lg" variant="secondary" onClick={() => commit(defaultStarter())}>
@@ -302,7 +302,7 @@ export function CvContentWorkspace({
             onClick={() => setImporting(true)}
             className="inline-flex items-center gap-gb-xs rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <KitIcon art={ICONS.uploadCloud} frame={14} />
+            <GlowbalIcon name="upload" size={16} tone="current" />
             {t('Import from another CV')}
           </button>
         </div>
@@ -343,7 +343,7 @@ export function CvContentWorkspace({
                   label={`${t('Remove the')} ${sectionTitle(section)} ${t('section')}`}
                   onClick={() => commit(sections.filter((s) => s.id !== section.id))}
                 >
-                  <KitIcon art={ICONS.trash} frame={14} />
+                  <GlowbalIcon name="delete" size={16} tone="current" />
                 </IconButton>
               ) : null}
             </div>

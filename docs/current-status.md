@@ -1,5 +1,54 @@
 # Current project status
 
+Working tree 2026-09-15 (product icon system — handoff v1.0, **phases 1–3 done: groups A–I placed**): the owner's icon
+plan handoff (72 new two-tone icons + 27 shipped as PNG sheets; lives outside the repo) is being integrated.
+**Groups A–I (this pass, 47 files):** icons placed per the handoff's mapping, including where none existed —
+A: FAQ, contact, about, team, testimonials, newsletter card + unsubscribe, news eyebrow + card strip (`data-surface="dark"`
+over the photo), article topic pill and its Save/Share/More; B: university card metrics, detail stat strip and every
+`SectionHeading` (new `icon` prop), scholarship rows on the detail page; C: scholarship card + dialog (award, funding,
+eligibility, deadline, `savedScholarship` shortlist toggle, AI tab filter/sort/empty); D: advisor card, profile
+`SectionCard` (now requires `icon`), booking card/section/dialog, advisor-apply bands (`dark`), bookings meeting link and
+review; E: portal row location/deadline/countdown/add-course/empty, intake picker, AI research header; F: final check,
+task detail panels, reflection questions (`QuestionGlyph` replaces `questionIcon`; question headers and funding options
+now name product icons); G: `/plus` eyebrow/promo/subscription/payment line, success disc, manual-payment status discs,
+invoice and bank rows; H: admin tabs; I: 404 (`emptyState`), root error, reflection-card loading, upgrade modal
+(`locked`). Deliberately unchanged, with reasons in [design-system.md](design-system.md) "Where they go": university save
+hearts, `StatusPill` glyphs, subject/degree/evidence-category art, the `/apply` heading marks, the footer link columns.
+No spot exists yet for `notification`, `compare` or `campusPhotos`.
+Measured (groups A–I): `typecheck`, `typecheck:strict` clean; ESLint on all 47 changed files clean; `vitest related`
+79 files / 603 passed. Chrome on 9 public routes (`/`, `/about`, `/news`, `/how-it-works`, `/advisors`, `/scholarships`,
+`/plus`, `/universities`, a 404): light strokes `rgb(22,24,29)`+`rgb(225,29,72)`, the advisor band white+`rgb(255,59,71)`,
+`current` icons follow their text; no horizontal scroll at 360 on any. `HomeTestimonials` is not rendered on `/` (only
+`/dev/home`), so its icon was not seen live. Not checked in a browser: signed-in routes (`/apply`, `/admin`, bookings,
+strategy pages, `/universities/[id]`, `/advisors/[id]`, manual payment). Not run: full `npm test`, `npm run build`, E2E,
+`verify:pr`.
+
+Earlier in the same working tree:
+**Foundation:** `src/shared/ui/glowbal-icons.ts` (art, verbatim from the handoff), `glowbal-icon.tsx` (`GlowbalIcon`,
+`IconLabel`), exported from the barrel; tones in tokens.css (`--color-gb-icon-*` primitives, `stroke-icon-ink` /
+`stroke-icon-accent`, `data-surface` light/dark/brand). Deviations from the handoff, each commented in code: no
+`.on-dark` class (attribute only); a `brand` surface and a `tone="current"` for the rose band, filled buttons and
+hover-coloured row actions; `aria-label` instead of an svg `<title>`; `IconLabel` spans only and type fitted to the
+site scale (owner's decision). Reference page `/dev/icons` (kept off the kitchen-sink screenshot baseline).
+**Surfaces:** `Footer` (dark), `TopNav` / `Section` (from `tone`), application band (`brand`). **Migrated:** the
+hand-built `trash` / `uploadCloud` / `edit02` at 9 call sites (document row, dropzone, achievement cards, document
+panel, CV editor/workspace/import, structured table, profile) → `delete` / `upload` / `documentUpload` / `edit`.
+**27 shipped icons:** the owner approved the vector redraws on 2026-09-15, closing the handoff's open decision
+(redraw, not PNGs). They live in `glowbal-icons-shipped.ts`, merged with the plan's 72 by `glowbal-icon-art.ts`
+(99 names). `SubNav`'s nine hand-drawn glyphs are gone — `ai-strategy-route-model.ts` now names product icons;
+`IconCircle` takes an icon name (Planner stats `actionStep` / `deadlineAlert`; category tiles `programs` / `ourTeam`
+/ `essaySupport`). (Groups A–I and the reflection question icons, pending at this point, are done — see above.)
+Details: [design-system.md](design-system.md) "Product icons".
+Measured: `glowbal-icon.test.tsx` 16 tests (99 icons, no plan/shipped name clash); `vitest related` on the batch-1
+files 61 files / 361 passed, on the surface edits 60 files / 344 passed, on the Feature 2 swap 157 files / 1041 passed
+and 3 failed — a stale `'chart'` expectation in `ai-strategy-route-model.test.ts` (fixed; 8/8 on re-run) and two CV API
+route tests that took ~11s under parallel typecheck load and pass 19/19 alone; `typecheck`, `typecheck:strict`, ESLint
+on all changed files clean. Chrome: `/dev/icons` strokes light `rgb(22,24,29)`+`rgb(225,29,72)`, dark
+white+`rgb(255,59,71)`, brand white/white, no horizontal scroll at 360; SubNav on the rose band follows its text (80%
+white at rest, white active), on white it is two-tone; `/dev/planner` IconCircle icons take the circle's
+`rgb(190,18,60)`. Not run: full `npm test`, `npm run build`, E2E (the `data-surface` attributes change no pixels, so
+the visual baselines are not expected to move — not re-run), `verify:pr`.
+
 Working tree 2026-09-14 (CSP report → **enforced Content Security Policy**): review said "only
 `Content-Security-Policy-Report-Only` on every route; `unsafe-inline`/`unsafe-eval` present; `upgrade-insecure-requests`
 ignored". **All three true of production** (live headers checked). Now `src/proxy.ts` sends, per page request, an

@@ -16,9 +16,11 @@ import {
   CheckList,
   Container,
   Footer,
+  GlowbalIcon,
   ICONS,
   KitIcon,
   SearchMark,
+  type GlowbalIconName,
 } from '@/shared/ui';
 import { TID, testId } from '@/shared/lib/testids';
 import type { University } from '@/lib/types';
@@ -111,17 +113,21 @@ function LabelledCheck({ label, value }: { label: string; value: string }) {
 export function SectionHeading({
   id,
   eyebrow,
+  icon,
   children,
 }: {
   id: string;
   eyebrow?: string;
+  /** The product icon for what the section is about, set beside the eyebrow. */
+  icon?: GlowbalIconName;
   children: React.ReactNode;
 }) {
   return (
     <div className="scroll-mt-[calc(var(--gb-header-mobile)+var(--spacing-gb-7xl))] md:scroll-mt-gb-9xl" id={id}>
       <span aria-hidden="true" className="mb-gb-lg block h-[3px] w-[32px] rounded-gb-full bg-brand" />
       {eyebrow ? (
-        <p className="mb-gb-xs text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+        <p className="mb-gb-xs flex items-center gap-gb-sm text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+          {icon ? <GlowbalIcon name={icon} size={16} /> : null}
           {eyebrow}
         </p>
       ) : null}
@@ -156,7 +162,17 @@ function ChipRow({ label, value }: { label: string; value: string }) {
  * values are prose ("Estimated ~60–65%", "$15,000–18,000/year before subsidy"),
  * so this clamps instead and keeps the untruncated string on `title`.
  */
-function Stat({ label, value, full }: { label: string; value: string; full?: string }) {
+function Stat({
+  label,
+  value,
+  full,
+  icon,
+}: {
+  label: string;
+  value: string;
+  full?: string;
+  icon: GlowbalIconName;
+}) {
   return (
     /*
      * Each tile carries its own border rather than the row carrying dividers.
@@ -165,7 +181,8 @@ function Stat({ label, value, full }: { label: string; value: string; full?: str
      * which tiles are present depends on the university.
      */
     <div className="flex h-full flex-col gap-gb-xs rounded-gb-xl border border-line bg-surface-muted px-gb-2xl py-gb-xl">
-      <span className="text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+      <span className="flex items-center gap-gb-sm text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+        <GlowbalIcon name={icon} size={16} />
         {label}
       </span>
       <span
@@ -229,16 +246,39 @@ export function UniversityDetail({
   const acceptance = university.accept_rate ? formatAcceptanceForCard(university.accept_rate) : null;
   const gpa = leadFragment(university.gpa_range, 24);
   const tuition = university.tuition_usd ? formatTuitionForCard(university.tuition_usd) : null;
-  const stats: { label: string; value: string; full?: string }[] = [
+  const stats: { label: string; value: string; full?: string; icon: GlowbalIconName }[] = [
     ...(university.qs_rank != null
-      ? [{ label: 'QS World Rank', value: `#${university.qs_rank}` }]
+      ? [{ label: 'QS World Rank', value: `#${university.qs_rank}`, icon: 'ranking' as const }]
       : []),
     ...(acceptance && acceptance !== '—'
-      ? [{ label: 'Acceptance rate', value: acceptance, full: university.accept_rate ?? '' }]
+      ? [
+          {
+            label: 'Acceptance rate',
+            value: acceptance,
+            full: university.accept_rate ?? '',
+            icon: 'acceptanceRate' as const,
+          },
+        ]
       : []),
-    ...(gpa ? [{ label: 'Typical GPA', value: gpa, full: university.gpa_range ?? '' }] : []),
+    ...(gpa
+      ? [
+          {
+            label: 'Typical GPA',
+            value: gpa,
+            full: university.gpa_range ?? '',
+            icon: 'requirements' as const,
+          },
+        ]
+      : []),
     ...(tuition && tuition !== '—'
-      ? [{ label: 'Tuition / year', value: tuition, full: university.tuition_usd ?? '' }]
+      ? [
+          {
+            label: 'Tuition / year',
+            value: tuition,
+            full: university.tuition_usd ?? '',
+            icon: 'tuitionFee' as const,
+          },
+        ]
       : []),
   ];
 
@@ -350,7 +390,7 @@ export function UniversityDetail({
           <div className="flex min-w-0 flex-1 flex-col gap-gb-6xl">
             {/* Intro — 375:10692, 375:10693 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="about" eyebrow={t('Overview')}>
+              <SectionHeading id="about" eyebrow={t('Overview')} icon="universities">
                 {t('About')} {university.name}
               </SectionHeading>
               {university.specific_insight ? (
@@ -377,7 +417,7 @@ export function UniversityDetail({
              */}
             {hasSubjects ? (
               <section className="flex flex-col gap-gb-2xl">
-                <SectionHeading id="subjects" eyebrow={t('Academics')}>
+                <SectionHeading id="subjects" eyebrow={t('Academics')} icon="programs">
                   {t('Subjects and fit')}
                 </SectionHeading>
                 {university.strengths ? (
@@ -391,7 +431,7 @@ export function UniversityDetail({
 
             {/* Admissions — 375:10696 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="admissions" eyebrow={t('Getting in')}>
+              <SectionHeading id="admissions" eyebrow={t('Getting in')} icon="requirements">
                 {t('Admission requirements')}
               </SectionHeading>
               <CheckList>
@@ -417,7 +457,7 @@ export function UniversityDetail({
             {/* Campus & location — 375:10702 */}
             {university.housing ? (
               <section className="flex flex-col gap-gb-2xl">
-                <SectionHeading id="location" eyebrow={t('On campus')}>
+                <SectionHeading id="location" eyebrow={t('On campus')} icon="location">
                   {t('Campus and location')}
                 </SectionHeading>
                 <p className="text-gb-lg text-fg-tertiary">{university.housing}</p>
@@ -426,7 +466,7 @@ export function UniversityDetail({
 
             {/* Scholarships — 375:10709 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="costs" eyebrow={t('Money')}>
+              <SectionHeading id="costs" eyebrow={t('Money')} icon="tuitionFee">
                 {t('Costs and scholarships')}
               </SectionHeading>
               <ul className="flex flex-col gap-gb-lg">
@@ -451,7 +491,8 @@ export function UniversityDetail({
                       >
                         <p className="text-gb-lg font-semibold text-fg">{scholarship.name}</p>
                         {scholarship.fundingType.length > 0 ? (
-                          <div className="flex flex-wrap gap-gb-md">
+                          <div className="flex flex-wrap items-center gap-gb-md">
+                            <GlowbalIcon name="fundingType" size={16} />
                             {scholarship.fundingType.map((type) => (
                               <Badge key={type} variant="brand-subtle">
                                 {type}
@@ -460,7 +501,10 @@ export function UniversityDetail({
                           </div>
                         ) : null}
                         {scholarship.eligibility ? (
-                          <p className="text-gb-sm text-fg-tertiary">{scholarship.eligibility}</p>
+                          <p className="flex items-start gap-gb-xs text-gb-sm text-fg-tertiary">
+                            <GlowbalIcon name="eligibility" size={16} className="mt-gb-xxs" />
+                            <span className="min-w-0">{scholarship.eligibility}</span>
+                          </p>
                         ) : null}
                         <div className="flex flex-wrap items-start gap-gb-3xl text-gb-sm text-fg-tertiary">
                           {/*
@@ -471,17 +515,13 @@ export function UniversityDetail({
                            */}
                           {university.country ? (
                             <span className="flex shrink-0 items-start gap-gb-xs">
-                              <span className="mt-gb-xxs shrink-0" aria-hidden="true">
-                                <KitIcon art={ICONS.markerPin02} frame={16} />
-                              </span>
+                              <GlowbalIcon name="location" size={16} className="mt-gb-xxs" />
                               {university.country}
                             </span>
                           ) : null}
                           {scholarship.deadlineLabel ? (
                             <span className="flex min-w-0 flex-1 items-start gap-gb-xs">
-                              <span className="mt-gb-xxs shrink-0" aria-hidden="true">
-                                <KitIcon art={ICONS.clock} frame={16} />
-                              </span>
+                              <GlowbalIcon name="deadlineAlert" size={16} className="mt-gb-xxs" />
                               {/*
                                * Clamped, not truncated to a date. The frame
                                * assumes "Hạn chót: 5 tháng 1 năm 2026"; real
@@ -514,7 +554,7 @@ export function UniversityDetail({
 
             {/* Careers — 375:10784 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="careers" eyebrow={t('After graduation')}>
+              <SectionHeading id="careers" eyebrow={t('After graduation')} icon="careerExploration">
                 {t('Careers and outcomes')}
               </SectionHeading>
               <ul className="flex flex-col gap-gb-lg">
@@ -535,7 +575,7 @@ export function UniversityDetail({
 
             {/* Why students choose — 375:10813 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="why" eyebrow={t('The honest view')}>
+              <SectionHeading id="why" eyebrow={t('The honest view')} icon="studentStories">
                 {t('Why students choose')} {university.name}
               </SectionHeading>
               {/*
@@ -583,7 +623,7 @@ export function UniversityDetail({
 
             {/* Talk to someone — 375:10826 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="mentors" eyebrow={t('Ask a human')}>
+              <SectionHeading id="mentors" eyebrow={t('Ask a human')} icon="advisors">
                 {t('Talk to someone who studied here')}
               </SectionHeading>
               <p className="text-gb-lg text-fg-tertiary">
@@ -626,8 +666,9 @@ export function UniversityDetail({
             />
 
             <div className="flex flex-col gap-gb-3xl rounded-gb-xl border border-line bg-surface-muted p-gb-4xl shadow-xs">
-              <span className="flex size-[56px] items-center justify-center rounded-gb-lg border border-line-strong bg-surface text-brand shadow-xs">
-                <KitIcon art={ICONS.zapFast} frame={28} />
+              {/* Strategy Master — the card sends the reader to /ai-strategy. */}
+              <span className="flex size-[56px] items-center justify-center rounded-gb-lg border border-line-strong bg-surface shadow-xs">
+                <GlowbalIcon name="strategyMaster" size={32} />
               </span>
               <div className="flex flex-col gap-gb-xs">
                 <p className="text-gb-xl font-semibold text-fg">

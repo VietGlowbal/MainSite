@@ -10,12 +10,12 @@ import { getLocalizedFooter } from '@/features/marketing/navigation';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import type { PublicMentor } from '@/lib/mentors';
 import { formatMoney } from '@/lib/currency';
-import { StarIcon } from '@/components/mentorship/mentor-icons';
 import {
   Badge,
   Button,
   Container,
   Footer,
+  GlowbalIcon,
   ICONS,
   Input,
   KitIcon,
@@ -189,7 +189,7 @@ function MentorCard({ mentor, preload, locale = 'en' }: { mentor: PublicMentor; 
           </p>
           {mentor.university?.country ? (
             <p className="mt-gb-xxs flex items-center gap-gb-xs text-gb-xs text-fg-muted">
-              <KitIcon art={ICONS.markerPin02} frame={16} />
+              <GlowbalIcon name="location" size={16} />
               <span className="truncate">{t(mentor.university.country)}</span>
             </p>
           ) : null}
@@ -200,7 +200,7 @@ function MentorCard({ mentor, preload, locale = 'en' }: { mentor: PublicMentor; 
             {t(mentor.subject || 'Subject not listed')}
           </p>
           <p className="mt-gb-xs flex items-center gap-gb-sm text-gb-xs font-medium text-fg-brand">
-            <KitIcon art={ICONS.graduationCap} frame={16} />
+            <GlowbalIcon name="expertiseTag" size={16} />
             {t(DEGREE_LABELS[mentor.degree_level])}
           </p>
         </div>
@@ -221,7 +221,7 @@ function MentorCard({ mentor, preload, locale = 'en' }: { mentor: PublicMentor; 
               <p className="text-gb-xs font-medium text-fg-muted">{t('Experience')}</p>
               {mentor.total_sessions > 0 ? (
                 <p className="mt-gb-xs flex items-center gap-gb-xs text-gb-sm font-semibold text-fg">
-                  <StarIcon size={14} filled />
+                  <GlowbalIcon name="ratingReview" size={16} />
                   {rating.toFixed(1)}
                   <span className="font-normal text-fg-muted">
                     ({t(mentor.total_sessions === 1 ? '{count} session' : '{count} sessions', {
@@ -273,10 +273,12 @@ function AdvisorApplicationInvitation({ locale = 'en' }: { locale?: Locale }) {
   return (
     <section
       aria-labelledby="advisor-application-title"
+      data-surface="dark"
       className="overflow-hidden rounded-gb-2xl bg-surface-inverse-deep p-gb-3xl shadow-gb-lg md:p-gb-5xl"
     >
       <div className="grid gap-gb-5xl lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-center">
         <div className="flex flex-col items-start gap-gb-xl">
+          <GlowbalIcon name="becomeMentor" size={40} />
           <Badge variant="outline">{t('For students and alumni')}</Badge>
           <div className="flex flex-col gap-gb-lg">
             <h2

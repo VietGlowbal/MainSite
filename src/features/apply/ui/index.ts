@@ -10,7 +10,7 @@ export {
   QuestionCard,
   QuestionTracker,
   SaveIndicator,
-  questionIcon,
+  QuestionGlyph,
 } from './question-chrome';
 export { NotSureNote, OptionCards, SelectionCard } from './option-cards';
 export { AspirationQuestion, SubjectMotivationQuestion } from './written-answer';

@@ -35,7 +35,7 @@ export type FundingSource = {
   id: FundingSourceId;
   label: string;
   description: string;
-  /** A key for `questionIcon` — see `question-chrome.tsx`. */
+  /** A product icon name, drawn by `QuestionGlyph` — see `question-chrome.tsx`. */
   icon: string;
 };
 
@@ -44,31 +44,31 @@ export const FUNDING_SOURCE_CATALOG: readonly FundingSource[] = [
     id: 'personal_savings_or_parents',
     label: 'Personal savings or parents',
     description: 'Family funds or your own savings will cover most of the cost.',
-    icon: 'usersTwo',
+    icon: 'paymentMethod',
   },
   {
     id: 'scholarship',
     label: 'Scholarship',
     description: 'You are hoping to fund some or all of it with a scholarship.',
-    icon: 'zapFast',
+    icon: 'scholarships',
   },
   {
     id: 'student_loan',
     label: 'Student loan',
     description: 'A government or private loan you will repay after graduating.',
-    icon: 'chartBreakoutSquare',
+    icon: 'invoice',
   },
   {
     id: 'employer_or_sponsor',
     label: 'Employer or sponsor',
     description: 'A company, government body or organisation is paying.',
-    icon: 'gift01',
+    icon: 'fundingType',
   },
   {
     id: 'not_decided_yet',
     label: 'Not decided yet',
     description: 'You are still working it out — that is a normal answer here.',
-    icon: 'edit02',
+    icon: 'faq',
   },
 ] as const;
 

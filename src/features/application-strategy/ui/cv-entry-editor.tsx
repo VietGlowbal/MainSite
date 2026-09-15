@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useT } from '@/lib/i18n';
-import { Button, ICONS, KitIcon } from '@/shared/ui';
+import { Button, GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
 import {
   CV_SUGGESTION_ACTIONS,
   sectionFields,
@@ -197,7 +197,7 @@ export function CvEntryEditor({
                           }
                           className="flex size-gb-5xl shrink-0 items-center justify-center rounded-gb-md border border-line-strong bg-surface text-fg-tertiary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                         >
-                          <KitIcon art={ICONS.trash} frame={14} />
+                          <GlowbalIcon name="delete" size={16} tone="current" />
                         </button>
                       ) : null}
                     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { GlowbalIcon } from '@/shared/ui/glowbal-icon';
 
 export default function GlobalError({
   error,
@@ -18,7 +19,7 @@ export default function GlobalError({
     <main className="min-h-screen bg-transparent px-6 py-16 md:px-10">
       <div className="mx-auto max-w-lg">
         <div className="glow-card text-center space-y-5 py-12">
-          <div className="text-5xl">💫</div>
+          <GlowbalIcon name="error" size={48} className="mx-auto block" />
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Something went off-orbit</h1>
             <p className="mt-2 text-sm text-slate-500 leading-relaxed">

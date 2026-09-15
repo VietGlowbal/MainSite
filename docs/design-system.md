@@ -45,6 +45,81 @@ exception, the loading hooks; see that row.
 | `BrandIcon` + `BRAND_ICONS` | **Filled** social marks — `KitIcon`'s stroke treatment renders them hollow, hence the split. |
 | `VerifiedMark` | The seal beside a verified mentor's name (Figma `375:21653`). Two filled paths in two colours, so not a `KitIcon`: the seal takes `currentColor` (pair it with `text-fg-verified`), the tick is hard white. Renders an accessible `title` by default — "verified" is information, not decoration. Pass `title={null}` where adjacent text already says it. |
 | `InstagramMark`, `SearchMark` | ⚠️ Not design art. Neither mark exists in Figma; these are the shapes the old site shipped. |
+| `GlowbalIcon` + `GLOWBAL_ICONS` | **The product's own icon set** — 72 two-tone glyphs from the icon plan handoff (v1.0), art copied verbatim into `glowbal-icons.ts` (generated; change it in the plan, not by hand). Use it for any icon that names a product function. `KitIcon` stays for kit affordances (chevrons, arrows, close) and for consumers not yet migrated. See "Product icons" below. |
+| `IconLabel` | The only two icon + text layouts: `left` (`nav` · `row` · `meta`) and `top` (`card` · `grid` · `empty`). Renders spans only, so it is valid inside a `<button>`. |
+
+### Product icons — `GlowbalIcon`
+
+Every glyph has two tones: **ink** (the shape) and **accent** (the one detail
+that names the function). The call site never picks a colour; the surface does,
+through `stroke-icon-ink` / `stroke-icon-accent` (tokens.css, "Surfaces"):
+
+| Surface | ink | accent |
+|---|---|---|
+| default / `data-surface="light"` | `#16181d` | brand rose |
+| `data-surface="dark"` | white | `#ff3b47` — rose is 4.2:1 on the footer |
+| `data-surface="brand"` | text colour | text colour |
+
+`Footer`, `TopNav` and `Section` set it from their tone; the application band
+(`components/application-nav.tsx`) sets `brand`. ⚠️ **A new dark or rose band
+must set it too**, or its icons draw dark ink on a dark ground.
+
+`tone`: `two-tone` (default) · `mono` (accent in the ink colour — dense tables,
+disabled rows, anywhere red already means something) · `current` (both tones
+follow the text colour — compact row actions whose colour carries state, like
+`text-fg-muted hover:text-fg-error`, and any icon inside a filled button).
+`current` and the `brand` surface are **not in the icon plan**: a fixed ink
+cannot follow a hover state, and a rose accent vanishes on rose.
+
+Sizes 16 · 20 · 24 · 32 · 40 · 48 only. The art is a true 24px box, so `size` is
+the rendered box — unlike `KitIcon`'s stroked-bounds viewBox below. A migrated
+`KitIcon frame={14}` becomes 16.
+
+`IconLabel` text sits on the site type scale, not the plan's measured
+15px/13px/800 (owner's decision, 2026-09-15); the rounding is commented in
+`glowbal-icon.tsx`.
+
+`GLOWBAL_ICONS` (from `glowbal-icon-art.ts`) is two sets merged: the plan's 72
+(`glowbal-icons.ts`, generated — do not hand-edit) and the 27 icons that shipped
+as PNG sheets, redrawn as vectors and approved by the owner on 2026-09-15
+(`glowbal-icons-shipped.ts`: Home, Strategy Master, the workspace tabs, …).
+Import names from the merge, never from either half; a test fails if the two
+ever share a name. A name that arrives as data (the application route model)
+goes through `isGlowbalIconName` first. Every glyph on all three surfaces, plus
+the application tab bar: `/dev/icons`.
+
+#### Where they go
+
+The handoff's mapping (groups A–J) is placed. Patterns to reuse rather than
+re-invent:
+
+- **Section headings** — a 40px icon above a centred heading (FAQ, team,
+  testimonials, about); a 16px icon beside an eyebrow (`SectionHeading` on
+  `/universities/[id]` takes `icon`); a 24px icon beside a card heading
+  (`SectionCard` on `/advisors/[id]` requires `icon`).
+- **Meta rows** — 16px beside the label, never inside a free-text value, so a
+  wrapped value still aligns (university card `dt`s, scholarship rows).
+- **Colour that carries state** — `tone="current"` and let the existing text
+  colour speak: the portal's urgent deadline, the countdown, the payment status
+  discs, the admin tabs on their dark rail.
+- **Questionnaire data** — icon keys stay strings in `features/apply/domain`
+  and render through `QuestionGlyph` (`features/apply/ui/question-chrome.tsx`):
+  a product icon name draws `GlowbalIcon`, an old `ICONS` key keeps its traced
+  art, anything else falls back to `checklist`.
+
+Deliberately NOT swapped — each is a decision, not a leftover:
+
+| Spot | Why it stays |
+|---|---|
+| University save hearts (`save-university-button.tsx`, the list card, `/apply` headings) | Figma draws the heart (522:8643) and its filled state *is* "saved"; `save` has no filled state. The scholarship shortlist did move, to `savedScholarship`, because the mapping names that icon for it. |
+| `StatusPill` glyphs | One distinct shape per status is the feature's accessibility rule; a single `applicationStatus` icon would erase it. |
+| Subject catalogue, degree levels, evidence categories | Decoration with no product meaning (Biology is not a GlowBal function). They keep their art until the design draws subject icons. |
+| `/apply` section marks (globe PNG, heart) | Figma-drawn marks (562:15622, 562:15559). |
+| Footer link columns | Figma-bound kit component; icons were not added to its text links. |
+| Kit affordances (chevrons, arrows, close, check bullets) | Not product functions — they stay `KitIcon`. |
+
+No spot exists yet for `notification` (there is no bell), `compare` (no compare
+feature) or `campusPhotos` (the only gallery is on the retired VinUni page).
 
 ### Icon sizing is not `size-6`
 

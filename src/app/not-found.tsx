@@ -7,6 +7,7 @@ import { translations } from '@/lib/i18n-catalog';
 import { localizePath, type Locale } from '@/lib/i18n/locale';
 import { Button } from '@/shared/ui/button';
 import { Footer } from '@/shared/ui/footer';
+import { GlowbalIcon } from '@/shared/ui/glowbal-icon';
 
 export const metadata: Metadata = {
   title: 'Page not found',
@@ -45,22 +46,9 @@ export default async function NotFound() {
 
       <section className="flex flex-1 items-center justify-center px-gb-xl py-gb-7xl md:px-gb-4xl md:py-gb-9xl">
         <div className="w-full max-w-gb-width-sm rounded-gb-xl border border-line bg-surface px-gb-3xl py-gb-5xl text-center shadow-gb-xs md:px-gb-5xl">
-          <span className="mx-auto mb-gb-xl flex size-gb-7xl items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand">
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M2 12h20" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
+          {/* Empty State, not Error: a 404 is "nothing here", not a failed request. */}
+          <span className="mx-auto mb-gb-xl flex size-gb-7xl items-center justify-center rounded-gb-full bg-brand-subtle">
+            <GlowbalIcon name="emptyState" size={32} />
           </span>
 
           <p className="text-gb-sm font-semibold text-fg-brand">404</p>

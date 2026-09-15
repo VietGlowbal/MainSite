@@ -1,5 +1,6 @@
 'use client';
 
+import { GlowbalIcon } from './glowbal-icon';
 import { ICONS, KitIcon } from './icons';
 import { ProgressBar } from './progress-bar';
 
@@ -117,7 +118,7 @@ export function DocumentRow({
             aria-label={removeLabel ?? `Remove ${fileName}`}
             className="shrink-0 rounded-gb-sm p-gb-xs text-fg-muted hover:text-fg-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <KitIcon art={ICONS.trash} frame={16} />
+            <GlowbalIcon name="delete" size={16} tone="current" />
           </button>
         ) : null}
       </div>

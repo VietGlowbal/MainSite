@@ -59,15 +59,17 @@ export function aiStrategyApplicationNav(
 ): SubNavItem[] {
   const app = `/ai-strategy/${applicationId}`;
   const returnParam = `?return=${encodeURIComponent(`${app}/strategy/analysis`)}`;
+  // `icon` values are product icon names (src/shared/ui/glowbal-icon-art.ts) —
+  // the redrawn Feature 2 set. SubNav ignores a name its icon set cannot draw.
   const leadItem: SubNavItem = readiness.analysisReady
     ? {
         key: 'reflections',
         label: 'Reflections',
         href: `/ai-strategy/reflection/confirm${returnParam}`,
-        icon: 'home',
+        icon: 'reflection',
         ...(readiness.candidateConfirmed ? {} : { locked: true }),
       }
-    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}`, icon: 'home' };
+    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}`, icon: 'myApplication' };
 
   return [
     leadItem,
@@ -75,44 +77,44 @@ export function aiStrategyApplicationNav(
       key: 'personalReport',
       label: 'Personal Report',
       href: `/ai-strategy/personal-report${returnParam}`,
-      icon: 'fileText',
+      icon: 'personalReport',
     },
     {
       key: 'matchingReport',
       label: 'Matching Report',
       href: `${app}/matching-report`,
-      icon: 'target',
+      icon: 'matchingReport',
       ...(readiness.analysisReady ? {} : { locked: true }),
     },
     {
       key: 'strategyReport',
       label: 'Personalized Strategy',
       href: `${app}/strategy-report`,
-      icon: 'compass',
+      icon: 'personalizedStrategy',
       ...(readiness.strategyReady ? {} : { locked: true }),
     },
     {
       key: 'planner',
       label: 'Planner',
       href: `${app}/planner`,
-      icon: 'calendar',
+      icon: 'applicationPlanner',
       ...(readiness.plannerReady ? {} : { locked: true }),
     },
     // Deliberate compatibility adapters pending the CV/Essay consolidation.
-    { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv`, icon: 'fileText' },
-    { key: 'essay', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback`, icon: 'pencil' },
-    { key: 'lor', label: 'LOR Support', href: `/apply/${applicationId}/lor-feedback`, icon: 'mail' },
+    { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv`, icon: 'cvSupport' },
+    { key: 'essay', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback`, icon: 'essaySupport' },
+    { key: 'lor', label: 'LOR Support', href: `/apply/${applicationId}/lor-feedback`, icon: 'lorSupport' },
     {
       key: 'documents',
       label: 'Documents',
       href: `/profile/documents?return=${encodeURIComponent(`${app}/strategy/analysis`)}`,
-      icon: 'folder',
+      icon: 'documents',
     },
     // Canonical future destinations. Locked items are intentionally omitted by
     // SubNav until their product phases are implemented.
     { key: 'scholarships', label: 'Scholarships', href: `${app}/scholarships`, locked: true },
     // Final Evaluation (Final Check) is implemented and unlocked.
-    { key: 'finalCheck', label: 'Final Evaluation', href: `${app}/final-check`, icon: 'chart' },
+    { key: 'finalCheck', label: 'Final Evaluation', href: `${app}/final-check`, icon: 'finalEvaluation' },
   ];
 }
 

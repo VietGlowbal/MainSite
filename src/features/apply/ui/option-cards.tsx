@@ -1,7 +1,7 @@
 'use client';
 
 import { ICONS, KitIcon } from '@/shared/ui';
-import { questionIcon } from './question-chrome';
+import { QuestionGlyph } from './question-chrome';
 
 /**
  * A row of large selectable cards — the replacement for the plain dropdowns
@@ -78,7 +78,7 @@ export function OptionCards<T extends string>({
                   selected ? 'bg-surface text-fg-brand' : 'bg-brand-subtle text-fg-brand'
                 }`}
               >
-                <KitIcon art={questionIcon(option.icon)} frame={20} />
+                <QuestionGlyph icon={option.icon} size={20} />
               </span>
             ) : null}
 
@@ -143,7 +143,7 @@ export function SelectionCard({
         aria-hidden="true"
         className="flex size-11 shrink-0 items-center justify-center rounded-gb-lg bg-brand-subtle text-gb-xl leading-none text-fg-brand"
       >
-        {glyph ?? (icon ? <KitIcon art={questionIcon(icon)} frame={22} /> : null)}
+        {glyph ?? (icon ? <QuestionGlyph icon={icon} size={24} /> : null)}
       </span>
 
       <span className="flex min-w-0 flex-col gap-gb-xxs">

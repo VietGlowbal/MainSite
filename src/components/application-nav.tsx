@@ -45,7 +45,9 @@ export async function ApplicationNav({
   });
 
   return (
-    <div data-no-auto-translate className="relative overflow-hidden">
+    // data-surface="brand": product icons in the sub-nav follow its white text
+    // rather than painting a rose accent onto the rose band (tokens.css, "Surfaces").
+    <div data-no-auto-translate data-surface="brand" className="relative overflow-hidden">
       <div className="absolute inset-0 animate-gb-app-nav-reveal bg-brand motion-reduce:animate-none" />
       <ApplicationNavBackground />
       <Container className="relative animate-gb-app-nav-reveal flex flex-col gap-gb-lg pt-gb-2xl motion-reduce:animate-none">

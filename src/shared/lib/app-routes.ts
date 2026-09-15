@@ -271,7 +271,11 @@ export type SubNavItem = {
   key: string;
   label: string;
   href: string;
-  /** Optional icon identifier for visual tab navigation */
+  /**
+   * A product icon name (`GlowbalIconName`, src/shared/ui/glowbal-icon-art.ts).
+   * Typed as a string because shared/lib does not import from the UI layer;
+   * `SubNav` checks it and falls back to the key's icon when it is not one.
+   */
   icon?: string;
   /** Not yet reachable — `SubNav` (`src/shared/ui/sub-nav.tsx`) omits it rather than rendering it inert. */
   locked?: boolean;

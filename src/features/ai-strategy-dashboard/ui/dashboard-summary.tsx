@@ -7,7 +7,7 @@ import { completionPercent as computeCompletionPercent, nextPriority, taskCounts
 // Component rather than being called. See `docs/known-issues.md §5l`.
 import { formatDate } from './planner-presentation';
 import { IconCircle } from './planner-shared';
-import { ICONS, KitIcon, Panel, ProgressBar, ScoreRing } from '@/shared/ui';
+import { GlowbalIcon, Panel, ProgressBar, ScoreRing } from '@/shared/ui';
 
 /**
  * The Planner's hero card — university photo, course/location, and four
@@ -63,7 +63,8 @@ export function DashboardSummary({
             aria-hidden="true"
             className="flex h-40 w-full shrink-0 items-center justify-center rounded-gb-2xl bg-surface-muted sm:w-52"
           >
-            <KitIcon art={ICONS.graduationCap} frame={40} className="text-fg-muted" />
+            {/* A placeholder, not a picture: muted, so it cannot pass for a crest. */}
+            <GlowbalIcon name="universities" size={40} tone="current" className="text-fg-muted" />
           </div>
         )}
 
@@ -74,7 +75,7 @@ export function DashboardSummary({
           <p className="text-gb-base font-semibold text-fg">{courseName}</p>
           {location ? (
             <div className="mt-gb-xs flex items-center gap-gb-xs text-gb-sm text-fg-tertiary">
-              <KitIcon art={ICONS.markerPin02} frame={16} className="shrink-0" />
+              <GlowbalIcon name="location" size={16} />
               <span>{location}</span>
             </div>
           ) : null}
@@ -95,7 +96,7 @@ export function DashboardSummary({
         </div>
 
         <div className="flex items-center gap-gb-md">
-          <IconCircle icon={ICONS.edit02} tone="brand" />
+          <IconCircle icon="actionStep" tone="brand" />
           <div className="flex flex-col gap-gb-xxs min-w-0">
             <p className="text-gb-xs font-medium uppercase tracking-wide text-fg-tertiary">Next Priority</p>
             <p className="text-gb-sm font-semibold text-fg truncate">{nextTitle}</p>
@@ -103,7 +104,7 @@ export function DashboardSummary({
         </div>
 
         <div className="flex items-center gap-gb-md">
-          <IconCircle icon={ICONS.calendar} tone="brand" />
+          <IconCircle icon="deadlineAlert" tone="brand" />
           <div className="flex flex-col gap-gb-xxs min-w-0">
             <p className="text-gb-xs font-medium uppercase tracking-wide text-fg-tertiary">Final Deadline</p>
             <p className="text-gb-sm font-semibold text-fg">

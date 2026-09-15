@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ICONS, KitIcon } from '@/shared/ui';
+import { GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
 import { formatBytes } from '@/shared/ui/document-row';
 import type { EvidenceDocument } from '../hooks';
 
@@ -135,7 +135,7 @@ function DocumentEntry({
             aria-label={labels.remove}
             className="p-1 text-fg-muted hover:text-fg-error transition-colors rounded"
           >
-            <KitIcon art={ICONS.trash} frame={16} />
+            <GlowbalIcon name="delete" size={16} tone="current" />
           </button>
 
           <OverflowMenu
@@ -301,7 +301,7 @@ export function DocumentPanel({
           aria-hidden="true"
           className="flex size-10 items-center justify-center rounded-lg border border-line bg-surface text-fg-secondary shadow-xs"
         >
-          <KitIcon art={ICONS.uploadCloud} frame={20} />
+          <GlowbalIcon name="documentUpload" size={20} />
         </span>
         <span className="text-gb-sm sm:text-gb-base font-semibold text-fg-brand">
           {dropzoneLabel}

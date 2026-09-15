@@ -385,6 +385,9 @@ export function TopNav({
        * that follows the page cannot cover a dialog.
        */
       style={{ top: navTop }}
+      // Product icons in the bar and its dropdown panel (a DOM child, even
+      // though it is position: fixed) take their tones from this.
+      data-surface={tone}
       /*
        * The shadow goes with `isFloating`, but NOT while parked off-screen: a
        * box-shadow paints outside the border box, so a fully hidden bar would

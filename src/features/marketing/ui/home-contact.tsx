@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
-import { Button, ICONS, Input, KitIcon, Textarea, controlClasses } from '@/shared/ui';
+import { Button, GlowbalIcon, ICONS, Input, KitIcon, Textarea, controlClasses } from '@/shared/ui';
 
 /**
  * Home contact — Figma 104:7361 (1440x840), the section the footer's
@@ -95,6 +95,7 @@ export function HomeContact({
         </div>
 
         <div>
+          <GlowbalIcon name="contact" size={40} className="mb-gb-xl block" />
           <h2 className="font-display text-gb-display-xs font-medium md:text-gb-display-sm">
             {getLocaleText(locale, 'Not sure where to begin?')}
           </h2>

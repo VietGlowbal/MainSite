@@ -9,7 +9,7 @@ import { getLocalizedFooter } from '@/features/marketing/navigation';
 import { StrategyGuide } from '@/features/marketing/strategy-guide';
 import { GUIDE_STEP_COUNT, STRATEGY_GUIDE } from '@/features/marketing/domain';
 import { getServerIdentity } from '@/server/auth/server-identity';
-import { Button, Container, Footer, Panel } from '@/shared/ui';
+import { Button, Container, Footer, GlowbalIcon, Panel } from '@/shared/ui';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
@@ -72,7 +72,8 @@ export default async function HowItWorksPage({ locale = 'en' }: { locale?: Local
         {/* Hero */}
         <section className="pt-gb-7xl">
           <Container className="flex max-w-3xl flex-col gap-gb-xl">
-            <p className="text-gb-sm font-semibold uppercase tracking-wide text-fg-brand">
+            <p className="flex items-center gap-gb-md text-gb-sm font-semibold uppercase tracking-wide text-fg-brand">
+              <GlowbalIcon name="howGlowbalWorks" size={20} />
               {t('How GlowBal works')}
             </p>
             <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">

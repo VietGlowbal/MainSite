@@ -17,6 +17,7 @@ import { trackCourseImportCompleted } from '@/lib/analytics/ga';
 import { useT } from '@/lib/i18n';
 import { Avatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
+import { GlowbalIcon } from '@/shared/ui/glowbal-icon';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
 import { Input } from '@/shared/ui/input';
 import { Modal } from '@/shared/ui/modal';
@@ -146,8 +147,12 @@ function DeadlineCountdown({ tone, days }: { tone: DeadlineTone; days: number })
     tone === 'urgent' ? 'text-brand' : tone === 'soon' ? 'text-fg-secondary' : 'text-fg-muted';
 
   return (
-    <span className={`text-gb-sm font-medium ${colour}`}>
-      {days} <span>{days === 1 ? 'day left' : 'days left'}</span>
+    <span className={`flex items-center gap-gb-xs text-gb-sm font-medium ${colour}`}>
+      {/* Follows the countdown's colour, which is how urgency already reads. */}
+      <GlowbalIcon name="countdown" size={16} tone="current" />
+      <span>
+        {days} <span>{days === 1 ? 'day left' : 'days left'}</span>
+      </span>
     </span>
   );
 }
@@ -429,8 +434,9 @@ function AddCourseButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
+        <GlowbalIcon name="multipleCourses" size={16} tone="current" />
         {t('Add another course')}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} label={t('Apply to another course')}>
@@ -577,16 +583,19 @@ function ApplicationRow({
           <div className="flex flex-wrap items-center gap-gb-xl">
             {app.country ? (
               <span className="flex items-center gap-gb-sm">
-                <KitIcon art={ICONS.markerPin02} frame={20} className="shrink-0 text-fg-tertiary" />
+                <GlowbalIcon name="location" size={20} />
                 <span className="text-gb-sm font-semibold text-fg-tertiary">{app.country}</span>
               </span>
             ) : null}
             {app.deadline ? (
               <span className="flex items-center gap-gb-sm">
-                <KitIcon
-                  art={ICONS.clock}
-                  frame={20}
-                  className={`shrink-0 ${urgency?.tone === 'urgent' ? 'text-brand' : 'text-fg-tertiary'}`}
+                {/* `current`, not two-tone: this icon's colour IS the urgency
+                    signal (rose when urgent), so it follows the text colour. */}
+                <GlowbalIcon
+                  name="deadlineAlert"
+                  size={20}
+                  tone="current"
+                  className={urgency?.tone === 'urgent' ? 'text-brand' : 'text-fg-tertiary'}
                 />
                 <span className="text-gb-sm font-semibold text-fg-tertiary">
                   Deadline: {formatDeadline(app.deadline)}
@@ -795,8 +804,8 @@ export function MyApplicationSection({
         <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-gb-brand-100 bg-brand-subtle p-gb-5xl">
           {/* An empty list is the first thing most students see here, so it is
               the one place on the page worth spending a little colour on. */}
-          <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-surface text-brand">
-            <KitIcon art={ICONS.zapFast} frame={28} />
+          <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-surface">
+            <GlowbalIcon name="emptyState" size={24} />
           </span>
           <p className="text-gb-md text-fg-tertiary">
             Tick a university in your saved list below, choose the subject you want, and plan its

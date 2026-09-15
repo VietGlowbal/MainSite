@@ -16,6 +16,7 @@ import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Container } from '@/shared/ui/container';
+import { GlowbalIcon } from '@/shared/ui/glowbal-icon';
 import { Modal } from '@/shared/ui/modal';
 import { Pagination } from '@/shared/ui/pagination';
 import { SearchMark } from '@/shared/ui/icons';
@@ -221,16 +222,27 @@ function UniversityCard({
             the dataset ("15-20% overall; Medicine more competitive"), so the
             value column is allowed to wrap and stays right-aligned. */}
         <dl className="flex flex-col gap-gb-lg">
+          {/* Icons sit in the label cell and stay out of the value, so a wrapped
+              free-text value still right-aligns against a clean edge. */}
           <div className="flex items-start justify-between gap-gb-xl">
-            <dt className="shrink-0 text-gb-lg text-fg-tertiary">{t('QS ranking')}</dt>
+            <dt className="flex shrink-0 items-center gap-gb-md text-gb-lg text-fg-tertiary">
+              <GlowbalIcon name="ranking" size={20} />
+              {t('QS ranking')}
+            </dt>
             <dd className="text-right text-gb-lg font-semibold text-fg">{metric(uni.qs_rank)}</dd>
           </div>
           <div className="flex items-start justify-between gap-gb-xl">
-            <dt className="shrink-0 text-gb-lg text-fg-tertiary">{t('Acceptance rate')}</dt>
+            <dt className="flex shrink-0 items-center gap-gb-md text-gb-lg text-fg-tertiary">
+              <GlowbalIcon name="acceptanceRate" size={20} />
+              {t('Acceptance rate')}
+            </dt>
             <dd className="text-right text-gb-lg font-semibold text-fg">{metric(uni.accept_rate)}</dd>
           </div>
           <div className="flex items-start justify-between gap-gb-xl">
-            <dt className="shrink-0 text-gb-lg text-fg-tertiary">{t('International tuition')}</dt>
+            <dt className="flex shrink-0 items-center gap-gb-md text-gb-lg text-fg-tertiary">
+              <GlowbalIcon name="tuitionFee" size={20} />
+              {t('International tuition')}
+            </dt>
             <dd className="text-right text-gb-lg font-semibold text-fg">{metric(uni.tuition_usd)}</dd>
           </div>
         </dl>

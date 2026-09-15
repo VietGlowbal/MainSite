@@ -117,7 +117,7 @@ describe('GET /api/applications/[id]/parse-status', () => {
   });
 
   it('detects stale processing job (>10 min) and exposes canRetry=true and phase=timeout', async () => {
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const staleUpdatedAt = new Date(Date.now() - 11 * 60 * 1000).toISOString();
 
     mocks.userClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: userId } }, error: null }) },
@@ -130,7 +130,7 @@ describe('GET /api/applications/[id]/parse-status', () => {
                 user_id: userId,
                 parse_status: 'processing',
                 progress_percentage: 20,
-                updated_at: tenMinutesAgo,
+                updated_at: staleUpdatedAt,
               },
               error: null,
             }),
@@ -148,8 +148,8 @@ describe('GET /api/applications/[id]/parse-status', () => {
                 status: 'processing',
                 attempts: 1,
                 max_attempts: 3,
-                updated_at: tenMinutesAgo,
-                started_at: tenMinutesAgo,
+                updated_at: staleUpdatedAt,
+                started_at: staleUpdatedAt,
               },
               error: null,
             }),

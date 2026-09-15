@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { MentorSignupForm } from '@/components/mentorship/MentorSignupForm';
 import { T } from '@/lib/i18n';
-import { Badge, ICONS, KitIcon } from '@/shared/ui';
+import { Badge, GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
 
 function ApplicationOverviewStep({
   number,
@@ -80,8 +80,12 @@ export default async function MentorApplyPage({
           <T k="Back to all advisors" />
         </Link>
 
-        <section className="flex flex-col gap-gb-3xl rounded-gb-2xl bg-surface-inverse-deep p-gb-3xl shadow-gb-lg md:p-gb-5xl">
+        <section
+          data-surface="dark"
+          className="flex flex-col gap-gb-3xl rounded-gb-2xl bg-surface-inverse-deep p-gb-3xl shadow-gb-lg md:p-gb-5xl"
+        >
           <div className="flex flex-col items-start gap-gb-lg">
+            <GlowbalIcon name="becomeMentor" size={40} />
             <Badge variant="outline"><T k="Advisor application" /></Badge>
             <h1 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg-on-inverse md:text-gb-display-sm">
               <T k="Help the next generation of students" />

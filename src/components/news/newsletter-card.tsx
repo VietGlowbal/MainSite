@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
+import { GlowbalIcon } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
@@ -64,7 +65,7 @@ export function NewsletterCard() {
       <div className="pointer-events-none absolute -right-3 -top-3 text-3xl opacity-80" aria-hidden>✦</div>
       <div className="flex items-start gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
-          <svg className="h-6 w-6 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
+          <GlowbalIcon name="newsletter" size={24} />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{t('Stay updated')}</h3>

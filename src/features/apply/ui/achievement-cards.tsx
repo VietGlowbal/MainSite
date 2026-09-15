@@ -1,7 +1,7 @@
 'use client';
 
-import { ICONS, KitIcon } from '@/shared/ui';
-import { questionIcon } from './question-chrome';
+import { GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
+import { QuestionGlyph } from './question-chrome';
 
 /**
  * The compact achievement/activity card — the replacement for the giant
@@ -77,7 +77,7 @@ function EvidenceCard({
           aria-hidden="true"
           className="flex size-10 shrink-0 items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand"
         >
-          <KitIcon art={questionIcon(icon)} frame={18} />
+          <QuestionGlyph icon={icon} size={20} />
         </span>
 
         <button
@@ -166,7 +166,7 @@ function EvidenceCardMenu({
         title={editLabel}
         className="rounded-gb-sm p-gb-xs text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
-        <KitIcon art={ICONS.edit02} frame={16} />
+        <GlowbalIcon name="edit" size={16} tone="current" />
       </button>
       <button
         type="button"
@@ -175,7 +175,7 @@ function EvidenceCardMenu({
         title={removeLabel}
         className="rounded-gb-sm p-gb-xs text-fg-muted hover:bg-surface-muted hover:text-fg-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
-        <KitIcon art={ICONS.trash} frame={16} />
+        <GlowbalIcon name="delete" size={16} tone="current" />
       </button>
     </div>
   );

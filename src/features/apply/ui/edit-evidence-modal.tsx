@@ -14,7 +14,7 @@ import {
 } from '../domain';
 import { Button, ICONS, KitIcon, Modal, Select } from '@/shared/ui';
 import { controlClasses } from '@/shared/ui/form-field';
-import { questionIcon } from './question-chrome';
+import { QuestionGlyph } from './question-chrome';
 
 /**
  * The edit/create surface for one achievement or activity — a large, two-
@@ -296,7 +296,7 @@ export function EditEvidenceModal({
             aria-hidden="true"
             className="flex size-12 shrink-0 items-center justify-center rounded-gb-lg bg-brand-subtle text-fg-brand"
           >
-            <KitIcon art={questionIcon(headerIcon)} frame={24} />
+            <QuestionGlyph icon={headerIcon} size={24} />
           </span>
           <div className="flex flex-col gap-gb-xxs">
             <h2 className="text-gb-xl font-semibold text-fg sm:text-gb-display-xs">{heading}</h2>

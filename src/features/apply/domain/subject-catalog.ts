@@ -41,7 +41,7 @@ export type SubjectOption = {
   id: string;
   label: string;
   group: SubjectGroup;
-  /** Key into `ICONS`; see `question-chrome.tsx`'s `questionIcon`. */
+  /** An old `ICONS` key, drawn by `QuestionGlyph` — see `question-chrome.tsx` for why subjects keep them. */
   icon: string;
   /** Extra search terms beyond the label's own words. */
   aliases: readonly string[];
