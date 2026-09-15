@@ -20,20 +20,20 @@ describe('aiStrategyApplicationNav', () => {
     expect(byKey.matchingReport?.href).toBe('/ai-strategy/app-123/matching-report');
     expect(byKey.strategyReport?.href).toBe('/ai-strategy/app-123/strategy-report');
     expect(byKey.strategyReport?.locked).toBeUndefined();
-    expect(byKey.strategyReport?.icon).toBe('compass');
+    expect(byKey.strategyReport?.icon).toBe('personalizedStrategy');
     expect(byKey.planner?.href).toBe('/ai-strategy/app-123/planner');
     expect(byKey.cv?.href).toBe('/apply/app-123/cv');
-    expect(byKey.cv?.icon).toBe('fileText');
+    expect(byKey.cv?.icon).toBe('cvSupport');
     expect(byKey.essay?.href).toBe('/apply/app-123/statement-feedback');
-    expect(byKey.essay?.icon).toBe('pencil');
+    expect(byKey.essay?.icon).toBe('essaySupport');
     expect(byKey.lor?.href).toBe('/apply/app-123/lor-feedback');
-    expect(byKey.lor?.icon).toBe('mail');
+    expect(byKey.lor?.icon).toBe('lorSupport');
     expect(byKey.documents?.href).toContain('/profile/documents');
-    expect(byKey.documents?.icon).toBe('folder');
+    expect(byKey.documents?.icon).toBe('documents');
     expect(byKey.scholarships?.href).toBe('/ai-strategy/app-123/scholarships');
     expect(byKey.finalCheck?.href).toBe('/ai-strategy/app-123/final-check');
     expect(byKey.finalCheck?.label).toBe('Final Evaluation');
-    expect(byKey.finalCheck?.icon).toBe('chart');
+    expect(byKey.finalCheck?.icon).toBe('finalEvaluation');
   });
 
   it('locks application outputs until the same onboarding state says they are ready', () => {
@@ -70,7 +70,7 @@ describe('aiStrategyApplicationNav', () => {
     expect(finalCheck?.locked).toBeUndefined();
     expect(finalCheck?.href).toBe('/ai-strategy/app-123/final-check');
     expect(finalCheck?.label).toBe('Final Evaluation');
-    expect(finalCheck?.icon).toBe('chart');
+    expect(finalCheck?.icon).toBe('finalEvaluation');
   });
 
   it('recognises canonical and legacy redirected paths for active-state compatibility', () => {
