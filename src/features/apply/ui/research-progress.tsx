@@ -1,3 +1,4 @@
+import { GlowbalIcon } from '@/shared/ui/glowbal-icon';
 import { ProgressBar } from '@/shared/ui/progress-bar';
 
 /**
@@ -47,6 +48,7 @@ export function ResearchProgress({
     >
       <div className="flex flex-col gap-gb-md">
         <div className="flex items-center gap-gb-md">
+          <GlowbalIcon name="autoParse" size={24} />
           <PulseDot />
           <h2 className="font-display text-gb-xl font-semibold text-fg">
             GlowBal&rsquo;s AI is reading the course page

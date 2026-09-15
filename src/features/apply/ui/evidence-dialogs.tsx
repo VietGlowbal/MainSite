@@ -10,7 +10,7 @@ import {
 } from '@/features/apply/domain';
 import { ICONS, KitIcon } from '@/shared/ui';
 import { Button, Modal } from '@/shared/ui';
-import { questionIcon } from './question-chrome';
+import { QuestionGlyph } from './question-chrome';
 
 /**
  * "+ Add experience" → one of the four approved top-level categories, then
@@ -104,7 +104,7 @@ export function ExperienceCategoryChooser({
                       aria-hidden="true"
                       className="flex size-10 shrink-0 items-center justify-center rounded-gb-lg bg-brand-subtle text-fg-brand"
                     >
-                      <KitIcon art={questionIcon(meta.icon)} frame={20} />
+                      <QuestionGlyph icon={meta.icon} size={20} />
                     </span>
                     <span className="flex flex-col gap-gb-xxs">
                       <span className="text-gb-sm font-semibold text-fg">{t(meta.label)}</span>

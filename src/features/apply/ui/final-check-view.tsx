@@ -21,7 +21,7 @@ import {
   type NarrativeAudit,
   type Readiness,
 } from '../domain';
-import { Badge, Button, Panel, ProgressBar, type BadgeVariant } from '@/shared/ui';
+import { Badge, Button, GlowbalIcon, Panel, ProgressBar, type BadgeVariant } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
@@ -141,7 +141,8 @@ export function FinalCheckView({
     <div className="flex flex-col gap-gb-4xl" data-no-auto-translate>
       <header className="flex flex-col gap-gb-md">
         <p className="text-gb-sm text-fg-tertiary">{universityName}</p>
-        <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
+        <h1 className="flex items-center gap-gb-lg font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
+          <GlowbalIcon name="finalCheck" size={32} />
           {t('Final check')}
         </h1>
         <p className="max-w-2xl text-gb-sm text-fg-tertiary">
@@ -285,7 +286,11 @@ function ActionSummarySection({
   return (
     <section aria-labelledby="action-summary-heading" className="flex flex-col gap-gb-lg">
       <div className="flex flex-col gap-gb-xxs">
-        <h2 id="action-summary-heading" className="text-gb-md font-semibold text-fg">
+        <h2
+          id="action-summary-heading"
+          className="flex items-center gap-gb-md text-gb-md font-semibold text-fg"
+        >
+          <GlowbalIcon name="actionStep" size={20} />
           {t('Action-first summary')}
         </h2>
         <p className="text-gb-sm text-fg-tertiary">

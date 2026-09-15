@@ -1,7 +1,7 @@
 'use client';
 
 import { ICONS, KitIcon } from '@/shared/ui';
-import { questionIcon } from './question-chrome';
+import { QuestionGlyph } from './question-chrome';
 
 /**
  * The tabs, sort control, responsive card grid and empty state that frame the
@@ -138,7 +138,7 @@ export function EvidenceEmptyState({
         aria-hidden="true"
         className="flex size-12 items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand"
       >
-        <KitIcon art={questionIcon(icon)} frame={22} />
+        <QuestionGlyph icon={icon} size={24} />
       </span>
       <div className="flex flex-col gap-gb-xxs">
         <p className="text-gb-sm font-semibold text-fg">{heading}</p>

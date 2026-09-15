@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ReflectionCardValues } from '@/features/apply/domain';
-import { Button, KitIcon, ICONS, Panel, PanelHeader, Textarea } from '@/shared/ui';
+import { Button, GlowbalIcon, Panel, PanelHeader, Textarea } from '@/shared/ui';
 
 /**
  * The AI Reflection Card — Story → My Contribution → Evidence → Demonstrated
@@ -32,8 +32,8 @@ export function ReflectionCardLoading({ t }: { t: (s: string) => string }) {
 
   return (
     <Panel className="flex flex-col items-center gap-gb-xl py-gb-5xl text-center">
-      <span className="flex size-12 animate-pulse items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand">
-        <KitIcon art={ICONS.zapFast} frame={22} />
+      <span className="flex size-12 animate-pulse items-center justify-center rounded-gb-full bg-brand-subtle motion-reduce:animate-none">
+        <GlowbalIcon name="loading" size={24} />
       </span>
       <h2 className="text-gb-lg font-semibold text-fg">{t('Building your Reflection Card')}</h2>
       <ul className="flex flex-col gap-gb-sm text-gb-sm text-fg-tertiary">

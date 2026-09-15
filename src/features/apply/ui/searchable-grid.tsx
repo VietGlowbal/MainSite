@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState } from 'react';
 import { ICONS, KitIcon } from '@/shared/ui';
-import { questionIcon } from './question-chrome';
+import { QuestionGlyph } from './question-chrome';
 
 /**
  * The searchable grid of selectable cards behind both the subjects question
@@ -193,7 +193,7 @@ export function SearchableMultiSelectGrid({
                       aria-hidden="true"
                       className="flex size-7 shrink-0 items-center justify-center rounded-gb-md bg-brand-subtle text-fg-brand"
                     >
-                      <KitIcon art={questionIcon(item.icon)} frame={15} />
+                      <QuestionGlyph icon={item.icon} size={16} />
                     </span>
                   ) : null}
                   <span className="flex min-w-0 flex-col">

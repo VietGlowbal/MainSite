@@ -1,7 +1,7 @@
 'use client';
 
 import { GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
-import { questionIcon } from './question-chrome';
+import { QuestionGlyph } from './question-chrome';
 
 /**
  * The compact achievement/activity card — the replacement for the giant
@@ -77,7 +77,7 @@ function EvidenceCard({
           aria-hidden="true"
           className="flex size-10 shrink-0 items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand"
         >
-          <KitIcon art={questionIcon(icon)} frame={18} />
+          <QuestionGlyph icon={icon} size={20} />
         </span>
 
         <button
