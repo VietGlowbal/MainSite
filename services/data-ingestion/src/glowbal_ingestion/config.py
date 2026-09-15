@@ -935,6 +935,10 @@ class SourceEcosystemConfig:
     # keeps the run on external field-bearing sources without changing normal
     # source selection for production/default runs.
     external_only: bool = False
+    # Production population runs may retain every candidate in an audit
+    # stream while admitting only targets with a verified programme identity
+    # and exact/strong source-native binding.
+    production_programmes_only: bool = False
     allow_fixture_adapters: bool = False
     acquisition_mode: str = "default"
     required_source_classes: tuple[str, ...] = ()
@@ -1174,6 +1178,9 @@ class SourceEcosystemConfig:
             search_discovery_enabled=bool(search.get("enabled", False)),
             external_authoritative_enabled=bool(external.get("enabled", False)),
             external_only=bool(root.get("external_only", False)),
+            production_programmes_only=bool(
+                root.get("production_programmes_only", False)
+            ),
             allow_fixture_adapters=bool(root.get("allow_fixture_adapters", False)),
             acquisition_mode=acquisition_mode,
             required_source_classes=normalized_required_classes,

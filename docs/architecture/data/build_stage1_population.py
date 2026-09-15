@@ -762,6 +762,7 @@ def main() -> None:
     config = copy.deepcopy(base_config)
     config["run_name"] = "external-field-stage1-20260915"
     config["institutions"] = institutions
+    config.setdefault("source_ecosystem", {})["production_programmes_only"] = True
     config["stage1"] = {
         "manifest": "stage1-population-manifest.json",
         "manifest_sha256": None,

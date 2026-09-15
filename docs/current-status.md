@@ -1,5 +1,26 @@
 # Current project status
 
+Working tree 2026-09-16 verified Stage 1 population correction: the frozen
+418-target manifest was audited without deleting historical raw evidence. The
+production admission gate now requires a non-empty source-native programme
+binding plus a verified programme identity; institution-only Scorecard/Swiss
+tariff seeds remain canary-only. The DUO RIO query-order binding defect is
+repaired by canonical URL metadata lookup and stable-ID preservation, so its
+40 former `Datastore Search` rows are mapped back to their frozen RIO titles;
+the transport label can no longer become a programme identity. The corrected
+classification is 230 `VERIFIED_PROGRAMME`, 188 `SYNTHETIC_SEED`, 0
+`UNRESOLVED_CANDIDATE`, and 0 remaining `INVALID_PROVIDER_MAPPING` (the
+pre-fix run was 190/0/188/40). The lead export now has 230 verified rows; the
+population audit retains all 418 targets. Artifact-only hierarchy replay used
+the existing accepted assertions and made no paid LLM calls: Direct 849, H1
+0, H2 0, H3 82, H4 0, final 931, review 58, abstain 3,381, missing 4,370.
+Production completeness is p25 10.53%, median 13.16%, p75 13.16%, mean
+10.65%; 41 programmes have zero effective fields. Outputs are in
+[`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/),
+including `stage1-programme-population-audit.csv`,
+`stage1-production-replay-summary.json`, and the regenerated
+`stage1-programme-final-results.csv`.
+
 Working tree 2026-09-15 hierarchy-coverage replay: the frozen Stage 1
 population (418 programmes × 38 priority fields) was evaluated with the
 existing H1-H4 engine using accepted external semantic assertions and promoted

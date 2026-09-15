@@ -24,6 +24,18 @@ PLACEHOLDER_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Values emitted by a search operation or dataset endpoint are transport
+# labels, not programme identities.  Keep the guard central so discovery,
+# population admission, and exports agree on what must never be canonical.
+INVALID_PROGRAMME_IDENTITY_LABELS = frozenset(
+    {
+        "datastore search",
+        "search results",
+        "search result",
+        "dataset search",
+    }
+)
+
 
 class NullReason(str, enum.Enum):
     NOT_PUBLISHED = "NOT_PUBLISHED"
@@ -75,6 +87,21 @@ class VerificationStatus(str, enum.Enum):
     NEEDS_REVIEW = "NEEDS_REVIEW"
     HUMAN_VERIFIED = "HUMAN_VERIFIED"
     REJECTED = "REJECTED"
+
+
+class ProgrammePopulationClassification(str, enum.Enum):
+    """Admission state for a programme target in a production population.
+
+    This is deliberately separate from ``VerificationStatus``.  The latter
+    describes an assertion or crawl record, while this enum answers the
+    population question: does this target represent a verified programme,
+    or is it only a seed/candidate that must stay outside the denominator?
+    """
+
+    VERIFIED_PROGRAMME = "VERIFIED_PROGRAMME"
+    UNRESOLVED_CANDIDATE = "UNRESOLVED_CANDIDATE"
+    SYNTHETIC_SEED = "SYNTHETIC_SEED"
+    INVALID_PROVIDER_MAPPING = "INVALID_PROVIDER_MAPPING"
 
 
 class EpistemicState(str, enum.Enum):

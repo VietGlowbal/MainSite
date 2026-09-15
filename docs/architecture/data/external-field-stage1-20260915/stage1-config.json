@@ -9,6 +9,7 @@
     "runtime_acquisition_enabled": true,
     "acquisition_mode": "external_source_expansion",
     "external_only": true,
+    "production_programmes_only": true,
     "field_groups": [
       "academic_cycle",
       "academic_transcript",

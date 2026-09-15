@@ -67,6 +67,7 @@ from .models import (
     PageType,
     PolicyStatus,
     ProgrammeOffering,
+    ProgrammePopulationClassification,
     ProgrammeRecord,
     SCHOOL_PROFILE_FIELDS,
     SourceDocument,
@@ -86,6 +87,7 @@ from .normalization import (
     infer_degree_from_source_text,
     programme_is_selection_eligible,
     refine_programme_name_from_title,
+    programme_metadata_entry_for_url,
 )
 from .parser_registry import ParserError, ParserRegistry
 from .object_store import ObjectStoreError
@@ -134,6 +136,7 @@ from .validation import (
     fact_to_assertion,
     normalize_programme_status,
     null_assertion,
+    classify_programme_population,
     programme_identity_supported,
     validate_assertion_set,
 )
@@ -5130,6 +5133,60 @@ class SmokePipeline:
                 )
             fetched += 1
 
+    @staticmethod
+    def _programme_population_reason(
+        classification: ProgrammePopulationClassification,
+    ) -> str:
+        if classification == ProgrammePopulationClassification.VERIFIED_PROGRAMME:
+            return "verified programme identity with configured source-native binding"
+        if classification == ProgrammePopulationClassification.SYNTHETIC_SEED:
+            return "institution-scoped source has no programme-native identifier"
+        if classification == ProgrammePopulationClassification.INVALID_PROVIDER_MAPPING:
+            return "transport/search label is not a programme identity"
+        return "no verified exact or strong deterministic programme binding"
+
+    def _production_programme_admission(
+        self,
+        seed: InstitutionSeed,
+        programme: ProgrammeRecord,
+    ) -> ProgrammePopulationClassification:
+        """Classify a discovered target for an explicitly production-only run.
+
+        Provider-programme identifiers are routing metadata supplied by the
+        frozen population.  They are sufficient for a strong deterministic
+        binding only when the target also has a non-empty source-native title;
+        institution-only identifiers intentionally cannot prove that a
+        programme exists.
+        """
+        provider_identifiers = seed.provider_programme_identifiers.get(
+            programme.programme_id,
+            {},
+        )
+        has_name = bool(str(programme.programme_name or "").strip())
+        classification = classify_programme_population(
+            programme,
+            provider_programme_identifiers=provider_identifiers,
+            verified_programme_identity=has_name,
+            deterministic_binding=bool(provider_identifiers),
+            institution_only_source=(
+                not provider_identifiers and bool(seed.provider_identifiers)
+            ),
+        )
+        self.store.append(
+            "programme_population_audit",
+            {
+                "institution_id": seed.institution_id,
+                "programme_id": programme.programme_id,
+                "programme_name": programme.programme_name,
+                "official_url": programme.official_url,
+                "classification": classification.value,
+                "reason": self._programme_population_reason(classification),
+                "provider_programme_identifiers": provider_identifiers,
+                "retrieved_at": utc_now_iso(),
+            },
+        )
+        return classification
+
     def _process_institution(self, seed: InstitutionSeed) -> None:
         self._progress(f"[{seed.name}] policy check started")
         self.store.append(
@@ -5198,8 +5255,41 @@ class SmokePipeline:
         )
         programmes = []
         for candidate in candidates:
-            programme = candidate_to_programme(seed.institution_id, candidate)
-            metadata = seed.programme_metadata.get(programme.official_url, {})
+            metadata_key, metadata = programme_metadata_entry_for_url(
+                seed.programme_metadata,
+                candidate.url,
+            )
+            # Apply configured source-native names before normalisation.  This
+            # prevents endpoint titles such as ``Datastore Search`` from
+            # becoming the canonical identity when query parameter order in a
+            # URL differs from the frozen configuration key.
+            candidate_for_programme = (
+                replace(
+                    candidate,
+                    name_hint=(
+                        metadata.get("programme_name")
+                        or candidate.name_hint
+                    ),
+                )
+                if metadata
+                else candidate
+            )
+            programme = candidate_to_programme(
+                seed.institution_id,
+                candidate_for_programme,
+            )
+            if metadata_key and metadata_key != programme.official_url:
+                programme = replace(
+                    programme,
+                    # Programme configuration is keyed by the original
+                    # source URL.  Keep that stable id even when discovery
+                    # canonicalises query parameters for fetching.
+                    programme_id=stable_id(
+                        "programme",
+                        seed.institution_id,
+                        metadata_key,
+                    ),
+                )
             programmes.append(
                 replace(
                     programme,
@@ -5249,6 +5339,16 @@ class SmokePipeline:
             programmes,
             seed.programme_priorities,
         )
+        if self.config.source_ecosystem.production_programmes_only:
+            admitted: list[ProgrammeRecord] = []
+            for programme in programmes:
+                classification = self._production_programme_admission(
+                    seed,
+                    programme,
+                )
+                if classification == ProgrammePopulationClassification.VERIFIED_PROGRAMME:
+                    admitted.append(programme)
+            programmes = admitted
         priority_match_count = sum(
             programme.priority_rank is not None
             for programme in programmes

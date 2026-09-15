@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import date
 from typing import Any
@@ -15,8 +16,11 @@ from .models import (
     FUNDING_TYPES,
     HIGH_RISK_FIELDS,
     FieldAssertion,
+    INVALID_PROGRAMME_IDENTITY_LABELS,
     NullReason,
     PageType,
+    ProgrammePopulationClassification,
+    ProgrammeRecord,
     SourceAuthority,
     SourceRelationship,
     TemporalState,
@@ -309,6 +313,80 @@ def programme_identity_supported(
     source_tokens = set(re.findall(r"[a-z0-9]+", source_identity))
     overlap = len(target_tokens & source_tokens) / len(target_tokens)
     return overlap >= 0.7
+
+
+def programme_identity_label_is_invalid(value: object) -> bool:
+    """Return whether a transport/search label cannot identify a programme."""
+    normalized = normalize_text(str(value or "")).casefold().strip()
+    return normalized in INVALID_PROGRAMME_IDENTITY_LABELS
+
+
+def has_provider_programme_binding(
+    provider_programme_identifiers: Mapping[str, Mapping[str, object]] | None,
+) -> bool:
+    """Return whether at least one configured source-native id is present."""
+    if not isinstance(provider_programme_identifiers, Mapping):
+        return False
+    for identifiers in provider_programme_identifiers.values():
+        if not isinstance(identifiers, Mapping):
+            continue
+        if any(
+            value is not None and str(value).strip()
+            for value in identifiers.values()
+        ):
+            return True
+    return False
+
+
+def classify_programme_population(
+    programme: ProgrammeRecord,
+    *,
+    provider_programme_identifiers: Mapping[str, Mapping[str, object]] | None = None,
+    verified_programme_identity: bool = False,
+    deterministic_binding: bool = False,
+    institution_only_source: bool = False,
+) -> ProgrammePopulationClassification:
+    """Classify a target before it enters a production programme denominator.
+
+    The gate is intentionally about identity and binding only.  Missing
+    tuition, language, or admissions fields never make a real programme
+    invalid.  ``institution_only_source`` is supplied by the caller when a
+    source (for example an institution tariff table) has no programme record;
+    such targets remain useful canary seeds but are not production programmes.
+    """
+    if programme_identity_label_is_invalid(programme.programme_name):
+        return ProgrammePopulationClassification.INVALID_PROVIDER_MAPPING
+    has_binding = has_provider_programme_binding(provider_programme_identifiers)
+    # A source explicitly known to be institution-only cannot prove that a
+    # named programme exists.  The human-readable seed name is intentionally
+    # ignored here; institution tuition remains reusable only after a separate
+    # verified programme target is available.
+    if institution_only_source and not has_binding:
+        return ProgrammePopulationClassification.SYNTHETIC_SEED
+    if verified_programme_identity and deterministic_binding and has_binding:
+        return ProgrammePopulationClassification.VERIFIED_PROGRAMME
+    return ProgrammePopulationClassification.UNRESOLVED_CANDIDATE
+
+
+def programme_is_production_programme(
+    programme: ProgrammeRecord,
+    *,
+    provider_programme_identifiers: Mapping[str, Mapping[str, object]] | None = None,
+    verified_programme_identity: bool = False,
+    deterministic_binding: bool = False,
+    institution_only_source: bool = False,
+) -> bool:
+    """Return true only for a verified identity with an exact/strong binding."""
+    return (
+        classify_programme_population(
+            programme,
+            provider_programme_identifiers=provider_programme_identifiers,
+            verified_programme_identity=verified_programme_identity,
+            deterministic_binding=deterministic_binding,
+            institution_only_source=institution_only_source,
+        )
+        == ProgrammePopulationClassification.VERIFIED_PROGRAMME
+    )
 
 
 def evidence_supported(evidence: str, source_text: str) -> bool:
