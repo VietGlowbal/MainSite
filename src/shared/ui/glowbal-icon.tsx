@@ -149,23 +149,23 @@ export type IconLabelProps = IconLabelCommon &
     | { layout: 'top'; density?: 'card' | 'grid' | 'empty' | undefined }
   );
 
-type Density = { size: GlowbalIconSize; root: string; title: string; body: string };
+type Density = { size: GlowbalIconSize; root: string; titleClass: string; bodyClass: string };
 
 /* Whole class strings, so Tailwind's scanner extracts them. */
 const LEFT = {
-  nav: { size: 20, root: 'min-h-11 gap-gb-md', title: 'text-gb-sm font-semibold', body: 'text-gb-xs' },
-  row: { size: 24, root: 'gap-gb-lg', title: 'text-gb-md font-semibold', body: 'text-gb-sm' },
+  nav: { size: 20, root: 'min-h-11 gap-gb-md', titleClass: 'text-gb-sm font-semibold', bodyClass: 'text-gb-xs' },
+  row: { size: 24, root: 'gap-gb-lg', titleClass: 'text-gb-md font-semibold', bodyClass: 'text-gb-sm' },
   // The plan dims the whole meta line, icon included, rather than recolouring
   // the text — which is also what keeps it right on a dark or brand surface.
-  meta: { size: 16, root: 'gap-gb-sm opacity-65', title: 'text-gb-xs', body: 'text-gb-xs' },
+  meta: { size: 16, root: 'gap-gb-sm opacity-65', titleClass: 'text-gb-xs', bodyClass: 'text-gb-xs' },
 } as const satisfies Record<string, Density>;
 
 const TOP = {
-  card: { size: 40, root: 'items-start gap-gb-lg', title: 'text-gb-md font-bold', body: 'text-gb-xs' },
-  grid: { size: 32, root: 'items-start gap-gb-lg', title: 'text-gb-sm font-bold', body: 'text-gb-xs' },
+  card: { size: 40, root: 'items-start gap-gb-lg', titleClass: 'text-gb-md font-bold', bodyClass: 'text-gb-xs' },
+  grid: { size: 32, root: 'items-start gap-gb-lg', titleClass: 'text-gb-sm font-bold', bodyClass: 'text-gb-xs' },
   // Not measured in the plan ("its own block"). Centred because an empty state
   // is the only thing in its container.
-  empty: { size: 48, root: 'items-center gap-gb-xl text-center', title: 'text-gb-lg font-bold', body: 'text-gb-sm' },
+  empty: { size: 48, root: 'items-center gap-gb-xl text-center', titleClass: 'text-gb-lg font-bold', bodyClass: 'text-gb-sm' },
 } as const satisfies Record<string, Density>;
 
 export function IconLabel(props: IconLabelProps) {
@@ -181,8 +181,8 @@ export function IconLabel(props: IconLabelProps) {
         {/* The card's 56px tile, with the plan's 8px optical inset. */}
         {density === 'card' ? <span className="flex size-14 items-center pl-gb-md">{icon}</span> : icon}
         <span className="flex flex-col gap-gb-sm">
-          <span className={d.title}>{label}</span>
-          {description ? <span className={d.body}>{description}</span> : null}
+          <span className={d.titleClass}>{label}</span>
+          {description ? <span className={d.bodyClass}>{description}</span> : null}
         </span>
       </span>
     );
@@ -193,8 +193,8 @@ export function IconLabel(props: IconLabelProps) {
     <span className={`flex items-center ${d.root}${extra}`}>
       <GlowbalIcon name={name} size={d.size} tone={tone} />
       <span className="flex min-w-0 flex-col gap-gb-xxs">
-        <span className={d.title}>{label}</span>
-        {description ? <span className={d.body}>{description}</span> : null}
+        <span className={d.titleClass}>{label}</span>
+        {description ? <span className={d.bodyClass}>{description}</span> : null}
       </span>
     </span>
   );
