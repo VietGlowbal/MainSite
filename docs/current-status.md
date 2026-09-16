@@ -1,5 +1,19 @@
 # Current project status
 
+Working tree 2026-09-16 deterministic Stage 1 MAX_FILL advisory expansion:
+the existing frozen evidence and 105 captured official pages were replayed for
+the unchanged 230 verified recipients; no new crawl or paid LLM call was made.
+STRICT remains 1,282 non-empty hierarchy cells (and its CSV hash is
+`b32bb04a17af745b224e8891d47608523479590d42a60fbad898403105b2be86`). MAX_FILL
+adds 252 source-backed advisory cells: H0 225, H1 1, H2 7, H3 19, for 1,532
+hierarchy cells and 1,534 cells across all 40 canonical CSV fields. 113
+programmes improve. Hierarchy completeness p25/median/p75 moves from
+13.16%/15.79%/15.79% to 13.16%/15.79%/21.05%; 230 verified recipients and 115
+institutions remain, with 188 synthetic recipients excluded. Outputs include
+[`stage1-programme-max-fill-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-results.csv),
+[`stage1-programme-max-fill-sources.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-sources.csv),
+and [`stage1-max-fill-evidence.jsonl`](architecture/data/external-field-stage1-20260915/stage1-max-fill-evidence.jsonl).
+
 Working tree 2026-09-16 deterministic Stage 1 coverage acquisition: the frozen
 230 verified programme recipients were replayed against the existing evidence
 artifacts and source cache. The population and H1-H4 rules are unchanged. The

@@ -18,6 +18,7 @@ REPLAY_ROOT = (
 sys.path.insert(0, str(REPLAY_ROOT))
 
 import acquire_stage1_coverage as coverage  # noqa: E402
+import expand_stage1_max_fill as max_fill  # noqa: E402
 
 
 class Stage1CoverageParserTests(unittest.TestCase):
@@ -171,6 +172,52 @@ class Stage1CoverageAssertionTests(unittest.TestCase):
         self.assertFalse(added)
         self.assertEqual(acquisition.added, [])
         self.assertEqual(acquisition.skipped["existing_direct_or_review"], 1)
+
+
+class Stage1MaxFillEvidenceTests(unittest.TestCase):
+    def test_serialized_provider_metadata_is_not_a_document_fact(self) -> None:
+        self.assertFalse(
+            max_fill.valid_documents_value(
+                '{"metadata": {"koulutustyyppi": "yo"}, "kuvaus": "<p>..."}'
+            )
+        )
+        self.assertTrue(max_fill.valid_documents_value(["Transcript", "CV"]))
+
+    def test_navigation_fragment_is_not_funding_evidence(self) -> None:
+        page = {
+            "url": "https://example.edu/course",
+            "text": (
+                "<html><body><div class='mega-menu'>How to apply How to apply - Undergraduate "
+                "International - Overview International - Scholarships Fees and financial support "
+                "Partner Institutions Apply to Example Open Days Contact us</div></body></html>"
+            ),
+        }
+        target = {
+            "programme_id": "programme-1",
+            "programme_name": "Example programme",
+            "institution_id": "institution-1",
+            "institution_name": "Example University",
+            "degree_level": "bachelor",
+        }
+        facts = max_fill.parse_page_facts(page=page, targets=[target])
+        self.assertFalse(any(fact.field_name == "funding" for fact in facts))
+
+    def test_catalogue_fallback_keeps_target_identity_and_recipient_scope(self) -> None:
+        target = {
+            "programme_id": "programme-1",
+            "programme_name": "Persisted Data Science",
+            "institution_id": "institution-1",
+            "degree_level": "master",
+        }
+        facts = max_fill.catalogue_record_facts(
+            target_rows={"programme-1": target},
+            programme_rows={"programme-1": {"programme_id": "programme-1", "degree_level": "master"}},
+        )
+        by_field = {fact.field_name: fact for fact in facts}
+        self.assertEqual(by_field["programme_identity"].value, "Persisted Data Science")
+        self.assertEqual(by_field["credential"].value, "Master's degree")
+        self.assertEqual(by_field["credential"].scope, "programme")
+        self.assertEqual(by_field["credential"].level, "H0")
 
 
 if __name__ == "__main__":

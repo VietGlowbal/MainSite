@@ -84,16 +84,11 @@ Six programmes gained one effective field. Completeness p25/median/p75 remains
 10.53%/13.16%/13.16%; the mean rises from 10.65% to 10.72%. The replay uses
 existing artifacts only and records zero crawl and paid LLM calls.
 
-## Advisory maximum-fill replay (2026-09-16)
+## Advisory maximum-fill replay (superseded base, 2026-09-16)
 
-`generate_stage1_max_fill.py` evaluates every field slot for the same 230
-verified recipients using H0, then the existing H1/H2/H3 donor topology. It
-keeps the strict result whenever a direct value or strict hierarchy value is
-available. For otherwise-empty slots it permits unknown compatibility
-dimensions when there is no explicit contradiction, while preserving the
-advisory inference record, donor provenance, scope, and uncertainty in
-`stage1-programme-max-fill-audit.csv`. No new assertions were acquired; the
-replay uses the persisted donor pool and excludes H4 from the advisory ladder.
+`generate_stage1_max_fill.py` is the original hierarchy-only advisory replay.
+It is retained as history; the deterministic expansion below supersedes its
+identical strict/max output for this evidence snapshot.
 
 The frozen evidence contains 1,516 programme-scoped, 146 institution-scoped,
 and 9 parent-scoped donor assertions, with 418 programme donor contexts and
@@ -113,15 +108,27 @@ identical for this evidence snapshot:
 | Abstain | 3,605 | 3,605 |
 | Missing | 4,140 | 4,140 |
 
-Completeness p25/median/p75 is 10.53%/13.16%/13.16% in both views and no
-programme gained a field in the max-fill pass. The value matrix is
-`stage1-programme-max-fill-results.csv`; field-level provenance and advisory
-metadata are in `stage1-programme-max-fill-audit.csv`, with summary files
+The base value matrix and audit are retained for comparison.
+
+## Deterministic MAX_FILL expansion (current, 2026-09-16)
+
+`expand_stage1_max_fill.py` starts from the strict replay and fills only blank
+canonical cells using the existing persisted evidence and 105 already captured
+official pages. It keeps all 230 verified recipients, leaves strict values
+unchanged, and records source URL, donor, scope, level, uncertainty, and
+provenance in `stage1-programme-max-fill-sources.csv` and
+`stage1-max-fill-evidence.jsonl`. No network acquisition or paid LLM call is
+performed.
+
+The strict view remains 1,282 non-empty hierarchy cells. MAX_FILL adds 252
+advisory values (H0 225, H1 1, H2 7, H3 19), resulting in 1,532 hierarchy cells
+and 1,534 cells across all 40 canonical CSV fields; 113 programmes improve.
+Hierarchy completeness p25/median/p75 is 13.16%/15.79%/15.79% in strict and
+13.16%/15.79%/21.05% in MAX_FILL. The regenerated advisory matrix is
+`stage1-programme-max-fill-results.csv`; summaries are
 `stage1-max-fill-field-summary.csv`, `stage1-max-fill-completeness.csv`, and
-`stage1-max-fill-replay-summary.json`. Focused hierarchy/loader tests pass
-13/13, including unknown-dimension donor acceptance, institution scope
-preservation, and synthetic-recipient exclusion. Crawl and paid LLM calls are
-zero.
+`stage1-max-fill-replay-summary.json`. The strict production matrix remains
+`stage1-programme-final-results.csv`.
 
 ## Donor-independent replay (2026-09-16)
 
