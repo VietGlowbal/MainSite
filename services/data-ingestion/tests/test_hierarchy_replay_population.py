@@ -138,6 +138,80 @@ class HierarchyReplayPopulationTests(unittest.TestCase):
         self.assertEqual(data["organisation_units"], [unit])
         self.assertEqual(data["programme_organisation_units"], [relation])
 
+    def test_structured_application_window_becomes_deterministic_deadline(self):
+        row = {
+            "programme_id": TARGET["programme_id"],
+            "field_name": "application_windows",
+            "value": "alkaa=2026-12-07T09:00; paattyy=2027-01-05T15:00",
+            "verification_status": "RULE_VALIDATED",
+            "source_url": "https://studyinfo.example/implementation/1",
+            "raw_document_id": "studyinfo-document",
+            "source_content_hash": "hash",
+            "provider_id": "studyinfo_toteutus",
+        }
+        derived = reports.deterministic_deadline_assertions([row], [])
+        self.assertEqual(len(derived), 1)
+        self.assertEqual(derived[0].field_name, "final_deadline")
+        self.assertEqual(derived[0].value_json, "2027-01-05")
+        self.assertEqual(derived[0].source_type, "deadline")
+        self.assertEqual(derived[0].scope, "programme")
+        self.assertIsNone(derived[0].model_name)
+
+    def test_prepare_data_appends_persisted_structured_deadline(self):
+        row = {
+            "programme_id": TARGET["programme_id"],
+            "field_name": "application_windows",
+            "value": "alkaa=2026-12-07T09:00; paattyy=2027-01-05T15:00",
+            "verification_status": "RULE_VALIDATED",
+            "source_url": "https://studyinfo.example/implementation/1",
+            "raw_document_id": "studyinfo-document",
+            "source_content_hash": "hash",
+            "provider_id": "studyinfo_toteutus",
+        }
+        with patch.object(
+            reports,
+            "read_jsonl",
+            side_effect=lambda path: [row] if path.name == "external_programme_metadata.jsonl" else [],
+        ):
+            data = reports.prepare_data()
+        derived = [item for item in data["assertions"] if item.source_type == "deadline"]
+        self.assertEqual(len(derived), 1)
+        self.assertEqual(data["deterministic_metadata_count"], 1)
+        self.assertEqual(derived[0].value_json, "2027-01-05")
+
+    def test_existing_deadline_wins_and_conflicting_windows_are_skipped(self):
+        existing = replace(
+            assertion("existing-deadline", TARGET["programme_id"]),
+            field_name="final_deadline",
+        )
+        row = {
+            "programme_id": TARGET["programme_id"],
+            "field_name": "application_policy",
+            "value": "closeDate=2027-01-05",
+            "verification_status": "RULE_VALIDATED",
+            "source_url": "https://studyinfo.example/policy/1",
+            "raw_document_id": "policy-document",
+        }
+        self.assertEqual(reports.deterministic_deadline_assertions([row], [existing]), [])
+
+        conflicting = [
+            {
+                **row,
+                "field_name": "application_windows",
+                "programme_id": "other-programme",
+                "raw_document_id": "a",
+                "value": "paattyy=2027-01-05T15:00",
+            },
+            {
+                **row,
+                "field_name": "application_windows",
+                "programme_id": "other-programme",
+                "raw_document_id": "b",
+                "value": "paattyy=2027-01-06T15:00",
+            },
+        ]
+        self.assertEqual(reports.deterministic_deadline_assertions(conflicting, []), [])
+
 
 if __name__ == "__main__":
     unittest.main()

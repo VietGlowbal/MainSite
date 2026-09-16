@@ -470,6 +470,7 @@ def remap_hierarchy_data(raw: Mapping[str, Any], context: Mapping[str, Any]) -> 
             for assertion in assertions
             if assertion.extraction_group == "metadata"
         ),
+        "deterministic_metadata_count": raw.get("deterministic_metadata_count", 0),
         "review_semantic_count": sum(len(rows) for rows in review_direct.values()),
     }
 
@@ -625,6 +626,7 @@ def main() -> None:
             "rows": len(outputs["rows"]),
             "lead_rows": len(lead_rows),
             "donor_rows": len(outputs["donor_rows"]),
+            "deterministic_metadata_assertions": data.get("deterministic_metadata_count", 0),
             "field_summary": outputs["summary_rows"],
             "completeness": outputs["completeness_rows"],
             "rejection_summary": [
@@ -647,6 +649,7 @@ def main() -> None:
                 "hierarchy": hierarchy_reports.aggregate_summary(outputs["summary_rows"]),
                 "lead_rows": len(lead_rows),
                 "audit_rows": len(context["audit_rows"]),
+                "deterministic_metadata_assertions": data.get("deterministic_metadata_count", 0),
             },
             ensure_ascii=False,
             indent=2,

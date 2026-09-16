@@ -100,7 +100,7 @@
 6344d41a-fdd0-5644-86ac-209f83326370,onisep-fr-stage1-028,École universitaire de recherche arts et humanités - Campus Carlone,master mention langues étrangères appliquées,FR,master,other,38,5,0,5,0,33,13.16,13.16
 64e762bd-c437-5b9a-bfbf-40671329cc90,onisep-fr-stage1-027,IUT Nice Côte d'Azur - Site de Cannes,BUT information-communication parcours communication des organisations,FR,bachelor,computer science,38,5,0,5,0,33,13.16,13.16
 67d4335b-a04e-580e-9e0e-cdefa450480a,onisep-fr-stage1-036,École universitaire de recherche en sciences fondamentales et Ingénierie - Campus Sophia Tech,master mention gestion de l'environnement,FR,master,business,38,5,0,5,0,33,13.16,13.16
-67ef7389-04ec-5e55-94cc-49456ef74cb3,uef-fi-canary,University of Eastern Finland,Data Engineering,FI,bachelor,computer science,38,6,0,6,2,30,15.79,15.79
+67ef7389-04ec-5e55-94cc-49456ef74cb3,uef-fi-canary,University of Eastern Finland,Data Engineering,FI,bachelor,computer science,38,7,0,7,2,29,18.42,18.42
 68e2924c-c07f-5ac2-8ea9-6bb6e0d21351,discover-uk-stage1-013,Bishop Burton College,Animal Behaviour & Wildlife Conservation,UK,bachelor,other,38,5,1,6,1,31,13.16,15.79
 69dddfc8-ee52-57d9-8887-28139c2275d6,kings-uk-canary,King's College London,Computer Science,UK,bachelor,computer science,38,5,0,5,2,31,13.16,13.16
 6a7210f2-06be-539a-8480-cf8386a4f915,discover-uk-stage1-023,London South East Colleges,Early Years Professional Leadership,UK,bachelor,other,38,3,2,5,0,33,7.89,13.16
@@ -124,10 +124,10 @@
 80d11752-1297-5b81-aecd-cb6ab6bf37d1,utrecht-nl-canary,Universiteit Utrecht,Information Science,NL,bachelor,computer science,38,2,0,2,0,36,5.26,5.26
 814d8802-d69b-59c9-808a-b733ffe17579,edinburgh-uk-canary,The University of Edinburgh,Computer Science,UK,bachelor,computer science,38,5,0,5,2,31,13.16,13.16
 81849649-f1a0-5dba-9010-16cfb9609bf3,onisep-fr-stage1-005,Institut national supérieur du professorat et de l'éducation - antenne de Laon,licence mention professorat des écoles,FR,bachelor,other,38,5,0,5,0,33,13.16,13.16
-81f197ab-e6ea-5bdf-b4c2-eb79ba966142,aalto-fi-canary,Aalto University,"Data Science, Bachelor/MSc",FI,bachelor,computer science,38,0,0,0,0,38,0.0,0.0
+81f197ab-e6ea-5bdf-b4c2-eb79ba966142,aalto-fi-canary,Aalto University,"Data Science, Bachelor/MSc",FI,bachelor,computer science,38,1,0,1,0,37,2.63,2.63
 8322e08f-eb1d-50a8-bd91-33371fb57645,imperial-uk-canary,Imperial College London,Mathematics and Computer Science,UK,bachelor,computer science,38,5,0,5,0,33,13.16,13.16
 847d059a-5d7f-567f-adb8-8980d7e567c6,duo-nl-stage1-006,Stg. Chr. Hoger Ber.ond. op Gereformeerde Grondslag,Information & Communication Technology,NL,bachelor,computer science,38,0,0,0,0,38,0.0,0.0
-8606b6c5-bf41-54d1-87f7-95596c5d82cc,haaga-helia-fi-canary,Haaga-Helia University of Applied Sciences,Business Information Technology,FI,bachelor,computer science,38,1,0,1,0,37,2.63,2.63
+8606b6c5-bf41-54d1-87f7-95596c5d82cc,haaga-helia-fi-canary,Haaga-Helia University of Applied Sciences,Business Information Technology,FI,bachelor,computer science,38,2,0,2,0,36,5.26,5.26
 87ff2832-35fa-524a-9ae3-c8b7aeabad3b,discover-uk-stage1-001,Abingdon and Witney College,Business and Management Practice,UK,bachelor,business,38,5,0,5,0,33,13.16,13.16
 88803846-33d0-5f69-96cb-474eb2633037,onisep-fr-stage1-031,École universitaire de recherche en économie et Management (ELMI) - Campus Saint-Jean d'Angely,"master mention monnaie, banque, finance, assurance",FR,master,other,38,5,0,5,0,33,13.16,13.16
 8e50c3cc-f732-5c1a-a6d9-5a011949e138,duo-nl-stage1-008,Stg. Kaht. Opleiding Leraren in het Basisonderwijs,Education in Primary Schools (age 4 - 12),NL,bachelor,other,38,0,0,0,0,38,0.0,0.0
@@ -166,10 +166,10 @@ bea9cf87-a594-599a-af97-f393a534a5f1,onisep-fr-stage1-030,École universitaire d
 bf308eef-94f1-5ee2-93f5-29797353ff96,grenoble-inp-fr-canary,Grenoble INP - UGA,Master informatique,FR,master,computer science,38,5,0,5,0,33,13.16,13.16
 bfc45f5d-0a97-5713-983e-d41f43e9de06,uco-nantes-fr-canary,Facultes libres de l'Ouest - UCO Nantes,Licence mention science politique,FR,bachelor,other,38,5,0,5,0,33,13.16,13.16
 c2637d16-4f58-55b5-b925-6cdc8a8590d2,discover-uk-stage1-014,Blackburn College,Business with Management,UK,bachelor,business,38,5,0,5,2,31,13.16,13.16
-c4ca6963-813a-5121-a844-b24e4ffc1097,uef-fi-canary,University of Eastern Finland,Information Technology,FI,bachelor,computer science,38,5,0,5,2,31,13.16,13.16
+c4ca6963-813a-5121-a844-b24e4ffc1097,uef-fi-canary,University of Eastern Finland,Information Technology,FI,bachelor,computer science,38,6,0,6,2,30,15.79,15.79
 c544e49f-37e4-5f5e-9ffb-f89d91caafda,onisep-fr-stage1-018,IUT Nice Côte d'Azur - site de Nice,"BUT informatique parcours réalisation d'applications : conception, développement, validation",FR,bachelor,computer science,38,5,0,5,0,33,13.16,13.16
 c5b5eba6-707a-51a9-b64a-9385389c6bd7,imperial-uk-canary,Imperial College London,Mathematics and Computer Science,UK,bachelor,computer science,38,0,5,5,0,33,0.0,13.16
-c695f7f2-0ce1-5caa-9600-cf5fc759a332,aalto-fi-canary,Aalto University,Computer Science MSc,FI,master,computer science,38,1,0,1,0,37,2.63,2.63
+c695f7f2-0ce1-5caa-9600-cf5fc759a332,aalto-fi-canary,Aalto University,Computer Science MSc,FI,master,computer science,38,2,0,2,0,36,5.26,5.26
 c6eca011-652e-5337-acaf-ddaeb1183845,grenoble-inp-fr-canary,Grenoble INP - UGA,Master mathematiques et applications,FR,master,other,38,5,0,5,0,33,13.16,13.16
 c71397c3-c640-5a07-9cb8-8f9d7f00b9a8,onisep-fr-stage1-013,IUT Clermont Auvergne - site de Montluçon,BUT métiers de la transition et de l'efficacité énergétiques parcours réalisation des installations énergétiques pour le bâtiment et l'industrie,FR,bachelor,other,38,5,0,5,0,33,13.16,13.16
 c730c2f4-b8a5-5ef0-9947-7eea1b10b7d9,ip-paris-fr-canary,Institut polytechnique de Paris,Master innovation entreprise societe,FR,master,other,38,5,0,5,0,33,13.16,13.16
@@ -212,7 +212,7 @@ e67cc4ee-c764-5b6c-b1fb-565dd2ffea47,discover-uk-stage1-010,Bath Spa University,
 e9ed732d-69bc-5121-918a-1da325af79ef,insa-lyon-fr-canary,Institut national des sciences appliquees de Lyon,Master mention IA - intelligence artificielle,FR,master,computer science,38,6,0,6,0,32,15.79,15.79
 eab1fd00-32ca-5cd9-81cb-b1cd97519540,onisep-fr-stage1-020,IUT Nice Côte d'Azur- Site de Sophia-Antipolis,BUT réseaux et télécommunications parcours cybersécurité,FR,bachelor,other,38,5,0,5,0,33,13.16,13.16
 eb1e73e5-1818-59ab-b3ba-67749a31edd3,radboud-nl-canary,Radboud Universiteit,Business Administration,NL,master,other,38,2,0,2,1,35,5.26,5.26
-ee43edae-4df6-560b-b1fb-fe25f1cc0350,haaga-helia-fi-canary,Haaga-Helia University of Applied Sciences,International Business,FI,bachelor,business,38,0,1,1,0,37,0.0,2.63
+ee43edae-4df6-560b-b1fb-fe25f1cc0350,haaga-helia-fi-canary,Haaga-Helia University of Applied Sciences,International Business,FI,bachelor,business,38,1,1,2,0,36,2.63,5.26
 ee721859-3e1a-5f30-bbbc-8738b875a484,onisep-fr-stage1-039,IUT de Charleville,BUT techniques de commercialisation parcours business développement et management de la relation client,FR,bachelor,other,38,5,0,5,0,33,13.16,13.16
 eeb069c9-ba8c-5b25-bcd4-bf86a72f59cd,discover-uk-stage1-019,Bradford College,Primary Education Early Years 3-7 (QTS),UK,bachelor,other,38,5,0,5,0,33,13.16,13.16
 ef24c577-d5ed-56d2-acc5-0ae85892b671,duo-nl-stage1-002,Maastricht University,International Executive Master of Finance and Control,NL,master,other,38,0,0,0,0,38,0.0,0.0

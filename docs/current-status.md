@@ -1,6 +1,22 @@
 # Current project status
 
-Working tree 2026-09-16 hierarchy donor/recipient separation: Stage 1 replay
+Working tree 2026-09-16 incremental Stage 1 coverage replay: six exact closing
+dates were deterministically promoted from persisted Studyinfo application
+windows for six existing Finnish verified programmes. No crawl, semantic
+extraction, or paid LLM call was used, and existing assertions remain intact.
+The recipient population remains 230 verified programmes and the independent
+donor pool remains available to the unchanged hierarchy engine. Coverage added
+is `final_deadline` 6 to 12; all other priority-field counts are unchanged.
+Production hierarchy changed only through six new direct values: Direct 849 to
+855, H1 0, H2 0, H3 82, H4 0, final 931 to 937, review 58, abstain 3,605,
+missing 4,140. Six programmes improved. Completeness is p25 10.53% to 10.53%,
+median 13.16% to 13.16%, p75 13.16% to 13.16%, and mean 10.65% to 10.72%.
+Focused hierarchy/loader tests pass 11/11 in this change; the full ingestion
+suite passes 534/534. Details:
+[`stage1-programme-final-results-readme.md`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results-readme.md).
+
+Prior architecture-only replay 2026-09-16 (superseded by the incremental
+coverage result above): Stage 1 replay
 now retains accepted donor assertions and entity contexts independently of the
 230 verified recipients. Programme contexts retained increased 230 to 418,
 institution contexts 115 to 209, and institution assertions 0 to 146;

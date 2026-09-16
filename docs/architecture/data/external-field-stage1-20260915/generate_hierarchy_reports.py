@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -74,6 +75,15 @@ METADATA_MAP = {
     "campus": "location",
     "delivery_mode": "delivery_mode",
     "language": "programme_language",
+}
+
+# These records are persisted structured provider responses.  Their original
+# promotion is ``context_only`` because the full policy string is not a
+# catalogue field.  The closing date itself is an unambiguous source value,
+# so it can be promoted without semantic extraction or a model call.
+DEADLINE_METADATA_PATTERNS = {
+    "application_policy": re.compile(r"(?:^|;\s*)closeDate=(\d{4}-\d{2}-\d{2})(?:;|$)"),
+    "application_windows": re.compile(r"(?:^|;\s*)paattyy=(\d{4}-\d{2}-\d{2})(?:T[^;]*)?(?:;|$)"),
 }
 
 FULL_REVIEW_COLUMNS = (
@@ -285,18 +295,24 @@ def value_metadata(assertion: FieldAssertion, *keys: str) -> Any:
 
 def assertion_from_metadata(row: Mapping[str, Any]) -> FieldAssertion | None:
     programme_id = str(row.get("programme_id") or "")
-    field_name = METADATA_MAP.get(str(row.get("field_name") or ""))
+    raw_field_name = str(row.get("field_name") or "")
+    field_name = METADATA_MAP.get(raw_field_name)
+    if field_name is None and raw_field_name in FIELDS:
+        field_name = raw_field_name
     if not programme_id or not field_name:
         return None
     return FieldAssertion(
-        assertion_id=f"metadata-{row.get('observation_id') or programme_id}-{field_name}",
+        assertion_id=str(
+            row.get("_assertion_id")
+            or f"metadata-{row.get('observation_id') or programme_id}-{field_name}"
+        ),
         entity_type="programme",
         entity_id=programme_id,
         field_name=field_name,
         value_json=row.get("value"),
         null_reason=None,
         source_url=row.get("source_url"),
-        source_type="external_metadata",
+        source_type=row.get("_source_type") or "external_metadata",
         evidence=row.get("evidence") or row.get("label"),
         evidence_locator=None,
         scope=row.get("scope") or "programme",
@@ -308,7 +324,7 @@ def assertion_from_metadata(row: Mapping[str, Any]) -> FieldAssertion | None:
         extractor_version="metadata",
         model_name=None,
         validation_errors=[],
-        extraction_group="metadata",
+        extraction_group=row.get("_extraction_group") or "metadata",
         applicability_source_url=None,
         applicability_evidence=None,
         source_content_hash=row.get("source_content_hash"),
@@ -334,6 +350,68 @@ def assertion_from_metadata(row: Mapping[str, Any]) -> FieldAssertion | None:
     )
 
 
+def deterministic_deadline_assertions(
+    metadata_rows: Iterable[Mapping[str, Any]],
+    existing_assertions: Iterable[FieldAssertion],
+) -> list[FieldAssertion]:
+    """Promote exact closing dates from persisted structured metadata.
+
+    A source record may contain a policy string with several attributes, but
+    the ISO closing date is deterministic.  If multiple persisted records for
+    the same programme disagree, all are left out for review rather than
+    guessing.  Existing direct assertions win, so this helper never creates a
+    duplicate direct value or changes conflict semantics.
+    """
+
+    existing_direct = {
+        (str(assertion.entity_id), assertion.field_name)
+        for assertion in existing_assertions
+        if assertion.entity_id and hierarchy_module._scope_kind(assertion) == "programme"
+    }
+    candidates: dict[tuple[str, str], list[tuple[str, Mapping[str, Any]]]] = defaultdict(list)
+    for row in metadata_rows:
+        field_name = str(row.get("field_name") or "")
+        pattern = DEADLINE_METADATA_PATTERNS.get(field_name)
+        if pattern is None or row.get("verification_status") not in {"RULE_VALIDATED", "HUMAN_VERIFIED"}:
+            continue
+        programme_id = str(row.get("programme_id") or "")
+        value = str(row.get("value") or "")
+        if not programme_id or not value or not row.get("source_url") or not row.get("raw_document_id"):
+            continue
+        if field_name == "application_policy" and "visibleToInternationalApplicants=True" not in value:
+            continue
+        matches = pattern.findall(value)
+        if len(matches) != 1:
+            continue
+        candidates[(programme_id, "final_deadline")].append((matches[0], row))
+
+    derived: list[FieldAssertion] = []
+    for (programme_id, target_field), entries in sorted(candidates.items()):
+        if (programme_id, target_field) in existing_direct:
+            continue
+        dates = {date for date, _ in entries}
+        if len(dates) != 1:
+            continue
+        date = next(iter(dates))
+        # Stable ordering makes replay output independent of JSONL order when
+        # two sources carry the same closing date.
+        _, row = sorted(entries, key=lambda item: str(item[1].get("raw_document_id") or ""))[0]
+        derived_row = dict(row)
+        derived_row.update(
+            {
+                "field_name": target_field,
+                "value": date,
+                "_assertion_id": f"metadata-derived-{programme_id}-{target_field}-{row.get('raw_document_id')}",
+                "_source_type": "deadline",
+                "_extraction_group": "deadline",
+            }
+        )
+        assertion = assertion_from_metadata(derived_row)
+        if assertion is not None:
+            derived.append(assertion)
+    return derived
+
+
 def prepare_data() -> dict[str, Any]:
     programmes = read_jsonl(RUN_DIR / "programmes.jsonl")
     institutions = read_jsonl(RUN_DIR / "institutions.jsonl")
@@ -355,6 +433,8 @@ def prepare_data() -> dict[str, Any]:
             if assertion is not None:
                 metadata_assertions.append(assertion)
     assertions.extend(metadata_assertions)
+    deterministic_assertions = deterministic_deadline_assertions(metadata_rows, assertions)
+    assertions.extend(deterministic_assertions)
 
     by_offering: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in offerings:
@@ -408,6 +488,7 @@ def prepare_data() -> dict[str, Any]:
         "accepted_semantic_count": len(accepted_semantic),
         "review_semantic_count": len(review_semantic),
         "metadata_count": len(metadata_assertions),
+        "deterministic_metadata_count": len(deterministic_assertions),
     }
 
 
