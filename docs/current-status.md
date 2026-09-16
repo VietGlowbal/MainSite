@@ -1,5 +1,23 @@
 # Current project status
 
+Working tree 2026-09-16 advisory maximum-fill replay: the fixed 230 verified
+programme recipients were evaluated against the persisted independent donor
+pool for every modelled field. The strict view remains unchanged. The
+advisory pass allows unknown compatibility dimensions only when there is no
+explicit contradiction, retains H0/H1/H2/H3 provenance and scope, and excludes
+H4 from the max-fill ladder. Existing evidence added no new H1/H2/H3 values in
+this snapshot, so both views are Direct/H0 855, H1 0, H2 0, H3 82, H4 0,
+Final 937, Review 58, Abstain 3,605, Missing 4,140; p25/median/p75
+completeness is 10.53%/13.16%/13.16%. The max-fill matrix and audit are in
+[`stage1-programme-max-fill-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-results.csv)
+and
+[`stage1-programme-max-fill-audit.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-audit.csv).
+The persisted donor pool retains 1,516 programme-scoped, 146
+institution-scoped, and 9 parent-scoped assertions, 418 programme contexts,
+and 209 institution contexts. No new assertions, crawl calls, or paid LLM
+calls were made. Details:
+[`stage1-programme-final-results-readme.md`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results-readme.md).
+
 Working tree 2026-09-16 incremental Stage 1 coverage replay: six exact closing
 dates were deterministically promoted from persisted Studyinfo application
 windows for six existing Finnish verified programmes. No crawl, semantic

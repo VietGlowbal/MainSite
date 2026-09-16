@@ -38,6 +38,45 @@ Six programmes gained one effective field. Completeness p25/median/p75 remains
 10.53%/13.16%/13.16%; the mean rises from 10.65% to 10.72%. The replay uses
 existing artifacts only and records zero crawl and paid LLM calls.
 
+## Advisory maximum-fill replay (2026-09-16)
+
+`generate_stage1_max_fill.py` evaluates every field slot for the same 230
+verified recipients using H0, then the existing H1/H2/H3 donor topology. It
+keeps the strict result whenever a direct value or strict hierarchy value is
+available. For otherwise-empty slots it permits unknown compatibility
+dimensions when there is no explicit contradiction, while preserving the
+advisory inference record, donor provenance, scope, and uncertainty in
+`stage1-programme-max-fill-audit.csv`. No new assertions were acquired; the
+replay uses the persisted donor pool and excludes H4 from the advisory ladder.
+
+The frozen evidence contains 1,516 programme-scoped, 146 institution-scoped,
+and 9 parent-scoped donor assertions, with 418 programme donor contexts and
+209 institution contexts. The aggressive compatibility pass found no extra
+H1/H2/H3 value beyond the strict view, so strict and max-fill outputs are
+identical for this evidence snapshot:
+
+| Replay count | Strict | Max-fill |
+|---|---:|---:|
+| H0 / Direct | 855 | 855 |
+| H1 | 0 | 0 |
+| H2 | 0 | 0 |
+| H3 | 82 | 82 |
+| H4 | 0 | 0 |
+| Final | 937 | 937 |
+| Review | 58 | 58 |
+| Abstain | 3,605 | 3,605 |
+| Missing | 4,140 | 4,140 |
+
+Completeness p25/median/p75 is 10.53%/13.16%/13.16% in both views and no
+programme gained a field in the max-fill pass. The value matrix is
+`stage1-programme-max-fill-results.csv`; field-level provenance and advisory
+metadata are in `stage1-programme-max-fill-audit.csv`, with summary files
+`stage1-max-fill-field-summary.csv`, `stage1-max-fill-completeness.csv`, and
+`stage1-max-fill-replay-summary.json`. Focused hierarchy/loader tests pass
+13/13, including unknown-dimension donor acceptance, institution scope
+preservation, and synthetic-recipient exclusion. Crawl and paid LLM calls are
+zero.
+
 ## Donor-independent replay (2026-09-16)
 
 `rebuild_verified_population.py::remap_hierarchy_data` restricts recipients and

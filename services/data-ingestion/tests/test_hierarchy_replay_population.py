@@ -11,6 +11,7 @@ from unittest.mock import patch
 REPLAY_ROOT = Path(__file__).resolve().parents[3] / "docs/architecture/data/external-field-stage1-20260915"
 sys.path.insert(0, str(REPLAY_ROOT))
 import rebuild_verified_population as replay
+import generate_stage1_max_fill as max_fill
 from test_hierarchical_inference import TARGET, assertion
 from glowbal_ingestion.models import ApplicabilityState, SourceRelationship
 
@@ -72,6 +73,47 @@ class HierarchyReplayPopulationTests(unittest.TestCase):
         lead = replay.make_lead_export(outputs, {"verified_rows": data["programmes"]}, data)
         self.assertEqual([row["programme_id"] for row in lead], [TARGET["programme_id"]])
         self.assertIn("synthetic-fact", {a.assertion_id for a in data["assertions"]})
+        max_decisions, _ = max_fill.run_max_fill_decisions(data)
+        self.assertEqual({pid for pid, _ in max_decisions}, {TARGET["programme_id"]})
+
+    def test_max_fill_allows_unknown_sibling_dimensions_without_changing_strict(self):
+        donor = replace(
+            assertion("unknown-sibling", "synthetic-seed"),
+            degree_level=None,
+            audience=None,
+            academic_cycle=None,
+        )
+        data = self.remap(
+            [donor],
+            donor={
+                **TARGET,
+                "programme_id": "synthetic-seed",
+                "programme_name": "Sibling donor",
+                "degree_level": None,
+                "audience": None,
+                "academic_cycle": None,
+            },
+        )
+        strict = self.decide(data)
+        self.assertIsNone(strict.record)
+        self.assertIn("DEGREE_UNKNOWN", {item["reason"] for item in strict.rejected})
+
+        max_decisions, _ = max_fill.run_max_fill_decisions(data)
+        aggressive = max_decisions[(TARGET["programme_id"], "tuition")]
+        self.assertEqual(aggressive.level.short_code, "H3")
+        self.assertIsNotNone(aggressive.record)
+        self.assertEqual(aggressive.record.allowed_exposure, "ADVISORY")
+        self.assertFalse(aggressive.record.product_safe)
+
+    def test_max_fill_keeps_institution_finance_scope(self):
+        donor = replace(self.institution_assertion(), field_name="tuition")
+        data = self.remap([donor])
+        max_decisions, _ = max_fill.run_max_fill_decisions(data)
+        decision = max_decisions[(TARGET["programme_id"], "tuition")]
+        self.assertEqual(decision.level.short_code, "H2")
+        self.assertEqual(decision.record.output_scope, "institution")
+        self.assertEqual(decision.record.output_scope_entity_id, "institution-a")
+        self.assertEqual(decision.record.as_assertion().scope, "institution")
 
     def test_off_target_sibling_donor_and_context_are_remapped_and_retained(self):
         data = self.remap(
