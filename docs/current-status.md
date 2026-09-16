@@ -1,37 +1,21 @@
 # Current project status
 
-Working tree 2026-09-16 advisory maximum-fill replay: the fixed 230 verified
-programme recipients were evaluated against the persisted independent donor
-pool for every modelled field. The strict view remains unchanged. The
-advisory pass allows unknown compatibility dimensions only when there is no
-explicit contradiction, retains H0/H1/H2/H3 provenance and scope, and excludes
-H4 from the max-fill ladder. Existing evidence added no new H1/H2/H3 values in
-this snapshot, so both views are Direct/H0 855, H1 0, H2 0, H3 82, H4 0,
-Final 937, Review 58, Abstain 3,605, Missing 4,140; p25/median/p75
-completeness is 10.53%/13.16%/13.16%. The max-fill matrix and audit are in
-[`stage1-programme-max-fill-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-results.csv)
-and
-[`stage1-programme-max-fill-audit.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-audit.csv).
-The persisted donor pool retains 1,516 programme-scoped, 146
-institution-scoped, and 9 parent-scoped assertions, 418 programme contexts,
-and 209 institution contexts. No new assertions, crawl calls, or paid LLM
-calls were made. Details:
-[`stage1-programme-final-results-readme.md`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results-readme.md).
-
-Working tree 2026-09-16 incremental Stage 1 coverage replay: six exact closing
-dates were deterministically promoted from persisted Studyinfo application
-windows for six existing Finnish verified programmes. No crawl, semantic
-extraction, or paid LLM call was used, and existing assertions remain intact.
-The recipient population remains 230 verified programmes and the independent
-donor pool remains available to the unchanged hierarchy engine. Coverage added
-is `final_deadline` 6 to 12; all other priority-field counts are unchanged.
-Production hierarchy changed only through six new direct values: Direct 849 to
-855, H1 0, H2 0, H3 82, H4 0, final 931 to 937, review 58, abstain 3,605,
-missing 4,140. Six programmes improved. Completeness is p25 10.53% to 10.53%,
-median 13.16% to 13.16%, p75 13.16% to 13.16%, and mean 10.65% to 10.72%.
-Focused hierarchy/loader tests pass 11/11 in this change; the full ingestion
-suite passes 534/534. Details:
-[`stage1-programme-final-results-readme.md`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results-readme.md).
+Working tree 2026-09-16 deterministic Stage 1 coverage acquisition: the frozen
+230 verified programme recipients were replayed against the existing evidence
+artifacts and source cache. The population and H1-H4 rules are unchanged. The
+pass appended 317 deterministic, source-backed assertions with complete
+provenance (0 paid LLM calls and no new source domains). Coverage across the 38
+hierarchy fields rose from 937 to 1,282 non-empty values; 171 programmes gained
+at least one value. Direct/H0 is 855 to 1,172, H1 0 to 0, H2 0 to 0, H3 82 to
+110, H4 0 to 0, Final 937 to 1,282, Review 58 to 58, Abstain 3,605 to 4,640,
+and Missing 4,140 to 2,760. Completeness p25/median/p75 is
+10.53%/13.16%/13.16% to 13.16%/15.79%/15.79%. The lead export still contains
+exactly 230 verified programmes; 188 synthetic seeds remain excluded. The
+incremental evidence, audit, source ledger, replay summary, and regenerated CSV
+are in
+[`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/),
+including [`stage1-incremental-evidence.jsonl`](architecture/data/external-field-stage1-20260915/stage1-incremental-evidence.jsonl)
+and [`stage1-programme-final-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results.csv).
 
 Prior architecture-only replay 2026-09-16 (superseded by the incremental
 coverage result above): Stage 1 replay

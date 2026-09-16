@@ -416,7 +416,11 @@ def prepare_data() -> dict[str, Any]:
     programmes = read_jsonl(RUN_DIR / "programmes.jsonl")
     institutions = read_jsonl(RUN_DIR / "institutions.jsonl")
     offerings = read_jsonl(RUN_DIR / "programme_offerings.jsonl")
+    # Incremental deterministic acquisitions are appended beside the frozen
+    # run.  Keeping this optional file in the same loader means a replay sees
+    # persisted evidence without changing the population or hierarchy rules.
     semantic_rows = read_jsonl(RUN_DIR / "effective_field_assertions.jsonl")
+    semantic_rows.extend(read_jsonl(ARTIFACT_DIR / "stage1-incremental-evidence.jsonl"))
     metadata_rows = read_jsonl(RUN_DIR / "external_programme_metadata.jsonl")
 
     accepted_semantic = dedupe_rows([row for row in semantic_rows if accepted_row(row)])

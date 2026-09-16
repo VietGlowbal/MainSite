@@ -11,6 +11,52 @@ lead-facing export; all 418 original targets remain in
 `stage1-programme-population-audit.csv`. Technical donor and provenance details
 remain in the accompanying hierarchy review artifacts.
 
+## Deterministic coverage acquisition replay (2026-09-16)
+
+The frozen 230-programme recipient set was replayed using the existing
+persisted source artifacts/cache. The pass appended 317 deterministic
+source-backed assertions and did not change population classification or any
+H1-H4 compatibility rule. Every assertion records its source URL, content hash,
+raw document id, parser id/version, provider, scope, and `model_name=null`.
+
+Sources were the existing Onisep CSV, Discover Uni links and cached official
+university pages, DUO RIO JSON, Studyinfo/Opintopolku JSON, and Skolverket
+Susa-navet endpoints. The source ledger records 132 source URLs, no new source
+domains, and zero paid LLM calls. The incremental assertion audit is
+`stage1-incremental-evidence-audit.csv`; the persisted rows are in
+`stage1-incremental-evidence.jsonl`.
+
+Coverage across the 38 hierarchy fields rose from 937 to 1,282 non-empty values
+and 171 programmes gained at least one value. The field gains are:
+
+| Field | Before | After |
+|---|---:|---:|
+| application_url | 0 | 153 |
+| tuition | 5 | 38 |
+| intakes | 7 | 31 |
+| work_experience | 2 | 25 |
+| scholarship | 2 | 24 |
+| ielts_overall | 2 | 20 |
+| programme_language | 16 | 30 |
+| delivery_mode | 172 | 186 |
+| subject_prerequisites | 4 | 16 |
+| ielts_subscores | 0 | 10 |
+| toefl | 2 | 6 |
+| final_deadline | 12 | 16 |
+| recommendation_letters | 0 | 4 |
+| required_documents | 4 | 6 |
+| sop_or_essay | 0 | 2 |
+| portfolio | 0 | 2 |
+| standardized_test_requirements | 1 | 3 |
+| rolling_admission | 0 | 2 |
+
+Direct/H0 is 855 to 1,172, H1 0 to 0, H2 0 to 0, H3 82 to 110, H4 0 to 0,
+Final 937 to 1,282, Review 58 to 58, Abstain 3,605 to 4,640, and Missing 4,140
+to 2,760. Completeness p25/median/p75 is 10.53%/13.16%/13.16% to
+13.16%/15.79%/15.79%. The final CSV remains exactly 230 verified programmes;
+the 188 synthetic recipients remain excluded. Institution-scoped donor scope
+is preserved by the unchanged hierarchy resolver.
+
 ## Incremental structured coverage replay (2026-09-16)
 
 The frozen run already contained six Finnish `application_windows` records with
