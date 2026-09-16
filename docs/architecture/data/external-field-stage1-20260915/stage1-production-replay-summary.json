@@ -4014,14 +4014,14 @@
       "H3": 0,
       "H4": 0,
       "absolute_gain_pp": 0.0,
-      "abstain": 0,
+      "abstain": 230,
       "coverage_after_hierarchy_pct": 0.0,
       "coverage_before_hierarchy_pct": 0.0,
       "direct": 0,
       "field": "additional_fees",
       "final": 0,
       "institution_scope_final": 0,
-      "missing": 230,
+      "missing": 0,
       "programme_scope_final": 0,
       "relative_gain_pct": 0.0,
       "review": 0,
@@ -4641,10 +4641,10 @@
     "H2": 0,
     "H3": 82,
     "H4": 0,
-    "abstain": 3381,
+    "abstain": 3611,
     "direct": 849,
     "final": 931,
-    "missing": 4370,
+    "missing": 4140,
     "review": 58
   },
   "lead_rows": 230,
@@ -4655,6 +4655,11 @@
     "verified_programmes": 230
   },
   "rejection_summary": [
+    {
+      "candidate_rejections": 2070,
+      "field": "additional_fees",
+      "hierarchy_level": "H4"
+    },
     {
       "candidate_rejections": 23,
       "field": "career_outcomes",
@@ -4796,7 +4801,7 @@
       "hierarchy_level": "H3"
     },
     {
-      "candidate_rejections": 1124,
+      "candidate_rejections": 31949,
       "field": "tuition",
       "hierarchy_level": "H4"
     },

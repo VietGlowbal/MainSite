@@ -369,9 +369,8 @@ def build_population() -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def remap_hierarchy_data(raw: Mapping[str, Any], context: Mapping[str, Any]) -> dict[str, Any]:
-    """Filter and remap accepted artifacts for verified programme targets."""
+    """Restrict recipients, while retaining the independent accepted donor pool."""
     verified_ids = {str(row["programme_id"]) for row in context["final_rows"]}
-    allowed_institutions = {str(row["institution_id"]) for row in context["final_rows"]}
     old_to_new = context["old_id_to_new"]
 
     programme_contexts: list[dict[str, Any]] = []
@@ -404,14 +403,22 @@ def remap_hierarchy_data(raw: Mapping[str, Any], context: Mapping[str, Any]) -> 
         entity_id = str(assertion.entity_id)
         if assertion.entity_type == "programme":
             mapped_id = old_to_new.get(entity_id, entity_id)
-            if mapped_id not in verified_ids:
-                continue
             if mapped_id != entity_id:
                 assertion = replace(assertion, entity_id=mapped_id)
-        elif assertion.entity_type == "institution":
-            if entity_id not in allowed_institutions:
-                continue
         assertions.append(assertion)
+
+    # Donor context lookup must include entities that are not export recipients.
+    # Corrected recipient identities override their old persisted contexts.
+    donor_programmes = {}
+    for row in raw["programme_contexts"]:
+        old_id = str(row["programme_id"])
+        new_id = old_to_new.get(old_id, old_id)
+        donor_programmes[new_id] = {**row, "programme_id": new_id}
+    donor_programmes.update({str(row["programme_id"]): row for row in programme_contexts})
+    relations = [
+        {**row, "programme_id": old_to_new.get(str(row["programme_id"]), str(row["programme_id"]))}
+        for row in raw.get("programme_organisation_units", [])
+    ]
 
     review_direct: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for key, rows in raw["review_direct"].items():
@@ -431,10 +438,7 @@ def remap_hierarchy_data(raw: Mapping[str, Any], context: Mapping[str, Any]) -> 
         if assertion.entity_id and hierarchy_reports.hierarchy_module._scope_kind(assertion) == "programme":
             accepted_direct[(str(assertion.entity_id), assertion.field_name)].append(assertion)
 
-    institutions = [
-        row for row in raw["institutions"]
-        if str(row.get("institution_id") or "") in allowed_institutions
-    ]
+    institutions = raw["institutions"]
     institution_contexts = [
         {
             **row,
@@ -449,6 +453,8 @@ def remap_hierarchy_data(raw: Mapping[str, Any], context: Mapping[str, Any]) -> 
         "programmes": context["final_rows"],
         "institutions": institutions,
         "programme_contexts": programme_contexts,
+        "donor_programme_contexts": list(donor_programmes.values()),
+        "programme_organisation_units": relations,
         "institution_contexts": institution_contexts,
         "assertions": assertions,
         "by_field": by_field,
@@ -613,7 +619,7 @@ def main() -> None:
             "population": {
                 "original_programmes": production["original_programmes"],
                 "verified_programmes": production["verified_programmes"],
-                "institutions": len(data["institutions"]),
+                "institutions": len({row["institution_id"] for row in data["programmes"]}),
             },
             "hierarchy": hierarchy_reports.aggregate_summary(outputs["summary_rows"]),
             "rows": len(outputs["rows"]),

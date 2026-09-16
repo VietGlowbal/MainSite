@@ -399,6 +399,8 @@ def prepare_data() -> dict[str, Any]:
         "institutions": institutions,
         "programme_contexts": programme_contexts,
         "institution_contexts": institution_contexts,
+        "organisation_units": read_jsonl(RUN_DIR / "organisation_units.jsonl"),
+        "programme_organisation_units": read_jsonl(RUN_DIR / "programme_organisation_units.jsonl"),
         "assertions": assertions,
         "by_field": by_field,
         "accepted_direct": accepted_direct,
@@ -414,6 +416,7 @@ def run_decisions(data: Mapping[str, Any], *, optimized: bool) -> tuple[dict[tup
 
     engine = HierarchicalInferenceEngine()
     programme_contexts = data["programme_contexts"]
+    donor_programme_contexts = data.get("donor_programme_contexts", programme_contexts)
     institution_contexts = data["institution_contexts"]
     by_field = data["by_field"]
 
@@ -421,11 +424,11 @@ def run_decisions(data: Mapping[str, Any], *, optimized: bool) -> tuple[dict[tup
     # Reusing the frozen maps keeps this report bounded without changing the
     # production engine's public behavior.
     original_context_collection = hierarchy_module._context_collection
-    programme_map = original_context_collection(programme_contexts, kind="programme")
+    programme_map = original_context_collection(donor_programme_contexts, kind="programme")
     institution_map = original_context_collection(institution_contexts, kind="institution")
 
     def cached_context_collection(values: Any, *, kind: str) -> dict[str, Any]:
-        if values is programme_contexts and kind == "programme":
+        if values is donor_programme_contexts and kind == "programme":
             return programme_map
         if values is institution_contexts and kind == "institution":
             return institution_map
@@ -458,7 +461,9 @@ def run_decisions(data: Mapping[str, Any], *, optimized: bool) -> tuple[dict[tup
                     target=target,
                     audience=target.get("audience"),
                     assertions=field_assertions,
-                    programmes=programme_contexts,
+                    programmes=donor_programme_contexts,
+                    organisation_units=data.get("organisation_units", ()),
+                    programme_organisation_units=data.get("programme_organisation_units", ()),
                     institutions=institution_contexts,
                     recovery_exhausted=True,
                 )

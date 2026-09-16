@@ -1,5 +1,21 @@
 # Current project status
 
+Working tree 2026-09-16 hierarchy donor/recipient separation: Stage 1 replay
+now retains accepted donor assertions and entity contexts independently of the
+230 verified recipients. Programme contexts retained increased 230 to 418,
+institution contexts 115 to 209, and institution assertions 0 to 146;
+programme-scoped assertions remain 1,510 and parent-scoped assertions remain 9.
+Optional persisted org-unit contexts/relations now reach the unchanged engine.
+Artifact-only replay: Direct 849, H1 0, H2 0, H3 82, H4 0, final 931, review
+58, abstain 3,611, missing 4,140. The 230 fee slots move from missing to abstain
+because donor evidence exists; no new value is applied. All 188 synthetic
+recipients remain excluded, including the recipients of the former 103 H2
+transfers. Focused hierarchy/loader tests pass 30/30; the full ingestion suite
+passes 531/531. Compile, CSV and diff checks pass. `verify:pr` passes on Node
+24.19.0 (3,469 application tests pass, two TODOs; production build 141/141).
+No acquisition or paid LLM calls. Details:
+[`stage1-programme-final-results-readme.md`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results-readme.md).
+
 Working tree 2026-09-16 verified Stage 1 population correction: the frozen
 418-target manifest was audited without deleting historical raw evidence. The
 production admission gate now requires a non-empty source-native programme
@@ -13,7 +29,8 @@ classification is 230 `VERIFIED_PROGRAMME`, 188 `SYNTHETIC_SEED`, 0
 pre-fix run was 190/0/188/40). The lead export now has 230 verified rows; the
 population audit retains all 418 targets. Artifact-only hierarchy replay used
 the existing accepted assertions and made no paid LLM calls: Direct 849, H1
-0, H2 0, H3 82, H4 0, final 931, review 58, abstain 3,381, missing 4,370.
+0, H2 0, H3 82, H4 0, final 931, review 58. The donor-independent replay above
+supersedes this run's abstain/missing counts.
 Production completeness is p25 10.53%, median 13.16%, p75 13.16%, mean
 10.65%; 41 programmes have zero effective fields. Outputs are in
 [`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/),
