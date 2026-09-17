@@ -32,6 +32,16 @@ export type IngestionJobStage =
   | 'needs_review'
   | 'failed';
 
+/** Machine-readable v3 convergence failure classes. */
+export type IngestionFailureCode =
+  | 'ACQUISITION_FAILED'
+  | 'RAW_PERSIST_FAILED'
+  | 'EXTRACTION_FAILED'
+  | 'VALIDATION_FAILED'
+  | 'IDENTITY_UNRESOLVED'
+  | 'QUALITY_BLOCKED'
+  | 'PROMOTION_FAILED';
+
 export interface ProgrammeIngestionJob {
   id: string;
   application_id: string;
@@ -57,6 +67,12 @@ export interface ProgrammeIngestionJob {
   updated_at: string;
   started_at: string | null;
   completed_at: string | null;
+  /** Present after the additive convergence migration is applied. */
+  acquisition_intent_id?: string | null;
+  policy_version?: string | null;
+  failure_class?: IngestionFailureCode | null;
+  attempt_fingerprint?: string | null;
+  quality_evaluation_id?: string | null;
 }
 
 const RETRY_BASE_MINUTES = 5;
@@ -256,7 +272,7 @@ export async function markJobComplete(
  */
 export async function recordIngestionJobFailure(
   jobId: string,
-  errorCode: string,
+  errorCode: IngestionFailureCode | string,
   errorMessage: string,
   opts: { shouldRetry: boolean; attempts: number; maxAttempts?: number }
 ): Promise<void> {

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { DirectWriteGuard } from '../src/lib/ingestion/convergence.ts';
 
 const APPLY = process.argv.includes('--apply');
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -158,6 +159,13 @@ if (!APPLY) {
   console.log('Dry-run only. Re-run with --apply to write rows.');
   process.exit(0);
 }
+
+DirectWriteGuard.assertAllowed({
+  purpose: 'migration',
+  sourcePath: 'scripts/import-crawl-programmes-to-courses.mjs',
+  actor: 'explicit_migration_operator',
+  reason: 'legacy catalogue backfill remains migration-only during Slice E',
+});
 
 for (let from = 0; from < rows.length; from += 100) {
   const { error } = await supabase

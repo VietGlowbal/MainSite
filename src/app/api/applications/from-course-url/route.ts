@@ -28,6 +28,7 @@ import {
 } from '@/lib/ingestion/ingestion-job-queue';
 import { applyCacheHitToApplication } from '@/lib/ingestion/application-mapping';
 import { canonicalizeOfficialProgrammeUrl } from '@/lib/ingestion/url-utils';
+import { ManualSourceAdapter } from '@/lib/ingestion/convergence';
 
 const requestSchema = z.object({
   courseUrl: z.string().url('Invalid URL format'),
@@ -257,6 +258,14 @@ export async function POST(request: Request) {
     // -----------------------------------------------------------------------
     if (provider === 'ingestion') {
       try {
+        // Shadow-only convergence metadata. Slice B still owns acquisition;
+        // this adapter never fetches or writes canonical truth.
+        const manualConvergence = ManualSourceAdapter.describe({
+          sourceUrl: canonicalUrl!,
+          universityId: universityId ?? null,
+          sourceOwner: 'authenticated_user_submission',
+        });
+
         // 8a. Create ingestion job record (idempotent)
         const job = await createIngestionJob({
           applicationId: newApp.id,
@@ -265,6 +274,14 @@ export async function POST(request: Request) {
           institutionId,
           submittedUrl: courseUrl,
           canonicalUrl: canonicalUrl!,
+        });
+        console.info('[manual-url-convergence-shadow]', {
+          applicationId: newApp.id,
+          jobId: job.id,
+          sourceId: manualConvergence.source.sourceId,
+          acquisitionIntentId: manualConvergence.acquisitionIntent?.intentId ?? null,
+          fingerprint: manualConvergence.acquisitionIntent?.fingerprint ?? null,
+          adapterVersion: manualConvergence.source.adapterVersion,
         });
 
         // 8b. Cache lookup — search existing completed crawl data
