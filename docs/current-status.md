@@ -14,17 +14,22 @@ locator/hash/size lineage in database metadata.
 
 Measured checks: `tests/test_artifact_store.py` passed 32 tests; the full
 Data Ingestion suite passed 742 tests; `compileall` and `git diff --check`
-passed. A direct non-production mounted-Drive smoke wrote a 187-byte JSON raw
-artifact and a 111-byte CSV artifact, verified each physical SHA-256 and local
-readback, and restored the JSON with only artifact metadata, its logical
-locator, and the configured archive root. Cloud sync remains operator-not-
-confirmed (local state/readback verified; no Drive API durability claim).
-A full remote ingestion was attempted twice but non-production Mongo index
-preflight could not reach its endpoint, so Mongo metadata/provenance
-persistence and an end-to-end provider ingestion are not claimed. The
-`raw-evidence-dev` before/after object count and bytes could not be measured:
-this environment has no Supabase CLI, URL/service-role configuration, or raw
-bucket configuration. Consequently no claim is made about live bucket growth.
+passed. A controlled non-production provider-fixture ingestion on 2026-09-19
+used the authenticated `main` runtime configuration only in its process while
+the hardened `feature/data-platform` code ran unchanged. Mongo raw metadata
+and provenance persisted, and one lightweight Supabase structured-staging row
+persisted with its full row payload externalized. Drive retained a 283-byte
+JSON raw artifact at
+`raw/objects/cb/cb1c9a08765f0f7521341374fa28eb3d410557d3ce5f71d7dcd3a80a89895907.json`
+and an 83-byte CSV at
+`raw/objects/db/dbc970d96753f4b946f2d5db346e03dea15a4608d4f73a3d8219508e1294a0f7.csv`;
+their physical files and SHA-256 values verified. A fresh reader using only
+the configured archive root and logical artifact metadata restored both
+objects and verified their hashes. `raw-evidence-dev` was measured immediately
+before and after at 0 objects and 0 bytes, so the heavy Supabase delta was
+zero. Local mounted readback is verified; cloud sync remains operator-not-
+confirmed (no Drive API durability claim). This smoke did not fetch an
+external URL or start Phase 4.
 
 Working tree 2026-09-16 deterministic Stage 1 MAX_FILL advisory expansion:
 the existing frozen evidence and 105 captured official pages were replayed for
