@@ -1,11 +1,13 @@
 import hashlib
 import io
 import json
+import os
 import sys
 import unittest
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
@@ -583,6 +585,14 @@ class ExternalProviderConfigTests(unittest.TestCase):
 
 
 class ExternalAdapterTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._artifact_backend = patch.dict(
+            os.environ,
+            {"DATA_PLATFORM_ARTIFACT_BACKEND": "legacy_supabase_storage"},
+        )
+        self._artifact_backend.start()
+        self.addCleanup(self._artifact_backend.stop)
+
     def test_external_candidate_is_admitted_only_by_matching_rule(self):
         provider = _provider()
         rule = ExternalSourceRule.from_dict({

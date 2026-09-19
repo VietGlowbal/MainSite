@@ -15,13 +15,15 @@ never commit or print them:
 - `MONGODB_URI`
 - `MONGODB_DATABASE`
 - `DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop` for new heavy Data
-  Platform artifacts
+  Platform artifacts. This value is required: unset, blank, and `None` are
+  configuration errors, not requests to use a legacy backend.
 - `DATA_PLATFORM_ARCHIVE_ROOT` for the existing Google Drive for desktop
   mount (runtime-only; never store a drive letter in metadata)
 - `DATA_PLATFORM_ARTIFACT_RUN_BUDGET_BYTES` as an optional per-run cap
 - `RAW_OBJECT_STORAGE_BUCKET` or `RAW_OBJECT_STORE_BUCKET` only for legacy
   compatibility reads/migrations; neither is a new-write fallback when Drive
-  is selected
+  is selected. Select `legacy_supabase_storage` or `legacy_s3` explicitly
+  only for a controlled compatibility or migration operation.
 - provider credentials only for the selected extraction/search adapters
 
 Use a separately named non-production Supabase project and Mongo database.
@@ -44,19 +46,35 @@ successful file parse as schema verification.
 
 ## Worker and evidence flow
 
-1. Start the bounded worker with the intended non-production configuration.
-2. Claim jobs using the existing job-claim mechanism; record run, intent,
+1. Before starting the bounded worker, verify that the configured Drive root,
+   `raw`, and `raw/objects` already exist and are accessible. Startup creates
+   and probes its private staging/lock directories beneath that verified root.
+   Any root or access failure is retryable/configuration-invalid; do not unset
+   the backend or fall back to Supabase/S3.
+2. Start the bounded worker with the intended non-production configuration.
+3. Claim jobs using the existing job-claim mechanism; record run, intent,
    attempt, policy, and failure class.
-3. Persist remote raw evidence before accepting extraction as durable truth.
+4. Persist remote raw evidence before accepting extraction as durable truth.
    Mongo owns bounded metadata/provenance and the configured Drive artifact
    store owns heavy bytes (HTML, JSON, PDF, ZIP, CSV, and provider output).
    Legacy Supabase/S3 locators remain readable only during transition.
-4. Reprocess from retained raw evidence when testing parsers or policies; do
+5. Reprocess from retained raw evidence when testing parsers or policies; do
    not refetch solely for reprocessing.
-5. Evaluate coverage, recovery, conflicts, identity, and Product Safety.
-6. Use promotion-v3 dry-run first. Apply only an eligible, reviewed candidate.
-7. Preserve immutable audit and projection history. Corrections are forward
+6. Evaluate coverage, recovery, conflicts, identity, and Product Safety.
+7. Use promotion-v3 dry-run first. Apply only an eligible, reviewed candidate.
+8. Preserve immutable audit and projection history. Corrections are forward
    projections, not history deletion.
+
+## Representative ingestion evidence
+
+For a small non-production ingestion, record `raw-evidence-dev` object count
+and bytes immediately before and after the run. The expected heavy-artifact
+delta is zero; database metadata may change. Record the source/provider input,
+logical locator, physical Drive path, SHA-256, and metadata/provenance result.
+Then construct a fresh reader using only the metadata, logical locator, and
+`DATA_PLATFORM_ARCHIVE_ROOT`, and verify its SHA-256. Record local mounted
+readback separately from cloud sync: Drive Desktop local verification does not
+confirm cloud durability, which requires operator confirmation.
 
 ## Monitoring
 
@@ -78,6 +96,7 @@ partial promotion after a database failure.
 
 Disable promotion-v3 application while preserving dry-run and evidence capture.
 Stop new workers, allow in-flight jobs to settle or mark them retryable, and
-retain raw evidence and audit rows. Use the existing legacy read/write behavior
-only where its compatibility status is explicitly approved. Do not roll back by
-deleting audit, evidence, identity, or historical projection records.
+retain raw evidence and audit rows. Use an explicitly selected legacy backend
+only where its compatibility status is approved; never obtain it by unsetting
+the backend. Do not roll back by deleting audit, evidence, identity, or
+historical projection records.

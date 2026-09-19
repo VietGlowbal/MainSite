@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
 import sys
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -170,6 +172,14 @@ class _SupabaseStreamTransport:
 
 
 class HeavyRawStreamingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._artifact_backend = patch.dict(
+            os.environ,
+            {"DATA_PLATFORM_ARTIFACT_BACKEND": "legacy_supabase_storage"},
+        )
+        self._artifact_backend.start()
+        self.addCleanup(self._artifact_backend.stop)
+
     def _zip_payload(self) -> bytes:
         output = io.BytesIO()
         with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:

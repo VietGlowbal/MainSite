@@ -23,7 +23,11 @@ from .acquisition import (
     EntityRef,
     SourceCandidate,
 )
-from .artifact_store import require_verified_google_drive_store
+from .artifact_store import (
+    GOOGLE_DRIVE_DESKTOP_BACKEND,
+    require_configured_artifact_backend,
+    require_verified_google_drive_store,
+)
 from .config import (
     ExternalProviderConfig,
     ExternalSourceRule,
@@ -1795,13 +1799,17 @@ def persist_admitted_fetch(
     This small helper is used by the shadow-path contract tests. Existing
     pipeline fetch/parse remains the production compatibility path.
     """
-    if os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower() == "google_drive_desktop":
+    if not decision.admitted:
+        return None, decision.to_attempt(intent_id=intent_id, run_id=acquisition_run_id)
+    streaming_required = _candidate_requires_streaming(candidate, fetcher)
+    selected_backend = require_configured_artifact_backend(
+        context="Admitted source raw persistence"
+    )
+    if selected_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
         require_verified_google_drive_store(
             getattr(raw_store, "object_store", None),
             context="Drive-selected admitted-fetch raw evidence",
         )
-    if not decision.admitted:
-        return None, decision.to_attempt(intent_id=intent_id, run_id=acquisition_run_id)
     if (
         require_remote_durability
         and getattr(raw_store, "durability", RawEvidenceDurability.LOCAL_ONLY)
@@ -1851,7 +1859,6 @@ def persist_admitted_fetch(
             execution_state="HARD_BLOCKED",
             **_candidate_lineage_kwargs(candidate),
         )
-    streaming_required = _candidate_requires_streaming(candidate, fetcher)
     # A heavy candidate must never fall through to an in-memory/local raw
     # store, even when the caller allows local durability for small shadow
     # resources.  The explicit check here protects the source-adapter bridge
@@ -2130,15 +2137,15 @@ class AcquisitionPlatformBackend:
         self.source_ecosystem = _ecosystem_with_catalogue(self.source_ecosystem)
         self.fetcher = fetcher
         self.raw_evidence_store = raw_evidence_store
-        if (
-            self.raw_evidence_store is not None
-            and os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
-            == "google_drive_desktop"
-        ):
-            require_verified_google_drive_store(
-                getattr(self.raw_evidence_store, "object_store", None),
-                context="Drive-selected acquisition backend raw evidence",
+        if self.raw_evidence_store is not None:
+            selected_backend = require_configured_artifact_backend(
+                context="Acquisition backend raw evidence"
             )
+            if selected_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
+                require_verified_google_drive_store(
+                    getattr(self.raw_evidence_store, "object_store", None),
+                    context="Drive-selected acquisition backend raw evidence",
+                )
         self.acquisition_run_id = acquisition_run_id
         self._coverage_events: list[dict[str, Any]] = []
         self.registry = registry or build_source_registry(

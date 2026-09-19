@@ -1,9 +1,11 @@
 import hashlib
 import io
 import json
+import os
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from pypdf import PdfWriter
 
@@ -75,6 +77,14 @@ class _Fetcher:
 
 
 class _ExpansionRobustnessTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._artifact_backend = patch.dict(
+            os.environ,
+            {"DATA_PLATFORM_ARTIFACT_BACKEND": "legacy_supabase_storage"},
+        )
+        self._artifact_backend.start()
+        self.addCleanup(self._artifact_backend.stop)
+
     def test_catalogue_providers_are_available_to_decision_bridge(self):
         """Catalogue loading must feed both registry and configured decisions."""
         ecosystem = SourceEcosystemConfig.from_dict({

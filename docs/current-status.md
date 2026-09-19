@@ -1,19 +1,30 @@
 # Current project status
 
-Working tree 2026-09-19 Data Platform Drive-desktop artifact archive: new
-remote/dual raw-evidence writes can opt into
-`DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop`, which preflights an
-existing `DATA_PLATFORM_ARCHIVE_ROOT`, writes SHA-256-deduplicated portable
-`raw/objects/<prefix>/<hash>.<ext>` objects, validates local readback, reports
-cloud sync as unknown, and enforces an optional per-run byte budget. Mongo
-snapshot/provenance contracts remain compatible and now record backend and
-local/readback/cloud-sync state; configured legacy Supabase Storage is
-read-compatible only for old `raw/sha256/...` locators and is never a new
-Drive-write fallback. Drive-selected structured staging serializes extracted
-rows as CSV and retains only locator/hash/size lineage in Supabase. The focused
-archive/raw-evidence suite passed 56 tests and the broader Data Platform
-regression selection passed 185 tests; Python compileall and diff checks passed.
-No live ingestion, Supabase mutation, or generated archive artifact occurred.
+Working tree 2026-09-19 Data Platform artifact-backend hardening: every
+runtime path that can create heavy Data Platform evidence now requires an
+explicit `DATA_PLATFORM_ARTIFACT_BACKEND`; unset, blank, and `None` fail
+closed. `google_drive_desktop` is the sole supported active heavy-write
+backend. Its preflight requires an existing readable/writable archive root and
+`raw/objects`, safely creates/probes private staging and lock directories, and
+fails/retries rather than falling back. `legacy_supabase_storage` and
+`legacy_s3` remain explicit migration/compatibility selections, while legacy
+Supabase locators remain readable when Drive is selected. Drive-selected
+structured staging writes deterministic CSV artifacts and leaves only bounded
+locator/hash/size lineage in database metadata.
+
+Measured checks: `tests/test_artifact_store.py` passed 32 tests; the full
+Data Ingestion suite passed 742 tests; `compileall` and `git diff --check`
+passed. A direct non-production mounted-Drive smoke wrote a 187-byte JSON raw
+artifact and a 111-byte CSV artifact, verified each physical SHA-256 and local
+readback, and restored the JSON with only artifact metadata, its logical
+locator, and the configured archive root. Cloud sync remains operator-not-
+confirmed (local state/readback verified; no Drive API durability claim).
+A full remote ingestion was attempted twice but non-production Mongo index
+preflight could not reach its endpoint, so Mongo metadata/provenance
+persistence and an end-to-end provider ingestion are not claimed. The
+`raw-evidence-dev` before/after object count and bytes could not be measured:
+this environment has no Supabase CLI, URL/service-role configuration, or raw
+bucket configuration. Consequently no claim is made about live bucket growth.
 
 Working tree 2026-09-16 deterministic Stage 1 MAX_FILL advisory expansion:
 the existing frozen evidence and 105 captured official pages were replayed for

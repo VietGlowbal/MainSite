@@ -21,7 +21,11 @@ from glowbal_ingestion.raw_evidence import (
     RawEvidenceErrorCode,
     create_remote_raw_evidence_store,
 )
-from glowbal_ingestion.structured_staging import SupabaseStructuredStagingStore
+from glowbal_ingestion.structured_staging import (
+    StructuredStagingError,
+    SupabaseStructuredStagingStore,
+    create_structured_staging_store,
+)
 from glowbal_ingestion.pipeline import _validate_injected_raw_evidence_store
 from glowbal_ingestion.mongo_raw_evidence import (
     MongoRawEvidenceConfig,
@@ -31,6 +35,12 @@ from glowbal_ingestion.mongo_raw_evidence import (
 
 def digest(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+def configured_drive_root(tmp_path: Path) -> Path:
+    """Provision the archive layout an operator must create before preflight."""
+    (tmp_path / "raw" / "objects").mkdir(parents=True, exist_ok=True)
+    return tmp_path
 
 
 class LegacyReadOnlyStore:
@@ -57,15 +67,42 @@ class LegacyReadOnlyStore:
 
 def test_drive_root_preflight_is_fail_closed(tmp_path: Path) -> None:
     missing = tmp_path / "not-mounted"
-    with pytest.raises(ObjectStoreError, match="existing directory"):
+    with pytest.raises(ObjectStoreError, match="existing readable and writable directory"):
         GoogleDriveDesktopArtifactStore(missing)
 
 
-def test_factory_fails_closed_when_drive_root_is_missing(monkeypatch, tmp_path: Path) -> None:
+def test_drive_preflight_requires_existing_archive_subdirectories(tmp_path: Path) -> None:
+    with pytest.raises(ObjectStoreError, match="DATA_PLATFORM_ARCHIVE_ROOT/raw"):
+        GoogleDriveDesktopArtifactStore(tmp_path)
+
+
+def test_drive_preflight_provisions_and_probes_internal_write_directories(tmp_path: Path) -> None:
+    root = configured_drive_root(tmp_path)
+    store = GoogleDriveDesktopArtifactStore(root)
+    assert (root / ".artifact-staging").is_dir()
+    assert (root / ".artifact-locks").is_dir()
+    assert store.archive_root == root
+
+
+def test_drive_preflight_fails_when_internal_write_directory_is_not_a_directory(
+    tmp_path: Path,
+) -> None:
+    root = configured_drive_root(tmp_path)
+    (root / ".artifact-staging").write_text("not a directory", encoding="utf-8")
+    with pytest.raises(ObjectStoreError, match="Google Drive desktop archive preflight failed"):
+        GoogleDriveDesktopArtifactStore(root)
+
+
+def test_factory_drive_unavailable_fails_without_supabase_fallback(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("MONGODB_URI", "mongodb://test.invalid")
     monkeypatch.setenv("MONGODB_DATABASE", "test")
     monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
     monkeypatch.setenv("DATA_PLATFORM_ARCHIVE_ROOT", str(tmp_path / "missing"))
+    # A fully configured legacy bucket must not change the explicitly selected
+    # Drive failure into a legacy write path.
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role")
+    monkeypatch.setenv("RAW_OBJECT_STORAGE_BUCKET", "raw-evidence-dev")
     with pytest.raises(RawEvidenceError) as raised:
         create_remote_raw_evidence_store(inline_payload_max_bytes=1024)
     assert raised.value.code == RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID
@@ -75,13 +112,49 @@ def test_factory_selects_drive_backend(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("MONGODB_URI", "mongodb://test.invalid")
     monkeypatch.setenv("MONGODB_DATABASE", "test")
     monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
-    monkeypatch.setenv("DATA_PLATFORM_ARCHIVE_ROOT", str(tmp_path))
+    monkeypatch.setenv("DATA_PLATFORM_ARCHIVE_ROOT", str(configured_drive_root(tmp_path)))
     store = create_remote_raw_evidence_store(inline_payload_max_bytes=1024)
     assert isinstance(store.object_store, GoogleDriveDesktopArtifactStore)
 
 
+@pytest.mark.parametrize("configured_value", [None, "", "None"])
+def test_raw_factory_rejects_unset_blank_or_none_backend_without_fallback(
+    monkeypatch,
+    configured_value: str | None,
+) -> None:
+    monkeypatch.setenv("MONGODB_URI", "mongodb://test.invalid")
+    monkeypatch.setenv("MONGODB_DATABASE", "test")
+    # Populate both old selector families.  The error must occur before either
+    # can be chosen implicitly.
+    monkeypatch.setenv("RAW_OBJECT_STORE_BUCKET", "raw-evidence-dev")
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role")
+    monkeypatch.setenv("RAW_OBJECT_STORAGE_BUCKET", "raw-evidence-dev")
+    if configured_value is None:
+        monkeypatch.delenv("DATA_PLATFORM_ARTIFACT_BACKEND", raising=False)
+    else:
+        monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", configured_value)
+
+    with pytest.raises(RawEvidenceError, match="unset, blank, or None is disabled") as raised:
+        create_remote_raw_evidence_store(inline_payload_max_bytes=1024)
+    assert raised.value.code == RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID
+
+
+def test_legacy_s3_requires_an_explicit_selector(monkeypatch) -> None:
+    monkeypatch.setenv("MONGODB_URI", "mongodb://test.invalid")
+    monkeypatch.setenv("MONGODB_DATABASE", "test")
+    monkeypatch.setenv("RAW_OBJECT_STORE_BUCKET", "legacy-fixture")
+    monkeypatch.delenv("DATA_PLATFORM_ARTIFACT_BACKEND", raising=False)
+    with pytest.raises(RawEvidenceError, match="explicit DATA_PLATFORM_ARTIFACT_BACKEND"):
+        create_remote_raw_evidence_store(inline_payload_max_bytes=1024)
+
+    monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "legacy_s3")
+    store = create_remote_raw_evidence_store(inline_payload_max_bytes=1024)
+    assert getattr(store.object_store, "backend_name") == "legacy_s3"
+
+
 def test_drive_write_read_hash_open_and_portable_locator(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
     payload = b"evidence,with,bytes\n"
     reference = store.put(payload, content_hash=digest(payload), content_type="text/csv")
     assert reference.key == artifact_locator(digest(payload), "text/csv")
@@ -98,7 +171,7 @@ def test_drive_write_read_hash_open_and_portable_locator(tmp_path: Path) -> None
 
 
 def test_drive_dedupes_same_bytes_but_retains_different_content(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
     first = store.put(b"same", content_hash=digest(b"same"), content_type="text/plain")
     duplicate = store.put(b"same", content_hash=digest(b"same"), content_type="text/plain")
     second = store.put(b"different", content_hash=digest(b"different"), content_type="text/plain")
@@ -109,7 +182,7 @@ def test_drive_dedupes_same_bytes_but_retains_different_content(tmp_path: Path) 
 
 
 def test_same_sha_different_extension_metadata_reuses_one_physical_artifact(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
     payload = b"same bytes, different metadata"
     first = store.put(
         payload,
@@ -127,7 +200,7 @@ def test_same_sha_different_extension_metadata_reuses_one_physical_artifact(tmp_
 
 
 def test_concurrent_same_sha_different_extensions_create_one_artifact(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
     payload = b"concurrent same bytes"
 
     def write(content_type: str):
@@ -143,6 +216,7 @@ def test_concurrent_same_sha_different_extensions_create_one_artifact(tmp_path: 
 
 
 def test_cross_process_same_sha_different_extensions_create_one_artifact(tmp_path: Path) -> None:
+    configured_drive_root(tmp_path)
     payload = b"cross-process same bytes"
     content_hash = digest(payload)
     child = (
@@ -174,7 +248,7 @@ def test_cross_process_same_sha_different_extensions_create_one_artifact(tmp_pat
 
 
 def test_drive_missing_and_corrupt_archive_are_not_silently_recovered(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
     payload = b"original"
     reference = store.put(payload, content_hash=digest(payload), content_type="application/pdf")
     path = tmp_path.joinpath(*reference.key.split("/"))
@@ -188,7 +262,7 @@ def test_drive_missing_and_corrupt_archive_are_not_silently_recovered(tmp_path: 
 
 def test_new_drive_writes_never_fall_back_to_legacy_storage(tmp_path: Path) -> None:
     legacy = LegacyReadOnlyStore(b"legacy")
-    store = GoogleDriveDesktopArtifactStore(tmp_path, legacy=legacy)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path), legacy=legacy)
     payload = b"new-heavy-payload"
     reference = store.put(payload, content_hash=digest(payload), content_type="application/pdf")
     assert store.get(reference) == payload
@@ -199,7 +273,7 @@ def test_new_drive_writes_never_fall_back_to_legacy_storage(tmp_path: Path) -> N
 def test_missing_new_drive_locator_never_falls_back_to_legacy(tmp_path: Path) -> None:
     payload = b"same-content"
     legacy = LegacyReadOnlyStore(payload)
-    store = GoogleDriveDesktopArtifactStore(tmp_path, legacy=legacy)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path), legacy=legacy)
     reference = store.put(payload, content_hash=digest(payload), content_type="application/pdf")
     (tmp_path.joinpath(*reference.key.split("/"))).unlink()
     with pytest.raises(ObjectStoreError, match="missing"):
@@ -210,7 +284,7 @@ def test_missing_new_drive_locator_never_falls_back_to_legacy(tmp_path: Path) ->
 def test_legacy_supabase_locator_remains_read_compatible(tmp_path: Path) -> None:
     payload = b"legacy"
     legacy = LegacyReadOnlyStore(payload)
-    store = GoogleDriveDesktopArtifactStore(tmp_path, legacy=legacy)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path), legacy=legacy)
     reference = ObjectReference(
         key=f"raw/sha256/{digest(payload)[:2]}/{digest(payload)}",
         content_hash=digest(payload),
@@ -223,7 +297,7 @@ def test_legacy_supabase_locator_remains_read_compatible(tmp_path: Path) -> None
 
 
 def test_artifact_budget_rejects_new_content_without_creating_archive_file(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path, max_run_bytes=6)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path), max_run_bytes=6)
     first = store.put(b"four", content_hash=digest(b"four"), content_type="text/plain")
     assert store.put(b"four", content_hash=digest(b"four"), content_type="text/plain") == first
     with pytest.raises(ArtifactBudgetExceeded):
@@ -232,7 +306,7 @@ def test_artifact_budget_rejects_new_content_without_creating_archive_file(tmp_p
 
 
 def test_csv_is_deterministic_and_preserves_null_unicode_quotes_newlines_and_json(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
     rows = [{"empty": None, "unicode": "Việt Nam", "quoted": 'a,"b"\nnext', "json": {"z": [2, 1], "a": True}}]
     first = store.write_csv(["empty", "unicode", "quoted", "json"], rows)
     second = store.write_csv(["empty", "unicode", "quoted", "json"], rows)
@@ -245,14 +319,14 @@ def test_csv_is_deterministic_and_preserves_null_unicode_quotes_newlines_and_jso
 
 
 def test_stream_budget_failure_leaves_no_object(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path, max_run_bytes=3)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path), max_run_bytes=3)
     with pytest.raises(ArtifactBudgetExceeded):
         store.put_stream([b"ab", b"cd"], content_type="application/pdf")
     assert not list((tmp_path / "raw" / "objects").rglob("*")) if (tmp_path / "raw" / "objects").exists() else True
 
 
 def test_stream_budget_stops_before_staging_more_than_remaining_bytes(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path, max_run_bytes=3)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path), max_run_bytes=3)
     yielded: list[bytes] = []
 
     def chunks():
@@ -268,7 +342,7 @@ def test_stream_budget_stops_before_staging_more_than_remaining_bytes(tmp_path: 
 
 
 def test_concurrent_streams_cannot_stage_beyond_run_budget(tmp_path: Path) -> None:
-    store = GoogleDriveDesktopArtifactStore(tmp_path, max_run_bytes=4)
+    store = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path), max_run_bytes=4)
 
     def write(payload: bytes):
         try:
@@ -306,10 +380,34 @@ def test_direct_mongo_drive_policy_rejects_spoofed_object_store(monkeypatch) -> 
         )
 
 
+def test_direct_mongo_object_store_rejects_an_unset_backend(monkeypatch) -> None:
+    monkeypatch.delenv("DATA_PLATFORM_ARTIFACT_BACKEND", raising=False)
+    with pytest.raises(ValueError, match="unset, blank, or None is disabled"):
+        MongoRawEvidenceStore(
+            MongoRawEvidenceConfig(uri="mongodb://test", database="raw"),
+            object_store=LegacyReadOnlyStore(b"legacy"),
+        )
+
+
 def test_drive_selected_structured_staging_rejects_row_retaining_injection(monkeypatch) -> None:
     monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
     with pytest.raises(ValueError, match="preflighted GoogleDriveDesktopArtifactStore"):
         SupabaseStructuredStagingStore(_StructuredInsertClient())
+
+
+def test_structured_staging_rejects_an_unset_backend(monkeypatch) -> None:
+    monkeypatch.delenv("DATA_PLATFORM_ARTIFACT_BACKEND", raising=False)
+    with pytest.raises(ValueError, match="unset, blank, or None is disabled"):
+        SupabaseStructuredStagingStore(_StructuredInsertClient())
+
+
+def test_structured_staging_factory_rejects_unset_backend(monkeypatch) -> None:
+    monkeypatch.setenv("EXTERNAL_STRUCTURED_STAGING_ENABLED", "true")
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role")
+    monkeypatch.delenv("DATA_PLATFORM_ARTIFACT_BACKEND", raising=False)
+    with pytest.raises(StructuredStagingError, match="unset, blank, or None is disabled"):
+        create_structured_staging_store()
 
 
 def test_injected_legacy_raw_store_is_rejected_when_drive_is_selected(monkeypatch) -> None:
@@ -328,9 +426,10 @@ class _StructuredInsertClient:
         self.inserts.append((table, rows))
 
 
-def test_drive_structured_staging_externalizes_rows_to_csv(tmp_path: Path) -> None:
+def test_drive_structured_staging_externalizes_rows_to_csv(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
     client = _StructuredInsertClient()
-    archive = GoogleDriveDesktopArtifactStore(tmp_path)
+    archive = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
     staging = SupabaseStructuredStagingStore(client, artifact_store=archive)
     assert staging.put_archive_members(
         [

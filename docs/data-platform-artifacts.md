@@ -15,12 +15,16 @@ DATA_PLATFORM_ARCHIVE_ROOT=<existing Google Drive for desktop directory>
 DATA_PLATFORM_ARTIFACT_RUN_BUDGET_BYTES=<optional non-negative byte count>
 ```
 
-The configured root must already exist and be writable. Startup writes and
-removes a tiny probe; failure is configuration-invalid and prevents a remote or
-dual raw-evidence run from starting. A successfully written file has local
-state `PRESENT`, readback state `VERIFIED`, and cloud-sync state `UNKNOWN`:
-Google Drive for desktop performs syncing outside this process, so local
-readback is never presented as cloud confirmation.
+The configured root must already exist and contain the existing
+`raw/objects` archive path. Startup verifies the root, `raw`, and
+`raw/objects` are readable and writable; it then creates and probes its
+private `.artifact-staging` and `.artifact-locks` work directories under that
+verified root. All checks use a tiny write/read/remove probe; failure is
+configuration-invalid and prevents a remote or dual raw-evidence run from
+starting. A successfully written file has local state `PRESENT`, readback
+state `VERIFIED`, and cloud-sync state `UNKNOWN`: Google Drive for desktop
+performs syncing outside this process, so local readback is never presented as
+cloud confirmation.
 
 New objects use portable logical locators, never a drive letter:
 
@@ -40,15 +44,19 @@ directory also protects separate worker processes sharing one mounted root.
 
 ## Compatibility and scope
 
-When the Drive backend is selected and the existing Supabase Storage settings
-are also present, pre-existing `raw/sha256/...` locators remain read-compatible.
-That adapter is passed only to read paths; new byte writes and streams never
-fall back to Supabase. `legacy_supabase_storage` and `legacy_s3` remain
-available only as explicit transition backends, and an unset backend preserves
-existing legacy deployments. Every public raw/staging injection boundary
-requires the exact preflighted Drive adapter (not a spoofable backend-name
-string), and a Drive-selected staging writer must use the shared archive
-instance so deduplication and the run budget cannot be bypassed.
+Every heavy Data Platform write requires an explicit
+`DATA_PLATFORM_ARTIFACT_BACKEND`; unset, blank, and `None` fail closed rather
+than selecting S3, Supabase Storage, local, or raw-evidence storage. The only
+supported active heavy-write backend is `google_drive_desktop`. When it is
+selected and existing Supabase Storage settings are also present, pre-existing
+`raw/sha256/...` locators remain read-compatible. That adapter is passed only
+to read paths; new Drive byte writes and streams never fall back to Supabase.
+`legacy_supabase_storage` and `legacy_s3` are available only when explicitly
+selected for controlled compatibility or migration; they are never automatic
+fallbacks. Every public raw/staging injection boundary requires the exact
+preflighted Drive adapter (not a spoofable backend-name string), and a
+Drive-selected staging writer must use the shared archive instance so
+deduplication and the run budget cannot be bypassed.
 
 The audit boundary is `raw_evidence.py` → `MongoRawEvidenceStore` →
 `ObjectStore`: raw evidence, source/provider acquisition, Stage 1 raw fetches,

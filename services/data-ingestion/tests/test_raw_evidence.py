@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import io
+import os
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from glowbal_ingestion.config import CrawlLimits, InstitutionSeed, SmokeConfig
 from glowbal_ingestion.fetcher import FetchError
@@ -175,6 +177,17 @@ class _ChunkedSeekable(io.BytesIO):
 
 
 class RawEvidenceContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # These contract tests inject deterministic remote stores.  The
+        # explicit legacy choice documents that they are compatibility-path
+        # tests, not implicit production backend selection.
+        self._artifact_backend = patch.dict(
+            os.environ,
+            {"DATA_PLATFORM_ARTIFACT_BACKEND": "legacy_supabase_storage"},
+        )
+        self._artifact_backend.start()
+        self.addCleanup(self._artifact_backend.stop)
+
     def test_same_content_has_distinct_snapshot_history(self) -> None:
         store = InMemoryRawEvidenceStore()
         self.assertEqual(store.durability, RawEvidenceDurability.LOCAL_ONLY)
@@ -466,6 +479,35 @@ class RawEvidenceContractTests(unittest.TestCase):
                 )
         self.assertIn("REMOTE_DURABLE", str(raised.exception))
 
+    def test_remote_mode_rejects_an_unset_artifact_backend_before_store_injection(self) -> None:
+        seed = InstitutionSeed(
+            institution_id="example",
+            name="Example University",
+            country_code="US",
+            official_domain="example.edu",
+            homepage_url="https://example.edu/",
+            terms_status="APPROVED",
+        )
+        config = SmokeConfig(
+            run_name="remote-needs-backend",
+            institutions=(seed,),
+            limits=CrawlLimits(min_request_interval_seconds=0),
+            raw_evidence_mode="remote",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "unset, blank, or None is disabled",
+                ):
+                    SmokePipeline(
+                        config,
+                        Path(temporary) / "run",
+                        allow_unreviewed_terms=False,
+                        discovery_only=True,
+                        raw_evidence_store=InMemoryRawEvidenceStore(),
+                    )
+
     def test_remote_mode_parses_from_persisted_snapshot_without_local_raw_file(self) -> None:
         seed = InstitutionSeed(
             institution_id="example",
@@ -551,6 +593,14 @@ class RawEvidenceContractTests(unittest.TestCase):
 
 
 class MongoRawEvidenceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._artifact_backend = patch.dict(
+            os.environ,
+            {"DATA_PLATFORM_ARTIFACT_BACKEND": "legacy_supabase_storage"},
+        )
+        self._artifact_backend.start()
+        self.addCleanup(self._artifact_backend.stop)
+
     def _store(self, object_store=None):
         self.client = _MongoClient()
         return MongoRawEvidenceStore(

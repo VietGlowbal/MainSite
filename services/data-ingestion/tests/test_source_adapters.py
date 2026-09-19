@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from glowbal_ingestion.acquisition import AcquisitionIntent, EntityRef, SourceCandidate
 from glowbal_ingestion.config import ExternalSourceRule, InstitutionSeed
@@ -115,11 +117,53 @@ def _seed() -> InstitutionSeed:
 
 class SourceAdapterTests(unittest.TestCase):
     def setUp(self) -> None:
+        self._artifact_backend = patch.dict(
+            os.environ,
+            {"DATA_PLATFORM_ARTIFACT_BACKEND": "legacy_supabase_storage"},
+        )
+        self._artifact_backend.start()
+        self.addCleanup(self._artifact_backend.stop)
         self.entity = EntityRef("PROGRAMME", "p1")
         self.intent = AcquisitionIntent.create(
             entity=self.entity, field_groups=("tuition",), reason="test",
             preferred_source_classes=("government_dataset", "pdf", "archive", "search_index"),
         )
+
+    def test_admitted_remote_fetch_rejects_an_unset_artifact_backend(self) -> None:
+        candidate = SourceCandidate.create(
+            canonical_locator="https://government.example/fees/p1.json",
+            locator_type="json_api",
+            source_class="government_dataset",
+            adapter_id="government_fixture",
+            relationship=SourceRelationship.GOVERNMENT,
+            relationship_evidence=("dataset names institution id",),
+            declared_authority=SourceAuthority.GOVERNMENT,
+        )
+        decision = SourceResolver().evaluate(candidate, seed=_seed(), intent=self.intent)
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(
+                ValueError,
+                "unset, blank, or None is disabled",
+            ):
+                persist_admitted_fetch(
+                    candidate=candidate,
+                    decision=decision,
+                    fetcher=_Fetcher(),
+                    raw_store=_RemoteStore(),
+                    robots_policy=_AllowAllRobots(),
+                )
+
+    def test_acquisition_backend_rejects_an_unset_remote_store_backend(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(
+                ValueError,
+                "unset, blank, or None is disabled",
+            ):
+                AcquisitionPlatformBackend(
+                    _LegacyDiscovery([]),
+                    mode="platform_shadow",
+                    raw_evidence_store=_RemoteStore(),
+                )
 
     def test_explicit_related_party_is_admitted_then_durably_persisted(self) -> None:
         candidate = SourceCandidate.create(

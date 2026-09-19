@@ -12,8 +12,11 @@ import os
 from typing import Any, Iterable, Mapping, Protocol, Sequence, runtime_checkable
 
 from .artifact_store import (
+    ArtifactConfigurationError,
     ArtifactStore,
+    GOOGLE_DRIVE_DESKTOP_BACKEND,
     require_verified_google_drive_store,
+    require_configured_artifact_backend,
 )
 from .object_store import ObjectStoreError
 
@@ -57,7 +60,10 @@ class SupabaseStructuredStagingStore:
             raise ValueError("Structured staging table is required.")
         if batch_size < 1 or batch_size > 500:
             raise ValueError("Structured staging batch size must be between 1 and 500.")
-        if os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower() == "google_drive_desktop":
+        self.artifact_backend = require_configured_artifact_backend(
+            context="Structured staging"
+        )
+        if self.artifact_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
             require_verified_google_drive_store(
                 artifact_store,
                 context="Drive-selected structured staging",
@@ -90,7 +96,7 @@ class SupabaseStructuredStagingStore:
         rows: list[Mapping[str, Any]],
         lineage: Mapping[str, Any],
     ) -> tuple[list[Mapping[str, Any]], dict[str, Any]]:
-        if os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower() == "google_drive_desktop":
+        if self.artifact_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
             require_verified_google_drive_store(
                 self.artifact_store,
                 context="Drive-selected structured staging",
@@ -222,8 +228,8 @@ def create_structured_staging_store(
         from .supabase_import import SupabaseRestClient
         from .supabase_seeds import _credentials
 
-        backend = os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
-        if backend == "google_drive_desktop":
+        backend = require_configured_artifact_backend(context="Structured staging")
+        if backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
             if artifact_store is None:
                 archive_root = os.environ.get("DATA_PLATFORM_ARCHIVE_ROOT", "").strip()
                 if not archive_root:
@@ -240,23 +246,14 @@ def create_structured_staging_store(
                     archive_root,
                     max_run_bytes=budget,
                 )
-        elif backend not in {
-            "",
-            "google_drive_desktop",
-            "legacy_supabase_storage",
-            "legacy_s3",
-        }:
-            raise StructuredStagingError(
-                "DATA_PLATFORM_ARTIFACT_BACKEND must be google_drive_desktop, "
-                "legacy_supabase_storage, or legacy_s3."
-            )
-
         base_url, api_key = _credentials(os.environ)
         return SupabaseStructuredStagingStore(
             SupabaseRestClient(base_url, api_key),
             artifact_store=artifact_store,
         )
-    except StructuredStagingError:
+    except (ArtifactConfigurationError, StructuredStagingError) as exc:
+        if isinstance(exc, ArtifactConfigurationError):
+            raise StructuredStagingError(str(exc)) from exc
         raise
     except Exception as exc:
         raise StructuredStagingError(

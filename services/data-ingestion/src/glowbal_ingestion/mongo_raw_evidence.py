@@ -7,12 +7,15 @@ uses :mod:`raw_evidence` interfaces and core dataclasses exclusively.
 from __future__ import annotations
 
 import io
-import os
 from dataclasses import dataclass
 from typing import Any, BinaryIO, Callable
 
 from .models import RawDocument, SourceAuthority, SourceRelationship, TemporalState
-from .artifact_store import require_verified_google_drive_store
+from .artifact_store import (
+    GOOGLE_DRIVE_DESKTOP_BACKEND,
+    require_configured_artifact_backend,
+    require_verified_google_drive_store,
+)
 from .object_store import ObjectReference, ObjectStore, ObjectStoreError
 from .raw_evidence import (
     RawEvidenceDurability,
@@ -55,15 +58,15 @@ class MongoRawEvidenceStore(RawEvidenceStore):
         object_store: ObjectStore | None = None,
         client_factory: Callable[[MongoRawEvidenceConfig], Any] | None = None,
     ) -> None:
-        if (
-            object_store is not None
-            and os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
-            == "google_drive_desktop"
-        ):
-            require_verified_google_drive_store(
-                object_store,
-                context="Drive-selected Mongo raw evidence",
+        if object_store is not None:
+            selected_backend = require_configured_artifact_backend(
+                context="Mongo raw evidence object storage"
             )
+            if selected_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
+                require_verified_google_drive_store(
+                    object_store,
+                    context="Drive-selected Mongo raw evidence",
+                )
         self.config = config
         self.object_store = object_store
         self._client_factory = client_factory

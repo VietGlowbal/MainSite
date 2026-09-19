@@ -14,6 +14,13 @@ import uuid
 from dataclasses import dataclass, field
 from typing import BinaryIO, Iterable, Protocol, runtime_checkable
 
+from .artifact_store import (
+    ArtifactConfigurationError,
+    GOOGLE_DRIVE_DESKTOP_BACKEND,
+    LEGACY_S3_BACKEND,
+    LEGACY_SUPABASE_STORAGE_BACKEND,
+    require_configured_artifact_backend,
+)
 from .object_store import ObjectStoreError
 from .models import (
     RawDocument,
@@ -362,7 +369,16 @@ def create_remote_raw_evidence_store(
     """
     uri = os.environ.get("MONGODB_URI", "").strip()
     database = os.environ.get("MONGODB_DATABASE", "").strip()
-    artifact_backend = os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
+    try:
+        artifact_backend = require_configured_artifact_backend(
+            context="Remote raw evidence"
+        )
+    except ArtifactConfigurationError as exc:
+        raise RawEvidenceError(
+            RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+            str(exc),
+            retryable=False,
+        ) from exc
     s3_bucket = os.environ.get("RAW_OBJECT_STORE_BUCKET", "").strip()
     supabase_url = (
         os.environ.get("SUPABASE_URL", "").strip()
@@ -376,29 +392,16 @@ def create_remote_raw_evidence_store(
         supabase_url and supabase_service_role_key and supabase_bucket
     )
     has_drive_archive = bool(os.environ.get("DATA_PLATFORM_ARCHIVE_ROOT", "").strip())
-    if artifact_backend not in {
-        "",
-        "google_drive_desktop",
-        "legacy_supabase_storage",
-        "legacy_s3",
-    }:
-        raise RawEvidenceError(
-            RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
-            "DATA_PLATFORM_ARTIFACT_BACKEND must be google_drive_desktop, "
-            "legacy_supabase_storage, or legacy_s3.",
-            retryable=False,
-        )
-    if artifact_backend == "google_drive_desktop" and not has_drive_archive:
+    if artifact_backend == GOOGLE_DRIVE_DESKTOP_BACKEND and not has_drive_archive:
         raise RawEvidenceError(
             RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
             "google_drive_desktop requires DATA_PLATFORM_ARCHIVE_ROOT.",
             retryable=False,
         )
     has_configured_artifact_backend = {
-        "google_drive_desktop": has_drive_archive,
-        "legacy_supabase_storage": has_supabase_storage,
-        "legacy_s3": bool(s3_bucket),
-        "": bool(s3_bucket) or has_supabase_storage,
+        GOOGLE_DRIVE_DESKTOP_BACKEND: has_drive_archive,
+        LEGACY_SUPABASE_STORAGE_BACKEND: has_supabase_storage,
+        LEGACY_S3_BACKEND: bool(s3_bucket),
     }[artifact_backend]
     if not uri or not database or not has_configured_artifact_backend:
         raise RawEvidenceError(
@@ -407,7 +410,7 @@ def create_remote_raw_evidence_store(
             retryable=False,
         )
     from .mongo_raw_evidence import MongoRawEvidenceConfig, MongoRawEvidenceStore
-    if artifact_backend == "google_drive_desktop":
+    if artifact_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
         from .artifact_store import GoogleDriveDesktopArtifactStore
 
         # Legacy Supabase objects remain readable by their old logical keys.
@@ -445,10 +448,9 @@ def create_remote_raw_evidence_store(
                 "Google Drive desktop archive preflight failed.",
                 retryable=False,
             ) from exc
-    elif artifact_backend == "legacy_s3" or (
-        artifact_backend == "" and s3_bucket
-    ):
-        # Keep existing S3-compatible configuration behaviour unchanged.
+    elif artifact_backend == LEGACY_S3_BACKEND:
+        # Legacy object stores are available only through an explicit
+        # compatibility/migration selection; they are never inferred.
         from .object_store import S3ObjectStore, S3ObjectStoreConfig
 
         object_store = S3ObjectStore(
@@ -468,7 +470,7 @@ def create_remote_raw_evidence_store(
                 or None,
             )
         )
-    else:
+    elif artifact_backend == LEGACY_SUPABASE_STORAGE_BACKEND:
         from .supabase_storage import (
             SupabaseStorageConfig,
             SupabaseStorageObjectStore,
@@ -480,6 +482,12 @@ def create_remote_raw_evidence_store(
                 service_role_key=supabase_service_role_key,
                 bucket=supabase_bucket,
             )
+        )
+    else:  # Defensive: require_configured_artifact_backend owns the allow-list.
+        raise RawEvidenceError(
+            RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+            "No implicit raw-evidence object-storage backend is available.",
+            retryable=False,
         )
     return MongoRawEvidenceStore(
         MongoRawEvidenceConfig(

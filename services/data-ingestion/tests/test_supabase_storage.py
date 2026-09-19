@@ -179,6 +179,7 @@ class SupabaseStorageObjectStoreTests(unittest.TestCase):
             {
                 "MONGODB_URI": "mongodb://test.invalid",
                 "MONGODB_DATABASE": "raw_test",
+                "DATA_PLATFORM_ARTIFACT_BACKEND": "legacy_supabase_storage",
                 "RAW_OBJECT_STORE_BUCKET": "",
                 "SUPABASE_URL": "https://project.supabase.co",
                 "NEXT_PUBLIC_SUPABASE_URL": "",

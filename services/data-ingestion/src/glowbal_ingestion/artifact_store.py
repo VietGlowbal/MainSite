@@ -30,6 +30,54 @@ _HASH_LOCKS_GUARD = threading.Lock()
 _HASH_LOCKS: dict[tuple[str, str], threading.RLock] = {}
 
 
+ARTIFACT_BACKEND_ENV = "DATA_PLATFORM_ARTIFACT_BACKEND"
+GOOGLE_DRIVE_DESKTOP_BACKEND = "google_drive_desktop"
+LEGACY_SUPABASE_STORAGE_BACKEND = "legacy_supabase_storage"
+LEGACY_S3_BACKEND = "legacy_s3"
+SUPPORTED_ARTIFACT_BACKENDS = frozenset(
+    {
+        GOOGLE_DRIVE_DESKTOP_BACKEND,
+        LEGACY_SUPABASE_STORAGE_BACKEND,
+        LEGACY_S3_BACKEND,
+    }
+)
+
+
+class ArtifactConfigurationError(ValueError):
+    """A heavy-artifact path was invoked without an explicit backend choice."""
+
+
+def require_configured_artifact_backend(
+    *,
+    context: str,
+    environ: Mapping[str, object] | None = None,
+) -> str:
+    """Return the explicitly selected backend or reject every implicit choice.
+
+    Heavy Data Platform bytes must never infer a destination from whichever
+    S3, Supabase, local, or raw-evidence variables happen to be present.  The
+    two legacy values are retained only as explicit compatibility/migration
+    selections; Drive is the active archive backend.
+    """
+    environment = os.environ if environ is None else environ
+    value = environment.get(ARTIFACT_BACKEND_ENV)
+    selected = str(value or "").strip().lower()
+    if selected in {"", "none"}:
+        raise ArtifactConfigurationError(
+            f"{context} requires an explicit {ARTIFACT_BACKEND_ENV}; "
+            "unset, blank, or None is disabled. Set google_drive_desktop "
+            "for active archive writes, or explicitly select a legacy "
+            "compatibility/migration backend."
+        )
+    if selected not in SUPPORTED_ARTIFACT_BACKENDS:
+        raise ArtifactConfigurationError(
+            f"{ARTIFACT_BACKEND_ENV} must be google_drive_desktop, "
+            "legacy_supabase_storage, or legacy_s3; no storage fallback is "
+            "selected automatically."
+        )
+    return selected
+
+
 class ArtifactBudgetExceeded(ObjectStoreError):
     """A run attempted to retain more new archive bytes than it was given."""
 
@@ -179,7 +227,13 @@ class GoogleDriveDesktopArtifactStore:
     it is never used by any write method.
     """
 
-    backend_name = "google_drive_desktop"
+    backend_name = GOOGLE_DRIVE_DESKTOP_BACKEND
+    # The content-addressed archive itself is provisioned by the operator.
+    # These two internal work directories are safe for the process to create
+    # below that verified archive root, but must also pass preflight because
+    # streaming writes and cross-process locks depend on them.
+    _OPERATOR_PROVISIONED_SUBDIRECTORIES = (Path("raw"), Path("raw") / "objects")
+    _RUNTIME_SUBDIRECTORIES = (Path(".artifact-staging"), Path(".artifact-locks"))
 
     def __init__(
         self,
@@ -200,19 +254,63 @@ class GoogleDriveDesktopArtifactStore:
             self.preflight()
 
     def preflight(self) -> None:
-        """Fail closed unless the configured mounted archive is usable."""
+        """Fail closed unless the configured mounted archive is usable.
+
+        The root and immutable-object path are operator-provisioned.  A
+        writable arbitrary folder is not an acceptable substitute for the
+        configured Drive archive, so this method never creates either one.
+        It does create and probe the archive's private staging/lock folders
+        after that layout is verified, so every later write-path directory has
+        been checked before durable evidence is accepted.
+        """
         try:
-            if not self.archive_root.exists() or not self.archive_root.is_dir():
-                raise ObjectStoreError(
-                    "DATA_PLATFORM_ARCHIVE_ROOT must name an existing directory.",
-                    retryable=False,
+            operator_directories = (
+                ("DATA_PLATFORM_ARCHIVE_ROOT", self.archive_root),
+                *(
+                    (
+                        f"DATA_PLATFORM_ARCHIVE_ROOT/{relative.as_posix()}",
+                        self.archive_root / relative,
+                    )
+                    for relative in self._OPERATOR_PROVISIONED_SUBDIRECTORIES
+                ),
+            )
+            for label, directory in operator_directories:
+                if not directory.is_dir():
+                    raise ObjectStoreError(
+                        f"{label} must name an existing readable and writable directory.",
+                        retryable=False,
+                    )
+            runtime_directories: list[tuple[str, Path]] = []
+            for relative in self._RUNTIME_SUBDIRECTORIES:
+                directory = self.archive_root / relative
+                directory.mkdir(exist_ok=True)
+                runtime_directories.append(
+                    (f"DATA_PLATFORM_ARCHIVE_ROOT/{relative.as_posix()}", directory)
                 )
-            probe = self.archive_root / f".artifact-preflight-{os.getpid()}-{uuid.uuid4().hex}"
-            with probe.open("xb") as handle:
-                handle.write(b"ok")
-                handle.flush()
-                os.fsync(handle.fileno())
-            probe.unlink()
+            required_directories = (*operator_directories, *runtime_directories)
+            for label, directory in required_directories:
+                if not directory.is_dir():
+                    raise ObjectStoreError(
+                        f"{label} must name an existing readable and writable directory.",
+                        retryable=False,
+                    )
+                # Opening the directory verifies that it is readable; a
+                # write/read/remove probe verifies the mounted archive is
+                # usable before any durable evidence is accepted.
+                next(directory.iterdir(), None)
+                probe = directory / (
+                    f".artifact-preflight-{os.getpid()}-{uuid.uuid4().hex}"
+                )
+                try:
+                    with probe.open("xb") as handle:
+                        handle.write(b"ok")
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    if probe.read_bytes() != b"ok":
+                        raise OSError("archive preflight readback mismatch")
+                finally:
+                    if probe.exists():
+                        probe.unlink()
             _VERIFIED_DRIVE_STORES.add(self)
         except ObjectStoreError:
             raise
