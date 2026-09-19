@@ -89,6 +89,7 @@ from .normalization import (
     refine_programme_name_from_title,
     programme_metadata_entry_for_url,
 )
+from .artifact_store import is_verified_google_drive_store, require_verified_google_drive_store
 from .parser_registry import ParserError, ParserRegistry
 from .object_store import ObjectStoreError
 from .parsing import classify_page, normalize_text
@@ -140,6 +141,20 @@ from .validation import (
     programme_identity_supported,
     validate_assertion_set,
 )
+
+
+def _validate_injected_raw_evidence_store(raw_store: object) -> None:
+    """Prevent dependency injection from bypassing the selected artifact backend."""
+    selected_backend = os.environ.get(
+        "DATA_PLATFORM_ARTIFACT_BACKEND", ""
+    ).strip().lower()
+    if selected_backend != "google_drive_desktop":
+        return
+    injected_object_store = getattr(raw_store, "object_store", None)
+    require_verified_google_drive_store(
+        injected_object_store,
+        context="DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop raw evidence",
+    )
 
 
 RELATED_LINK_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -665,6 +680,22 @@ class SmokePipeline:
                 )
             )
             if (
+                os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
+                == "google_drive_desktop"
+                and raw_evidence_store is not None
+            ):
+                # Dependency injection is useful for tests and controlled
+                # replays, but it must not become a way to bypass the
+                # production backend policy.  A Drive-selected run accepts
+                # only a raw store whose physical object store is the
+                # fail-closed Drive implementation; legacy Supabase/S3
+                # stores remain read-compatible only through that adapter.
+                try:
+                    _validate_injected_raw_evidence_store(raw_evidence_store)
+                except ValueError:
+                    self.state.close()
+                    raise
+            if (
                 getattr(
                     self.raw_evidence_store,
                     "durability",
@@ -681,8 +712,32 @@ class SmokePipeline:
                     "RAW_EVIDENCE_MODE remote/dual requires a "
                     "REMOTE_DURABLE RawEvidenceStore."
                 )
-        self.structured_staging_store = (
-            structured_staging_store or create_structured_staging_store()
+        shared_artifact_store = getattr(self.raw_evidence_store, "object_store", None)
+        if (
+            structured_staging_store is not None
+            and os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
+            == "google_drive_desktop"
+        ):
+            from .structured_staging import validate_injected_structured_staging_store
+
+            try:
+                validate_injected_structured_staging_store(
+                    structured_staging_store,
+                    shared_artifact_store=(
+                        shared_artifact_store
+                        if is_verified_google_drive_store(shared_artifact_store)
+                        else None
+                    ),
+                )
+            except ValueError:
+                self.state.close()
+                raise
+        self.structured_staging_store = structured_staging_store or create_structured_staging_store(
+            artifact_store=(
+                shared_artifact_store
+                if is_verified_google_drive_store(shared_artifact_store)
+                else None
+            )
         )
         shared_cache_dir = run_dir.parent / "_cache"
         shared_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -1911,6 +1966,10 @@ class SmokePipeline:
                     "object_key": raw_document.payload_reference,
                     "content_hash": raw_document.content_hash,
                     "content_length": getattr(raw_document, "content_length", None),
+                    "storage_backend": getattr(raw_document, "storage_backend", None),
+                    "archive_local_state": getattr(raw_document, "archive_local_state", None),
+                    "archive_readback_state": getattr(raw_document, "archive_readback_state", None),
+                    "archive_cloud_sync_state": getattr(raw_document, "archive_cloud_sync_state", None),
                     "provenance_persisted": True,
                     "retrieved_at": raw_document.retrieved_at,
                     "source_class": source_class,
@@ -2417,7 +2476,13 @@ class SmokePipeline:
                     "url": result.final_url,
                     "status": "persisted",
                     "storage": raw_document.payload_location,
+                    "object_key": raw_document.payload_reference,
                     "content_hash": raw_document.content_hash,
+                    "content_length": getattr(raw_document, "content_length", None),
+                    "storage_backend": getattr(raw_document, "storage_backend", None),
+                    "archive_local_state": getattr(raw_document, "archive_local_state", None),
+                    "archive_readback_state": getattr(raw_document, "archive_readback_state", None),
+                    "archive_cloud_sync_state": getattr(raw_document, "archive_cloud_sync_state", None),
                     "retrieved_at": result.retrieved_at,
                     "source_class": source_class,
                     "adapter_id": adapter_id,

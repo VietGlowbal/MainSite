@@ -1,5 +1,20 @@
 # Current project status
 
+Working tree 2026-09-19 Data Platform Drive-desktop artifact archive: new
+remote/dual raw-evidence writes can opt into
+`DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop`, which preflights an
+existing `DATA_PLATFORM_ARCHIVE_ROOT`, writes SHA-256-deduplicated portable
+`raw/objects/<prefix>/<hash>.<ext>` objects, validates local readback, reports
+cloud sync as unknown, and enforces an optional per-run byte budget. Mongo
+snapshot/provenance contracts remain compatible and now record backend and
+local/readback/cloud-sync state; configured legacy Supabase Storage is
+read-compatible only for old `raw/sha256/...` locators and is never a new
+Drive-write fallback. Drive-selected structured staging serializes extracted
+rows as CSV and retains only locator/hash/size lineage in Supabase. The focused
+archive/raw-evidence suite passed 56 tests and the broader Data Platform
+regression selection passed 185 tests; Python compileall and diff checks passed.
+No live ingestion, Supabase mutation, or generated archive artifact occurred.
+
 Working tree 2026-09-16 deterministic Stage 1 MAX_FILL advisory expansion:
 the existing frozen evidence and 105 captured official pages were replayed for
 the unchanged 230 verified recipients; no new crawl or paid LLM call was made.

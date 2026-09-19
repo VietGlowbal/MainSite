@@ -14,8 +14,14 @@ never commit or print them:
 - `SUPABASE_SERVICE_ROLE_KEY` for server-only jobs and migrations
 - `MONGODB_URI`
 - `MONGODB_DATABASE`
-- `RAW_OBJECT_STORAGE_BUCKET` for Supabase Storage, or
-  `RAW_OBJECT_STORE_BUCKET` for the configured S3-compatible object store
+- `DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop` for new heavy Data
+  Platform artifacts
+- `DATA_PLATFORM_ARCHIVE_ROOT` for the existing Google Drive for desktop
+  mount (runtime-only; never store a drive letter in metadata)
+- `DATA_PLATFORM_ARTIFACT_RUN_BUDGET_BYTES` as an optional per-run cap
+- `RAW_OBJECT_STORAGE_BUCKET` or `RAW_OBJECT_STORE_BUCKET` only for legacy
+  compatibility reads/migrations; neither is a new-write fallback when Drive
+  is selected
 - provider credentials only for the selected extraction/search adapters
 
 Use a separately named non-production Supabase project and Mongo database.
@@ -42,7 +48,9 @@ successful file parse as schema verification.
 2. Claim jobs using the existing job-claim mechanism; record run, intent,
    attempt, policy, and failure class.
 3. Persist remote raw evidence before accepting extraction as durable truth.
-   HTML/TXT/JSON use Mongo raw evidence; large binary/PDF payloads use Storage.
+   Mongo owns bounded metadata/provenance and the configured Drive artifact
+   store owns heavy bytes (HTML, JSON, PDF, ZIP, CSV, and provider output).
+   Legacy Supabase/S3 locators remain readable only during transition.
 4. Reprocess from retained raw evidence when testing parsers or policies; do
    not refetch solely for reprocessing.
 5. Evaluate coverage, recovery, conflicts, identity, and Product Safety.

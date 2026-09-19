@@ -9,7 +9,13 @@ the parser to Supabase's REST details.
 from __future__ import annotations
 
 import os
-from typing import Any, Iterable, Mapping, Protocol, runtime_checkable
+from typing import Any, Iterable, Mapping, Protocol, Sequence, runtime_checkable
+
+from .artifact_store import (
+    ArtifactStore,
+    require_verified_google_drive_store,
+)
+from .object_store import ObjectStoreError
 
 
 class StructuredStagingError(RuntimeError):
@@ -39,14 +45,27 @@ class InMemoryStructuredStagingStore:
 class SupabaseStructuredStagingStore:
     """Additive writer for ``crawl_external_structured_rows``."""
 
-    def __init__(self, client: Any, *, table: str = "crawl_external_structured_rows", batch_size: int = 100) -> None:
+    def __init__(
+        self,
+        client: Any,
+        *,
+        table: str = "crawl_external_structured_rows",
+        batch_size: int = 100,
+        artifact_store: ArtifactStore | None = None,
+    ) -> None:
         if not table:
             raise ValueError("Structured staging table is required.")
         if batch_size < 1 or batch_size > 500:
             raise ValueError("Structured staging batch size must be between 1 and 500.")
+        if os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower() == "google_drive_desktop":
+            require_verified_google_drive_store(
+                artifact_store,
+                context="Drive-selected structured staging",
+            )
         self.client = client
         self.table = table
         self.batch_size = batch_size
+        self.artifact_store = artifact_store
 
     def put_archive_members(self, records: Iterable[Mapping[str, Any]]) -> int:
         total = 0
@@ -63,8 +82,52 @@ class SupabaseStructuredStagingStore:
         return total
 
     @staticmethod
-    def _row(record: Mapping[str, Any]) -> dict[str, Any]:
+    def _row_fieldnames(rows: Sequence[Mapping[str, Any]]) -> list[str]:
+        return sorted({str(key) for row in rows for key in row.keys()})
+
+    def _externalize_rows(
+        self,
+        rows: list[Mapping[str, Any]],
+        lineage: Mapping[str, Any],
+    ) -> tuple[list[Mapping[str, Any]], dict[str, Any]]:
+        if os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower() == "google_drive_desktop":
+            require_verified_google_drive_store(
+                self.artifact_store,
+                context="Drive-selected structured staging",
+            )
+        if self.artifact_store is None or not rows:
+            return rows, dict(lineage)
+        fieldnames = self._row_fieldnames(rows)
+        if not fieldnames:
+            return [], dict(lineage)
+        try:
+            reference = self.artifact_store.write_csv(fieldnames, rows)
+        except ObjectStoreError as exc:
+            raise StructuredStagingError(
+                "Structured rows could not be archived to the configured artifact store."
+            ) from exc
+        updated_lineage = dict(lineage)
+        updated_lineage["structured_rows_artifact"] = {
+            "storage_backend": getattr(
+                self.artifact_store, "backend_name", "artifact_store"
+            ),
+            "logical_locator": reference.key,
+            "sha256": reference.content_hash,
+            "size_bytes": reference.content_length,
+            "format": "csv",
+            "schema_version": "structured-archive-rows/v1",
+            "row_count": len(rows),
+            "column_order": fieldnames,
+        }
+        return [], updated_lineage
+
+    def _row(self, record: Mapping[str, Any]) -> dict[str, Any]:
         raw_object_key = record.get("raw_object_key") or record.get("object_key")
+        rows = [dict(row) for row in (record.get("rows") or []) if isinstance(row, Mapping)]
+        rows, lineage = self._externalize_rows(
+            rows,
+            record.get("lineage") if isinstance(record.get("lineage"), Mapping) else {},
+        )
         return {
             "run_id": record.get("acquisition_run_id") or record.get("run_id"),
             "run_key": record.get("acquisition_run_id") or record.get("run_key"),
@@ -82,13 +145,13 @@ class SupabaseStructuredStagingStore:
             "institution_id": record.get("institution_id"),
             "programme_id": record.get("programme_id"),
             "academic_cycle": record.get("academic_cycle"),
-            "rows": record.get("rows") or [],
+            "rows": rows,
             "rows_scanned": record.get("rows_scanned") or 0,
             "rows_retained": record.get("rows_retained") or 0,
             "partial": bool(record.get("partial", False)),
             "bounded_reason": record.get("bounded_reason"),
             "bytes_scanned": record.get("bytes_scanned"),
-            "lineage": record.get("lineage") or {},
+            "lineage": lineage,
             "retrieved_at": record.get("retrieved_at"),
         }
 
@@ -105,7 +168,38 @@ class SupabaseStructuredStagingStore:
             ) from exc
 
 
-def create_structured_staging_store() -> StructuredStagingStore | None:
+def validate_injected_structured_staging_store(
+    store: StructuredStagingStore,
+    *,
+    shared_artifact_store: ArtifactStore | None,
+) -> None:
+    """Reject injected staging sinks that can retain full rows in Postgres.
+
+    The known Supabase writer is the only implementation that turns row
+    payloads into bounded CSV artifacts.  A caller-supplied protocol object
+    cannot be trusted to honor that contract, so Drive-selected pipelines
+    accept only the exact writer class with a preflighted Drive store.  When a
+    raw evidence store already owns the archive, identity is also required so
+    both paths share deduplication and the run budget.
+    """
+    if type(store) is not SupabaseStructuredStagingStore:
+        raise ValueError(
+            "DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop "
+            "cannot use an injected non-Drive structured staging store."
+        )
+    artifact_store = getattr(store, "artifact_store", None)
+    require_verified_google_drive_store(
+        artifact_store,
+        context="Drive-selected structured staging",
+    )
+    if shared_artifact_store is not None and artifact_store is not shared_artifact_store:
+        raise ValueError(
+            "Drive-selected structured staging must use the shared artifact store."
+        )
+
+def create_structured_staging_store(
+    *, artifact_store: ArtifactStore | None = None
+) -> StructuredStagingStore | None:
     """Build the production writer when Supabase is configured.
 
     Existing local runs remain unchanged when Supabase is absent (or when
@@ -128,8 +222,42 @@ def create_structured_staging_store() -> StructuredStagingStore | None:
         from .supabase_import import SupabaseRestClient
         from .supabase_seeds import _credentials
 
+        backend = os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
+        if backend == "google_drive_desktop":
+            if artifact_store is None:
+                archive_root = os.environ.get("DATA_PLATFORM_ARCHIVE_ROOT", "").strip()
+                if not archive_root:
+                    raise StructuredStagingError(
+                        "google_drive_desktop requires DATA_PLATFORM_ARCHIVE_ROOT."
+                    )
+                from .artifact_store import GoogleDriveDesktopArtifactStore
+
+                budget_value = os.environ.get(
+                    "DATA_PLATFORM_ARTIFACT_RUN_BUDGET_BYTES", ""
+                ).strip()
+                budget = int(budget_value) if budget_value else None
+                artifact_store = GoogleDriveDesktopArtifactStore(
+                    archive_root,
+                    max_run_bytes=budget,
+                )
+        elif backend not in {
+            "",
+            "google_drive_desktop",
+            "legacy_supabase_storage",
+            "legacy_s3",
+        }:
+            raise StructuredStagingError(
+                "DATA_PLATFORM_ARTIFACT_BACKEND must be google_drive_desktop, "
+                "legacy_supabase_storage, or legacy_s3."
+            )
+
         base_url, api_key = _credentials(os.environ)
-        return SupabaseStructuredStagingStore(SupabaseRestClient(base_url, api_key))
+        return SupabaseStructuredStagingStore(
+            SupabaseRestClient(base_url, api_key),
+            artifact_store=artifact_store,
+        )
+    except StructuredStagingError:
+        raise
     except Exception as exc:
         raise StructuredStagingError(
             "Structured staging was enabled but Supabase configuration is invalid."

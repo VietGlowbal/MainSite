@@ -744,6 +744,10 @@ class RawDocument(JsonRecord):
     # callers that still construct RawDocument positionally retain the legacy
     # argument order.
     content_length: int | None = None
+    storage_backend: str | None = None
+    archive_local_state: str | None = None
+    archive_readback_state: str | None = None
+    archive_cloud_sync_state: str | None = None
 
 
 @dataclass(frozen=True)

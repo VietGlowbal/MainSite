@@ -7,10 +7,12 @@ uses :mod:`raw_evidence` interfaces and core dataclasses exclusively.
 from __future__ import annotations
 
 import io
+import os
 from dataclasses import dataclass
 from typing import Any, BinaryIO, Callable
 
 from .models import RawDocument, SourceAuthority, SourceRelationship, TemporalState
+from .artifact_store import require_verified_google_drive_store
 from .object_store import ObjectReference, ObjectStore, ObjectStoreError
 from .raw_evidence import (
     RawEvidenceDurability,
@@ -53,6 +55,15 @@ class MongoRawEvidenceStore(RawEvidenceStore):
         object_store: ObjectStore | None = None,
         client_factory: Callable[[MongoRawEvidenceConfig], Any] | None = None,
     ) -> None:
+        if (
+            object_store is not None
+            and os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
+            == "google_drive_desktop"
+        ):
+            require_verified_google_drive_store(
+                object_store,
+                context="Drive-selected Mongo raw evidence",
+            )
         self.config = config
         self.object_store = object_store
         self._client_factory = client_factory
@@ -144,6 +155,10 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                 if record.get("content_length") is not None
                 else None
             ),
+            storage_backend=record.get("storage_backend"),
+            archive_local_state=record.get("archive_local_state"),
+            archive_readback_state=record.get("archive_readback_state"),
+            archive_cloud_sync_state=record.get("archive_cloud_sync_state"),
             http_status=record.get("http_status"),
             safe_response_headers=dict(record.get("safe_response_headers") or {}),
             published_at=record.get("published_at"),
@@ -179,7 +194,36 @@ class MongoRawEvidenceStore(RawEvidenceStore):
             schema_version=str(record.get("schema_version") or "raw-document/v1"),
         )
 
-    def _store_blob(self, snapshot: RawSnapshotInput) -> tuple[str, str]:
+    def _artifact_metadata(
+        self,
+        reference: ObjectReference | None,
+        *,
+        payload_location: str,
+    ) -> dict[str, Any]:
+        """Return bounded archive state without copying artifact bytes."""
+        if reference is None:
+            return {
+                "storage_backend": payload_location,
+                "archive_local_state": "PRESENT",
+                "archive_readback_state": "NOT_APPLICABLE",
+                "archive_cloud_sync_state": "NOT_APPLICABLE",
+            }
+        return {
+            "storage_backend": getattr(
+                self.object_store, "backend_name", "legacy_object_store"
+            ),
+            "archive_local_state": getattr(reference, "local_state", "REMOTE"),
+            "archive_readback_state": getattr(
+                reference, "readback_state", "UNKNOWN"
+            ),
+            "archive_cloud_sync_state": getattr(
+                reference, "cloud_sync_state", "UNKNOWN"
+            ),
+        }
+
+    def _store_blob(
+        self, snapshot: RawSnapshotInput
+    ) -> tuple[str, str, ObjectReference | None]:
         payload_hash = snapshot.payload_hash
         if len(snapshot.payload) <= self.config.inline_payload_max_bytes:
             blob = {
@@ -193,7 +237,7 @@ class MongoRawEvidenceStore(RawEvidenceStore):
             self._db()[self.BLOBS_COLLECTION].update_one(
                 {"_id": payload_hash}, {"$setOnInsert": blob}, upsert=True
             )
-            return "mongo_inline", payload_hash
+            return "mongo_inline", payload_hash, None
         if self.object_store is None:
             raise RawEvidenceError(
                 RawEvidenceErrorCode.RAW_PERSIST_FAILED,
@@ -222,16 +266,19 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                     "content_length": reference.content_length,
                     "content_type": reference.content_type,
                     "created_at": snapshot.retrieved_at,
+                    **self._artifact_metadata(
+                        reference, payload_location="object_store"
+                    ),
                 }
             },
             upsert=True,
         )
-        return "object_store", reference.key
+        return "object_store", reference.key, reference
 
     def _store_blob_stream(
         self,
         snapshot: RawSnapshotStreamInput,
-    ) -> tuple[str, str, str, int, str | None]:
+    ) -> tuple[str, str, str, int, str | None, ObjectReference]:
         """Persist a heavy payload directly through the configured object store."""
         if self.object_store is None:
             raise RawEvidenceError(
@@ -324,6 +371,9 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                     "temporal_state": snapshot.temporal_state.value,
                     "canonical_url": snapshot.canonical_url,
                     "acquisition_run_id": snapshot.acquisition_run_id,
+                    **self._artifact_metadata(
+                        reference, payload_location="object_store"
+                    ),
                 }
             },
             upsert=True,
@@ -334,6 +384,7 @@ class MongoRawEvidenceStore(RawEvidenceStore):
             reference.content_hash,
             reference.content_length,
             reference.content_type,
+            reference,
         )
 
     @staticmethod
@@ -344,6 +395,7 @@ class MongoRawEvidenceStore(RawEvidenceStore):
         payload_hash: str,
         content_length: int,
         content_type: str | None,
+        archive_metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return {
             "_id": snapshot.raw_document_id,
@@ -355,6 +407,7 @@ class MongoRawEvidenceStore(RawEvidenceStore):
             "retrieved_at": snapshot.retrieved_at,
             "payload_location": "object_store",
             "payload_reference": payload_reference,
+            **(archive_metadata or {}),
             "http_status": snapshot.http_status,
             "safe_response_headers": dict(snapshot.safe_response_headers),
             "published_at": snapshot.published_at,
@@ -385,13 +438,23 @@ class MongoRawEvidenceStore(RawEvidenceStore):
             existing = snapshots.find_one({"_id": snapshot.raw_document_id})
             if existing is not None:
                 return self._raw_document(existing)
-            location, reference, payload_hash, length, content_type = self._store_blob_stream(snapshot)
+            (
+                location,
+                reference_key,
+                payload_hash,
+                length,
+                content_type,
+                reference,
+            ) = self._store_blob_stream(snapshot)
             record = self._stream_snapshot_record(
                 snapshot,
-                payload_reference=reference,
+                payload_reference=reference_key,
                 payload_hash=payload_hash,
                 content_length=length,
                 content_type=content_type,
+                archive_metadata=self._artifact_metadata(
+                    reference, payload_location=location
+                ),
             )
             snapshots.update_one({"_id": snapshot.raw_document_id}, {"$setOnInsert": record}, upsert=True)
             persisted = snapshots.find_one({"_id": snapshot.raw_document_id})
@@ -432,7 +495,7 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                         retryable=False,
                     )
                 return document
-            payload_location, payload_reference = self._store_blob(snapshot)
+            payload_location, payload_reference, reference = self._store_blob(snapshot)
             record = {
                 "_id": snapshot.raw_document_id,
                 "source_identity": snapshot.source_identity,
@@ -443,6 +506,9 @@ class MongoRawEvidenceStore(RawEvidenceStore):
                 "payload_location": payload_location,
                 "payload_reference": payload_reference,
                 "content_length": len(snapshot.payload),
+                **self._artifact_metadata(
+                    reference, payload_location=payload_location
+                ),
                 "http_status": snapshot.http_status,
                 "safe_response_headers": dict(snapshot.safe_response_headers),
                 "published_at": snapshot.published_at,

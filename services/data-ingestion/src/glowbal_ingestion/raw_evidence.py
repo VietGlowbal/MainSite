@@ -14,6 +14,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import BinaryIO, Iterable, Protocol, runtime_checkable
 
+from .object_store import ObjectStoreError
 from .models import (
     RawDocument,
     SourceAuthority,
@@ -361,6 +362,7 @@ def create_remote_raw_evidence_store(
     """
     uri = os.environ.get("MONGODB_URI", "").strip()
     database = os.environ.get("MONGODB_DATABASE", "").strip()
+    artifact_backend = os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip().lower()
     s3_bucket = os.environ.get("RAW_OBJECT_STORE_BUCKET", "").strip()
     supabase_url = (
         os.environ.get("SUPABASE_URL", "").strip()
@@ -373,14 +375,79 @@ def create_remote_raw_evidence_store(
     has_supabase_storage = bool(
         supabase_url and supabase_service_role_key and supabase_bucket
     )
-    if not uri or not database or not (s3_bucket or has_supabase_storage):
+    has_drive_archive = bool(os.environ.get("DATA_PLATFORM_ARCHIVE_ROOT", "").strip())
+    if artifact_backend not in {
+        "",
+        "google_drive_desktop",
+        "legacy_supabase_storage",
+        "legacy_s3",
+    }:
+        raise RawEvidenceError(
+            RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+            "DATA_PLATFORM_ARTIFACT_BACKEND must be google_drive_desktop, "
+            "legacy_supabase_storage, or legacy_s3.",
+            retryable=False,
+        )
+    if artifact_backend == "google_drive_desktop" and not has_drive_archive:
+        raise RawEvidenceError(
+            RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+            "google_drive_desktop requires DATA_PLATFORM_ARCHIVE_ROOT.",
+            retryable=False,
+        )
+    has_configured_artifact_backend = {
+        "google_drive_desktop": has_drive_archive,
+        "legacy_supabase_storage": has_supabase_storage,
+        "legacy_s3": bool(s3_bucket),
+        "": bool(s3_bucket) or has_supabase_storage,
+    }[artifact_backend]
+    if not uri or not database or not has_configured_artifact_backend:
         raise RawEvidenceError(
             RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
             "Remote raw evidence requires MongoDB and object-storage configuration.",
             retryable=False,
         )
     from .mongo_raw_evidence import MongoRawEvidenceConfig, MongoRawEvidenceStore
-    if s3_bucket:
+    if artifact_backend == "google_drive_desktop":
+        from .artifact_store import GoogleDriveDesktopArtifactStore
+
+        # Legacy Supabase objects remain readable by their old logical keys.
+        # The reader is passed only to the Drive adapter's read paths; all new
+        # writes, including streams, are Drive-only and fail closed.
+        legacy = None
+        if has_supabase_storage:
+            from .supabase_storage import SupabaseStorageConfig, SupabaseStorageObjectStore
+
+            legacy = SupabaseStorageObjectStore(
+                SupabaseStorageConfig(
+                    base_url=supabase_url,
+                    service_role_key=supabase_service_role_key,
+                    bucket=supabase_bucket,
+                )
+            )
+        budget_value = os.environ.get("DATA_PLATFORM_ARTIFACT_RUN_BUDGET_BYTES", "").strip()
+        try:
+            budget = int(budget_value) if budget_value else None
+        except ValueError as exc:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+                "DATA_PLATFORM_ARTIFACT_RUN_BUDGET_BYTES must be a non-negative integer.",
+                retryable=False,
+            ) from exc
+        try:
+            object_store = GoogleDriveDesktopArtifactStore(
+                os.environ["DATA_PLATFORM_ARCHIVE_ROOT"],
+                max_run_bytes=budget,
+                legacy=legacy,
+            )
+        except (ObjectStoreError, ValueError) as exc:
+            raise RawEvidenceError(
+                RawEvidenceErrorCode.RAW_CONFIGURATION_INVALID,
+                "Google Drive desktop archive preflight failed.",
+                retryable=False,
+            ) from exc
+    elif artifact_backend == "legacy_s3" or (
+        artifact_backend == "" and s3_bucket
+    ):
         # Keep existing S3-compatible configuration behaviour unchanged.
         from .object_store import S3ObjectStore, S3ObjectStoreConfig
 

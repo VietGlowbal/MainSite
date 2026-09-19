@@ -246,6 +246,8 @@ class _SupabaseStorageObjectNotFound(ObjectStoreError):
 class SupabaseStorageObjectStore(ObjectStore):
     """Immutable content-addressed storage through Supabase Storage REST."""
 
+    backend_name = "legacy_supabase_storage"
+
     def __init__(
         self,
         config: SupabaseStorageConfig,

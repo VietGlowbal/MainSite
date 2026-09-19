@@ -50,6 +50,7 @@ unrelated history end to end.
 | [design-system.md](design-system.md) | Before writing any component. Token names, the primitives that already exist. |
 | [architecture.md](architecture.md) | Before adding a file under `features/`, `shared/`, or `server/`. |
 | [verification.md](verification.md) | Before claiming anything works. Commands, the latest measured local baseline, CI behavior, and how to see gated pages. |
+| [data-platform-artifacts.md](data-platform-artifacts.md) | Configuring the Data Platform Drive-desktop immutable archive, raw evidence retention, compatibility reads, and its run budget. |
 | [audit-2026-08-03.md](audit-2026-08-03.md) | For the security/operations audit evidence. It is a dated snapshot; use its revalidation banner before quoting a finding as current. |
 | [plans/](plans/) and the `*-design.md` files | For original intent and decisions. Their headers say whether implementation completed and where it landed. |
 

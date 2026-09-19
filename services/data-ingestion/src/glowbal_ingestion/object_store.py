@@ -219,6 +219,8 @@ class S3ObjectStoreConfig:
 class S3ObjectStore:
     """Lazy S3-compatible client; no SDK connection occurs at import time."""
 
+    backend_name = "legacy_s3"
+
     def __init__(
         self,
         config: S3ObjectStoreConfig,
