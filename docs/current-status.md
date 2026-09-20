@@ -16,10 +16,20 @@ unconditionally and a row with no cover would otherwise pass an empty src. Corre
 (dropped a section auditing `content/geo/published`, a directory that never existed), `eslint.config.mjs` and
 `next.config.ts` comments — **the `/guides → /news` 308s stay**, those URLs are still indexed.
 Measured: `npm run build` clean, `typecheck` clean, `npm run lint` 0 errors / 5 warnings (the pre-existing
-baseline), `npm test` 411 files passed. **One pre-existing failure, not from this work:**
-`src/lib/course-parser/migration-order.test.ts` fails identically at HEAD — it asserts the order in which three
-`sql/` paths appear in this file, and `supabase-pg-phd-onboarding.sql` is currently listed after the other two.
-Not touched here; whoever owns that record should reorder the prose or the test.
+baseline), `npm test` 412 files passed.
+
+Also fixed here (a failure that predated this work and was red on `main` too): **`migration-order.test.ts` was
+rotting by construction.** It ran `indexOf` for four migration paths over the whole of this document and required
+them in order — but this document is a reverse-chronological log, so the 2026-09-15 entry recording that
+`supabase-job-claim-resilience.sql` and `supabase-course-parse-reliability.sql` were *applied to production* sits
+above the declaration and scrambled the indices. The documented order was never wrong. **Do not "fix" that class
+of failure by reordering the prose** — the test now anchors to the single line that declares the required order
+(the 2026-09-14 entry; its opening phrase is the literal marker in `ORDER_DECLARATION`, which is why this note
+avoids repeating it verbatim) and checks the sequence inside that line, which also makes it stricter (an
+incidental mention elsewhere
+can no longer satisfy the ordering by coincidence) and adds the baseline `supabase-claim-parse-jobs.sql` as a fifth
+waypoint. Verified both ways: swapping two entries in that line fails it, and removing the line fails it with a
+distinct message. **Keep that sentence's exact wording** — it is a load-bearing anchor now.
 
 Working tree 2026-09-20 (partner orbit — award badges, Scholarship Library preview): the owner's second request that
 day turned the orbit band into a scholarship funnel. The heading now carries an owner-supplied aggregate ("…with $150M
@@ -34,14 +44,21 @@ shown. Per university the ceilings are **Harvard $56,392 · Stanford $22,900 · 
 $2,000**, with **Caltech and Cornell holding no scholarship with an amount at all** and **ETH Zürich absent from
 `universities`** — against the $450K–$600K shown. The owner was asked and confirmed the numbers are GlowBal's own, so
 they live in `features/marketing/ui/partner-scholarship-value.ts` with that table in its header. **Do not "fix" that
-file by wiring it to the repository**: the numbers would fall one to two orders of magnitude. **Six of the eleven are
-still missing** (MIT, Oxford, Harvard, Cambridge, Caltech, NUS) — illegible in the owner's screenshot, so they are
-absent rather than guessed and those crests render no strip.
+file by wiring it to the repository**: the numbers would fall one to two orders of magnitude. The owner reviewed this
+and ruled the figures are marketing, which is settled — the caveat stays only so the next reader does not re-derive
+the surprise. All eleven crests now carry a strip: five are the owner's, and the six that were illegible in their
+screenshot (MIT, Oxford, Harvard, Cambridge, Caltech, NUS) were filled at their request from the owner's own two
+tiers — $600K for US privates, $450K for the shorter UK degrees and lower-cost Asian institutions — rather than a
+third invented value. The rule describes those six only; Stanford and Imperial break it and were left as given.
 
-Found on the way, not fixed: `findIdsByNames` matches `universities.name` exactly, and five of the eleven crest names
-do not match the rows (`Massachusetts Institute of Technology` vs `Massachusetts Institute of Technology (MIT)`, same
-for Caltech, NUS, HKU; ETH Zürich has no row at all). Those five crests therefore link to `/universities` rather than
-to their own page — the documented fallback working as designed, but it means **6 of 11 resolve, not 11**.
+⚠️ **A "5 of 11 crests link to the wrong place" claim was reported to the owner on 2026-09-20 and was WRONG — do not
+act on it.** It came from a throwaway measurement script that matched `universities.name` exactly. The application
+does not: `findIdsByNames` compares through `normaliseUniversityName`, which already strips a trailing parenthetical
+and the noise words, so `Massachusetts Institute of Technology` does match the row spelled `… (MIT)`. Verified in the
+browser by reading all eleven `href`s: **10 of 11 resolve to `/universities/<id>`**. The one exception is **ETH
+Zürich, which has no row in `universities` under any spelling** (no Swiss institution does — "Swiss Federal Institute
+of Technology", "Zurich" and "Switzerland" all return nothing), so it falls back to the directory index, which is the
+documented behaviour working correctly. Fixing it means importing the university, not changing code.
 
 Preview specifics, each commented where it lives: cards are `<button>`s, not styled links, because a link that goes to
 a form lies to screen readers, middle-clicks and the status bar — the label reads "Register to view details" instead;
