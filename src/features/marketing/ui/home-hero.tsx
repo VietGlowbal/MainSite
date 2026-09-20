@@ -41,7 +41,7 @@ export function HomeHero({ locale = 'en' }: { locale?: Locale } = {}) {
             Plan your Global Education
           </Button>
           <p className="text-gb-md italic leading-relaxed text-white/80 md:text-gb-lg">
-            Find a University that Fits You 100% free
+            Find a Scholarship that Fits You 100% free
           </p>
         </div>
       </div>

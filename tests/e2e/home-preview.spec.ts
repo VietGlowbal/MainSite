@@ -258,7 +258,7 @@ test.describe('home preview — desktop', () => {
     const cta = page
       .locator('a[href="/start"]')
       .filter({ hasText: 'Plan your Global Education' });
-    const support = page.getByText('Find a University that Fits You 100% free');
+    const support = page.getByText('Find a Scholarship that Fits You 100% free');
     const [ctaBox, supportBox] = await Promise.all([cta.boundingBox(), support.boundingBox()]);
 
     expect(await cta.evaluate((element) => getComputedStyle(element).whiteSpace)).toBe('nowrap');

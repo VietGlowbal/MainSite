@@ -198,8 +198,8 @@ export const translations: Record<string, string> = {
     'Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”',
   'From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.':
     'GlowBal giúp bạn đưa ra quyết định chọn trường và học bổng phù hợp, từ đó xây dựng chiến lược cá nhân hoá, đồng hành theo dõi hồ sơ cùng bạn trong toàn bộ hành trình chinh phục giấc mơ du học.',
-  'Find a University that Fits You 100% free':
-    'Công cụ Tìm trường Phù hợp Hoàn toàn Miễn phí',
+  'Find a Scholarship that Fits You 100% free':
+    'Công cụ tìm Học bổng phù hợp hoàn toàn Miễn phí',
   // Still rendered by the legacy landing at src/components/landing/home until
   // that tree is deleted. Remove this key with those files, not before.
   'Find my scholarships': 'Tìm học bổng của tôi',
