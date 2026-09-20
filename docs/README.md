@@ -91,7 +91,7 @@ read them speculatively; open one only when the row below matches your task.
 | `README.md`, `SETUP.md` | Environment, install, env vars, running locally. `SETUP.md` is the fuller one. |
 | `AGENTS.md`, `CLAUDE.md` | Always loaded automatically — no need to open them. |
 | `ADMISSION_FIT_FEATURE.md` | Changing reach/recommend/safe tiering or `src/lib/admission-fit.ts`. |
-| `GEO_CMS_SPEC.md` | Working on the GEO/news CMS or the `geo:*` npm scripts. |
+| `GEO_CMS_SPEC.md` | Working on the GEO/news CMS. The `geo:*` scripts and the daily pipeline it describes were removed 2026-09-20 — read its header banner first. |
 | `UNIVERSITY_CRONS.md` | Touching university data crons or refresh scheduling. |
 | `NEWSLETTER_*.md` (5 files) | Newsletter work only. `NEWSLETTER_SYSTEM.md` is the entry point; the other four are architecture, deployment checklist, an implementation summary, and an end-user guide. Read one, not five. |
 | `MENTORSHIP_REDESIGN.md` | Historical redesign summary. `known-issues.md §1b` is the live mentorship record — prefer it. |
