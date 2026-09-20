@@ -2,10 +2,15 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Button } from '@/shared/ui';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
+import { HomeScholarshipPreview } from './home-scholarship-preview';
+import type { ScholarshipTeaser } from './home-scholarship-pillars';
+import {
+  PARTNER_TOTAL_SCHOLARSHIP_VALUE,
+  partnerScholarshipValue,
+} from './partner-scholarship-value';
 import {
   ORBIT_SAMPLES,
   ORBIT_TOTAL_LENGTH,
@@ -215,6 +220,8 @@ const WORD_FLIP_OUT_MS = 260;
     resolved. Not a 404 and not an inert logo: the visitor still lands somewhere
     they can find the university themselves. */
 const DIRECTORY_HREF = '/universities';
+/** Ties the CTA's `aria-controls` to the panel it opens. */
+const PREVIEW_ID = 'home-scholarship-preview';
 
 type Wave = {
   readonly sourceProgress: number;
@@ -456,11 +463,47 @@ export type HomePartnersProps = {
    */
   readonly universityIds?: readonly (number | null)[];
   readonly locale?: Locale;
+  /**
+   * Real scholarships for the library preview under the CTA. The page already
+   * loads these for `HomeScholarships`, so they are handed down rather than
+   * read a second time. Absent means the CTA falls back to linking straight to
+   * the directory — a preview of nothing is worse than no preview.
+   */
+  readonly scholarships?: readonly ScholarshipTeaser[];
+  /** Size of the published catalogue, for the preview's "showing N of M". */
+  readonly scholarshipTotal?: number;
 };
 
-export function HomePartners({ universityIds, locale }: HomePartnersProps = {}) {
+export function HomePartners({
+  universityIds,
+  locale,
+  scholarships = [],
+  scholarshipTotal = 0,
+}: HomePartnersProps = {}) {
   const { lang } = useLanguage();
   const activeLocale = locale ?? lang;
+  /**
+   * The library preview is closed until asked for: it is a second, heavier
+   * reading layer, and opening it on load would bury the orbit it belongs to.
+   */
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  /**
+   * Both the cards and the preview's own button land here — the consultation
+   * form at the foot of Home (`id="contact"`, home-contact.tsx).
+   *
+   * `scrollIntoView` rather than `location.hash = '#contact'`: the hash would
+   * also push a history entry, so Back from the form would "return" to the same
+   * page with the preview freshly closed, which reads as the site losing the
+   * visitor's place. Honours reduced motion, because a full-page glide is
+   * exactly the kind of movement that setting asks not to happen.
+   */
+  const scrollToContact = useCallback(() => {
+    const target = document.getElementById('contact');
+    if (target === null) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   /** Which logo is hovered, and since when — read every frame by the loop, so
       kept in a ref rather than state (a state update would re-render eleven
@@ -752,21 +795,49 @@ export function HomePartners({ universityIds, locale }: HomePartnersProps = {}) 
             className="flex flex-col items-center gap-gb-lg lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2"
             style={{ zIndex: ORBIT_Z_CEILING }}
           >
-            <h2 className="pointer-events-none max-w-[620px] text-center font-display text-gb-display-sm font-semibold leading-tight lg:text-[3.5cqw]">
-              {getLocaleText(activeLocale, "Choose from 200+ of the world's leading universities")}
+            {/* The money half of this line is owner-supplied and is NOT
+                computed from the catalogue — see partner-scholarship-value.ts
+                for the measured figures it departs from. It is interpolated
+                rather than written into the sentence so the caveat lives in one
+                file and the translators get one key, not two. */}
+            <h2 className="pointer-events-none max-w-[620px] text-center font-display text-gb-display-sm font-semibold leading-tight lg:max-w-[61cqw] lg:text-[3.5cqw]">
+              {getLocaleText(
+                activeLocale,
+                "Choose from 200+ of the world's leading universities with {value} in total scholarship value",
+                { value: PARTNER_TOTAL_SCHOLARSHIP_VALUE },
+              )}
             </h2>
             <p className="pointer-events-none text-gb-sm text-white/70 md:text-gb-md">
               <span>{getLocaleText(activeLocale, 'Study')}</span>{' '}
               <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} locale={activeLocale} />
             </p>
-            <Button href={localizePath('/universities', activeLocale)} size="lg" variant="primary-on-dark">
-              {getLocaleText(activeLocale, 'Find a university')}
-            </Button>
+            {/* A button, not a link: it opens the preview below rather than
+                navigating. When there is nothing to preview it becomes a real
+                link to the directory instead, so the CTA is never inert. */}
+            {scholarships.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setPreviewOpen((open) => !open)}
+                aria-expanded={previewOpen}
+                aria-controls={PREVIEW_ID}
+                className="inline-flex items-center justify-center gap-gb-xs rounded-gb-md border-2 border-white/12 bg-brand px-gb-lg py-gb-lg text-gb-sm font-semibold text-on-brand shadow-gb-xs-skeuomorphic transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                {getLocaleText(activeLocale, previewOpen ? 'Hide scholarships' : 'Find scholarships')}
+              </button>
+            ) : (
+              <Link
+                href={localizePath('/scholarships', activeLocale)}
+                className="inline-flex items-center justify-center gap-gb-xs rounded-gb-md border-2 border-white/12 bg-brand px-gb-lg py-gb-lg text-gb-sm font-semibold text-on-brand shadow-gb-xs-skeuomorphic transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                {getLocaleText(activeLocale, 'Find scholarships')}
+              </Link>
+            )}
           </div>
 
           <ul className="flex flex-wrap justify-center gap-gb-3xl lg:block">
             {PARTNER_LOGOS.map((logo, index) => {
               const universityId = universityIds?.[index] ?? null;
+              const value = partnerScholarshipValue(logo.name);
               return (
                 <li
                   key={logo.name}
@@ -816,12 +887,44 @@ export function HomePartners({ universityIds, locale }: HomePartnersProps = {}) 
                       sizes="(min-width: 1024px) 128px, 88px"
                       className="object-cover"
                     />
+                    {/* The award ceiling strip along the bottom of the crest.
+                        Rendered only where the owner has supplied a figure —
+                        see partner-scholarship-value.ts. A crest with no entry
+                        shows no strip, which is the honest state; it is NOT a
+                        bug to fix by falling back to a number.
+
+                        No separate font size: the whole node is scaled by the
+                        orbit's transform, so `text-gb-xs` rides the same depth
+                        curve the logo does instead of fighting it. */}
+                    {value !== null ? (
+                      <span
+                        data-no-auto-translate
+                        className="absolute inset-x-0 bottom-0 bg-brand px-gb-xs py-gb-xxs text-center text-gb-xs font-semibold leading-tight text-on-brand"
+                      >
+                        {getLocaleText(activeLocale, 'Up to {value}', { value })}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               );
             })}
           </ul>
         </div>
+
+        {/* Outside the orbit stage on purpose: the stage is an aspect-ratio box
+            whose children are absolutely positioned onto the curve, so a panel
+            inside it would be laid out against the orbit's geometry rather than
+            the section's. */}
+        {previewOpen && scholarships.length > 0 ? (
+          <div id={PREVIEW_ID} className="mx-auto w-full lg:w-[min(88%,1120px)]">
+            <HomeScholarshipPreview
+              entries={scholarships}
+              total={scholarshipTotal}
+              locale={activeLocale}
+              onRequestConsultation={scrollToContact}
+            />
+          </div>
+        ) : null}
       </div>
     </section>
   );

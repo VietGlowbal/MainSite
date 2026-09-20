@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="">
+  <!--
+    Neutral cover used when a geo_articles row has no hero_image. Kept
+    deliberately abstract: a reader must never mistake it for a real photo the
+    article chose. Colours are the design-system neutral ramp plus Rose/600.
+  -->
+  <rect width="1200" height="800" fill="#fafafa"/>
+  <rect x="0" y="0" width="1200" height="800" fill="none" stroke="#e5e5e5" stroke-width="2"/>
+  <circle cx="600" cy="400" r="210" fill="none" stroke="#e5e5e5" stroke-width="2"/>
+  <circle cx="600" cy="400" r="140" fill="none" stroke="#d4d4d4" stroke-width="2"/>
+  <path d="M390 400h420M600 190v420" stroke="#e5e5e5" stroke-width="2"/>
+  <circle cx="600" cy="400" r="14" fill="#e11d48"/>
+</svg>

@@ -200,6 +200,12 @@ export const translations: Record<string, string> = {
     'GlowBal giúp bạn đưa ra quyết định chọn trường và học bổng phù hợp, từ đó xây dựng chiến lược cá nhân hoá, đồng hành theo dõi hồ sơ cùng bạn trong toàn bộ hành trình chinh phục giấc mơ du học.',
   'Find a Scholarship that Fits You 100% free':
     'Công cụ tìm Học bổng phù hợp hoàn toàn Miễn phí',
+  // Under the hero globe. Added 2026-09-20 from the owner's English copy; the
+  // Vietnamese is a draft for the owner to confirm. "3000+" (no comma) matches
+  // the journey-section line further down.
+  'With 3000+ scholarships, we help you find and conquer the best route for your global education journey':
+    'Với 3000+ học bổng, chúng tôi giúp bạn tìm ra và chinh phục lộ trình tốt nhất cho hành trình du học toàn cầu của mình',
+  'Register for Free Consultation': 'Đăng ký Tư vấn Miễn phí',
   // Still rendered by the legacy landing at src/components/landing/home until
   // that tree is deleted. Remove this key with those files, not before.
   'Find my scholarships': 'Tìm học bổng của tôi',
@@ -223,7 +229,35 @@ export const translations: Record<string, string> = {
   'View all universities': 'Xem tất cả các trường đại học',
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
+  // Superseded on "/" by the {value} form below, which carries the owner's
+  // aggregate. Kept because the plain heading is still the right one anywhere
+  // the money claim is not wanted.
+  "Choose from 200+ of the world's leading universities with {value} in total scholarship value":
+    'Chọn từ 200+ đại học hàng đầu thế giới với tổng giá trị học bổng {value}',
+  // No longer rendered: the partner orbit's CTA became "Find scholarships" on
+  // 2026-09-20. Kept because the string is the obvious label for a directory
+  // CTA and will be wanted again; delete it with the next dictionary sweep if
+  // nothing has claimed it.
   'Find a university': 'Tìm Đại học',
+  // ── Home: partner orbit CTA and the Scholarship Library preview ──────────
+  // Vietnamese drafted 2026-09-20, awaiting the owner's confirmation.
+  // 'Find scholarships' is NOT redefined here — it already exists in the footer
+  // block further down ('Tìm Học bổng'), and a second copy would silently win
+  // or lose by source order.
+  'Hide scholarships': 'Ẩn học bổng',
+  'Up to {value}': 'Tối đa {value}',
+  'Scholarship Library': 'Thư viện Học bổng',
+  'A preview of what you can search inside GlowBal.':
+    'Xem trước những gì bạn có thể tìm kiếm trong GlowBal.',
+  'Search scholarships': 'Tìm kiếm học bổng',
+  'Search by name, university or country': 'Tìm theo tên, trường hoặc quốc gia',
+  'Showing {shown} of {total} published scholarships':
+    'Đang hiển thị {shown} trong {total} học bổng đã đăng',
+  'Register to view details': 'Đăng ký để xem chi tiết',
+  'No scholarship in this preview matches that search — the full library has many more.':
+    'Không có học bổng nào trong bản xem trước khớp với tìm kiếm này — thư viện đầy đủ còn nhiều hơn.',
+  'Leave your details and a GlowBal advisor will send the scholarships that fit your profile.':
+    'Để lại thông tin, cố vấn GlowBal sẽ gửi cho bạn những học bổng phù hợp với hồ sơ của bạn.',
   'Recommended for you': 'Đề xuất dành cho bạn',
   'These universities are ranked by how well they match your preferences. Admission selectivity uses available overall university acceptance data. Programme-specific competitiveness may differ, and this is not a prediction of your personal admission chances.':
     'Các trường này được xếp hạng theo mức độ phù hợp với sở thích của bạn. Mức độ chọn lọc tuyển sinh dùng dữ liệu tỷ lệ trúng tuyển tổng thể hiện có của trường. Tính cạnh tranh của từng chương trình có thể khác, và đây không phải là dự đoán cơ hội trúng tuyển cá nhân của bạn.',

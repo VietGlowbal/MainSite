@@ -81,10 +81,12 @@ const nextConfig: NextConfig = {
        *
        * The two routes rendered the same listGeoGuides() data through two
        * designs; they were merged on 31/07 and /news is the surviving URL.
-       * These entries are not tidiness — every article published so far has
-       * shipped a /guides/<slug> canonical URL in content/geo/metadata/*.json
-       * and in the sitemap, so those addresses are indexed and are what any
-       * inbound link points at. A 308 is what carries that ranking over.
+       * These entries are not tidiness — every article published before the
+       * merge shipped a /guides/<slug> canonical URL, so those addresses are
+       * indexed and are what any inbound link points at. A 308 is what carries
+       * that ranking over. The metadata files that declared those canonicals
+       * were removed with the GEO generator on 2026-09-20; the indexed URLs
+       * were not, so these rules must outlive them.
        *
        * Order matters: the :slug rule is listed first because Next matches
        * top-down and the bare /guides rule would otherwise be unreachable for

@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { hasPlaceholderPublicationQuality } from '@/lib/geo-cms-validation';
 
@@ -39,46 +37,30 @@ export type GeoGuide = {
   toc: Array<{ id: string; title: string }>;
 };
 
-const repoRoot = process.cwd();
-const draftsDir = path.join(repoRoot, 'content/geo/drafts');
-const publishedDir = path.join(repoRoot, 'content/geo/published');
-const metadataDir = path.join(repoRoot, 'content/geo/metadata');
-const publicNewsImagesDir = path.join(repoRoot, 'public/generated/news');
+/*
+ * `geo_articles` is the only source of /news content. The markdown generator
+ * that used to fill content/geo/** — and the daily workflow that committed its
+ * output to main — were removed on 2026-09-20 (owner's call: the seeded pages
+ * were AI drafts that never reached `published`, so nothing reader-facing was
+ * lost). Everything below reads the CMS.
+ */
 
-function parseFrontmatter(markdown: string) {
-  /*
-   * Normalise line endings before matching. The files in content/geo/drafts are
-   * CRLF (they are authored/committed on Windows), and the pattern below anchors
-   * on "\n---\n" — so against a CRLF file it did not match at all, every guide
-   * silently fell back to `{ frontmatter: {} }`, and the list page rendered the
-   * slug as the title, "---" as the excerpt, and today's date as publishedAt.
-   * No error anywhere; it just looked like the content was bad.
-   */
-  const text = markdown.replace(/\r\n/g, '\n');
-  const match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) return { frontmatter: {}, body: text };
-  const frontmatter: Record<string, string> = {};
-  for (const line of match[1].split('\n')) {
-    const idx = line.indexOf(':');
-    if (idx !== -1) frontmatter[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
-  }
-  return { frontmatter, body: match[2] };
-}
-
-function readMetadata(slug: string) {
-  const filePath = path.join(metadataDir, `${slug}.json`);
-  if (!fs.existsSync(filePath)) return undefined;
-  return JSON.parse(fs.readFileSync(filePath, 'utf8')) as Record<string, unknown>;
-}
+/**
+ * Cover shown when a row carries no `hero_image`. The list and article
+ * templates render <Image src={guide.heroImage}> unconditionally, so this must
+ * stay a real, servable path — an empty string throws in next/image.
+ */
+const PLACEHOLDER_HERO = '/news/placeholder-cover.svg';
 
 function estimateReadMinutes(content: string) {
   return Math.max(4, Math.round(content.split(/\s+/).filter(Boolean).length / 180));
 }
 
-// These guides come from an automated draft pipeline that injects internal
-// scaffolding (placeholder source tokens, "testing mode" notes, and
-// authoring-rule FAQs). Strip that scaffolding so readers only ever see
-// publishable prose — and drop the leading H1 since the page renders its own.
+// Rows imported from the retired draft pipeline still carry its internal
+// scaffolding (placeholder source tokens, "testing mode" notes, authoring-rule
+// FAQs). Strip that scaffolding so readers only ever see publishable prose —
+// and drop the leading H1 since the page renders its own. Admin-authored rows
+// contain none of these markers, so this is a no-op for them.
 function sanitizeContent(body: string) {
   let text = body;
   // Remove the leading H1 (duplicates the page title rendered above the body).
@@ -104,107 +86,17 @@ function sanitizeContent(body: string) {
 function buildExcerpt(body: string, description?: string) {
   if (description) return description;
   const firstParagraph = body.split('\n').find((line) => line.trim() && !line.startsWith('#') && !line.startsWith('|') && !line.startsWith('- '));
-  return firstParagraph?.replace(/TODO_SOURCE_REQUIRED:/g, '').trim() ?? 'Experimental Glowbal guide generated for testing.';
-}
-
-function inferTopic(frontmatter: Record<string, string>, body: string, metadata?: Record<string, unknown>) {
-  const metadataTopic = typeof metadata?.topic === 'string' ? metadata.topic : undefined;
-  if (metadataTopic) return metadataTopic;
-  const title = `${frontmatter.title ?? ''} ${frontmatter.subject ?? ''}`.toLowerCase();
-  const pageType = (frontmatter.pageType ?? '').toLowerCase();
-  const bodyText = body.toLowerCase();
-  if (title.includes('scholarship')) return 'Scholarships';
-  if (title.includes('visa') || title.includes('immigration')) return 'Visas & immigration';
-  if (title.includes('student life') || title.includes('accommodation') || title.includes('part-time')) return 'Student life';
-  if (title.includes('career') || title.includes('employ')) return 'Careers';
-  if (title.includes('cost') || title.includes('application') || title.includes('admission') || title.includes('sop')) return 'Applications';
-  if (pageType === 'ranking' || pageType === 'comparison' || title.includes('university') || title.includes('degree') || title.includes('comparison') || title.includes('guide') || title.includes('computer science')) return 'Universities';
-  if (bodyText.includes('visa') || bodyText.includes('immigration')) return 'Visas & immigration';
-  return 'All topics';
-}
-
-function resolveHeroImage(slug: string, metadata?: Record<string, unknown>) {
-  const metadataHero = typeof metadata?.heroImage === 'string' ? metadata.heroImage : undefined;
-  if (metadataHero) {
-    return {
-      heroImage: metadataHero,
-      heroImageStyle: typeof metadata?.heroImageStyle === 'string' && metadata.heroImageStyle === 'ai' ? 'ai' as const : metadataHero.endsWith('.svg') ? 'svg-fallback' as const : 'ai' as const,
-    };
-  }
-  const png = path.join(publicNewsImagesDir, `${slug}.png`);
-  const webp = path.join(publicNewsImagesDir, `${slug}.webp`);
-  if (fs.existsSync(png)) return { heroImage: `/generated/news/${slug}.png`, heroImageStyle: 'ai' as const };
-  if (fs.existsSync(webp)) return { heroImage: `/generated/news/${slug}.webp`, heroImageStyle: 'ai' as const };
-  return { heroImage: `/generated/news/${slug}.svg`, heroImageStyle: 'svg-fallback' as const };
-}
-
-function readGuideFromFile(filePath: string, status: 'draft' | 'published'): GeoGuide {
-  const raw = fs.readFileSync(filePath, 'utf8');
-  const { frontmatter, body } = parseFrontmatter(raw);
-  const slug = frontmatter.slug || path.basename(filePath, '.md');
-  const metadata = readMetadata(slug);
-  const hero = resolveHeroImage(slug, metadata);
-  return {
-    slug,
-    title: frontmatter.title || slug,
-    description: frontmatter.description,
-    excerpt: buildExcerpt(body, frontmatter.description),
-    content: sanitizeContent(body),
-    status,
-    metadata,
-    heroImage: hero.heroImage,
-    heroImageStyle: hero.heroImageStyle,
-    topic: inferTopic(frontmatter, body, metadata),
-    readingTimeMinutes: typeof metadata?.readingTimeMinutes === 'number' ? metadata.readingTimeMinutes : estimateReadMinutes(body),
-    publishedAt: frontmatter.lastUpdated || new Date().toISOString().slice(0, 10),
-    updatedAt: frontmatter.lastUpdated || undefined,
-    tags: Array.isArray(metadata?.tags) ? (metadata.tags as string[]) : [],
-    keyTakeaway: typeof metadata?.keyTakeaway === 'string' ? metadata.keyTakeaway : undefined,
-    supportCards: Array.isArray(metadata?.supportCards) ? (metadata.supportCards as GeoSupportCard[]) : [],
-    supportAssets: Array.isArray(metadata?.supportAssets) ? (metadata.supportAssets as GeoSupportAsset[]) : [],
-    toc: Array.isArray(metadata?.toc) ? (metadata.toc as Array<{ id: string; title: string }>) : [],
-  };
+  return firstParagraph?.replace(/TODO_SOURCE_REQUIRED:/g, '').trim() ?? '';
 }
 
 function sortNewestFirst(a: GeoGuide, b: GeoGuide) {
   return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime() || a.title.localeCompare(b.title);
 }
 
-// ── File-based readers (legacy source) ──────────────────────────────────────
-function listFileGuides(): GeoGuide[] {
-  const guides: GeoGuide[] = [];
-  for (const [dirPath, status] of [[publishedDir, 'published'], [draftsDir, 'draft']] as const) {
-    if (!fs.existsSync(dirPath)) continue;
-    for (const file of fs.readdirSync(dirPath)) {
-      if (file.endsWith('.md')) guides.push(readGuideFromFile(path.join(dirPath, file), status));
-    }
-  }
-  return guides;
-}
-
-function getFileGuide(slug: string): GeoGuide | null {
-  const guide =
-    (() => {
-      const publishedPath = path.join(publishedDir, `${slug}.md`);
-      if (fs.existsSync(publishedPath)) return readGuideFromFile(publishedPath, 'published');
-      const draftPath = path.join(draftsDir, `${slug}.md`);
-      if (fs.existsSync(draftPath)) return readGuideFromFile(draftPath, 'draft');
-      return null;
-    })();
-  if (!guide || guide.status !== 'published') return null;
-  // Legacy files are pre-sanitised (TODO markers already stripped), so the
-  // placeholder gate runs on the reader-facing fields only.
-  if (!hasPlaceholderPublicationQuality({ title: guide.title, description: guide.description, excerpt: guide.excerpt })) {
-    return null;
-  }
-  return guide;
-}
-
-// ── DB-backed readers (canonical CMS source) ────────────────────────────────
-// The CMS (supabase-geo-cms.sql) is the canonical store. We surface only
-// PUBLISHED rows to the public site. Any failure (no env at build time,
-// table not migrated yet) degrades gracefully to the file source so the
-// site — and `next build` without Supabase env — keep working.
+// ── DB-backed readers (the CMS is the only source) ──────────────────────────
+// We surface only PUBLISHED rows to the public site. Any failure (no env at
+// build time, table not migrated yet) degrades gracefully to an empty list so
+// the site — and `next build` without Supabase env — keep working.
 
 type GeoArticleRow = {
   slug: string;
@@ -223,15 +115,19 @@ type GeoArticleRow = {
   updated_at: string;
 };
 
+function resolveHeroImage(row: GeoArticleRow, metadata?: Record<string, unknown>) {
+  const stored = row.hero_image || (typeof metadata?.heroImage === 'string' ? metadata.heroImage : undefined);
+  if (!stored) return { heroImage: PLACEHOLDER_HERO, heroImageStyle: 'svg-fallback' as const };
+  return {
+    heroImage: stored,
+    heroImageStyle: row.hero_image_style ?? (stored.endsWith('.svg') ? 'svg-fallback' as const : 'ai' as const),
+  };
+}
+
 function mapRowToGuide(row: GeoArticleRow): GeoGuide {
   const metadata = row.meta ?? undefined;
   const body = sanitizeContent(row.body ?? '');
-  const hero = row.hero_image
-    ? {
-        heroImage: row.hero_image,
-        heroImageStyle: row.hero_image_style ?? (row.hero_image.endsWith('.svg') ? 'svg-fallback' as const : 'ai' as const),
-      }
-    : resolveHeroImage(row.slug, metadata);
+  const hero = resolveHeroImage(row, metadata);
   return {
     slug: row.slug,
     title: row.title || row.slug,
@@ -262,8 +158,9 @@ const ARTICLE_COLUMNS =
  * `published` row that still carries generator placeholder copy (or a
  * TODO_SOURCE_REQUIRED marker sanitisation would paper over) must never reach
  * /news or the sitemap — measured live 2026-08-25: two `published` pipeline
- * rows shipped "A Glowbal draft guide …" descriptions. This is read-side
- * defence only; the admin publish transition enforces the same rules upstream.
+ * rows shipped "A Glowbal draft guide …" descriptions. Those rows outlived the
+ * generator that wrote them, so the gate stays. This is read-side defence
+ * only; the admin publish transition enforces the same rules upstream.
  */
 function rowIsPubliclyReadable(row: GeoArticleRow): boolean {
   return hasPlaceholderPublicationQuality({
@@ -274,7 +171,8 @@ function rowIsPubliclyReadable(row: GeoArticleRow): boolean {
   });
 }
 
-async function listPublishedDbGuides(): Promise<GeoGuide[]> {
+// ── Public API ──────────────────────────────────────────────────────────────
+export async function listGeoGuides(): Promise<GeoGuide[]> {
   try {
     const admin = createAdminClient();
     const { data, error } = await admin
@@ -282,13 +180,16 @@ async function listPublishedDbGuides(): Promise<GeoGuide[]> {
       .select(ARTICLE_COLUMNS)
       .eq('status', 'published');
     if (error || !data) return [];
-    return (data as GeoArticleRow[]).filter(rowIsPubliclyReadable).map(mapRowToGuide);
+    return (data as GeoArticleRow[])
+      .filter(rowIsPubliclyReadable)
+      .map(mapRowToGuide)
+      .sort(sortNewestFirst);
   } catch {
     return [];
   }
 }
 
-async function getPublishedDbGuide(slug: string): Promise<GeoGuide | null> {
+export async function getGeoGuide(slug: string): Promise<GeoGuide | null> {
   try {
     const admin = createAdminClient();
     const { data, error } = await admin
@@ -299,51 +200,11 @@ async function getPublishedDbGuide(slug: string): Promise<GeoGuide | null> {
       .maybeSingle();
     if (error || !data) return null;
     const row = data as GeoArticleRow;
-    // The DB stays canonical by slug ONLY when its row is actually publishable;
-    // a matching legacy file never rescues a gated DB row.
     if (!rowIsPubliclyReadable(row)) return null;
     return mapRowToGuide(row);
   } catch {
     return null;
   }
-}
-
-/**
- * The legacy markdown guides (drafts + published) as parsed GeoGuides.
- * Used by the CMS "import from files" backfill to seed the DB.
- */
-export function listLegacyFileGuides(): GeoGuide[] {
-  return listFileGuides().sort(sortNewestFirst);
-}
-
-// ── Public API: DB-first, file-fallback (DB wins by slug) ────────────────────
-export async function listGeoGuides(): Promise<GeoGuide[]> {
-  const [fileGuides, dbGuides] = await Promise.all([
-    // Draft and archived CMS rows are never public. Keep legacy drafts
-    // available through listLegacyFileGuides() for the admin import job only.
-    Promise.resolve(
-      listFileGuides().filter(
-        (guide) =>
-          guide.status === 'published' &&
-          // Same public gate as DB rows: legacy files keep their drafts for
-          // the admin import job, but a published file carrying generator
-          // placeholder copy is not reader-facing content.
-          hasPlaceholderPublicationQuality({ title: guide.title, description: guide.description, excerpt: guide.excerpt }),
-      ),
-    ),
-    listPublishedDbGuides(),
-  ]);
-  const bySlug = new Map<string, GeoGuide>();
-  for (const guide of fileGuides) bySlug.set(guide.slug, guide);
-  for (const guide of dbGuides) bySlug.set(guide.slug, guide); // DB is canonical
-  return [...bySlug.values()].sort(sortNewestFirst);
-}
-
-export async function getGeoGuide(slug: string): Promise<GeoGuide | null> {
-  const dbGuide = await getPublishedDbGuide(slug);
-  if (dbGuide) return dbGuide;
-  const fileGuide = getFileGuide(slug);
-  return fileGuide?.status === 'published' ? fileGuide : null;
 }
 
 export async function listGeoTopics(): Promise<string[]> {

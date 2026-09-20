@@ -63,21 +63,6 @@ for (const relPath of requiredPrivateLayouts) {
   }
 }
 
-// B. Check published GEO guides for forbidden placeholder markers
-const publishedNewsDir = path.join(root, 'content/geo/published');
-if (fs.existsSync(publishedNewsDir)) {
-  const files = fs.readdirSync(publishedNewsDir).filter((f) => f.endsWith('.md'));
-  const placeholderRegex = /\b(?:TODO_SOURCE_REQUIRED|draft guide|lorem ipsum)\b/i;
-
-  for (const file of files) {
-    const raw = fs.readFileSync(path.join(publishedNewsDir, file), 'utf8');
-    if (placeholderRegex.test(raw)) {
-      reportFailure(`Published guide content/geo/published/${file} contains forbidden placeholder text`);
-    }
-  }
-  reportSuccess(`Audited ${files.length} published markdown guides for placeholder copy`);
-}
-
 // ── 2. Live HTTP check if URL is provided or reachable ───────────────────────
 
 const baseUrlArgIndex = process.argv.indexOf('--base-url');

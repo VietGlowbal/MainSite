@@ -302,7 +302,14 @@ export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {})
           the wrapper is what offsets the content past the fixed 64px bar. */}
       <main>
         <HomeHero locale={locale} />
-        <HomePartners universityIds={partnerUniversityIds} locale={locale} />
+        {/* The same six records HomeScholarships shows further down, reused for
+            the library preview the partner CTA opens — one read, two places. */}
+        <HomePartners
+          universityIds={partnerUniversityIds}
+          locale={locale}
+          scholarships={scholarshipSpotlight.entries}
+          scholarshipTotal={scholarshipSpotlight.total}
+        />
         <HomeMetrics locale={locale} />
         <HomeScholarships
           entries={scholarshipSpotlight.entries}

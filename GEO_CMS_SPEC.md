@@ -1,8 +1,20 @@
 # GLOWBAL News CMS — Design Spec
 
-Status: **Phases 1–4 implemented** (this PR), except the headless pipeline
-`geo:sync-db` step (Phase 3 cont.), which is designed but not wired into the
-GitHub Action yet.
+Status: **Phases 1–2 and 4 implemented. Phase 3 (the generation pipeline) was
+removed on 2026-09-20** and is not coming back unless the owner asks.
+
+> **What changed on 2026-09-20.** The owner retired the AI generator and its
+> daily cron. Deleted: `scripts/geo/**`, `data/geo/**`, `content/geo/**`,
+> `public/generated/news/**`, `geo.tsconfig.json`, every `geo:*` npm script,
+> `.github/workflows/geo-content-pipeline.yml`, and the "Import from files"
+> backfill (`POST /api/admin/news/import`, plus `listLegacyFileGuides()`).
+> The five seeded markdown guides were all `status: draft`, which the public
+> reader has always filtered out, so **no reader-facing page was lost**; the
+> cron's only effect for its last 100+ runs was bumping `lastUpdated` by a day.
+>
+> What survives is the CMS: `geo_articles` is now the *only* source of /news,
+> admins author in `/admin/news`, and **Section 7 below is historical** — read
+> it as the plan that was dropped, not as how anything works.
 
 ## 1. Goal
 
@@ -19,15 +31,15 @@ than replacing it, while opening the door to:
 
 | Concern | Today |
 | --- | --- |
-| Storage | Markdown files in `content/geo/{drafts,published}/<slug>.md` + sidecar `content/geo/metadata/<slug>.json` + hero image in `public/generated/news/<slug>.*` |
-| Read path | `src/lib/geo-content.ts` reads the filesystem; `/news` lists, `/news/[slug]` renders. Pages are **statically generated** (`generateStaticParams`). |
-| Authoring | `.github/workflows/geo-content-pipeline.yml` runs daily: `geo:questions → cluster → draft → sources → quality → images → metadata`, then **commits generated files to `main`**, triggering a Vercel redeploy. `scripts/geo/createContentPR.ts` is an alternate PR-based flow. |
-| Pipeline inputs | `data/geo/{config.json, student-questions.json, topic-clusters.json, sources.json}` |
+| Storage | The `geo_articles` table (`sql/supabase-geo-cms.sql`). Hero images live in the `news-images` Supabase Storage bucket; a row with no `hero_image` falls back to `public/news/placeholder-cover.svg`. |
+| Read path | `src/lib/geo-content.ts` reads `geo_articles` (published rows only); `/news` lists, `/news/[slug]` renders. Every read passes `hasPlaceholderPublicationQuality()` — see below. |
+| Authoring | Admins write in `/admin/news`. There is no automated generation and no scheduled job. |
 | Admin auth | `isAdmin(userId)` (env `ADMIN_USER_IDS` **or** `student_profiles.is_admin`); `/admin/*` gated server-side; admin writes use the service-role `createAdminClient()` |
 
-Limitation: editing a "live" article means editing a file and waiting for a
-commit + redeploy. There is no in-site editor, and no structured graph of
-relationships between articles.
+The read-side placeholder gate is **not** dead weight now the generator is
+gone: rows the pipeline wrote before 2026-09-20 outlived it, and two of them
+were measured shipping "A Glowbal draft guide …" copy while marked `published`
+(2026-08-25). `sanitizeContent()` exists for the same reason.
 
 ## 3. Target architecture — DB-backed canonical store
 
@@ -128,9 +140,13 @@ All guarded by `isAdmin()`; writes via the service-role client in
 | PATCH | `/api/admin/news/:id` | update / change status |
 | DELETE | `/api/admin/news/:id` | delete |
 
-## 7. GEO pipeline integration (Phase 3)
+## 7. GEO pipeline integration (Phase 3) — DROPPED 2026-09-20
 
-The pipeline keeps `geo:questions → cluster → draft → sources → quality →
+> Historical. The pipeline this section integrates with no longer exists, and
+> `geo:sync-db` was never built. Kept as the record of a design that was
+> considered and abandoned, so nobody re-derives it by accident.
+
+The pipeline kept `geo:questions → cluster → draft → sources → quality →
 images → metadata`. The only change is the publish step:
 
 - Replace the `git add … && git commit` step with a `geo:sync-db` script that
@@ -165,17 +181,14 @@ edits if we guard on `source='pipeline'`.
 
 ## 9. Backfill / migration (Phase 3 — partially DONE in this PR)
 
-Shipped: an admin-triggered **"Import from files"** button on `/admin/news`
-(`POST /api/admin/news/import`) that reads every legacy markdown guide via the
-existing parser and **upserts** it into `geo_articles` keyed by slug, as
-`source='pipeline'`, preserving `status`, metadata → `meta`, and hero image.
-`upsertArticleBySlug` **never clobbers** an admin-authored row
-(`source='manual'`) — those return `skipped`, so human edits always win.
+**Removed 2026-09-20 — nothing left to back-fill.** The "Import from files"
+button and `POST /api/admin/news/import` read the markdown guides, and those
+files are gone. Rows already imported from them are untouched and still live in
+`geo_articles`.
 
-Still to do (Phase 3 cont.): a headless `geo:sync-db` script the GitHub Actions
-pipeline calls in place of the `git commit` step, reusing the same
-`upsertArticleBySlug` semantics. (Not wired into the live workflow yet — it
-needs the Supabase service-role secret added to the Action.)
+`upsertArticleBySlug` itself is still used by the CMS write path, and still
+**never clobbers** an admin-authored row (`source='manual'`) — those return
+`skipped`, so human edits always win.
 
 ## 10. Multi-article linking / GEO hosting (Phase 4 — DONE in this PR)
 

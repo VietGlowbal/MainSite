@@ -3,12 +3,13 @@
  *
  *   - the admin publish transition (`/api/admin/news/[id]` PATCH),
  *   - the public read path (`src/lib/geo-content.ts` — a row that fails the
- *     placeholder gate never renders or enters the sitemap), and
- *   - the generation pipeline's quality step (`scripts/geo/qualityCheck.ts`).
+ *     placeholder gate never renders or enters the sitemap).
  *
- * ONE copy of every regex on purpose: the plan forbids the script and the API
- * drifting apart, which is how "A Glowbal draft guide …" reached production
- * marked `published`.
+ * A third caller, the generation pipeline's quality step, was removed with that
+ * pipeline on 2026-09-20. The checks stay: the rows it wrote outlived it, and
+ * this gate is how "A Glowbal draft guide …" stops reaching production while
+ * marked `published`. ONE copy of every regex on purpose, so the write path and
+ * the read path cannot drift apart.
  */
 
 export type PublishValidationInput = {

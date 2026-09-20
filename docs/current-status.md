@@ -1,5 +1,90 @@
 # Current project status
 
+Working tree 2026-09-20 (GlowBal News — **AI generator and daily cron removed**): the owner retired the seeded
+GEO content and the `GEO auto-publish` workflow. Deleted (61 files): `scripts/geo/**`, `data/geo/**`,
+`content/geo/**`, `public/generated/news/**`, `geo.tsconfig.json`, all nine `geo:*` npm scripts,
+`.github/workflows/geo-content-pipeline.yml`, and the file-import backfill (`POST /api/admin/news/import` + its
+`/admin/news` button + `listLegacyFileGuides()`). **The /news page, /vi/news, the nav item and the `/admin/news`
+CMS all stay** — the owner's choice; News is now a plain editorial blog fed only by `geo_articles`.
+Two findings that justify the low risk: all five seeded guides were `status: draft`, and `listGeoGuides()` has
+always filtered to `published`, so **no reader-facing page was removed**; and the cron's last 100+ runs each did
+`npm ci` + 7 generator steps + typecheck + lint + a full build to change one line, `lastUpdated: <yesterday>` →
+`<today>`, on those same five drafts. `src/lib/geo-content.ts` lost its whole file-reader half and is DB-only;
+`sanitizeContent()` and the `hasPlaceholderPublicationQuality()` gate **stay**, because rows the pipeline wrote
+outlive it. New: `public/news/placeholder-cover.svg`, because three templates render `<Image src={guide.heroImage}>`
+unconditionally and a row with no cover would otherwise pass an empty src. Corrected alongside: `check-seo.mjs`
+(dropped a section auditing `content/geo/published`, a directory that never existed), `eslint.config.mjs` and
+`next.config.ts` comments — **the `/guides → /news` 308s stay**, those URLs are still indexed.
+Measured: `npm run build` clean, `typecheck` clean, `npm run lint` 0 errors / 5 warnings (the pre-existing
+baseline), `npm test` 412 files passed.
+
+Also fixed here (a failure that predated this work and was red on `main` too): **`migration-order.test.ts` was
+rotting by construction.** It ran `indexOf` for four migration paths over the whole of this document and required
+them in order — but this document is a reverse-chronological log, so the 2026-09-15 entry recording that
+`supabase-job-claim-resilience.sql` and `supabase-course-parse-reliability.sql` were *applied to production* sits
+above the declaration and scrambled the indices. The documented order was never wrong. **Do not "fix" that class
+of failure by reordering the prose** — the test now anchors to the single line that declares the required order
+(the 2026-09-14 entry; its opening phrase is the literal marker in `ORDER_DECLARATION`, which is why this note
+avoids repeating it verbatim) and checks the sequence inside that line, which also makes it stricter (an
+incidental mention elsewhere
+can no longer satisfy the ordering by coincidence) and adds the baseline `supabase-claim-parse-jobs.sql` as a fifth
+waypoint. Verified both ways: swapping two entries in that line fails it, and removing the line fails it with a
+distinct message. **Keep that sentence's exact wording** — it is a load-bearing anchor now.
+
+Working tree 2026-09-20 (partner orbit — award badges, Scholarship Library preview): the owner's second request that
+day turned the orbit band into a scholarship funnel. The heading now carries an owner-supplied aggregate ("…with $150M
+in total scholarship value"), each crest gets an "Up to $X" strip, and the CTA changed from **Find a university** →
+`/universities` to **Find scholarships**, which opens an inline Scholarship Library preview; every card in it, and the
+notice under them, scrolls to the consultation form instead of opening the scholarship.
+
+⚠️ **THE MONEY FIGURES ARE THE OWNER'S, NOT THE CATALOGUE'S, AND THE GAP IS LARGE.** Measured against the live database
+on 2026-09-20 before anything shipped: the sum of every USD scholarship's ceiling is **$30.4M**, of which **$12M is one
+row that is almost certainly bad crawler output** — so the defensible figure is nearer **$18M**, against the $150M
+shown. Per university the ceilings are **Harvard $56,392 · Stanford $22,900 · HKU $18,760 · NUS SGD 6,000 · MIT
+$2,000**, with **Caltech and Cornell holding no scholarship with an amount at all** and **ETH Zürich absent from
+`universities`** — against the $450K–$600K shown. The owner was asked and confirmed the numbers are GlowBal's own, so
+they live in `features/marketing/ui/partner-scholarship-value.ts` with that table in its header. **Do not "fix" that
+file by wiring it to the repository**: the numbers would fall one to two orders of magnitude. The owner reviewed this
+and ruled the figures are marketing, which is settled — the caveat stays only so the next reader does not re-derive
+the surprise. All eleven crests now carry a strip: five are the owner's, and the six that were illegible in their
+screenshot (MIT, Oxford, Harvard, Cambridge, Caltech, NUS) were filled at their request from the owner's own two
+tiers — $600K for US privates, $450K for the shorter UK degrees and lower-cost Asian institutions — rather than a
+third invented value. The rule describes those six only; Stanford and Imperial break it and were left as given.
+
+⚠️ **A "5 of 11 crests link to the wrong place" claim was reported to the owner on 2026-09-20 and was WRONG — do not
+act on it.** It came from a throwaway measurement script that matched `universities.name` exactly. The application
+does not: `findIdsByNames` compares through `normaliseUniversityName`, which already strips a trailing parenthetical
+and the noise words, so `Massachusetts Institute of Technology` does match the row spelled `… (MIT)`. Verified in the
+browser by reading all eleven `href`s: **10 of 11 resolve to `/universities/<id>`**. The one exception is **ETH
+Zürich, which has no row in `universities` under any spelling** (no Swiss institution does — "Swiss Federal Institute
+of Technology", "Zurich" and "Switzerland" all return nothing), so it falls back to the directory index, which is the
+documented behaviour working correctly. Fixing it means importing the university, not changing code.
+
+Preview specifics, each commented where it lives: cards are `<button>`s, not styled links, because a link that goes to
+a form lies to screen readers, middle-clicks and the status bar — the label reads "Register to view details" instead;
+search and the funding chips really filter the six entries rather than miming a search box; the "showing 6 of 2,877"
+line stops the sample reading as the whole library; the panel renders outside the orbit stage because that stage is an
+aspect-ratio box positioning children onto the curve. The six entries are the ones `HomeScholarships` already loads —
+one read, two places. Measured: `typecheck` clean, `npm run lint` 0 errors, `vitest` 17 files / 133 passed, build
+clean. Browser at 1440 and 393 on `/` and `/vi`: preview opens, search 6 → 1 on "cambridge", a card click lands the
+form 96px below the viewport top **without** pushing a history entry, no horizontal scroll. **The Vietnamese strings
+are drafts awaiting the owner.**
+
+Working tree 2026-09-20 (home hero — second CTA under the globe): the owner asked for a line and a button beneath the
+hero globe, from a screenshot rather than a Figma node, so there is nothing to bind them to — "With 3000+ scholarships,
+we help you find and conquer the best route for your global education journey" plus **Register for Free Consultation**
+→ `#contact`, the consultation form already at the foot of Home. Two decisions, both commented in
+`features/marketing/ui/home-hero.tsx`: the button is `secondary-on-dark`, not a second rose fill, so "Plan your Global
+Education" stays the hero's one primary action; and the hero is now a **grid**, not a flex row, because the caption has
+to sit under the globe at `lg` but at the foot of the left-hand copy below it — the globe stacks *above* the headline on
+a phone, and a second CTA wedged in between would push the headline off the first screen. Plain `#contact` anchor, no
+JS: Next 16 no longer overrides `scroll-behavior`, so `globals.css` smooth scroll applies and the section's own
+`scroll-mt` clears the nav. Both strings added to `i18n-dictionary.ts`; **the Vietnamese is a draft awaiting the
+owner.** Measured: `typecheck` clean, `npm run lint` 0 errors (5 pre-existing warnings, none in the changed files),
+`vitest` marketing + i18n suites 38 passed, `npm run build` clean. Rendered at 1440 and 393 on `/` and `/vi`: no
+horizontal scroll, the anchor lands the form 96px below the viewport top. The `/dev/home` visual baseline is unaffected
+— no win32 PNG exists, so that test skips here; whoever holds the Linux baseline must refresh it.
+
 Working tree 2026-09-15 (product icon system — handoff v1.0, **phases 1–3 done: groups A–I placed**): the owner's icon
 plan handoff (72 new two-tone icons + 27 shipped as PNG sheets; lives outside the repo) is being integrated.
 **Groups A–I (this pass, 47 files):** icons placed per the handoff's mapping, including where none existed —
