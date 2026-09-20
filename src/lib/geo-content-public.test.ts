@@ -1,18 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { existsSyncMock, readdirSyncMock, readFileSyncMock, createAdminClientMock } = vi.hoisted(() => ({
-  existsSyncMock: vi.fn(),
-  readdirSyncMock: vi.fn(),
-  readFileSyncMock: vi.fn(),
-  createAdminClientMock: vi.fn(),
-}));
+const { createAdminClientMock } = vi.hoisted(() => ({ createAdminClientMock: vi.fn() }));
 
-vi.mock('node:fs', () => ({
-  default: { existsSync: existsSyncMock, readdirSync: readdirSyncMock, readFileSync: readFileSyncMock },
-}));
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: createAdminClientMock }));
 
-import { getGeoGuide, listGeoGuides, listLegacyFileGuides } from './geo-content';
+import { getGeoGuide, listGeoGuides } from './geo-content';
 
 /** A published DB row; fields mirror the geo_articles columns the reader selects. */
 function dbRow(overrides: Record<string, unknown> = {}) {
@@ -60,44 +52,22 @@ function dbClient({ rows = [], single = null }: { rows?: unknown[]; single?: unk
 describe('public GEO content visibility', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    existsSyncMock.mockImplementation((value: string) => {
-      if (value.includes('metadata')) return false;
-      if (value.includes('db-published-slug')) return false;
-      if (value.includes('published') && value.includes('draft-slug')) return false;
-      return true;
-    });
-    readdirSyncMock.mockImplementation((value: string) => value.includes('published') ? ['published-slug.md'] : ['draft-slug.md']);
-    readFileSyncMock.mockImplementation((value: string) => {
-      const slug = value.includes('published-slug') ? 'published-slug' : 'draft-slug';
-      return `---\ntitle: ${slug}\nslug: ${slug}\ndescription: Summary\nlastUpdated: 2026-08-14\n---\nBody`;
-    });
-    createAdminClientMock.mockReturnValue({
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(async () => ({ data: [], error: null })),
-        })),
-      })),
-    });
+    createAdminClientMock.mockReturnValue(dbClient({ rows: [] }));
   });
 
-  it('keeps legacy drafts available for import but never exposes them publicly', async () => {
-    const publicGuides = await listGeoGuides();
-    const legacyGuides = listLegacyFileGuides();
+  it('renders a publishable row', async () => {
+    createAdminClientMock.mockReturnValue(dbClient({ rows: [dbRow()], single: dbRow() }));
 
-    expect(publicGuides.map((guide) => guide.slug)).toEqual(['published-slug']);
-    expect(legacyGuides.map((guide) => guide.slug).sort()).toEqual(['draft-slug', 'published-slug']);
-    expect(await getGeoGuide('draft-slug')).toBeNull();
-    expect(await getGeoGuide('published-slug')).toEqual(expect.objectContaining({ status: 'published' }));
+    expect((await listGeoGuides()).map((g) => g.slug)).toEqual(['db-published-slug']);
+    expect(await getGeoGuide('db-published-slug')).toEqual(
+      expect.objectContaining({ status: 'published', slug: 'db-published-slug' }),
+    );
   });
 
-  it('never exposes a DB row marked published while a same-slug legacy draft exists unless the row is publishable', async () => {
-    // The slug collides with the legacy draft file, but only the row's own
-    // quality decides whether the DB copy may render.
-    createAdminClientMock.mockReturnValue(dbClient({ single: dbRow({ slug: 'draft-slug' }) }));
-
-    expect(await getGeoGuide('draft-slug')).toEqual(expect.objectContaining({ status: 'published', slug: 'draft-slug' }));
-  });
-
+  /*
+   * The markdown generator was removed on 2026-09-20, but the rows it wrote
+   * outlive it, so the placeholder gate below still has work to do.
+   */
   it('hides a published row whose description still carries generator draft copy', async () => {
     createAdminClientMock.mockReturnValue(
       dbClient({ rows: [dbRow({ description: 'A Glowbal draft guide for vietnamese applicants' })] }),
@@ -121,15 +91,35 @@ describe('public GEO content visibility', () => {
     expect(await getGeoGuide('db-published-slug')).toBeNull();
   });
 
-  it('hides a legacy file guide whose frontmatter description is generator draft copy', async () => {
-    readFileSyncMock.mockImplementation((value: string) => {
-      const slug = value.includes('published-slug') ? 'published-slug' : 'draft-slug';
-      const description = slug === 'published-slug' ? 'placeholder summary pending review' : 'Summary';
-      return `---\ntitle: ${slug}\nslug: ${slug}\ndescription: ${description}\nlastUpdated: 2026-08-14\n---\nBody`;
+  /*
+   * The list and article templates render <Image src={guide.heroImage}>
+   * unconditionally, so a row with no cover must still hand them a servable
+   * path — an empty string throws in next/image.
+   */
+  it('falls back to a servable placeholder cover when the row has no hero image', async () => {
+    createAdminClientMock.mockReturnValue(dbClient({ single: dbRow({ hero_image: null }) }));
+
+    const guide = await getGeoGuide('db-published-slug');
+    expect(guide?.heroImage).toBe('/news/placeholder-cover.svg');
+    expect(guide?.heroImageStyle).toBe('svg-fallback');
+  });
+
+  it('keeps the row’s own cover when it has one', async () => {
+    createAdminClientMock.mockReturnValue(
+      dbClient({ single: dbRow({ hero_image: '/news-images/campus.webp', hero_image_style: 'ai' }) }),
+    );
+
+    const guide = await getGeoGuide('db-published-slug');
+    expect(guide?.heroImage).toBe('/news-images/campus.webp');
+    expect(guide?.heroImageStyle).toBe('ai');
+  });
+
+  it('degrades to an empty list when the CMS is unreachable', async () => {
+    createAdminClientMock.mockImplementation(() => {
+      throw new Error('no supabase env at build time');
     });
 
-    expect((await listGeoGuides()).map((g) => g.slug)).toEqual([]);
-    expect(await getGeoGuide('published-slug')).toBeNull();
+    expect(await listGeoGuides()).toEqual([]);
+    expect(await getGeoGuide('db-published-slug')).toBeNull();
   });
 });
-
