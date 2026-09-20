@@ -30,6 +30,13 @@ export {
 } from './partner-scholarship-value';
 export { HomeScholarships } from './home-scholarships';
 export type { ScholarshipTeaser } from './home-scholarships';
+export { HomeSuccessStories } from './home-success-stories';
+export { SUCCESS_STORY_FEATURE, SUCCESS_STORY_VOICES } from './success-stories-content';
+export type {
+  SuccessStory,
+  SuccessStoryAward,
+  SuccessStoryVoice,
+} from './success-stories-content';
 export { getOfficialScholarshipBranding } from './home-scholarship-branding';
 export type { OfficialScholarshipBranding } from './home-scholarship-branding';
 export { HomeTeam } from './home-team';

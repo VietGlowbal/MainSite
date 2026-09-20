@@ -16,6 +16,7 @@ import {
   HomePainPoints,
   HomePartners,
   HomeScholarships,
+  HomeSuccessStories,
   HomeTeam,
   PARTNER_LOGOS,
   type ContactState,
@@ -310,6 +311,12 @@ export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {})
           scholarships={scholarshipSpotlight.entries}
           scholarshipTotal={scholarshipSpotlight.total}
         />
+        {/* The owner's section order for "/" is Hero → Scholarship Showcase →
+            Success Stories → Standout Numbers → … (20/09). Only this insertion
+            is done; the rest of that reordering is still pending, so the
+            sections below remain in their current order. `media` is left unset
+            until the Quỳnh Chi video exists — see home-success-stories.tsx. */}
+        <HomeSuccessStories locale={locale} />
         <HomeMetrics locale={locale} />
         <HomeScholarships
           entries={scholarshipSpotlight.entries}

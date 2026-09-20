@@ -1,5 +1,40 @@
 # Current project status
 
+Working tree 2026-09-20 (Home — **Success Stories section added**, between the partner orbit and Standout
+Numbers): the proof section for the claims above it. Two beats — one student's five named scholarship offers,
+then a wall of seven student quotes. New: `src/features/marketing/ui/home-success-stories.tsx`,
+`success-stories-content.ts`, `home-success-stories.test.tsx`; wired in `src/app/page.tsx`.
+
+⚠️ **`success-stories-content.ts` HOLDS REAL PERSONAL DATA — EIGHT NAMED STUDENTS, SEVEN WITH THEIR SCHOOL.**
+Supplied by the owner for publication on "/". It is deliberately **not** reproduced here: AGENTS.md forbids
+personal data in documentation and that rule has no marketing exception. Read the file. Two rules live in its
+header and matter more than they look: the Vietnamese quotes are **verbatim and stay that way, punctuation
+included** (`:)))`, `=))))` — the informality is most of why they read as students rather than as copy), and
+each quote carries a hand English translation because these run VI→EN while every other string on Home runs
+EN→VI. A test pins the punctuation so a future "tidy-up" fails loudly.
+
+⚠️ **UNRESOLVED, RAISED WITH THE OWNER 2026-09-20: the page states two different figures for one award.**
+`home-team.tsx` has Phạm Quỳnh Chi's roster card reading 90% at VinUniversity; the newer Success Stories copy
+says 100%. Both render on "/", about two screens apart. The new section uses the newer figure and
+`home-team.tsx` was **deliberately not edited to match** — which is correct is a question about a real
+scholarship, not a conflict to settle by guessing. Fix the other file once the owner rules.
+
+Three deliberate departures from the owner's mockup, all forced by the real content (full reasoning in the
+component header): the quote grid is a **CSS multi-column flow, not a grid**, because the real quotes span
+14–92 words and an equal grid would truncate them; the feature card is **typographic with an optional `media`
+slot**, because the video is pending and Chi has no stored portrait, so a portrait-led layout would ship as a
+grey rectangle; and **nothing animates**, because the section follows the continuously-rotating orbit and a
+hover effect on a quote implies a click target that does not exist.
+
+New token: **`--color-fg-brand-on-inverse`** (rose-300) in `tokens.css`. `text-brand` (#e11d48) measures
+**~2.7:1 on a dark band and fails WCAG AA at any size** — the system had no accessible rose *text* colour for
+dark bands because nothing had needed one. Measured in the browser: magnitudes **10.47:1**, school lines
+**7.85:1**, quotes **18.97:1**. Use `bg-brand text-on-brand` or this token on dark; never `text-brand`.
+Measured: `typecheck` clean, `eslint` clean on all touched files, `npm run build` exit 0, 365 tests passed
+across `src/features/marketing` + `src/shared` (4 of them new), no horizontal overflow at 1440 or 393.
+Pre-existing and untouched: a hydration mismatch on `/vi` in the footer's `ConsentSettingsTrigger`
+("Privacy settings" vs "Cài đặt quyền riêng tư").
+
 Working tree 2026-09-20 (GlowBal News — **AI generator and daily cron removed**): the owner retired the seeded
 GEO content and the `GEO auto-publish` workflow. Deleted (61 files): `scripts/geo/**`, `data/geo/**`,
 `content/geo/**`, `public/generated/news/**`, `geo.tsconfig.json`, all nine `geo:*` npm scripts,

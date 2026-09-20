@@ -258,6 +258,22 @@ export const translations: Record<string, string> = {
     'Không có học bổng nào trong bản xem trước khớp với tìm kiếm này — thư viện đầy đủ còn nhiều hơn.',
   'Leave your details and a GlowBal advisor will send the scholarships that fit your profile.':
     'Để lại thông tin, cố vấn GlowBal sẽ gửi cho bạn những học bổng phù hợp với hồ sơ của bạn.',
+  // ── Home: Success Stories ────────────────────────────────────────────────
+  // Chrome only. The students' quotes are NOT dictionary keys: they were spoken
+  // in Vietnamese, so both languages are written out in
+  // features/marketing/ui/success-stories-content.ts and the rendered nodes
+  // carry data-no-auto-translate. Sending them through an EN→VI catalogue would
+  // paraphrase a real person's words back at them.
+  // Vietnamese drafted 2026-09-20, awaiting the owner's confirmation.
+  'Success stories': 'Câu chuyện thành công',
+  'Real offers, and what students say in their own words.':
+    'Học bổng có thật, và nhận xét của các bạn học sinh bằng chính lời của mình.',
+  'Now studying here': 'Đang theo học',
+  '{count} students, on what GlowBal changed for them':
+    '{count} bạn học sinh nói về những gì GlowBal đã thay đổi',
+  // Only rendered under `en`, where the quote shown is a translation rather
+  // than the words the student actually said.
+  'Quotes translated from Vietnamese.': 'Trích dẫn được dịch từ tiếng Việt.',
   'Recommended for you': 'Đề xuất dành cho bạn',
   'These universities are ranked by how well they match your preferences. Admission selectivity uses available overall university acceptance data. Programme-specific competitiveness may differ, and this is not a prediction of your personal admission chances.':
     'Các trường này được xếp hạng theo mức độ phù hợp với sở thích của bạn. Mức độ chọn lọc tuyển sinh dùng dữ liệu tỷ lệ trúng tuyển tổng thể hiện có của trường. Tính cạnh tranh của từng chương trình có thể khác, và đây không phải là dự đoán cơ hội trúng tuyển cá nhân của bạn.',

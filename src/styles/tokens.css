@@ -325,6 +325,19 @@
   --gb-text-on-inverse-secondary: var(--color-gb-neutral-350);
   --gb-text-on-inverse-muted: var(--color-gb-neutral-400);
   --gb-border-on-inverse: var(--color-gb-neutral-700);
+  /* ⚠️ THE ONLY ROSE THAT MAY BE USED AS TEXT ON A DARK BAND.
+     The brand is rose-600 (#e11d48), and it is a background colour there, not a
+     foreground one: on #000 it measures ~2.7:1, which fails WCAG AA for text at
+     every size. So `text-brand` on a dark band is a contrast bug, however good
+     it looks in a mockup — use `bg-brand text-on-brand` (a chip, ~4.7:1 white on
+     rose) or this.
+     Rose-300 on #000 measures ~11:1 and still reads unmistakably as the brand.
+     It is deliberately NOT named `--gb-brand-…`: it is a dark-band FOREGROUND,
+     and it belongs to the `on-inverse` vocabulary above so that a dark section
+     reaches for one consistent set. First needed by the Success Stories ledger
+     (home-success-stories.tsx), where the award magnitudes are the only
+     brand-coloured thing in the section. */
+  --gb-text-brand-on-inverse: var(--color-gb-brand-300);
   /* One step deeper than --gb-bg-inverse-strong (#000): the footer surface. */
   --gb-bg-inverse-deep: var(--color-gb-neutral-990);
   /* Figma text-brand-secondary-(700): brand-coloured text on a light surface —
@@ -517,6 +530,9 @@
   --color-fg-on-inverse: var(--gb-text-on-inverse); /* Figma Colors/Neutral/50 */
   --color-fg-on-inverse-secondary: var(--gb-text-on-inverse-secondary);
   --color-fg-on-inverse-muted: var(--gb-text-on-inverse-muted);
+  /* text-fg-brand-on-inverse — rose text on a dark band. `text-brand` is NOT a
+     substitute here; see the ⚠️ beside --gb-text-brand-on-inverse. */
+  --color-fg-brand-on-inverse: var(--gb-text-brand-on-inverse);
 
   /* border-line, border-line-strong */
   --color-line: var(--gb-border-secondary); /* Figma border-secondary */
