@@ -126,8 +126,10 @@ const eslintConfig = defineConfig([
     '.github/agents/**',
     '.github/hooks/**',
     '.github/skills/**',
-    // The GEO pipeline generates and commits code from here on a daily cron.
-    // It has its own gate (`npm run geo:check` runs tsc against geo.tsconfig).
+    // One-off maintenance and data-import scripts, not application source:
+    // they run by hand, never ship to the client, and are not part of CI's
+    // lint pass. (Until 2026-09-20 this also covered the GEO generator in
+    // scripts/geo, which had its own tsc gate; that pipeline was removed.)
     'scripts/**',
   ]),
 
