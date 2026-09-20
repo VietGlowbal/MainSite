@@ -4,7 +4,7 @@ export type Locale = 'en' | 'vi';
 
 export const homeCopy = {
   en: {
-    title: 'The all-in-one solution for scholarship seekers',
+    title: 'The ultimate solution for scholarship hunters',
     description:
       'From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.',
     metadataTitle: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',

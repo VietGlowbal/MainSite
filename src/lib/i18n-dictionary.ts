@@ -194,7 +194,7 @@ export const translations: Record<string, string> = {
   // ── Home (Figma 884:12026; copy source: Home.md) ─────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
   // must stay character-identical to the JSX in features/marketing/ui.
-  'The all-in-one solution for scholarship seekers':
+  'The ultimate solution for scholarship hunters':
     'Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”',
   'From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.':
     'GlowBal giúp bạn đưa ra quyết định chọn trường và học bổng phù hợp, từ đó xây dựng chiến lược cá nhân hoá, đồng hành theo dõi hồ sơ cùng bạn trong toàn bộ hành trình chinh phục giấc mơ du học.',
