@@ -800,7 +800,7 @@ export function HomePartners({
                 for the measured figures it departs from. It is interpolated
                 rather than written into the sentence so the caveat lives in one
                 file and the translators get one key, not two. */}
-            <h2 className="pointer-events-none max-w-[620px] text-center font-display text-gb-display-sm font-semibold leading-tight lg:text-[3.5cqw]">
+            <h2 className="pointer-events-none max-w-[620px] text-center font-display text-gb-display-sm font-semibold leading-tight lg:max-w-[61cqw] lg:text-[3.5cqw]">
               {getLocaleText(
                 activeLocale,
                 "Choose from 200+ of the world's leading universities with {value} in total scholarship value",
