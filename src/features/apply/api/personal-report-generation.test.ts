@@ -107,14 +107,48 @@ const FAKE_RECORD = {
   createdAt: '2026-08-13T00:00:00.000Z',
 };
 
+const EVIDENCE_LIMITATION = {
+  reason: 'The current confirmed record does not establish this pattern yet.',
+  actions: ['Add another detailed activity reflection or outcome.'],
+};
+
 const NARRATIVE_READY_REPORT = {
-  overallEvidenceConfidence: 'medium',
-  coreIdentity: { available: true },
-  drivingForce: { available: false },
-  signaturePattern: { available: false },
-  emergingThemes: { available: false },
-  personalPositioning: { available: false },
-  proofOfMe: { available: false },
+  overallEvidenceConfidence: 'low',
+  snapshot: { summary: 'The current record is evidence-limited and does not yet establish a recurring applicant profile.' },
+  overallSummary: { paragraphs: ['The available record is not sufficient to establish a recurring overall impression yet.'] },
+  limitations: ['The current confirmed record is sparse.'],
+  growthAreas: [],
+  coreIdentity: {
+    available: false,
+    headline: '',
+    interpretation: '',
+    recurringBehaviours: [],
+    observedBehaviours: [],
+    evidenceRefs: [],
+    insufficientData: EVIDENCE_LIMITATION,
+  },
+  drivingForce: {
+    available: false,
+    primaryMotivation: null,
+    repeatedMotivations: [],
+    repeatedChoices: [],
+    recurringProblems: [],
+    decisionMaking: null,
+    underlyingValues: [],
+    strategicInterpretation: null,
+    evidenceRefs: [],
+    insufficientData: EVIDENCE_LIMITATION,
+  },
+  signaturePattern: { available: false, steps: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  emergingThemes: { available: false, themes: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  personalPositioning: { available: false, statement: '', whyThisFits: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  proofOfMe: { available: false, cards: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  keyTakeaways: {
+    whatMakesYouStandOut: {},
+    competitiveAdvantage: {},
+    growthOpportunity: {},
+    limitations: ['No evidence-backed takeaway is established yet.'],
+  },
 };
 
 describe('regeneratePersonalReport', () => {
@@ -175,14 +209,7 @@ describe('regeneratePersonalReport', () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
-    const deterministicReport = {
-      overallEvidenceConfidence: 'medium',
-      coreIdentity: {},
-      drivingForce: {},
-      emergingThemes: {},
-      personalPositioning: {},
-      proofOfMe: {},
-    };
+    const deterministicReport = { ...NARRATIVE_READY_REPORT };
     mocks.buildPersonalReport.mockReturnValue(deterministicReport);
     const canvasDetails = {
       capabilities: [],
@@ -318,14 +345,7 @@ describe('regeneratePersonalReport', () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'low' });
-    mocks.buildPersonalReport.mockReturnValue({
-      coreIdentity: { available: false },
-      drivingForce: { available: false },
-      signaturePattern: { available: false },
-      emergingThemes: { available: false },
-      personalPositioning: { available: false },
-      proofOfMe: { available: false },
-    });
+    mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT });
     mocks.createPersonalReportV2Version.mockResolvedValue({
       record: { id: 'v-sparse', generatedAt: '2026-08-14T00:00:00.000Z' },
       error: null,
@@ -466,7 +486,7 @@ describe('regeneratePersonalReport', () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
-    mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT, limitations: [] });
+    mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT });
     mocks.synthesizePersonalReportNarrative.mockImplementation(async (args: {
       onFailure?: (code: string, context?: { issues?: Array<{ path: Array<string | number>; code: string; message: string }> }) => void;
     }) => {

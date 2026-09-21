@@ -29,7 +29,7 @@ import { extractReflectionFindings } from './evaluation/reflection-signal-extrac
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v12-grounded-activity-evidence';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v13-semantic-grounding';
 
 /** Dynamic report-only evidence rows use this namespace in the supplements table. */
 export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';
@@ -133,6 +133,26 @@ function meaningfulTokens(value: string): string[] {
     .filter((token) => token.length >= 3 && !GROUNDING_STOP_WORDS.has(token));
 }
 
+const GROUNDING_CONCEPTS: Record<string, readonly string[]> = {
+  adaptation: ['adapt', 'redesign', 'improv', 'transform', 'rework', 'modify'],
+  education: ['educat', 'workshop', 'lesson', 'student', 'teach', 'learn', 'curriculum', 'simulation'],
+  problem: ['problem', 'issue', 'gap', 'challenge', 'notic', 'identif', 'losing', 'struggl', 'barrier'],
+  initiative: ['initiative', 'independent', 'proactiv', 'redesign', 'introduc', 'launch'],
+  coordination: ['organis', 'coordinat', 'plan', 'schedul', 'manag', 'facilitat'],
+  leadership: ['lead', 'manag', 'coordinat', 'recruit', 'supervis', 'own'],
+  impact: ['reach', 'support', 'impact', 'benefit', 'improv', 'increase', 'reduce', 'outcome', 'result'],
+};
+
+function conceptSet(tokens: readonly string[]): Set<string> {
+  const concepts = new Set<string>();
+  for (const token of tokens) {
+    for (const [concept, stems] of Object.entries(GROUNDING_CONCEPTS)) {
+      if (stems.some((stem) => token.startsWith(stem))) concepts.add(concept);
+    }
+  }
+  return concepts;
+}
+
 function numbers(value: string): string[] {
   return value.match(/\d+(?:[.,]\d+)?/g) ?? [];
 }
@@ -165,8 +185,18 @@ export function isGroundedInSource(
 
   const candidateTokens = meaningfulTokens(candidate);
   if (candidateTokens.length === 0) return false;
-  const sourceTokens = new Set(meaningfulTokens(source));
-  const matched = candidateTokens.filter((token) => sourceTokens.has(token)).length;
+  const sourceTokens = meaningfulTokens(source);
+  const sourceTokenSet = new Set(sourceTokens);
+  const sourceConcepts = conceptSet(sourceTokens);
+  const ownershipClaim = /\b(?:found(?:ed|er)?|led|leadership|managed|coordinated|recruited|supervised|owned)\b/i.test(candidate);
+  const ownershipEvidence = /\b(?:found(?:ed|er)?|led|leadership|managed|coordinated|recruited|supervised|owned)\b/i.test(source);
+  if (ownershipClaim && !ownershipEvidence) return false;
+  const matched = candidateTokens.filter((token) => {
+    if (sourceTokenSet.has(token)) return true;
+    return Object.entries(GROUNDING_CONCEPTS).some(([concept, stems]) =>
+      sourceConcepts.has(concept) && stems.some((stem) => token.startsWith(stem)),
+    );
+  }).length;
   const required =
     candidateTokens.length <= 3 ? 1 : Math.ceil(candidateTokens.length * threshold);
   return matched >= required;

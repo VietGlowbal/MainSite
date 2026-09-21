@@ -13,6 +13,12 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Explain why you are interested in these subjects': 'Giải thích vì sao bạn quan tâm đến các môn học này',
   'Core Identity': 'Bản sắc cốt lõi',
   'Who they consistently are': 'Bạn nhất quán thể hiện mình là ai',
+  'Identity statement': 'Tuyên bố bản sắc',
+  'An emerging identity signal': 'Một tín hiệu bản sắc đang hình thành',
+  'This is a meaningful observation from the available activity evidence, but it is not yet a recurring identity claim.':
+    'Đây là một quan sát có ý nghĩa từ bằng chứng hoạt động hiện có, nhưng chưa phải là nhận định về bản sắc lặp lại.',
+  'No applicant-specific identity statement is supported by the current evidence.':
+    'Bằng chứng hiện tại chưa hỗ trợ một tuyên bố bản sắc cụ thể về ứng viên.',
   'Recurring role': 'Vai trò lặp lại',
   'Value orientation': 'Định hướng giá trị',
   'What GlowBal observed': 'Những gì GlowBal quan sát được',
@@ -43,6 +49,12 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Profile narrative': 'Câu chuyện hồ sơ',
   'Positioning options': 'Các lựa chọn định vị',
   'Experience connection': 'Mối liên kết giữa các trải nghiệm',
+  'A complete positioning narrative is not supported by the current evidence yet.':
+    'Bằng chứng hiện tại chưa hỗ trợ một câu chuyện định vị hoàn chỉnh.',
+  'The available experiences do not yet form a defensible connection.':
+    'Các trải nghiệm hiện có chưa tạo thành một mối liên kết đủ cơ sở.',
+  'No evidence-backed positioning option is available yet.':
+    'Chưa có lựa chọn định vị nào được bằng chứng hỗ trợ.',
   '{count} linked evidence references · {confidenceLabel}: {confidence}':
     '{count} tham chiếu bằng chứng liên kết · {confidenceLabel}: {confidence}',
   'Proof of Me': 'Bằng chứng về tôi',
@@ -82,6 +94,8 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Could not save the application analysis.': 'Không thể lưu phân tích hồ sơ ứng tuyển.',
   'The AI could not produce a valid report. Your previous report, if any, has been kept.':
     'AI chưa thể tạo báo cáo hợp lệ. Báo cáo trước đó, nếu có, vẫn được giữ nguyên.',
+  'The AI could not produce a complete, evidence-grounded report. Your previous report, if any, has been kept.':
+    'AI chưa thể tạo báo cáo đầy đủ dựa trên bằng chứng. Báo cáo trước đó, nếu có, vẫn được giữ nguyên.',
 
   // Redesign — profile-at-a-glance, chart axis labels, evidence-summary charts.
   'Profile at a glance': 'Tổng quan hồ sơ',
@@ -177,6 +191,7 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Primary motivation': 'Động lực chính',
   'Repeated motivation signals': 'Các tín hiệu động lực lặp lại',
   'Repeated choices': 'Các lựa chọn lặp lại',
+  'No repeated choice is established from the available evidence.': 'Chưa xác lập được lựa chọn lặp lại từ bằng chứng hiện có.',
   'Underlying values': 'Các giá trị nền tảng',
   'Recurring problems': 'Các vấn đề lặp lại',
   'Decision-making': 'Cách ra quyết định',
@@ -259,6 +274,13 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'What to remember before you build the application': 'Những điều cần ghi nhớ trước khi xây dựng hồ sơ ứng tuyển',
   'Three evidence-backed ideas to carry into your positioning, university matching and application strategy.':
     'Ba ý chính có bằng chứng hỗ trợ để bạn sử dụng trong định vị, lựa chọn trường phù hợp và chiến lược ứng tuyển.',
+  'A result or change is explicitly stated': 'Một kết quả hoặc thay đổi được nêu rõ',
+  'An explicit measurable result is stated': 'Một kết quả đo lường được được nêu rõ',
+  'Profile Positioning': 'Định vị hồ sơ',
+  'How your experiences connect, what the current evidence can support, and which future directions remain possibilities rather than past achievements.':
+    'Cách các trải nghiệm kết nối, bằng chứng hiện tại hỗ trợ được điều gì và những hướng đi tương lai nào vẫn chỉ là khả năng thay vì thành tích đã có.',
+  'The evidence-backed ideas to carry into your positioning, university matching and application strategy.':
+    'Những ý tưởng có bằng chứng hỗ trợ để bạn sử dụng trong định vị, lựa chọn trường phù hợp và chiến lược ứng tuyển.',
   'What Makes You Stand Out': 'Điều khiến bạn nổi bật',
   'Your Competitive Advantage': 'Lợi thế cạnh tranh của bạn',
   'Your Growth Opportunity': 'Cơ hội phát triển của bạn',

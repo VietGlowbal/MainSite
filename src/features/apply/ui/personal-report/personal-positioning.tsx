@@ -34,23 +34,28 @@ export function PersonalPositioningView({
   /** Undefined for a report version generated before analytics existed — see `PersonalReportV2.analytics`. */
   positioningDimensions: PersonalReportAnalytics['positioningDimensions'] | undefined;
   returnTo: string | undefined;
-}) {
+  }) {
   const t = useT();
+  const narrative = report?.narrativeDetails?.profilePositioning;
+  const hasPositioningNarrative = Boolean(narrative?.profileNarrative?.trim() || section.statement?.trim());
   return (
     <SectionShell
       eyebrow={t('Personal Positioning')}
       title={t('An evidence-grounded positioning statement')}
       confidence={section.confidence}
     >
-      {section.available ? (
+      {section.available || hasPositioningNarrative ? (
         <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
           <div className="rounded-gb-xl border border-line bg-surface p-6 sm:p-7 shadow-xs">
-            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Profile narrative')}</p>
-            <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{report?.narrativeDetails?.profilePositioning?.profileNarrative ?? section.statement}</p>
-            {report?.narrativeDetails?.profilePositioning?.positioningOptions.length ? (
+            <div className="flex flex-wrap items-center gap-gb-sm">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Profile narrative')}</p>
+              {!section.available ? <Badge variant="neutral-chip">{t('Emerging')} · {section.confidence}</Badge> : null}
+            </div>
+            <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative?.profileNarrative ?? section.statement}</p>
+            {narrative?.positioningOptions.length ? (
               <div className="mt-gb-lg flex flex-col gap-gb-sm border-t border-line/60 pt-gb-md">
                 <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-muted">{t('Positioning options')}</p>
-                {report.narrativeDetails.profilePositioning.positioningOptions.map((option) => (
+                {narrative.positioningOptions.map((option) => (
                   <div key={option.title} className="rounded-gb-lg border border-line/50 bg-surface-muted/60 p-gb-md text-gb-sm leading-relaxed text-fg-secondary">
                     <span className="font-bold text-fg">{option.title}:</span> {option.statement}
                   </div>
@@ -89,14 +94,14 @@ export function PersonalPositioningView({
             <PositioningTrait label={t('Direction aligned')} value={section.directionAligned} />
             <PositioningTrait label={t('Credible')} value={section.credible} />
           </div>
-          {section.whyThisFits.length > 0 || report?.narrativeDetails?.profilePositioning?.experienceConnection ? (
+          {section.whyThisFits.length > 0 || narrative?.experienceConnection ? (
             <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
               <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Experience connection')}</p>
-              {report?.narrativeDetails?.profilePositioning?.experienceConnection ? (
+              {narrative?.experienceConnection ? (
                 <div className="rounded-gb-lg border border-line/60 bg-surface-muted/60 p-gb-lg">
-                  <p className="text-gb-base font-bold text-fg">{report.narrativeDetails.profilePositioning.experienceConnection.strongestProfileThread}</p>
-                  <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{report.narrativeDetails.profilePositioning.experienceConnection.connectionExplanation}</p>
-                  <p className="mt-gb-sm text-gb-xs font-medium text-fg-muted">{t('{count} supporting experiences', { count: report.narrativeDetails.profilePositioning.experienceConnection.supportingExperienceCount })}</p>
+                  <p className="text-gb-base font-bold text-fg">{narrative.experienceConnection.strongestProfileThread}</p>
+                  <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.experienceConnection.connectionExplanation}</p>
+                  <p className="mt-gb-sm text-gb-xs font-medium text-fg-muted">{t('{count} supporting experiences', { count: narrative.experienceConnection.supportingExperienceCount })}</p>
                 </div>
               ) : (
                 <ul className="flex list-disc flex-col gap-gb-sm pl-gb-xl text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
@@ -119,7 +124,29 @@ export function PersonalPositioningView({
           ) : null}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
+        <div className="flex flex-col gap-gb-lg" data-no-auto-translate>
+          <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-6 sm:p-7">
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Profile narrative')}</p>
+            <p className="mt-gb-sm text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+              {t('A complete positioning narrative is not supported by the current evidence yet.')}
+            </p>
+          </div>
+          <div className="grid gap-gb-lg sm:grid-cols-2">
+            <div className="rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Experience connection')}</p>
+              <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                {section.whatPreventsStrongerPositioning[0] ?? t('The available experiences do not yet form a defensible connection.')}
+              </p>
+            </div>
+            <div className="rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Positioning options')}</p>
+              <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                {t('No evidence-backed positioning option is available yet.')}
+              </p>
+            </div>
+          </div>
+          {section.insufficientData ? <InsufficientDataCard data={section.insufficientData} returnTo={returnTo} /> : null}
+        </div>
       )}
     </SectionShell>
   );

@@ -30,18 +30,27 @@ export function CoreIdentityView({ section, report, returnTo }: { section: CoreI
         evidenceStrength: section.confidence === 'high' ? 'strong' as const : section.confidence === 'medium' ? 'moderate' as const : 'limited' as const,
         maturity: 'established' as const,
       }));
+  const identityStatement = narrative?.identityStatement?.trim() || section.interpretation?.trim() || null;
+  const hasIdentityEvidence = Boolean(identityStatement || section.headline || section.observations.length > 0);
 
   return (
     <SectionShell eyebrow={t('Core Identity')} title={t('Who they consistently are')} confidence={section.confidence}>
       <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
-        {section.available ? (
+        {hasIdentityEvidence ? (
           <>
             <div>
-              <h3 className="font-display text-gb-display-xs sm:text-gb-display-sm font-bold tracking-gb-display-tight text-fg">
-                {section.headline}
-              </h3>
+              <div className="flex flex-wrap items-center gap-gb-md">
+                <h3 className="font-display text-gb-display-xs sm:text-gb-display-sm font-bold tracking-gb-display-tight text-fg">
+                  {section.headline ?? t('An emerging identity signal')}
+                </h3>
+                {!section.available ? (
+                  <span className="rounded-full border border-line bg-surface-muted px-2 py-1 text-gb-xs font-semibold text-fg-muted">
+                    {t('Emerging')} · {section.confidence}
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-gb-sm text-gb-base sm:text-gb-md leading-relaxed text-fg-secondary">
-                {narrative?.identityStatement ?? section.interpretation}
+                {identityStatement ?? t('This is a meaningful observation from the available activity evidence, but it is not yet a recurring identity claim.')}
               </p>
             </div>
             {(section.recurringRole || section.valueOrientation) ? (
@@ -61,7 +70,14 @@ export function CoreIdentityView({ section, report, returnTo }: { section: CoreI
               </div>
             ) : null}
           </>
-        ) : null}
+        ) : (
+          <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-6">
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Identity statement')}</p>
+            <p className="mt-gb-sm text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+              {t('No applicant-specific identity statement is supported by the current evidence.')}
+            </p>
+          </div>
+        )}
 
         {section.observations.length > 0 ? (
           <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
@@ -120,7 +136,7 @@ export function CoreIdentityView({ section, report, returnTo }: { section: CoreI
           )}
         </div>
 
-        {!section.available ? <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} /> : null}
+        {!section.available && section.insufficientData ? <InsufficientDataCard data={section.insufficientData} returnTo={returnTo} /> : null}
 
         {section.available && section.stillDeveloping.length > 0 ? (
           <p className="text-gb-xs sm:text-gb-sm text-fg-muted">{t('Still developing')}: {section.stillDeveloping.join(' ')}</p>

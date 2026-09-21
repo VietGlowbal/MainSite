@@ -28,4 +28,22 @@ describe('Personal Report factual grounding', () => {
       ),
     ).toBe(false);
   });
+
+  it('accepts a semantically supported activity interpretation', () => {
+    expect(
+      isGroundedInSource(
+        'Identified an engagement problem and showed initiative by adapting an educational workshop.',
+        'Students were losing interest, so I redesigned our financial literacy workshop into an interactive investment simulation.',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not turn a redesign into unsupported founding or leadership ownership', () => {
+    expect(
+      isGroundedInSource(
+        'Founded and led an educational organisation.',
+        'Students were losing interest, so I redesigned our financial literacy workshop into an interactive investment simulation.',
+      ),
+    ).toBe(false);
+  });
 });

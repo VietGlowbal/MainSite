@@ -226,7 +226,6 @@ export function derivedSocialProofMetrics(cards: readonly ProofCard[]): SocialPr
     cards,
     [
       new RegExp(`\\b(?:led|managed|coordinated|organised|organized|recruited|supervised)\\b[^.!?]{0,80}\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\b`, 'i'),
-      new RegExp(`\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\s+(?:team|group)\\b`, 'i'),
     ],
   );
 
