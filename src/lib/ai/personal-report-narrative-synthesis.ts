@@ -445,7 +445,30 @@ export function synthesisInputFromReport(
     }
   }
   for (const activity of activityEvidence) {
-    for (const signal of activity.candidateCapabilitySignals) {
+    const activityText = [
+      activity.problem,
+      activity.action,
+      activity.ownership,
+      activity.method,
+      activity.role,
+      activity.basicInfo.behaviour,
+    ].filter(Boolean).join(' ');
+    const derivedSignals = [
+      /\b(?:problem|issue|gap|challenge|notic|identif|losing|struggl)\w*\b/i.test(activityText) &&
+      /\b(?:adapt|redesign|improv|transform|rework|initiative|independent|proactiv)\w*\b/i.test(activityText)
+        ? 'problem solving and initiative'
+        : null,
+      /\b(?:organis|organiz|coordinat|plan|schedul|implement|deliver)\w*\b/i.test(activityText)
+        ? 'organisation and coordination'
+        : null,
+      /\b(?:lead|manag|recruit|supervis|ownership)\w*\b/i.test(activityText)
+        ? 'leadership and ownership'
+        : null,
+      /\b(?:communicat|teach|present|facilitat|explain)\w*\b/i.test(activityText)
+        ? 'communication and facilitation'
+        : null,
+    ].filter((signal): signal is string => signal !== null);
+    for (const signal of [...new Set([...activity.candidateCapabilitySignals, ...derivedSignals])]) {
       addTraitCandidate(signal, activity.evidenceIds, activity.id, activity.title, proofByActivityId.get(activity.id)?.evidenceStrength ?? 'limited');
     }
   }
@@ -1232,7 +1255,7 @@ function personalReportNarrativeResponseFormat(
   return {
     type: 'json_schema',
     json_schema: {
-      name: `personal_report_narrative_batch_${batch === NARRATIVE_BATCHES[0] ? 'a' : 'b'}`,
+      name: `personal_report_narrative_batch_${batch.structured.includes('snapshot') ? 'a' : 'b'}`,
       strict: true,
       schema,
     },
@@ -1453,18 +1476,42 @@ function materializeNarrativeDetails(
   return output;
 }
 
+type NarrativeBatchParseResult = {
+  value: Partial<PersonalReportNarrativeSynthesis>;
+  invalidSections: string[];
+  issues: PersonalReportNarrativeFailureIssue[];
+};
+
 function materializeBatch(
   parsed: z.infer<typeof synthesisResponseSchema>,
   batch: NarrativeBatch,
   sectionInput: SynthesisSectionInput,
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
-): Partial<PersonalReportNarrativeSynthesis> {
-  const result: Partial<PersonalReportNarrativeSynthesis> = {};
-  if (parsed.narrativeDetails) {
-    result.narrativeDetails = materializeNarrativeDetails(parsed.narrativeDetails, batch, sectionInput, allowedBySection);
+): { value: Partial<PersonalReportNarrativeSynthesis>; invalidSections: string[]; issues: PersonalReportNarrativeFailureIssue[] } {
+  const value: Partial<PersonalReportNarrativeSynthesis> = {};
+  const invalidSections: string[] = [];
+  const issues: PersonalReportNarrativeFailureIssue[] = [];
+  for (const key of batch.structured) {
+    const sectionValue = parsed.narrativeDetails?.[key];
+    if (sectionValue === undefined || sectionValue === null) continue;
+    try {
+      const sectionBatch = { ...batch, structured: [key] as readonly StructuredNarrativeSection[] };
+      const materialized = materializeNarrativeDetails(
+        { [key]: sectionValue } as ParsedNarrativeDetails,
+        sectionBatch,
+        sectionInput,
+        allowedBySection,
+      );
+      value.narrativeDetails = {
+        ...(value.narrativeDetails ?? {}),
+        ...(materialized as PersonalReportNarrativeDetails),
+      };
+    } catch (error) {
+      invalidSections.push(key);
+      issues.push(...failureIssues(error));
+    }
   }
-
-  return result;
+  return { value, invalidSections, issues };
 }
 
 function parseNarrativeBatch(
@@ -1472,13 +1519,14 @@ function parseNarrativeBatch(
   batch: NarrativeBatch,
   sectionInput: SynthesisSectionInput,
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>,
-): Partial<PersonalReportNarrativeSynthesis> {
+): NarrativeBatchParseResult {
   const batchInputValue = batchInput(sectionInput, batch);
   const raw = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()) as Record<string, unknown>;
   const normalized = normalizeEmptyOptionalSections(raw);
   const rawDetails = normalized.narrativeDetails;
   const parsedDetails: Record<string, unknown> = {};
   const invalidSections: string[] = [];
+  const issues: PersonalReportNarrativeFailureIssue[] = [];
   if (rawDetails !== null && rawDetails !== undefined) {
     if (!isJsonSchemaRecord(rawDetails)) throw new Error('Narrative synthesis returned an invalid narrativeDetails object.');
     for (const key of batch.structured) {
@@ -1486,6 +1534,7 @@ function parseNarrativeBatch(
       const sectionResult = narrativeDetailsSchema.safeParse({ [key]: rawDetails[key] });
       if (!sectionResult.success) {
         if (rawDetails[key] !== null) invalidSections.push(key);
+        issues.push(...failureIssues(sectionResult.error));
         continue;
       }
       const value = (sectionResult.data as Record<string, unknown>)[key];
@@ -1515,8 +1564,31 @@ function parseNarrativeBatch(
     throw firstValidationError ?? new Error(`Narrative synthesis sections failed validation: ${invalidSections.join(', ')}`);
   }
   const parsed = synthesisResponseSchema.parse({ narrativeDetails: acceptedDetails });
+  const materialized = materializeBatch(parsed, batch, batchInputValue, allowedBySection);
+  const allInvalidSections = [...new Set([...invalidSections, ...materialized.invalidSections])];
+  return {
+    value: materialized.value,
+    invalidSections: allInvalidSections,
+    issues: [
+      ...issues,
+      ...(firstValidationError ? failureIssues(firstValidationError) : []),
+      ...materialized.issues,
+    ].filter((issue) => issue.path.length > 0 || issue.message !== 'null'),
+  };
+}
 
-  return materializeBatch(parsed, batch, batchInputValue, allowedBySection);
+function mergeNarrativeBatchValues(
+  first: Partial<PersonalReportNarrativeSynthesis>,
+  second: Partial<PersonalReportNarrativeSynthesis>,
+): Partial<PersonalReportNarrativeSynthesis> {
+  return {
+    ...first,
+    ...second,
+    narrativeDetails: {
+      ...(first.narrativeDetails ?? {}),
+      ...(second.narrativeDetails ?? {}),
+    },
+  };
 }
 
 async function completeNarrativeBatch(args: {
@@ -1525,6 +1597,7 @@ async function completeNarrativeBatch(args: {
   batch: NarrativeBatch;
   sectionInput: SynthesisSectionInput;
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>;
+  onPartialFailure?: (code: PersonalReportNarrativeFailureCode, context: PersonalReportNarrativeFailureContext) => void;
 }): Promise<Partial<PersonalReportNarrativeSynthesis>> {
   const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowedBySection);
   const responseFormat = personalReportNarrativeResponseFormat(args.batch, args.sectionInput);
@@ -1541,7 +1614,58 @@ async function completeNarrativeBatch(args: {
   });
 
   try {
-    return parseNarrativeBatch(content, args.batch, args.sectionInput, args.allowedBySection);
+    const parsed = parseNarrativeBatch(content, args.batch, args.sectionInput, args.allowedBySection);
+    if (parsed.invalidSections.length === 0) return parsed.value;
+
+    const repairBatch: NarrativeBatch = {
+      ...args.batch,
+      structured: args.batch.structured.filter((key) => parsed.invalidSections.includes(key)),
+    };
+    if (repairBatch.structured.length === 0) return parsed.value;
+    try {
+      const repairedContent = await openAiJsonCompletion({
+        apiKey: args.apiKey,
+        model: args.model,
+        messages: [
+          { role: 'system', content: REPAIR_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              ...narrativeBatchPayload(args.sectionInput, repairBatch, args.allowedBySection),
+              validationErrors: parsed.issues,
+              invalidResponse: content.slice(0, 24_000),
+            }),
+          },
+        ],
+        temperature: 0,
+        maxTokens: args.batch.maxTokens,
+        responseFormat: personalReportNarrativeResponseFormat(repairBatch, args.sectionInput),
+      });
+      const repaired = parseNarrativeBatch(repairedContent, repairBatch, args.sectionInput, args.allowedBySection);
+      if (repaired.invalidSections.length > 0) {
+        const issue = repaired.issues[0];
+        const detail = issue?.message ?? `Sections failed repair: ${repaired.invalidSections.join(', ')}`;
+        args.onPartialFailure?.(failureCode(new Error(detail)), {
+          batch: [...repairBatch.structured],
+          issues: repaired.issues,
+          detail,
+        });
+        return parsed.value;
+      }
+      return mergeNarrativeBatchValues(parsed.value, repaired.value);
+    } catch (repairError) {
+      args.onPartialFailure?.(failureCode(repairError), {
+        batch: [...repairBatch.structured],
+        issues: failureIssues(repairError),
+        detail: repairError instanceof Error ? repairError.message.slice(0, 240) : String(repairError).slice(0, 240),
+      });
+      console.warn('[personal-report-narrative-synthesis] section repair failed; keeping valid siblings', {
+        batch: args.batch.structured,
+        invalidSections: parsed.invalidSections,
+        issues: failureIssues(repairError),
+      });
+      return parsed.value;
+    }
   } catch (error) {
     if (!isRepairableNarrativeFailure(error)) throw error;
     const issues = failureIssues(error);
@@ -1568,7 +1692,7 @@ async function completeNarrativeBatch(args: {
       maxTokens: args.batch.maxTokens,
       responseFormat,
     });
-    return parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection);
+    return parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection).value;
   }
 }
 
@@ -1606,6 +1730,11 @@ export async function synthesizePersonalReportNarrative(args: {
 
   let failureContext: PersonalReportNarrativeFailureContext | undefined;
   try {
+    const reportFailure = (code: PersonalReportNarrativeFailureCode, context: PersonalReportNarrativeFailureContext) => {
+      if (failureContext) return;
+      failureContext = context;
+      args.onFailure?.(code, context);
+    };
     const hasAvailableSection = (batch: NarrativeBatch) =>
       batch.structured.some((key) => structuredSectionAvailable(key, sectionInput));
     const batches = NARRATIVE_BATCHES.filter(hasAvailableSection);
@@ -1620,6 +1749,7 @@ export async function synthesizePersonalReportNarrative(args: {
               batch,
               sectionInput,
               allowedBySection,
+              onPartialFailure: reportFailure,
             }),
             error: null,
           };
@@ -1638,10 +1768,7 @@ export async function synthesizePersonalReportNarrative(args: {
           ? outcome.error.message.slice(0, 240)
           : String(outcome.error).slice(0, 240),
       } satisfies PersonalReportNarrativeFailureContext;
-      if (!failureContext) {
-        failureContext = context;
-        args.onFailure?.(code, context);
-      }
+      reportFailure(code, context);
       console.warn('[personal-report-narrative-synthesis] batch skipped', {
         code,
         ...context,

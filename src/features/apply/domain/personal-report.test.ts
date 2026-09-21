@@ -312,6 +312,16 @@ describe('buildPersonalReport', () => {
     expect(coverage.groundingValidity.valid).toBe(true);
   });
 
+  it('does not treat empty section objects as framework coverage', () => {
+    const coverage = validatePersonalReportFramework({} as never);
+
+    expect(coverage.structuralCompleteness.complete).toBe(false);
+    expect(coverage.contentCompleteness.complete).toBe(false);
+    expect(coverage.structuralCompleteness.missing).toContain('definingTraits');
+    expect(coverage.sections.coreIdentity.status).toBe('unavailable');
+    expect(coverage.renderingCompleteness).toMatchObject({ complete: true, interactive: true, print: true });
+  });
+
   it('keeps self-reported capability claims separate from proven capability scores', () => {
     const result = report({ narrativeActivities: [TUTOR], evidenceItems: [] });
     const canvas = buildPersonalCanvasDetails({
@@ -415,6 +425,20 @@ describe('buildPersonalReport', () => {
     }] as never);
 
     expect(metrics).toEqual([]);
+  });
+
+  it('does not convert team size into team members led', () => {
+    const metrics = derivedSocialProofMetrics([{
+      activityId: 'participant',
+      title: 'Team project',
+      role: 'participant',
+      personalContribution: 'Participated in a five-person team to deliver the project',
+      outcome: null,
+      period: null,
+      evidenceRefs: [{ id: 'participant', kind: 'activity', label: 'Team project' }],
+    }] as never);
+
+    expect(metrics.find((metric) => metric.key === 'teamMembersLed')).toBeUndefined();
   });
 
   it('routes Q1 into emerging themes and Q3 into positioning as explicitly scoped context', () => {

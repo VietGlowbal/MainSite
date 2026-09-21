@@ -9,6 +9,7 @@ import {
   SocialProofSummaryView,
 } from './personal-report-insights';
 import { KeyTakeawaysView } from './key-takeaways';
+import { CoreIdentityView } from './core-identity';
 import { PersonalReportPrintView } from './personal-report-print';
 import { ProofOfMeView } from './proof-of-me';
 
@@ -178,6 +179,44 @@ describe('Personal Report Pass 2 insights', () => {
     for (const title of ['Applicant Snapshot', 'Core Identity', 'Driving Forces', 'Proven Capabilities', 'Profile Positioning', 'Social Proof', 'Areas for Growth', 'Long-Term Vision', 'Key Takeaways']) {
       expect(screen.getAllByText(title, { exact: true }).length).toBeGreaterThan(0);
     }
+  });
+
+  it('renders an emerging identity statement and defining trait when recurrence is unavailable', () => {
+    const current = report();
+    current.coreIdentity = {
+      ...current.coreIdentity,
+      available: false,
+      headline: null,
+      interpretation: null,
+      observations: [],
+      recurringBehaviours: [],
+      observedBehaviours: [],
+      insufficientData: NO_DATA,
+    };
+    current.narrativeDetails = {
+      coreIdentity: {
+        identityStatement: 'The applicant notices engagement problems and takes practical steps to adapt learning experiences.',
+        evidenceIds: ['a1'],
+        definingTraits: [{
+          characteristic: 'Problem solving and initiative',
+          insight: 'The workshop redesign is a concrete emerging signal.',
+          whyItMatters: 'It shows how the applicant creates value through action.',
+          evidenceIds: ['a1'],
+          scope: 'emerging',
+          confidence: 'low',
+          evidenceStrength: 'limited',
+          maturity: 'emerging',
+          supportingExperienceTitles: ['Tutor platform'],
+        }],
+      },
+    } as never;
+
+    render(<CoreIdentityView section={current.coreIdentity} report={current} returnTo={undefined} />);
+
+    expect(screen.getByText(/notices engagement problems/i)).toBeInTheDocument();
+    expect(screen.getByText('Problem solving and initiative')).toBeInTheDocument();
+    expect(screen.getByText(/Emerging · limited · low/i)).toBeInTheDocument();
+    expect(screen.getByText('Tutor platform')).toBeInTheDocument();
   });
 
   it('shows motivation recurrence without presenting it as a personality score', () => {

@@ -43,19 +43,27 @@ export function DrivingForceView({
               </div>
               <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
                 <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Repeated choices')}</p>
-                <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
-                  {narrative.repeatedChoices.map((choice) => <li key={choice}>{choice}</li>)}
-                </ul>
+                {narrative.repeatedChoices.length > 0 ? (
+                  <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                    {narrative.repeatedChoices.map((choice) => <li key={choice}>{choice}</li>)}
+                  </ul>
+                ) : (
+                  <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{t('No repeated choice is established from the available evidence.')}</p>
+                )}
               </div>
               <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
                 <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Underlying values')}</p>
-                <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
-                  {narrative.underlyingValues.map((value) => <li key={value}>{value}</li>)}
-                </ul>
+                {narrative.underlyingValues.length > 0 ? (
+                  <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                    {narrative.underlyingValues.map((value) => <li key={value}>{value}</li>)}
+                  </ul>
+                ) : (
+                  <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{t('Values cannot be interpreted confidently yet.')}</p>
+                )}
               </div>
               <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
                 <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Decision-making')}</p>
-                <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.decisionMaking}</p>
+                <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.decisionMaking || t('No decision-making pattern is established yet.')}</p>
               </div>
               {narrative.recurringProblems.length > 0 ? (
                 <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:col-span-3">

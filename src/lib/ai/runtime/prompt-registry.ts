@@ -33,7 +33,7 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   competency_extraction: 'competency-v1',
   narrative_activity_extraction: 'narrative-activity-v3-grounded-evidence',
   reflection_signal_extraction: 'reflection-signals-v3-field-sanitization',
-  report_narrative_synthesis: 'report-synthesis-v16-exact-framework-compliance',
+  report_narrative_synthesis: 'report-synthesis-v17-emerging-traits-and-section-repair',
   target_profile_extraction: 'target-profile-v2',
   matching_criterion_reasoning: 'matching-criterion-v2.0.0',
   matching_report_summary: 'matching-summary-v2.0.0',

@@ -138,6 +138,21 @@ function reportRecord(args: {
   };
 }
 
+function reportContractFailure(
+  coverage: ReturnType<typeof validatePersonalReportFramework>,
+): string | null {
+  if (!coverage.structuralCompleteness.complete) {
+    return `The generated report is missing required components: ${coverage.structuralCompleteness.missing.join(', ')}.`;
+  }
+  if (!coverage.contentCompleteness.complete) {
+    return `The generated report contains incomplete components: ${coverage.contentCompleteness.missing.join(', ')}.`;
+  }
+  if (!coverage.groundingValidity.valid) {
+    return 'The generated report cited evidence outside the confirmed report inputs.';
+  }
+  return null;
+}
+
 function stateEvidenceBank(
   state: ApplicantAIState,
   supplements: Record<string, string>,
@@ -454,7 +469,7 @@ async function regenerateApplicationPersonalReport(
       applicationId,
       trigger,
       stage: 'generated',
-      outcome: 'success',
+      outcome: 'personal_report_incomplete',
       metadata: {
         narrativeOutcome: synthesis ? 'partial_narrative' : 'deterministic_fallback',
         narrativeFailure,
@@ -471,20 +486,27 @@ async function regenerateApplicationPersonalReport(
   } as PersonalReportV2Record['reportV2'];
   const frameworkCoverage = validatePersonalReportFramework(reportV2);
   reportV2 = { ...reportV2, frameworkCoverage };
-  if (!frameworkCoverage.groundingValidity.valid || !frameworkCoverage.structuralCompleteness.complete) {
-    logger.warn('personal_report_generate', {
+  const contractFailure = reportContractFailure(frameworkCoverage);
+  if (contractFailure) {
+    logger.error('personal_report_generate', new Error(contractFailure), {
       userId,
       applicationId,
       trigger,
       stage: 'validated',
-      outcome: 'success',
+      outcome: 'failed',
       metadata: {
-        coverageStatus: 'evidence_limited',
+        coverageStatus: 'invalid_contract',
         missingSections: frameworkCoverage.structuralCompleteness.missing,
+        incompleteSections: frameworkCoverage.contentCompleteness.missing,
         invalidEvidenceCount: frameworkCoverage.groundingValidity.invalidEvidenceIds.length,
       },
       durationMs: getElapsed(),
     });
+    return {
+      status: 'error',
+      message: 'The AI could not produce a complete, evidence-grounded report. Your previous report, if any, has been kept.',
+      record: current,
+    };
   }
 
   const inserted = await createPersonalReportV2Version(supabase, {
@@ -660,7 +682,7 @@ async function regenerateLegacyPersonalReport(
         userId,
         trigger,
         stage: 'generated',
-        outcome: 'success',
+        outcome: 'personal_report_incomplete',
         metadata: {
           narrativeOutcome: synthesis ? 'partial_narrative' : 'deterministic_fallback',
           narrativeFailure,
@@ -681,19 +703,26 @@ async function regenerateLegacyPersonalReport(
     };
     const frameworkCoverage = validatePersonalReportFramework(reportWithCanvas);
     const reportV2 = { ...reportWithCanvas, frameworkCoverage };
-    if (!frameworkCoverage.groundingValidity.valid || !frameworkCoverage.structuralCompleteness.complete) {
-      logger.warn('personal_report_generate', {
+    const contractFailure = reportContractFailure(frameworkCoverage);
+    if (contractFailure) {
+      logger.error('personal_report_generate', new Error(contractFailure), {
         userId,
         trigger,
         stage: 'validated',
-        outcome: 'success',
+        outcome: 'failed',
         metadata: {
-          coverageStatus: 'evidence_limited',
+          coverageStatus: 'invalid_contract',
           missingSections: frameworkCoverage.structuralCompleteness.missing,
+          incompleteSections: frameworkCoverage.contentCompleteness.missing,
           invalidEvidenceCount: frameworkCoverage.groundingValidity.invalidEvidenceIds.length,
         },
         durationMs: getElapsed(),
       });
+      return {
+        status: 'error',
+        message: 'The AI could not produce a complete, evidence-grounded report. Your previous report, if any, has been kept.',
+        record: current,
+      };
     }
 
     const { record: inserted, error } = await createPersonalReportV2Version(supabase, {

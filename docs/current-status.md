@@ -1,21 +1,27 @@
 # Current project status
 
-Working tree 2026-09-21 (personal report framework completeness): implemented the evidence-aware report contract v7. The
+Working tree 2026-09-21 (personal report post-review completeness): implemented the evidence-aware report contract v8. The
 report now keeps required framework sections structurally present, distinguishes supported/emerging/
-needs-more-evidence/unavailable coverage, preserves evidence IDs, records narrative-generation and grounding status,
-and exposes a coverage matrix in [personal-report-framework-coverage.md](personal-report-framework-coverage.md).
+needs-more-evidence/unavailable coverage, preserves evidence IDs, and records separate structural/content/evidence/
+narrative/grounding/rendering measurements in the exhaustive matrix at
+[personal-report-framework-coverage.md](personal-report-framework-coverage.md).
 Deterministic snapshots now include identity, positioning, behavioural signal, motivation, development direction, and
 an explicit evidence limitation; sparse reports continue through persistence instead of stopping at
 `insufficient_evidence`. Core Identity and all snapshot insight sections render evidence-limited states rather than
 disappearing. Profile-only capability claims are separated from proven capabilities; one-activity capability signals
-can support emerging narrative traits without being promoted to recurring strengths. Narrative parsing now isolates
-invalid sections while retaining valid siblings, the print path includes Snapshot/Positioning/Key Takeaways, and
-prompt version is `report-synthesis-v16-exact-framework-compliance`. The authoritative DOCX supplied in Downloads was
+can support emerging narrative traits without being promoted to recurring strengths. Numeric Social Proof now requires
+an explicit ownership verb before reporting team members led; semantic grounding accepts bounded paraphrases without
+weakening numeric/entity/ownership checks. Narrative parsing now isolates invalid sections, attempts targeted repair,
+and retains valid siblings. The print path uses the same evidence-limited components, and prompt version is
+`report-synthesis-v17-emerging-traits-and-section-repair` with extraction version
+`personal-report-extraction-v13-semantic-grounding`. The authoritative DOCX supplied in Downloads was
 read in full, including its six tables and three embedded images; the linked Google capability-scoring spec remains
 inaccessible and is documented as an unresolved formula-verification dependency. No production data or deployment was
-changed. Final verification for this continuation: `npm run typecheck:strict`, touched-file ESLint, `git diff --check`,
-focused Personal Report/API tests (5 files, 106 passed), Personal Report view regression (9 passed), and `npm run
-build` pass. The latest parallel full-suite run reached 414 files with 3900 passed, 2 todo and 10 failures; the
+changed. Final verification for this continuation: `npm run typecheck:strict`, touched-file ESLint,
+`node scripts/check-i18n.mjs --all`, focused domain/grounding/narrative tests (3 files, 72 passed), generation tests
+(15 passed), Personal Report UI/print regression (10 passed), `git diff --check`, and `npm.cmd run build`; the
+build passed with the three existing `src/lib/geo-content.ts` tracing warnings. The full suite remains to be rerun
+after this continuation. The earlier parallel full-suite run reached 414 files with 3900 passed, 2 todo and 10 failures; the
 failures were existing migration ordering, jsdom/runtime timeouts, and checker/auth test environment failures. No
 Personal Report failure remained after the dedicated rerun. A serial full-suite attempt was stopped after becoming
 non-productive; therefore the repository-wide suite is not claimed clean.

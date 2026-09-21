@@ -1,7 +1,7 @@
 # Personal Report framework coverage
 
 Status date: 2026-09-21. This matrix maps the authoritative framework supplied
-by the user to the assembled Personal Report contract and its interactive/print
+by the user to the assembled Personal Report v8 contract and its interactive/print
 consumers.
 
 The authoritative DOCX at
@@ -45,7 +45,7 @@ that the repository's existing score formula is correct.
 | What Makes You Stand Out | Applicant-specific insight, pattern/evidence, why it matters | `keyTakeaways.whatMakesYouStandOut` | Stand-out card | Print card | Evidence-scoped validation. |
 | Competitive Advantage | Advantage, evidence, application relevance | `keyTakeaways.competitiveAdvantage` | Competitive advantage card | Print card | Does not promote self-report-only capability claims. |
 | Growth Opportunity | Current profile → desired positioning → gap → development direction; missing information differs from capability gap | `keyTakeaways.growthOpportunity`, `growthAreas` | Growth card/matrix | Growth print section | Missing-information basis is validated; empty matrix remains visible. |
-| Framework validator | Structural completeness, evidence coverage, narrative generation, grounding validity, applicant-specific quality must remain separate | `frameworkCoverage` from `validatePersonalReportFramework()` | Read by report consumers/logging; not visual scoring | Stored with report version | Sparse report regression passes; no single misleading score is emitted. |
+| Framework validator | Structural completeness, content completeness, evidence coverage, narrative generation, grounding validity, rendering completeness and applicant-specific quality must remain separate | `frameworkCoverage` from `validatePersonalReportFramework()` | Read by report consumers/logging; not visual scoring | Stored with report version | Empty objects fail; explicit evidence-limited states pass; no single misleading score is emitted. |
 
 ## Exhaustive field-level compliance matrix
 
@@ -89,3 +89,33 @@ DOCX tables/images read on 2026-09-21.
 
 1. The linked capability-scoring Google Doc could not be accessed. The repository's existing evidence score semantics were preserved; they were not replaced with an invented formula. Formula-level compliance remains incomplete until that document is available.
 2. A live signed-in browser render and generated PDF export were not executed in this pass. The shared print path and component-level empty states were checked by typecheck and focused tests.
+
+## Confirmed root causes and before/after fixtures
+
+| Reproduction fixture | Before | After |
+|---|---|---|
+| One activity: “Students were losing interest, so I redesigned a financial-literacy workshop into an interactive investment simulation.” | The trait pool could contain only repeated Proof-of-Me labels; an isolated action could be filtered before synthesis and `CoreIdentityView` could hide the identity content when `available` was false. | `synthesisInputFromReport()` derives `problem solving and initiative` as an `emerging` candidate tied to the activity evidence ID. The UI renders the identity/trait evidence and labels it emerging; it does not call it recurring. |
+| Participant in a “five-person team” with no leadership verb | The team-size regex could report `teamMembersLed=5`. | `derivedSocialProofMetrics()` requires an explicit led/managed/coordinated/etc. ownership verb; participation remains qualitative and no leadership number is emitted. |
+| Malformed narrative section with valid Snapshot/Driving Force siblings | A batch-level materialization/validation failure could discard the whole response or trigger a broad retry. | `materializeBatch()` isolates sections, retries only invalid sections, and preserves valid siblings; a failed repair is observable and deterministic assembly remains available. |
+| Sparse/empty assembled report | Empty objects could be treated as present by truthiness, or UI branches could silently omit required content. | `validatePersonalReportFramework()` requires substantive content or an explicit limitation per component. Persistence rejects an invalid assembled contract; UI/print show evidence-limited states. |
+
+Confirmed implementation causes were: repeated-only trait candidate assumptions in
+`src/lib/ai/personal-report-narrative-synthesis.ts`, truthiness-based framework checks in
+`src/features/apply/domain/personal-report.ts`, the unqualified team-size regex in
+`src/features/apply/domain/personal-canvas-details.ts`, and `section.available` rendering gates in
+`src/features/apply/ui/personal-report/core-identity.tsx` and `personal-positioning.tsx`.
+
+## Measured verification for contract v8
+
+| Command | Result |
+|---|---|
+| `npm.cmd run typecheck:strict` | Pass |
+| Scoped ESLint on changed Personal Report files | Pass |
+| `node scripts/check-i18n.mjs --all` | Pass; 0 missing static keys, 0 placeholder mismatches |
+| Focused domain/grounding/narrative Vitest | Pass; 3 files, 72 tests |
+| Generation API Vitest | Pass; 15 tests |
+| Personal Report UI/print Vitest | Pass; 10 tests |
+| `npm.cmd run build` | Pass; Next.js 16.3.1 build, 151 static pages, three existing `src/lib/geo-content.ts` tracing warnings |
+| Live browser/PDF export | Not run; component-level print contract tested |
+
+No production data, deployment, or historical report rows were changed. The report contract, extraction, and prompt version bumps prevent old cached records from being treated as current v8 output; historical records continue through the additive legacy rendering path.
