@@ -138,7 +138,9 @@ function motivationSignals(report: PersonalReportV2) {
 
 export function MotivationProfileView({ report }: { report: PersonalReportV2 }) {
   const signals = motivationSignals(report);
-  if (signals.length === 0) return null;
+  if (signals.length === 0) {
+    return <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-gb-xl text-gb-sm leading-relaxed text-fg-tertiary">No repeated stated motivation is established in this report version yet.</div>;
+  }
 
   return (
     <div className="flex flex-col gap-gb-lg rounded-gb-xl border border-line p-gb-xl">
@@ -165,7 +167,9 @@ export function MotivationProfileView({ report }: { report: PersonalReportV2 }) 
 export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) {
   const t = useT();
   const capabilities = capabilityInsights(report);
-  if (capabilities.length === 0) return null;
+  if (capabilities.length === 0) {
+    return <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-gb-xl text-gb-sm leading-relaxed text-fg-tertiary">{t('No independently demonstrated capability is established in this report version yet.')}</div>;
+  }
 
   return (
     <div className="flex flex-col gap-gb-2xl">
@@ -253,31 +257,20 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
 function socialProofMetrics(report: PersonalReportV2) {
   const cards = report.proofOfMe.available ? report.proofOfMe.cards : [];
   return [
-    { label: 'Experiences analysed', value: cards.length, caption: 'Contributing to this report' },
-    { label: 'Strong evidence', value: cards.filter((card) => card.evidenceStrength === 'strong').length, caption: 'Outcome + capability + evidence' },
-    {
-      label: 'Checkable evidence',
-      value: cards.filter((card) => card.verificationStatus === 'verified' || card.verificationStatus === 'attributable').length,
-      caption: 'Verified or attributable',
-    },
-    { label: 'Recorded outcomes', value: cards.filter((card) => Boolean(card.outcome?.trim())).length, caption: 'A result or change is stated' },
-    { label: 'Quantified outcomes', value: cards.filter((card) => /\d/.test(card.outcome ?? '')).length, caption: 'Includes a measurable result' },
-    {
-      label: 'Capabilities evidenced',
-      value: new Set(cards.flatMap((card) => card.competenciesDemonstrated.map(normalise))).size,
-      caption: 'Distinct grounded capabilities',
-    },
+    { label: 'Recorded outcomes', value: cards.filter((card) => Boolean(card.outcome?.trim())).length, caption: 'A result or change is explicitly stated' },
+    { label: 'Quantified outcomes', value: cards.filter((card) => /\d/.test(card.outcome ?? '')).length, caption: 'An explicit measurable result is stated' },
     ...derivedSocialProofMetrics(cards),
-  ];
+  ].filter((metric) => metric.value > 0);
 }
 
 export function SocialProofSummaryView({ report }: { report: PersonalReportV2 }) {
   const t = useT();
   const metrics = socialProofMetrics(report);
-  if (metrics.every((metric) => metric.value === 0)) return null;
-  const cards = report.proofOfMe.available ? report.proofOfMe.cards : [];
+  if (metrics.every((metric) => metric.value === 0)) {
+    return <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-gb-xl text-gb-sm leading-relaxed text-fg-tertiary">{t('No quantified or counted contribution is available in this report version. Qualitative evidence remains in the experience records.')}</div>;
+  }
+  const recorded = metrics.find((metric) => metric.label === 'Recorded outcomes')?.value ?? 0;
   const quantified = metrics.find((metric) => metric.label === 'Quantified outcomes')?.value ?? 0;
-  const checkable = metrics.find((metric) => metric.label === 'Checkable evidence')?.value ?? 0;
   return (
     <div className="flex flex-col gap-gb-xl">
       <div className="grid gap-gb-md sm:grid-cols-2 lg:grid-cols-3">
@@ -292,10 +285,9 @@ export function SocialProofSummaryView({ report }: { report: PersonalReportV2 })
       <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl" data-no-auto-translate>
         <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('What the numbers suggest')}</p>
         <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
-          {report.narrativeDetails?.socialProof?.conclusion ?? t('The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {checkable} are verified or checkable. These counts describe the evidence base, not an admissions prediction.', {
-            activities: cards.length,
+          {report.narrativeDetails?.socialProof?.conclusion ?? t('The current record contains {recorded} explicitly recorded outcomes, including {quantified} quantified outcomes. These are source-backed contribution measures, not an admissions prediction.', {
+            recorded,
             quantified,
-            checkable,
           })}
         </p>
       </div>
@@ -392,7 +384,9 @@ function MatrixQuadrant({ title, subtitle, items }: { title: string; subtitle: s
 export function GrowthMatrixView({ report }: { report: PersonalReportV2 }) {
   const t = useT();
   const items = growthItems(report);
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-gb-xl text-gb-sm leading-relaxed text-fg-tertiary">{t('No specific development gap is established from the current evidence.')}</div>;
+  }
   return (
     <div className="flex flex-col gap-gb-xl rounded-gb-xl border border-line p-gb-xl">
       <div>
@@ -427,7 +421,9 @@ export function GrowthMatrixView({ report }: { report: PersonalReportV2 }) {
 }
 
 export function FuturePathwaysView({ report }: { report: PersonalReportV2 }) {
-  if (!report.emergingThemes.available || report.emergingThemes.themes.length === 0) return null;
+  if (!report.emergingThemes.available || report.emergingThemes.themes.length === 0) {
+    return <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-gb-xl text-gb-sm leading-relaxed text-fg-tertiary">No stated direction or evidence-backed theme is available in this report version yet.</div>;
+  }
   return (
     <div className="flex flex-col gap-gb-lg">
       <div>

@@ -19,8 +19,25 @@ import {
 
 type ReportWithCanvasDetails = PersonalReportV2 & { canvasDetails?: PersonalCanvasDetails };
 
+const APPLICANT_IMPACT_METRIC_KEYS = new Set([
+  'recordedOutcomes',
+  'quantifiedOutcomes',
+  'teamMembersLed',
+  'communityReach',
+  'yearsOfCommitment',
+]);
+
 function detailsFor(report: PersonalReportV2): PersonalCanvasDetails | undefined {
   return (report as ReportWithCanvasDetails).canvasDetails;
+}
+
+function EvidenceLimitedPanel({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-6 sm:p-8">
+      <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{title}</p>
+      <p className="mt-gb-sm text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{message}</p>
+    </div>
+  );
 }
 
 const BAND_LABEL: Record<CapabilityRating['band'], string> = {
@@ -50,7 +67,21 @@ export function SnapshotCapabilityProfileView({ report }: { report: PersonalRepo
   const t = useT();
   const details = detailsFor(report);
   if (!details) return <LegacyCapabilityProfileView report={report} />;
-  if (details.capabilities.length === 0) return null;
+  if (details.capabilities.length === 0) {
+    return (
+      <div className="flex flex-col gap-gb-lg">
+        <EvidenceLimitedPanel title={t('Capability profile')} message={t('No independently demonstrated capability is established in the current activity evidence. This section remains visible so self-reported signals are not mistaken for proven capabilities.')} />
+        {details.selfReportedCapabilities?.length ? (
+          <div className="rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-muted">{t('Self-reported signals — not yet demonstrated')}</p>
+            <ul className="mt-gb-sm flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm text-fg-secondary" data-no-auto-translate>
+              {details.selfReportedCapabilities.map((claim) => <li key={claim.name}>{claim.name}: {claim.statement}</li>)}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-gb-2xl">
@@ -90,15 +121,17 @@ export function SnapshotCapabilityProfileView({ report }: { report: PersonalRepo
             const narrativeCap = report.narrativeDetails?.provenCapabilities?.capabilities.find(
               (item) => item.capability.toLowerCase() === capability.name.toLowerCase(),
             );
-            const howDemonstrated = narrativeCap?.howDemonstrated ?? capability.why;
-            const whyItMatters = narrativeCap?.whyItMatters;
+            const howDemonstrated = narrativeCap?.howDemonstrated ?? capability.howDemonstrated;
+            const whyItMatters = narrativeCap?.whyItMatters ?? capability.whyItMatters;
+            const applicationRelevance = narrativeCap?.applicationRelevance ?? capability.applicationRelevance;
 
             return (
-              <article
+              <details
+                open
                 key={capability.name}
                 className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-6 shadow-xs transition-shadow hover:shadow-md"
               >
-                <div className="flex flex-wrap items-start justify-between gap-gb-sm">
+                <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-gb-sm [&::-webkit-details-marker]:hidden">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-gb-base sm:text-gb-md font-bold text-fg leading-snug" data-no-auto-translate>
                       {capability.name}
@@ -108,49 +141,60 @@ export function SnapshotCapabilityProfileView({ report }: { report: PersonalRepo
                     </p>
                   </div>
                   <Stars stars={capability.stars} />
-                </div>
+                </summary>
 
-                <p className="text-gb-sm leading-relaxed text-fg-secondary">
-                  {howDemonstrated}
-                </p>
+                <div className="flex flex-col gap-gb-md pt-gb-md">
+                  <p className="text-gb-sm leading-relaxed text-fg-secondary">
+                    {howDemonstrated}
+                  </p>
 
-                {whyItMatters ? (
+                  {whyItMatters ? (
+                    <div className="rounded-gb-lg border border-line/60 bg-surface-muted/70 p-gb-md">
+                      <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
+                        {t('Why it matters')}
+                      </p>
+                      <p className="mt-1 text-gb-xs sm:text-gb-sm leading-relaxed text-fg-secondary">
+                        {whyItMatters}
+                      </p>
+                    </div>
+                  ) : null}
+
                   <div className="rounded-gb-lg border border-line/60 bg-surface-muted/70 p-gb-md">
                     <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
-                      {t('Why it matters')}
+                      {t('Application relevance')}
                     </p>
                     <p className="mt-1 text-gb-xs sm:text-gb-sm leading-relaxed text-fg-secondary">
-                      {whyItMatters}
+                      {applicationRelevance}
                     </p>
                   </div>
-                ) : null}
 
-                <div className="flex flex-wrap items-center gap-gb-xs">
-                  <Badge variant="neutral-chip">
-                    {capability.evidenceCount} {capability.evidenceCount === 1 ? t('experience') : t('experiences')}
-                  </Badge>
-                  <Badge variant="neutral-chip">{confidenceLabel(capability.confidence)}</Badge>
-                  {capability.verifiedEvidenceCount > 0 ? (
-                    <Badge variant="safe-chip">{capability.verifiedEvidenceCount} {t('verified')}</Badge>
+                  <div className="flex flex-wrap items-center gap-gb-xs">
+                    <Badge variant="neutral-chip">
+                      {capability.evidenceCount} {capability.evidenceCount === 1 ? t('experience') : t('experiences')}
+                    </Badge>
+                    <Badge variant="neutral-chip">{confidenceLabel(capability.confidence)}</Badge>
+                    {capability.verifiedEvidenceCount > 0 ? (
+                      <Badge variant="safe-chip">{capability.verifiedEvidenceCount} {t('verified')}</Badge>
+                    ) : null}
+                  </div>
+
+                  {capability.supportingEvidence.length > 0 ? (
+                    <div className="mt-auto border-t border-line/80 pt-gb-md">
+                      <p className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted">
+                        {t('Supporting evidence')}
+                      </p>
+                      <ul className="mt-gb-sm flex flex-col gap-gb-xs text-gb-xs text-fg-tertiary" data-no-auto-translate>
+                        {capability.supportingEvidence.map((evidence) => (
+                          <li key={evidence.activityId} className="flex items-start justify-between gap-gb-sm">
+                            <span className="font-medium text-fg-secondary">{evidence.title}</span>
+                            <span className="shrink-0 font-medium text-fg-muted">{evidence.evidenceStrength}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
                 </div>
-
-                {capability.supportingEvidence.length > 0 ? (
-                  <div className="mt-auto border-t border-line/80 pt-gb-md">
-                    <p className="text-gb-xs font-semibold uppercase tracking-wider text-fg-muted">
-                      {t('Supporting evidence')}
-                    </p>
-                    <ul className="mt-gb-sm flex flex-col gap-gb-xs text-gb-xs text-fg-tertiary" data-no-auto-translate>
-                      {capability.supportingEvidence.map((evidence) => (
-                        <li key={evidence.activityId} className="flex items-start justify-between gap-gb-sm">
-                          <span className="font-medium text-fg-secondary">{evidence.title}</span>
-                          <span className="shrink-0 font-medium text-fg-muted">{evidence.evidenceStrength}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </article>
+              </details>
             );
           })}
         </div>
@@ -167,9 +211,12 @@ export function SnapshotCapabilityProfileView({ report }: { report: PersonalRepo
 }
 
 export function SnapshotMotivationProfileView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const details = detailsFor(report);
   if (!details) return <LegacyMotivationProfileView report={report} />;
-  if (details.motivations.length === 0) return null;
+  if (details.motivations.length === 0) {
+    return <EvidenceLimitedPanel title={t('Motivation profile')} message={t('No repeated stated motivation is established yet. Explicit interests may still be present elsewhere, but this view does not infer a stable motivation without supporting evidence.')} />;
+  }
 
   return (
     <div className="flex flex-col gap-gb-xl rounded-gb-xl border border-line bg-surface p-6 sm:p-8 shadow-xs">
@@ -197,15 +244,17 @@ export function SnapshotSocialProofSummaryView({ report }: { report: PersonalRep
   const t = useT();
   const details = detailsFor(report);
   if (!details) return <LegacySocialProofSummaryView report={report} />;
-  if (details.socialProof.every((metric) => metric.value === 0)) return null;
+  const metrics = details.socialProof.filter((metric) => APPLICANT_IMPACT_METRIC_KEYS.has(metric.key) && metric.value > 0);
+  if (metrics.length === 0) {
+    return <EvidenceLimitedPanel title={t('Social proof')} message={t('No quantified or counted contribution is available in the current record. Qualitative evidence remains in the experience and supporting-evidence sections.')} />;
+  }
 
-  const activities = details.socialProof.find((metric) => metric.key === 'activities')?.value ?? 0;
+  const recorded = details.socialProof.find((metric) => metric.key === 'recordedOutcomes')?.value ?? 0;
   const quantified = details.socialProof.find((metric) => metric.key === 'quantifiedOutcomes')?.value ?? 0;
-  const verified = details.socialProof.find((metric) => metric.key === 'verifiedEvidence')?.value ?? 0;
   return (
     <div className="flex flex-col gap-gb-xl">
       <div className="grid gap-gb-lg sm:grid-cols-2 lg:grid-cols-3">
-        {details.socialProof.map((metric) => (
+        {metrics.map((metric) => (
           <div key={metric.key} className="flex flex-col justify-between rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
             <div>
               <p className="font-display text-gb-display-sm sm:text-gb-display-md font-bold text-fg-brand">{metric.value}</p>
@@ -218,10 +267,9 @@ export function SnapshotSocialProofSummaryView({ report }: { report: PersonalRep
       <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:p-7" data-no-auto-translate>
         <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('What the numbers suggest')}</p>
         <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
-          {report.narrativeDetails?.socialProof?.conclusion ?? t('The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {verified} are verified or checkable. These counts describe the evidence base, not an admissions prediction.', {
-            activities,
+          {report.narrativeDetails?.socialProof?.conclusion ?? t('The current record contains {recorded} explicitly recorded outcomes, including {quantified} quantified outcomes. These are source-backed contribution measures, not an admissions prediction.', {
+            recorded,
             quantified,
-            verified,
           })}
         </p>
       </div>
@@ -277,7 +325,9 @@ export function SnapshotGrowthMatrixView({ report }: { report: PersonalReportV2 
   const details = detailsFor(report);
   if (!details) return <LegacyGrowthMatrixView report={report} />;
   const items = details.growthPriorities;
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return <EvidenceLimitedPanel title={t('Growth priority matrix')} message={t('No specific development gap is established from the current evidence. Add another reflected experience or clarify the intended direction to make this matrix more useful.')} />;
+  }
 
   return (
     <div className="flex flex-col gap-gb-xl rounded-gb-xl border border-line bg-surface p-6 sm:p-8 shadow-xs">
@@ -339,9 +389,12 @@ function PathwayCard({ pathway }: { pathway: FuturePathway }) {
 }
 
 export function SnapshotFuturePathwaysView({ report }: { report: PersonalReportV2 }) {
+  const t = useT();
   const details = detailsFor(report);
   if (!details) return <LegacyFuturePathwaysView report={report} />;
-  if (details.futurePathways.length === 0) return null;
+  if (details.futurePathways.length === 0) {
+    return <EvidenceLimitedPanel title={t('Possible future directions')} message={t('No stated direction or evidence-backed theme is available yet. This is an evidence limitation, not a prediction about the applicant’s future.')} />;
+  }
 
   return (
     <div className="flex flex-col gap-gb-xl">

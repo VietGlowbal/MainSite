@@ -53,6 +53,9 @@ const traitSchema = z.object({
   insight: z.string().min(1).max(500),
   evidenceIds: evidenceIdsSchema,
   whyItMatters: z.string().min(1).max(500),
+  supportingExperienceTitles: z.array(z.string().min(1).max(160)).max(6).optional(),
+  evidenceStrength: z.enum(['strong', 'moderate', 'limited']).optional(),
+  maturity: z.enum(['established', 'emerging']).optional(),
   scope: z.enum(['repeated', 'emerging']),
   confidence: z.enum(['high', 'medium', 'low']),
 });
@@ -67,6 +70,7 @@ const narrativeDetailsSchema = z.object({
     primaryMotivation: z.string().min(1).max(500),
     repeatedChoices: z.array(z.string().min(1).max(300)).max(8),
     recurringProblems: z.array(z.string().min(1).max(300)).max(8),
+    decisionMaking: z.string().min(1).max(700).optional(),
     underlyingValues: z.array(z.string().min(1).max(300)).max(8),
     strategicInterpretation: z.string().min(1).max(700),
     evidenceStrength: z.enum(['strong', 'moderate', 'limited']),
@@ -82,6 +86,7 @@ const narrativeDetailsSchema = z.object({
       supportingActivities: z.array(z.string().min(1).max(160)).max(6),
       howDemonstrated: z.string().min(1).max(600),
       whyItMatters: z.string().min(1).max(600),
+      applicationRelevance: z.string().min(1).max(600).optional(),
     })).max(4),
     combinationInsight: z.string().min(1).max(700),
     combinationEvidenceIds: evidenceIdsSchema,
@@ -186,13 +191,13 @@ REPAIR MODE: Repair one invalid JSON response for the applicant-facing Personal 
 
 When a requested section is present, include every field in its contract. Required contracts:
 - provenCapabilities: overview, overviewEvidenceIds, capabilities, combinationInsight, combinationEvidenceIds.
-- every provenCapabilities.capabilities item: capability, evidenceIds, supportingActivities, howDemonstrated, whyItMatters.
+- every provenCapabilities.capabilities item: capability, evidenceIds, supportingActivities, howDemonstrated, whyItMatters, applicationRelevance.
 - socialProof: conclusion, metricKeys, evidenceIds.
 - keyTakeaways.whatMakesYouStandOut: title, insight, evidencePattern, whyItMatters, evidenceIds.
 - keyTakeaways.competitiveAdvantage: title, advantageStatement, supportingEvidence, applicationRelevance, evidenceIds.
 - keyTakeaways.growthOpportunity: title, growthArea, currentGap, recommendedDirection, whyItMatters, basis, evidenceIds.
-- coreIdentity: identityStatement, evidenceIds, definingTraits; every definingTraits item: characteristic, insight, evidenceIds, whyItMatters, scope, confidence.
-- drivingForce: primaryMotivation, repeatedChoices, recurringProblems, underlyingValues, strategicInterpretation, evidenceStrength, isHypothesis, evidenceIds.
+- coreIdentity: identityStatement, evidenceIds, definingTraits; every definingTraits item: characteristic, insight, evidenceIds, whyItMatters, supportingExperienceTitles, evidenceStrength, maturity, scope, confidence.
+- drivingForce: primaryMotivation, repeatedChoices, recurringProblems, decisionMaking, underlyingValues, strategicInterpretation, evidenceStrength, isHypothesis, evidenceIds.
 - profilePositioning: experienceConnection, positioningOptions, profileNarrative, profileNarrativeEvidenceIds; every experienceConnection item: strongestProfileThread, connectionExplanation, confidence, supportingExperienceCount, evidenceIds; every positioningOptions item: title, statement, supportingEvidenceIds, supportingExperienceTitles.
 
 Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. If an entire optional section is unsupported, return that section as null or omit it. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130. For any word-length repair, count whitespace-separated words and target the safe middle instead of the lower boundary: snapshot 165-180, core identity 90-105, capability overview 110-118, profile narrative 110-125. If below minimum, add a grounded sentence using only supplied facts.`;
@@ -210,12 +215,25 @@ type SynthesisSectionInput = {
     signaturePattern: Array<{ key: SignaturePatternStepKey; label: string; description: string }>;
     patternMaturity: string;
     evidenceIds: string[];
-    traitCandidates: Array<{ characteristic: string; evidenceIds: string[]; scope: 'repeated' | 'emerging'; confidence: 'high' | 'medium' | 'low' }>;
+    traitCandidates: Array<{
+      characteristic: string;
+      evidenceIds: string[];
+      supportingExperienceTitles: string[];
+      evidenceStrength: 'strong' | 'moderate' | 'limited';
+      maturity: 'established' | 'emerging';
+      scope: 'repeated' | 'emerging';
+      confidence: 'high' | 'medium' | 'low';
+    }>;
   } | null;
   drivingForce: {
     statedMotivation: string | null;
+    primaryMotivation: string | null;
     isHypothesis: boolean;
     repeatedMotivations: string[];
+    repeatedChoices: string[];
+    recurringProblems: string[];
+    decisionMaking: string | null;
+    underlyingValues: string[];
     missingPersonalGrounding: string | null;
     reflectionFindings: ReflectionFindingWithStatus[];
     cmcaitfMotivations: string[];
@@ -280,6 +298,19 @@ type SynthesisSectionInput = {
   activityEvidence: Array<{
     id: string;
     title: string;
+    basicInfo: {
+      organisation: string | null;
+      level: string | null;
+      year: number | null;
+      period: string | null;
+      competition: string | null;
+      role: string | null;
+      behaviour: string | null;
+      domainTheme: string | null;
+      statedMotivation: string | null;
+      outcome: string | null;
+      sourceType: string | null;
+    };
     context: string | null;
     trigger: string | null;
     problem: string | null;
@@ -303,6 +334,7 @@ type SynthesisSectionInput = {
       score: number;
       evidenceIds: string[];
       supportingActivities: string[];
+      applicationRelevance?: string;
       confidence: string;
       maturity: string;
     }>;
@@ -345,6 +377,19 @@ export function synthesisInputFromReport(
   const activityEvidence = (options.evaluationInput?.narrativeActivities ?? []).map((activity) => ({
     id: activity.id,
     title: activity.title,
+    basicInfo: {
+      organisation: activity.organisation ?? null,
+      level: activity.level ?? null,
+      year: activity.year ?? null,
+      period: activity.period ?? null,
+      competition: activity.competition ?? null,
+      role: activity.role ?? null,
+      behaviour: activity.behaviour ?? null,
+      domainTheme: activity.domainTheme ?? null,
+      statedMotivation: activity.statedMotivation ?? null,
+      outcome: activity.outcome ?? null,
+      sourceType: activity.sourceType ?? null,
+    },
     context: activity.narrativeEvidence?.context ?? null,
     trigger: activity.narrativeEvidence?.trigger ?? null,
     problem: activity.narrativeEvidence?.problem ?? null,
@@ -362,26 +407,57 @@ export function synthesisInputFromReport(
     evidenceIds: (activity.evidenceRefs ?? []).map((ref) => ref.id),
   }));
   const proofByActivityId = new Map(report.proofOfMe.cards.map((card) => [card.activityId, card]));
-  const traitCandidateMap = new Map<string, { characteristic: string; evidenceIds: string[]; activityIds: Set<string> }>();
+  const traitStrengthRank: Record<'strong' | 'moderate' | 'limited', number> = { limited: 0, moderate: 1, strong: 2 };
+  const traitCandidateMap = new Map<string, {
+    characteristic: string;
+    evidenceIds: string[];
+    activityIds: Set<string>;
+    activityTitles: Set<string>;
+    evidenceStrength: 'strong' | 'moderate' | 'limited';
+  }>();
+  const addTraitCandidate = (
+    characteristic: string,
+    evidenceIds: readonly string[],
+    activityId: string,
+    activityTitle: string,
+    evidenceStrength: 'strong' | 'moderate' | 'limited',
+  ) => {
+    const label = characteristic.trim();
+    if (!label || evidenceIds.length === 0) return;
+    const key = traitCandidateKey(label);
+    const current = traitCandidateMap.get(key) ?? {
+      characteristic: label,
+      evidenceIds: [],
+      activityIds: new Set<string>(),
+      activityTitles: new Set<string>(),
+      evidenceStrength: 'limited' as const,
+    };
+    current.evidenceIds.push(...evidenceIds);
+    current.activityIds.add(activityId);
+    if (activityTitle.trim()) current.activityTitles.add(activityTitle.trim());
+    if (traitStrengthRank[evidenceStrength] > traitStrengthRank[current.evidenceStrength]) current.evidenceStrength = evidenceStrength;
+    traitCandidateMap.set(key, current);
+  };
   for (const card of report.proofOfMe.cards) {
     if (card.evidenceRefs.some((ref) => ref.kind === 'profile_reflection')) continue;
     for (const characteristic of card.competenciesDemonstrated) {
-      const key = characteristic.trim().toLowerCase();
-      if (!key) continue;
-      const current = traitCandidateMap.get(key) ?? { characteristic: characteristic.trim(), evidenceIds: [], activityIds: new Set<string>() };
-      current.evidenceIds.push(...card.evidenceRefs.map((ref) => ref.id));
-      current.activityIds.add(card.activityId);
-      traitCandidateMap.set(key, current);
+      addTraitCandidate(characteristic, card.evidenceRefs.map((ref) => ref.id), card.activityId, card.title, card.evidenceStrength);
+    }
+  }
+  for (const activity of activityEvidence) {
+    for (const signal of activity.candidateCapabilitySignals) {
+      addTraitCandidate(signal, activity.evidenceIds, activity.id, activity.title, proofByActivityId.get(activity.id)?.evidenceStrength ?? 'limited');
     }
   }
   const traitCandidates = [...traitCandidateMap.values()]
-    .map(({ activityIds, ...candidate }) => ({
+    .map(({ activityIds, activityTitles, ...candidate }) => ({
       ...candidate,
       evidenceIds: [...new Set(candidate.evidenceIds)],
+      supportingExperienceTitles: [...activityTitles].slice(0, 6),
+      maturity: activityIds.size >= 2 ? 'established' as const : 'emerging' as const,
       scope: activityIds.size >= 2 ? 'repeated' as const : 'emerging' as const,
       confidence: activityIds.size >= 3 ? 'high' as const : activityIds.size >= 2 ? 'medium' as const : 'low' as const,
-    }))
-    .filter((candidate) => candidate.scope === 'repeated');
+    }));
   const canvas = options.canvasDetails ?? report.canvasDetails;
   const capabilities = (canvas?.capabilities ?? []).flatMap((capability) => {
     const supportingActivities = capability.supportingEvidence.map((item) => item.title);
@@ -395,6 +471,7 @@ export function synthesisInputFromReport(
       score: capability.score,
       evidenceIds: [...new Set(evidenceIds)],
       supportingActivities,
+      ...(capability.applicationRelevance ? { applicationRelevance: capability.applicationRelevance } : {}),
       confidence: capability.confidence,
       maturity: capability.band,
     }];
@@ -441,7 +518,7 @@ export function synthesisInputFromReport(
       .map((key) => `Personal Reflection ${key.toUpperCase()}`),
   ];
   return {
-    coreIdentity: report.coreIdentity.available
+    coreIdentity: report.coreIdentity.available || traitCandidates.length > 0 || activityEvidence.some((activity) => activity.evidenceIds.length > 0)
       ? {
           recurringRole: report.coreIdentity.recurringRole,
           recurringBehaviour: report.coreIdentity.recurringBehaviours[0] ?? null,
@@ -460,8 +537,13 @@ export function synthesisInputFromReport(
     drivingForce: report.drivingForce.available
       ? {
           statedMotivation: report.drivingForce.repeatedMotivations[0] ?? null,
+          primaryMotivation: report.drivingForce.primaryMotivation ?? null,
           isHypothesis: report.drivingForce.isHypothesis,
           repeatedMotivations: report.drivingForce.repeatedMotivations,
+          repeatedChoices: report.drivingForce.repeatedChoices ?? [],
+          recurringProblems: report.drivingForce.recurringProblems ?? [],
+          decisionMaking: report.drivingForce.decisionMaking ?? null,
+          underlyingValues: report.drivingForce.underlyingValues ?? [],
           missingPersonalGrounding: report.drivingForce.missingPersonalGrounding,
           reflectionFindings: findingsWithStatus.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key)),
           cmcaitfMotivations: activityEvidence.map((activity) => activity.motivation).filter((value): value is string => Boolean(value)),
@@ -623,7 +705,14 @@ function evidenceMap(refs: readonly EvidenceRef[]): Map<string, EvidenceRef> {
 function allowedEvidenceIdsBySection(report: PersonalReportV2, sectionInput?: SynthesisSectionInput) {
   const all = allowedEvidenceIdsFor(report);
   const proofIds = report.proofOfMe.cards.flatMap((card) => card.evidenceRefs);
-  const coreIdentityNarrative = [...report.coreIdentity.evidenceRefs, ...report.signaturePattern.evidenceRefs];
+  const coreIdentityNarrative = [
+    ...report.coreIdentity.evidenceRefs,
+    ...report.signaturePattern.evidenceRefs,
+    ...(sectionInput?.coreIdentity?.traitCandidates
+      .flatMap((candidate) => candidate.evidenceIds)
+      .map((id) => all.get(id))
+      .filter((ref): ref is EvidenceRef => Boolean(ref)) ?? []),
+  ];
   const positioningNarrative = [
     ...report.coreIdentity.evidenceRefs,
     ...report.signaturePattern.evidenceRefs,
@@ -1040,7 +1129,7 @@ function structuredSectionAvailable(key: StructuredNarrativeSection, input: Synt
   return Boolean(
     input.takeawayFacts.standOut.evidenceIds.length ||
     input.takeawayFacts.competitiveAdvantage.evidenceIds.length ||
-    input.takeawayFacts.growthOpportunity.gaps.length,
+    input.takeawayFacts.growthOpportunity.evidenceIds.length,
   );
 }
 
@@ -1223,6 +1312,17 @@ function normalizeNarrativeLabel(value: string): string {
   return value.trim().toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ');
 }
 
+/** Conservative behavioural buckets prevent duplicate trait cards without
+ * pretending this deterministic stage is a general semantic classifier. */
+function traitCandidateKey(value: string): string {
+  const label = normalizeNarrativeLabel(value);
+  if (/\b(organis|coordinat|manag|plan|implement|deliver.{0,12}event)\w*/i.test(label)) return 'organisation and coordination';
+  if (/\b(problem|solv|adapt|redesign|improv|initiative|respond)\w*/i.test(label)) return 'problem solving and initiative';
+  if (/\b(lead|mentor|guide|ownership|mobiliz|supervis)\w*/i.test(label)) return 'leadership and ownership';
+  if (/\b(communicat|teach|present|facilitat|explain)\w*/i.test(label)) return 'communication and facilitation';
+  return label;
+}
+
 function materializeNarrativeDetails(
   details: ParsedNarrativeDetails,
   batch: NarrativeBatch,
@@ -1237,20 +1337,27 @@ function materializeNarrativeDetails(
   }
   if (requested.has('coreIdentity') && details.coreIdentity) {
     const candidateTraits = new Map(
-      sectionInput.coreIdentity?.traitCandidates.map((candidate) => [candidate.characteristic.toLowerCase(), candidate]) ?? [],
+      sectionInput.coreIdentity?.traitCandidates.map((candidate) => [traitCandidateKey(candidate.characteristic), candidate]) ?? [],
     );
     output.coreIdentity = {
       identityStatement: details.coreIdentity.identityStatement,
       evidenceIds: requireEvidenceIds(details.coreIdentity.evidenceIds, allowedBySection.narrativeCoreIdentity),
-      definingTraits: details.coreIdentity.definingTraits.map((trait) => {
-        const candidate = candidateTraits.get(trait.characteristic.toLowerCase());
-        if (!candidate) throw new Error('Narrative synthesis cited an unsupported defining trait.');
-        return {
-          ...trait,
-          evidenceIds: requireSubset(trait.evidenceIds, new Set(candidate.evidenceIds)),
-          scope: candidate.scope,
-          confidence: candidate.confidence,
-        };
+      definingTraits: details.coreIdentity.definingTraits.flatMap((trait) => {
+        const candidate = candidateTraits.get(traitCandidateKey(trait.characteristic));
+        if (!candidate) return [];
+        try {
+          return [{
+            ...trait,
+            evidenceIds: requireSubset(trait.evidenceIds, new Set(candidate.evidenceIds)),
+            supportingExperienceTitles: candidate.supportingExperienceTitles,
+            evidenceStrength: candidate.evidenceStrength,
+            maturity: candidate.maturity,
+            scope: candidate.scope,
+            confidence: candidate.confidence,
+          }];
+        } catch {
+          return [];
+        }
       }),
     };
   }
@@ -1260,6 +1367,7 @@ function materializeNarrativeDetails(
     }
     output.drivingForce = {
       ...details.drivingForce,
+      decisionMaking: details.drivingForce.decisionMaking ?? sectionInput.drivingForce?.decisionMaking ?? 'A decision-making pattern is not established from the available records yet.',
       evidenceIds: requireEvidenceIds(details.drivingForce.evidenceIds, allowedBySection.narrativeDrivingForce),
       evidenceStrength: sectionInput.drivingForce?.evidenceStrength === 'high'
         ? 'strong'
@@ -1277,11 +1385,14 @@ function materializeNarrativeDetails(
       capabilities: details.provenCapabilities.capabilities.flatMap((capability) => {
         const match = canonical.get(normalizeNarrativeLabel(capability.capability));
         if (!match) return [];
-        return {
-          ...capability,
+        const { applicationRelevance: modelApplicationRelevance, ...capabilityWithoutApplicationRelevance } = capability;
+        const applicationRelevance = modelApplicationRelevance ?? match.applicationRelevance;
+        const grounded = {
+          ...capabilityWithoutApplicationRelevance,
           evidenceIds: requireSubset(capability.evidenceIds, new Set(match.evidenceIds)),
           supportingActivities: requireSubset(capability.supportingActivities, new Set(match.supportingActivities)),
         };
+        return applicationRelevance ? { ...grounded, applicationRelevance } : grounded;
       }),
       combinationInsight: details.provenCapabilities.combinationInsight,
       combinationEvidenceIds: requireEvidenceIds(details.provenCapabilities.combinationEvidenceIds, allowedBySection.narrativeCapabilities),
@@ -1304,11 +1415,17 @@ function materializeNarrativeDetails(
         supportingExperienceTitles,
         evidenceIds: requireEvidenceIds(details.profilePositioning.experienceConnection.evidenceIds, allowedBySection.narrativePositioning),
       },
-      positioningOptions: details.profilePositioning.positioningOptions.map((option) => ({
-        ...option,
-        supportingEvidenceIds: requireEvidenceIds(option.supportingEvidenceIds, allowedBySection.narrativePositioning),
-        supportingExperienceTitles: requireSubset(option.supportingExperienceTitles, new Set(sectionInput.activityEvidence.map((activity) => activity.title))),
-      })),
+      positioningOptions: details.profilePositioning.positioningOptions.flatMap((option) => {
+        try {
+          return [{
+            ...option,
+            supportingEvidenceIds: requireEvidenceIds(option.supportingEvidenceIds, allowedBySection.narrativePositioning),
+            supportingExperienceTitles: requireSubset(option.supportingExperienceTitles, new Set(sectionInput.activityEvidence.map((activity) => activity.title))),
+          }];
+        } catch {
+          return [];
+        }
+      }),
       profileNarrative: details.profilePositioning.profileNarrative,
       profileNarrativeEvidenceIds: requireEvidenceIds(details.profilePositioning.profileNarrativeEvidenceIds, allowedBySection.narrativePositioning),
     };
@@ -1359,15 +1476,45 @@ function parseNarrativeBatch(
   const batchInputValue = batchInput(sectionInput, batch);
   const raw = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()) as Record<string, unknown>;
   const normalized = normalizeEmptyOptionalSections(raw);
-  const parsed = synthesisResponseSchema.parse(normalized);
-  assertNarrativeNumbersAreGrounded(parsed, batchInputValue);
-  assertNarrativeVoice(parsed);
-  assertReportMechanicsProse(parsed);
-  if (parsed.narrativeDetails) {
-    assertNarrativeDetailsRouting(parsed.narrativeDetails, batch);
-    assertNarrativeDetailsLengths(parsed.narrativeDetails);
-    assertHypothesisLanguage(parsed, batchInputValue);
+  const rawDetails = normalized.narrativeDetails;
+  const parsedDetails: Record<string, unknown> = {};
+  const invalidSections: string[] = [];
+  if (rawDetails !== null && rawDetails !== undefined) {
+    if (!isJsonSchemaRecord(rawDetails)) throw new Error('Narrative synthesis returned an invalid narrativeDetails object.');
+    for (const key of batch.structured) {
+      if (!(key in rawDetails)) continue;
+      const sectionResult = narrativeDetailsSchema.safeParse({ [key]: rawDetails[key] });
+      if (!sectionResult.success) {
+        if (rawDetails[key] !== null) invalidSections.push(key);
+        continue;
+      }
+      const value = (sectionResult.data as Record<string, unknown>)[key];
+      if (value !== null && value !== undefined) parsedDetails[key] = value;
+    }
   }
+  const acceptedDetails: Record<string, unknown> = {};
+  let firstValidationError: unknown;
+  for (const [key, value] of Object.entries(parsedDetails)) {
+    const sectionParsed = synthesisResponseSchema.parse({ narrativeDetails: { [key]: value } });
+    try {
+      assertNarrativeNumbersAreGrounded(sectionParsed, batchInputValue);
+      assertNarrativeVoice(sectionParsed);
+      assertReportMechanicsProse(sectionParsed);
+      if (sectionParsed.narrativeDetails) {
+        assertNarrativeDetailsRouting(sectionParsed.narrativeDetails, batch);
+        assertNarrativeDetailsLengths(sectionParsed.narrativeDetails);
+        assertHypothesisLanguage(sectionParsed, batchInputValue);
+      }
+      acceptedDetails[key] = value;
+    } catch (error) {
+      invalidSections.push(key);
+      firstValidationError ??= error;
+    }
+  }
+  if (invalidSections.length > 0 && Object.keys(acceptedDetails).length === 0) {
+    throw firstValidationError ?? new Error(`Narrative synthesis sections failed validation: ${invalidSections.join(', ')}`);
+  }
+  const parsed = synthesisResponseSchema.parse({ narrativeDetails: acceptedDetails });
 
   return materializeBatch(parsed, batch, batchInputValue, allowedBySection);
 }

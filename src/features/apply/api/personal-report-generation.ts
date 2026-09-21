@@ -5,6 +5,7 @@ import {
   PERSONAL_REPORT_CONTRACT_VERSION,
   type PersonalReportTrigger,
 } from '../domain';
+import { validatePersonalReportFramework } from '../domain/personal-report';
 import { buildPersonalCanvasDetails } from '../domain/personal-canvas-details';
 import {
   applyPersonalReportSupplements,
@@ -431,16 +432,6 @@ async function regenerateApplicationPersonalReport(
       .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
       .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
   });
-  if (
-    !deterministicReport.coreIdentity.available &&
-    !deterministicReport.drivingForce.available &&
-    !deterministicReport.signaturePattern.available &&
-    !deterministicReport.emergingThemes.available &&
-    !deterministicReport.personalPositioning.available &&
-    !deterministicReport.proofOfMe.available
-  ) {
-    return { status: 'insufficient_evidence' };
-  }
   const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };
@@ -478,6 +469,23 @@ async function regenerateApplicationPersonalReport(
     ...reportV2,
     canvasDetails,
   } as PersonalReportV2Record['reportV2'];
+  const frameworkCoverage = validatePersonalReportFramework(reportV2);
+  reportV2 = { ...reportV2, frameworkCoverage };
+  if (!frameworkCoverage.groundingValidity.valid || !frameworkCoverage.structuralCompleteness.complete) {
+    logger.warn('personal_report_generate', {
+      userId,
+      applicationId,
+      trigger,
+      stage: 'validated',
+      outcome: 'success',
+      metadata: {
+        coverageStatus: 'evidence_limited',
+        missingSections: frameworkCoverage.structuralCompleteness.missing,
+        invalidEvidenceCount: frameworkCoverage.groundingValidity.invalidEvidenceIds.length,
+      },
+      durationMs: getElapsed(),
+    });
+  }
 
   const inserted = await createPersonalReportV2Version(supabase, {
     userId,
@@ -667,10 +675,26 @@ async function regenerateLegacyPersonalReport(
     // append-only report version. The UI therefore never invents a new score
     // on render, and revisiting a historical report always shows the same
     // stars/bars/pathways that belonged to that snapshot.
-    const reportV2 = {
+    const reportWithCanvas = {
       ...synthesizedReport,
       canvasDetails,
     };
+    const frameworkCoverage = validatePersonalReportFramework(reportWithCanvas);
+    const reportV2 = { ...reportWithCanvas, frameworkCoverage };
+    if (!frameworkCoverage.groundingValidity.valid || !frameworkCoverage.structuralCompleteness.complete) {
+      logger.warn('personal_report_generate', {
+        userId,
+        trigger,
+        stage: 'validated',
+        outcome: 'success',
+        metadata: {
+          coverageStatus: 'evidence_limited',
+          missingSections: frameworkCoverage.structuralCompleteness.missing,
+          invalidEvidenceCount: frameworkCoverage.groundingValidity.invalidEvidenceIds.length,
+        },
+        durationMs: getElapsed(),
+      });
+    }
 
     const { record: inserted, error } = await createPersonalReportV2Version(supabase, {
       userId,

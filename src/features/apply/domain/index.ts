@@ -236,6 +236,7 @@ export {
   APPLICATION_REPORT_GENERATION_LIMIT,
   PERSONAL_REPORT_CONTRACT_VERSION,
   STUDY_MOTIVATION_SUPPLEMENT_KEY,
+  validatePersonalReportFramework,
   themeMaturityResults,
 } from './personal-report';
 export type {
@@ -254,6 +255,9 @@ export type {
   PersonalReportInsight,
   PersonalReportKeyTakeaways,
   PersonalReportNarrativeDetails,
+  PersonalReportFrameworkCoverage,
+  FrameworkComponentKey,
+  FrameworkSectionStatus,
   PersonalReportVersionSummary,
   PositioningDimensionKey,
   ProofCard,

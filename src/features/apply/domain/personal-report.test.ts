@@ -7,7 +7,7 @@ import {
 } from '@/shared/evaluation';
 import { buildEvidenceBank } from '@/shared/evidence/build-evidence-bank';
 import type { EvidenceBank } from '@/shared/evidence/domain';
-import { buildPersonalReport } from './personal-report';
+import { buildPersonalReport, validatePersonalReportFramework } from './personal-report';
 import { buildPersonalCanvasDetails, derivedSocialProofMetrics } from './personal-canvas-details';
 
 const TUTOR: NarrativeActivity = {
@@ -130,6 +130,9 @@ describe('buildPersonalReport', () => {
     expect(result.personalPositioning.available).toBe(true);
     expect(result.proofOfMe.available).toBe(true);
     expect(result.proofOfMe.cards.length).toBeGreaterThan(0);
+    expect(result.drivingForce.repeatedChoices?.length).toBeGreaterThan(1);
+    expect(result.drivingForce.decisionMaking).toBeTruthy();
+    expect(result.drivingForce.strategicInterpretation).toBeTruthy();
   });
 
   it('user with thin evidence: sections report insufficient data rather than inventing content', () => {
@@ -282,6 +285,53 @@ describe('buildPersonalReport', () => {
         growthOpportunity: expect.any(Object),
       }),
     );
+    expect(result.snapshot?.summary).toContain('Overall identity:');
+    expect(result.snapshot?.summary).toContain('Unique positioning:');
+    expect(result.snapshot?.summary).toContain('most prominent behavioural or activity signal');
+    expect(result.snapshot?.summary).toContain('Potential and development direction:');
+    expect(result.snapshot?.summary).toContain('Overall impression:');
+  });
+
+  it('keeps the framework structurally complete while marking empty sections as evidence-limited', () => {
+    const result = report({ narrativeActivities: [], evidenceItems: [] });
+    const canvas = buildPersonalCanvasDetails({
+      activities: [],
+      coreIdentity: result.coreIdentity,
+      drivingForce: result.drivingForce,
+      emergingThemes: result.emergingThemes,
+      personalPositioning: result.personalPositioning,
+      proofOfMe: result.proofOfMe,
+      intendedDirection: null,
+    });
+    const coverage = validatePersonalReportFramework({ ...result, canvasDetails: canvas });
+
+    expect(coverage.structuralCompleteness).toEqual({ complete: true, missing: [] });
+    expect(coverage.sections.definingTraits.status).toBe('needs_more_evidence');
+    expect(coverage.sections.socialProof.status).toBe('needs_more_evidence');
+    expect(coverage.narrativeGeneration.status).toBe('deterministic_fallback');
+    expect(coverage.groundingValidity.valid).toBe(true);
+  });
+
+  it('keeps self-reported capability claims separate from proven capability scores', () => {
+    const result = report({ narrativeActivities: [TUTOR], evidenceItems: [] });
+    const canvas = buildPersonalCanvasDetails({
+      activities: [TUTOR],
+      coreIdentity: result.coreIdentity,
+      drivingForce: result.drivingForce,
+      emergingThemes: result.emergingThemes,
+      personalPositioning: result.personalPositioning,
+      proofOfMe: result.proofOfMe,
+      intendedDirection: null,
+      profileCapabilityClaims: [{
+        label: 'Strategic patience',
+        evidenceRefs: [{ id: 'profile:reflection_q4', kind: 'profile_reflection', label: 'Q4' }],
+      }],
+    });
+
+    expect(canvas.capabilities.some((capability) => capability.name === 'Strategic patience')).toBe(false);
+    expect(canvas.selfReportedCapabilities).toEqual([
+      expect.objectContaining({ name: 'Strategic patience', evidenceIds: ['profile:reflection_q4'] }),
+    ]);
   });
 
   it('does not interpolate first-person activity motivation into the executive snapshot', () => {
@@ -344,8 +394,10 @@ describe('buildPersonalReport', () => {
       proofOfMe: result.proofOfMe,
       intendedDirection: args.intendedDirection,
     });
-    expect(canvas.socialProof.find((metric) => metric.key === 'metadataCoverage')?.value).toBeGreaterThan(0);
+    expect(canvas.capabilities.length).toBeLessThanOrEqual(4);
+    expect(canvas.socialProof.find((metric) => metric.key === 'recordedOutcomes')?.value).toBeGreaterThan(0);
     expect(canvas.socialProof.find((metric) => metric.key === 'quantifiedOutcomes')?.value).toBeGreaterThan(0);
+    expect(canvas.socialProof.find((metric) => metric.key === 'metadataCoverage')).toBeUndefined();
     expect(canvas.socialProof.find((metric) => metric.key === 'teamMembersLed')).toMatchObject({ value: 20, evidenceIds: ['coding'], sourceActivityIds: ['coding'] });
     expect(canvas.socialProof.find((metric) => metric.key === 'communityReach')).toMatchObject({ value: 350, evidenceIds: ['careerbridge'], sourceActivityIds: ['careerbridge'] });
     expect(canvas.socialProof.find((metric) => metric.key === 'yearsOfCommitment')).toMatchObject({ value: 3, evidenceIds: ['coding'], sourceActivityIds: ['coding'] });

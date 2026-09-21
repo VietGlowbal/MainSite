@@ -4,10 +4,12 @@ import type { ReactNode } from 'react';
 import { useT } from '@/lib/i18n';
 import type { PersonalReportV2 } from '../../domain';
 import { AreasForGrowthView } from './areas-for-growth';
+import { ApplicantSnapshotView } from './applicant-snapshot';
 import { CoreIdentityView } from './core-identity';
 import { DrivingForceView } from './driving-force';
 import { EmergingThemesView } from './emerging-themes';
 import { IdentityEvidenceProfileView } from './identity-evidence-profile';
+import { KeyTakeawaysView } from './key-takeaways';
 import { PersonalPositioningView } from './personal-positioning';
 import { ProofOfMeView } from './proof-of-me';
 import {
@@ -57,10 +59,12 @@ export function PersonalReportPrintView({
   report,
   returnTo,
   mode = 'print',
+  includeGlobalSections = true,
 }: {
   report: PersonalReportV2;
   returnTo: string | undefined;
   mode?: 'print' | 'screen';
+  includeGlobalSections?: boolean;
 }) {
   const t = useT();
 
@@ -77,6 +81,12 @@ export function PersonalReportPrintView({
         : 'hidden flex-col gap-gb-3xl print:flex'}
       aria-hidden={mode === 'print' ? 'true' : undefined}
     >
+      {includeGlobalSections ? (
+        <section className="flex flex-col gap-gb-xl print:[break-inside:avoid-page]">
+          <ApplicantSnapshotView report={report} />
+        </section>
+      ) : null}
+
       <PrintChapter
         index={1}
         title={t('Core Identity')}
@@ -117,17 +127,26 @@ export function PersonalReportPrintView({
       >
         <div className="flex flex-col gap-gb-xl">
           <SnapshotCapabilityProfileView report={report} />
-          <PersonalPositioningView
-            section={report.personalPositioning}
-            report={report}
-            positioningDimensions={report.analytics?.positioningDimensions}
-            returnTo={returnTo}
-          />
         </div>
       </PrintChapter>
 
       <PrintChapter
         index={4}
+        title={t('Profile Positioning')}
+        description={t(
+          'How your experiences connect, what the current evidence can support, and which future directions remain possibilities rather than past achievements.',
+        )}
+      >
+        <PersonalPositioningView
+          section={report.personalPositioning}
+          report={report}
+          positioningDimensions={report.analytics?.positioningDimensions}
+          returnTo={returnTo}
+        />
+      </PrintChapter>
+
+      <PrintChapter
+        index={5}
         title={t('Social Proof')}
         description={t(
           'The tangible activities, outcomes and verification that make the claims in your profile credible.',
@@ -145,7 +164,7 @@ export function PersonalReportPrintView({
       </PrintChapter>
 
       <PrintChapter
-        index={5}
+        index={6}
         title={t('Areas for Growth')}
         description={t(
           'Where the current evidence is limited, what still needs development, and where stronger proof could make the profile more complete.',
@@ -158,7 +177,7 @@ export function PersonalReportPrintView({
       </PrintChapter>
 
       <PrintChapter
-        index={6}
+        index={7}
         title={t('Long-Term Vision')}
         description={t(
           'The themes and directions emerging from the choices you repeatedly make — presented as possibilities, not predictions.',
@@ -173,6 +192,18 @@ export function PersonalReportPrintView({
           />
         </div>
       </PrintChapter>
+
+      {includeGlobalSections ? (
+        <PrintChapter
+          index={8}
+          title={t('Key Takeaways')}
+          description={t(
+            'The evidence-backed ideas to carry into your positioning, university matching and application strategy.',
+          )}
+        >
+          <KeyTakeawaysView report={report} />
+        </PrintChapter>
+      ) : null}
     </div>
   );
 }

@@ -94,6 +94,7 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Why this fits': 'Vì sao điều này phù hợp',
   'Evidence verification': 'Xác minh bằng chứng',
   'Evidence strength': 'Mức độ mạnh của bằng chứng',
+  'Supporting activities': 'Hoạt động hỗ trợ',
   Limited: 'Hạn chế',
   'Competency claims': 'Các năng lực được ghi nhận',
   'Hard skill': 'Kỹ năng cứng',
@@ -105,6 +106,8 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
     'Hồ sơ hiện có {activities} trải nghiệm đã ghi nhận; {quantified} có kết quả định lượng và {verified} đã được xác minh hoặc có thể kiểm tra. Các con số này mô tả nền tảng bằng chứng, không phải dự đoán tuyển sinh.',
   'The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {checkable} are verified or checkable. These counts describe the evidence base, not an admissions prediction.':
     'Hồ sơ hiện có {activities} trải nghiệm đã ghi nhận; {quantified} có kết quả định lượng và {checkable} đã được xác minh hoặc có thể kiểm tra. Các con số này mô tả nền tảng bằng chứng, không phải dự đoán tuyển sinh.',
+  'The current record contains {recorded} explicitly recorded outcomes, including {quantified} quantified outcomes. These are source-backed contribution measures, not an admissions prediction.':
+    'Hồ sơ hiện có {recorded} kết quả đóng góp được ghi nhận rõ ràng, trong đó {quantified} có định lượng. Đây là các chỉ số đóng góp có nguồn, không phải dự đoán tuyển sinh.',
   'Team members led': 'Thành viên đội nhóm đã dẫn dắt',
   'Largest explicitly quantified team or group': 'Quy mô đội nhóm lớn nhất được nêu rõ bằng số',
   'Community reach': 'Phạm vi tiếp cận cộng đồng',
@@ -143,6 +146,14 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Applicant Snapshot': 'Chân dung Ứng viên',
   'Overall impression': 'Ấn tượng tổng quan',
   'Defining traits / key characteristics': 'Đặc điểm định hình / nét chính',
+  'Each characteristic is tied to source evidence and labelled by maturity. Emerging means the action is meaningful but not yet recurring across independent experiences.':
+    'Mỗi đặc điểm đều gắn với bằng chứng nguồn và được phân loại theo mức độ trưởng thành. Đang hình thành nghĩa là hành động có ý nghĩa nhưng chưa lặp lại qua các trải nghiệm độc lập.',
+  'No defining characteristic is established yet. Observed signals remain visible as evidence to investigate, not as recurring traits.':
+    'Chưa có đặc điểm định hình nào được xác lập. Các tín hiệu quan sát được vẫn hiển thị như bằng chứng cần tìm hiểu, không phải nét lặp lại.',
+  'source evidence item': 'mục bằng chứng nguồn',
+  'Observed signals': 'Các tín hiệu quan sát được',
+  'Add a detailed activity or reflection to establish a characteristic from demonstrated behaviour.':
+    'Hãy thêm hoạt động hoặc phần tự nhìn nhận chi tiết để xác lập đặc điểm từ hành vi đã thể hiện.',
   'These characteristics are recurring behaviours extracted from activity evidence, not traits inferred from a single answer.':
     'Các đặc điểm này là những hành vi lặp lại được rút ra từ bằng chứng hoạt động, không phải nét tính cách suy ra từ một câu trả lời đơn lẻ.',
   'Recorded in the activity evidence.': 'Được ghi nhận trong bằng chứng hoạt động.',
@@ -168,6 +179,14 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Repeated choices': 'Các lựa chọn lặp lại',
   'Underlying values': 'Các giá trị nền tảng',
   'Recurring problems': 'Các vấn đề lặp lại',
+  'Decision-making': 'Cách ra quyết định',
+  'The Motivation Landscape remains visible, but the current record does not support a substantive conclusion yet.': 'Bản đồ động lực vẫn được hiển thị, nhưng dữ liệu hiện tại chưa đủ để đưa ra kết luận có cơ sở.',
+  'Not established from the available evidence.': 'Chưa được xác lập từ bằng chứng hiện có.',
+  'No repeated opportunity choice is established yet.': 'Chưa xác lập được lựa chọn cơ hội lặp lại.',
+  'No recurring problem domain is established yet.': 'Chưa xác lập được lĩnh vực vấn đề lặp lại.',
+  'No decision-making pattern is established yet.': 'Chưa xác lập được mô thức ra quyết định.',
+  'Values cannot be interpreted confidently yet.': 'Chưa thể diễn giải các giá trị với độ tin cậy đủ cao.',
+  "Add a detailed motivation and activity reflection before interpreting the applicant's values or strategic direction.": 'Hãy bổ sung phản ánh chi tiết về động lực và hoạt động trước khi diễn giải giá trị hoặc định hướng chiến lược của applicant.',
   'Strategic interpretation': 'Diễn giải chiến lược',
   'Proven Capabilities': 'Năng lực đã được chứng minh',
   'Social Proof': 'Bằng chứng xã hội',
@@ -287,6 +306,28 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Medium confidence': 'Độ tin cậy trung bình',
   'Low confidence': 'Độ tin cậy thấp',
   'Motivation profile': 'Hồ sơ động lực',
+  'No repeated stated motivation is established yet. Explicit interests may still be present elsewhere, but this view does not infer a stable motivation without supporting evidence.':
+    'Chưa xác lập được động lực được nêu lặp lại. Sở thích rõ ràng có thể xuất hiện ở nơi khác, nhưng phần này không suy ra động lực ổn định nếu thiếu bằng chứng hỗ trợ.',
+  'No repeated stated motivation is established in this report version yet.':
+    'Chưa xác lập được động lực được nêu lặp lại trong phiên bản báo cáo này.',
+  'No independently demonstrated capability is established in this report version yet.':
+    'Chưa có năng lực nào được thể hiện độc lập được xác lập trong phiên bản báo cáo này.',
+  'No quantified or counted contribution is available in this report version. Qualitative evidence remains in the experience records.':
+    'Phiên bản báo cáo này chưa có đóng góp được định lượng hoặc đếm được. Bằng chứng định tính vẫn nằm trong các hồ sơ trải nghiệm.',
+  'No specific development gap is established from the current evidence.':
+    'Chưa có khoảng trống phát triển cụ thể nào được xác lập từ bằng chứng hiện tại.',
+  'No stated direction or evidence-backed theme is available in this report version yet.':
+    'Phiên bản báo cáo này chưa có định hướng được nêu rõ hoặc chủ đề có bằng chứng hỗ trợ.',
+  'No independently demonstrated capability is established in the current activity evidence. This section remains visible so self-reported signals are not mistaken for proven capabilities.':
+    'Bằng chứng hoạt động hiện tại chưa xác lập năng lực nào được thể hiện độc lập. Phần này vẫn hiển thị để các tín hiệu tự khai không bị nhầm là năng lực đã được chứng minh.',
+  'Self-reported signals — not yet demonstrated': 'Tín hiệu tự khai — chưa được thể hiện',
+  'Social proof': 'Bằng chứng đóng góp',
+  'No quantified or counted contribution is available in the current record. Qualitative evidence remains in the experience and supporting-evidence sections.':
+    'Hồ sơ hiện tại chưa có đóng góp được định lượng hoặc đếm được. Bằng chứng định tính vẫn nằm trong các phần trải nghiệm và bằng chứng hỗ trợ.',
+  'No specific development gap is established from the current evidence. Add another reflected experience or clarify the intended direction to make this matrix more useful.':
+    'Chưa có khoảng trống phát triển cụ thể nào được xác lập từ bằng chứng hiện tại. Hãy thêm một trải nghiệm có tự nhìn nhận hoặc làm rõ định hướng để ma trận này hữu ích hơn.',
+  'No stated direction or evidence-backed theme is available yet. This is an evidence limitation, not a prediction about the applicant’s future.':
+    'Chưa có định hướng được nêu rõ hoặc chủ đề có bằng chứng hỗ trợ. Đây là giới hạn về bằng chứng, không phải dự đoán về tương lai của ứng viên.',
   'What repeatedly appears in your stated motivations': 'Những điều liên tục xuất hiện trong các động lực bạn đã nêu',
   'These bars show recurrence across motivations you explicitly recorded. They are not personality scores.':
     'Các thanh này cho thấy mức độ lặp lại trong những động lực bạn đã ghi nhận rõ ràng. Đây không phải điểm số tính cách.',

@@ -9,6 +9,7 @@ import {
   SocialProofSummaryView,
 } from './personal-report-insights';
 import { KeyTakeawaysView } from './key-takeaways';
+import { PersonalReportPrintView } from './personal-report-print';
 import { ProofOfMeView } from './proof-of-me';
 
 const NO_DATA = { reason: 'More evidence needed.', actions: [] };
@@ -147,6 +148,38 @@ describe('Personal Report Pass 2 insights', () => {
     expect(screen.getAllByLabelText(/out of 5 evidence stars/i).length).toBeGreaterThan(0);
   });
 
+  it('keeps capability evidence details expandable in the printable report contract', () => {
+    const current = report();
+    current.canvasDetails = {
+      capabilities: [{
+        name: 'Leadership',
+        score: 70,
+        stars: 4,
+        band: 'strong',
+        confidence: 'medium',
+        evidenceCount: 2,
+        strongEvidenceCount: 1,
+        verifiedEvidenceCount: 1,
+        why: 'It shows ownership in an application context.',
+        supportingEvidence: [{ activityId: 'a1', title: 'Tutor platform', outcome: 'Used by 120 students', evidenceStrength: 'strong', verificationStatus: 'verified' }],
+        howDemonstrated: 'Led a team to deliver the tutor platform.',
+        whyItMatters: 'It shows ownership in an application context.',
+        applicationRelevance: 'It supports collaborative delivery in a demanding programme.',
+      }],
+      motivations: [],
+      socialProof: [],
+      growthPriorities: [],
+      futurePathways: [],
+    };
+
+    render(<PersonalReportPrintView report={current} returnTo={undefined} mode="screen" />);
+    expect(screen.getByText('Application relevance')).toBeInTheDocument();
+    expect(document.querySelectorAll('details').length).toBeGreaterThan(0);
+    for (const title of ['Applicant Snapshot', 'Core Identity', 'Driving Forces', 'Proven Capabilities', 'Profile Positioning', 'Social Proof', 'Areas for Growth', 'Long-Term Vision', 'Key Takeaways']) {
+      expect(screen.getAllByText(title, { exact: true }).length).toBeGreaterThan(0);
+    }
+  });
+
   it('shows motivation recurrence without presenting it as a personality score', () => {
     render(<MotivationProfileView report={report()} />);
     expect(screen.getByRole('list', { name: 'Repeated stated motivations' })).toBeInTheDocument();
@@ -155,8 +188,10 @@ describe('Personal Report Pass 2 insights', () => {
 
   it('summarises social proof with grounded counts', () => {
     render(<SocialProofSummaryView report={report()} />);
-    expect(screen.getByText('Experiences analysed')).toBeInTheDocument();
-    expect(screen.getByText('Strong evidence')).toBeInTheDocument();
+    expect(screen.getByText('Recorded outcomes')).toBeInTheDocument();
+    expect(screen.getByText('Quantified outcomes')).toBeInTheDocument();
+    expect(screen.queryByText('Experiences analysed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Strong evidence')).not.toBeInTheDocument();
     expect(screen.getByText('Quantified outcomes')).toBeInTheDocument();
     expect(screen.getByText('Team members led')).toBeInTheDocument();
     expect(screen.getByText('Community reach')).toBeInTheDocument();
