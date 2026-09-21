@@ -314,7 +314,7 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
-  it('blocks an application report with no evidence-backed section instead of retrying AI', async () => {
+  it('persists an evidence-limited application report instead of returning an operational error', async () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'low' });
@@ -325,6 +325,10 @@ describe('regeneratePersonalReport', () => {
       emergingThemes: { available: false },
       personalPositioning: { available: false },
       proofOfMe: { available: false },
+    });
+    mocks.createPersonalReportV2Version.mockResolvedValue({
+      record: { id: 'v-sparse', generatedAt: '2026-08-14T00:00:00.000Z' },
+      error: null,
     });
     const originalKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = 'test-key';
@@ -338,8 +342,9 @@ describe('regeneratePersonalReport', () => {
     });
 
     process.env.OPENAI_API_KEY = originalKey;
-    expect(result.status).toBe('insufficient_evidence');
-    expect(mocks.synthesizePersonalReportNarrative).not.toHaveBeenCalled();
+    expect(result.status).toBe('regenerated');
+    expect(mocks.synthesizePersonalReportNarrative).toHaveBeenCalled();
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalled();
   });
 
   it('returns the application cache for the same snapshot and contracts', async () => {

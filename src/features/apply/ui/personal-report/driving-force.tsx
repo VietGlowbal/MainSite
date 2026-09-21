@@ -53,12 +53,20 @@ export function DrivingForceView({
                   {narrative.underlyingValues.map((value) => <li key={value}>{value}</li>)}
                 </ul>
               </div>
+              <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Decision-making')}</p>
+                <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.decisionMaking}</p>
+              </div>
               {narrative.recurringProblems.length > 0 ? (
                 <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:col-span-3">
                   <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Recurring problems')}</p>
                   <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.recurringProblems.join(' · ')}</p>
                 </div>
               ) : null}
+              <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:col-span-3">
+                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Strategic interpretation')}</p>
+                <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.strategicInterpretation}</p>
+              </div>
             </div>
           ) : section.repeatedMotivations.length > 0 ? (
             <div className="grid gap-gb-lg sm:grid-cols-2">
@@ -105,7 +113,30 @@ export function DrivingForceView({
           ) : null}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} onAnswered={onAnswered} />
+        <div className="flex flex-col gap-gb-lg" data-no-auto-translate>
+          <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-6 text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+            {t('The Motivation Landscape remains visible, but the current record does not support a substantive conclusion yet.')}
+          </div>
+          <div className="grid gap-gb-lg sm:grid-cols-2">
+            {[
+              [t('Primary motivation'), t('Not established from the available evidence.')],
+              [t('Repeated choices'), t('No repeated opportunity choice is established yet.')],
+              [t('Recurring problems'), t('No recurring problem domain is established yet.')],
+              [t('Decision-making'), t('No decision-making pattern is established yet.')],
+              [t('Underlying values'), t('Values cannot be interpreted confidently yet.')],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{label}</p>
+                <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6">
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Strategic interpretation')}</p>
+            <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{t('Add a detailed motivation and activity reflection before interpreting the applicant\'s values or strategic direction.')}</p>
+          </div>
+          <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} onAnswered={onAnswered} />
+        </div>
       )}
     </SectionShell>
   );

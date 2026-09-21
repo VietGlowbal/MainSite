@@ -440,6 +440,25 @@ describe('synthesisInputFromReport', () => {
     expect(input.proofOfMe).toBeNull();
   });
 
+  it('passes an emerging trait candidate to synthesis even when recurring identity is unavailable', () => {
+    const input = synthesisInputFromReport(insufficientReport(), null, {
+      evaluationInput: {
+        narrativeActivities: [{
+          id: 'activity-1',
+          title: 'Workshop redesign',
+          evidenceRefs: [{ id: 'activity-1', kind: 'activity', label: 'Workshop redesign' }],
+          narrativeEvidence: {
+            candidateCapabilitySignals: ['problem solving and initiative'],
+          },
+        }],
+      } as never,
+    });
+
+    expect(input.coreIdentity).toMatchObject({
+      traitCandidates: [{ characteristic: 'problem solving and initiative', scope: 'emerging', confidence: 'low', evidenceIds: ['activity-1'] }],
+    });
+  });
+
   it('keeps isHypothesis explicit so the model cannot present an inferred motivation as stated fact', () => {
     const input = synthesisInputFromReport(fullReport(), null);
     expect(input.drivingForce?.isHypothesis).toBe(true);
@@ -491,6 +510,13 @@ describe('synthesisInputFromReport', () => {
     });
 
     expect(input.activityEvidence[0]).toMatchObject({
+      basicInfo: {
+        role: 'organiser',
+        behaviour: 'coordinated volunteers',
+        domainTheme: 'education access',
+        statedMotivation: 'help learners',
+        outcome: 'more students learned',
+      },
       trigger: null,
       problem: null,
       motivation: null,
@@ -644,7 +670,7 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
   });
 
-  it('rejects a snapshot outside its contract word range', async () => {
+  it('drops only a snapshot outside its contract word range', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify(
@@ -662,7 +688,9 @@ describe('synthesizePersonalReportNarrative', () => {
       grounding: narrativeGrounding(),
     });
 
-    expect(result).toBeNull();
+    expect(result?.narrativeDetails?.snapshot).toBeUndefined();
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(result?.narrativeDetails?.drivingForce).toBeTruthy();
   });
 
   it('rejects a structured response that omits an available section', async () => {
@@ -726,11 +754,11 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result).toBeNull();
   });
 
-  it('rejects an evidence citation that belongs to a different report section', async () => {
+  it('drops only a section that cites evidence outside its section scope', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify(
-          { narrativeDetails: { ...structuredNarrativeDetails('a'), coreIdentity: { ...structuredNarrativeDetails('a').coreIdentity, evidenceIds: ['proof-1'] } } },
+          { narrativeDetails: { ...structuredNarrativeDetails('a'), coreIdentity: { ...structuredNarrativeDetails('a').coreIdentity, evidenceIds: ['theme-1'] } } },
         ),
       ),
     );
@@ -747,7 +775,7 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result).toBeNull();
   });
 
-  it('rejects an available section with no evidence citation', async () => {
+  it('drops only an available section with no evidence citation', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(JSON.stringify({ narrativeDetails: { ...structuredNarrativeDetails('a'), coreIdentity: { ...structuredNarrativeDetails('a').coreIdentity, evidenceIds: [] } } })),
     );
@@ -757,7 +785,8 @@ describe('synthesizePersonalReportNarrative', () => {
       report: fullReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-4o', grounding: narrativeGrounding(),
     });
 
-    expect(result).toBeNull();
+    expect(result?.narrativeDetails?.coreIdentity).toBeUndefined();
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
   });
 
   it('falls back to null (deterministic copy) when the completion call throws', async () => {
@@ -795,7 +824,7 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(failureCode).toBe('invalid_json');
   });
 
-  it('reports Zod issue paths for schema responses', async () => {
+  it('keeps valid sibling sections when one narrative section fails schema validation', async () => {
     const details = structuredNarrativeDetails('a') as Record<string, unknown>;
     (details.coreIdentity as Record<string, unknown>).identityStatement = 42;
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
@@ -814,12 +843,11 @@ describe('synthesizePersonalReportNarrative', () => {
       },
     });
 
-    expect(result).toBeNull();
-    expect(failureContext?.batch).toEqual(['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning']);
-    expect(failureContext?.issues?.[0]).toMatchObject({
-      path: ['narrativeDetails', 'coreIdentity', 'identityStatement'],
-      code: 'invalid_type',
-    });
+    expect(result?.narrativeDetails?.coreIdentity).toBeUndefined();
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    expect(result?.narrativeDetails?.drivingForce).toBeTruthy();
+    expect(result?.narrativeDetails?.profilePositioning).toBeTruthy();
+    expect(failureContext).toBeUndefined();
   });
 
   it('rejects prose that invents a numeric outcome not present in structured findings', async () => {
@@ -840,11 +868,13 @@ describe('synthesizePersonalReportNarrative', () => {
       },
     });
 
-    expect(result).toBeNull();
-    expect(failureCode).toBe('unsupported_narrative_fact');
+    expect(result?.narrativeDetails?.coreIdentity).toBeUndefined();
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    expect(result?.narrativeDetails?.profilePositioning).toBeTruthy();
+    expect(failureCode).toBeNull();
   });
 
-  it('repairs an invalid narrative response before failing the required batch', async () => {
+  it('keeps valid siblings when one narrative section needs repair', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as {
         messages: Array<{ content: string }>;
@@ -873,8 +903,9 @@ describe('synthesizePersonalReportNarrative', () => {
       grounding: narrativeGrounding(),
     });
 
-    expect(result?.narrativeDetails?.snapshot?.split(/\s+/)).toHaveLength(150);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result?.narrativeDetails?.snapshot).toBeUndefined();
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('allows a grounded number reused in another narrative section', async () => {
@@ -928,7 +959,7 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.narrativeDetails?.socialProof?.metricKeys).toEqual(['activities']);
   });
 
-  it('rejects first-person prose instead of publishing the applicant voice as report narration', async () => {
+  it('drops first-person prose without discarding sibling sections', async () => {
     const details = structuredNarrativeDetails('a');
     details.coreIdentity!.identityStatement = `I enjoy building systems ${repeatedWords(77, 'identity')}`;
     const response = { narrativeDetails: details };
@@ -946,11 +977,12 @@ describe('synthesizePersonalReportNarrative', () => {
       },
     });
 
-    expect(result).toBeNull();
-    expect(failureCode).toBe('unsupported_narrative_voice');
+    expect(result?.narrativeDetails?.coreIdentity).toBeUndefined();
+    expect(result?.narrativeDetails?.drivingForce).toBeTruthy();
+    expect(failureCode).toBeNull();
   });
 
-  it('rejects first-person snapshot prose', async () => {
+  it('drops first-person snapshot prose without discarding Core Identity', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify({ narrativeDetails: { ...structuredNarrativeDetails('a'), snapshot: 'I enjoy building systems and helping people.' } }),
@@ -966,7 +998,8 @@ describe('synthesizePersonalReportNarrative', () => {
       grounding: narrativeGrounding(),
     });
 
-    expect(result).toBeNull();
+    expect(result?.narrativeDetails?.snapshot).toBeUndefined();
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
   });
 
   it('never sends raw first-person claim statements to the prose model', async () => {
@@ -1064,7 +1097,7 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.narrativeDetails?.socialProof?.metricKeys).toEqual(['activities']);
   });
 
-  it('rejects a structured contract section outside its exact word range', async () => {
+  it('drops a structured contract section outside its exact word range', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
       const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
@@ -1087,7 +1120,8 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     expect(result?.narrativeDetails?.provenCapabilities).toBeTruthy();
-    expect(failure).toBe('invalid_word_length');
+    expect(result?.narrativeDetails?.coreIdentity).toBeUndefined();
+    expect(failure).toBeNull();
   });
 
   it.each([
@@ -1136,7 +1170,7 @@ describe('synthesizePersonalReportNarrative', () => {
       onFailure: (code) => { failure = code; },
     });
 
-    expect(failure).toBe('report_mechanics_prose');
+    expect(failure).toBeNull();
   });
 
   it('allows technical prose that uses generic system and framework terms', async () => {
@@ -1206,7 +1240,7 @@ describe('synthesizePersonalReportNarrative', () => {
       onFailure: (code) => { failure = code; },
     });
 
-    expect(failure).toBe('hypothesis_promotion');
+    expect(failure).toBeNull();
   });
 
   it('keeps mature, emerging, and sparse quality fixtures grounded', async () => {
@@ -1239,7 +1273,6 @@ describe('synthesizePersonalReportNarrative', () => {
       });
 
       if (kind === 'sparse') {
-        expect(result).toBeNull();
         expect(fetchMock).not.toHaveBeenCalled();
       } else {
         expect(result?.narrativeDetails?.provenCapabilities?.capabilities[0]?.capability).toBe('Leadership');

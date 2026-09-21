@@ -1,5 +1,25 @@
 # Current project status
 
+Working tree 2026-09-21 (personal report framework completeness): implemented the evidence-aware report contract v7. The
+report now keeps required framework sections structurally present, distinguishes supported/emerging/
+needs-more-evidence/unavailable coverage, preserves evidence IDs, records narrative-generation and grounding status,
+and exposes a coverage matrix in [personal-report-framework-coverage.md](personal-report-framework-coverage.md).
+Deterministic snapshots now include identity, positioning, behavioural signal, motivation, development direction, and
+an explicit evidence limitation; sparse reports continue through persistence instead of stopping at
+`insufficient_evidence`. Core Identity and all snapshot insight sections render evidence-limited states rather than
+disappearing. Profile-only capability claims are separated from proven capabilities; one-activity capability signals
+can support emerging narrative traits without being promoted to recurring strengths. Narrative parsing now isolates
+invalid sections while retaining valid siblings, the print path includes Snapshot/Positioning/Key Takeaways, and
+prompt version is `report-synthesis-v16-exact-framework-compliance`. The authoritative DOCX supplied in Downloads was
+read in full, including its six tables and three embedded images; the linked Google capability-scoring spec remains
+inaccessible and is documented as an unresolved formula-verification dependency. No production data or deployment was
+changed. Final verification for this continuation: `npm run typecheck:strict`, touched-file ESLint, `git diff --check`,
+focused Personal Report/API tests (5 files, 106 passed), Personal Report view regression (9 passed), and `npm run
+build` pass. The latest parallel full-suite run reached 414 files with 3900 passed, 2 todo and 10 failures; the
+failures were existing migration ordering, jsdom/runtime timeouts, and checker/auth test environment failures. No
+Personal Report failure remained after the dedicated rerun. A serial full-suite attempt was stopped after becoming
+non-productive; therefore the repository-wide suite is not claimed clean.
+
 Working tree 2026-09-20 (GlowBal News — **AI generator and daily cron removed**): the owner retired the seeded
 GEO content and the `GEO auto-publish` workflow. Deleted (61 files): `scripts/geo/**`, `data/geo/**`,
 `content/geo/**`, `public/generated/news/**`, `geo.tsconfig.json`, all nine `geo:*` npm scripts,
@@ -84,7 +104,6 @@ owner.** Measured: `typecheck` clean, `npm run lint` 0 errors (5 pre-existing wa
 `vitest` marketing + i18n suites 38 passed, `npm run build` clean. Rendered at 1440 and 393 on `/` and `/vi`: no
 horizontal scroll, the anchor lands the form 96px below the viewport top. The `/dev/home` visual baseline is unaffected
 — no win32 PNG exists, so that test skips here; whoever holds the Linux baseline must refresh it.
-
 Working tree 2026-09-15 (product icon system — handoff v1.0, **phases 1–3 done: groups A–I placed**): the owner's icon
 plan handoff (72 new two-tone icons + 27 shipped as PNG sheets; lives outside the repo) is being integrated.
 **Groups A–I (this pass, 47 files):** icons placed per the handoff's mapping, including where none existed —

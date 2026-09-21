@@ -222,6 +222,14 @@ export type DrivingForceSection = {
   available: boolean;
   headline: string | null;
   explanation: string | null;
+  primaryMotivation?: string | null;
+  repeatedChoices?: string[];
+  recurringProblems?: string[];
+  decisionMaking?: string | null;
+  underlyingValues?: string[];
+  strategicInterpretation?: string | null;
+  evidenceStrength?: 'strong' | 'moderate' | 'limited';
+  motivationSource?: 'stated' | 'inferred' | 'insufficient';
   repeatedMotivations: string[];
   evidenceRefs: EvidenceRef[];
   confidence: ReportConfidence;
@@ -258,12 +266,49 @@ function buildDrivingForce(
       ? ['A motivation is consistently described in the activity-level reflection.']
       : []),
   ].slice(0, 4);
-
+  const activityTitles = [...new Set(activities.map((activity) => activity.title.trim()).filter(Boolean))].slice(0, 4);
+  const repeatedChoices = activities.length >= 2 ? activityTitles : [];
+  const problemCounts = new Map<string, number>();
+  for (const activity of activities) {
+    const problem = activity.narrativeEvidence?.problem?.trim() || activity.domainTheme?.trim();
+    if (problem) problemCounts.set(problem, (problemCounts.get(problem) ?? 0) + 1);
+  }
+  const recurringProblems = [...problemCounts.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort(([, left], [, right]) => right - left)
+    .map(([problem]) => problem)
+    .slice(0, 4);
+  const reflectedValues = (evaluation.reflectionAnswerSignals ?? [])
+    .filter((signal) => signal.key === 'q2' && signal.status === 'repeated')
+    .flatMap((signal) => signal.finding?.q2?.values ?? [])
+    .filter((value): value is string => Boolean(value?.trim()));
+  const underlyingValues = [...new Set([
+    motivationStatus === 'established' ? evaluation.narrativeIdentity.identity.valueOrientation : null,
+    ...reflectedValues,
+  ].filter((value): value is string => Boolean(value?.trim())))].slice(0, 4);
+  const pattern = evaluation.narrativeIdentity.pattern.pattern;
+  const decisionMaking = pattern
+    ? `When ${pattern.trigger.toLowerCase()}, the candidate tends to ${pattern.response.toLowerCase()} by ${pattern.method.toLowerCase()}.`
+    : null;
+  const evidenceStrength = motivation.confidence === 'high' ? 'strong' : motivation.confidence === 'medium' ? 'moderate' : 'limited';
+  const motivationSource: DrivingForceSection['motivationSource'] = statedMotivation
+    ? 'stated'
+    : motivationStatus === 'hypothesis'
+      ? 'inferred'
+      : 'insufficient';
   if (!available) {
     return {
       available: false,
       headline: null,
       explanation: null,
+      primaryMotivation: null,
+      repeatedChoices: [],
+      recurringProblems: [],
+      decisionMaking: null,
+      underlyingValues: [],
+      strategicInterpretation: null,
+      evidenceStrength: 'limited',
+      motivationSource: 'insufficient',
       repeatedMotivations: [],
       evidenceRefs: motivation.evidenceRefs,
       confidence: motivation.confidence,
@@ -300,11 +345,22 @@ function buildDrivingForce(
   if (recurrenceCount >= 2) {
     explanationParts.push(`The candidate explained their reasoning across ${recurrenceCount} matching pieces of evidence.`);
   }
+  const strategicInterpretation = underlyingValues.length > 0
+    ? `The available evidence connects the motivation and choices to these values: ${underlyingValues.join(', ')}.`
+    : explanationParts.join(' ');
 
   return {
     available: true,
     headline,
     explanation: explanationParts.join(' '),
+    primaryMotivation: statedMotivation ?? (isHypothesis ? 'An emerging motivation hypothesis from repeated activity choices.' : repeatedMotivations[0] ?? null),
+    repeatedChoices,
+    recurringProblems,
+    decisionMaking,
+    underlyingValues,
+    strategicInterpretation,
+    evidenceStrength,
+    motivationSource,
     repeatedMotivations,
     evidenceRefs: motivation.evidenceRefs,
     confidence: motivation.confidence,
@@ -869,6 +925,9 @@ export type PersonalReportNarrativeDetails = {
       insight: string;
       evidenceIds: string[];
       whyItMatters: string;
+      supportingExperienceTitles?: string[];
+      evidenceStrength?: 'strong' | 'moderate' | 'limited';
+      maturity?: 'established' | 'emerging';
       scope: 'repeated' | 'emerging';
       confidence: ReportConfidence;
     }>;
@@ -877,6 +936,7 @@ export type PersonalReportNarrativeDetails = {
     primaryMotivation: string;
     repeatedChoices: string[];
     recurringProblems: string[];
+    decisionMaking?: string;
     underlyingValues: string[];
     strategicInterpretation: string;
     evidenceStrength: 'strong' | 'moderate' | 'limited';
@@ -892,6 +952,7 @@ export type PersonalReportNarrativeDetails = {
       supportingActivities: string[];
       howDemonstrated: string;
       whyItMatters: string;
+      applicationRelevance?: string;
     }>;
     combinationInsight: string;
     combinationEvidenceIds: string[];
@@ -946,7 +1007,7 @@ export type PersonalReportNarrativeDetails = {
   };
 };
 
-export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v6-required-narrative-repair';
+export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v7-framework-complete';
 
 function wordCount(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -974,40 +1035,39 @@ function snapshotSummary(
   drivingForce: DrivingForceSection,
   signaturePattern: SignaturePatternSection,
   proofOfMe: ProofOfMeSection,
+  personalPositioning: PersonalPositioningSection,
   growthAreas: PersonalReportInsight[],
 ): string {
   const identity = coreIdentity.available
-    ? snapshotPhrase(coreIdentity.headline ?? undefined, 'a recurring identity signal')
-    : 'no recurring identity pattern yet';
+    ? snapshotPhrase(coreIdentity.headline ?? undefined, 'an emerging identity signal')
+    : 'an identity that is still being established';
+  const positioning = personalPositioning.available
+    ? snapshotPhrase(personalPositioning.statement ?? undefined, 'a developing position connecting the current experiences')
+    : 'a unique position that still needs clearer supporting evidence';
+  const prominentBehaviour = snapshotPhrase(
+    signaturePattern.steps.find((step) => step.key === 'method')?.description ?? coreIdentity.recurringBehaviours[0] ?? coreIdentity.observedBehaviours?.[0],
+    signaturePattern.available ? 'no single behaviour is established as prominent yet' : 'no single behaviour is established as prominent yet',
+  );
   const motivation = drivingForce.available
     ? snapshotPhrase(drivingForce.repeatedMotivations[0], 'an explicitly stated motivation')
-    : 'no confirmed motivation pattern yet';
-  const pattern = signaturePattern.available
-    ? signaturePattern.patternStrength === 'established'
-      ? 'an established behavioural pattern'
-      : 'an emerging behavioural pattern'
-    : 'no established behavioural pattern';
-  const evidence = proofOfMe.available
-    ? `${proofOfMe.cards.length} recorded evidence item${proofOfMe.cards.length === 1 ? '' : 's'}`
-    : 'no evidence cards yet';
+    : 'motivation that is not yet confirmed across the available record';
   const gap = snapshotPhrase(
     growthAreas[0]?.currentGap || growthAreas[0]?.statement,
-    'more specific evidence',
+    'more specific evidence about ownership, outcomes, and future direction',
   );
   const sentences = [
-    `Your clearest identity signal is ${identity}.`,
-    `Your activities and achievements point toward ${motivation}, while your current record shows ${pattern}.`,
-    `You have ${evidence}, with repeated signals kept separate from isolated observations.`,
-    `A recurring pattern is stronger when more than one independent record supports it, while unsupported conclusions remain open rather than becoming assumptions.`,
-    `Your strongest material combines stated activities, attached documents, and extracted interpretations with different levels of verification.`,
-    `The main development opportunity is ${gap}.`,
-    `This view describes your current profile and does not assess external selection decisions.`,
-    `As you add concrete outcomes, ownership details, reflection, or documents, an isolated signal can become a better-supported pattern while the earlier view remains part of your history.`,
+    `Overall identity: ${identity}.`,
+    `Unique positioning: ${positioning}.`,
+    `The most prominent behavioural or activity signal is ${prominentBehaviour}; ${signaturePattern.available ? 'this is treated as an emerging or established pattern according to the number of independent records behind it' : 'it is not yet treated as a recurring pattern'}.`,
+    `The clearest stated or inferred motivation is ${motivation}.`,
+    `Potential and development direction: ${gap}.`,
+    `The current evidence base contains ${proofOfMe.cards.length} recorded experience${proofOfMe.cards.length === 1 ? '' : 's'}, so repeated patterns remain distinct from isolated observations and self-reported aspirations.`,
+    `Overall impression: the profile contains useful applicant-specific signals, while its strongest future positioning will depend on adding concrete outcomes, ownership details, and evidence that tests the emerging themes.`,
   ];
-  const padding =
-    ' Every limitation is retained so the reader can see what the current evidence supports, what it merely suggests, and what still needs to be established.';
   let summary = sentences.join(' ');
-  while (wordCount(summary) < 150) summary += padding;
+  if (wordCount(summary) < 150) {
+    summary += ' This snapshot separates directly stated information, observed actions, emerging interpretations, and claims that remain unconfirmed. It is a current evidence-aware view of the applicant rather than a prediction about external selection decisions.';
+  }
   return wordCount(summary) > 200 ? summary.split(/\s+/).slice(0, 200).join(' ') : summary;
 }
 
@@ -1217,6 +1277,18 @@ function buildApplicationInsights(args: {
     evidenceIds: [],
     limitations: ['The snapshot does not contain enough repeated evidence.'],
   });
+  const growthOpportunity = growthAreas[0] ?? insight({
+    kind: 'growth_area',
+    statement: 'No evidence-backed development gap is established from the current snapshot.',
+    scope: 'insufficient',
+    strength: 'weak',
+    confidence: 'low',
+    evidenceIds: [],
+    limitations: ['More applicant-specific information is needed before a targeted development recommendation is defensible.'],
+    currentGap: 'A specific capability or positioning gap is not established yet.',
+    importance: 'A targeted recommendation should follow the evidence rather than assume a weakness.',
+    direction: 'Add a reflected experience or clarify the intended direction before selecting a development priority.',
+  });
 
   const fallbackCoverage = {
     strongEvidence: Array.from(
@@ -1242,7 +1314,7 @@ function buildApplicationInsights(args: {
     keyTakeaways: {
       whatMakesYouStandOut: standout,
       competitiveAdvantage: advantage,
-      growthOpportunity: growthAreas[0]!,
+      growthOpportunity,
     },
     evidenceCoverage: args.evidenceBank
       ? evidenceCoverageFromBank(args.evidenceBank, fallbackCoverage)
@@ -1298,9 +1370,7 @@ function buildOverallSummary(
   coreIdentity: CoreIdentitySection,
   emergingThemes: EmergingThemesSection,
   proofOfMe: ProofOfMeSection,
-): ReportOverallSummary | null {
-  if (!proofOfMe.available) return null;
-
+): ReportOverallSummary {
   const paragraphs: string[] = [];
   const evidenceRefs: EvidenceRef[] = [];
 
@@ -1308,6 +1378,9 @@ function buildOverallSummary(
   if (strongestCard) {
     paragraphs.push(`The strongest evidence-backed signal is "${strongestCard.title}".`);
     evidenceRefs.push(...strongestCard.evidenceRefs);
+  } else if (coreIdentity.observedBehaviours?.[0]) {
+    paragraphs.push(`The clearest observed signal is "${coreIdentity.observedBehaviours[0]}"; it remains an observation rather than a recurring identity claim.`);
+    evidenceRefs.push(...coreIdentity.evidenceRefs);
   }
   const topTheme = emergingThemes.available ? emergingThemes.themes[0] : null;
   if (topTheme) {
@@ -1323,7 +1396,9 @@ function buildOverallSummary(
     paragraphs.push(coreIdentity.stillDeveloping[0] as string);
   }
 
-  if (paragraphs.length === 0) return null;
+  if (paragraphs.length === 0) {
+    paragraphs.push('No applicant-specific overall conclusion is established from the available records yet. Add a concrete activity, reflection, or supporting evidence to make the profile more interpretable.');
+  }
   return { paragraphs, evidenceRefs };
 }
 
@@ -1362,10 +1437,146 @@ export type PersonalReportV2 = {
   reflectionFindingStatuses?: Partial<Record<ReflectionAnswerKey, 'repeated' | 'isolated'>>;
   /** Applicant-facing narrative contract; legacy prose fields remain additive. */
   narrativeDetails?: PersonalReportNarrativeDetails;
+  /** Independent structural/evidence coverage measured on the assembled report. */
+  frameworkCoverage?: PersonalReportFrameworkCoverage;
   evidenceCoverage?: PersonalReportEvidenceCoverage;
   limitations?: string[];
   canvasDetails?: PersonalCanvasDetails;
 };
+
+export type FrameworkSectionStatus = 'supported' | 'emerging' | 'needs_more_evidence' | 'unavailable';
+
+export type FrameworkComponentKey =
+  | 'applicantSnapshot'
+  | 'coreIdentity'
+  | 'identityStatement'
+  | 'definingTraits'
+  | 'drivingForces'
+  | 'motivationLandscape'
+  | 'provenCapabilities'
+  | 'capabilityOverview'
+  | 'capabilityProfile'
+  | 'capabilityCombinationInsight'
+  | 'socialProof'
+  | 'socialProofConclusion'
+  | 'profilePositioning'
+  | 'experienceConnection'
+  | 'positioningOptions'
+  | 'profileNarrative'
+  | 'keyTakeaways'
+  | 'whatMakesYouStandOut'
+  | 'competitiveAdvantage'
+  | 'growthOpportunity';
+
+export type PersonalReportFrameworkCoverage = {
+  structuralCompleteness: { complete: boolean; missing: FrameworkComponentKey[] };
+  evidenceCoverage: { supported: number; emerging: number; needsMoreEvidence: number; unavailable: number };
+  narrativeGeneration: { status: 'complete' | 'partial' | 'deterministic_fallback'; generatedSections: string[] };
+  groundingValidity: { valid: boolean; invalidEvidenceIds: string[] };
+  applicantSpecificContentQuality: 'specific' | 'limited' | 'unavailable';
+  sections: Record<FrameworkComponentKey, { status: FrameworkSectionStatus; evidenceIds: string[] }>;
+};
+
+function frameworkStatus(args: {
+  present: boolean;
+  evidenceIds?: readonly string[];
+  substantive?: boolean;
+}): FrameworkSectionStatus {
+  if (!args.present) return 'unavailable';
+  if (args.substantive && (args.evidenceIds?.length ?? 0) > 0) return 'supported';
+  if (args.substantive) return 'emerging';
+  return 'needs_more_evidence';
+}
+
+/**
+ * Validates the assembled report contract without inspecting React or print
+ * markup. Empty evidence is a valid report state; a missing component is not.
+ */
+export function validatePersonalReportFramework(report: PersonalReportV2): PersonalReportFrameworkCoverage {
+  const coreIdentity = report.coreIdentity as Partial<CoreIdentitySection> | undefined;
+  const drivingForce = report.drivingForce as Partial<DrivingForceSection> | undefined;
+  const signaturePattern = report.signaturePattern as Partial<SignaturePatternSection> | undefined;
+  const emergingThemes = report.emergingThemes as Partial<EmergingThemesSection> | undefined;
+  const personalPositioning = report.personalPositioning as Partial<PersonalPositioningSection> | undefined;
+  const proofOfMe = report.proofOfMe as Partial<ProofOfMeSection> | undefined;
+  const coreEvidenceRefs = coreIdentity?.evidenceRefs ?? [];
+  const drivingEvidenceRefs = drivingForce?.evidenceRefs ?? [];
+  const signatureEvidenceRefs = signaturePattern?.evidenceRefs ?? [];
+  const positioningEvidenceRefs = personalPositioning?.evidenceRefs ?? [];
+  const proofCards = proofOfMe?.cards ?? [];
+  const refIds = [
+    ...coreEvidenceRefs,
+    ...drivingEvidenceRefs,
+    ...signatureEvidenceRefs,
+    ...(emergingThemes?.themes ?? []).flatMap((theme) => theme.evidenceRefs),
+    ...positioningEvidenceRefs,
+    ...proofCards.flatMap((card) => card.evidenceRefs),
+    ...(report.canvasDetails?.socialProof ?? []).flatMap((metric) => metric.evidenceIds.map((id) => ({ id }))),
+  ].map((ref) => ref.id);
+  const allowed = new Set(refIds);
+  const narrative = report.narrativeDetails;
+  const traitEvidence = narrative?.coreIdentity?.definingTraits.flatMap((trait) => trait.evidenceIds) ?? [];
+  const capabilityEvidence = narrative?.provenCapabilities?.capabilities.flatMap((capability) => capability.evidenceIds) ?? [];
+  const socialEvidence = narrative?.socialProof?.evidenceIds ?? [];
+  const positioningEvidence = narrative?.profilePositioning?.profileNarrativeEvidenceIds ?? [];
+  const takeawaysEvidence = [
+    ...(narrative?.keyTakeaways?.whatMakesYouStandOut.evidenceIds ?? []),
+    ...(narrative?.keyTakeaways?.competitiveAdvantage.evidenceIds ?? []),
+    ...(narrative?.keyTakeaways?.growthOpportunity.evidenceIds ?? []),
+  ];
+  const idsFor = (...groups: readonly string[][]) => [...new Set(groups.flat())];
+  const hasCanvas = Boolean(report.canvasDetails);
+  const hasCapabilities = (report.canvasDetails?.capabilities?.length ?? 0) > 0;
+  const hasSocialProof = report.canvasDetails?.socialProof?.some((metric) => metric.value > 0 && metric.evidenceIds.length > 0) ?? false;
+  const hasTraits = Boolean(narrative?.coreIdentity?.definingTraits.length || coreIdentity?.observedBehaviours?.length || coreIdentity?.recurringBehaviours?.length);
+  const sections = {
+    applicantSnapshot: { status: frameworkStatus({ present: Boolean(report.snapshot?.summary || narrative?.snapshot), evidenceIds: idsFor(coreEvidenceRefs.map((ref) => ref.id), proofCards.flatMap((card) => card.evidenceRefs.map((ref) => ref.id))), substantive: Boolean(report.snapshot?.summary || narrative?.snapshot) }), evidenceIds: idsFor(coreEvidenceRefs.map((ref) => ref.id), proofCards.flatMap((card) => card.evidenceRefs.map((ref) => ref.id))) },
+    coreIdentity: { status: frameworkStatus({ present: Boolean(coreIdentity), evidenceIds: coreEvidenceRefs.map((ref) => ref.id), substantive: Boolean(coreIdentity?.available) }), evidenceIds: coreEvidenceRefs.map((ref) => ref.id) },
+    identityStatement: { status: frameworkStatus({ present: Boolean(narrative?.coreIdentity?.identityStatement || coreIdentity?.headline || coreIdentity?.interpretation || coreIdentity?.insufficientData), evidenceIds: coreEvidenceRefs.map((ref) => ref.id), substantive: Boolean(narrative?.coreIdentity?.identityStatement || coreIdentity?.headline || coreIdentity?.interpretation) }), evidenceIds: coreEvidenceRefs.map((ref) => ref.id) },
+    definingTraits: { status: frameworkStatus({ present: Boolean(coreIdentity), evidenceIds: traitEvidence.length ? traitEvidence : coreEvidenceRefs.map((ref) => ref.id), substantive: hasTraits }), evidenceIds: idsFor(traitEvidence, coreEvidenceRefs.map((ref) => ref.id)) },
+    drivingForces: { status: frameworkStatus({ present: Boolean(drivingForce), evidenceIds: drivingEvidenceRefs.map((ref) => ref.id), substantive: Boolean(drivingForce?.available) }), evidenceIds: drivingEvidenceRefs.map((ref) => ref.id) },
+    motivationLandscape: { status: frameworkStatus({ present: Boolean(drivingForce), evidenceIds: drivingEvidenceRefs.map((ref) => ref.id), substantive: Boolean(narrative?.drivingForce || drivingForce?.repeatedMotivations?.length) }), evidenceIds: drivingEvidenceRefs.map((ref) => ref.id) },
+    provenCapabilities: { status: frameworkStatus({ present: hasCanvas, evidenceIds: capabilityEvidence, substantive: hasCapabilities }), evidenceIds: capabilityEvidence },
+    capabilityOverview: { status: frameworkStatus({ present: hasCanvas, evidenceIds: capabilityEvidence, substantive: Boolean(narrative?.provenCapabilities?.overview || hasCapabilities) }), evidenceIds: capabilityEvidence },
+    capabilityProfile: { status: frameworkStatus({ present: hasCanvas, evidenceIds: capabilityEvidence, substantive: hasCapabilities }), evidenceIds: capabilityEvidence },
+    capabilityCombinationInsight: { status: frameworkStatus({ present: hasCanvas, evidenceIds: capabilityEvidence, substantive: Boolean(narrative?.provenCapabilities?.combinationInsight || hasCapabilities) }), evidenceIds: capabilityEvidence },
+    socialProof: { status: frameworkStatus({ present: hasCanvas, evidenceIds: socialEvidence, substantive: hasSocialProof }), evidenceIds: socialEvidence },
+    socialProofConclusion: { status: frameworkStatus({ present: hasCanvas, evidenceIds: socialEvidence, substantive: Boolean(narrative?.socialProof?.conclusion || hasSocialProof) }), evidenceIds: socialEvidence },
+    profilePositioning: { status: frameworkStatus({ present: Boolean(personalPositioning), evidenceIds: positioningEvidenceRefs.map((ref) => ref.id), substantive: Boolean(personalPositioning?.available) }), evidenceIds: positioningEvidenceRefs.map((ref) => ref.id) },
+    experienceConnection: { status: frameworkStatus({ present: Boolean(personalPositioning), evidenceIds: positioningEvidence, substantive: Boolean(narrative?.profilePositioning?.experienceConnection || personalPositioning?.available) }), evidenceIds: positioningEvidence },
+    positioningOptions: { status: frameworkStatus({ present: Boolean(personalPositioning), evidenceIds: positioningEvidence, substantive: Boolean(narrative?.profilePositioning?.positioningOptions.length || personalPositioning?.available) }), evidenceIds: positioningEvidence },
+    profileNarrative: { status: frameworkStatus({ present: Boolean(personalPositioning), evidenceIds: positioningEvidence, substantive: Boolean(narrative?.profilePositioning?.profileNarrative || personalPositioning?.statement) }), evidenceIds: positioningEvidence },
+    keyTakeaways: { status: frameworkStatus({ present: Boolean(report.keyTakeaways), evidenceIds: takeawaysEvidence, substantive: Boolean(report.keyTakeaways) }), evidenceIds: takeawaysEvidence },
+    whatMakesYouStandOut: { status: frameworkStatus({ present: Boolean(report.keyTakeaways?.whatMakesYouStandOut), evidenceIds: report.keyTakeaways?.whatMakesYouStandOut.evidenceIds ?? [], substantive: Boolean(report.keyTakeaways?.whatMakesYouStandOut) }), evidenceIds: report.keyTakeaways?.whatMakesYouStandOut.evidenceIds ?? [] },
+    competitiveAdvantage: { status: frameworkStatus({ present: Boolean(report.keyTakeaways?.competitiveAdvantage), evidenceIds: report.keyTakeaways?.competitiveAdvantage.evidenceIds ?? [], substantive: Boolean(report.keyTakeaways?.competitiveAdvantage) }), evidenceIds: report.keyTakeaways?.competitiveAdvantage.evidenceIds ?? [] },
+    growthOpportunity: { status: frameworkStatus({ present: Boolean(report.keyTakeaways?.growthOpportunity), evidenceIds: report.keyTakeaways?.growthOpportunity.evidenceIds ?? [], substantive: Boolean(report.keyTakeaways?.growthOpportunity) }), evidenceIds: report.keyTakeaways?.growthOpportunity.evidenceIds ?? [] },
+  } satisfies Record<FrameworkComponentKey, { status: FrameworkSectionStatus; evidenceIds: string[] }>;
+  const missing = (Object.entries(sections) as Array<[FrameworkComponentKey, (typeof sections)[FrameworkComponentKey]]>)
+    .filter(([, section]) => section.status === 'unavailable')
+    .map(([key]) => key);
+  const statuses = Object.values(sections).reduce((counts, section) => {
+    if (section.status === 'supported') counts.supported += 1;
+    if (section.status === 'emerging') counts.emerging += 1;
+    if (section.status === 'needs_more_evidence') counts.needsMoreEvidence += 1;
+    if (section.status === 'unavailable') counts.unavailable += 1;
+    return counts;
+  }, { supported: 0, emerging: 0, needsMoreEvidence: 0, unavailable: 0 });
+  const narrativeSections = Object.keys(narrative ?? {}).filter((key) => key !== 'snapshot');
+  const narrativeIds = [...traitEvidence, ...capabilityEvidence, ...socialEvidence, ...positioningEvidence, ...takeawaysEvidence];
+  const invalidEvidenceIds = [...new Set(narrativeIds.filter((id) => !allowed.has(id)))];
+  const evidencedSections = Object.values(sections).filter((section) => section.evidenceIds.length > 0).length;
+  return {
+    structuralCompleteness: { complete: missing.length === 0, missing },
+    evidenceCoverage: statuses,
+    narrativeGeneration: {
+      status: narrativeSections.length >= 6 ? 'complete' : narrativeSections.length > 0 ? 'partial' : 'deterministic_fallback',
+      generatedSections: narrativeSections,
+    },
+    groundingValidity: { valid: invalidEvidenceIds.length === 0, invalidEvidenceIds },
+    applicantSpecificContentQuality: evidencedSections >= 8 ? 'specific' : evidencedSections > 0 ? 'limited' : 'unavailable',
+    sections,
+  };
+}
 
 const storedReportSectionSchema = z.object({ available: z.boolean().optional() }).passthrough();
 
@@ -1452,6 +1663,7 @@ export function buildPersonalReport(args: {
         drivingForce,
         signaturePattern,
         proofOfMe,
+        personalPositioning,
         applicationInsights.growthAreas,
       ),
     },

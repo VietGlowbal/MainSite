@@ -383,7 +383,7 @@ export function PersonalReportV2View({
         />
       </div>
 
-      <PersonalReportPrintView report={report} returnTo={returnTo} />
+      <PersonalReportPrintView report={report} returnTo={returnTo} includeGlobalSections={false} />
 
       <KeyTakeawaysView report={report} />
 
