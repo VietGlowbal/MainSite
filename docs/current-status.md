@@ -72,6 +72,21 @@ enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
 
+Working tree 2026-09-24 (Scholarship Personalization T2A): added the pure
+duration-aware valuation domain. It resolves explicit scholarship/component
+durations before programme/application fallbacks, normalizes one-time/monthly/
+annual/term amounts, derives percentage/full tuition only from an injected
+tuition source, preserves ranges and source provenance, selects one exclusive
+scenario, prevents bundled cost-source double counting, and emits
+EXACT/MIXED/ESTIMATED status plus a lower-bound comparable value when an
+explicit currency/FX contract permits it. No cost or FX dataset, matching,
+ranking, UI, schema, or migration work was added. The focused T2A suite passed
+(2 files, 19 tests) through an existing sibling-worktree toolchain; direct
+strict compilation of the T2A domain files and `git diff --check` passed. The
+repository-local Vitest/TypeScript commands remain unavailable because this
+checkout has no `node_modules`; the broader scholarship-domain run exposed the
+existing T1 unknown-currency assertion failure and no T2A failure.
+
 Working tree 2026-09-24 (Scholarship Personalization T1): added the pure,
 evidence-bearing scholarship benefit contract and deterministic normalizer. It
 recognizes typed tuition, living, accommodation, stipend, meals, travel,

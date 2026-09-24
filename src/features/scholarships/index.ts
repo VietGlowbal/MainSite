@@ -30,6 +30,14 @@ export {
   normalizeScholarshipBenefits,
 } from './domain/benefit-normalization';
 export {
+  calculateScholarshipValue,
+} from './domain/valuation';
+export {
+  durationInMonths,
+  periodMultiplier,
+  resolveScholarshipDuration,
+} from './domain/duration';
+export {
   BENEFIT_PERIODS,
   BENEFIT_TYPES,
 } from './domain/benefit-types';
@@ -56,3 +64,25 @@ export type {
   ScholarshipBenefitNormalizationInput,
   ScholarshipBenefitRaw,
 } from './domain/benefit-types';
+export type {
+  CalculateScholarshipValueInput,
+  ComparableTotalValue,
+  CostSource,
+  CostSourceResolver,
+  FxProvider,
+  MonetaryValue,
+  ScholarshipValueResult,
+  SourceValueStatus,
+  TuitionSource,
+  ValuedBenefitComponent,
+  ValuationPeriod,
+  ValuationPolicy,
+  ValueStatus,
+} from './domain/valuation';
+export type {
+  DurationContext,
+  DurationInput,
+  DurationSource,
+  DurationValue,
+  ResolvedDuration,
+} from './domain/duration';
