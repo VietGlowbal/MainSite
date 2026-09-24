@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import os
 import subprocess
 import sys
@@ -23,8 +24,10 @@ from glowbal_ingestion.raw_evidence import (
 )
 from glowbal_ingestion.structured_staging import (
     StructuredStagingError,
+    DriveStructuredStagingStore,
     SupabaseStructuredStagingStore,
     create_structured_staging_store,
+    validate_injected_structured_staging_store,
 )
 from glowbal_ingestion.pipeline import _validate_injected_raw_evidence_store
 from glowbal_ingestion.mongo_raw_evidence import (
@@ -391,7 +394,7 @@ def test_direct_mongo_object_store_rejects_an_unset_backend(monkeypatch) -> None
 
 def test_drive_selected_structured_staging_rejects_row_retaining_injection(monkeypatch) -> None:
     monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
-    with pytest.raises(ValueError, match="preflighted GoogleDriveDesktopArtifactStore"):
+    with pytest.raises(ValueError, match="cannot write to Supabase"):
         SupabaseStructuredStagingStore(_StructuredInsertClient())
 
 
@@ -430,7 +433,7 @@ def test_drive_structured_staging_externalizes_rows_to_csv(monkeypatch, tmp_path
     monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
     client = _StructuredInsertClient()
     archive = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
-    staging = SupabaseStructuredStagingStore(client, artifact_store=archive)
+    staging = DriveStructuredStagingStore(artifact_store=archive)
     assert staging.put_archive_members(
         [
             {
@@ -441,7 +444,9 @@ def test_drive_structured_staging_externalizes_rows_to_csv(monkeypatch, tmp_path
             }
         ]
     ) == 1
-    row = client.inserts[0][1][0]
+    fresh = DriveStructuredStagingStore(artifact_store=GoogleDriveDesktopArtifactStore(tmp_path))
+    row, = fresh.iter_records("run-1")
+    assert client.inserts == []
     assert row["rows"] == []
     artifact = row["lineage"]["structured_rows_artifact"]
     assert artifact["storage_backend"] == "google_drive_desktop"
@@ -453,3 +458,78 @@ def test_drive_structured_staging_externalizes_rows_to_csv(monkeypatch, tmp_path
         content_type="text/csv",
     )
     assert b"Name,UNITID\n\xc3\x89cole,1\n" == archive.get(reference)
+
+
+@pytest.mark.parametrize("credentials_present", [False, True])
+def test_drive_staging_factory_never_constructs_supabase(monkeypatch, tmp_path, credentials_present):
+    from glowbal_ingestion import supabase_import
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Drive staging constructed a Supabase client")
+
+    monkeypatch.setattr(supabase_import, "SupabaseRestClient", forbidden)
+    monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
+    monkeypatch.setenv("EXTERNAL_STRUCTURED_STAGING_ENABLED", "auto")
+    for name in ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"):
+        if credentials_present:
+            monkeypatch.setenv(name, "must-not-be-used")
+        else:
+            monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("DATA_PLATFORM_ARCHIVE_ROOT", str(configured_drive_root(tmp_path)))
+    sink = create_structured_staging_store()
+    assert isinstance(sink, DriveStructuredStagingStore)
+    record = {"run_id": "../unsafe/run", "derived_resource_id": "d", "rows": [{"n": 1}]}
+    assert sink.put_archive_members([record]) == 1
+    assert sink.put_archive_members([record]) == 1
+    assert len(list(sink.iter_records("../unsafe/run"))) == 1
+    assert len(list((tmp_path / "structured-staging").rglob("*.json"))) == 1
+
+
+def test_drive_staging_retains_empty_and_changed_observations(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
+    archive = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
+    sink = DriveStructuredStagingStore(artifact_store=archive, batch_size=1)
+    records = [
+        {"run_id": "r", "derived_resource_id": "d", "rows": [], "partial": True, "bounded_reason": "limit"},
+        {"run_id": "r", "derived_resource_id": "d", "rows": [{"n": 2}], "raw_document_id": "raw-1"},
+    ]
+    assert sink.put_archive_members(iter(records)) == 2
+    restored = list(sink.iter_records("r"))
+    assert len(restored) == 2
+    assert any(r["partial"] and r["bounded_reason"] == "limit" for r in restored)
+    assert any(r["raw_document_id"] == "raw-1" for r in restored)
+
+
+def test_drive_staging_manifest_failure_does_not_report_success(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
+    archive = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
+    sink = DriveStructuredStagingStore(artifact_store=archive)
+    def fail(*args, **kwargs):
+        raise ObjectStoreError("offline", retryable=True)
+    monkeypatch.setattr(archive, "put_immutable", fail)
+    with pytest.raises(StructuredStagingError, match="manifest persistence failed"):
+        sink.put_archive_members([{"run_id": "r", "rows": []}])
+    assert list(sink.iter_records("r")) == []
+
+
+def test_drive_staging_rejects_legacy_injection_and_separate_budget(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
+    archive = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
+    sink = DriveStructuredStagingStore(artifact_store=archive)
+    validate_injected_structured_staging_store(sink, shared_artifact_store=archive)
+    with pytest.raises(ValueError, match="shared artifact store"):
+        validate_injected_structured_staging_store(
+            sink, shared_artifact_store=GoogleDriveDesktopArtifactStore(tmp_path))
+    with pytest.raises(ValueError, match="non-Drive"):
+        validate_injected_structured_staging_store(_StructuredInsertClient(), shared_artifact_store=archive)
+
+
+def test_drive_staging_detects_manifest_corruption(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_PLATFORM_ARTIFACT_BACKEND", "google_drive_desktop")
+    archive = GoogleDriveDesktopArtifactStore(configured_drive_root(tmp_path))
+    sink = DriveStructuredStagingStore(artifact_store=archive)
+    sink.put_archive_members([{"run_id": "r", "rows": []}])
+    index = json.loads(next((tmp_path / "structured-staging").rglob("*.json")).read_text())
+    (tmp_path / index["logical_locator"]).write_bytes(b"corrupt")
+    with pytest.raises(ObjectStoreError):
+        list(sink.iter_records("r"))

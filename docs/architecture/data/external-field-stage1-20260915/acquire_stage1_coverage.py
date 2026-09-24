@@ -595,6 +595,50 @@ def parse_edinburgh_documents(text: str) -> tuple[list[str], str] | None:
     return labels, segment[:800]
 
 
+def parse_admission_document_components(text: str) -> list[tuple[str, dict[str, Any], str]]:
+    """Extract explicit certificate/transcript labels without semantic inference."""
+
+    contexts = re.finditer(
+        r"(?:required documents|what you need to apply|documents? (?:required|needed)|"
+        r"you will need to submit|must submit)[^.!?]{0,700}",
+        text,
+        re.IGNORECASE,
+    )
+    results: list[tuple[str, dict[str, Any], str]] = []
+    seen: set[tuple[str, str]] = set()
+    for match in contexts:
+        segment = normalise_text(match.group(0))
+        for field_name, pattern in (
+            (
+                "graduation_certificate",
+                r"\b(?:graduation|degree|educational|school[- ]leaving)\s+certificates?\b"
+                r"|\b(?:degree|graduation)\s+diplomas?\b|\bproof\s+of\s+(?:degree|graduation)\b",
+            ),
+            (
+                "academic_transcript",
+                r"\b(?:academic\s+)?transcripts?\b|academic records?|mark\s*[- ]?sheets?",
+            ),
+        ):
+            if not re.search(pattern, segment, re.IGNORECASE):
+                continue
+            key = field_name, segment
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(
+                (
+                    field_name,
+                    {
+                        "document_type": field_name,
+                        "requirement_status": "required",
+                        "details": segment[:800],
+                    },
+                    segment[:800],
+                )
+            )
+    return results
+
+
 def parse_portfolio_requirement(text: str) -> tuple[str, str] | None:
     """Extract a portfolio requirement only from an entry-requirements label."""
 
@@ -642,6 +686,123 @@ def parse_work_experience_requirement(text: str) -> tuple[dict[str, Any], str] |
     return None
 
 
+ADMISSION_CONTEXT_RE = re.compile(
+    r"\b(?:admission|application|apply|applying|entry\s+requirements?|"
+    r"how\s+to\s+apply|required\s+documents?|supporting\s+documents?|"
+    r"documents?\s+to\s+submit|what\s+you\s+need\s+to\s+apply)\b",
+    re.IGNORECASE,
+)
+
+
+def text_from_page_body(body: bytes) -> str:
+    """Decode HTML or a text PDF without model assistance."""
+
+    if body.startswith(b"%PDF"):
+        try:
+            from pypdf import PdfReader
+
+            reader = PdfReader(io.BytesIO(body))
+            return normalise_text(" ".join(page.extract_text() or "" for page in reader.pages))
+        except Exception:  # malformed/encrypted PDFs remain raw-only evidence
+            return ""
+    return html_to_text(body.decode("utf-8", errors="replace"))
+
+
+def admission_contexts(text: str, *, limit: int = 8) -> list[str]:
+    """Return bounded admission sections for deterministic requirement rules."""
+
+    clean = normalise_text(text)
+    contexts: list[str] = []
+    for match in ADMISSION_CONTEXT_RE.finditer(clean):
+        segment = normalise_text(clean[max(0, match.start() - 120) : match.end() + 1100])
+        if len(segment) < 40:
+            continue
+        if segment not in contexts:
+            contexts.append(segment)
+        if len(contexts) >= limit:
+            break
+    return contexts
+
+
+def requirement_from_contexts(
+    contexts: Iterable[str],
+    pattern: str,
+    *,
+    minimum_length: int = 12,
+) -> tuple[str, str] | None:
+    matcher = re.compile(pattern, re.IGNORECASE)
+    for context in contexts:
+        match = matcher.search(context)
+        if not match:
+            continue
+        value = normalise_text(context)
+        if len(value) >= minimum_length:
+            return value[:900], value[:900]
+    return None
+
+
+def target_identity_matches(target: Mapping[str, Any], text: str, source_url: str) -> bool:
+    """Require programme evidence before promoting an application-page fact."""
+
+    page = folded(f"{text} {source_url}")
+    name = folded(target.get("programme_name") or "")
+    name_tokens = {
+        token
+        for token in re.findall(r"[a-z0-9]{4,}", name)
+        if token
+        not in {
+            "programme",
+            "program",
+            "course",
+            "degree",
+            "mention",
+            "master",
+            "bachelor",
+            "licence",
+            "science",
+            "studies",
+            "full",
+            "time",
+        }
+    }
+    if not name_tokens:
+        return False
+    if len(name) >= 10 and name in page:
+        return True
+    overlap = sum(token in page for token in name_tokens)
+    required = 1 if len(name_tokens) == 1 else 2
+    return overlap >= required and bool(ADMISSION_CONTEXT_RE.search(text))
+
+
+def admission_page_urls(html: str, base_url: str) -> list[str]:
+    """Find a small set of same-site admission/document links."""
+
+    soup = BeautifulSoup(html or "", "html.parser")
+    candidates: list[str] = []
+    keywords = re.compile(
+        r"admission|application|apply|entry|requirement|document|how[- ]to",
+        re.IGNORECASE,
+    )
+    base_host = urlsplit(base_url).netloc.casefold()
+    for anchor in soup.find_all("a", href=True):
+        href = str(anchor.get("href") or "").strip()
+        label = normalise_text(anchor.get_text(" ", strip=True))
+        if not href or href.startswith(("mailto:", "javascript:", "#")):
+            continue
+        url = urljoin(base_url, href)
+        parts = urlsplit(url)
+        if parts.scheme not in {"http", "https"} or parts.netloc.casefold() != base_host:
+            continue
+        if not keywords.search(f"{label} {parts.path} {parts.query}"):
+            continue
+        canonical = urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, ""))
+        if canonical not in candidates:
+            candidates.append(canonical)
+        if len(candidates) >= 3:
+            break
+    return candidates
+
+
 class Acquisition:
     def __init__(self) -> None:
         self.store = SourceStore()
@@ -669,6 +830,7 @@ class Acquisition:
         self.added: list[dict[str, Any]] = []
         self.skipped: Counter[str] = Counter()
         self.by_provider: Counter[str] = Counter()
+        self.targeted_summary: dict[str, Any] = {}
 
     def add_fact(
         self,
@@ -1069,6 +1231,19 @@ class Acquisition:
                     source_type="official_html",
                     source_content_hash=source_hash,
                 )
+            for component_field, component_value, component_evidence in parse_admission_document_components(text):
+                self.add_fact(
+                    programme_id=pid,
+                    field_name=component_field,
+                    value=component_value,
+                    source_url=source_url,
+                    evidence=component_evidence,
+                    provider_id="official_university_page",
+                    source_authority="OFFICIAL",
+                    source_relationship="DIRECT_OFFICIAL",
+                    source_type="official_html",
+                    source_content_hash=source_hash,
+                )
             scholarship = parse_scholarship_policy(text)
             if scholarship:
                 value, evidence = scholarship
@@ -1384,6 +1559,160 @@ class Acquisition:
         for target in targets:
             self.store.fetch(str(target.get("official_url") or ""), provider_id="susa_navet", timeout=25)
 
+    def targeted_admission(self) -> None:
+        """Fetch official application pages and extract explicit requirements.
+
+        The frozen catalogue URLs are provider endpoints, so this pass uses
+        only programme-level application URLs already retained in the strict
+        export.  It never invents a URL or transfers requirements between
+        programmes.  A page must contain programme identity and an admission
+        context before any fact can be promoted as direct evidence.
+        """
+
+        seeds: dict[str, list[str]] = defaultdict(list)
+        for pid, target in self.targets.items():
+            url = str(self.before_by_id.get(pid, {}).get("application_url") or "").strip()
+            if url.startswith(("https://", "http://")):
+                seeds[url].append(pid)
+
+        stats: Counter[str] = Counter(
+            {
+                "programmes": len(self.targets),
+                "programmes_with_application_url": len({pid for pids in seeds.values() for pid in pids}),
+                "unique_seed_urls": len(seeds),
+            }
+        )
+        processed_urls: set[str] = set()
+
+        def inspect_page(pid: str, record: Mapping[str, Any], *, allow_links: bool) -> None:
+            body = bytes(record.get("body") or b"")
+            if int(record.get("status") or 0) != 200 or not body:
+                stats["non_200_or_empty"] += 1
+                return
+            source_url = str(record.get("final_url") or record.get("url") or "")
+            text = text_from_page_body(body)
+            if not text:
+                stats["empty_page_text"] += 1
+                return
+            target = self.targets[pid]
+            if not target_identity_matches(target, text, source_url):
+                stats["identity_rejected"] += 1
+                return
+            stats["identity_matched_pages"] += 1
+            contexts = admission_contexts(text)
+            if not contexts:
+                stats["no_admission_context"] += 1
+                return
+            source_hash = str(record.get("content_hash") or sha256_bytes(body))
+            provider_id = "official_admission_page"
+
+            required = requirement_from_contexts(
+                contexts,
+                r"\b(?:required|supporting)\s+documents?\b|\bdocuments?\s+to\s+submit\b|\bwhat\s+you\s+need\s+to\s+apply\b",
+            )
+            if required:
+                self.add_fact(
+                    programme_id=pid,
+                    field_name="required_documents",
+                    value=required[0],
+                    source_url=source_url,
+                    evidence=required[1],
+                    provider_id=provider_id,
+                    source_authority="OFFICIAL",
+                    source_relationship="DIRECT_OFFICIAL",
+                    source_type="official_admission_page",
+                    source_content_hash=source_hash,
+                )
+
+            recommendation = requirement_from_contexts(
+                contexts,
+                r"\b(?:recommendation\s+letters?|letters?\s+of\s+recommendation|academic\s+references?|references?)\b",
+            )
+            if recommendation:
+                self.add_fact(
+                    programme_id=pid,
+                    field_name="recommendation_letters",
+                    value=recommendation[0],
+                    source_url=source_url,
+                    evidence=recommendation[1],
+                    provider_id=provider_id,
+                    source_authority="OFFICIAL",
+                    source_relationship="DIRECT_OFFICIAL",
+                    source_type="official_admission_page",
+                    source_content_hash=source_hash,
+                )
+
+            sop = requirement_from_contexts(
+                contexts,
+                r"\b(?:personal\s+statements?|statement\s+of\s+purpose|motivation\s+(?:letter|statement)|application\s+essays?)\b",
+            )
+            if sop:
+                self.add_fact(
+                    programme_id=pid,
+                    field_name="sop_essay_requirements",
+                    value=sop[0],
+                    source_url=source_url,
+                    evidence=sop[1],
+                    provider_id=provider_id,
+                    source_authority="OFFICIAL",
+                    source_relationship="DIRECT_OFFICIAL",
+                    source_type="official_admission_page",
+                    source_content_hash=source_hash,
+                )
+
+            for component_field, component_value, component_evidence in parse_admission_document_components(text):
+                self.add_fact(
+                    programme_id=pid,
+                    field_name=component_field,
+                    value=component_value,
+                    source_url=source_url,
+                    evidence=component_evidence,
+                    provider_id=provider_id,
+                    source_authority="OFFICIAL",
+                    source_relationship="DIRECT_OFFICIAL",
+                    source_type="official_admission_page",
+                    source_content_hash=source_hash,
+                )
+
+            portfolio = parse_portfolio_requirement(text)
+            if portfolio:
+                self.add_fact(
+                    programme_id=pid,
+                    field_name="portfolio",
+                    value=portfolio[0],
+                    source_url=source_url,
+                    evidence=portfolio[1],
+                    provider_id=provider_id,
+                    source_authority="OFFICIAL",
+                    source_relationship="DIRECT_OFFICIAL",
+                    source_type="official_admission_page",
+                    source_content_hash=source_hash,
+                )
+
+            if allow_links and not body.startswith(b"%PDF"):
+                for link in admission_page_urls(body.decode("utf-8", errors="replace"), source_url):
+                    if link in processed_urls:
+                        continue
+                    processed_urls.add(link)
+                    linked = self.store.fetch(link, provider_id=provider_id, timeout=35)
+                    stats["discovered_links"] += 1
+                    inspect_page(pid, linked, allow_links=False)
+
+        for seed_url, pids in sorted(seeds.items()):
+            if seed_url in processed_urls:
+                continue
+            processed_urls.add(seed_url)
+            record = self.store.fetch(seed_url, provider_id="official_admission_page", timeout=35)
+            stats["seed_pages"] += 1
+            for pid in pids:
+                inspect_page(pid, record, allow_links=True)
+
+        stats["urls_fetched"] = len(processed_urls)
+        stats["new_assertions"] = sum(
+            1 for row in self.added if row.get("provider_id") == "official_admission_page"
+        )
+        self.targeted_summary = dict(sorted(stats.items()))
+
     def persist_and_replay(self) -> dict[str, Any]:
         existing = read_jsonl(INCREMENTAL_JSONL)
         merged: dict[str, dict[str, Any]] = {}
@@ -1554,6 +1883,7 @@ class Acquisition:
             "paid_llm_calls": 0,
             "rejection_count": sum(len(value) for value in rejections.values()),
             "provider_counts": dict(sorted(self.by_provider.items())),
+            "targeted_admission": self.targeted_summary,
         }
         write_json(REPLAY_SUMMARY_JSON, summary)
         return summary
@@ -1564,6 +1894,7 @@ class Acquisition:
         self.nl()
         self.skolverket()
         self.studyinfo()
+        self.targeted_admission()
         return self.persist_and_replay()
 
 

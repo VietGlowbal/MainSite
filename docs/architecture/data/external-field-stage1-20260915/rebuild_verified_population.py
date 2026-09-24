@@ -81,6 +81,8 @@ LEAD_COLUMNS = (
     "gpa_scale",
     "subject_prerequisites",
     "required_documents",
+    "graduation_certificate",
+    "academic_transcript",
     "recommendation_letters",
     "sop_or_essay",
     "portfolio",

@@ -1,5 +1,178 @@
 # Current project status
 
+Latest measured offline ultra-max replay: `stage1-package-schema-fix-20260924T093711Z-drive`
+completed on 2026-09-24 from the frozen 230-programme population and the full
+raw source run `stage1-coverage-20260922T135149Z-drive`. It generated 230 rows
+across 42 canonical fields, with 9,204 populated cells; all remaining 456 cells
+are the intentionally unfilled `graduation_certificate` or
+`academic_transcript` values with no verified evidence. The admission package
+view remains `COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`, and advisory values are
+not eligible for product decisions. The replay made 0 network calls, 0 paid LLM
+calls and 0 Supabase writes. Its Drive/Mongo lineage contains 13 artifact
+records, all 13 mounted readbacks are `VERIFIED`, and cloud sync remains
+`UNKNOWN` by design. The run manifest is
+[`stage1-drive-run-stage1-package-schema-fix-20260924T093711Z-drive-manifest.json`](architecture/data/external-field-stage1-20260915/stage1-drive-run-stage1-package-schema-fix-20260924T093711Z-drive-manifest.json).
+
+Latest measured Stage 1 Drive/Mongo run: `stage1-coverage-20260922T135149Z-drive`
+completed successfully on 2026-09-22. The runner selected the standard MongoDB
+driver environment, kept Supabase out of the run, and made 347 network calls
+with 71 cache hits. It persisted 332 raw responses (75,145,268 bytes) to the
+Mongo/Drive raw path: 135 official admission-page responses, 59 official
+university pages, 66 Discover Uni responses, 56 DUO RIO responses, 1 Onisep
+response, 5 Studyinfo application records, 4 Studyinfo criteria records and 6
+Susa-navet responses. The deterministic targeted-admission pass added 8
+assertions across 8 programmes; recommendation coverage rose 4 to 12 and SOP
+coverage 2 to 4, while top-level certificate and transcript coverage remained
+0. It made 0 paid LLM calls and 0 Supabase writes.
+
+The no-network replay then considered 1,645 evidence facts and improved 113
+programme rows. MAX_FILL added H1=1, H2=7 and H3=94 values; completeness
+quantiles were p25=12.5%, median=15.0%, p75=20.0%. The ultra CSV has 230 rows,
+42 canonical fields and 9,204 populated cells (including advisory defaults and
+donor/heuristic values). Its admission-package view remains
+`COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`: the two Edinburgh rows have direct
+reference and personal-statement evidence (4 direct package fields total),
+while certificate/transcript requirements are not directly verified. Four
+certificate values are present only as review/advisory evidence and no
+academic-transcript value is present.
+
+The Drive manifest for this run contains 24 derived artifacts, including the
+structured package JSONL and ultra CSV; mounted readback verified 24/24 hashes
+and cloud sync remains `UNKNOWN` by design. The read-only storage audit at
+2026-09-22T14:04Z found no LLM calls, crawl requests or remote writes, and no
+hash failures in the checked Mongo/Drive bodies. Outputs:
+[`stage1-programme-ultra-max-fill-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-ultra-max-fill-results.csv),
+[`stage1-programme-admission-packages.jsonl`](architecture/data/external-field-stage1-20260915/stage1-programme-admission-packages.jsonl),
+and [`stage1-drive-run-stage1-coverage-20260922T135149Z-drive-manifest.json`](architecture/data/external-field-stage1-20260915/stage1-drive-run-stage1-coverage-20260922T135149Z-drive-manifest.json).
+
+Schema compatibility check against the legacy Drive export found 400 historical
+`crawl_admission_packages` rows and 1,600 `crawl_admission_requirements` rows,
+which are a different population from the current 230 programmes. The current
+ultra CSV has all four package component columns, and its JSONL requirement
+objects carry the old 13 requirement semantics plus provenance fields, but the
+JSONL is not a drop-in replacement for the old web tables. Package-level
+`run_id`, `official_url`, `retrieved_at`, `precheck` and `payload` are absent;
+the normalized web projection also needs `display_mode`,
+`use_for_eligibility`, `source_run_id`, `source_programme_id`,
+`source_retrieved_at`, `updated_at` and `course_id`. The `sop_or_essay` CSV
+name must map to the canonical/legacy `sop_essay_requirements` name. These
+columns can be projected offline from the run manifest, population manifest and
+evidence; no recrawl or LLM is required.
+
+The compatibility projection was generated offline and archived under
+`stage1-package-compat-fix-20260922T143314Z-drive`. Drive/Mongo now contain
+`stage1-admission-packages-compat.csv` (8 legacy package columns),
+`stage1-admission-requirements-compat.csv` (13 legacy requirement columns),
+and `stage1-course-admission-requirements-compat.csv` (18 normalized web
+projection columns). The archive manifest lists 73 derived artifacts and all
+73 mounted readbacks are `VERIFIED`; it made 0 network calls, 0 LLM calls and
+0 Supabase writes. `course_id` remains empty until a trusted mapping to the
+web catalogue's generated course IDs exists; `source_programme_id` is retained
+for that join.
+
+Working tree 2026-09-22 Stage 1 Drive/Mongo fresh acquisition and ultra advisory
+run completed: `stage1-coverage-20260922T055104Z-drive` replayed the frozen 230
+verified programmes with 199 network calls and 6 local-cache hits. 197 non-empty
+responses (50,154,013 bytes) were persisted as Mongo `source_snapshots` plus
+content-addressed Drive objects; the provider breakdown was Discover Uni 66,
+DUO RIO 56, official university pages 59, Onisep 1, Studyinfo 9, and
+Susa-navet 6. The acquisition added 0 new assertions; it made 0 LLM calls and
+did not use Supabase. Twenty-three derived outputs plus the run manifest were
+archived in Drive and indexed in Mongo; Drive readback verified 24/24 artifact
+hashes and cloud sync remains `UNKNOWN` by design. The fresh crawl did not
+reduce admission-package `UNKNOWN` counts.
+
+The follow-up targeted-admission parser now supports deterministic HTML/PDF
+document extraction with programme-identity gating. Its full run
+`stage1-coverage-20260922T073256Z-drive` stopped before acquisition could be
+persisted because Mongo Atlas rejected the TLS handshake (`ReplicaSetNoPrimary`);
+no derived outputs, LLM calls or Supabase writes were produced by that failed
+attempt. The last successful result remains the run above until Mongo network
+access is restored.
+
+Retry `stage1-coverage-20260922T075900Z-drive` hit the same Mongo Atlas TLS
+handshake failure during raw index setup and also produced no derived output.
+
+An explicit retry with the worktree dotenv (`stage1-coverage-20260922T081301Z-drive`)
+also failed before persistence: that file points to the Atlas SQL-interface
+host rather than a MongoDB database-deployment driver endpoint. The runner
+therefore has no currently reachable Mongo endpoint to use.
+
+The Drive runner now selects dotenv files automatically, preferring a
+non-`atlas-sql` MongoDB driver URI and ignoring the SQL-interface endpoint.
+Run `stage1-coverage-20260922T083322Z-drive` confirmed the selector chose the
+standard `cluster0` environment, but Atlas still rejected the TLS handshake
+during raw index setup; no derived output was produced.
+
+The preceding controlled run `stage1-coverage-20260922T041448Z-drive` replayed the frozen 230
+verified programmes with 199 network calls and 6 local-cache hits. 197 non-empty
+responses (50,306,419 bytes) were persisted as Mongo `source_snapshots` plus
+content-addressed Drive objects; the provider breakdown was Discover Uni 66,
+DUO RIO 56, official university pages 59, Onisep 1, Studyinfo 9, and
+Susa-navet 6. The deterministic acquisition added 2 assertions; it made 0 LLM
+calls and did not use Supabase. The raw run has 197 Mongo snapshots and all 24
+derived-artifact lineage records (23 touched outputs plus the run manifest) in
+Mongo collection `stage1_derived_artifacts`. Independent Drive readback verified
+24/24 artifact hashes; cloud sync remains `UNKNOWN` by design.
+
+The no-network `expand_stage1_max_fill.py` step selected 1,250 persisted
+evidence facts and improved 113 programmes. The repaired ultra export has 230
+rows and 9,204/9,660 populated canonical cells because it applies deterministic
+advisory defaults/donors while leaving the two document components blank when
+no evidence exists. The strict, MAX_FILL and ultra schemas now carry
+`graduation_certificate` and `academic_transcript`; the companion
+`stage1-programme-admission-packages.jsonl` has one structured package row per
+programme. Direct package status is `COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`:
+the two Edinburgh rows have direct reference and personal-statement evidence;
+all certificate/transcript values are absent or advisory, and Manchester
+reference evidence remains advisory pending identity binding. The four
+certificate values retained from Studyinfo are marked `NEEDS_REVIEW` or donor
+advice, never verified package evidence. This is still an advisory fill result,
+not a verified admission export.
+
+The schema/parser repair was replayed offline on 2026-09-22: no new crawl, no
+LLM call, and no Supabase write. The strict, MAX_FILL, ultra CSVs and the
+structured package JSONL were archived in Drive and indexed in Mongo under run
+`stage1-package-schema-fix-20260922T050353Z-drive`; Drive readback was verified
+for the 41 derived artifacts and cloud sync remains `UNKNOWN`.
+
+Verification after the repair: the data-ingestion suite passed 550/550 with
+the current worktree on an explicit `PYTHONPATH`; Stage1 document-parser smoke,
+Python compilation and `git diff --check` also passed.
+
+Working tree 2026-09-22 Drive-only structured staging: when
+`DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop`, structured archive-member
+rows and their metadata now persist as CSV + immutable JSON manifests on Drive,
+with atomic per-run indexes for fresh-reader recovery. The factory does not
+construct a Supabase client, with or without Supabase credentials; auto mode no
+longer depends on Supabase configuration. Direct/injected Supabase staging is
+rejected in Drive mode. Raw Mongo storage is unchanged. This supersedes the
+structured-staging gap in the 2026-09-21 audit, not its other retention gaps.
+Measured before the controlled Stage 1 execution: 53 focused artifact/streaming
+tests and all 748 ingestion tests pass; `git diff --check` passes. Tests used
+temporary local archives and explicit worktree `PYTHONPATH` (the installed
+editable package points to another worktree). That implementation checkpoint
+did not execute a crawl, ultra fill, LLM call, live archive write, database
+write, or historical-data migration. Details:
+[`data-platform-artifacts.md`](data-platform-artifacts.md).
+
+Read-only audit snapshot 2026-09-21, admission collection and Drive/Mongo
+retention:
+all 107 original Stage 1 raw hashes remain readable and SHA-256 verified
+(71 Mongo inline, 36 Drive); a blanket recrawl is unnecessary. 65 Mongo blob
+locators still reference legacy storage despite verified Drive copies. Later
+local captures contain 103 unique hashes absent from both raw stores: 61 can
+be reconstructed exactly, while 43 truncated entries / 42 hashes need another
+full copy or targeted recapture for complete raw retention. There are also 25
+failed candidate URLs (9 404, 9 403, 7 status 0). The original package artifact
+covers 175/230 current target IDs and needs regeneration. Existing Drive
+relational backups are a different population (400 packages, no exact ID/URL
+matches). At that snapshot collection still depended on Supabase structured
+staging and local derived reports; the 2026-09-22 controlled run now has its
+own Drive/Mongo lineage. No LLM or blanket migration was performed. Details
+and rerun order:
+[`admission-storage-audit-20260921.md`](architecture/admission-storage-audit-20260921.md).
+
 Working tree 2026-09-19 Data Platform artifact-backend hardening: every
 runtime path that can create heavy Data Platform evidence now requires an
 explicit `DATA_PLATFORM_ARTIFACT_BACKEND`; unset, blank, and `None` fail

@@ -1,14 +1,17 @@
 """Durable staging boundary for bounded structured external rows.
 
 The crawler keeps the immutable raw object in the raw-evidence store.  This
-module provides the additive Postgres staging writer used for bounded derived
-rows (for example, selected College Scorecard CSV records) without coupling
-the parser to Supabase's REST details.
+module archives bounded derived rows and their staging manifests on Drive.
+The Postgres adapter is retained only for explicitly selected legacy backends.
 """
 
 from __future__ import annotations
 
 import os
+import hashlib
+import json
+import tempfile
+from pathlib import Path
 from typing import Any, Iterable, Mapping, Protocol, Sequence, runtime_checkable
 
 from .artifact_store import (
@@ -45,19 +48,15 @@ class InMemoryStructuredStagingStore:
         return len(batch)
 
 
-class SupabaseStructuredStagingStore:
-    """Additive writer for ``crawl_external_structured_rows``."""
+class _StructuredStagingWriter:
+    """Shared serialization for active Drive and explicit legacy staging."""
 
     def __init__(
         self,
-        client: Any,
         *,
-        table: str = "crawl_external_structured_rows",
         batch_size: int = 100,
         artifact_store: ArtifactStore | None = None,
     ) -> None:
-        if not table:
-            raise ValueError("Structured staging table is required.")
         if batch_size < 1 or batch_size > 500:
             raise ValueError("Structured staging batch size must be between 1 and 500.")
         self.artifact_backend = require_configured_artifact_backend(
@@ -68,8 +67,6 @@ class SupabaseStructuredStagingStore:
                 artifact_store,
                 context="Drive-selected structured staging",
             )
-        self.client = client
-        self.table = table
         self.batch_size = batch_size
         self.artifact_store = artifact_store
 
@@ -162,6 +159,101 @@ class SupabaseStructuredStagingStore:
         }
 
     def _insert(self, rows: list[dict[str, Any]]) -> None:
+        raise NotImplementedError
+
+
+class DriveStructuredStagingStore(_StructuredStagingWriter):
+    """CSV bodies + immutable JSON manifests, with a rebuildable Drive index.
+
+    No database client is constructed. Indexes contain only portable artifact
+    references; a fresh reader can recover every staged record from Drive.
+    """
+
+    def __init__(self, *, artifact_store: ArtifactStore, batch_size: int = 100) -> None:
+        super().__init__(artifact_store=artifact_store, batch_size=batch_size)
+        if self.artifact_backend != GOOGLE_DRIVE_DESKTOP_BACKEND:
+            raise ValueError("Drive staging requires google_drive_desktop.")
+        require_verified_google_drive_store(artifact_store, context="Drive staging")
+
+    def _insert(self, rows: list[dict[str, Any]]) -> None:
+        # One immutable manifest per observation: retries deduplicate; changed
+        # observations retain history rather than overwriting a prior record.
+        for row in rows:
+            payload = json.dumps(
+                {"schema_version": "structured-staging-manifest/v1", "record": row},
+                ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+            try:
+                reference = self.artifact_store.put_immutable(
+                    payload, content_hash=hashlib.sha256(payload).hexdigest(),
+                    content_type="application/json",
+                )
+                self._index_manifest(row.get("run_id"), reference)
+            except (ObjectStoreError, OSError) as exc:
+                raise StructuredStagingError("Drive structured staging manifest persistence failed.") from exc
+
+    def _index_manifest(self, run_id: Any, reference: Any) -> None:
+        # Hash the run identity; source-provided IDs never become path segments.
+        run_key = hashlib.sha256(str(run_id or "").encode("utf-8")).hexdigest()
+        directory = Path(self.artifact_store.archive_root) / "structured-staging" / run_key
+        root = Path(self.artifact_store.archive_root).resolve()
+        if not directory.resolve().is_relative_to(root):
+            raise StructuredStagingError("Staging index escapes archive root.")
+        directory.mkdir(parents=True, exist_ok=True)
+        index = json.dumps({
+            "logical_locator": reference.key, "sha256": reference.content_hash,
+            "size_bytes": reference.content_length,
+        }, sort_keys=True).encode("utf-8")
+        destination = directory / (reference.content_hash + ".json")
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(index)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, destination)
+            if destination.read_bytes() != index:
+                raise StructuredStagingError("Staging index readback mismatch.")
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+    def iter_records(self, run_id: str) -> Iterable[dict[str, Any]]:
+        """Read retained observations with manifest hash/size verification."""
+        from .object_store import ObjectReference
+
+        run_key = hashlib.sha256(str(run_id or "").encode("utf-8")).hexdigest()
+        directory = Path(self.artifact_store.archive_root) / "structured-staging" / run_key
+        for path in sorted(directory.glob("*.json")):
+            index = json.loads(path.read_text(encoding="utf-8"))
+            reference = ObjectReference(
+                key=index["logical_locator"], content_hash=index["sha256"],
+                content_length=index["size_bytes"], content_type="application/json",
+            )
+            manifest = json.loads(self.artifact_store.get(reference))
+            if manifest.get("schema_version") != "structured-staging-manifest/v1":
+                raise StructuredStagingError("Unsupported staging manifest schema.")
+            if str(manifest["record"].get("run_id") or "") != str(run_id or ""):
+                raise StructuredStagingError("Staging manifest run mismatch.")
+            yield manifest["record"]
+
+
+class SupabaseStructuredStagingStore(_StructuredStagingWriter):
+    """Explicit legacy-only writer for ``crawl_external_structured_rows``."""
+
+    def __init__(self, client: Any, *, table: str = "crawl_external_structured_rows",
+                 batch_size: int = 100, artifact_store: ArtifactStore | None = None) -> None:
+        if require_configured_artifact_backend(context="Structured staging") == GOOGLE_DRIVE_DESKTOP_BACKEND:
+            raise ValueError("Drive-selected staging cannot write to Supabase.")
+        if not table:
+            raise ValueError("Structured staging table is required.")
+        super().__init__(artifact_store=artifact_store, batch_size=batch_size)
+        self.client = client
+        self.table = table
+
+    def _insert(self, rows: list[dict[str, Any]]) -> None:
         try:
             self.client.insert(
                 self.table,
@@ -179,16 +271,16 @@ def validate_injected_structured_staging_store(
     *,
     shared_artifact_store: ArtifactStore | None,
 ) -> None:
-    """Reject injected staging sinks that can retain full rows in Postgres.
+    """Reject injected staging sinks that can write to Postgres.
 
-    The known Supabase writer is the only implementation that turns row
+    The known Drive writer is the only implementation that turns row
     payloads into bounded CSV artifacts.  A caller-supplied protocol object
     cannot be trusted to honor that contract, so Drive-selected pipelines
     accept only the exact writer class with a preflighted Drive store.  When a
     raw evidence store already owns the archive, identity is also required so
     both paths share deduplication and the run budget.
     """
-    if type(store) is not SupabaseStructuredStagingStore:
+    if type(store) is not DriveStructuredStagingStore:
         raise ValueError(
             "DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop "
             "cannot use an injected non-Drive structured staging store."
@@ -206,12 +298,7 @@ def validate_injected_structured_staging_store(
 def create_structured_staging_store(
     *, artifact_store: ArtifactStore | None = None
 ) -> StructuredStagingStore | None:
-    """Build the production writer when Supabase is configured.
-
-    Existing local runs remain unchanged when Supabase is absent (or when
-    ``EXTERNAL_STRUCTURED_STAGING_ENABLED=0``). Remote runs automatically use
-    the writer when credentials are present; tests inject a deterministic sink.
-    """
+    """Select Drive independently of Supabase credentials; legacy is explicit."""
     enabled = os.environ.get("EXTERNAL_STRUCTURED_STAGING_ENABLED", "auto").strip().lower()
     if enabled in {"0", "false", "no", "off"}:
         return None
@@ -219,15 +306,13 @@ def create_structured_staging_store(
         raise StructuredStagingError(
             "EXTERNAL_STRUCTURED_STAGING_ENABLED must be true, false, or auto."
         )
-    if enabled == "auto" and not (
+    drive_selected = os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip() == GOOGLE_DRIVE_DESKTOP_BACKEND
+    if enabled == "auto" and not drive_selected and not (
         os.environ.get("SUPABASE_URL", "").strip()
         or os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "").strip()
     ):
         return None
     try:
-        from .supabase_import import SupabaseRestClient
-        from .supabase_seeds import _credentials
-
         backend = require_configured_artifact_backend(context="Structured staging")
         if backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
             if artifact_store is None:
@@ -246,6 +331,10 @@ def create_structured_staging_store(
                     archive_root,
                     max_run_bytes=budget,
                 )
+            return DriveStructuredStagingStore(artifact_store=artifact_store)
+        from .supabase_import import SupabaseRestClient
+        from .supabase_seeds import _credentials
+
         base_url, api_key = _credentials(os.environ)
         return SupabaseStructuredStagingStore(
             SupabaseRestClient(base_url, api_key),
@@ -257,5 +346,5 @@ def create_structured_staging_store(
         raise
     except Exception as exc:
         raise StructuredStagingError(
-            "Structured staging was enabled but Supabase configuration is invalid."
+            "Structured staging configuration or archive access is invalid."
         ) from exc

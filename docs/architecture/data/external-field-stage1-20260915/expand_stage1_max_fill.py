@@ -53,8 +53,6 @@ FIELD_ALIASES = {
     "standardized_tests": "standardized_test_requirements",
     "sop_essay_requirements": "sop_or_essay",
     "scholarships": "scholarship",
-    "academic_transcript": "required_documents",
-    "graduation_certificate": "required_documents",
 }
 RAW_CANONICAL = frozenset(FIELD_ALIASES.get(field, field) for field in CANONICAL_FIELDS)
 
@@ -108,6 +106,114 @@ def valid_documents_value(value: Any) -> bool:
     if re.search(r"<\s*/?(?:p|div|script|style)\b|(?:metadata|koulutustyyppi|isMuokkaaja|kuvaus)\s*[:=]", rendered, re.I):
         return False
     return True
+
+
+DOCUMENT_FIELDS = frozenset({"graduation_certificate", "academic_transcript"})
+DOCUMENT_TYPE_ALIASES = {
+    "graduation_certificate": "graduation_certificate",
+    "degree_certificate": "graduation_certificate",
+    "degree_certificates": "graduation_certificate",
+    "certificate": "graduation_certificate",
+    "certificates": "graduation_certificate",
+    "diploma": "graduation_certificate",
+    "diplomas": "graduation_certificate",
+    "proof_of_degree": "graduation_certificate",
+    "proof_of_graduation": "graduation_certificate",
+    "academic_transcript": "academic_transcript",
+    "transcript": "academic_transcript",
+    "transcripts": "academic_transcript",
+    "academic_record": "academic_transcript",
+    "academic_records": "academic_transcript",
+    "mark_sheet": "academic_transcript",
+    "marksheet": "academic_transcript",
+}
+
+
+def document_field_from_text(value: Any) -> str:
+    """Classify only explicit certificate/transcript language.
+
+    This is intentionally narrower than a generic ``required_documents``
+    parser.  A phrase such as ``academic qualifications`` is not enough to
+    prove either component of the admission package.
+    """
+
+    rendered = norm(value)
+    if not rendered:
+        return ""
+    if re.search(
+        r"\b(?:academic\s+)?transcripts?|academic\s+records?|mark\s*[- ]?sheets?\b",
+        rendered,
+        re.I,
+    ):
+        return "academic_transcript"
+    if re.search(
+        r"\b(?:graduation|degree|educational|school[- ]leaving)\s+certificates?\b"
+        r"|\b(?:degree|graduation)\s+diplomas?\b"
+        r"|\bproof\s+of\s+(?:degree|graduation)\b"
+        r"|\bdiplomas?\b",
+        rendered,
+        re.I,
+    ):
+        return "graduation_certificate"
+    return ""
+
+
+def document_component_values(value: Any) -> list[tuple[str, Any]]:
+    """Return explicit document components nested in a requirement value."""
+
+    components: list[tuple[str, Any]] = []
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            components.extend(document_component_values(item))
+        return components
+    if isinstance(value, Mapping):
+        raw_type = norm(
+            value.get("document_type")
+            or value.get("documentType")
+            or value.get("type")
+            or value.get("requirement_type")
+        ).casefold().replace("-", "_").replace(" ", "_")
+        field = DOCUMENT_TYPE_ALIASES.get(raw_type)
+        if field:
+            return [(field, value)]
+        for key in ("details", "label", "name", "title", "description", "text"):
+            field = document_field_from_text(value.get(key))
+            if field:
+                return [
+                    (
+                        field,
+                        {
+                            "document_type": field,
+                            "requirement_status": "required",
+                            "details": norm(value.get(key)),
+                        },
+                    )
+                ]
+        return []
+    field = document_field_from_text(value)
+    if not field:
+        return []
+    return [
+        (
+            field,
+            {
+                "document_type": field,
+                "requirement_status": "required",
+                "details": norm(value),
+            },
+        )
+    ]
+
+
+def expanded_document_rows(row: Mapping[str, Any], field: str) -> list[tuple[str, Any, Mapping[str, Any]]]:
+    """Keep the original assertion and expose explicit package components."""
+
+    value = row.get("value_json")
+    result: list[tuple[str, Any, Mapping[str, Any]]] = [(field, value, row)]
+    if field != "required_documents":
+        return result
+    result.extend((component, component_value, row) for component, component_value in document_component_values(value))
+    return result
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -614,7 +720,8 @@ def parse_page_facts(
             name
             for name, pattern in (
                 ("CV", r"\bCV\b|curriculum vitae"),
-                ("Transcript", r"transcript"),
+                ("Transcript", r"\b(?:academic\s+)?transcripts?\b|academic records?|mark\s*[- ]?sheets?"),
+                ("Graduation certificate", r"\b(?:graduation|degree|educational|school[- ]leaving)\s+certificates?\b|\b(?:degree|graduation)\s+diplomas?\b|\bproof\s+of\s+(?:degree|graduation)\b"),
                 ("Personal statement", r"personal statement|statement of purpose|motivation letter|essay"),
                 ("Reference", r"reference|recommendation"),
                 ("English language evidence", r"English language|IELTS|TOEFL"),
@@ -624,6 +731,28 @@ def parse_page_facts(
         ]
         if labels:
             add("required_documents", labels, segment, uncertainty="MEDIUM")
+            if "Graduation certificate" in labels:
+                add(
+                    "graduation_certificate",
+                    {
+                        "document_type": "graduation_certificate",
+                        "requirement_status": "required",
+                        "details": segment,
+                    },
+                    segment,
+                    uncertainty="MEDIUM",
+                )
+            if "Transcript" in labels:
+                add(
+                    "academic_transcript",
+                    {
+                        "document_type": "academic_transcript",
+                        "requirement_status": "required",
+                        "details": segment,
+                    },
+                    segment,
+                    uncertainty="MEDIUM",
+                )
             if "Personal statement" in labels:
                 add("sop_or_essay", "Personal statement", segment, uncertainty="MEDIUM")
             if "Reference" in labels:
@@ -765,25 +894,29 @@ def raw_review_facts(
         pid = str(row.get("entity_id") or "")
         if pid not in target_rows or row.get("verification_status") != "NEEDS_REVIEW":
             continue
-        field = FIELD_ALIASES.get(str(row.get("field_name") or ""), str(row.get("field_name") or ""))
-        if field not in RAW_CANONICAL:
-            continue
-        value = row.get("value_json")
-        # The prior degree values are qualification labels from catalogues, not
-        # explicit prerequisites.  Retain only a deterministic degree phrase.
-        if field == "minimum_degree" and not re.search(r"bachelor|undergraduate degree", norm(value), re.I):
-            continue
-        if field == "additional_fees" and not has_value(value):
-            continue
-        if field == "required_documents" and not valid_documents_value(value):
-            continue
-        if field == "subject_prerequisites":
-            rendered = norm(value)
-            if re.search(r"english_language_tests|IELTS_academic|TOEFL_iBT|PTE_academic|C1_Advanced|C2_Proficiency", rendered, re.I) and not re.search(r"prerequisite|mathematics|mathematics|secondary|baccalaureate|diploma", rendered, re.I):
+        raw_field = str(row.get("field_name") or "")
+        field = FIELD_ALIASES.get(raw_field, raw_field)
+        for component_field, value, source_row in expanded_document_rows(row, field):
+            if component_field not in RAW_CANONICAL:
                 continue
-        if field in {"programme_status", "academic_cycle"}:
-            continue
-        grouped[(pid, field)].append(row)
+            # The prior degree values are qualification labels from catalogues, not
+            # explicit prerequisites.  Retain only a deterministic degree phrase.
+            if component_field == "minimum_degree" and not re.search(r"bachelor|undergraduate degree", norm(value), re.I):
+                continue
+            if component_field == "additional_fees" and not has_value(value):
+                continue
+            if component_field in {"required_documents", *DOCUMENT_FIELDS} and not valid_documents_value(value):
+                continue
+            if component_field == "subject_prerequisites":
+                rendered = norm(value)
+                if re.search(r"english_language_tests|IELTS_academic|TOEFL_iBT|PTE_academic|C1_Advanced|C2_Proficiency", rendered, re.I) and not re.search(r"prerequisite|mathematics|mathematics|secondary|baccalaureate|diploma", rendered, re.I):
+                    continue
+            if component_field in {"programme_status", "academic_cycle"}:
+                continue
+            candidate = dict(source_row)
+            candidate["field_name"] = component_field
+            candidate["value_json"] = value
+            grouped[(pid, component_field)].append(candidate)
 
     facts: list[Fact] = []
     for (pid, field), candidates in sorted(grouped.items()):
@@ -1089,6 +1222,8 @@ REUSABLE_SIBLING_FIELDS = frozenset(
         "standardized_test_requirements",
         "application_fee",
         "required_documents",
+        "graduation_certificate",
+        "academic_transcript",
         "recommendation_letters",
         "sop_or_essay",
         "scholarship",
@@ -1135,6 +1270,8 @@ POLICY_FANOUT_FIELDS = frozenset(
         "additional_fees",
         "mandatory_fees",
         "required_documents",
+        "graduation_certificate",
+        "academic_transcript",
         "recommendation_letters",
         "sop_or_essay",
         "scholarship",
@@ -1215,39 +1352,43 @@ def persisted_donor_facts(
             continue
         if assertion_id:
             seen.add(assertion_id)
-        field = FIELD_ALIASES.get(str(row.get("field_name") or ""), str(row.get("field_name") or ""))
+        raw_field = str(row.get("field_name") or "")
+        field = FIELD_ALIASES.get(raw_field, raw_field)
         status = str(row.get("verification_status") or "")
         if status != "RULE_VALIDATED" and not (status == "NEEDS_REVIEW" and field in REVIEW_DONOR_FIELDS):
-            continue
-        if field not in RAW_CANONICAL or not has_value(row.get("value_json")):
-            continue
-        if field in {"tuition", "additional_fees"}:
-            value = row.get("value_json")
-            if not isinstance(value, dict) or parse_number(value.get("amount")) is None or not norm(value.get("currency")):
-                continue
-        if field == "required_documents" and not valid_documents_value(row.get("value_json")):
             continue
         donor_id = str(row.get("entity_id") or "")
         donor = programme_rows.get(donor_id)
         if donor is None or str(donor.get("institution_id") or "") not in {str(target.get("institution_id") or "") for target in target_rows.values()}:
             continue
-        scope = str(row.get("scope") or "programme")
-        if scope not in {"programme", "institution", "department", "parent"}:
-            continue
         donor_institution = str(donor.get("institution_id") or "")
-        for target_id, target in target_rows.items():
-            if target_id == donor_id or donor_institution != str(target.get("institution_id") or ""):
+        for component_field, value, source_row in expanded_document_rows(row, field):
+            if component_field not in RAW_CANONICAL or not has_value(value):
                 continue
-            target_degree = folded(target.get("degree_level"))
-            donor_degree = folded(donor.get("degree_level"))
-            target_field = folded(target.get("normalized_field") or target.get("discipline"))
-            donor_field = folded(donor.get("normalized_field") or donor.get("discipline"))
-            if field not in REUSABLE_SIBLING_FIELDS and target_degree and donor_degree and target_degree != donor_degree:
+            if component_field in {"tuition", "additional_fees"}:
+                if not isinstance(value, dict) or parse_number(value.get("amount")) is None or not norm(value.get("currency")):
+                    continue
+            if component_field in {"required_documents", *DOCUMENT_FIELDS} and not valid_documents_value(value):
                 continue
-            if field not in REUSABLE_SIBLING_FIELDS and field not in CAUTIOUS_SIBLING_FIELDS and target_field and donor_field and target_field != donor_field:
+            scope = str(source_row.get("scope") or "programme")
+            if scope not in {"programme", "institution", "department", "parent"}:
                 continue
-            level = "H1" if scope in {"department", "parent"} else "H2" if scope == "institution" else "H3"
-            grouped[(target_id, field, level)].append({"row": row, "donor": donor})
+            component_row = dict(source_row)
+            component_row["field_name"] = component_field
+            component_row["value_json"] = value
+            for target_id, target in target_rows.items():
+                if target_id == donor_id or donor_institution != str(target.get("institution_id") or ""):
+                    continue
+                target_degree = folded(target.get("degree_level"))
+                donor_degree = folded(donor.get("degree_level"))
+                target_field = folded(target.get("normalized_field") or target.get("discipline"))
+                donor_field = folded(donor.get("normalized_field") or donor.get("discipline"))
+                if component_field not in REUSABLE_SIBLING_FIELDS and target_degree and donor_degree and target_degree != donor_degree:
+                    continue
+                if component_field not in REUSABLE_SIBLING_FIELDS and component_field not in CAUTIOUS_SIBLING_FIELDS and target_field and donor_field and target_field != donor_field:
+                    continue
+                level = "H1" if scope in {"department", "parent"} else "H2" if scope == "institution" else "H3"
+                grouped[(target_id, component_field, level)].append({"row": component_row, "donor": donor})
 
     facts: list[Fact] = []
     for (target_id, field, level), candidates in sorted(grouped.items()):
@@ -1340,9 +1481,26 @@ def overlay(
             strict_value = strict_by_key.get(key, {}).get(field, "")
             old_value = row.get(field, "")
             fact = selected.get(key)
-            # Existing strict values remain authoritative.  An H0 page fact
-            # may replace a hierarchy-only advisory value, preserving H0 wins.
-            use_fact = bool(fact and (not old_value or (LEVEL_RANK.get(fact.level, 9) < LEVEL_RANK.get(str(base_audit.get(key, {}).get("resolution_level") or "H9"), 9) and not strict_value)))
+            # An explicitly parsed H0 page fact is safer than a stale strict
+            # export cell that was previously marked ABSTAINED.  Review-only
+            # assertions still cannot overwrite an existing strict value.
+            explicit_direct = bool(
+                fact
+                and fact.level == "H0"
+                and fact.original_status in {"PAGE_DETERMINISTIC", "RULE_VALIDATED", "HUMAN_VERIFIED", "DIRECT_ACCEPTED"}
+            )
+            use_fact = bool(
+                fact
+                and (
+                    not old_value
+                    or explicit_direct
+                    or (
+                        LEVEL_RANK.get(fact.level, 9)
+                        < LEVEL_RANK.get(str(base_audit.get(key, {}).get("resolution_level") or "H9"), 9)
+                        and not strict_value
+                    )
+                )
+            )
             if use_fact:
                 row[field] = serialise_csv(fact.value)
                 new_by_level[fact.level] += 1

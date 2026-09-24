@@ -10,60 +10,71 @@
     },
     "official_pages_processed": 105,
     "paid_llm_calls": 0,
-    "persisted_evidence_facts_selected": 1250,
+    "persisted_evidence_facts_selected": 1254,
     "source_audit_path": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform\\docs\\architecture\\data\\external-field-stage1-20260915\\stage1-programme-max-fill-sources.csv"
   },
   "max_fill": {
     "applied_hierarchy_levels": {
       "H1": 1,
       "H2": 7,
-      "H3": 127
+      "H3": 94
     },
     "completeness_quantiles": {
-      "median": 15.79,
-      "p25": 13.16,
-      "p75": 21.05
+      "median": 15.0,
+      "p25": 12.5,
+      "p75": 20.0
     },
-    "csv_core_denominator": 40,
-    "facts_considered": 1641,
-    "filled_cells": 1532,
-    "filled_csv_core_cells": 1534,
-    "hierarchy_field_denominator": 38,
+    "csv_core_denominator": 42,
+    "facts_considered": 1645,
+    "filled_cells": 1550,
+    "filled_csv_core_cells": 1552,
+    "hierarchy_field_denominator": 40,
     "new_values_by_field": {
       "H0:academic_cycle": 12,
-      "H0:career_outcomes": 8,
-      "H0:credential": 58,
-      "H0:duration": 1,
+      "H0:career_outcomes": 9,
+      "H0:credential": 103,
+      "H0:delivery_mode": 14,
+      "H0:duration": 11,
       "H0:employment_outcomes": 23,
+      "H0:final_deadline": 9,
       "H0:funding": 25,
       "H0:funding_amount": 2,
       "H0:funding_eligibility": 13,
-      "H0:ielts_overall": 2,
+      "H0:graduation_certificate": 2,
+      "H0:ielts_overall": 13,
+      "H0:ielts_subscores": 4,
+      "H0:intakes": 16,
       "H0:international_deadline": 2,
-      "H0:location": 4,
-      "H0:programme_identity": 51,
-      "H0:programme_language": 5,
-      "H0:scholarship": 4,
+      "H0:location": 54,
+      "H0:portfolio": 2,
+      "H0:programme_identity": 66,
+      "H0:programme_language": 9,
+      "H0:recommendation_letters": 2,
+      "H0:required_documents": 2,
+      "H0:scholarship": 20,
       "H0:scholarship_amount": 2,
+      "H0:sop_or_essay": 2,
       "H0:standardized_test_requirements": 5,
-      "H0:subject_prerequisites": 1,
+      "H0:subject_prerequisites": 9,
       "H0:toefl": 2,
-      "H0:tuition": 5,
+      "H0:tuition": 22,
+      "H0:work_experience": 3,
       "H1:career_outcomes": 1,
       "H2:funding": 3,
       "H2:funding_eligibility": 3,
       "H2:programme_language": 1,
       "H3:career_outcomes": 9,
       "H3:employment_outcomes": 6,
+      "H3:graduation_certificate": 2,
       "H3:intakes": 1,
       "H3:scholarship": 2,
       "H3:subject_prerequisites": 1
     },
     "new_values_by_level": {
-      "H0": 225,
+      "H0": 458,
       "H1": 1,
       "H2": 7,
-      "H3": 19
+      "H3": 21
     },
     "programmes_improved": 113
   },
@@ -75,13 +86,13 @@
   "rows": 230,
   "strict": {
     "completeness_quantiles": {
-      "median": 15.79,
-      "p25": 13.16,
-      "p75": 15.79
+      "median": 15.0,
+      "p25": 12.5,
+      "p75": 15.0
     },
-    "csv_core_denominator": 40,
-    "filled_cells": 1282,
-    "filled_csv_core_cells": 1282,
-    "hierarchy_field_denominator": 38
+    "csv_core_denominator": 42,
+    "filled_cells": 1296,
+    "filled_csv_core_cells": 1296,
+    "hierarchy_field_denominator": 40
   }
 }

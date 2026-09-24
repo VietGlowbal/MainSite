@@ -48,6 +48,8 @@ FIELDS = (
     "minimum_degree",
     "subject_prerequisites",
     "required_documents",
+    "graduation_certificate",
+    "academic_transcript",
     "standardized_tests",
     "work_experience",
     "ielts_overall",
