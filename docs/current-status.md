@@ -71,6 +71,22 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-24 (Scholarship Personalization T3): added the pure,
+versioned canonical scholarship matching context and a request-scoped server
+loader. The context carries profile preferences, academic evidence, saved
+universities, selected application/programme/university facts, programme
+tuition and duration, normalized scholarship benefits, and source provenance.
+Selection precedence is explicit programme → application programme and explicit
+university → selected programme/application university; missing signals remain
+null with read status/diagnostics. The loader uses injected repository ports and
+fixed batch reads for programmes, universities, and scholarships, does not use
+the public catalogue cache, and derives a user-scoped cache key containing the
+context version, user id, profile version, selectors, and candidate ids. No
+eligibility, fit, ranking, recommendation, UI, migration, or data acquisition
+work was added. T3 focused tests passed (2 files, 7 tests); strict compilation
+of the pure T3 domain passed. Repository-local dependencies remain unavailable
+in this checkout.
+
 Working tree 2026-09-24 (Scholarship Personalization T2B): corrected the T1
 unknown-currency test assertion only; the normalizer already preserved `RMB`
 as `currencyStatus: 'unknown'`, and the old assertion incorrectly rejected the

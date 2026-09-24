@@ -47,6 +47,11 @@ export {
   parseFxReferenceDataset,
 } from './domain/fx-reference';
 export {
+  buildScholarshipMatchingContext,
+  scholarshipMatchingContextCacheKey,
+  SCHOLARSHIP_MATCHING_CONTEXT_VERSION,
+} from './domain/matching-context';
+export {
   BENEFIT_PERIODS,
   BENEFIT_TYPES,
 } from './domain/benefit-types';
@@ -117,3 +122,30 @@ export type {
   FxReferenceDiagnosticCode,
   FxReferenceProvider,
 } from './domain/fx-reference';
+export type {
+  AcademicAchievementSource,
+  AcademicActivitySource,
+  EnglishTestSource,
+  MatchingAcademicEvidence,
+  MatchingApplicationContext,
+  MatchingApplicationSource,
+  MatchingContextDiagnostic,
+  MatchingContextRequest,
+  MatchingContextSources,
+  MatchingProgrammeContext,
+  MatchingProgrammeSource,
+  MatchingProfileSource,
+  MatchingProvenance,
+  MatchingRead,
+  MatchingReadStatus,
+  MatchingSavedUniversityContext,
+  MatchingScholarshipContext,
+  MatchingScholarshipSource,
+  MatchingSourceKind,
+  MatchingStudentContext,
+  MatchingUniversityContext,
+  MatchingUniversitySource,
+  ScholarshipMatchingContext,
+  SavedUniversitySource,
+  StandardizedTestSource,
+} from './domain/matching-context';

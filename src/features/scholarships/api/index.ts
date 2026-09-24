@@ -29,6 +29,10 @@ export {
   getFileFxReferenceProvider,
 } from './file-reference-providers';
 export {
+  createSupabaseScholarshipMatchingContextRepository,
+  loadScholarshipMatchingContext,
+} from './matching-context-loader';
+export {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
 } from './scholarship-queries';
@@ -43,3 +47,4 @@ export type {
   ScholarshipQueries,
   ScholarshipUniversityLite,
 } from './scholarship-queries';
+export type { ScholarshipMatchingContextRepository } from './matching-context-loader';

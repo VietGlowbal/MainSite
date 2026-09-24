@@ -15,6 +15,11 @@ export {
   parseCostReferenceDataset,
 } from './cost-reference';
 export { createFxReferenceProvider, parseFxReferenceDataset } from './fx-reference';
+export {
+  buildScholarshipMatchingContext,
+  scholarshipMatchingContextCacheKey,
+  SCHOLARSHIP_MATCHING_CONTEXT_VERSION,
+} from './matching-context';
 export { BENEFIT_PERIODS, BENEFIT_TYPES } from './benefit-types';
 export type {
   BenefitAmount,
@@ -84,3 +89,30 @@ export type {
   FxReferenceDiagnosticCode,
   FxReferenceProvider,
 } from './fx-reference';
+export type {
+  AcademicAchievementSource,
+  AcademicActivitySource,
+  EnglishTestSource,
+  MatchingAcademicEvidence,
+  MatchingApplicationContext,
+  MatchingApplicationSource,
+  MatchingContextDiagnostic,
+  MatchingContextRequest,
+  MatchingContextSources,
+  MatchingProgrammeContext,
+  MatchingProgrammeSource,
+  MatchingProfileSource,
+  MatchingProvenance,
+  MatchingRead,
+  MatchingReadStatus,
+  MatchingSavedUniversityContext,
+  MatchingScholarshipContext,
+  MatchingScholarshipSource,
+  MatchingSourceKind,
+  MatchingStudentContext,
+  MatchingUniversityContext,
+  MatchingUniversitySource,
+  ScholarshipMatchingContext,
+  SavedUniversitySource,
+  StandardizedTestSource,
+} from './matching-context';
