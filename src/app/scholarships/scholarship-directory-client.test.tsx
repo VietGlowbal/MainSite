@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DirectoryScholarship } from '@/lib/scholarships-data';
@@ -106,7 +106,16 @@ function scholarship(
   };
 }
 
-function renderDirectory(items: DirectoryScholarship[]) {
+function renderDirectory(
+  items: DirectoryScholarship[],
+  options: {
+    savedUniversityIds?: number[];
+    savedCountries?: string[];
+    total?: number;
+    pageSize?: number;
+    hasMore?: boolean;
+  } = {},
+) {
   const queryState = {
     search: '',
     universitySearch: '',
@@ -123,12 +132,18 @@ function renderDirectory(items: DirectoryScholarship[]) {
   render(
     <ScholarshipDirectoryClient
       queryState={queryState}
-      directoryPage={{ items, total: items.length, page: 1, pageSize: 9, hasMore: false }}
+      directoryPage={{
+        items,
+        total: options.total ?? items.length,
+        page: 1,
+        pageSize: options.pageSize ?? 9,
+        hasMore: options.hasMore ?? false,
+      }}
       focusPage={null}
       countryPage={null}
       facets={{ countries: [], total: items.length }}
-      savedUniversityIds={[]}
-      savedCountries={[]}
+      savedUniversityIds={options.savedUniversityIds ?? []}
+      savedCountries={options.savedCountries ?? []}
       applications={[]}
       existingScholarships={[]}
       focusUniversity={null}
@@ -190,5 +205,19 @@ describe('ScholarshipDirectoryClient save picker coordination', () => {
     await user.keyboard('{Escape}');
     expect(screen.queryByTestId(TID.scholarshipUniversityPicker)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+  });
+
+  it('only evaluates relevance within the already-paginated server page', () => {
+    renderDirectory(
+      [scholarship(1)],
+      { savedUniversityIds: [7], total: 2, pageSize: 1, hasMore: true },
+    );
+
+    // Scholarship 2 is the saved-university match on the next server page;
+    // the current client cannot see it and therefore cannot move it ahead of
+    // the non-matching scholarship on page 1.
+    expect(screen.getByText('Scholarship 1')).toBeInTheDocument();
+    expect(screen.queryByText('Scholarship 2')).not.toBeInTheDocument();
+    expect(screen.queryByText('Matched to your saved universities on this page')).not.toBeInTheDocument();
   });
 });

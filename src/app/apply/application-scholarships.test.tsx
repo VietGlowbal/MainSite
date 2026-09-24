@@ -191,6 +191,29 @@ describe('ApplicationScholarships', () => {
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
   });
 
+  it('characterizes an empty selection as a current user scholarship upsert', async () => {
+    render(
+      <ApplicationScholarships
+        universityId={7}
+        universityName="University College London (UCL)"
+        chosen={[]}
+        options={[chevening]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /choose scholarships/i }));
+    fireEvent.click(screen.getByLabelText(`Choose ${chevening.name}`));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(mocks.upsert).toHaveBeenCalledWith(
+        [{ user_id: 'user-1', scholarship_id: chevening.id, university_id: 7 }],
+        { onConflict: 'user_id,scholarship_id' },
+      ),
+    );
+    expect(mocks.del).not.toHaveBeenCalled();
+  });
+
   it('does not delete the old award when adding the new one failed', async () => {
     mocks.upsert.mockResolvedValueOnce({ error: { message: 'insert failed' } });
 
