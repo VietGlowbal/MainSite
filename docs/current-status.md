@@ -72,6 +72,19 @@ enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
 
+Working tree 2026-09-24 (Scholarship Personalization T1): added the pure,
+evidence-bearing scholarship benefit contract and deterministic normalizer. It
+recognizes typed tuition, living, accommodation, stipend, meals, travel,
+insurance, books/materials, and other components; preserves ranges, currency
+status, periods, explicit durations, source excerpts, confidence, raw fields,
+and mutually exclusive scenarios. The legacy cleaner no longer classifies
+generic `100%`, `full tuition`, or `fully funded` text as `full-ride`; the
+runtime catalogue adapter preserves raw fields and exposes computed benefits
+without a schema change or data backfill. `node --check
+scripts/clean-scholarships.mjs` passed. Focused Vitest and both typechecks were
+not executable in this checkout because local `vitest`/`tsc` dependencies are
+absent; no packages were installed.
+
 Working tree 2026-09-21 (personal report post-review completeness): implemented the evidence-aware report contract v8. The
 report now keeps required framework sections structurally present, distinguishes supported/emerging/
 needs-more-evidence/unavailable coverage, preserves evidence IDs, and records separate structural/content/evidence/

@@ -14,6 +14,8 @@
 import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { ScholarshipScope, ScholarshipStatus } from '@/lib/types';
+import { normalizeScholarshipBenefits } from '@/features/scholarships/domain/benefit-normalization';
+import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
 
 export const SCHOLARSHIPS_REVALIDATE = 43200; // 12h — matches the universities page
 
@@ -58,6 +60,8 @@ export type DirectoryScholarship = {
   amountLabel: string | null;
   deadlineLabel: string | null;
   deadlineSortValue: number; // epoch ms; Infinity when undated (sorts last)
+  /** Runtime normalization of the existing raw coverage/amount fields. */
+  benefits?: NormalizedScholarshipBenefits;
 };
 
 // Compact country → flag map (the explorer's COUNTRY_EMOJIS is module-private,
@@ -170,6 +174,14 @@ export function toDirectoryScholarship(row: ScholarshipRow): DirectoryScholarshi
     amountLabel: formatAmount(row.amount_min, row.amount_max, row.amount_currency),
     deadlineLabel: formatDeadline(row.deadline_date, row.deadline_text),
     deadlineSortValue: row.deadline_date ? (Date.parse(row.deadline_date) || Infinity) : Infinity,
+    benefits: normalizeScholarshipBenefits({
+      coverage: row.coverage,
+      amount_min: row.amount_min,
+      amount_max: row.amount_max,
+      amount_currency: row.amount_currency,
+      funding_type: row.funding_type ?? [],
+      source_url: row.source_url,
+    }),
   };
 }
 

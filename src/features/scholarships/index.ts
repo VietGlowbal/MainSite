@@ -26,3 +26,33 @@ export {
   scholarshipSaveDestination,
   type ScholarshipSaveDestination,
 } from './domain/save-destination';
+export {
+  normalizeScholarshipBenefits,
+} from './domain/benefit-normalization';
+export {
+  BENEFIT_PERIODS,
+  BENEFIT_TYPES,
+} from './domain/benefit-types';
+export type {
+  BenefitAmount,
+  BenefitComponent,
+  BenefitConfidence,
+  BenefitCoverage,
+  BenefitCurrencyStatus,
+  BenefitDuration,
+  BenefitDurationUnit,
+  BenefitEvidence,
+  BenefitEvidenceSourceField,
+  BenefitNormalizationWarning,
+  BenefitNormalizationWarningCode,
+  BenefitPercentage,
+  BenefitPeriod,
+  BenefitScenario,
+  BenefitType,
+  BenefitValueKind,
+  FullRideStatus,
+  NormalizedScholarshipBenefits,
+  ScholarshipBenefitClassification,
+  ScholarshipBenefitNormalizationInput,
+  ScholarshipBenefitRaw,
+} from './domain/benefit-types';

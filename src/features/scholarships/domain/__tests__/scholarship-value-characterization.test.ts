@@ -110,8 +110,9 @@ describe('scholarship cleaner value characterization', () => {
       amount_currency: null,
     });
 
-    // Current bug: a funding string containing 100% is classified as full-ride.
-    expect(byName.get('100 percent tuition')?.funding_type).toContain('full-ride');
+    // T1 regression: a funding string containing 100% must not be classified
+    // as full-ride. The old cleaner did this before benefit normalization.
+    expect(byName.get('100 percent tuition')?.funding_type).not.toContain('full-ride');
     expect(byName.get('100 percent tuition')?.coverage).toBe('100% tuition');
 
     expect(byName.get('full tuition')).toMatchObject({
@@ -120,7 +121,7 @@ describe('scholarship cleaner value characterization', () => {
       amount_max: null,
     });
     expect(byName.get('full ride')?.funding_type).toContain('full-ride');
-    expect(byName.get('fully funded')?.funding_type).toContain('full-ride');
+    expect(byName.get('fully funded')?.funding_type).not.toContain('full-ride');
 
     expect(byName.get('tuition plus living')).toMatchObject({
       coverage: 'Full tuition + living allowance',

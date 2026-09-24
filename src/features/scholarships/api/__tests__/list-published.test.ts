@@ -9,6 +9,7 @@ vi.mock('@/server/db/admin', () => ({
   createAdminClient: () => ({ from }),
 }));
 
+import { toDirectoryScholarship } from '@/lib/scholarships-data';
 import { SupabaseScholarshipRepository } from '../supabase-scholarship-repository';
 
 type Result = { data: unknown[] | null; error: { message: string } | null; count?: number | null };
@@ -62,6 +63,24 @@ function row(id = 1) {
 
 describe('SupabaseScholarshipRepository.listPublished', () => {
   beforeEach(() => from.mockReset());
+
+  it('attaches typed benefit normalization without replacing raw catalogue fields', () => {
+    const result = toDirectoryScholarship({
+      ...row(11),
+      coverage: '100% tuition',
+      funding_type: ['full-ride'],
+    });
+
+    expect(result.coverage).toBe('100% tuition');
+    expect(result.benefits?.classification).toMatchObject({
+      label: 'tuition-only',
+      fullRideStatus: 'not-claimed',
+    });
+    expect(result.benefits?.components[0]).toMatchObject({
+      type: 'tuition',
+      percentage: { min: 100, max: null },
+    });
+  });
 
   it('queries published rows with exact count, stable ordering, and a nine-row range', async () => {
     const query = new Query({ data: [row(10)], error: null, count: 17 });
