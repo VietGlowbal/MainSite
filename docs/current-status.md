@@ -21,6 +21,14 @@ is present for all 920 normalized rows, while `course_id` remains empty until a
 trusted catalogue mapping exists. The active heavy-write path is Drive + Mongo;
 Supabase is reserved for later table-only projection.
 
+Scale audit on 2026-09-24: the original Stage 1 acquisition recorded 418
+programme rows across 209 institution contexts. After identity gating, the
+production population is 230 verified programmes across 115 institutions;
+188 synthetic seeds remain excluded. The current acquisition runner still
+enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
+but the 500–1,000 programme scope has not been run and is not yet executable
+without expanding the population manifest and runner guard.
+
 Working tree 2026-09-21 (personal report post-review completeness): implemented the evidence-aware report contract v8. The
 report now keeps required framework sections structurally present, distinguishes supported/emerging/
 needs-more-evidence/unavailable coverage, preserves evidence IDs, and records separate structural/content/evidence/
