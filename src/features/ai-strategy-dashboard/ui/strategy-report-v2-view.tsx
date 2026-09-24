@@ -69,7 +69,7 @@ export function StrategyReportV2View({
   }, [applicationId]);
 
   return (
-    <div className="flex flex-col gap-gb-4xl" data-no-auto-translate>
+    <div className="flex flex-col gap-gb-4xl" data-no-auto-translate data-report-auto-translate>
       {/* ─── 1 · STRATEGIC OVERVIEW ─────────────────────────────────────── */}
       <section aria-labelledby="v2-overview-heading" className="flex flex-col gap-gb-lg">
         <h2

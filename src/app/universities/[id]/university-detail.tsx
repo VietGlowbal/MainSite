@@ -1,13 +1,7 @@
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
-import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+import { getLocalizedFooter } from '@/features/marketing/navigation';
 import {
   formatAcceptanceForCard,
   formatDeadlineLabel,
@@ -22,15 +16,18 @@ import {
   CheckList,
   Container,
   Footer,
+  GlowbalIcon,
   ICONS,
   KitIcon,
   SearchMark,
+  type GlowbalIconName,
 } from '@/shared/ui';
 import { TID, testId } from '@/shared/lib/testids';
 import type { University } from '@/lib/types';
 import { FadeInImage } from '../fade-in-image';
 import { DetailNav, type DetailSection } from './detail-nav';
 import { AddToPortalButton, UniversitySaveHeader } from './save-university-button';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * /universities/[id] — Figma 375:10629 "Detail trường" (1440x4505).
@@ -116,17 +113,21 @@ function LabelledCheck({ label, value }: { label: string; value: string }) {
 export function SectionHeading({
   id,
   eyebrow,
+  icon,
   children,
 }: {
   id: string;
   eyebrow?: string;
+  /** The product icon for what the section is about, set beside the eyebrow. */
+  icon?: GlowbalIconName;
   children: React.ReactNode;
 }) {
   return (
     <div className="scroll-mt-[calc(var(--gb-header-mobile)+var(--spacing-gb-7xl))] md:scroll-mt-gb-9xl" id={id}>
       <span aria-hidden="true" className="mb-gb-lg block h-[3px] w-[32px] rounded-gb-full bg-brand" />
       {eyebrow ? (
-        <p className="mb-gb-xs text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+        <p className="mb-gb-xs flex items-center gap-gb-sm text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+          {icon ? <GlowbalIcon name={icon} size={16} /> : null}
           {eyebrow}
         </p>
       ) : null}
@@ -161,7 +162,17 @@ function ChipRow({ label, value }: { label: string; value: string }) {
  * values are prose ("Estimated ~60–65%", "$15,000–18,000/year before subsidy"),
  * so this clamps instead and keeps the untruncated string on `title`.
  */
-function Stat({ label, value, full }: { label: string; value: string; full?: string }) {
+function Stat({
+  label,
+  value,
+  full,
+  icon,
+}: {
+  label: string;
+  value: string;
+  full?: string;
+  icon: GlowbalIconName;
+}) {
   return (
     /*
      * Each tile carries its own border rather than the row carrying dividers.
@@ -170,7 +181,8 @@ function Stat({ label, value, full }: { label: string; value: string; full?: str
      * which tiles are present depends on the university.
      */
     <div className="flex h-full flex-col gap-gb-xs rounded-gb-xl border border-line bg-surface-muted px-gb-2xl py-gb-xl">
-      <span className="text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+      <span className="flex items-center gap-gb-sm text-gb-xs font-semibold tracking-gb-display-open text-fg-muted uppercase">
+        <GlowbalIcon name={icon} size={16} />
         {label}
       </span>
       <span
@@ -203,6 +215,7 @@ export function UniversityDetail({
   officialSite,
   isSignedIn,
   isSaved,
+  locale = 'en',
 }: {
   university: University;
   scholarships: readonly {
@@ -220,9 +233,12 @@ export function UniversityDetail({
   isSignedIn: boolean;
   /** Whether this university is already on the signed-in student's list. */
   isSaved: boolean;
+  locale?: Locale;
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
+  const t = (source: string, vars?: Record<string, string | number>) => getLocaleText(locale, source, vars);
+  const footer = getLocalizedFooter(locale);
   // ── The strip under the hero ──────────────────────────────────────────────
   // Built by filtering, not by padding: a university with no QS rank gets three
   // tiles rather than one reading "—". Below two the strip is not a comparison
@@ -230,16 +246,39 @@ export function UniversityDetail({
   const acceptance = university.accept_rate ? formatAcceptanceForCard(university.accept_rate) : null;
   const gpa = leadFragment(university.gpa_range, 24);
   const tuition = university.tuition_usd ? formatTuitionForCard(university.tuition_usd) : null;
-  const stats: { label: string; value: string; full?: string }[] = [
+  const stats: { label: string; value: string; full?: string; icon: GlowbalIconName }[] = [
     ...(university.qs_rank != null
-      ? [{ label: 'QS World Rank', value: `#${university.qs_rank}` }]
+      ? [{ label: 'QS World Rank', value: `#${university.qs_rank}`, icon: 'ranking' as const }]
       : []),
     ...(acceptance && acceptance !== '—'
-      ? [{ label: 'Acceptance rate', value: acceptance, full: university.accept_rate ?? '' }]
+      ? [
+          {
+            label: 'Acceptance rate',
+            value: acceptance,
+            full: university.accept_rate ?? '',
+            icon: 'acceptanceRate' as const,
+          },
+        ]
       : []),
-    ...(gpa ? [{ label: 'Typical GPA', value: gpa, full: university.gpa_range ?? '' }] : []),
+    ...(gpa
+      ? [
+          {
+            label: 'Typical GPA',
+            value: gpa,
+            full: university.gpa_range ?? '',
+            icon: 'requirements' as const,
+          },
+        ]
+      : []),
     ...(tuition && tuition !== '—'
-      ? [{ label: 'Tuition / year', value: tuition, full: university.tuition_usd ?? '' }]
+      ? [
+          {
+            label: 'Tuition / year',
+            value: tuition,
+            full: university.tuition_usd ?? '',
+            icon: 'tuitionFee' as const,
+          },
+        ]
       : []),
   ];
 
@@ -272,13 +311,13 @@ export function UniversityDetail({
            * the link it describes, keeping the frame's shape.
            */}
           <Link
-            href="/universities"
+            href={localizePath('/universities', locale)}
             className="flex h-[44px] items-center gap-gb-md rounded-gb-md bg-surface px-gb-md text-gb-sm text-fg-tertiary shadow-xs transition-colors hover:text-fg"
           >
             <span className="text-fg-muted" aria-hidden="true">
               <SearchMark frame={16} />
             </span>
-            Back to university search
+            {t('Back to university search')}
           </Link>
 
           <div className="flex flex-col gap-gb-3xl">
@@ -292,10 +331,10 @@ export function UniversityDetail({
             {/* Figma 375:10655. Ranks are brand-subtle, facts are neutral. */}
             <div className="flex flex-wrap items-start gap-gb-3xl">
               {university.qs_rank != null ? (
-                <Badge variant="brand-subtle">#{university.qs_rank} QS World Ranking</Badge>
+                <Badge variant="brand-subtle">#{university.qs_rank} {t('QS World Ranking')}</Badge>
               ) : null}
               {university.the_rank != null ? (
-                <Badge variant="brand-subtle">#{university.the_rank} THE Ranking</Badge>
+                <Badge variant="brand-subtle">#{university.the_rank} {t('THE Ranking')}</Badge>
               ) : null}
               {university.country ? <Badge variant="neutral">{university.country}</Badge> : null}
               {university.type ? <Badge variant="neutral">{university.type}</Badge> : null}
@@ -351,8 +390,8 @@ export function UniversityDetail({
           <div className="flex min-w-0 flex-1 flex-col gap-gb-6xl">
             {/* Intro — 375:10692, 375:10693 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="about" eyebrow="Overview">
-                About {university.name}
+              <SectionHeading id="about" eyebrow={t('Overview')} icon="universities">
+                {t('About')} {university.name}
               </SectionHeading>
               {university.specific_insight ? (
                 <p className="text-gb-lg text-fg-tertiary">{university.specific_insight}</p>
@@ -360,12 +399,12 @@ export function UniversityDetail({
               <ul className="flex flex-col gap-gb-lg">
                 {university.international_environment ? (
                   <LabelledCheck
-                    label="International environment"
+                    label={t('International environment')}
                     value={university.international_environment}
                   />
                 ) : null}
                 {university.teaching_style ? (
-                  <LabelledCheck label="Teaching style" value={university.teaching_style} />
+                  <LabelledCheck label={t('Teaching style')} value={university.teaching_style} />
                 ) : null}
               </ul>
             </section>
@@ -378,25 +417,25 @@ export function UniversityDetail({
              */}
             {hasSubjects ? (
               <section className="flex flex-col gap-gb-2xl">
-                <SectionHeading id="subjects" eyebrow="Academics">
-                  Subjects and fit
+                <SectionHeading id="subjects" eyebrow={t('Academics')} icon="programs">
+                  {t('Subjects and fit')}
                 </SectionHeading>
                 {university.strengths ? (
-                  <ChipRow label="Strongest subjects" value={university.strengths} />
+                  <ChipRow label={t('Strongest subjects')} value={university.strengths} />
                 ) : null}
                 {university.best_for ? (
-                  <ChipRow label="Best for" value={university.best_for} />
+                  <ChipRow label={t('Best for')} value={university.best_for} />
                 ) : null}
               </section>
             ) : null}
 
             {/* Admissions — 375:10696 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="admissions" eyebrow="Getting in">
-                Admission requirements
+              <SectionHeading id="admissions" eyebrow={t('Getting in')} icon="requirements">
+                {t('Admission requirements')}
               </SectionHeading>
               <CheckList>
-                {university.gpa_range ? <CheckItem>GPA: {university.gpa_range}</CheckItem> : null}
+                {university.gpa_range ? <CheckItem>{t('GPA')}: {university.gpa_range}</CheckItem> : null}
                 {university.english_requirement ? (
                   <CheckItem>{university.english_requirement}</CheckItem>
                 ) : null}
@@ -404,13 +443,13 @@ export function UniversityDetail({
                   <CheckItem>{university.standardized_test}</CheckItem>
                 ) : null}
                 {university.admission_difficulty ? (
-                  <CheckItem>Difficulty: {university.admission_difficulty}</CheckItem>
+                  <CheckItem>{t('Difficulty')}: {university.admission_difficulty}</CheckItem>
                 ) : null}
                 {university.accept_rate ? (
-                  <CheckItem>Acceptance rate: {university.accept_rate}</CheckItem>
+                  <CheckItem>{t('Acceptance rate')}: {university.accept_rate}</CheckItem>
                 ) : null}
                 {university.application_deadline ? (
-                  <CheckItem>Deadline: {university.application_deadline}</CheckItem>
+                  <CheckItem>{t('Deadline')}: {university.application_deadline}</CheckItem>
                 ) : null}
               </CheckList>
             </section>
@@ -418,8 +457,8 @@ export function UniversityDetail({
             {/* Campus & location — 375:10702 */}
             {university.housing ? (
               <section className="flex flex-col gap-gb-2xl">
-                <SectionHeading id="location" eyebrow="On campus">
-                  Campus and location
+                <SectionHeading id="location" eyebrow={t('On campus')} icon="location">
+                  {t('Campus and location')}
                 </SectionHeading>
                 <p className="text-gb-lg text-fg-tertiary">{university.housing}</p>
               </section>
@@ -427,18 +466,18 @@ export function UniversityDetail({
 
             {/* Scholarships — 375:10709 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="costs" eyebrow="Money">
-                Costs and scholarships
+              <SectionHeading id="costs" eyebrow={t('Money')} icon="tuitionFee">
+                {t('Costs and scholarships')}
               </SectionHeading>
               <ul className="flex flex-col gap-gb-lg">
                 {university.tuition_usd ? (
-                  <LabelledCheck label="Tuition (USD)" value={university.tuition_usd} />
+                  <LabelledCheck label={t('Tuition (USD)')} value={university.tuition_usd} />
                 ) : null}
                 {university.living_cost_usd ? (
-                  <LabelledCheck label="Living cost (USD)" value={university.living_cost_usd} />
+                  <LabelledCheck label={t('Living cost (USD)')} value={university.living_cost_usd} />
                 ) : null}
                 {university.scholarship ? (
-                  <LabelledCheck label="Scholarships" value={university.scholarship} />
+                  <LabelledCheck label={t('Scholarships')} value={university.scholarship} />
                 ) : null}
               </ul>
 
@@ -452,7 +491,8 @@ export function UniversityDetail({
                       >
                         <p className="text-gb-lg font-semibold text-fg">{scholarship.name}</p>
                         {scholarship.fundingType.length > 0 ? (
-                          <div className="flex flex-wrap gap-gb-md">
+                          <div className="flex flex-wrap items-center gap-gb-md">
+                            <GlowbalIcon name="fundingType" size={16} />
                             {scholarship.fundingType.map((type) => (
                               <Badge key={type} variant="brand-subtle">
                                 {type}
@@ -461,7 +501,10 @@ export function UniversityDetail({
                           </div>
                         ) : null}
                         {scholarship.eligibility ? (
-                          <p className="text-gb-sm text-fg-tertiary">{scholarship.eligibility}</p>
+                          <p className="flex items-start gap-gb-xs text-gb-sm text-fg-tertiary">
+                            <GlowbalIcon name="eligibility" size={16} className="mt-gb-xxs" />
+                            <span className="min-w-0">{scholarship.eligibility}</span>
+                          </p>
                         ) : null}
                         <div className="flex flex-wrap items-start gap-gb-3xl text-gb-sm text-fg-tertiary">
                           {/*
@@ -472,17 +515,13 @@ export function UniversityDetail({
                            */}
                           {university.country ? (
                             <span className="flex shrink-0 items-start gap-gb-xs">
-                              <span className="mt-gb-xxs shrink-0" aria-hidden="true">
-                                <KitIcon art={ICONS.markerPin02} frame={16} />
-                              </span>
+                              <GlowbalIcon name="location" size={16} className="mt-gb-xxs" />
                               {university.country}
                             </span>
                           ) : null}
                           {scholarship.deadlineLabel ? (
                             <span className="flex min-w-0 flex-1 items-start gap-gb-xs">
-                              <span className="mt-gb-xxs shrink-0" aria-hidden="true">
-                                <KitIcon art={ICONS.clock} frame={16} />
-                              </span>
+                              <GlowbalIcon name="deadlineAlert" size={16} className="mt-gb-xxs" />
                               {/*
                                * Clamped, not truncated to a date. The frame
                                * assumes "Hạn chót: 5 tháng 1 năm 2026"; real
@@ -499,7 +538,7 @@ export function UniversityDetail({
                         {scholarship.sourceUrl ? (
                           <div className="flex">
                             <Button href={scholarship.sourceUrl} variant="secondary" size="sm">
-                              Official link
+                              {t('Official link')}
                             </Button>
                           </div>
                         ) : null}
@@ -507,7 +546,7 @@ export function UniversityDetail({
                     ))}
                   </ul>
                   <div className="flex">
-                    <Button href="/scholarships">See all scholarships</Button>
+                    <Button href={localizePath('/scholarships', locale)}>{t('See all scholarships')}</Button>
                   </div>
                 </>
               ) : null}
@@ -515,29 +554,29 @@ export function UniversityDetail({
 
             {/* Careers — 375:10784 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="careers" eyebrow="After graduation">
-                Careers and outcomes
+              <SectionHeading id="careers" eyebrow={t('After graduation')} icon="careerExploration">
+                {t('Careers and outcomes')}
               </SectionHeading>
               <ul className="flex flex-col gap-gb-lg">
                 {university.industry_connections ? (
                   <LabelledCheck
-                    label="Industry connections"
+                    label={t('Industry connections')}
                     value={university.industry_connections}
                   />
                 ) : null}
                 {university.internship_coop ? (
-                  <LabelledCheck label="Internships" value={university.internship_coop} />
+                  <LabelledCheck label={t('Internships')} value={university.internship_coop} />
                 ) : null}
                 {university.employability ? (
-                  <LabelledCheck label="Employability" value={university.employability} />
+                  <LabelledCheck label={t('Employability')} value={university.employability} />
                 ) : null}
               </ul>
             </section>
 
             {/* Why students choose — 375:10813 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="why" eyebrow="The honest view">
-                Why students choose {university.name}
+              <SectionHeading id="why" eyebrow={t('The honest view')} icon="studentStories">
+                {t('Why students choose')} {university.name}
               </SectionHeading>
               {/*
                * The frame derives this list from `strengths`,
@@ -552,14 +591,14 @@ export function UniversityDetail({
               <CheckList>
                 {university.scholarship ? <CheckItem>{university.scholarship}</CheckItem> : null}
                 {university.employability ? (
-                  <CheckItem>Employability: {university.employability}</CheckItem>
+                  <CheckItem>{t('Employability')}: {university.employability}</CheckItem>
                 ) : null}
               </CheckList>
 
               <div className="grid gap-gb-xl md:grid-cols-2">
                 {university.weaknesses ? (
                   <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-3xl">
-                    <p className="text-gb-md font-semibold text-fg">Worth knowing</p>
+                    <p className="text-gb-md font-semibold text-fg">{t('Worth knowing')}</p>
                     <p className="mt-gb-md text-gb-md text-fg-tertiary">{university.weaknesses}</p>
                   </div>
                 ) : null}
@@ -572,7 +611,7 @@ export function UniversityDetail({
                 {university.notes ? (
                   <div className="rounded-gb-xl border border-brand-surface bg-brand-subtle p-gb-3xl">
                     <p className="text-gb-md font-semibold text-fg-brand">
-                      GlowBal&rsquo;s insider note
+                      {t("GlowBal's insider note")}
                     </p>
                     <p className="mt-gb-md text-gb-md text-fg-tertiary">{university.notes}</p>
                   </div>
@@ -584,17 +623,16 @@ export function UniversityDetail({
 
             {/* Talk to someone — 375:10826 */}
             <section className="flex flex-col gap-gb-2xl">
-              <SectionHeading id="mentors" eyebrow="Ask a human">
-                Talk to someone who studied here
+              <SectionHeading id="mentors" eyebrow={t('Ask a human')} icon="advisors">
+                {t('Talk to someone who studied here')}
               </SectionHeading>
               <p className="text-gb-lg text-fg-tertiary">
-                Book a 1-1 session with a current student or alumnus for honest advice about your
-                application and life on campus.
+                {t('Book a 1-1 session with a current student or alumnus for honest advice about your application and life on campus.')}
               </p>
               <div className="flex">
                 {/* The frame labels this "AI lên chiến lược" — see the note at
                     the top of this file. */}
-                <Button href="/advisors">Find an advisor</Button>
+                <Button href={localizePath('/advisors', locale)}>{t('Find an advisor')}</Button>
               </div>
             </section>
           </div>
@@ -607,16 +645,16 @@ export function UniversityDetail({
              * back for stay on screen while they read the rest.
              */}
             <div className="flex flex-col rounded-gb-xl border border-line p-gb-3xl">
-              <p className="pb-gb-lg text-gb-md font-semibold text-fg">At a glance</p>
-              {deadline ? <RailRow label="Application deadline" value={deadline} /> : null}
+              <p className="pb-gb-lg text-gb-md font-semibold text-fg">{t('At a glance')}</p>
+              {deadline ? <RailRow label={t('Application deadline')} value={deadline} /> : null}
               {university.admission_difficulty ? (
-                <RailRow label="Admission difficulty" value={university.admission_difficulty} />
+                <RailRow label={t('Admission difficulty')} value={university.admission_difficulty} />
               ) : null}
               {university.living_cost_usd ? (
-                <RailRow label="Living cost (USD / year)" value={university.living_cost_usd} />
+                <RailRow label={t('Living cost (USD / year)')} value={university.living_cost_usd} />
               ) : null}
               {university.english_requirement ? (
-                <RailRow label="English requirement" value={university.english_requirement} />
+                <RailRow label={t('English requirement')} value={university.english_requirement} />
               ) : null}
             </div>
 
@@ -628,16 +666,16 @@ export function UniversityDetail({
             />
 
             <div className="flex flex-col gap-gb-3xl rounded-gb-xl border border-line bg-surface-muted p-gb-4xl shadow-xs">
-              <span className="flex size-[56px] items-center justify-center rounded-gb-lg border border-line-strong bg-surface text-brand shadow-xs">
-                <KitIcon art={ICONS.zapFast} frame={28} />
+              {/* Strategy Master — the card sends the reader to /ai-strategy. */}
+              <span className="flex size-[56px] items-center justify-center rounded-gb-lg border border-line-strong bg-surface shadow-xs">
+                <GlowbalIcon name="strategyMaster" size={32} />
               </span>
               <div className="flex flex-col gap-gb-xs">
                 <p className="text-gb-xl font-semibold text-fg">
-                  Ready to study at {university.name}?
+                  {t('Ready to study at {name}?', { name: university.name })}
                 </p>
                 <p className="text-gb-md text-fg-tertiary">
-                  Find courses and start building your application with GlowBal&rsquo;s AI course
-                  picker.
+                  {t("Find courses and start building your application with GlowBal's AI course picker.")}
                 </p>
               </div>
               {/*
@@ -649,8 +687,8 @@ export function UniversityDetail({
                * target: a signed-in student sees their existing strategies
                * there, or a prompt to pick a course if they have none.
                */}
-              <Button href="/ai-strategy" className="w-full">
-                Build your application strategy
+              <Button href={localizePath('/ai-strategy', locale)} className="w-full">
+                {t('Build your application strategy')}
               </Button>
             </div>
           </aside>
@@ -659,11 +697,11 @@ export function UniversityDetail({
 
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

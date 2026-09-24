@@ -11,7 +11,7 @@ import {
   type DisplayCurrency,
   type PlusPackage,
 } from '@/lib/plus';
-import { Container, Modal } from '@/shared/ui';
+import { Container, GlowbalIcon, Modal } from '@/shared/ui';
 import { PaymentMethodSelector } from '@/components/payments/payment-method-selector';
 import { TermsModal } from '@/components/legal/terms-modal';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -112,7 +112,8 @@ export function PlusPricing({
       <Container className="relative mx-auto max-w-[1140px] px-4 sm:px-6">
         {/* Header */}
         <header className="mx-auto mb-4 max-w-[720px] text-center">
-          <div className="mb-4 inline-block text-[13px] font-bold tracking-[0.16em] uppercase text-[#E11D48]">
+          <div className="mb-4 inline-flex items-center gap-2 text-[13px] font-bold tracking-[0.16em] uppercase text-[#E11D48]">
+            <GlowbalIcon name="glowbalPlus" size={20} />
             {t('GlowBal Pricing')}
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl leading-[1.1]">
@@ -223,8 +224,9 @@ export function PlusPricing({
             <div className="rounded-xl border border-[#EDE9EE] bg-white p-3.5">
               <label
                 htmlFor="plus-promo-code"
-                className="mb-2 block text-xs font-bold text-[#141118]"
+                className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[#141118]"
               >
+                <GlowbalIcon name="promoCode" size={16} />
                 {t('Promo code')}
               </label>
               <div className="flex gap-2">

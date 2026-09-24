@@ -6,21 +6,16 @@ import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MarketingNavigation } from '@/components/marketing-navigation';
 import { useT } from '@/lib/i18n';
-import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+import { getLocalizedFooter } from '@/features/marketing/navigation';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import type { PublicMentor } from '@/lib/mentors';
 import { formatMoney } from '@/lib/currency';
-import { StarIcon } from '@/components/mentorship/mentor-icons';
 import {
   Badge,
   Button,
   Container,
   Footer,
+  GlowbalIcon,
   ICONS,
   Input,
   KitIcon,
@@ -77,6 +72,13 @@ const getUniversityIdFromUrl = () => {
 
 const PAGE_SIZE = 8;
 
+function useLocaleT(locale: Locale) {
+  const contextT = useT();
+  return locale === 'vi'
+    ? (source: string, vars?: Record<string, string | number>) => getLocaleText(locale, source, vars)
+    : contextT;
+}
+
 const DEGREE_LABELS: Record<PublicMentor['degree_level'], string> = {
   undergraduate: 'Undergraduate',
   masters: "Master's",
@@ -116,8 +118,8 @@ function UniversityLogo({
   );
 }
 
-function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolean }) {
-  const t = useT();
+function MentorCard({ mentor, preload, locale = 'en' }: { mentor: PublicMentor; preload: boolean; locale?: Locale }) {
+  const t = useLocaleT(locale);
   const universityName = mentor.university?.name ?? t('University not listed');
   const rate = Number(mentor.hourly_rate_amount ?? 0);
   const rateLabel = rate > 0
@@ -187,7 +189,7 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
           </p>
           {mentor.university?.country ? (
             <p className="mt-gb-xxs flex items-center gap-gb-xs text-gb-xs text-fg-muted">
-              <KitIcon art={ICONS.markerPin02} frame={16} />
+              <GlowbalIcon name="location" size={16} />
               <span className="truncate">{t(mentor.university.country)}</span>
             </p>
           ) : null}
@@ -198,7 +200,7 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
             {t(mentor.subject || 'Subject not listed')}
           </p>
           <p className="mt-gb-xs flex items-center gap-gb-sm text-gb-xs font-medium text-fg-brand">
-            <KitIcon art={ICONS.graduationCap} frame={16} />
+            <GlowbalIcon name="expertiseTag" size={16} />
             {t(DEGREE_LABELS[mentor.degree_level])}
           </p>
         </div>
@@ -219,7 +221,7 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
               <p className="text-gb-xs font-medium text-fg-muted">{t('Experience')}</p>
               {mentor.total_sessions > 0 ? (
                 <p className="mt-gb-xs flex items-center gap-gb-xs text-gb-sm font-semibold text-fg">
-                  <StarIcon size={14} filled />
+                  <GlowbalIcon name="ratingReview" size={16} />
                   {rating.toFixed(1)}
                   <span className="font-normal text-fg-muted">
                     ({t(mentor.total_sessions === 1 ? '{count} session' : '{count} sessions', {
@@ -238,7 +240,7 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
           </div>
 
           <Link
-            href={`/advisors/${mentor.id}`}
+            href={localizePath(`/advisors/${mentor.id}`, locale)}
             aria-label={t("View {name}'s profile", { name: mentor.display_name })}
             className="mt-gb-xl flex min-h-11 w-full items-center justify-center gap-gb-sm rounded-gb-md bg-brand px-gb-xl py-gb-lg text-gb-sm font-semibold text-on-brand shadow-gb-xs transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
@@ -251,8 +253,8 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
   );
 }
 
-function AdvisorApplicationInvitation() {
-  const t = useT();
+function AdvisorApplicationInvitation({ locale = 'en' }: { locale?: Locale }) {
+  const t = useLocaleT(locale);
   const steps = [
     {
       title: t('Create your profile'),
@@ -271,10 +273,12 @@ function AdvisorApplicationInvitation() {
   return (
     <section
       aria-labelledby="advisor-application-title"
+      data-surface="dark"
       className="overflow-hidden rounded-gb-2xl bg-surface-inverse-deep p-gb-3xl shadow-gb-lg md:p-gb-5xl"
     >
       <div className="grid gap-gb-5xl lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-center">
         <div className="flex flex-col items-start gap-gb-xl">
+          <GlowbalIcon name="becomeMentor" size={40} />
           <Badge variant="outline">{t('For students and alumni')}</Badge>
           <div className="flex flex-col gap-gb-lg">
             <h2
@@ -288,7 +292,7 @@ function AdvisorApplicationInvitation() {
             </p>
           </div>
           <div className="flex flex-col items-start gap-gb-md sm:flex-row sm:items-center">
-            <Button href="/advisors/apply" variant="primary-on-dark" size="xl">
+            <Button href={localizePath('/advisors/apply', locale)} variant="primary-on-dark" size="xl">
               {t('Apply to become an advisor')}
               <KitIcon art={ICONS.arrowRight} frame={20} />
             </Button>
@@ -324,8 +328,9 @@ function AdvisorApplicationInvitation() {
   );
 }
 
-export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
-  const t = useT();
+export function MentorsClient({ mentors, locale = 'en' }: { mentors: PublicMentor[]; locale?: Locale }) {
+  const t = useLocaleT(locale);
+  const footer = getLocalizedFooter(locale);
   const initialUniversityId = useSyncExternalStore(
     subscribeToUrl,
     getUniversityIdFromUrl,
@@ -369,7 +374,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <MarketingNavigation />
+      <MarketingNavigation locale={locale} />
 
       <main className="min-h-screen pb-gb-9xl pt-gb-6xl">
         <Container className="flex flex-col gap-gb-6xl">
@@ -383,7 +388,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
             </p>
           </div>
 
-          <AdvisorApplicationInvitation />
+          <AdvisorApplicationInvitation locale={locale} />
 
           {/* Figma 154:8360 — the search row */}
           <div className="flex flex-col gap-gb-lg lg:flex-row lg:items-end">
@@ -448,7 +453,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
               </div>
               <ul className="grid grid-cols-1 gap-gb-4xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {visible.map((m, index) => (
-                  <MentorCard key={m.id} mentor={m} preload={index === 0} />
+                  <MentorCard key={m.id} mentor={m} preload={index === 0} locale={locale} />
                 ))}
               </ul>
               <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
@@ -460,7 +465,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
                   ? t('No advisors have been approved yet. Check back soon.')
                   : t('No advisor matches those filters yet. Try widening the country or subject.')}
               </p>
-              <Button href="/advisors/apply" size="lg">
+              <Button href={localizePath('/advisors/apply', locale)} size="lg">
                 {t('Become an advisor')}
               </Button>
             </div>
@@ -470,11 +475,11 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
 
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

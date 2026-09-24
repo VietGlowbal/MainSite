@@ -73,7 +73,7 @@ export function compilePlanningContext(sources: PlanningContextSources): Plannin
     },
     provenance: {
       personalReport: sources.profileEvaluation?.provenance ?? null,
-      programmeFit: sources.programmeFit?.provenance ?? null,
+      programmeFit: sources.programmeFit?.provenance ?? sources.programmeFitV3?.provenance ?? null,
       strategy: strategyRoadmap?.provenance ?? sources.strategyRecommendation?.provenance ?? null,
       staleness: { personalReport: 'unknown', programmeFit: 'unknown', strategy: 'unknown' },
       sourceDiagnostics: sorted(sources.diagnostics, (a, b) => compareText(a.source, b.source) || compareText(a.status, b.status) || compareText(a.message ?? '', b.message ?? '')),
@@ -170,6 +170,17 @@ function hardConstraints(requirements: readonly ApplicationRequirement[], deadli
 
 function identifiedGaps(sources: PlanningContextSources): PlanningGap[] {
   const gaps: PlanningGap[] = [];
+  if (sources.programmeFitV3) {
+    for (const gap of sources.programmeFitV3.data.gaps) {
+      gaps.push({
+        id: `v3_metric:${gap.id}`,
+        source: 'v3_metric',
+        description: gap.description,
+        dimensionKey: null,
+        sourceAnalysisId: sources.programmeFitV3.provenance.id,
+      });
+    }
+  }
   const fit = sources.programmeFit;
   if (fit) {
     for (const dimensionKey of FIT_DIMENSION_KEYS) {

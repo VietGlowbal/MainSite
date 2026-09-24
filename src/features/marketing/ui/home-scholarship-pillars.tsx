@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarship-constants';
 import { ICONS, KitIcon } from '@/shared/ui';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 export type ScholarshipTeaser = {
   id: number;
@@ -27,18 +28,18 @@ const LEGACY_FUNDING_TYPE_LABELS: Readonly<Record<string, string>> = {
   'need-based': FUNDING_TYPE_LABELS.need,
 };
 
-function fundingTypeLabel(value: string): string {
+function fundingTypeLabel(value: string, locale: Locale): string {
   const normalized = value.trim().toLowerCase().replaceAll('_', '-');
   if (Object.prototype.hasOwnProperty.call(FUNDING_TYPE_LABELS, normalized)) {
-    return FUNDING_TYPE_LABELS[normalized as keyof typeof FUNDING_TYPE_LABELS];
+    return getLocaleText(locale, FUNDING_TYPE_LABELS[normalized as keyof typeof FUNDING_TYPE_LABELS]);
   }
-  return LEGACY_FUNDING_TYPE_LABELS[normalized]
-    ?? normalized.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return getLocaleText(locale, LEGACY_FUNDING_TYPE_LABELS[normalized]
+    ?? normalized.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()));
 }
 
-function readableFundingTypes(values?: readonly string[] | null): readonly string[] {
-  if (!values?.length) return ['Funding support'];
-  return values.slice(0, 2).map(fundingTypeLabel);
+function readableFundingTypes(values: readonly string[] | null | undefined, locale: Locale): readonly string[] {
+  if (!values?.length) return [getLocaleText(locale, 'Funding support')];
+  return values.slice(0, 2).map((value) => fundingTypeLabel(value, locale));
 }
 
 function ScholarshipLogo({
@@ -91,7 +92,7 @@ function ScholarshipLogo({
   );
 }
 
-export function HomeScholarshipPillars({ entries }: { entries: readonly ScholarshipTeaser[] }) {
+export function HomeScholarshipPillars({ entries, locale = 'en' }: { entries: readonly ScholarshipTeaser[]; locale?: Locale }) {
   const railRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -138,7 +139,7 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
       className="mt-gb-6xl min-w-0"
       role="region"
       aria-roledescription="carousel"
-      aria-label="Featured scholarships"
+      aria-label={getLocaleText(locale, 'Featured scholarships')}
     >
       <div className="mb-gb-2xl flex justify-end">
         {entries.length > 1 ? (
@@ -146,7 +147,7 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
             <button
               type="button"
               onClick={() => showIndex(activeIndex - 1)}
-              aria-label="Previous scholarship"
+              aria-label={getLocaleText(locale, 'Previous scholarship')}
               className="flex size-gb-5xl items-center justify-center rounded-gb-full border border-line bg-surface text-fg-secondary shadow-gb-xs transition-[border-color,color,transform] hover:-translate-y-gb-xs hover:border-brand hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand motion-reduce:transform-none"
             >
               <KitIcon art={ICONS.arrowLeft} frame={18} />
@@ -154,7 +155,7 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
             <button
               type="button"
               onClick={() => showIndex(activeIndex + 1)}
-              aria-label="Next scholarship"
+              aria-label={getLocaleText(locale, 'Next scholarship')}
               className="flex size-gb-5xl items-center justify-center rounded-gb-full border border-line bg-surface text-fg-secondary shadow-gb-xs transition-[border-color,color,transform] hover:-translate-y-gb-xs hover:border-brand hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand motion-reduce:transform-none"
             >
               <KitIcon art={ICONS.arrowRight} frame={18} />
@@ -207,7 +208,7 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
                   data-no-auto-translate
                   className="shrink-0 rounded-gb-full bg-brand-subtle px-gb-lg py-gb-md text-gb-xs font-semibold uppercase tracking-[0.08em] text-brand"
                 >
-                  {entry.ranking || 'Featured'}
+                  {entry.ranking || getLocaleText(locale, 'Featured')}
                 </span>
               </div>
 
@@ -224,7 +225,7 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
 
                 <div className="mt-gb-2xl rounded-gb-xl border border-brand-subtle bg-brand-subtle p-gb-2xl">
                   <p className="text-gb-xs font-semibold uppercase tracking-[0.1em] text-brand">
-                    {entry.valueLabel || 'Scholarship value'}
+                    {getLocaleText(locale, entry.valueLabel || 'Scholarship value')}
                   </p>
                   <p
                     data-no-auto-translate
@@ -243,10 +244,10 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
                   <div className="min-w-0">
                     <dt className="flex items-center gap-gb-md text-gb-xs font-semibold uppercase tracking-[0.08em] text-fg-muted">
                       <KitIcon art={ICONS.graduationCap} frame={16} />
-                      Funding type
+                      {getLocaleText(locale, 'Funding type')}
                     </dt>
                     <dd className="mt-gb-md truncate text-gb-sm font-semibold text-fg-secondary">
-                      {readableFundingTypes(entry.fundingTypes).map((label, labelIndex) => (
+                      {readableFundingTypes(entry.fundingTypes, locale).map((label, labelIndex) => (
                         <span key={`${label}-${labelIndex}`}>
                           {labelIndex > 0 ? <span aria-hidden="true"> + </span> : null}
                           <span>{label}</span>
@@ -257,10 +258,10 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
                   <div className="min-w-0">
                     <dt className="flex items-center gap-gb-md text-gb-xs font-semibold uppercase tracking-[0.08em] text-fg-muted">
                       <KitIcon art={ICONS.clock} frame={16} />
-                      Application window
+                      {getLocaleText(locale, 'Application window')}
                     </dt>
                     <dd className="mt-gb-md truncate text-gb-sm font-semibold text-fg-secondary">
-                      {entry.deadline || 'Check current dates'}
+                      {entry.deadline || getLocaleText(locale, 'Check current dates')}
                     </dd>
                   </div>
                 </dl>
@@ -271,17 +272,17 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
                       <KitIcon art={ICONS.markerPin02} frame={16} />
                     </span>
                     <span className="truncate font-semibold">
-                      {entry.country || 'Global opportunity'}
+                      {entry.country || getLocaleText(locale, 'Global opportunity')}
                     </span>
                   </div>
                 </div>
 
                 <Link
-                  href={entry.href}
-                  aria-label={`View ${entry.title}`}
+                  href={localizePath(entry.href, locale)}
+                  aria-label={`${getLocaleText(locale, 'View')} ${entry.title}`}
                   className="mt-gb-2xl flex min-h-gb-6xl items-center justify-between rounded-gb-lg bg-fg px-gb-xl text-gb-sm font-semibold text-fg-on-inverse transition-colors hover:bg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
-                  View scholarship
+                  {getLocaleText(locale, 'View scholarship')}
                   <KitIcon art={ICONS.arrowUpRight} frame={18} />
                 </Link>
               </div>

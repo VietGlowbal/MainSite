@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = process.cwd();
-const legacyRepairPath = resolve(root, 'supabase-canonical-planner-multi-microstep-fix.sql');
-const hardeningPath = resolve(root, 'supabase-planner-production-hardening.sql');
-const terminalRepairPath = resolve(root, 'supabase-planner-production-hardening-multi-microstep-fix.sql');
-const guidanceMigrationPath = resolve(root, 'supabase-planner-micro-step-guidance.sql');
+const legacyRepairPath = resolve(root, 'sql/supabase-canonical-planner-multi-microstep-fix.sql');
+const hardeningPath = resolve(root, 'sql/supabase-planner-production-hardening.sql');
+const terminalRepairPath = resolve(root, 'sql/supabase-planner-production-hardening-multi-microstep-fix.sql');
+const guidanceMigrationPath = resolve(root, 'sql/supabase-planner-micro-step-guidance.sql');
 const integrationWrapperPath = resolve(root, 'scripts/planner-integration-check.ps1');
 
 function readRequiredSql(path: string) {

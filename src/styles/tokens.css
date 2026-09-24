@@ -72,6 +72,21 @@
   --color-gb-brand-600: #e11d48; /* Figma: Colors/Rose/600 — CONFIRMED */
   --color-gb-brand-700: #be123c;
 
+  /* ── Product icon tones — from the icon plan (handoff v1.0) ──────────────
+     Two literals the plan specifies that no step here matches, recorded rather
+     than rounded to a neighbour — same standing as neutral-990/350 below:
+       icon-ink             #16181d  the shape. One notch cooler than
+                                     neutral-950; kept because the plan
+                                     measured it, not because anyone will see
+                                     the difference beside text.
+       icon-accent-on-dark  #ff3b47  the accent on a dark band. Brand 600 is
+                                     4.2:1 on the footer (#0a0a0a) and reads
+                                     muddy there; this is 5.6:1.
+     The light accent is not repeated here: it IS the brand, and resolves
+     through --gb-brand. Consumed by --gb-icon-* and src/shared/ui/glowbal-icon.tsx. */
+  --color-gb-icon-ink: #16181d;
+  --color-gb-icon-accent-on-dark: #ff3b47;
+
   /* ── Admission-tier palette — CONFIRMED from Figma ───────────────────────
      Not decoration: these encode the reach / recommend / safe classification
      that src/lib/admission-fit.ts already computes, and the redesign promotes
@@ -547,6 +562,49 @@
   --color-on-accent: var(--gb-on-accent);
   /* text-fg-verified — drives the seal via currentColor. */
   --color-fg-verified: var(--gb-verified);
+
+  /* stroke-icon-ink / stroke-icon-accent — the two tones of GlowbalIcon. Only
+     that component should use them; everything else takes a text colour. */
+  --color-icon-ink: var(--gb-icon-ink);
+  --color-icon-accent: var(--gb-icon-accent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Surfaces — product icon tones.
+
+   A product icon (src/shared/ui/glowbal-icon.tsx) never takes a colour from its
+   call site. The section it sits in declares what it is, once, and every icon
+   inside flips:
+
+       <footer data-surface="dark">…</footer>
+
+   `@theme inline` above keeps `stroke-icon-*` as var() references, which is
+   what lets these overrides reach the icon rather than a baked literal.
+
+     dark   white shape, accent lifted to #ff3b47 (see the primitive's note).
+     brand  NOT in the icon plan. A rose accent on the rose application band is
+            invisible, so both tones follow currentColor — which also lets an
+            icon track its nav item's resting, hover and active text colour.
+     light  the default again, for a white card nested inside either of the
+            above.
+
+   Attribute only — there is deliberately no `.on-dark` class. Setting custom
+   properties is order-independent, so these can stay outside a layer.
+   ────────────────────────────────────────────────────────────────────────── */
+:root,
+[data-surface='light'] {
+  --gb-icon-ink: var(--color-gb-icon-ink);
+  --gb-icon-accent: var(--gb-brand);
+}
+
+[data-surface='dark'] {
+  --gb-icon-ink: var(--color-gb-neutral-0);
+  --gb-icon-accent: var(--color-gb-icon-accent-on-dark);
+}
+
+[data-surface='brand'] {
+  --gb-icon-ink: currentColor;
+  --gb-icon-accent: currentColor;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

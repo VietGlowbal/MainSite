@@ -41,6 +41,8 @@ export interface ActivityRecordInput {
   freeText: string | null;
   /** Storage key when an uploaded document backs this entry. */
   evidenceKey?: string | null;
+  /** Original snapshot metadata, kept on the raw source for social-proof consumers. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface FollowUpAnswerInput {
@@ -240,6 +242,7 @@ export function buildEvidenceBank(input: EvidenceBankInput): EvidenceBank {
       id: sourceId,
       type: item.kind,
       label: item.title,
+      ...(item.metadata ? { metadata: item.metadata } : {}),
     });
 
     const backingDoc = item.evidenceKey ? documentSourceByKey.get(item.evidenceKey) ?? null : null;

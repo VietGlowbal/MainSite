@@ -342,6 +342,34 @@ describe('PersonalReportV2View — version history', () => {
     await user.click(screen.getByRole('button', { name: 'Back to latest' }));
     await waitFor(() => expect(screen.queryByText(/viewing an older version/i)).not.toBeInTheDocument());
   });
+
+  it('carries the selected version into the Matching Report link', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', fetchMockFor({ versions }));
+
+    render(
+      <PersonalReportV2View
+        initialReport={reportWithDrivingForceGap()}
+        initialVersionId="v2"
+        initialLatestVersionId="v2"
+        initialVersions={versions}
+        applicationId="app-1"
+        studentName="Olivia"
+        generatedAt="2026-08-14T00:00:00.000Z"
+        migrationMissing={false}
+        matchingReportHref="/ai-strategy/app-1/matching-report"
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText('Version history'), 'v1');
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: 'Continue to Matching Report' })).toHaveAttribute(
+        'href',
+        '/ai-strategy/app-1/matching-report?personalReportVersionId=v1',
+      );
+    });
+  });
 });
 
 function reportWithAnalytics(): PersonalReportV2 {

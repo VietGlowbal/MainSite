@@ -1,1479 +1,1403 @@
 # Current project status
 
-Latest measured offline ultra-max replay: `stage1-package-schema-fix-20260924T093711Z-drive`
-completed on 2026-09-24 from the frozen 230-programme population and the full
-raw source run `stage1-coverage-20260922T135149Z-drive`. It generated 230 rows
-across 42 canonical fields, with 9,204 populated cells; all remaining 456 cells
-are the intentionally unfilled `graduation_certificate` or
-`academic_transcript` values with no verified evidence. The admission package
-view remains `COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`, and advisory values are
-not eligible for product decisions. The replay made 0 network calls, 0 paid LLM
-calls and 0 Supabase writes. Its Drive/Mongo lineage contains 13 artifact
-records, all 13 mounted readbacks are `VERIFIED`, and cloud sync remains
-`UNKNOWN` by design. The run manifest is
+Latest measured Data Platform ultra-max replay: `stage1-package-schema-fix-20260924T093711Z-drive`
+completed on 2026-09-24 from the frozen 230-programme population and raw run
+`stage1-coverage-20260922T135149Z-drive`. It generated 230 rows across 42
+canonical fields with 9,204/9,660 populated cells; the remaining 456 cells are
+the intentionally unknown `graduation_certificate` and
+`academic_transcript` values without verified evidence. The admission package
+view remains `COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`; advisory values are not
+eligible for product decisions. The replay made 0 network calls, 0 paid LLM
+calls and 0 Supabase writes. Drive/Mongo lineage contains 13 artifact records,
+all 13 mounted readbacks are `VERIFIED`, and cloud sync remains `UNKNOWN` by
+design. The manifest is
 [`stage1-drive-run-stage1-package-schema-fix-20260924T093711Z-drive-manifest.json`](architecture/data/external-field-stage1-20260915/stage1-drive-run-stage1-package-schema-fix-20260924T093711Z-drive-manifest.json).
 
-Latest measured Stage 1 Drive/Mongo run: `stage1-coverage-20260922T135149Z-drive`
-completed successfully on 2026-09-22. The runner selected the standard MongoDB
-driver environment, kept Supabase out of the run, and made 347 network calls
-with 71 cache hits. It persisted 332 raw responses (75,145,268 bytes) to the
-Mongo/Drive raw path: 135 official admission-page responses, 59 official
-university pages, 66 Discover Uni responses, 56 DUO RIO responses, 1 Onisep
-response, 5 Studyinfo application records, 4 Studyinfo criteria records and 6
-Susa-navet responses. The deterministic targeted-admission pass added 8
-assertions across 8 programmes; recommendation coverage rose 4 to 12 and SOP
-coverage 2 to 4, while top-level certificate and transcript coverage remained
-0. It made 0 paid LLM calls and 0 Supabase writes.
-
-The no-network replay then considered 1,645 evidence facts and improved 113
-programme rows. MAX_FILL added H1=1, H2=7 and H3=94 values; completeness
-quantiles were p25=12.5%, median=15.0%, p75=20.0%. The ultra CSV has 230 rows,
-42 canonical fields and 9,204 populated cells (including advisory defaults and
-donor/heuristic values). Its admission-package view remains
-`COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`: the two Edinburgh rows have direct
-reference and personal-statement evidence (4 direct package fields total),
-while certificate/transcript requirements are not directly verified. Four
-certificate values are present only as review/advisory evidence and no
-academic-transcript value is present.
-
-The Drive manifest for this run contains 24 derived artifacts, including the
-structured package JSONL and ultra CSV; mounted readback verified 24/24 hashes
-and cloud sync remains `UNKNOWN` by design. The read-only storage audit at
-2026-09-22T14:04Z found no LLM calls, crawl requests or remote writes, and no
-hash failures in the checked Mongo/Drive bodies. Outputs:
-[`stage1-programme-ultra-max-fill-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-ultra-max-fill-results.csv),
-[`stage1-programme-admission-packages.jsonl`](architecture/data/external-field-stage1-20260915/stage1-programme-admission-packages.jsonl),
-and [`stage1-drive-run-stage1-coverage-20260922T135149Z-drive-manifest.json`](architecture/data/external-field-stage1-20260915/stage1-drive-run-stage1-coverage-20260922T135149Z-drive-manifest.json).
-
-Schema compatibility check against the legacy Drive export found 400 historical
-`crawl_admission_packages` rows and 1,600 `crawl_admission_requirements` rows,
-which are a different population from the current 230 programmes. The current
-ultra CSV has all four package component columns, and its JSONL requirement
-objects carry the old 13 requirement semantics plus provenance fields, but the
-JSONL is not a drop-in replacement for the old web tables. Package-level
-`run_id`, `official_url`, `retrieved_at`, `precheck` and `payload` are absent;
-the normalized web projection also needs `display_mode`,
-`use_for_eligibility`, `source_run_id`, `source_programme_id`,
-`source_retrieved_at`, `updated_at` and `course_id`. The `sop_or_essay` CSV
-name must map to the canonical/legacy `sop_essay_requirements` name. These
-columns can be projected offline from the run manifest, population manifest and
-evidence; no recrawl or LLM is required.
-
-The compatibility projection was generated offline and archived under
-`stage1-package-compat-fix-20260922T143314Z-drive`. Drive/Mongo now contain
-`stage1-admission-packages-compat.csv` (8 legacy package columns),
-`stage1-admission-requirements-compat.csv` (13 legacy requirement columns),
-and `stage1-course-admission-requirements-compat.csv` (18 normalized web
-projection columns). The archive manifest lists 73 derived artifacts and all
-73 mounted readbacks are `VERIFIED`; it made 0 network calls, 0 LLM calls and
-0 Supabase writes. `course_id` remains empty until a trusted mapping to the
-web catalogue's generated course IDs exists; `source_programme_id` is retained
-for that join.
-
-Working tree 2026-09-22 Stage 1 Drive/Mongo fresh acquisition and ultra advisory
-run completed: `stage1-coverage-20260922T055104Z-drive` replayed the frozen 230
-verified programmes with 199 network calls and 6 local-cache hits. 197 non-empty
-responses (50,154,013 bytes) were persisted as Mongo `source_snapshots` plus
-content-addressed Drive objects; the provider breakdown was Discover Uni 66,
-DUO RIO 56, official university pages 59, Onisep 1, Studyinfo 9, and
-Susa-navet 6. The acquisition added 0 new assertions; it made 0 LLM calls and
-did not use Supabase. Twenty-three derived outputs plus the run manifest were
-archived in Drive and indexed in Mongo; Drive readback verified 24/24 artifact
-hashes and cloud sync remains `UNKNOWN` by design. The fresh crawl did not
-reduce admission-package `UNKNOWN` counts.
-
-The follow-up targeted-admission parser now supports deterministic HTML/PDF
-document extraction with programme-identity gating. Its full run
-`stage1-coverage-20260922T073256Z-drive` stopped before acquisition could be
-persisted because Mongo Atlas rejected the TLS handshake (`ReplicaSetNoPrimary`);
-no derived outputs, LLM calls or Supabase writes were produced by that failed
-attempt. The last successful result remains the run above until Mongo network
-access is restored.
-
-Retry `stage1-coverage-20260922T075900Z-drive` hit the same Mongo Atlas TLS
-handshake failure during raw index setup and also produced no derived output.
-
-An explicit retry with the worktree dotenv (`stage1-coverage-20260922T081301Z-drive`)
-also failed before persistence: that file points to the Atlas SQL-interface
-host rather than a MongoDB database-deployment driver endpoint. The runner
-therefore has no currently reachable Mongo endpoint to use.
-
-The Drive runner now selects dotenv files automatically, preferring a
-non-`atlas-sql` MongoDB driver URI and ignoring the SQL-interface endpoint.
-Run `stage1-coverage-20260922T083322Z-drive` confirmed the selector chose the
-standard `cluster0` environment, but Atlas still rejected the TLS handshake
-during raw index setup; no derived output was produced.
-
-The preceding controlled run `stage1-coverage-20260922T041448Z-drive` replayed the frozen 230
-verified programmes with 199 network calls and 6 local-cache hits. 197 non-empty
-responses (50,306,419 bytes) were persisted as Mongo `source_snapshots` plus
-content-addressed Drive objects; the provider breakdown was Discover Uni 66,
-DUO RIO 56, official university pages 59, Onisep 1, Studyinfo 9, and
-Susa-navet 6. The deterministic acquisition added 2 assertions; it made 0 LLM
-calls and did not use Supabase. The raw run has 197 Mongo snapshots and all 24
-derived-artifact lineage records (23 touched outputs plus the run manifest) in
-Mongo collection `stage1_derived_artifacts`. Independent Drive readback verified
-24/24 artifact hashes; cloud sync remains `UNKNOWN` by design.
-
-The no-network `expand_stage1_max_fill.py` step selected 1,250 persisted
-evidence facts and improved 113 programmes. The repaired ultra export has 230
-rows and 9,204/9,660 populated canonical cells because it applies deterministic
-advisory defaults/donors while leaving the two document components blank when
-no evidence exists. The strict, MAX_FILL and ultra schemas now carry
-`graduation_certificate` and `academic_transcript`; the companion
-`stage1-programme-admission-packages.jsonl` has one structured package row per
-programme. Direct package status is `COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`:
-the two Edinburgh rows have direct reference and personal-statement evidence;
-all certificate/transcript values are absent or advisory, and Manchester
-reference evidence remains advisory pending identity binding. The four
-certificate values retained from Studyinfo are marked `NEEDS_REVIEW` or donor
-advice, never verified package evidence. This is still an advisory fill result,
-not a verified admission export.
-
-The schema/parser repair was replayed offline on 2026-09-22: no new crawl, no
-LLM call, and no Supabase write. The strict, MAX_FILL, ultra CSVs and the
-structured package JSONL were archived in Drive and indexed in Mongo under run
-`stage1-package-schema-fix-20260922T050353Z-drive`; Drive readback was verified
-for the 41 derived artifacts and cloud sync remains `UNKNOWN`.
-
-Verification after the repair: the data-ingestion suite passed 550/550 with
-the current worktree on an explicit `PYTHONPATH`; Stage1 document-parser smoke,
-Python compilation and `git diff --check` also passed.
-
-Working tree 2026-09-22 Drive-only structured staging: when
-`DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop`, structured archive-member
-rows and their metadata now persist as CSV + immutable JSON manifests on Drive,
-with atomic per-run indexes for fresh-reader recovery. The factory does not
-construct a Supabase client, with or without Supabase credentials; auto mode no
-longer depends on Supabase configuration. Direct/injected Supabase staging is
-rejected in Drive mode. Raw Mongo storage is unchanged. This supersedes the
-structured-staging gap in the 2026-09-21 audit, not its other retention gaps.
-Measured before the controlled Stage 1 execution: 53 focused artifact/streaming
-tests and all 748 ingestion tests pass; `git diff --check` passes. Tests used
-temporary local archives and explicit worktree `PYTHONPATH` (the installed
-editable package points to another worktree). That implementation checkpoint
-did not execute a crawl, ultra fill, LLM call, live archive write, database
-write, or historical-data migration. Details:
-[`data-platform-artifacts.md`](data-platform-artifacts.md).
-
-Read-only audit snapshot 2026-09-21, admission collection and Drive/Mongo
-retention:
-all 107 original Stage 1 raw hashes remain readable and SHA-256 verified
-(71 Mongo inline, 36 Drive); a blanket recrawl is unnecessary. 65 Mongo blob
-locators still reference legacy storage despite verified Drive copies. Later
-local captures contain 103 unique hashes absent from both raw stores: 61 can
-be reconstructed exactly, while 43 truncated entries / 42 hashes need another
-full copy or targeted recapture for complete raw retention. There are also 25
-failed candidate URLs (9 404, 9 403, 7 status 0). The original package artifact
-covers 175/230 current target IDs and needs regeneration. Existing Drive
-relational backups are a different population (400 packages, no exact ID/URL
-matches). At that snapshot collection still depended on Supabase structured
-staging and local derived reports; the 2026-09-22 controlled run now has its
-own Drive/Mongo lineage. No LLM or blanket migration was performed. Details
-and rerun order:
-[`admission-storage-audit-20260921.md`](architecture/admission-storage-audit-20260921.md).
-
-Working tree 2026-09-19 Data Platform artifact-backend hardening: every
-runtime path that can create heavy Data Platform evidence now requires an
-explicit `DATA_PLATFORM_ARTIFACT_BACKEND`; unset, blank, and `None` fail
-closed. `google_drive_desktop` is the sole supported active heavy-write
-backend. Its preflight requires an existing readable/writable archive root and
-`raw/objects`, safely creates/probes private staging and lock directories, and
-fails/retries rather than falling back. `legacy_supabase_storage` and
-`legacy_s3` remain explicit migration/compatibility selections, while legacy
-Supabase locators remain readable when Drive is selected. Drive-selected
-structured staging writes deterministic CSV artifacts and leaves only bounded
-locator/hash/size lineage in database metadata.
-
-Measured checks: `tests/test_artifact_store.py` passed 32 tests; the full
-Data Ingestion suite passed 742 tests; `compileall` and `git diff --check`
-passed. A controlled non-production provider-fixture ingestion on 2026-09-19
-used the authenticated `main` runtime configuration only in its process while
-the hardened `feature/data-platform` code ran unchanged. Mongo raw metadata
-and provenance persisted, and one lightweight Supabase structured-staging row
-persisted with its full row payload externalized. Drive retained a 283-byte
-JSON raw artifact at
-`raw/objects/cb/cb1c9a08765f0f7521341374fa28eb3d410557d3ce5f71d7dcd3a80a89895907.json`
-and an 83-byte CSV at
-`raw/objects/db/dbc970d96753f4b946f2d5db346e03dea15a4608d4f73a3d8219508e1294a0f7.csv`;
-their physical files and SHA-256 values verified. A fresh reader using only
-the configured archive root and logical artifact metadata restored both
-objects and verified their hashes. `raw-evidence-dev` was measured immediately
-before and after at 0 objects and 0 bytes, so the heavy Supabase delta was
-zero. Local mounted readback is verified; cloud sync remains operator-not-
-confirmed (no Drive API durability claim). This smoke did not fetch an
-external URL or start Phase 4.
-
-Working tree 2026-09-16 deterministic Stage 1 MAX_FILL advisory expansion:
-the existing frozen evidence and 105 captured official pages were replayed for
-the unchanged 230 verified recipients; no new crawl or paid LLM call was made.
-STRICT remains 1,282 non-empty hierarchy cells (and its CSV hash is
-`b32bb04a17af745b224e8891d47608523479590d42a60fbad898403105b2be86`). MAX_FILL
-adds 252 source-backed advisory cells: H0 225, H1 1, H2 7, H3 19, for 1,532
-hierarchy cells and 1,534 cells across all 40 canonical CSV fields. 113
-programmes improve. Hierarchy completeness p25/median/p75 moves from
-13.16%/15.79%/15.79% to 13.16%/15.79%/21.05%; 230 verified recipients and 115
-institutions remain, with 188 synthetic recipients excluded. Outputs include
-[`stage1-programme-max-fill-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-results.csv),
-[`stage1-programme-max-fill-sources.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-max-fill-sources.csv),
-and [`stage1-max-fill-evidence.jsonl`](architecture/data/external-field-stage1-20260915/stage1-max-fill-evidence.jsonl).
-
-Working tree 2026-09-16 deterministic Stage 1 coverage acquisition: the frozen
-230 verified programme recipients were replayed against the existing evidence
-artifacts and source cache. The population and H1-H4 rules are unchanged. The
-pass appended 317 deterministic, source-backed assertions with complete
-provenance (0 paid LLM calls and no new source domains). Coverage across the 38
-hierarchy fields rose from 937 to 1,282 non-empty values; 171 programmes gained
-at least one value. Direct/H0 is 855 to 1,172, H1 0 to 0, H2 0 to 0, H3 82 to
-110, H4 0 to 0, Final 937 to 1,282, Review 58 to 58, Abstain 3,605 to 4,640,
-and Missing 4,140 to 2,760. Completeness p25/median/p75 is
-10.53%/13.16%/13.16% to 13.16%/15.79%/15.79%. The lead export still contains
-exactly 230 verified programmes; 188 synthetic seeds remain excluded. The
-incremental evidence, audit, source ledger, replay summary, and regenerated CSV
-are in
-[`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/),
-including [`stage1-incremental-evidence.jsonl`](architecture/data/external-field-stage1-20260915/stage1-incremental-evidence.jsonl)
-and [`stage1-programme-final-results.csv`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results.csv).
-
-Prior architecture-only replay 2026-09-16 (superseded by the incremental
-coverage result above): Stage 1 replay
-now retains accepted donor assertions and entity contexts independently of the
-230 verified recipients. Programme contexts retained increased 230 to 418,
-institution contexts 115 to 209, and institution assertions 0 to 146;
-programme-scoped assertions remain 1,510 and parent-scoped assertions remain 9.
-Optional persisted org-unit contexts/relations now reach the unchanged engine.
-Artifact-only replay: Direct 849, H1 0, H2 0, H3 82, H4 0, final 931, review
-58, abstain 3,611, missing 4,140. The 230 fee slots move from missing to abstain
-because donor evidence exists; no new value is applied. All 188 synthetic
-recipients remain excluded, including the recipients of the former 103 H2
-transfers. Focused hierarchy/loader tests pass 30/30; the full ingestion suite
-passes 531/531. Compile, CSV and diff checks pass. `verify:pr` passes on Node
-24.19.0 (3,469 application tests pass, two TODOs; production build 141/141).
-No acquisition or paid LLM calls. Details:
-[`stage1-programme-final-results-readme.md`](architecture/data/external-field-stage1-20260915/stage1-programme-final-results-readme.md).
-
-Working tree 2026-09-16 verified Stage 1 population correction: the frozen
-418-target manifest was audited without deleting historical raw evidence. The
-production admission gate now requires a non-empty source-native programme
-binding plus a verified programme identity; institution-only Scorecard/Swiss
-tariff seeds remain canary-only. The DUO RIO query-order binding defect is
-repaired by canonical URL metadata lookup and stable-ID preservation, so its
-40 former `Datastore Search` rows are mapped back to their frozen RIO titles;
-the transport label can no longer become a programme identity. The corrected
-classification is 230 `VERIFIED_PROGRAMME`, 188 `SYNTHETIC_SEED`, 0
-`UNRESOLVED_CANDIDATE`, and 0 remaining `INVALID_PROVIDER_MAPPING` (the
-pre-fix run was 190/0/188/40). The lead export now has 230 verified rows; the
-population audit retains all 418 targets. Artifact-only hierarchy replay used
-the existing accepted assertions and made no paid LLM calls: Direct 849, H1
-0, H2 0, H3 82, H4 0, final 931, review 58. The donor-independent replay above
-supersedes this run's abstain/missing counts.
-Production completeness is p25 10.53%, median 13.16%, p75 13.16%, mean
-10.65%; 41 programmes have zero effective fields. Outputs are in
-[`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/),
-including `stage1-programme-population-audit.csv`,
-`stage1-production-replay-summary.json`, and the regenerated
-`stage1-programme-final-results.csv`.
-
-Working tree 2026-09-15 hierarchy-coverage replay: the frozen Stage 1
-population (418 programmes × 38 priority fields) was evaluated with the
-existing H1-H4 engine using accepted external semantic assertions and promoted
-deterministic metadata. A concrete finance false-negative was fixed narrowly:
-residency/fee labels in a finance payload are no longer interpreted as degree
-levels, and institution-scoped tuition/additional-fee donors may be selected at
-H2 only when their institution, audience, currency, basis, temporal and
-applicability checks remain compatible. The output keeps those values
-institution-scoped and advisory; no acceptance policy or global hierarchy gate
-changed. Before/after field-slot totals were Direct 849, H1 0, H2 0→103, H3
-82, H4 0, final 931→1,034, review 151, abstain 7,278→7,175, missing 7,524.
-The replay exports the complete programme × field matrix, donor provenance,
-rejection analysis, field summary, and programme completeness under
-[`external-field-stage1-20260915`](architecture/data/external-field-stage1-20260915/).
-Focused hierarchy tests pass 22/22, the full ingestion suite passes 673/673,
-and compile, replay, CSV-structure, provenance, duplicate-key, and diff checks
-pass.
-
-Working tree 2026-09-15 Stage 1 external mass ingestion: the frozen
-`external-field-stage1-20260915` manifest (SHA-256
-`2607bb4ae5218770f903a657443734751d93a53acb572edadc6542f0b8006277`) contains
-209 institutions and 418 programmes across CH/FI/FR/NL/SE/UK/US. The real run
-`stage1-20260915-main` completed all 209 institution checkpoints and discovered
-all 418 programmes using remote raw mode, Mongo/object storage, bounded reads,
-`max_local_temp_bytes=0`, and promotion disabled. It persisted 342 raw source
-objects (5,771,126,972 durable object bytes), 292/342 materialisation rows
-matched, and produced 1,187 accepted external semantic assertions plus 478
-promoted deterministic metadata rows. Provider fetches were 342 successful with
-0 HTTP fetch failures; DeepSeek recorded 2,552 calls, 24 isolated failures (14
-HTTP 402 responses and one retried 5xx), and 4 cache hits. Accepted assertions
-have complete provenance (0 missing IDs/hashes/URLs), 0 invalid bindings, 0
-duplicate effective keys, and 0 local raw bytes. The unchanged H1-H4 evaluator
-applied 633 direct and 110 H3 results; H1/H2/H4 applied zero. There were 42
-target-level source absences and 13 terminal semantic-provider quota records,
-all isolated. Stage 1 is **A2 - STAGE 1 HEALTHY WITH NON-BLOCKING
-TARGET/PROVIDER GAPS**; replenish the extraction-provider balance before the
-next approximately 1,000-programme run. Full measured output is in
-[`stage1-report.md`](architecture/data/external-field-stage1-20260915/stage1-report.md),
-[`stage1-metrics.json`](architecture/data/external-field-stage1-20260915/stage1-metrics.json),
-and [`stage1-integrity-check.json`](architecture/data/external-field-stage1-20260915/stage1-integrity-check.json).
-
-Working tree 2026-09-15 final external-canary hardening: Atlas has recovered
-with certificate-verified SRV/TCP/TLS/authentication, Mongo index setup, and a
-write/read/delete raw-evidence smoke all passing from
-`D:\projects\Glowbal\MainSite\.env.local`. The frozen
-`external-field-canary-20260914` manifest remains 50 institutions and 100
-programmes (SHA-256
-`337be94f344025abff75ba6de9ce9653dcc062b714e6aa89451af9a99d689b9f`). The
-production-safe `--resume <run-directory|crawl_state.sqlite>` path validates
-run/config and per-seed fingerprints, skips completed checkpoints, and keeps
-retryable work `PARTIAL` for continuation. A controlled real interruption
-continued 12 targets; the post-recovery frozen-state resume safely skipped 50
-already-terminal checkpoints. Manchester KISCourse `28` is an exact Discover
-Uni match; KISCourse `2571195` remains the verified
-`TARGET_LEVEL_SOURCE_ABSENCE` for the frozen Data Science target. The stale
-Aalto Studyinfo relationship now uses hakukohde `...91188`, toteutus
-`...08123`, and valintaperuste `34db13a9-3733-434c-a323-67c130ae0f1f`.
-The valid Atlas recovery plus the narrow Aalto correction produced 94/98
-provider-slot matches (95.92%), 105 persisted raw-source audit events, 375
-effective semantic proposals, and 334 accepted external assertions. The
-unchanged H1-H4 evaluator applied 180 direct and 48 H3 results. All integrity,
-failure-isolation, idempotency, and resume gates pass: readiness is **A - READY
-FOR MASS SCALE**. Full details are in
-[`final-hardening-report.md`](architecture/data/external-field-canary-20260914/final-hardening-report.md),
-[`final-atlas-gate-result.json`](architecture/data/external-field-canary-20260914/final-atlas-gate-result.json),
-and the run artifacts under
-[`external-field-canary-20260914`](architecture/data/external-field-canary-20260914/).
-Focused resume/external regressions pass 29; the full ingestion suite passes
-670/670 and JSON/compile/diff checks pass; no commit or push occurred.
-
-Historical 2026-09-14 baseline (superseded by the hardening result above):
-the frozen
-`external-field-canary-20260914` manifest contains 50 institutions and 100
-programmes across US/CH/FR/UK/NL/SE/FI (SHA-256
-`337be94f344025abff75ba6de9ce9653dcc062b714e6aa89451af9a99d689b9f`). The
-external-only runner used remote raw evidence, Mongo/object storage, bounded
-streaming, `max_local_temp_bytes=0`, and promotion disabled. The primary run
-completed all 50 institutions and persisted 85 raw sources; it produced 230
-accepted external semantic assertions. A concrete canary target-binding defect
-was found (descriptive Susa/Studyinfo identifier aliases did not match the
-existing source-native identity fields). The frozen manifest was not changed;
-an isolated six-institution SE/FI correction derived the exact same 12
-programmes, persisted 29 additional raw audit sources, and produced 48 further
-accepted programme assertions. A second isolated DUO correction derived the
-runner-canonical URLs for the same 16 NL programmes, persisted 16 sources, and
-produced 46 accepted programme assertions. Consolidated accepted external
-evidence is 324 assertions (33 institution, 287 programme, 4 department scope), with 0
-provenance/scope/local-heavy-copy violations. The unchanged H1-H4 evaluator
-applied 173 direct and 45 H3 assertions; H1/H2/H4 applied zero (66 H2 and 58
-H3 candidate slots were evaluated, with 45 H3 usable). Primary plus the two
-corrections had 1,329.965 seconds runtime, 132 HTTP attempts (130
-successful/persisted; observed same-second fetch-event peak 2 under the
-global=2/per-domain=1 scheduler),
-924,458,988 durable object bytes, 683 LLM calls, 2 cache hits, and no HTTP
-429/401/402/5xx
-or persistence failures. The safe replay proved no duplicate effective keys;
-the runner still has no production resume/checkpoint CLI. Readiness is **B —
-READY WITH TARGETED OPERATIONAL FIXES**: resume/checkpoint behavior and the
-remaining two UK identity misses plus one FI 404 must be addressed before
-unattended mass scale. Full artifacts are in
-[`external-field-canary-20260914`](architecture/data/external-field-canary-20260914/),
-including `canary-metrics.json`, `correction-metrics.json`, and
-`consolidated-metrics.json`. The provider-focused external tests pass 69/69,
-the full ingestion suite passes 662/662 from `services/data-ingestion`, and
-all three canary configs validate. The consolidated analyzer now computes
-country-filtered missing-field rankings and provider target-attempt counts
-without changing ingestion behavior.
-
-Working tree 2026-09-14 external zero-field Studyinfo admissions-depth pass:
-the official Finnish Studyinfo `valintaperuste` JSON backend was inspected at
-three exact programme IDs and extended through the existing structured-data
-bridge. Durable run `studyinfo-admissions-depth-20260914-v5` persisted 3/3
-remote JSON objects and materialised 3/3 exact records. It produced 24
-non-null field candidates and 17 effective accepted programme-scoped
-`OBSERVED` assertions: standardized-test requirements (10), work experience
-(5), IELTS overall 6.0 (1), and TOEFL iBT 78 (1). The UEF scholarship/waiver
-policy is materialised and source-ready but emitted no accepted non-null
-proposal; numeric fragments with incomplete test alignment remain review-only,
-and three academic-cycle proposals were rejected without inventing a cycle.
-The exact source-native programme-ID binding, structured title/context order,
-numeric structured-test support, and mapping-context excerpt guard are covered
-by focused regressions. The unchanged hierarchy evaluator v7 has direct usable
-IELTS, TOEFL, and work-experience rows; standardized tests abstain on direct
-conflict, H1/H2/H4 are zero, and H3 has four unusable work-experience sibling
-candidates. Focused tests pass 262/262 and the full ingestion suite passes
-662/662. Details, ledger, smoke manifest, and artifacts are in
-[`external-zero-field-discovery-20260914/studyinfo-admissions-depth-pass-20260914.md`](architecture/data/external-zero-field-discovery-20260914/studyinfo-admissions-depth-pass-20260914.md).
-
-Working tree 2026-09-14 external zero-field Studyinfo follow-up: the product
-`programme_status` field was confirmed to mean admissions/application state;
-Susa-navet `ACTIVE` remains registry status and is not mapped. The official
-Finnish National Agency for Education Studyinfo/Opintopolku JSON backend was
-verified with exact `hakukohde`/`toteutus` OIDs and extended through the frozen
-government-dataset bridge. A provider-only durable smoke
-`studyinfo-zero-field-20260914-haaga-v5` persisted 4 remote JSON objects and
-materialised 4 bounded matched records. It emitted 7 non-null field proposals
-and produced 4 accepted programme-scoped OBSERVED assertions: rolling admission
-(1), minimum degree (1), and required document names (2). Studyinfo
-`hakuAuki` is retained as an application-window signal but its boolean-only
-evidence remains rejected by the unchanged explicit-status validator; registry
-publication markers are excluded. The narrow materializer fix keeps
-metadata-only matched records bounded instead of falling back to raw JSON;
-focused external tests pass 19/19 and the full ingestion suite passes 656/656.
-The source ledger, smoke configuration, v5 artifacts, and unchanged hierarchy
-result are in
-[`external-zero-field-discovery-20260914/studyinfo-zero-field-pass-20260914.md`](architecture/data/external-zero-field-discovery-20260914/studyinfo-zero-field-pass-20260914.md).
-
-
-Working tree 2026-09-14 source-first zero-field pass: a real public
-Skolverket Susa-navet OpenAPI/JSON record was inspected and implemented through
-the existing declarative `government_dataset` bridge. Exact KTH event/info
-records persisted two durable remote raw objects and materialised eight
-non-null field candidates. The bounded smoke
-`susa-navet-20260914-kth-deadline-fix` produced five accepted programme-scoped
-`OBSERVED` assertions: identity, credential, source-native intake period,
-application closing date, and explicit subject prerequisites. A concrete
-validator gap for the source label `Application closing date` was fixed with a
-narrow final-deadline evidence-term addition; the focused external and semantic
-tests pass 18/18 and 47/47. Susa's `ACTIVE` registry status remains review/reject
-because it does not prove applications are open, and its tuition object remains
-rejected because no currency is published; no unsupported value was inferred.
-H1-H4 were run unchanged over the five accepted rows (direct only; H1-H4 zero).
-The full ingestion suite passes 655/655.
-Details, source ledger, smoke configuration, and raw/effective evidence are in
-[`external-zero-field-discovery-20260914/source-first-zero-field-pass.md`](architecture/data/external-zero-field-discovery-20260914/source-first-zero-field-pass.md).
-
-Working tree 2026-09-14 external-provider scale repair: the frozen
-external-only population contains 23 institutions and 46 programmes across US,
-CH, FR, UK, and NL (25 bachelor/21 master; 22 computer science, 10 data
-science, 5 engineering, 9 other). The bounded Onisep and Scorecard correction
-replays restored durable reads without changing downstream semantics. The
-consolidated run has 101 accepted semantic assertions (21 institution scope,
-80 programme scope), 19 review assertions, and 62 promoted deterministic
-metadata rows. Accepted target coverage is institution tuition 7/23,
-institution compulsory fees 5/23, programme identity/credential 17/46 each,
-programme tuition 2/46, duration/location 16/46 each, delivery mode 23/46,
-programme language 7/46, career outcomes 3/46, and employment outcomes 2/46
-(one additional review target). Deadline, language-threshold, eligibility,
-document, and funding groups remain zero.
-
-Swissuniversities matched 5/5 institutions and supplied all 15 accepted
-tuition/compulsory-fee assertions. Scorecard matched all 5 UNITIDs after the
-bounded range/ZIP read fix and supplied accepted institution tuition for MIT
-and Stanford; Cornell now materialises exactly but remains review-only where
-programme fallback lacks source-native cycle/fee-period proof. Discover Uni
-matched 6/8 UK routes (56 accepted semantic rows plus 18 metadata rows). DUO
-matched 8/8 NL programmes after its existing narrow correction. Onisep
-matched 10/10 target programmes after the generic streaming CSV fix and now
-contributes accepted France identity, credential, and tuition plus duration,
-location, and delivery metadata.
-
-The unchanged hierarchy evaluation reports Direct 47/47/47, H1 0/0/0, H2
-42/0/0, H3 21/19/19, and H4 0/0/0 (candidates/usable/applied), with 395
-abstentions. H2 tuition/fee transfers remain unusable under the existing
-compatibility gates; no hierarchy rule was changed. Counting semantic plus
-promoted metadata units, evidence is concentrated in Discover Uni/UK (74,
-45.40%), Onisep/FR (38, 23.31%), DUO/NL (30, 18.40%), swissuniversities/CH
-(15, 9.20%), and Scorecard/US (6, 3.68%). Scale readiness remains **C -
-COVERAGE TOO SPARSE** because product-critical fields are still sparse after
-the runtime repair. Full details and reproducible artifacts are in
-[`external-field-scale-20260914/scale-report.md`](architecture/data/external-field-scale-20260914/scale-report.md),
-[`coverage-summary-consolidated-v2.json`](architecture/data/external-field-scale-20260914/coverage-summary-consolidated-v2.json),
-and [`hierarchy/external-field-scale-20260914-consolidated-v2.json`](architecture/data/external-field-scale-20260914/hierarchy/external-field-scale-20260914-consolidated-v2.json).
-The full ingestion suite passes 653/653 and streaming/external focused suites
-pass; no commit or push occurred.
-
-Working tree 2026-09-13 external field-coverage source-first pass: the
-verified Onisep IdÃ©o government CSV was extended after inspecting an exact
-programme row (`UAI=0561687E`, `AF.5992`) with real schooling-cost, duration,
-location, and delivery-mode columns. The durable bounded run
-`onisep-programme-fee-rerun-20260913h` fetched the CSV twice and persisted both
-remote raw objects (one unique hash; no local heavy copy), materialised one
-exact programme row, emitted four non-null semantic proposals (identity,
-credential, and two annual tuition endpoints), and selected three effective
-`OBSERVED`/`RULE_VALIDATED` programme assertions. The accepted tuition is EUR
-3,470 per year; the source range EUR 3,470â€“6,600/year remains in the evidence
-line and the competing endpoint remains in the audit file. Source-native 2026
-text and the 2026-03-26 record-update date remain context, not an invented
-academic cycle or audience. Three deterministic catalogue metadata
-observations were promoted: `3 ans`, `temps plein, cours en prÃ©sentiel`, and
-`Arradon`.
-
-The minimal code change was limited to external structured-data propagation:
-credential/schema context and a cost render pattern in the declarative bridge,
-complete-line tuition evidence re-anchoring for externally matched rows, and
-French `par an` annual-basis recognition. No generic resolver, acceptance
-policy, hierarchy, uncertainty, storage, promotion, canonical-truth, or
-Benchmark V3 redesign occurred. The frozen H1â€“H4 evaluator sees one direct
-Onisep tuition row and no compatible inherited donor; H1â€“H4 remain zero.
-Source-first findings and the final priority-field state matrix are in
-[`source-first-gap-pass-20260913.md`](architecture/data/external-field-coverage-20260913/source-first-gap-pass-20260913.md).
-The unchanged hierarchy smoke summary is
-[`source-first-fee-pass-20260913.json`](architecture/data/external-field-coverage-20260913/hierarchy/source-first-fee-pass-20260913.json).
-Focused external tests pass 63/63, the full ingestion suite passes 647/647,
-and source compilation/config validation pass. No commit or push occurred.
-
-Working tree 2026-09-13 external field-bearing depth audit: the bounded
-external-only run `external-coverage-bounded-20260913i` used only the verified
-Discover Uni and DUO RIO routes with durable persistence. Both sources fetched
-and persisted (2/2, 0 errors). Discover Uni's provider-gated deterministic
-parser recovered the seven explicitly labelled employment cards (80%
-work/study, five occupation/work categories and the programme-qualified card),
-and all seven became accepted `OBSERVED` programme assertions via
-`ACCEPT_WITH_UNKNOWN_CONTEXT`; their 15-month and 2021-23/2022-23 survey context
-was retained without inventing an academic cycle. The same record now promotes
-explicit catalogue metadata: `4 year course`, `The University of Nottingham`,
-and `Full time`. DUO RIO retained all 44 audited columns, accepted exact
-programme identity and `MASTER`, promoted source-native `VOERTAAL=NLD` and
-`VORM=VOLTIJD`, and kept dates/ECTS/level context-only. External totals are 2
-raw sources, 2 exact materialisations, 19 unique non-null semantic candidates,
-19 accepted assertions (Discover Uni 17; DUO RIO 2), 9 metadata observations,
-and 5 promoted catalogue attributes. The unchanged hierarchy has direct
-identity/credential availability, but no H1-H4 donor; outcome bundles abstain
-on direct conflict/no compatible donor. HESA bulk remains HTTP-403 access
-blocked, Studiekeuze123 OData remains licensed/access-gated, and CRICOS
-remains robots-blocked. Details and required A-J reporting are in
-[`depth-audit-20260913.md`](architecture/data/external-field-expansion-20260913/depth-audit-20260913.md),
-with the reproducible hierarchy summary in
-[`external-coverage-bounded-20260913i.json`](architecture/data/external-field-expansion-20260913/hierarchy/external-coverage-bounded-20260913i.json).
-Focused external/deep tests pass 317/317, the full ingestion suite passes
-644/644, config validation passes, and changed-module compilation passes.
-No commit or push occurred.
-
-Working tree 2026-09-13 external field expansion: the provider-first bounded
-pass added and validated the official Onisep IdÃ©o CSV export for France. Exact
-Sorbonne UAI `0755283K` plus AF identifiers produced two programme rows, four
-accepted `OBSERVED` assertions (two programme identities and two credentials),
-with source-native update metadata and `academic_cycle=null`. A generic
-configured-provider cache fix now drops unmatched external views and retains
-programme-linked materialisations when one national export is fetched at both
-institution and programme scope. Combined accepted external evidence is 11
-rows: College Scorecard 4 tuition, swissuniversities 2 tuition + 1 compulsory
-fee, and Onisep 2 identities + 2 credentials. Unchanged H1â€“H4 evaluated eight
-targets; all tuition/fee H2 candidates remained unusable under the existing
-degree/peer compatibility gates. The ledger and hierarchy result are in
-[`external-field-expansion-20260913/report.md`](architecture/data/external-field-expansion-20260913/report.md),
-[`source-verification-ledger.json`](architecture/data/external-field-expansion-20260913/source-verification-ledger.json),
-and [`hierarchy/hierarchical-evaluation.json`](architecture/data/external-field-expansion-20260913/hierarchy/hierarchical-evaluation.json).
-The combined focused external suite is 74 passed and source-module compileall
-also passes.
-The official CRICOS CSV schema was separately verified with an exact UNSW row,
-but data.gov.au robots.txt disallows the export path, so no CRICOS assertion
-was admitted or fetched through the ingestion rail.
-No acceptance, hierarchy, uncertainty, storage, promotion, canonical-truth,
-or Benchmark V3 redesign was made; no commit or push occurred.
-
-Working tree 2026-09-13 Scorecard cache/provenance and temporal-metadata
-follow-up: the bounded MIT/Cornell Scorecard-only run selected current
-raw-bound bundles over cached bundles without usable raw bindings
-(`cached_bundle_missing_usable_provenance`) and accepted four unique,
-institution-scoped observations: MIT USD 53,450 annual domestic/international
-tuition and Cornell USD 59,282 annual domestic/international tuition. The
-generic cycle parser now requires a source-explicit, consecutive academic
-range; all Scorecard assertions keep `academic_cycle=null` and retain their
-native rolling-cohort/retrieval context. The unchanged H1--H4 engine evaluated
-the accepted Scorecard plus swissuniversities evidence and abstained safely:
-no H2 transfer met its existing degree compatibility gate. Focused tests,
-including the cache/provenance and cycle regressions, passed 251/251. No
-acceptance, hierarchy, uncertainty, storage, promotion, canonical-truth, or
-Benchmark V3 behavior changed. Details:
-[`external-field-provider-pass-20260912/report.md`](architecture/data/external-field-provider-pass-20260912/report.md).
-
-Working tree 2026-09-12 external field-bearing provider pass: verified and
-configured four field-bearing external records without changing evidence
-resolution, semantic acceptance, hierarchy, uncertainty, or storage. The
-existing Scorecard bulk route now materialises exact-`UNITID` annual domestic
-and out-of-state tuition fields; Common App materialises Cornell's exact-name
-2026â€“27 first-year grid row; CRICOS materialises the exact UNSW course-code
-record (tuition, non-tuition fee, credential/status context); and a new
-declarative swissuniversities partner record materialises ETH Zurich's current
-2026â€“27 tuition/compulsory-fee row. Focused external tests pass 65/65 and
-configuration/compilation checks pass. The required remote bounded run was
-stopped: Mongo Atlas TLS handshakes failed, so durable raw evidence could not
-be persisted. No local fallback, semantic assertion, hierarchy evaluation,
-promotion, commit, or push occurred. Details:
-[`external-field-provider-pass-20260912/report.md`](architecture/data/external-field-provider-pass-20260912/report.md).
-
-Follow-up runtime diagnosis, 2026-09-12: the loaded `MONGODB_URI` resolves to
-an `atlas-sql-â€¦query.mongodb.net` Atlas SQL-interface endpoint, not a MongoDB
-database-deployment driver endpoint. DNS, TCP/27017, and certificate-verified
-TLS 1.3 succeed, but the endpoint closes immediately when PyMongo sends its
-MongoDB handshake; increasing selection timeouts and supplying certifi's CA
-bundle do not change that result. The ingestion factory currently also rejects
-the loaded `.env.local` because it contains no configured object store. No URI,
-certificate-verification setting, storage mode, provider, or pipeline code was
-changed; the pass must resume only after the environment supplies the correct
-Atlas database driver URI/authorized database user and the existing durable
-object-store configuration. Details are appended to the external-provider
-report.
-
-Main-environment rerun, 2026-09-12: using the ignored `main` worktree's
-`.env.local` (not this feature worktree's incomplete environment), the same
-application raw-store factory passed connect/write/read/delete and the unchanged
-external-provider run completed all 6 institutions (116 fetched sources, 110
-DeepSeek calls). Two Scorecard archives were durably stored and bounded rows
-matched MIT and Cornell; swissuniversities was durably stored and reached 11
-semantic proposals. No external assertion was accepted: Scorecard
-materialisation produced no semantic proposal, while swissuniversities' four
-effective values remained `NEEDS_REVIEW`. Common App and CRICOS were blocked
-by their own robots policies. External H1--H4 activation and usable external
-donors remain zero. The task report records the exact trace and artifacts.
-
-External field-provider final replay, 2026-09-13: the bounded, external-only
-MIT/Cornell/ETH run used only College Scorecard and swissuniversities (no
-university pages, Common App, or CRICOS). Three raw sources persisted through
-the remote rail: exact MIT and Cornell Scorecard `UNITID` rows plus the exact
-ETH table row. Scorecard now produced four institution-scoped annual USD
-tuition proposals, preserving the source-native `Most-Recent-Cohorts` snapshot
-and retrieval time with `academic_cycle=null`; its matched records expose no
-reporting/academic-year field. They remain review-only because the pre-existing
-best-assertion cache chose earlier cached bundles without usable current raw
-bindings, not because of missing materialisation or semantic extraction.
-swissuniversities produced and accepted three institution-scoped observations:
-CHF 730 domestic tuition/semester, CHF 2,190 foreign tuition/semester, and CHF
-74 compulsory fees/semester, all 2026-27. The narrow external-identity gate
-fix was verified live. A semantic-cache correction now fingerprints the
-bounded materialised source window, preventing stale responses from hiding
-external row-context repairs. Final artifacts are in
-`architecture/data/external-field-provider-pass-20260912/runs/external-field-provider-pass-scorecard-swiss-final-20260913/`;
-focused tests passed 82/82, config validation and compilation passed. Common
-App and CRICOS remain intentionally out of this replay due to robots policy.
-
-Working tree 2026-09-12 field-bearing source research and bounded refresh:
-Direct inspection verified 14 field-bearing official resources for the frozen
-MIT, Cornell, ETH Zurich, Sorbonne, UNSW, and NTU population, rejected six
-non-useful or incompatible candidates, and recorded four existing verified
-resources that did not need duplication. The refresh config adds those
-resources to the ordinary bounded `manual_source` path; no new provider
-adapter or downstream resolver/hierarchy change was needed. The run covered
-6 institutions and 12 programme targets, fetched 134 sources, persisted nine
-of the 14 newly verified resources, and produced 30 new non-null effective
-field observations. Across the run there are 236 effective non-null rows,
-94 accepted native `OBSERVED` rows, and 142 non-null rows still needing
-review. Newly accepted values include scholarships (3), minimum degree (1),
-application fee (1), programme identity (1), and programme status (1); no
-new programme-level tuition value was accepted. Accepted tuition remains five
-institution-scoped observations, with no independent H3/H4 tuition donor.
-The unchanged hierarchy evaluation has zero accepted-only tuition direct,
-H1, H2, H3, or H4 activations and 12/12 tuition abstentions; its diagnostic
-all-non-rejected pool has one H2 tuition activation and no H1/H3/H4 donor.
-The bounded run made 73 provider calls with three isolated failures and no
-provider-auth failures; the verified MIT pages at `mitadmissions.org` were
-rejected by the existing domain policy and Cornell's stipend page was blocked
-by robots, so these are input acquisition gaps rather than relaxed safety
-gates. The existing acquisition/source-resolution/semantic-acceptance,
-hierarchy, uncertainty, storage, promotion, and benchmark rails were not
-changed. Deterministic source-selection/adapter/ecosystem tests pass 29/29.
-Artifacts: [`field-bearing-source-refresh-20260912/report.md`](architecture/data/field-bearing-source-refresh-20260912/report.md),
-[`source-research-ledger.json`](architecture/data/field-bearing-source-refresh-20260912/source-research-ledger.json),
-[`analysis/refresh-results.json`](architecture/data/field-bearing-source-refresh-20260912/analysis/refresh-results.json),
-and [`analysis/hierarchical-evaluation.json`](architecture/data/field-bearing-source-refresh-20260912/analysis/hierarchical-evaluation.json).
-
-Working tree 2026-09-12 evidence-resolution resolver replay rerun: The shared
-alignment, source-proven scope binding, and exact-source provenance repair path
-was replayed against the frozen `routed-refresh-20260912` input after adding
-structured parser row/header/section metadata support. Results are unchanged:
-38 accepted observations became 83 (45 newly accepted), 113 review rows remain,
-and eight hard rejections remain. The replay aligned 106 spans, bound 107
-source/entity contexts, and repaired 105 provenance chains; H2 activated 8
-times, H1/H3/H4 stayed at zero, and usable tuition donors stayed at zero.
-Focused tests pass 64/64 and the complete ingestion suite passes 608/608.
-No acquisition, network, LLM, database write, promotion, estimator, commit, or
-push occurred. Artifacts: [`evidence-resolution-replay-20260912-rerun/report.md`](architecture/data/evidence-resolution-replay-20260912-rerun/report.md).
-
-Working tree 2026-09-12 evidence-resolution replay: A shared deterministic
-resolver now aligns retained evidence spans/rows, binds only source-proven
-programme or organisation scope, and repairs missing provenance from an exact
-source binding. The frozen `routed-refresh-20260912` replay changed 38 accepted
-observations to 83 (45 newly accepted), reduced review rows 166 to 113, and
-kept eight hard rejections. Newly accepted rows are 37 scholarships, 3 tuition,
-2 minimum-degree, 1 additional-fees, 1 minimum-GPA, and 1 TOEFL; no new faculty
-unit was fabricated. H1/H3/H4 remain zero and H2 remains eight, with zero
-usable tuition donors. Remaining cases are chiefly explicit-value/basis,
-currency, and unresolved row alignment gaps. Focused tests pass 52/52 and the
-complete ingestion suite passes 605/605. No acquisition, LLM, database write,
-promotion, commit or push occurred. Artifacts:
-[`evidence-resolution-replay-20260912/report.md`](architecture/data/evidence-resolution-replay-20260912/report.md).
-
-Working tree 2026-09-12 retained semantic metadata reconciliation: A deterministic same-source pass now recovers explicit table/title context before semantic acceptance, without acquisition or LLM calls. On the frozen `routed-refresh-20260912` sample it normalised 24 cycle values, verified 8 explicit USD contexts, and converted 6 explicit academic-year fee contexts to `per year` while retaining their raw basis. It attached no audience or organisation-unit metadata because the source proof/entity bindings are absent; bare-dollar amounts remain currency-unknown. Accepted assertions stayed 78, with 118 review rows; H1/H3/H4 stayed zero, H2 stayed eight, and usable tuition donors stayed zero. Focused tests pass 69/69 and the complete ingestion suite passes 542/542. No acquisition, LLM, database write, promotion, commit or push occurred. Details: [`semantic-metadata-reconciliation-replay-20260912/report.md`](architecture/data/semantic-metadata-reconciliation-replay-20260912/report.md).
-
-Working tree 2026-09-12 broader-scope semantic acceptance replay: The
-source-bound acceptance policy now separates fact validity from target
-applicability. It accepts explicit institution/organisation observations at
-their proven scope, retains unknown context as null/UNKNOWN, keeps bare dollar
-symbols without inventing USD, and preserves historical state. On the unchanged
-`routed-refresh-20260912` sample, accepted rows rose from 72 to 78 (77 unique),
-with review rows falling 124 to 118; this is 40 newly accepted rows compared
-with the frozen pre-acceptance input. H1â€“H4 was unchanged: H2 activations
-remain 8, H1/H3/H4 remain 0, and the newly accepted currency-unknown tuition
-facts are intentionally ineligible as compatible numerical donors. Five
-faculty/school observations remain review-only because the retained run does
-not provide a verified organisation-unit entity. Focused tests pass 65/65 and
-the full ingestion suite passes 538/538. No acquisition, LLM calls, DB writes,
-promotion, commit, or push occurred. Artifacts:
-[`semantic-acceptance-broader-scope-replay-20260912/report.md`](architecture/data/semantic-acceptance-broader-scope-replay-20260912/report.md).
-
-Working tree 2026-09-12 acceptance replay: A source-bound semantic acceptance
-pass now accepts explicit native observations at their supported scope while
-leaving optional context UNKNOWN. On the unchanged routed-refresh sample,
-166 effective review proposals became 34 newly accepted, 124 still needing
-review and 8 hard rejected. Accepted rows increased 38 to 72 (71 unique IDs):
-37 programme-scoped and 35 institution-scoped, all official-web sourced.
-No new tuition value was accepted. Unchanged H1-H4 increased H2 activations
-from 1 to 8; H1/H3/H4 remain 0. Direct coverage is 31/361 target-field pairs;
-322/330 pairs lacking usable direct evidence still abstain. Raw snapshots
-with hash mismatches and unsupported excerpts remain blocked. No acquisition,
-LLM calls, DB writes or promotion ran. Full ingestion tests: 533 passed,
-including 30 new acceptance tests; targeted compileall and diff checks pass.
-Report and reproducible replay artifacts:
-[`semantic-acceptance-replay-20260912/report.md`](architecture/data/semantic-acceptance-replay-20260912/report.md).
-
-Working tree 2026-09-12: The field-aware provider-routing refresh reused the
-frozen 10-institution/20-target population (19 live programmes) and routed
-requested fields through the configured external ecosystem before the existing
-official-source selection path. It made 30 external fetch events and retained
-28 external raw source rows: UNESCO UIS 10, Eurostat 2, ABET 10, Common App 5,
-and CRICOS 1; two Singapore government requests were blocked by robots. All
-111 DeepSeek calls completed without provider failures. External sources added
-0 accepted field-valued `OBSERVED` assertions: the 38 accepted values remain
-official-web sourced, so tuition is still 0/19 strict explicit and H1/H3/H4
-remain inactive; unchanged H1-H4 produced one H2 `intakes` decision. The
-refresh preserved institution/national scope when programme linking was not
-supported, search/archive safety, and zero heavy local files with
-`max_local_temp_bytes=0`. Artifacts:
-[`field-aware-provider-routing-refresh-20260912/analysis/provider-routing-report.md`](architecture/data/field-aware-provider-routing-refresh-20260912/analysis/provider-routing-report.md)
-and [`provider-routing-summary.json`](architecture/data/field-aware-provider-routing-refresh-20260912/analysis/provider-routing-summary.json).
-Focused routing/external/semantic/hierarchy tests pass 91/91 and the complete
-ingestion suite passes 503/503; the provider field-group analysis attributes
-fetches from candidate-level expected groups rather than the entity-wide
-intent group set.
-
-Working tree 2026-09-11: The field-aware input pipeline was exercised on the
-frozen ten-institution/20-target population across US, Canada, Switzerland,
-France, Australia, and Singapore. The bounded live refresh acquired 19 targets
-(one Toronto URL was rejected by the existing official-domain gate), fetched 94
-sources, and made 38 traced DeepSeek extraction calls; 38 succeeded, with one
-isolated career-outcomes group schema failure recovered as a bounded provider
-failure. Strict semantic review yielded 231 native `OBSERVED`/`RULE_VALIDATED`
-values, 230 non-null values needing review, and 55 rejected proposals. Identity,
-credential, programme focus, curriculum, learning outcomes, and career outcomes
-improved materially, but accepted tuition remained 0/19 and accepted
-deadline/language/funding values remained sparse. Unchanged H1-H4 evaluation
-found one H3 activation (`specialisations`) and one H2 activation
-(`application_url`); no tuition donor or H1/H4 donor was available, so tuition
-hierarchical abstention was 19/19 and accuracy/calibration were not measurable.
-The post-patch one-target metadata smoke confirmed `source_class=official_web`
-and `adapter_id=manual_source` on newly retained source rows. OpenCode's
-independent review found no critical regression; it noted that the refresh
-artifacts predate that metadata patch and that audience/currency/unit/basis
-tests remain follow-up coverage. Artifacts:
-[`field-aware-refresh-20260911/analysis/report.md`](architecture/data/field-aware-refresh-20260911/analysis/report.md),
-[`field-aware-refresh-20260911/runs/semantic-20260911`](architecture/data/field-aware-refresh-20260911/runs/semantic-20260911),
-and [`field-aware-refresh-20260911/runs/metadata-smoke-20260911`](architecture/data/field-aware-refresh-20260911/runs/metadata-smoke-20260911).
-Focused field-aware/raw/hierarchy tests pass 45/45; the broader selected
-ingestion regression suite passes 147/147, the complete ingestion suite passes
-500/500, and compileall passes. A legacy source-bundle ordering regression
-found by the full suite was fixed narrowly: targeted runs retain field-ranked
-prefetch while un-targeted curated bundles retain declared order. No canonical,
-promotion, benchmark, storage-rail, or inference logic was changed.
-
-Working tree 2026-09-11: The opt-in tuition-only semantic extraction bridge
-was rerun against the same frozen retained sample with the configured DeepSeek
-provider. One smoke request and 20 target requests returned valid payloads
-(21/21 calls successful; 0 HTTP 401/402/429 or provider failures). The strict
-contract produced 0 native `OBSERVED` assertions: all 20 targets abstained
-because retained sources did not explicitly publish tuition (17 no-fee warnings,
-3 finance identity-mismatch warnings), with 0 schema failures and 0 unsupported
-fact rejections. H1-H4 evaluation ran unchanged with an empty observed donor
-pool, yielding 0% direct coverage, 0 activation at every level, and 20/20
-hierarchical abstentions; support, dispersion, conflict, and uncertainty by
-level were not measurable. Artifacts:
-[`semantic-tuition-experiment-20260911T062743Z-deepseek`](architecture/data/semantic-tuition-experiment-20260911T062743Z-deepseek/report.md).
-Focused semantic and hierarchy tests pass 11/11 and 19/19. No acquisition,
-estimator, promotion, benchmark, or canonical truth mutation ran.
-
-Working tree 2026-09-11: An opt-in hierarchical donor inference rail now
-supports the explicit H1 parent-organisation, H2 institution, H3 sibling
-programme, and H4 peer-institution ladder. Only native observed, compatible,
-lineage-independent donors are eligible; direct target assertions win and
-same-level conflicts abstain unless values are numerically comparable, in
-which case a weighted robust median is retained with conflict metadata. New
-`InferenceRecord` metadata preserves donor IDs, policy lineages, hierarchy
-distance, similarity, support, dispersion, cycle/applicability compatibility,
-and decomposed heuristic uncertainty. Product-safe and promotion semantics
-remain unchanged; hierarchical evaluation of the retained topology is limited
-to availability because it contains no semantic assertion values. The focused
-hierarchy suite passes 19/19 and the broader 291-test ingestion regression
-selection passes. Details: [hierarchical inference evaluation](architecture/data/hierarchical-inference-evaluation-20260911/report.md).
-
-Working tree 2026-09-10: The verified Supabase schema includes the additive
-`crawl_external_structured_rows` staging table with provider/dataset, source
-authority/relationship, raw object/hash, archive member, bounded-row, and
-lineage columns. The durable Scorecard validation persisted the remote ZIP,
-Mongo raw metadata/provenance, and 100 bounded structured rows to that table
-with `max_local_temp_bytes=0`; no full ZIP or CSV member was written locally.
-The multi-source topology run reused this validated remote raw/staging rail and
-kept all external resources out of canonical truth and assertion promotion.
-
-Working tree 2026-09-10: The bounded multi-source population topology
-experiment froze 13 institutions across 8 countries/4 regions and made 143
-bounded HTTP requests through the external-source registry and
-`external_source_expansion` planner. It produced 48 provenance-complete raw
-evidence edges across 7 yielding source classes, with 10 institutions having
-multiple yielding classes; E0/E2/E4 paths were observed, while E1/E3 and
-Arquivo.pt had no yield in this sample. Heavy local raw files were 0,
-`max_local_temp_bytes=0`, search snippets yielded 0 factual assertions, and
-archive current-truth promotion was 0. A catalogue propagation defect found in
-the first pre-fix attempt was repaired narrowly and the post-fix run passed
-89/89 focused deterministic tests. Artifacts:
-[`docs/architecture/data/multi-source-population-topology-20260910-run2/report.md`](architecture/data/multi-source-population-topology-20260910-run2/report.md).
-Decision: A â€” topology sufficient for next phase; semantic extraction is the
-next separately authorized phase.
-
-Working tree 2026-09-10: Large external raw resources now have a no-local-copy
-streaming path. Configured heavy candidates use `SafeFetcher.fetch_stream`,
-incremental hashing, and direct S3/Supabase object-store upload; Mongo retains
-only raw metadata and a durable object locator. ZIP parsing uses bounded remote
-range reads, so the Scorecard archive and CSV member are not written to the
-local run directory or loaded as whole payloads; unselected ZIP members are
-metadata-only. Bounded structured rows retain
-raw/provider/dataset/member/run lineage and can be written to the additive
-`crawl_external_structured_rows` Supabase staging table. The JSONL file remains
-only a debug/import artifact for previously materialised runs. `CrawlLimits`
-exposes an 8 MiB large-object threshold and a zero default local-temp cap;
-heavy resources fail explicitly when durable streaming
-storage is unavailable, and even local shadow calls reject heavy candidates
-without a remote durable store. Deterministic heavy-stream tests passed 12/12;
-the focused ingestion suites passed 124/124 together and compileall passed.
-No live validation or production database write was run. Details:
-[no-local-heavy-raw-persistence-20260910.md](architecture/no-local-heavy-raw-persistence-20260910.md).
-
-Working tree 2026-09-10: The College Scorecard bulk `NO_YIELD` caused by its
-221 MB `Most-Recent-Cohorts-Institution.csv` member is repaired without
-changing the provider URL or global ZIP limits. An explicitly configured
-structured-member path streams the CSV through bounded buffered iteration,
-supports UNITID filtering, falls back to a deterministic 100-row sample when
-no identifier is available, and records explicit partial-result metadata.
-Derived rows are persisted in `structured_archive_members.jsonl` with provider,
-dataset, ZIP locator/hash, member, raw-document, cycle, and run lineage. One
-bounded live request returned HTTP 200, persisted the raw ZIP and a usable
-`SourceDocument`, and retained 100 rows (`partial=true`, `bounded_reason`:
-`sample_rows`). Focused tests passed 45/45, source/regression tests 30/30, core
-acquisition/worker regressions 210/210, and compileall passed. Details:
-[scorecard-large-csv-handling-20260910.md](architecture/scorecard-large-csv-handling-20260910.md)
-and [live run artifacts](architecture/data/scorecard-large-csv-live-recheck-20260910/).
-
-Working tree 2026-09-10: The seven-provider configuration repair recheck made bounded live requests through the production registry, planner, SafeFetcher, resolver, and local raw/staging paths. UNESCO UIS, Crossref, USDOE affordability, Discover Uni/HESA, and data.europa.eu returned HTTP 200 resources that were persisted with provider/dataset/source metadata. College Scorecard bulk returned HTTP 200 and its raw ZIP was retained, but the existing bounded parser rejected the 221 MB CSV member before a SourceDocument row; this was recorded as NO_YIELD. Data.gov US returned HTTP 403 without DATAGOV_API_KEY (CREDENTIAL_REQUIRED). Counts: SUCCESS 5, CREDENTIAL_REQUIRED 1, UPSTREAM_BLOCKED 0, NO_YIELD 1, BAD_CONFIG 0, CODE_BUG 0. The data.europa.eu package-show URL template and admitted search-JSON parser path were added narrowly; search candidates remain snippet-only and no assertions or promotion ran. Focused deterministic tests passed 41/41, source/regression tests 30/30, and compileall passed. Details: [external-provider-config-repair-20260910.md](architecture/external-provider-config-repair-20260910.md) and [audit-result.json](architecture/data/external-provider-repair-live-recheck-20260910/audit-result.json).
-
-Working tree 2026-09-10: The bounded live audit of the 21 enabled replacement external providers made 51 bounded HTTP requests (39 acquisition calls plus 12 endpoint checks) through the production registry, external_source_expansion planner, SafeFetcher, resolver, and local raw/staging paths. Usable raw resources were persisted for Eurostat, EQAR, CRICOS, anabin, EQAR accreditation, ABET, JABEE, Common App, and OpenAlex. Japan e-Stat returned an authentication-error JSON body (CREDENTIAL_REQUIRED) and its response was retained; IPEDS, Singapore, CHEA, and Arquivo.pt were upstream blocked. Seven enabled entries remain BAD_CONFIG: UNESCO required geoUnit/indicator parameters, Crossref sent unsupported page pagination, both Scorecard bulk entries used a 404 locator, Discover Uni redirected outside its admitted domain, and the data.europa.eu/Data.gov catalogue endpoints returned 400/404. Counts: SUCCESS 9, CREDENTIAL_REQUIRED 1, UPSTREAM_BLOCKED 4, NO_YIELD 0, BAD_CONFIG 7, CODE_BUG 0. Search remained discovery-only, archives remained HISTORICAL by adapter semantics, no fixture adapter/LLM/assertion/promotion activity occurred, and focused deterministic tests passed 69/69. Details: [replacement-external-source-live-audit-20260910.md](architecture/replacement-external-source-live-audit-20260910.md) and [audit-result.json](architecture/data/replacement-external-live-audit-20260910/audit-result.json).
-
-Working tree 2026-09-10: The blocked-provider replacement implementation is
-complete without live acquisition. The default external-source catalogue now
-uses IPEDS official bulk ZIPs, College Scorecard bulk data, US Department of
-Education affordability/cost data, HESA/Discover Uni structured data, Crossref,
-Arquivo.pt, data.europa.eu, and Data.gov discovery. College Scorecard API,
-UCAS, ROR, Internet Archive, and Bing remain catalogue entries but are disabled
-optional fallbacks; the former IPEDS live endpoint is retained as an optional
-legacy entry. Generic provider configuration now carries supported formats,
-bounded byte limits, and discovery dataset identity; XML/ZIP parsing and
-indexed catalogue-resource paths are deterministic and provenance-preserving.
-Focused external tests pass 34/34, source-adapter tests 11/11, ecosystem tests
-3/3, the core ingestion suite 185/185, and the full discoverable ingestion
-suite 424/424. No live request, LLM,
-estimator, topology experiment, benchmark, promotion, inference, canonical
-truth, Remediation 13, commit, or push was performed. Details:
-[provider-replacement-implementation-20260910.md](architecture/provider-replacement-implementation-20260910.md).
-
-Working tree 2026-09-10: The bounded live external-source audit was rerun after
-the Eurostat fix. Eleven configured providers made 31 requests: 5 `SUCCESS`,
-2 `CREDENTIAL_REQUIRED`, 4 `UPSTREAM_BLOCKED`, and zero `NO_YIELD`,
-`BAD_CONFIG`, or `CODE_BUG`. Eurostat (`eurostat_education`) returned HTTP 200
-and persisted JSON with `government_dataset` / `GOVERNMENT` / `GOVERNMENT`,
-provider and dataset provenance. CRICOS, EQAR, ABET, and OpenAlex also
-retrieved and persisted external raw resources. All providers were registered
-and planner-selectable; Bing was tested only through an in-memory override
-because its catalogue entry is disabled pending credentials. Search remained
-discovery-only, archive candidates remained historical by deterministic
-semantics, no fixture adapter or LLM/provider extraction/assertion/promotion
-activity occurred, and focused deterministic tests passed 70/70. Details:
-[production-external-source-acquisition-live-audit-rerun-20260910.md](architecture/production-external-source-acquisition-live-audit-rerun-20260910.md)
-and [external-source-live-audit-rerun-20260910.json](architecture/data/external-source-live-audit-rerun-20260910.json).
-
-Working tree 2026-09-10: The Eurostat external-source BAD_CONFIG finding is
-fixed at the provider catalogue layer. The invalid offset pagination that
-generated `startPeriod=0&limit=100` was removed; Eurostat now receives
-`format=JSON`, `lang=en`, and a seed-derived `geo` filter. The generic
-pagination adapter was unchanged. A bounded live pipeline check made three
-protected requests, retrieved HTTP 200 JSON (110,098 bytes), persisted one
-local raw resource, and recorded `DISCOVERED`, `ADMITTED`, and `RAW_PERSISTED`
-with `government_dataset` / `GOVERNMENT` / `GOVERNMENT`, provider
-`eurostat_education`, and dataset `educ_uoe_enrt01`. Focused deterministic
-tests pass 70/70; no LLM, estimator, topology experiment, benchmark,
-promotion, inference, Supabase write, commit, or push was performed. Details:
-[production-external-source-acquisition-eurostat-fix-20260910.md](architecture/production-external-source-acquisition-eurostat-fix-20260910.md).
-
-Working tree 2026-09-10: A bounded live external-source audit exercised 11
-configured providers across government datasets, official registry,
-accreditation, partner, trusted external, archive, and search classes. CRICOS,
-EQAR, ABET, and OpenAlex retrieved and persisted real external raw resources;
-IPEDS, UCAS, ROR, and Wayback were blocked by robots/upstream limits; Scorecard
-and Bing require credentials; and the Eurostat catalogue pagination is a
-BAD_CONFIG defect (the endpoint itself returned 200 with a valid bounded
-filter). The normal OpenAlex pipeline path emitted one provenance-complete
-`sources.jsonl` staging row. Search remained discovery-only and archive
-semantics remained HISTORICAL. Targeted deterministic checks passed 69/69; no
-code, benchmark, inference, promotion, estimator, topology, LLM, Supabase
-write, commit, or push was performed. Details:
-[production-external-source-acquisition-live-audit-20260910.md](architecture/production-external-source-acquisition-live-audit-20260910.md).
-
-Working tree 2026-09-10: The production external-source acquisition
-implementation is complete in the working tree. The provider catalogue now
-drives reusable government/national dataset, official registry, accreditation,
-official partner/consortium, trusted external dataset, bounded archive, and
-pluggable HTTP search/discovery pathways. Provider/resource identifiers,
-collection years, resolution, pagination, rate limits, authentication
-descriptors, source authority/relationship, temporal state, and archive lineage
-flow through candidates, attempts, raw evidence, source graph artifacts, and
-additive Supabase staging metadata. The external-source-expansion planner and
-source-class execution states are explicit; query credentials are resolved only
-at fetch time and scrubbed from persisted locators; search snippets remain discovery
-only and archive resources remain HISTORICAL. The catalogue contains 27 entries
-(21 enabled; 6 optional/disabled) across US, Europe, Asia, Australia, the UK,
-and global providers.
-Deterministic validation only: focused external tests pass 26/26, the targeted
-source/acquisition/raw/Supabase regression set passes 43/43, and the complete
-data-ingestion unit suite passes 427/427. No live validation, smoke or
-integration acquisition, LLM/provider call, estimator, topology experiment,
-Benchmark V3, promotion, inference, canonical truth, or Remediation 13 work
-was run or changed in this implementation pass. Runtime validation remains a
-separate authorized task because optional credentials, upstream availability,
-archive/search policies, and partner access may be required. Details:
-[production-external-source-acquisition.md](architecture/production-external-source-acquisition.md).
-
-Working tree 2026-09-09: Production external-source acquisition is now wired
-through an explicit provider catalogue and registry. The new generic adapters
-cover government JSON/CSV/structured resources, official registries,
-accreditation, partners, trusted external sources, configured HTTP search, and
-bounded historical archive resources; IPEDS and College Scorecard use their
-existing specialized contracts. A bounded live OpenAlex check made 3 HTTP
-requests, persisted 1 external JSON raw resource, and made 0 LLM/provider
-calls. The persisted source is labelled `external_authoritative`,
-`TRUSTED_AGGREGATOR`, `CATALOGUE_PROVIDER`, provider `openalex`, dataset
-`openalex-institutions`. Focused external-acquisition tests pass 13/13,
-source/acquisition/raw regressions pass 38/38, the full ingestion suite passes
-403/403, and compileall passes. Search
-and partner providers remain unconfigured; registry/accreditation and archive
-paths are configured but were not live-fetched in this bounded check. Report,
-config, migration, and isolated validation artifacts are under
-`docs/architecture/production-external-source-acquisition.md` and
-`docs/architecture/data/external-source-live-smoke-20260909c/`. No estimator,
-Benchmark V3, promotion, inference, canonical truth, Remediation 13, commit,
-or push changed. Verdict: B - partially ready, specific external classes still
-blocked.
-
-Working tree 2026-09-09: The bounded live tuition population/topology
-experiment is complete. The frozen manifest contains 40 targets at 20
-institutions and is preserved at
-`docs/architecture/data/tuition-live-population-topology-manifest.json`.
-The run used 162 source-resource attempts and 119 HTTP requests, persisted 29
-HTML and 7 PDF documents, and made 0 LLM/provider calls. Effective topology
-coverage was E0 29/40 (72.5%), E1 2/40 (5.0%), E2 1/40 (2.5%), E3 12/40
-(30.0%), and E4 0/40; 13/40 targets had a target-relative independent non-E0
-path, while only 2/40 had at least two independent non-E0 paths. Government,
-API, archive, partner, accreditor, and aggregator documents were not
-persisted. No estimator, assertion, product, Benchmark V3, promotion, or
-Remediation 13 behavior changed. The report and isolated run artifacts are
-under `docs/architecture/tuition-live-population-topology-*`. Verdict:
-C â€” topology sparse / limited.
-
-Working tree 2026-09-09: The bounded tuition hierarchical proof-of-strategy test
-is complete. The frozen 12-target population was preserved. One capped tranche
-used 24/24 official HTML/PDF requests and 0 provider calls; it added 0
-independent compatible donors. The donor yield was zero at every 4-request
-checkpoint, so the mandatory donor gate failed and estimators were not run.
-The acquisition ledger, donor graph, machine-readable strategy audit and report
-are under `docs/architecture/data/tuition-hierarchical-proof-of-strategy-*`
-and `docs/architecture/tuition-hierarchical-proof-of-strategy.md`. No target
-label, production code, Benchmark V3, Remediation 13, promotion semantics,
-commit or push was changed. Strategy verdict: D â€” not supported for tuition.
-
-Working tree 2026-09-09: The tuition hierarchical label/donor sufficiency
-extension is complete as an offline audit. Retained evidence across 32 run
-inventories (5,006 source rows, 925 URL/content-hash versions, 232 URLs and
-301 effective tuition assertions) produced 12 conservative exact tuition
-targets, 10 independent target policy clusters and 6 institutions. Zero
-independent compatible donors survive policy-lineage holdout; one Harvard
-same-source sibling is row-only exploratory. The frozen dataset and manifest
-are `docs/architecture/data/tuition-hierarchical-label-donor-sufficiency.json`
-and `...-freeze.json`; the report is
-`docs/architecture/tuition-hierarchical-label-donor-sufficiency-audit.md`.
-No estimator rerun, production change, Benchmark V3 change, new acquisition,
-provider call, commit or push was made. Decision: bounded acquisition is
-justified (D); authorization is required before the proposed tranche.
-
-Working tree 2026-09-08: Remediation 13 is implemented locally as an
-operational-reliability change and has not been committed or pushed. The
-sealed Official Run #8 output remains unchanged at SHA-256
-`87ec1dc88da485c746edbca5615cf00c7543cf3111a66d2949fcb6f4fd4bf74f`. The
-read-only D3/E9/C30 analysis used 0 provider calls, 0 refetches, and 0 new
-URLs. Generic bounded source recovery, same-authority programme-scope
-filtering, provider fact isolation, context-group isolation, persisted
-provider metrics, and non-retryable 401/402 handling are implemented. The
-first healthy 12-row smoke exposed one wrong-scope concrete identity (3/4
-concrete precision); the follow-up smoke was terminal but blocked by systemic
-DeepSeek HTTP 402. The final deterministic tests pass, but a healthy-provider
-smoke after the final fix is still required. Full ingestion passes 398/398;
-Remediation 13 tests pass 9/9; frozen preflight/scorer tests pass 19/19;
-Benchmark V3 and Runs #1-#8 integrity checks pass. FULL BENCHMARK RUN #9 is
-**BLOCKED** pending that smoke and a later clean checkpoint. Slice F remains
-**NO-GO**.
-
-Working tree 2026-09-07: The Phase 3F V3 execution checkpoint repair is
-committed and pushed at `7e4b840e011c4b616304bcc69eca7a2c92857d8c`. A fresh
-clean checkout at that commit passed the no-provider preflight. The
-V3 runner now selects the frozen GT v3, roster v2, V3 freeze manifest, and
-Scorer Contract v2; it generates `phase3f-v3-run-*` IDs and fails closed on
-missing or mismatched manifest artifacts. A no-provider preflight and frozen
-Scorer-v2 compatibility test pass (19 focused tests); the full ingestion suite
-passes 369/369, compileall passes, all 13 manifest-referenced JSON/JSONL files
-parse, and official Run #1â€“#4 output hashes remain unchanged. Development-tree
-preflight made 0 provider calls. The exact missing historical inputs were
-restored unchanged by their frozen hashes; the clean checkout reports
-`dirty_worktree=false`, and Benchmark #5 has not been run.
-The scoped repair diff is whitespace-clean. The restored roster retains three
-intentional Markdown hard-break spaces required by its frozen byte hash, so a
-full Git whitespace check reports only those preserved historical lines. Slice
-F remains **NO-GO** pending explicit authorization for Benchmark #5. A subsequent
-clean-checkout probe exposed Windows `core.autocrlf` conversion on the
-manifest-referenced V2 lineage files; path-specific checkout attributes now
-preserve each file's manifest-recorded LF/CRLF bytes without changing any
-artifact content.
-The final clean probe then advanced through the V2 lineage and found the
-manifested machine-scorer script and two tracked V2 JSON files needed exact
-byte-preservation treatment; those packaging-only rules and verified bytes are
-now included before the final clean probe.
-
-Working tree 2026-09-06: Remediation 9 corrected the six known true quality
-patterns under frozen Benchmark V3 without changing GT v3, Scorer v2, the V3
-freeze manifest, or official Runs #1â€“#4. The offline replay
-`phase3f-remediation9-six-failure-replay-20260906T090216Z` changed all six
-incorrect concrete FOUND values to `NEEDS_REVIEW`: 0 incorrect FOUND remain.
-All 24 canonical-equivalent identity controls stayed FOUND, while the one
-Contract-v2 ambiguous identity stayed unresolved. The bounded 9-case targeted
-smoke `phase3f-remediation9-targeted-smoke-20260906T090318Z` produced 2
-evidence-audited FOUND controls and 7 NEEDS_REVIEW cases, with 100% precision
-among concrete FOUND values. It used persisted Run #4 evidence only: 0
-provider calls, 0 refetches, and 0 new URLs.
-
-The generic fixes are deterministic identity-granularity guards for pre-major,
-department-only, parent/child, and mutually exclusive MS/PhD scope; tuition
-billing/annual-scope guards; and an admissions-semantic guard that rejects
-qualifying-discipline/application-component text without explicit admission
-prerequisite semantics. Focused tests pass 30/30 and the full ingestion suite
-passes 363/363. All seven zero-tolerance counters remain 0. Benchmark #5 was
-not run; Slice F remains **NO-GO** pending explicit authorization.
-
-Working tree 2026-09-06: Phase 3F ground-truth adjudication audit completed for
-exactly the 28 Run #4 `programme_identity` cases that were runtime `FOUND` but
-scored incorrect. The blind Pass-1 artifact was sealed before GT/runtime reveal
-(28/28 unique, SHA-256
-`7c6f58d56add1fbefa8dade85fa7cca35cab71c2467ea797430065b8b3452251`). Pass 2
-found 20 `CANONICALIZATION_MISMATCH`, 6 `IDENTITY_GRANULARITY_MISMATCH`, 1
-`SCORER_CONTRACT_MISMATCH`, and 1 `GENUINELY_AMBIGUOUS`; no GT-wrong,
-GT-stale, runtime-wrong, or both-wrong cases were independently established.
-GT was semantically supported in 27/28 cases with sufficient evidence (27/27
-among the non-ambiguous subset), but representation disagreement was systemic
-(27/28). The decision gate is **GT_V2_IDENTITY_CONTRACT_INCONSISTENT**. No GT,
-scorer, pipeline, official run, or benchmark was modified. Details:
-`docs/benchmarks/2026-09-06-phase3f-programme-identity-ground-truth-audit.md`.
-Slice F remains **NO-GO**; benchmark #5 and Remediation 9 were not run.
-
-Working tree 2026-09-05: Official frozen V3 benchmark run #4,
-`phase3f-v2-run-20260905T161914Z`, executed all 36 frozen programme rows and
-sealed/scored the output with the unchanged scorer contract. Direct DeepSeek
-was used at `https://api.deepseek.com` with `deepseek-v4-flash`, reasoning
-`none`; 36/36 programmes and 362/362 fetched sources completed, with 288
-logical requests, 281 successful calls, 0 retries, and 0 HTTP 429. The run
-sealed 1,756 assertions (665 effective non-null values) and projected 31
-`FOUND`, 158 `NEEDS_REVIEW`, 49 `ACCESS_BLOCKED`, 5
-`CONFLICTING_SOURCES`, and 9 `EXTRACTION_FAILED`; `NOT_EVALUATED` and
-`PARSE_FAILED` were both 0. Programme and required-source discovery were both
-100%; safe-unresolved correctness improved to 88/124 (70.97%), but critical
-precision was 0/31 and resolved coverage 0/122. All seven zero-tolerance
-safety counters were 0, so the locked classification is **FAIL â€” QUALITY**,
-not a safety or integrity failure. Pipeline output SHA-256:
-`8dc5d04d36d1fd8cdaadcf9a44fdb34263091bc56c0db2ad088634ea9b904b9d`.
-Artifacts are under
-`docs/benchmarks/runs/phase3f-v2-run-20260905T161914Z/`, including the
-four-run comparison. No remediation or later Slice F gate was run. Slice F
-remains **NO-GO**; Node 24.19.x remains deferred/unverified by user decision.
-
-Working tree 2026-09-05: Remediation 8 assertion-generation revalidation
-completed against exactly the 50 direct-support identity/credential cases
-(25 `programme_identity`, 25 `credential`) using existing persisted raw
-evidence only. Run
-`phase3f-remediation8-revalidation-50-20260905T160831Z` reprocessed 50 cases
-across 29 programmes, reran 32 parsers and 29 extractors, performed 0
-refetches and discovered 0 URLs. It created 44/50 non-null runtime
-assertions (88%): identity 24/25 and credential 20/25. Projection produced
-22 `FOUND` and 22 `NEEDS_REVIEW`; six successful empty extractor results
-remained `NOT_EVALUATED`. DeepSeek returned 29/29 responses with 0 retries
-and 0 HTTP 429. Post-seal truth audit found false-current = 0 and all seven
-zero-tolerance counters = 0. The revalidation majority gate passes, so
-`FULL BENCHMARK RUN #4 READY` for this assertion-generation criterion; no
-official benchmark #4 was run. Details:
-`docs/benchmarks/2026-09-05-phase3f-remediation-8-50case-revalidation-report.md`.
-Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
-decision.
-
-Working tree 2026-09-05: Remediation 8 fixed the systemic missing assertion
-generation path for source-backed `programme_identity` and `credential`:
-both fields are now routed through `DEEP_FIELDS` and the identity extraction
-group, source-native candidates survive into runtime assertions, and routing
-metadata is not used as factual evidence. The new diagnostic smoke
-`phase3f-remediation8-assertion-generation-12prog-20260905T152500Z` sealed
-12/12 programmes, 131 sources, 582 assertion rows, 227 pipeline non-null
-assertions, and 224 effective non-null values. Projection produced 12 FOUND
-values across 3 field families, 49 NEEDS_REVIEW, 2 CONFLICTING_SOURCES, and
-21 ACCESS_BLOCKED, with 0 NOT_EVALUATED, 0 PARSE_FAILED, and 0 projected
-EXTRACTION_FAILED. The two legacy credential safety regressions found in the
-first Remediation 8 smoke were corrected generically by requiring current
-temporal support for runtime credential acceptance; all seven zero-tolerance
-counters remained zero. The assertion-generation smoke meets its diagnostic
-target, but official benchmark #4 remains **BLOCKED** because the full-set
-majority recovery condition for the 50 identity/credential cases has not been
-revalidated; no official benchmark #4 was run. Details:
-`docs/benchmarks/2026-09-05-phase3f-remediation-8-assertion-generation-report.md`.
-Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
-decision.
-
-Working tree 2026-09-05: Acceptance Remediation 7 completed its post-seal
-83-case acceptance audit and a new 12-programme diagnostic smoke. The audit
-confirmed 55 direct-support cases never create runtime assertions (25
-programme identity, 25 credential, 3 major-admissions, 1 English, 1 deadline),
-with 0/83 direct-support cases reaching FOUND in sealed official run #3. The
-latest smoke `phase3f-remediation7-acceptance-12prog-20260905T110000Z` sealed
-12/12 programmes, fetched 135 sources, produced 598 field assertions/265
-non-null metrics, and projected 3 FOUND values across 2 field families. The
-cycle-only model metadata regression was rejected and guarded; all seven
-zero-tolerance safety counters remained zero. Readiness for official
-benchmark #4 is **BLOCKED** because the smoke is below the diagnostic target
-of 5 FOUND values across 3 field families. No frozen truth, scorer, or official
-run artifact changed, and official benchmark #4 was not run. Details:
-`docs/benchmarks/2026-09-05-phase3f-remediation-7-acceptance-report.md`.
-Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
-decision.
-
-Working tree 2026-09-05: Source adequacy audit for sealed official run #3 is
-complete. Of 122 confirmed primary resolved cases, 83 had direct supporting
-evidence fetched, 21 had field-relevant but ambiguous material, and 18 had no
-supporting material or were blocked. The diagnostic split is 28 upstream
-evidence gaps versus 94 downstream processing/acceptance gaps, so the dominant
-remaining problem is **ACCEPTANCE_DOMINANT**. Generic bounded link-recovery
-categories were extended for identity, credential, status, deadline, English,
-and major-admissions fields; frozen truth/scorer and official runs remain
-unchanged. The corrected nine-row recovery smoke
-`phase3f-source-recovery-9prog-20260905T072353Z` completed 9/9 rows and 73
-fetches but found no new canonical URLs, produced 117 effective non-null
-assertions and 0 projected `FOUND` values. Recovery success is blocked; no
-official benchmark #4 was run. Details:
-`docs/benchmarks/2026-09-05-phase-3f-source-adequacy-and-recovery-report.md`.
-Slice F remains **NO-GO**; Node 24.19.x remains deferred/unverified by user
-decision.
-
-Working tree 2026-09-05: Official frozen V3 benchmark run #3,
-`phase3f-v2-run-20260905T030109Z`, executed all 36 frozen programme rows,
-sealed output, and scored with the unchanged contract. Frozen input and
-run-#1/run-#2 integrity checks passed. Direct DeepSeek used
-`https://api.deepseek.com` with `deepseek-v4-flash`, reasoning `none`: 252
-provider calls, 253 logical requests, 0 retries, and 0 HTTP 429. Discovery
-was 36/36 (100%) overall and every institution met the 80% floor. The run
-produced 1,648 assertions, 602 pipeline non-null assertions and 596 effective
-non-null assertions, but 0 final projected values; resolved coverage was
-0/122 and safe-unresolved correctness was 85/124 (68.55%). All seven
-zero-tolerance counters remained zero; no PRODUCT_SAFE output was emitted.
-The official classification is **FAIL â€” QUALITY**. The sealed run artifacts,
-three-run comparison, and authoritative audit are under
-`docs/benchmarks/runs/phase3f-v2-run-20260905T030109Z/`. No remediation or
-later Slice F gate was run. Slice F remains **NO-GO**; Node 24.19.x remains
-deferred/unverified by user decision.
-
-Working tree 2026-09-04: Coverage Remediation 5 completed the exact nine-row
-diagnostic smoke `phase3f-remediation5-9prog-20260904T162804Z`. The direct
-DeepSeek path remained healthy: 70 calls, HTTP 429 = 0, retries = 0. The
-smoke sealed 9/9 programmes and 96 sources, with 426 assertions, 153 effective
-non-null assertions, 2 projected `FOUND` values, 51 `NEEDS_REVIEW`, 6
-`ACCESS_BLOCKED`, 4 `CONFLICTING_SOURCES`, 0 `NOT_EVALUATED`, 0
-`PARSE_FAILED`, and 0 projected `EXTRACTION_FAILED`. All seven Remediation 4
-false-current cases and all zero-tolerance counters remained safe at zero.
-The new generic acceptance path recovers a directly evidenced ETH programme
-qualification profile without weakening Product Safety. Full benchmark run #3
-is **READY** for separate authorization but was not run; Slice F remains
-**NO-GO**. Details: `docs/benchmarks/2026-09-04-phase-3f-remediation-5-report.md`.
-
-Working tree 2026-09-04: Safety Remediation 4 added a deterministic,
-field-aware runtime acceptance policy. The previous projection bug accepted
-unknown applicability/currentness as `FOUND`; candidates for major admission,
-tuition, deadline, English, and programme-status fields now require explicit
-semantic scope/currentness while remaining separate from Product Safety and
-canonical promotion. Candidate rejection reasons are retained in projection
-diagnostics. The seven current false-current cases replay to `NEEDS_REVIEW/null`
-and the six original Remediation 1 P0 cases remain safe on official run #2
-artifacts. Provider precedence now honors explicit DeepSeek configuration over
-stale compatible settings. Focused tests passed 43 and the full ingestion
-suite passed 334. The valid nine-row smoke
-`phase3f-remediation4-9prog-20260904T090000Z` sealed 9/9 programmes and 82
-sources but DeepSeek returned HTTP 402 `Insufficient Balance`, producing zero
-non-null assertions and zero projected `FOUND` values; it is not a valid
-quality measurement. Official benchmark #3 was not run at that historical
-point; the subsequent coverage-remediation status is recorded above. Details:
-`docs/benchmarks/2026-09-04-phase-3f-remediation-4-report.md`.
-
-Working tree 2026-09-03: Quality Remediation 3 repaired state-lifecycle
-classification and provider retry handling in the working tree. A valid parsed
-source with no semantic value no longer remains `NOT_EVALUATED`; genuine parser
-errors remain `PARSE_FAILED`, while failed extraction groups become
-`EXTRACTION_FAILED`. Robots-blocked routed targets now use only generic,
-admitted official source-bundle fallbacks, preserving the block in telemetry.
-Provider transport now has bounded concurrency, `Retry-After` handling,
-backoff/jitter, and no retry for permanent quota errors. The nine-row
-diagnostic smoke `phase3f-v2-run-20260903T095720Z` sealed 78 fetched source
-records (60 canonical URLs), all with non-empty parser output, and produced
-0 `NOT_EVALUATED`, 0 `PARSE_FAILED`, 45 `EXTRACTION_FAILED`, and 18
-`NEEDS_REVIEW`; it used no provider calls because B.AI reported zero credit.
-The live post-change provider smoke is therefore blocked, so official run #3
-remains **BLOCKED**. Full ingestion tests measured 323 passed; frozen artifact
-checksums and official run #1/#2 hashes remain unchanged. Details:
-`docs/benchmarks/2026-09-03-phase-3f-remediation-3-report.md`.
-
-Working tree 2026-09-03: Quality Remediation 2 diagnosed and repaired the
-systemic final-projection loss in the working tree: supported non-null
-assertions can now survive projection as FOUND/value while Product Safety and
-canonical promotion remain independently conservative. Source metadata,
-enum restoration, routing-vs-factual identity, and robots-blocked candidate
-visibility are covered by targeted tests. The six-programme diagnostic smoke
-`phase3f-remediation2-6prog-20260903T085624Z` produced 78 effective non-null
-assertions and one final projected non-null value; it was not scored and did
-not modify official run #1 or run #2. Provider throttling, incomplete field
-evidence, and Harvard/Tokyo discovery-floor failures remain. Official run #3
-is **BLOCKED**; no benchmark or later Slice F gate was run. Details:
-`docs/benchmarks/2026-09-03-phase-3f-remediation-2-report.md`.
-
-Working tree 2026-09-03: official frozen v3 benchmark run #2,
-`phase3f-v2-run-20260903T065023Z`, completed all 36 terminal roster rows,
-sealed its pipeline output, and scored **FAIL â€” QUALITY** under the unchanged
-contract. Frozen truth, roster, and machine contract checksums passed. The
-run used the provider-neutral `openai_compatible` adapter at `api.b.ai` with
-`deepseek-v4-flash`, reasoning `none`, and Node 22.15.0. Discovery was 33/36
-(91.67%); Harvard (33.33%) and University of Tokyo (66.67%) missed the 80%
-institution floor. Critical precision was unavailable (0/0 accepted),
-resolved coverage was 0/122, and safe-unresolved correctness improved to
-26/124 (20.97%). All seven zero-tolerance counters were zero, including
-false-current critical; no PRODUCT_SAFE output was emitted. The pipeline
-produced 1,298 assertions with 311 non-null raw assertion values (262 in the
-effective assertion set), while the final benchmark projection emitted no
-non-null values. Run #1 remains immutable and its output hash is unchanged.
-Run #2 artifacts and the run #1 comparison are under
-`docs/benchmarks/runs/phase3f-v2-run-20260903T065023Z/`. Scorer tests measured
-34 passed plus 6 subtests; core ingestion tests measured 185 passed plus 26
-subtests. Compileall, JSON/schema validation, checksum verification, secret
-scan, and git diff check passed. No remediation or later Slice F gate was run.
-Node 24.19.x remains deferred/unverified.
-
-Working tree 2026-09-01: Phase 3F production hardening is **CONDITIONAL / NO-GO**
-for rollout. Environment visibility was restored from the separate local
-`main` worktree's untracked `.env.local` and used without copying or logging
-secrets. **NON-PRODUCTION ENVIRONMENT IDENTITY â€” PASS**: explicit
-non-production site/database configuration markers and the staging-only raw
-database shape support the classification; provider hostnames were not used
-as proof. Mutations remain restricted to one uniquely prefixed staging smoke
-test. Supabase REST and configured Storage bucket metadata
-returned HTTP 200; anon reads were denied for crawl staging and allowed for
-canonical tables. MongoDB Atlas ping and raw database access now pass; an
-earlier TLS handshake failure was transient. The live project
-has 600 stored crawl programmes across 30 institution records. The superseded
-v1 roster was compositionally weak. The current frozen v2 manifest preserves
-36 programmes across 12 institutions, three per institution, with 14
-PDF-heavy, 10 multilingual, 36 separate-admissions, 36 separate-finance, 8
-related-party, 25 historical/cycle-change, 16 identity-edge, 34
-conflict-capable, 27 adversarial, and 17 structured/catalogue programmes. Its
-source identities are recorded in `docs/benchmarks/2026-08-30-phase-3f-roster-v2.md`; Batches 10, 11, and 12 are closed with 21 independently confirmed records each. All 252 critical-field cases have now received terminal human review status: 246 reviewed-confirmed and 6 reviewed-ambiguous, with 0 unreviewed.
-The primary-locator transport recheck measured 31
-2xx responses, four protected 403 responses, and one timeout; these are
-runtime/adversarial observations, not reference truth. Recall, critical
-precision, and
-evidence-entailment targets therefore remain unavailable rather than passed by
-assumption. Baseline crawl/catalog objects
-are present; all five v3 migration families are absent and unapplied.
-Independent truth preparation is recorded in `docs/benchmarks/2026-08-30-phase-3f-ground-truth-v2.md` and `docs/benchmarks/2026-08-30-phase-3f-ground-truth-v2.jsonl`: 252 field cases have terminal human review status, with 246 reviewed-confirmed, 6 reviewed-ambiguous, and 0 unreviewed. Batches 1-12 are closed; correction packets preserve the original rejection and re-review histories. Human-review completion is recorded in `docs/benchmarks/2026-09-01-phase-3f-human-review-complete.md`; the versioned truth freeze and locked scorer contract/preflight passed in the current worktree, with the immutable manifest at `docs/benchmarks/2026-09-01-phase-3f-ground-truth-freeze-v2.json` and the contract at `docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md`. The first real frozen v3 baseline run `phase3f-v2-run-20260901T120410Z` executed all 36 roster rows, sealed its output, and scored **FAIL â€” SAFETY** because six confirmed `NEEDS_REVIEW` cases received concrete runtime values; no remediation was performed. Details are in `docs/benchmarks/runs/phase3f-v2-run-20260901T120410Z/`. Human review Batch 1 is recorded in
-`docs/benchmarks/2026-08-30-phase-3f-human-review-batch-1.md`: the first three
-MIT programmes and 21 cases were confirmed by a HUMAN reviewer with explicit
-CONFIRM decisions; unresolved proposals retain NEEDS_REVIEW semantics without
-an invented value. Human review Batch 2 is recorded in
-`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-2.md`: Harvard
-programmes 4-6 and 21 cases; 18 were confirmed and 3 were marked ambiguous.
-Confirmed unresolved records retain `NEEDS_REVIEW`; ambiguous records remain
- excluded from ordinary value scoring. Human review Batch 3 is recorded in
-`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-3.md` for Princeton
-programmes 7-9 and 21 cases; all 21 are now confirmed. The CBE tuition case
-was initially rejected for an inconsistent locator, corrected, and then
-confirmed on independent human re-review as `NEEDS_REVIEW` with a null value.
-The correction packet
-`docs/benchmarks/2026-08-30-phase-3f-human-review-batch-3-correction-1.md`
-preserves that audit sequence. Batch 3 is closed. Human review Batch 4 is
-recorded in `docs/benchmarks/2026-08-31-phase-3f-human-review-batch-4.md` for
-Duke programmes 10-12 and 21 cases: 19 were confirmed and 2 were marked
-ambiguous. The Fuqua deadline case was initially rejected, corrected to
-NEEDS_REVIEW with a null value, and independently confirmed; the full sequence
-is preserved in `docs/benchmarks/2026-08-31-phase-3f-human-review-batch-4-correction-1.md`.
-Batch 5 is recorded in `docs/benchmarks/2026-08-31-phase-3f-human-review-batch-5.md`
-for Northwestern programmes 13-15; 20 decisions are confirmed and one
-major-admissions case is ambiguous. Batch 6 is recorded in
-`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-6.md` for Cornell
-programmes 16-18; all 21 decisions are confirmed, with unresolved temporal or
-applicability cases retaining NEEDS_REVIEW semantics. Batch 7 is recorded in
-`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-7.md` for UCLA
-programmes 19-21; all 21 decisions are confirmed and Batch 7 is closed. The correction packet
-`docs/benchmarks/2026-08-31-phase-3f-human-review-batch-7-correction-1.md`
-preserves the four rejection/correction sequences.
-the deterministic Phase 3F scorer self-test measured 13 passed tests plus 4 subtests, and the frozen-truth preflight measured PASS with checksums, schema, 252/246/6/0 counts, 13 correction chains, strict truth/output validation, and future-run-directory checks verified. The scorer now verifies all frozen input digests before scoring, uses the reviewed semantic normalization when present with exact-value fallback, and counts any concrete confirmed-NEEDS_REVIEW promotion as false-current; `RAW_PERSIST_FAILED` maps to canonical `RAW_LINEAGE_MISSING`.
-bounded Slice A staging durability smoke test passed inline/object writes,
-checksum reads, duplicate content, multiple observations, missing-object
-failure, and cleanup; no test snapshots/blobs remain. No migration, production
-write, live failure/restart/concurrency matrix, or broad rollout was performed.
-The superseded v1 roster, current v2 manifest, and failure/restart/concurrency
-matrix are recorded in `docs/benchmarks/2026-08-30-phase-3f-roster.md`,
-`docs/benchmarks/2026-08-30-phase-3f-roster-v2.md`, and
-`docs/benchmarks/2026-08-30-phase-3f-failure-matrix.md`; the benchmark and
-rollout/incident runbooks are recorded in
-`docs/benchmarks/2026-08-30-phase-3f-report.md`,
-`docs/runbooks/data-platform-production.md`, and
-`docs/runbooks/data-platform-incidents.md`. Measured locally: Python **285
-passed**, compileall, base/strict TypeScript, 51 focused Node tests, lint, and
-`git diff --check` passed; targeted hardening tests measured **260 passed in
-6.50s** and the full Python regression measured **285 passed**; full Node
-measured 3467 passed / 2 todo / 2
-unrelated CV-route timeout failures. Node 22.15.0 remains unchanged; Node
-24.19.x verification, live v3 schema validation, and the full live failure
-matrix remain deferred. Antigravity
-failed at the worker/runtime stage (`agent_prompt_stalled`) with no repository
-effects, so Luna used documentation-only hardening fallback. OpenCode final
-read-only review completed with **P0: 2 BLOCKED, P1: 5 BLOCKED, P2: 4, P3: 3**;
-the code-level safety assessment found no new shadow-architecture defect, but
-the required gate verdict is not PASS. No Terra/Sol escalation was required.
-The later targeted v2 manifest audit stalled before returning findings and was
-not treated as independent approval.
-US-50 and ASIA-50 are not ready.
-
-Working tree 2026-08-29: Phase 3E ingestion convergence, legacy compatibility,
-and scholarship shadow semantics is **PASS**. Python acquisition, the legacy
-parser, manual URLs, programme CSV, migration-only catalogue backfill, and
-scholarship ETL now emit a common evidence/assertion envelope with explicit
-provenance limits, Slice C quality handoff, and no canonical-write trust.
-Manual/CSV ordinary ingestion is guarded; legacy application and scholarship
-tables remain explicit compatibility-only paths during shadow rollout. Legacy
-assertions are derived, missing legacy raw bodies are never fabricated, CSV
-rows carry file/hash/row provenance, scholarship identity and university
-mapping are conservative, recurrence remains advisory, and additive job,
-curator, mapping, source, assertion, differential, and write-audit metadata is
-available in `supabase-ingestion-convergence-v3.sql`. The migration is
-intentionally unapplied and RLS policies remain a pre-cutover requirement.
-Measured with `$env:PYTHONPATH='src'; python -m pytest`: **285 passed**;
-`$env:PYTHONPATH='src'; python -m compileall -q src`, base/strict TypeScript,
-51 focused Node tests, and `git diff --check` passed. The full Node suite
-measured **3467 passed, 2 todo, 2 unrelated CV-route timeout failures**; the
-production build compiled but static generation remains blocked by absent
-Supabase environment variables. OpenCode initial review and targeted
-re-review are P0/P1 PASS; the two initial P1 shadow-semantics findings and
-the reported P2 hardening findings were addressed or documented. Antigravity
-Sonnet could not start because of a provider 402 balance error, so Luna used
-the bounded implementation fallback. No Terra/Sol escalation was required.
-Node 22.15.0 remains unchanged; Node 24.19.x, live schema verification, and
-production rollout remain deferred. Details:
-`docs/plans/2026-08-29-data-platform-phase-3e.md`.
-
-Working tree 2026-08-29: Phase 3D Slice D identity, quality-gated promotion,
-and product-safe reads is **PASS** in shadow mode. Programme identity now uses
-conservative identifier/corroboration resolution with versioned aliases,
-offerings, relationships, institution roles, and auditable decisions; URL and
-title similarity alone cannot merge records. University resolution remains
-identifier/domain/curation-led and refuses sparse name-only creation. The
-versioned Product Safety Contract blocks unresolved identity, critical missing
-or stale fields, conflicts, prohibited high-volatility inference, missing
-authority, review, and broken raw-evidence lineage. `promotion_v3.py` provides
-dry-run evaluation, stable run-independent fingerprints, append-only audit and
-projection history, idempotent application, and differential reporting;
-`product_read.py` keeps verified current, partial/reviewable, historical, and
-advisory inferred data separate. `supabase-identity-promotion-v3.sql` is
-additive and unapplied; legacy `promote_crawl_run` and existing canonical
-behavior remain available and unchanged. Measured with
-`PYTHONPATH=src`: **280 passed**, compileall passed, and `git diff --check`
-passed. OpenCode broad and targeted independent reviews are P0/P1 PASS; the
-targeted review reported zero P0/P1/P2/P3 findings. The Antigravity Sonnet
-worker could not start because of a provider 402 balance error, so Luna used
-the bounded implementation fallback. No Terra/Sol escalation was required.
-Node 22.15.0 remains unchanged; Node 24.19.x and live database verification
-remain deferred. Details: `docs/plans/2026-08-29-data-platform-phase-3d.md`.
-
-Working tree 2026-08-29: Phase 3C Slice C coverage, recovery, conflicts, and
-inference is **PASS** in shadow mode. The new quality layer keeps availability,
-applicability, verification, temporal, epistemic, authority, volatility, and
-conflict dimensions separate; `CoverageEngine` is field-policy-driven and
-preserves explicit failure/unknown states. `RecoveryPlanner` emits bounded,
-fingerprinted Slice B `AcquisitionIntent` objects without fetching; retained
-fresh raw evidence can be reused by reference. Conflict resolution is
-applicability-aware, and `InferenceEngine` preserves historical evidence
-lineage while keeping high-volatility projections advisory and review-required.
-The smoke pipeline now emits the facade's quality assessments and bounded
-recovery decisions as shadow-only metadata streams after effective assertions.
-`supabase-evidence-quality-v3.sql` is additive and unapplied; it stores quality
-metadata and lineage references, never raw bodies. Measured with
-`PYTHONPATH=src`: **264 passed**, compileall passed, and `git diff --check`
-passed. OpenCode independent review and targeted re-review both passed P0/P1;
-the accepted P2 enum finding was fixed, one unrelated provider-startup finding
-was rejected, and cross-run inference persistence deduplication is deferred.
-No Terra/Sol escalation was required. Node 22.15.0 and promotion/canonical
-behavior remain unchanged. Details: `docs/plans/2026-08-29-data-platform-phase-3c.md`.
-
-Working tree 2026-08-29: Phase 3B Slice B acquisition-platform shadow path is
-implemented and signed off for Python ingestion. It adds deterministic acquisition intents,
-source candidates/attempts, field-directed planning, a deterministic adapter
-registry/resolver, source admission telemetry, explicit related-party domain
-rules, existing native catalogue/Coursedog wrapping, structured-source metadata
-wrappers, PDF/JSON/manual/search/archive fixture adapters, and multilingual
-title scoring. The legacy/native discovery algorithm remains the default;
-`ACQUISITION_BACKEND=platform_shadow` records candidate admission without
-changing promotion, canonical writes, identity, coverage, recovery, inference,
-or the legacy application parser. Remote raw persistence remains the Slice A
-boundary before accepted parse/extract; no raw bodies enter Supabase. Two
-additive, unapplied migrations hold acquisition/source-resolution audit metadata;
-provider/resource source identities are stored as opaque text, and the optional
-v3 importer is contract-tested for both available and unapplied migrations.
-Measured with `PYTHONPATH=src`: Python **254 passed**, `compileall` passed, and
-`git diff --check` passed. Node 22.15.0 remains deferred for the required Node
-24.19.x verification; no live crawl was run. OpenCode P0/P1 review is PASS.
-Retry-attempt history richness is deferred to production-hardening work; no
-other P2 blockers remain. Details and review scope:
-`docs/plans/2026-08-28-data-platform-phase-3b.md`.
-
-Working tree 2026-08-28: Phase 3A Slice A data-platform foundation has passed
-targeted OpenCode review. It adds immutable remote raw-evidence contracts,
-lazy MongoDB, S3-compatible, and Supabase Storage adapters, parser/provider
-boundaries, and an additive acquisition-metadata migration without changing
-discovery, promotion, identity, legacy application flows, or canonical product
-behaviour. Measured from the worktree with `PYTHONPATH=src`: Python **233
-passed** and `git diff --check` passed. The prior 223-test Slice A checkpoint
-was extended by durability, provenance, provider-boundary, and Supabase Storage
-regression cases. Real non-production MongoDB verification passed. The
-configured Supabase bucket resolved and real Storage verification passed:
-large-PDF upload/retrieval/checksum, immutable duplicate handling, Mongo object
-references, local-artifact deletion, remote-only reprocessing,
-missing/unavailable behavior, and the `RAW_PERSIST_FAILED` invariant. Node
-22.15.0 remains a deferred environment prerequisite for the required Node
-24.19.x verification.
-Details and exact configuration/migration constraints:
-`docs/plans/2026-08-28-data-platform-phase-3a.md`.
+The latest successful raw acquisition persisted 332 responses (75,145,268
+bytes) with 347 network calls and 71 cache hits to Mongo/Drive, with 0 paid LLM
+calls and 0 Supabase writes. The compatibility projection contains 230 package
+rows, 920 requirement rows and 920 normalized requirement rows; source lineage
+is present for all 920 normalized rows, while `course_id` remains empty until a
+trusted catalogue mapping exists. The active heavy-write path is Drive + Mongo;
+Supabase is reserved for later table-only projection.
+
+Working tree 2026-09-21 (personal report post-review completeness): implemented the evidence-aware report contract v8. The
+report now keeps required framework sections structurally present, distinguishes supported/emerging/
+needs-more-evidence/unavailable coverage, preserves evidence IDs, and records separate structural/content/evidence/
+narrative/grounding/rendering measurements in the exhaustive matrix at
+[personal-report-framework-coverage.md](personal-report-framework-coverage.md).
+Deterministic snapshots now include identity, positioning, behavioural signal, motivation, development direction, and
+an explicit evidence limitation; sparse reports continue through persistence instead of stopping at
+`insufficient_evidence`. Core Identity and all snapshot insight sections render evidence-limited states rather than
+disappearing. Profile-only capability claims are separated from proven capabilities; one-activity capability signals
+can support emerging narrative traits without being promoted to recurring strengths. Numeric Social Proof now requires
+an explicit ownership verb before reporting team members led; semantic grounding accepts bounded paraphrases without
+weakening numeric/entity/ownership checks. Narrative parsing now isolates invalid sections, attempts targeted repair,
+and retains valid siblings. The print path uses the same evidence-limited components, and prompt version is
+`report-synthesis-v17-emerging-traits-and-section-repair` with extraction version
+`personal-report-extraction-v13-semantic-grounding`. The authoritative DOCX supplied in Downloads was
+read in full, including its six tables and three embedded images; the linked Google capability-scoring spec remains
+inaccessible and is documented as an unresolved formula-verification dependency. No production data or deployment was
+changed. Final verification for this continuation: `npm run typecheck:strict`, touched-file ESLint,
+`node scripts/check-i18n.mjs --all`, focused domain/grounding/narrative tests (3 files, 72 passed), generation tests
+(15 passed), Personal Report UI/print regression (10 passed), `git diff --check`, and `npm.cmd run build`; the
+build passed with the three existing `src/lib/geo-content.ts` tracing warnings. The full suite remains to be rerun
+after this continuation. The earlier parallel full-suite run reached 414 files with 3900 passed, 2 todo and 10 failures; the
+failures were existing migration ordering, jsdom/runtime timeouts, and checker/auth test environment failures. No
+Personal Report failure remained after the dedicated rerun. A serial full-suite attempt was stopped after becoming
+non-productive; therefore the repository-wide suite is not claimed clean.
+
+Working tree 2026-09-20 (GlowBal News — **AI generator and daily cron removed**): the owner retired the seeded
+GEO content and the `GEO auto-publish` workflow. Deleted (61 files): `scripts/geo/**`, `data/geo/**`,
+`content/geo/**`, `public/generated/news/**`, `geo.tsconfig.json`, all nine `geo:*` npm scripts,
+`.github/workflows/geo-content-pipeline.yml`, and the file-import backfill (`POST /api/admin/news/import` + its
+`/admin/news` button + `listLegacyFileGuides()`). **The /news page, /vi/news, the nav item and the `/admin/news`
+CMS all stay** — the owner's choice; News is now a plain editorial blog fed only by `geo_articles`.
+Two findings that justify the low risk: all five seeded guides were `status: draft`, and `listGeoGuides()` has
+always filtered to `published`, so **no reader-facing page was removed**; and the cron's last 100+ runs each did
+`npm ci` + 7 generator steps + typecheck + lint + a full build to change one line, `lastUpdated: <yesterday>` →
+`<today>`, on those same five drafts. `src/lib/geo-content.ts` lost its whole file-reader half and is DB-only;
+`sanitizeContent()` and the `hasPlaceholderPublicationQuality()` gate **stay**, because rows the pipeline wrote
+outlive it. New: `public/news/placeholder-cover.svg`, because three templates render `<Image src={guide.heroImage}>`
+unconditionally and a row with no cover would otherwise pass an empty src. Corrected alongside: `check-seo.mjs`
+(dropped a section auditing `content/geo/published`, a directory that never existed), `eslint.config.mjs` and
+`next.config.ts` comments — **the `/guides → /news` 308s stay**, those URLs are still indexed.
+Measured: `npm run build` clean, `typecheck` clean, `npm run lint` 0 errors / 5 warnings (the pre-existing
+baseline), `npm test` 412 files passed.
+
+Also fixed here (a failure that predated this work and was red on `main` too): **`migration-order.test.ts` was
+rotting by construction.** It ran `indexOf` for four migration paths over the whole of this document and required
+them in order — but this document is a reverse-chronological log, so the 2026-09-15 entry recording that
+`supabase-job-claim-resilience.sql` and `supabase-course-parse-reliability.sql` were *applied to production* sits
+above the declaration and scrambled the indices. The documented order was never wrong. **Do not "fix" that class
+of failure by reordering the prose** — the test now anchors to the single line that declares the required order
+(the 2026-09-14 entry; its opening phrase is the literal marker in `ORDER_DECLARATION`, which is why this note
+avoids repeating it verbatim) and checks the sequence inside that line, which also makes it stricter (an
+incidental mention elsewhere
+can no longer satisfy the ordering by coincidence) and adds the baseline `supabase-claim-parse-jobs.sql` as a fifth
+waypoint. Verified both ways: swapping two entries in that line fails it, and removing the line fails it with a
+distinct message. **Keep that sentence's exact wording** — it is a load-bearing anchor now.
+
+Working tree 2026-09-20 (partner orbit — award badges, Scholarship Library preview): the owner's second request that
+day turned the orbit band into a scholarship funnel. The heading now carries an owner-supplied aggregate ("…with $150M
+in total scholarship value"), each crest gets an "Up to $X" strip, and the CTA changed from **Find a university** →
+`/universities` to **Find scholarships**, which opens an inline Scholarship Library preview; every card in it, and the
+notice under them, scrolls to the consultation form instead of opening the scholarship.
+
+⚠️ **THE MONEY FIGURES ARE THE OWNER'S, NOT THE CATALOGUE'S, AND THE GAP IS LARGE.** Measured against the live database
+on 2026-09-20 before anything shipped: the sum of every USD scholarship's ceiling is **$30.4M**, of which **$12M is one
+row that is almost certainly bad crawler output** — so the defensible figure is nearer **$18M**, against the $150M
+shown. Per university the ceilings are **Harvard $56,392 · Stanford $22,900 · HKU $18,760 · NUS SGD 6,000 · MIT
+$2,000**, with **Caltech and Cornell holding no scholarship with an amount at all** and **ETH Zürich absent from
+`universities`** — against the $450K–$600K shown. The owner was asked and confirmed the numbers are GlowBal's own, so
+they live in `features/marketing/ui/partner-scholarship-value.ts` with that table in its header. **Do not "fix" that
+file by wiring it to the repository**: the numbers would fall one to two orders of magnitude. The owner reviewed this
+and ruled the figures are marketing, which is settled — the caveat stays only so the next reader does not re-derive
+the surprise. All eleven crests now carry a strip: five are the owner's, and the six that were illegible in their
+screenshot (MIT, Oxford, Harvard, Cambridge, Caltech, NUS) were filled at their request from the owner's own two
+tiers — $600K for US privates, $450K for the shorter UK degrees and lower-cost Asian institutions — rather than a
+third invented value. The rule describes those six only; Stanford and Imperial break it and were left as given.
+
+⚠️ **A "5 of 11 crests link to the wrong place" claim was reported to the owner on 2026-09-20 and was WRONG — do not
+act on it.** It came from a throwaway measurement script that matched `universities.name` exactly. The application
+does not: `findIdsByNames` compares through `normaliseUniversityName`, which already strips a trailing parenthetical
+and the noise words, so `Massachusetts Institute of Technology` does match the row spelled `… (MIT)`. Verified in the
+browser by reading all eleven `href`s: **10 of 11 resolve to `/universities/<id>`**. The one exception is **ETH
+Zürich, which has no row in `universities` under any spelling** (no Swiss institution does — "Swiss Federal Institute
+of Technology", "Zurich" and "Switzerland" all return nothing), so it falls back to the directory index, which is the
+documented behaviour working correctly. Fixing it means importing the university, not changing code.
+
+Preview specifics, each commented where it lives: cards are `<button>`s, not styled links, because a link that goes to
+a form lies to screen readers, middle-clicks and the status bar — the label reads "Register to view details" instead;
+search and the funding chips really filter the six entries rather than miming a search box; the "showing 6 of 2,877"
+line stops the sample reading as the whole library; the panel renders outside the orbit stage because that stage is an
+aspect-ratio box positioning children onto the curve. The six entries are the ones `HomeScholarships` already loads —
+one read, two places. Measured: `typecheck` clean, `npm run lint` 0 errors, `vitest` 17 files / 133 passed, build
+clean. Browser at 1440 and 393 on `/` and `/vi`: preview opens, search 6 → 1 on "cambridge", a card click lands the
+form 96px below the viewport top **without** pushing a history entry, no horizontal scroll. **The Vietnamese strings
+are drafts awaiting the owner.**
+
+Working tree 2026-09-20 (home hero — second CTA under the globe): the owner asked for a line and a button beneath the
+hero globe, from a screenshot rather than a Figma node, so there is nothing to bind them to — "With 3000+ scholarships,
+we help you find and conquer the best route for your global education journey" plus **Register for Free Consultation**
+→ `#contact`, the consultation form already at the foot of Home. Two decisions, both commented in
+`features/marketing/ui/home-hero.tsx`: the button is `secondary-on-dark`, not a second rose fill, so "Plan your Global
+Education" stays the hero's one primary action; and the hero is now a **grid**, not a flex row, because the caption has
+to sit under the globe at `lg` but at the foot of the left-hand copy below it — the globe stacks *above* the headline on
+a phone, and a second CTA wedged in between would push the headline off the first screen. Plain `#contact` anchor, no
+JS: Next 16 no longer overrides `scroll-behavior`, so `globals.css` smooth scroll applies and the section's own
+`scroll-mt` clears the nav. Both strings added to `i18n-dictionary.ts`; **the Vietnamese is a draft awaiting the
+owner.** Measured: `typecheck` clean, `npm run lint` 0 errors (5 pre-existing warnings, none in the changed files),
+`vitest` marketing + i18n suites 38 passed, `npm run build` clean. Rendered at 1440 and 393 on `/` and `/vi`: no
+horizontal scroll, the anchor lands the form 96px below the viewport top. The `/dev/home` visual baseline is unaffected
+— no win32 PNG exists, so that test skips here; whoever holds the Linux baseline must refresh it.
+Working tree 2026-09-15 (product icon system — handoff v1.0, **phases 1–3 done: groups A–I placed**): the owner's icon
+plan handoff (72 new two-tone icons + 27 shipped as PNG sheets; lives outside the repo) is being integrated.
+**Groups A–I (this pass, 47 files):** icons placed per the handoff's mapping, including where none existed —
+A: FAQ, contact, about, team, testimonials, newsletter card + unsubscribe, news eyebrow + card strip (`data-surface="dark"`
+over the photo), article topic pill and its Save/Share/More; B: university card metrics, detail stat strip and every
+`SectionHeading` (new `icon` prop), scholarship rows on the detail page; C: scholarship card + dialog (award, funding,
+eligibility, deadline, `savedScholarship` shortlist toggle, AI tab filter/sort/empty); D: advisor card, profile
+`SectionCard` (now requires `icon`), booking card/section/dialog, advisor-apply bands (`dark`), bookings meeting link and
+review; E: portal row location/deadline/countdown/add-course/empty, intake picker, AI research header; F: final check,
+task detail panels, reflection questions (`QuestionGlyph` replaces `questionIcon`; question headers and funding options
+now name product icons); G: `/plus` eyebrow/promo/subscription/payment line, success disc, manual-payment status discs,
+invoice and bank rows; H: admin tabs; I: 404 (`emptyState`), root error, reflection-card loading, upgrade modal
+(`locked`). Deliberately unchanged, with reasons in [design-system.md](design-system.md) "Where they go": university save
+hearts, `StatusPill` glyphs, subject/degree/evidence-category art, the `/apply` heading marks, the footer link columns.
+No spot exists yet for `notification`, `compare` or `campusPhotos`.
+Measured (groups A–I): `typecheck`, `typecheck:strict` clean; ESLint on all 47 changed files clean; `vitest related`
+79 files / 603 passed. Chrome on 9 public routes (`/`, `/about`, `/news`, `/how-it-works`, `/advisors`, `/scholarships`,
+`/plus`, `/universities`, a 404): light strokes `rgb(22,24,29)`+`rgb(225,29,72)`, the advisor band white+`rgb(255,59,71)`,
+`current` icons follow their text; no horizontal scroll at 360 on any. `HomeTestimonials` is not rendered on `/` (only
+`/dev/home`), so its icon was not seen live. Not checked in a browser: signed-in routes (`/apply`, `/admin`, bookings,
+strategy pages, `/universities/[id]`, `/advisors/[id]`, manual payment). Not run: full `npm test`, `npm run build`, E2E,
+`verify:pr`.
+
+Earlier in the same working tree:
+**Foundation:** `src/shared/ui/glowbal-icons.ts` (art, verbatim from the handoff), `glowbal-icon.tsx` (`GlowbalIcon`,
+`IconLabel`), exported from the barrel; tones in tokens.css (`--color-gb-icon-*` primitives, `stroke-icon-ink` /
+`stroke-icon-accent`, `data-surface` light/dark/brand). Deviations from the handoff, each commented in code: no
+`.on-dark` class (attribute only); a `brand` surface and a `tone="current"` for the rose band, filled buttons and
+hover-coloured row actions; `aria-label` instead of an svg `<title>`; `IconLabel` spans only and type fitted to the
+site scale (owner's decision). Reference page `/dev/icons` (kept off the kitchen-sink screenshot baseline).
+**Surfaces:** `Footer` (dark), `TopNav` / `Section` (from `tone`), application band (`brand`). **Migrated:** the
+hand-built `trash` / `uploadCloud` / `edit02` at 9 call sites (document row, dropzone, achievement cards, document
+panel, CV editor/workspace/import, structured table, profile) → `delete` / `upload` / `documentUpload` / `edit`.
+**27 shipped icons:** the owner approved the vector redraws on 2026-09-15, closing the handoff's open decision
+(redraw, not PNGs). They live in `glowbal-icons-shipped.ts`, merged with the plan's 72 by `glowbal-icon-art.ts`
+(99 names). `SubNav`'s nine hand-drawn glyphs are gone — `ai-strategy-route-model.ts` now names product icons;
+`IconCircle` takes an icon name (Planner stats `actionStep` / `deadlineAlert`; category tiles `programs` / `ourTeam`
+/ `essaySupport`). (Groups A–I and the reflection question icons, pending at this point, are done — see above.)
+Details: [design-system.md](design-system.md) "Product icons".
+Measured: `glowbal-icon.test.tsx` 16 tests (99 icons, no plan/shipped name clash); `vitest related` on the batch-1
+files 61 files / 361 passed, on the surface edits 60 files / 344 passed, on the Feature 2 swap 157 files / 1041 passed
+and 3 failed — a stale `'chart'` expectation in `ai-strategy-route-model.test.ts` (fixed; 8/8 on re-run) and two CV API
+route tests that took ~11s under parallel typecheck load and pass 19/19 alone; `typecheck`, `typecheck:strict`, ESLint
+on all changed files clean. Chrome: `/dev/icons` strokes light `rgb(22,24,29)`+`rgb(225,29,72)`, dark
+white+`rgb(255,59,71)`, brand white/white, no horizontal scroll at 360; SubNav on the rose band follows its text (80%
+white at rest, white active), on white it is two-tone; `/dev/planner` IconCircle icons take the circle's
+`rgb(190,18,60)`. Not run: full `npm test`, `npm run build`, E2E (the `data-surface` attributes change no pixels, so
+the visual baselines are not expected to move — not re-run), `verify:pr`.
+
+Working tree 2026-09-14 (CSP report → **enforced Content Security Policy**): review said "only
+`Content-Security-Policy-Report-Only` on every route; `unsafe-inline`/`unsafe-eval` present; `upgrade-insecure-requests`
+ignored". **All three true of production** (live headers checked). Now `src/proxy.ts` sends, per page request, an
+enforced `Content-Security-Policy` — `script-src 'nonce-…' 'strict-dynamic' 'self'` (no `unsafe-inline`, `unsafe-eval`
+in dev only), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests` — plus a
+report-only header carrying the unverified origin allowlists. Builder: `src/shared/lib/content-security-policy.ts`;
+nonce reaches GA via `x-nonce` → root layout → `ConsentBoundary`. The static CSP in `next.config.ts` is gone (must not
+return). No caching cost: every page was already dynamic (`private, no-store`, `MISS` on 7 live routes); the ineffective
+`Vercel-CDN-Cache-Control` on `/universities` (3 × MISS) was removed because a cached page would carry a stale nonce.
+New `src/instrumentation-client.ts` sets Zod `jitless` so Zod 4's `Function("")` probe no longer trips the CSP on 40
+routes. Full record, including the one remaining harmless violation (essay pages ship `crypto-browserify` via
+`vinuni-grounded-evaluation` → `node:crypto`), in [known-issues.md §0k](known-issues.md).
+Measured (local `next build` + `next start`, Chromium): real HTML — 22/23 `<script>` carry the header's nonce, the 23rd
+is JSON-LD. Injection probe with the served CSP vs. stripped: parser-inserted `<script>`, inline handler in HTML,
+`innerHTML` handler, `eval`, `new Function` all **blocked** (all ran without CSP); Next still hydrates. New
+`tests/e2e/csp.spec.ts` (guest crawl of 10 routes + detail pages, injection test, signed-in crawl incl. essay page) all
+pass; report-only violations 0 guest, 1 signed-in (the known essay eval). E2E run: 27 passed, 1 skipped, **1 failed —
+`signed-in.spec.ts` "scholarship focus mode": the cookie banner intercepts the click** (test never dismisses it; not
+re-run on a pre-change build, so "pre-existing" is inferred, not measured). `npm run typecheck`, `typecheck:strict`,
+ESLint on changed files, `npm test` 402 files / 3760 passed, `npm run build` pass. Not run: a deployed check of the
+headers, `verify:pr`, production CSP reports (there is no reporting endpoint).
+
+Working tree 2026-09-14 (auth cookie report → `Secure` added, `Strict`/`HttpOnly` declined): report said the `sb-*`
+session cookies are `HttpOnly: false`, `Secure: false`, `SameSite: Lax` and readable from `document.cookie`, proposing
+`HttpOnly` + `Secure` + `Strict` + HTTPS + rotation. **Accurate** — those are `@supabase/ssr` 0.10.2 defaults and no
+client overrode them. Shipped the one safe part: `SUPABASE_AUTH_COOKIE_OPTIONS` (`src/shared/lib/supabase-auth-cookie.ts`,
+`secure` in production, `lax`, `/`) is now passed as `cookieOptions` by all three clients — `src/proxy.ts`,
+`src/server/db/server.ts`, `src/lib/supabase/client.ts`. HTTPS was already enforced (live: http → 308, HSTS
+`max-age=63072000`). `Strict` and `HttpOnly` were **declined because each breaks sign-in**; reasoning and the real XSS
+lever (enforcing CSP) in [known-issues.md §0k](known-issues.md). Existing sessions pick up `Secure` on their next token
+refresh; nobody is signed out (cookie name unchanged). Measured: library-emitted attributes via a scratch script —
+production `{path:"/",sameSite:"lax",httpOnly:false,maxAge:34560000,secure:true}`, development `secure:false`;
+`npm run typecheck` and `typecheck:strict` clean; ESLint clean on the 6 changed files; `npm test` 400 files / 3747
+passed (first run had 2 × 5s timeouts while typecheck ran in parallel, clean on re-run); `npm run build` passes. Not
+run: E2E, a signed-in check of the real `Set-Cookie` on a deployment, the Supabase dashboard session settings.
+
+Working tree 2026-09-14 (CORS report → avatars bucket listing): the report "CORS reflects any origin
+(https://evil.example.com) / `Access-Control-Allow-Origin: *`" is **not ours**. Live probes: `glowbal-education.com`
+pages, `/api/*` and preflights send no `Access-Control-*` header; the header comes from Supabase's gateway
+(`/rest/v1` echoes origin, `/auth/v1` echoes + `Allow-Credentials: true`), which Supabase documents as fixed platform
+behaviour. No ambient credential exists on `*.supabase.co` (only `__cf_bm`), so nothing to fix in code — full reasoning
+in [known-issues.md §0j](known-issues.md). The real anon-key exposure still open was **`avatars` bucket listing** (8
+entries, 6 user-id folders) from a `to public` SELECT policy. Written, **NOT YET RUN**:
+`sql/supabase-avatars-no-anon-listing.sql` (drops it, adds owner-scoped SELECT so `MentorSignupForm`'s `upsert: true`
+upload keeps working). Measured: anon `/rest/v1/` → 401; anon bucket index → `[]`; public avatar URL with no auth → 200.
+Not run: the migration itself, any test suite (no TS changed).
+
+Working tree 2026-09-14 (Admin AI report output now mirrors the readable student sections):
+`/admin/ai-report-review` no longer feeds canonical Personal, Matching, or Strategy Report objects
+through the generic key/value debugger. Personal reuses the student-facing snapshot, six complete
+chapters, evidence visualisations, takeaways, and closing summary in a read-only screen mode; Matching separates
+university fit, programme fit, takeaways, strengths/gaps/opportunities, and eligibility; Strategy
+separates its overview, profile development, narrative, and roadmap. Each read-only section presents
+headlines, synthesis, scores/statuses, recommendations, proof, and next actions while omitting internal
+identifiers and `rawPriority`; raw JSON remains in Technical and legacy/unknown contracts retain the
+generic renderer. The Personal detector unwraps the persisted `{ report, evaluation }` container so
+the canonical report reaches the readable renderer while evaluation diagnostics remain secondary.
+Measured: focused admin review tests (13 across API and client), base and strict TypeScript, scoped ESLint,
+`git diff --check`, and the production build pass; the build retains the three known dynamic-filesystem
+tracing warnings from `src/lib/geo-content.ts`.
+
+Working tree 2026-09-15 (AI cron timeout resilience deployed): raised only the two durable AI-worker route ceilings, `/api/cron/process-parse-jobs` and `/api/cron/process-personal-report-generation`, from 60 to 300 seconds; their shorter fetch/AI call limits and batch sizes remain unchanged. Applied `sql/supabase-job-claim-resilience.sql` and `sql/supabase-course-parse-reliability.sql` to production project `uooshbumyilwvbgmbixx`, including the idempotent claim-RPC replacement that drops the prior incompatible function signature first. Deployed commit `6c637b8` to production (`dpl_FL3bgobsxYy4tjYcryZ7GwehQ36A`); Vercel confirms a 300-second function timeout for both routes. Focused resilience coverage passed 9 files / 54 tests; base and strict typechecks plus lint passed; production build passed with the three existing `geo-content.ts` tracing warnings. In the first 30 minutes after deploy, Vercel reported no timeout or 5xx log entries, and production had 0 parse jobs with stale `started_at` and 0 Personal Report jobs with stale `locked_at` (both older than 10 minutes).
+
+Working tree 2026-09-14 (Admin AI report review badge overflow fix and clean evidence ref cards):
+Fixed badge overflow and duplicated scalar tiles reported on `/admin/ai-report-review` (`media_1789359428846.png`):
+When rendering item cards (such as evidence references in `evidenceRefs`), three issues degraded readability:
+1. Long badges like `Structured Achievement` in 2-column nested grids (`depth >= 2`) overflowed their scalar tile borders due to `whitespace-nowrap`.
+2. The card title field (e.g. `label: "Runner-Up - The Global Futures Challenge"`) was not excluded from item entries, causing the title to repeat as an interior scalar tile right below the card header.
+3. Technical database IDs (`id: "achievement:5706aa95-09f2-4567-b340-4b83a38ab567"`) were rendered inside cards, breaking UUID strings across 6 lines.
+Fixes:
+1. `ObjectItemCard`:
+   - Extracted `item.kind` and `item.category` into `rawStatus` so item kinds (e.g. `structured_achievement`) are rendered cleanly in the card header as humanized badges (`Structured Achievement`).
+   - Tracked consumed keys for title and status, and excluded both `label` and whichever status/kind key was extracted from interior entries.
+   - Defaulted `omitIdentity` to `true` across `ObjectItemCard` and `StructuredDataView` so internal technical IDs are kept in the `Technical` tab and not displayed on human review cards.
+   - When all fields are consumed (e.g. `EvidenceRef` with only `id`, `kind`, `label`), the empty interior grid is hidden, producing a compact, elegant reference card with title and kind badge.
+2. `ValueList`: Extended `ValueList` to render `ObjectItemCard` 2-column grids when all array items are objects.
+3. `renderScalarValue`: Added `className="max-w-full truncate"` to `<Badge>` and `overflow-hidden max-w-full break-words` to `<dd>` and tile containers to guarantee scalar badges never overflow their parent container.
+Measured: focused review tests (9: 6 client + 3 API), `npm run typecheck`, scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-09-14 (feedback-hardening remediation, review-ready):
+- Branch reconciliation confirmed `feat/feedback-product-hardening` is based on `origin/main` with no feature overlap; after the remediation commits the branch is 31 commits ahead and 0 behind. Unrelated dirty `services/data-ingestion/*` and environment files remain preserved and are outside the feature diff.
+- i18n hardening: `node scripts/check-i18n.mjs --all` reports 0 missing static keys, 0 missing no-auto keys, and 0 placeholder mismatches after adding the required EN/VI dictionary entries. Strict Final Check type errors were narrowed with real guards and typed fixtures; no unsafe casts were added.
+- Course parsing now uses activity-timestamp CAS guards for stale reaping, narrow missing-`phase` compatibility fallback, terminal application/job reconciliation, and a final worker lease check before checklist/source side effects. The list UI reads `/parse-status` for stale/retry state instead of inferring lease age from `course_applications.updated_at`; the endpoint exposes `active` so a lagging application projection cannot offer Retry while a worker lease is healthy.
+- Required migration order (do not reorder): baseline schemas and, only if needed, the baseline `sql/supabase-claim-parse-jobs.sql`; `sql/supabase-pg-phd-onboarding.sql`; `sql/supabase-job-claim-resilience.sql`; `sql/supabase-course-parse-reliability.sql`; then application deployment. The baseline claim script must run only before resilience; never rerun it after resilience/reliability, because that would restore `started_at`-only stale semantics. No live migration was executed.
+- Measured remediation gates: `check-i18n.mjs --all` passed with 0 missing keys; strict and normal typechecks passed; focused onboarding (311), course lifecycle (76), matcher (58), canonical evidence (66), migration-order (1), and parser-status/list (10) tests passed; `npm run test:ci` passed 409/409 files (3,860 passed, 2 todo); `npm run lint` passed with 5 pre-existing warnings; `npm run build` passed (150 pages); `git diff --check` passed. The exact `npm test -- --maxWorkers=1` run had two unrelated candidate-confirmation timeouts/assertion failures under repository-wide Windows load, while that file passes alone (17/17) and the CI-style run passes. `npm run verify:pr` remains environment-blocked because this workstation exposes Node 22.15.0 and the repository requires Node 24.19.0 (`.node-version`).
+Working tree 2026-09-13 (cookie Configure dialog — more control, obvious refusal): the privacy-settings modal in
+`src/components/privacy/consent-boundary.tsx` was one checkbox. It now opens with **Reject all optional cookies** /
+**Accept all cookies** side by side at equal weight (Reject is first and takes focus; both save and close), then a
+locked *Necessary — Always on* card and an *Analytics* card with a new `Toggle` primitive (`src/shared/ui/toggle.tsx`,
+kit md toggle, not in the GlowBal Figma file) plus a visible On/Off word. Each card's "What's included" lists the real
+cookies/services (`NECESSARY_ITEMS` / `ANALYTICS_ITEMS`). Owner chose this over per-service switches; no invented
+marketing/functional categories. Consent record, cookie format and policy version are unchanged — nobody is re-prompted.
+Banner buttons untouched (§9 decision stands). Details in [known-issues.md §9](known-issues.md).
+**Found and fixed on the way:** `home-partners.tsx` put its heading at inline `z-index: 201` (logos up to 200) with no
+stacking context, so it painted over every `Modal` (`z-[100]`) on `/` — the new, taller dialog had "Find a university"
+and the orbit heading drawn over its own text. The orbit stage now has `isolate`.
+Measured: `npx vitest run` consent + i18n-required + analytics 3 files / 21 passed (4 new consent tests), marketing
+6 files / 35 passed; `npm run typecheck` and `typecheck:strict` clean; ESLint clean on the 5 changed source files;
+`npm run build` passes. Playwright on `next start`: desktop EN, `/vi`, and 390px — Reject focused on open, switch knob
+moves 20px, no horizontal overflow, no overlap after the `isolate` fix. Not run: full `npm test`, `verify:pr`, E2E.
+**Open, pre-existing, not changed:** the first `/vi` load after a cold server start renders the consent banner *and*
+dialog in English (reproduced 1 of 3 loads, always the first; later loads Vietnamese). Likely cause: `primeCatalog`
+replaces the catalog object, and `LanguageProvider`'s memoized `t` in the root layout is not re-rendered when
+`<ViCatalog />` primes it after first render.
+
+Working tree 2026-09-13 (404 page on site chrome): `src/app/not-found.tsx` rebuilt on `SiteNavigation` (light) +
+shared `Footer` + design-system tokens (`Button` primary/secondary lg, `bg-brand-subtle` featured icon, display-sm
+heading); the legacy `.glow-card`/`.glow-button-*` classes are gone. A 404 has no pathname of its own, so it cannot use
+`OWN_CHROME_ROUTES`; it always ships its own header and relies on the `body:has(… [data-testid='nav-header'])` rule in
+`globals.css` to hide the global one. Copy is looked up from `@/lib/i18n-catalog` directly because an unmatched
+`/vi/...` URL renders outside `src/app/vi/layout.tsx` (catalog not primed).
+Measured: `npm run typecheck` clean, scoped ESLint clean; Playwright on `next dev` — `/this-page-does-not-exist` (404),
+`/vi/khong-ton-tai` (404, Vietnamese copy), 390px mobile, and `/universities/99999999` each show exactly one visible
+header and the footer.
+
+Working tree 2026-09-13 (soft-404 fix on `/universities/*`): `src/app/universities/loading.tsx` (the card-grid skeleton)
+wrapped every child segment in Suspense, so Next committed `200` before `/universities/[id]` could call `notFound()`, and
+`/universities/vinuni`'s permanent redirect degraded to a client-side redirect. The list `page.tsx` + `loading.tsx` moved
+into the `universities/(directory)/` route group (URL unchanged); `vi/universities/page.tsx` and
+`src/__tests__/universities-page-performance.test.ts` follow the new path. Trade-off: detail pages no longer show an
+instant (and wrongly shaped) skeleton on client navigation — the global route loader still covers it.
+Measured on `next dev`, browser and Googlebot UA alike: `/universities/99999999` 200 → **404** (+noindex);
+`/universities/vinuni` 200 → **308** → `/universities/97`; `/universities`, `/universities/1` still 200; skeleton still
+streams on `/universities` only. `npx vitest run src/__tests__/universities-page-performance.test.ts` 6/6, scoped ESLint
+clean, `npm run typecheck` clean after `npx next typegen` (stale `.next/types/validator.ts` otherwise points at the old
+path — local only). `build`/`verify:pr`/e2e not run.
+Working tree 2026-09-13 (Admin AI report review dark-mode contrast fix for alert notice and reflections):
+Fixed dark-mode contrast degradation reported on `/admin/ai-report-review` (`media_1789300035930.png`):
+When the user's OS or browser has `prefers-color-scheme: dark`, Tailwind's default media query activated `dark:` classes
+on `LegacyRenderer` (`dark:from-amber-950/40`, `dark:text-amber-200/90`) and `ReflectionCallout` while the application
+surface remained white (`bg-surface = #ffffff`). This produced a muddy grayish-brown banner with nearly invisible pale
+yellow text (contrast ~1.5:1).
+1. `LegacyRenderer`: Redesigned with solid light-theme styling using a warm pastel fill (`bg-amber-50/70`), clean amber border
+   (`border-amber-200`), authoritative amber warning stripe (`border-l-4 border-l-amber-500`), sharp dark brown heading
+   (`text-amber-950`, contrast 14:1), distinct amber Notice pill (`bg-amber-100 border border-amber-300 text-amber-900`),
+   and high-contrast dark amber body text (`text-amber-900`, contrast 8.2:1).
+2. Removed all rogue `dark:` modifiers across `LegacyRenderer`, `ReflectionCallout`, and `FlowNode` that conflicted with
+   the light theme shell.
+Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+
+Working tree 2026-09-13 (CI red since 2026-09-11 — stale matching test fixture): `verify:pr` failed on every
+push/PR after `5f741a9c`, which made `generateApplicationMatchingReport` reuse a previous matching report only
+when its `sourcePersonalReportVersionId` equals the Personal Report in use. Test 8 in
+`src/lib/ai/matching/generation.test.ts` still mocked a previous record without that field, so the composer
+correctly received `previousReport: null`. Fixture now carries the matching lineage; new test 8b pins the
+mismatch case (no reuse). Local-only trap: `5f741a9c` also removed `apply/[applicationId]/lor-feedback/page`,
+and stale `.next/types` + `.next/dev/types` make `npm run typecheck` fail locally (CI is unaffected — fresh
+checkout); run `npx next typegen` and clear `.next/dev/types`.
+Measured: `npm run verify:pr` passes — typecheck, strict typecheck, lint (0 errors, 5 pre-existing warnings),
+`test:ci` 399/399 files, 3735 pass / 2 todo, `build:ci` (150 static pages). Re-run after merging `8aa0db0c`
+(admin review polish, below): `verify:pr` passes, 3736 pass / 2 todo, coverage 72.13/62.5/71.78/74.72.
+
+Working tree 2026-09-13 (Admin AI report review executive pipeline, segmented tabs, and scalar confidence fix):
+Polished visual styling across `/admin/ai-report-review` based on admin user review feedback and UI audit:
+1. Stepper Pipeline (`ReportFlow` & `FlowNode`): Upgraded floating cards into an executive multi-step pipeline with
+   step badges (`STEP 1`, `STEP 2`, `STEP 3`), report icons (👤, 🎯, 🧭), active halo/ring branding (`ring-2 ring-brand/20`),
+   pulse indicators, and clean connecting chevrons between steps.
+2. Segmented Pill Tabs (`DetailPanel`): Replaced loose underline tabs with a sleek tactile segmented control
+   (`bg-surface-subtle border border-line p-1 rounded-gb-xl`) with icons (`✨ Output`, `📥 Inputs`, `⚙️ Technical`)
+   and count badges, integrated cleanly beside the panel header on desktop.
+3. High-Contrast Legacy Alert (`LegacyRenderer`): Replaced washed-out amber text with high-contrast, sharp dark amber
+   typography (`text-amber-950`), an icon badge, and a distinct "Notice" pill.
+4. Metric & Narrative Bug Fix (`isNarrativeKey` & `renderScalarValue`): Fixed a false positive where `evidence`
+   sub-string matched `overallEvidenceConfidence: "low"`, causing it to render as a full-width blockquote with thick
+   red border. Metric keys (confidence, status, rating, score, count, date, etc.) are strictly excluded from narrative
+   classification, and string confidence values (`low`, `medium`, `high`) are now formatted as color-coded chip badges.
+5. Root "Report" Unwrapping (`StructuredDataView`): Relaxed root unwrap logic to cleanly unpack `{ report: { ... } }`
+   even when companion metadata keys (`schemaVersion`, `generatedAt`) exist. At `depth === 0`, top-level scalars
+   and narratives are grouped into a cohesive "Report Overview" card rather than isolated single-property cards.
+Measured: focused review tests (8: 5 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+Working tree 2026-09-13 (feedback hardening):
+Final self-test for feedback-hardening handoff (2026-09-13):
+- Combined targeted suites for the four remaining tasks: 20 test files / 405 tests passed.
+- Full serial `npm test -- --maxWorkers=1`: 406/407 files passed, 3,846 passed, 2 todo; the sole failure is the known Windows `check-i18n.integration.test.ts` environment/checker failure. The four route timeouts seen under parallel load pass when run alone.
+- `npm run typecheck -- --pretty false` passed; `npm run lint` passed with 0 errors and the same five pre-existing warnings; `npm run build` passed (150 static pages generated).
+- `git diff --check` passed. No live database migration was executed; the two additive SQL files still require deployment review.
+
+Working tree 2026-09-13 (feedback hardening - Task 4 course-reading async reliability):
+
+- Course-parser async reliability & watchdog architecture:
+  - Additive watchdog reaper (`reapStaleParseJobs` in `src/lib/course-parser/job-queue.ts`) integrated into `/api/cron/process-parse-jobs`: safely identifies processing leases inactive for >10 minutes using the latest `updated_at` heartbeat (falling back to legacy `started_at`), reclaims recoverable jobs (`attempts < max_attempts`) to `pending` with exponential backoff and sets application `parse_status: 'pending'`, and marks exhausted or deadlocked jobs as `failed` with actionable user-facing messages. Uses status-guarded updates (`.eq('status', 'processing').select()`) to eliminate race conditions with concurrent completions, clears failed leases, and defensively reconciles stranded application records.
+  - Granular parse phases (`src/lib/course-parser/parse-phases.ts`): provides coherent execution phases `queued -> fetching -> extracting -> validating -> ready` (and `timeout` / `failed`), while safely mapping to/from legacy `pending / processing / complete / timeout / failed` strings. Progresses through `fetching` and `extracting` via `extractCourse` phase hooks.
+  - Enhanced parse status API (`/api/applications/[id]/parse-status`): returns `phase`, `lastUpdatedAt`, `isStale`, `canRetry`, `error`, `errorType` ('retryable' vs 'terminal'), while preserving legacy `parseStatus` and `progressPercentage` contracts for existing clients.
+  - Idempotent retry API (`/api/applications/[id]/retry-parse`): preserves completed output (idempotent 200 without overwriting data), prevents duplicate active jobs (idempotent 200 on pending and non-stale processing checking both job and application state), allows retries on failed/timeout/stale (>10 min) work, uses guarded job/application updates (including observed `updated_at`) and explicit zero-row conflict handling, and enforces a rate limit window (max 3 retries/hour) tracked durably in `parsed_data.manual_retries`.
+  - Worker transitions (`job-queue.ts` / `job-processor.ts`) now use compare-and-set status/ownership guards, zero-row detection, and a guarded `updated_at` heartbeat fallback when the additive `phase` column is not yet deployed; failure settlement writes `parse_error` only after its status transition lands.
+  - UI & polling responsiveness (`use-parse-refresh.ts` and `my-application-section.tsx`): detects stale or timeout phases and triggers refresh immediately; UI replaces indefinite "AI is reading..." with actionable "Taking longer than usual... Try again" (using pure `useEffect` render timing) and error messaging with retry actions. Polling remains bounded at 12 minutes so the 10-minute reaper horizon is observable.
+  - SQL safety: created additive migration `sql/supabase-course-parse-reliability.sql` adding nullable `phase` column (no default, preventing invalid queued status backfilling on active jobs), a partial watchdog index, and a replacement claim RPC using the same `COALESCE(updated_at, started_at)` activity clock and 10-minute threshold. No destructive operations or live migration assumptions.
+- Measured:
+  - Course-parser/apply targeted coverage is included in the 20-file / 405-test run above; queue race, retry zero-row, stale heartbeat, and polling-horizon regressions pass.
+  - Full TypeScript typecheck (`npm run typecheck`) passed cleanly (0 errors).
+  - Scoped ESLint passed with 0 errors / 0 warnings.
+  - `git diff --check` passed cleanly.
+
+Working tree 2026-09-13 (feedback hardening - Task 2 postgraduate & PhD onboarding branching):
+
+- Preserved existing 8-step wizard structure with branching governed by `answers.study_level`:
+  - Undergraduate (UG): retains curriculum multi-select, grading scales, grades, graduation year, English tests, and UG standardized tests (SAT/ACT/AP/IB/A-Level/GCSE/None yet).
+  - Postgraduate (PG): collects bachelor/current degree, institution, field of study, graduate grading scales (4.0, 10-point, 100%, UK Honours, Other), GPA/classification, completion year; Step 7 renders English proficiency and graduate admission tests (GRE, GMAT, None yet), strictly hiding UG standardized tests (SAT/ACT/AP/IGCSE).
+  - PhD: collects bachelor degree & institution (mandatory), master's degree & institution, current institution, research experience, optional publications & research outputs textarea, intended research direction, and supervisor/research fit context; Step 7 renders English proficiency only, strictly hiding all standardized test selectors.
+- Additive database & persistence contracts:
+  - Created idempotent migration `sql/supabase-pg-phd-onboarding.sql` adding nullable `postgraduate_academic JSONB` and `phd_academic JSONB` to `student_profiles`.
+  - Level-specific saves strictly omit unrelated fields (no nulling or overwriting of `curriculum`, `curriculum_grades`, or opposite level JSONB payloads), preserving existing user data across revisions.
+  - Graceful fallback in `saveProfile`: if additive JSONB columns are absent on an unmigrated database, automatically retries omitting those columns while persisting canonical projection columns (`current_institution`, `current_qualification`, `graduation_year`, `gpa_value`, `academic_background`, `goals`).
+  - Standardized scores write to `standardized_test_scores` (GRE/GMAT for PG), and English scores write to `english_test_scores`.
+  - Coercion helpers `readPgAcademicDraft`, `readPhdAcademicDraft`, `pgAcademicFromProfile`, and `phdAcademicFromProfile` defensively hydrate structured JSONB as well as canonical fallback columns.
+- Measured:
+  - 291 unit tests in `src/features/onboarding/` passed (including 14 in `pg-phd-branching.test.ts` and 238 in `academic-grading.test.ts`).
+  - 11 component tests in `src/components/__tests__/onboarding-wizard-branching.test.tsx` passed (UG/PG/PhD control visibility, persistence payload isolation, cross-level draft clearing, and schema-error fallback restrictions).
+  - 2 component tests in `src/components/__tests__/onboarding-wizard-completion.test.tsx` passed.
+  - `npm run typecheck` passed cleanly (0 errors).
+  - Scoped ESLint passed with 0 errors / 0 warnings.
+  - `git diff --check` passed cleanly.
+
+Working tree 2026-09-13 (feedback hardening - Task 1 canonical student data):
+
+- Canonical student evidence: eliminated active legacy `student_profiles.achievements` reads across scholarship search (`/api/scholarships/search`), CV builder context (`src/lib/ai/cv-builder-context.ts`), and feature-gated VinUni statement analysis (`/api/ai/analyze-statement-aacc`), replacing them with structured queries to canonical `student_achievements` and `student_activities`.
+- Pure in-memory profile-only consumers (`src/lib/admission-fit.ts` and `src/lib/ai/match-insights.ts`) in the matcher UI remain documented/deferred without inventing artificial sync. Confirmed candidate snapshots remain immutable.
+- Deprecated legacy `StudentProfile.achievements` in `src/lib/types.ts` while retaining `nationality` and backward compatibility for historical rows without destructive schema migrations.
+- Final Check: an action-first summary now presents blockers, unreviewed items, critical/conflict findings, and one next action before inventory. Deterministic readiness remains secondary and retains its explicit non-admission disclaimer; no score, persistence, schema, or AI logic changed. The Last checked timestamp follows the selected language (`en-GB`/`vi-VN`).
+- CV start: the primary route is labelled Create my CV, with known profile/application information described as automatic prefill; the secondary route is Already have a CV? / Upload for review. Existing routes and template selection are retained.
+
+Measured: focused Vitest passed for scholarship search (2 tests), CV builder context (6 tests), VinUni AACC route (11 tests), profile/statement evidence (23 tests), CV start (2 tests), and Final Check (7 tests); `npm run typecheck` passed cleanly (0 errors); scoped ESLint passed with 0 errors; `git diff --check` passed.
+
+Working tree 2026-09-13 (CV start flow newcomer labels & copy update):
+In `CvStartFlow.tsx`, updated builder entry card title and action to "Create my CV" with newcomer copy explaining known profile/application info usage. Updated upload card title to "Already have a CV?" and action to "Upload for review" while retaining evidence-based feedback copy. Template selection and route destinations remain unchanged.
+Measured: `CvStartFlow.test.tsx` (2 tests) passed; scoped ESLint passed with 0 errors; `git diff --check` passed.
+
+
+Working tree 2026-09-13 (Admin AI report review nested grid collision fix & achievement/reflection separation):
+Resolved text overlap bug in `StructuredDataView` where scalars inside nested item cards (width ~300px)
+were crushed into 4 columns under `lg:grid-cols-4`. Nested scalar grids (`depth >= 2`) now cap at 2 columns
+with `min-w-0 break-words`. Expanded `isNarrativeKey` to recognize citations, quotes, and reflective stories,
+and `isIdentityKey` to omit camelCase internal IDs (`documentId`, `snapshotId`, etc.) when `omitIdentity` is set.
+Implemented dedicated `SourcesCitationList` to render document sources with file icon, page pill, and italic blockquote.
+Distinctly separated Candidate Snapshot into 4 clear sections: Academic & Profile Baseline, Achievements (Thành tích),
+Activities & Extracurriculars (Hoạt động), and Personal Reflection (Suy ngẫm cá nhân - 7 core questions with human titles).
+Inside achievement and activity cards, factual parameters are presented cleanly on top and student reflections
+are isolated into a dedicated callout box (`💭 Student Reflection (Góc suy ngẫm)`).
+Measured: focused review tests (7: 4 client + 3 API), `npm run typecheck` (clean), scoped ESLint (0 errors), and `git diff --check` pass.
+
+Working tree 2026-09-13 (Admin AI report review layout & UI redesign): `/admin/ai-report-review`
+output and input views reformatted for high readability and administrative review efficiency.
+Single-property root wrappers like `{ report: ... }` are automatically unwrapped to elevate
+major sections (`Overview`, `Snapshot`, `Analytics`, etc.) into top-level semantic cards with
+dividers and headers. Summaries and narrative blocks are highlighted in executive callouts
+(`border-l-4 border-brand bg-brand-subtle/30`), scalar metrics (confidence, coverage, fit rating, status)
+render as responsive KPI tiles with color-coded chip badges (`safe-chip`, `info-chip`, `brand-chip`),
+object arrays such as `themeMaturity` render as responsive 2-column item cards with status/confidence/evidence
+chips, and reference lists (e.g. 28+ evidence refs) collapse into clean disclosure accordions.
+Legacy warning banner upgraded with amber notice styling.
+Measured: focused admin review tests (6: 3 client + 3 API), `npm run typecheck`, scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-09-11 (CV format selection prominent red border):
+`FormatCard` in `CvStartFlow.tsx` enhanced with prominent 2px brand border (`border-2 border-brand`),
+a 4px brand ring halo (`ring-4 ring-brand/20`), brand glow shadow (`shadow-md shadow-brand/10`),
+subtle brand tint background, an active top-right checkmark indicator badge, and card-wide clickability
+to make the selected format immediately distinguishable.
+Measured: `CvStartFlow.test.tsx` (2 tests) passed; `npm run typecheck` passed cleanly; `npm run lint` 0 errors.
+
+Working tree 2026-09-11 (Strategy V3 Vercel timeout): production logs showed
+`POST /api/applications/[id]/strategy/recommendation` reaching the route's
+120-second limit and returning 504. The route now allows 300 seconds, which is
+available to this Pro project and accommodates the existing sequential Profile →
+Activity batches → Synthesis pipeline without restoring the earlier
+rate-limit-prone concurrency. Regression route test (9 tests) and targeted
+ESLint passed; `git diff --check` passed.
+
+Working tree 2026-09-11 (AI Strategy Navigation icons, LOR support & Strategy tab restoration):
+SubNav updated with mockup-aligned icons (home, fileText, target, compass, calendar,
+pencil, mail, folder, chart), stacked vertical layout (icon above text), rounded
+pill active containers (bg-white/20 text-white on-brand), and vertical separator line.
+The Strategy tab (`strategyReport` -> `/ai-strategy/[id]/strategy-report`) was restored
+between Matching Report and Planner with a dedicated `compass` icon, gated dynamically
+by `readiness.strategyReady` (unlocked when `state.strategyComplete || step === 'strategy' || step === 'dashboard'`).
+The LOR Feedback route was moved under `src/app/apply/[applicationId]/(features)/lor-feedback`
+to share the application workspace feature shell and `ApplicationNav` chrome
+(breadcrumbs & red brand sub-nav). Redundant manual back link and standalone
+`SiteNavigation` removed from `StatementFeedbackWorkspace`. Navigation visibility
+updated so root header and global navigation display consistently across all
+feature workspaces.
+Measured: targeted Vitest suites (6 files, 51 tests) passed; `npm run typecheck`
+passed cleanly; `npm run lint` passed with 0 errors.
+
+Working tree 2026-09-08 (homepage waterfall, verified): a report that "/" fires
+74 requests / 19 chunks / 29 RSC round-trips / 14 images / 2.5 MB was checked
+against a production build and is accurate — 72 requests, 19 chunks, 25 RSC,
+16 images, 2.07 MB (104 / 44 / 29 / 2.36 MB if you scroll to the end). Measure
+this on `next build && next start`, never on `next dev`, which reports 49
+requests, 8.0 MB and zero RSC because prefetching is off in development.
+
+Two things the trace was read wrong, both now in
+[performance.md](performance.md): the RSC round-trips are `<Link>` prefetches
+(`Next-Router-Prefetch: 1`, two per link under Next 16), not per-segment data;
+and the missing homepage skeleton is not the reason the page can feel slow —
+**`app/layout.tsx` awaits `headers()`, which makes 257 of 261 routes `ƒ Dynamic`**,
+so "/" is server-rendered per request despite its `revalidate`. Cold TTFB 603 ms
+with nothing flushed before it; warm 21-66 ms. The stale comment in
+`app/page.tsx` that said the page still prerenders has been corrected in place.
+The fix itself is deliberately **not** done — owner's call, it is item 11 in
+performance.md.
+
+Fixed here: `prefetch={false}` on the twelve partner crests in `HomePartners`,
+which each point at the dynamic `/universities/[id]`. A scrolled visit to "/"
+drops 104 → 91 requests, 44 → 31 RSC, and **6 → 0 server renders of a university
+page for a visitor who clicked nothing**. Note the trade — in the App Router
+`false` means never, not "on hover". Item 8 (render-blocking CSS) was measured
+rather than started: the honest ceiling is ~13 KB gz for a change touching every
+route, and the reasoning is written up under "Item 8, sized" in
+performance.md. Measured: `npm run typecheck` clean, `eslint` clean on the
+changed file, marketing suites 6 files / 35 passed, `npm run build` passes. Not
+run: `verify:pr`, E2E.
+
+Working tree 2026-09-08 (cookie banner wording, and room for Google Ads): the
+banner's buttons are now **Accept / Accept Essential Cookies / Configure**. Both
+of the first two call `saveConsent(true)` — an owner decision taken after the
+GDPR objection was put in writing, so the second button's label does not
+describe what it does and Configure is the only refusal left on the banner.
+Recorded in [known-issues.md §9](known-issues.md), asserted by a named test, and
+commented beside the JSX: **do not "fix" that `true` to `false`.** GPC/DNT is
+untouched and still overrides every button.
+
+In the same change, the seam for a second consent category (Google Ads) was
+opened without implementing any of it: a `ConsentCategory` union and a single
+`consentAllows(record, category)` read path now stand between the stored record
+and its five call sites, and the `gb_consent` mirror cookie is documented and
+parsed as `<version>.<analytics>[.<further flags>]` so appending a bit later is
+not a format break. The eight-step checklist for adding a category — including
+the two easy-to-miss steps, bumping `CONSENT_POLICY_VERSION` and switching GA to
+Google Consent Mode — sits in the doc comment above `consentAllows`. Measured:
+`npm run typecheck` clean, `npm run lint` 0 errors (5 pre-existing warnings),
+consent suites 11 passed, i18n suites 20 files / 129 passed, `npm run build`
+passes. Not run: `verify:pr`, E2E.
+
+Working tree 2026-09-08 (third-party requests before consent): `ConsentBoundary`
+already kept GA4 / Vercel Analytics / Speed Insights behind an accept-reject
+choice, but three things reached third parties or the visitor's device without
+passing through it. All three are now closed.
+
+1. **Scholarship logos were hot-linked.** `home-scholarship-branding.ts` pointed
+   at rhodeshouse.ox.ac.uk, gatescambridge.org and knight-hennessy.stanford.edu,
+   and `home-scholarship-pillars.tsx` renders them in a plain `<img>` — so every
+   anonymous visitor's browser made three cross-origin requests on the home page
+   before the banner was answered, handing each university an IP and a Referer
+   and letting it set a cookie (observed in DevTools as a `rhodeshouse.ox.ac.uk`
+   cookie). The three files now live in `public/brand/scholarships/`. Note that
+   none of those hosts was ever in the CSP's `img-src`, so this also removes a
+   breakage waiting for the day that header stops being report-only.
+2. **The university logo fallback called Google from the browser.**
+   `wiki-images.ts` emitted `https://www.google.com/s2/favicons?...`, which the
+   imagery cron persists into `universities.logo_url` and plain `<img>` tags
+   render. It now emits `/api/university-logo?domain=…`, a new route that makes
+   that call server-side. It takes a domain, never a URL, so it cannot be used
+   as an open proxy. `sql/supabase-university-logo-first-party.sql` rewrites
+   rows written before the change — **not yet run.** `www.google.com` stays in
+   `img-src` and `images.remotePatterns` until it has been.
+
+   Two things were measured against the live database after that migration
+   failed on its first run, and both correct what the `.sql` files claim.
+   (a) `logo_url` exists on exactly ONE table: `universities`. The migration
+   also updated `course_applications` because `supabase-apply-system.sql`
+   declares the column in its `CREATE TABLE IF NOT EXISTS` — the live table
+   predates it and never got the column, so the statement failed with 42703 and
+   the whole transaction rolled back (verified: the affected rows were still
+   untouched afterwards). `/apply` reads the crest by joining
+   `universities(logo_url)`, so nothing wanted it. The migration is now
+   single-table and says so.
+   (b) Only 3 rows hold a google.com URL: ids 27 `ed.ac.uk`, 48 `u-tokyo.ac.jp`,
+   96 `unibocconi.it`. All three are domains Google has NO favicon for — the
+   endpoint 301s to `t1.gstatic.com`, which answers 404 with a generic grey-globe
+   PNG in the body, and a plain `<img>` renders that body regardless of status.
+   Those three cards therefore show Google's placeholder today. The route maps a
+   404 upstream to a 404 of its own (cached 1h, versus 24h for a hit) instead of
+   forwarding the globe, so after the migration they fall back to the app's own
+   initials mark. **That is a deliberate visual change on three university
+   cards**, not a regression.
+3. **`gb_visitor` was set without consent.** The `/c/<code>` ambassador tracker
+   wrote a year-long random id purely to tell repeat visits apart — audience
+   measurement, i.e. the same category as the analytics behind the banner. The
+   owner chose legal safety over the metric: it is now written only for a
+   visitor whose consent says yes, cleared when consent is withdrawn, and
+   unconsented clicks are logged under an `anonymous-no-consent` sentinel with
+   `is_unique = false`. **Unique-visitor counts therefore now only cover
+   visitors who accepted; total clicks are unaffected.** `gb_ref` is unchanged
+   and still set unconditionally — it carries the share code the visitor
+   deliberately clicked, which is the strictly-necessary case.
+
+Because a choice kept in localStorage is invisible to the server, the analytics
+bit is mirrored into a `gb_consent` cookie (`src/shared/lib/consent-cookie.ts`);
+localStorage stays the source of truth. `ConsentBoundary` writes it on every
+decision and back-fills it on mount for visitors who decided before it existed.
+
+⚠️ **A vitest config gap was found and fixed while adding the route test:** the
+`node` project matched `src/app/api/**` and `src/app/*.test.ts` only, so a test
+for a route handler outside `src/app/api` (`/c/<code>`, `/start`,
+`/auth/callback`) matched no project and ran nowhere — which reads as a pass.
+`src/app/**/route.test.ts` is now included.
+
+Still open, reported to the owner rather than changed: avatars and mentor
+university logos are plain `<img>` tags accepting arbitrary hosts from the
+database and OAuth (`lh3.googleusercontent.com` is a Google request from the
+browser), and `/privacy` §8 describes cookies only in general terms — it names
+no processor, lists no cookie, and does not mention the footer's privacy-settings
+control.
+
+Measured on this tree, Node 24.19.x: `npm test` 395 files / 3,717 passed + 2
+todo; `npm run typecheck` and `npm run typecheck:strict` clean; `npm run lint`
+0 errors (5 pre-existing warnings in untouched files); `npm run build` passes
+with the new `/api/university-logo` route present. E2E `home-preview.spec.ts`
+23 passed / 2 skipped — the two skips are the visual baselines, which this host
+has under older filenames and which were already skipping before this change.
+Against a local production server: the three logo paths return 200 with matching
+byte sizes, `/dev/home` HTML contains zero references to the three external logo
+hosts, and the proxy returns a PNG for `ox.ac.uk` / `stanford.edu` and 400 for a
+malformed domain, an IP literal and an empty value, and 404 for the three
+domains Google has no favicon for. Not run: `verify:pr`, the full E2E suite, and
+the SQL migration.
+
+Working tree 2026-09-08 (Google Analytics 4): GA4 is installed through
+`@next/third-parties` and mounted **inside `ConsentBoundary`**, not the root
+layout — it loads only after a visitor accepts non-essential analytics, and not
+at all under GPC/DNT. `src/lib/analytics/ga.ts` wraps `sendGAEvent` behind a
+closed event-name union, re-uses `sanitiseMetadata` from `track.ts` so no
+document content can reach a third party, and re-reads the stored consent on
+every event (unmounting the component does not unload gtag.js, so without that
+a revocation would not take effect until reload). Five events are wired:
+`course_import_completed`, `sop_feedback_generated`, `tier_list_viewed`,
+`mentor_booking_started`, `mentor_payment_completed`. Requires
+`NEXT_PUBLIC_GA_ID`; unset means no script and no events, which is the CI and
+local default.
+
+Measured: base TypeScript, lint (0 errors; the 5 warnings are pre-existing and
+in untouched files) and the production build pass; 263 tests pass across the
+touched areas. Per-route first-load JS was measured by A/B build on this branch
+— `/` 1,126,510 → 1,141,934 bytes and `/ai-strategy/*` +15,424 bytes
+uncompressed, all of it the component and helper; gtag.js itself is fetched
+`afterInteractive` from googletagmanager.com and is not bundled. Not run:
+`verify:pr`, E2E.
+
+Working tree 2026-09-08 (critical security hardening): the shortlist
+`SECURITY DEFINER` RPC now derives `auth.uid()`, accepts only a session plus
+result UUIDs, validates ownership/all rows before atomic app/source/job writes,
+and has authenticated-only execute privileges. Mentor public reads now use
+explicit projections; private mentor fields are owner-only through a server
+helper, and mentor/student document paths and update policies are owner-scoped.
+The deployment migration is reviewable but has not been applied to production.
+
+Measured: the six-file focused security suite passed 46 tests; base and strict
+TypeScript passed; lint passed with four existing warnings; the production
+build completed once with the existing three `geo-content.ts` tracing warnings,
+but two final Turbopack reruns reached compilation/TypeScript and then hit the
+host's Next page-data worker OOM (`3221226505`); the Webpack fallback hit an
+existing `node:crypto` plugin error outside this patch. The disposable
+integration harness passed syntax checking but was not run because no separate
+test-project credentials were supplied. Full Vitest passed 3,701 tests with
+two TODOs and retained two out-of-scope unauthenticated CV-test timeouts.
+Latest `origin/main` is `e86e15f7f12f561fe4908ec2dd6a850993babbb4`.
+
+Working tree 2026-09-12 (Admin AI report review): added the admin-only
+`/admin/ai-report-review` console tab. It lists the 100 most recent applications
+with AI report activity and loads one selected application at a time, presenting
+Personal → Matching → Strategy as a connected, keyboard-accessible flow. Each
+node shows its stored output plus the persisted model/prompt/input-hash and
+source-version lineage. The page intentionally does not retain or expose raw
+AI prompts or provider responses. Reads pass through an independently
+admin-authorized feature repository and a scoped admin API endpoint; no
+migration or RLS-policy change is required.
+
+Measured: focused admin-review UI test (1 pass), base and strict TypeScript,
+scoped ESLint, and the production build pass. The build retains the existing
+three `geo-content.ts` dynamic-filesystem tracing warnings.
+
+Working tree 2026-09-12 (Supabase job-claim resilience): Vercel production
+logs showed repeated `Gateway Timeout` responses while the parse and Personal
+Report cron workers called their Supabase job-claim RPCs; the same signature
+also appeared on an unrelated scholarship read. A worker now waits 200ms/500ms
+after that specific timeout and recovers only rows already leased to its own
+worker ID, never re-running an ambiguous claim. The additive deployment SQL,
+`sql/supabase-job-claim-resilience.sql`, makes both claim RPCs idempotent per
+worker ID, recovers abandoned parse leases after ten minutes, and adds claim
+indexes. **The SQL file has not been applied to production and must be run
+before the deployed retry path is active for the parse queue.**
+
+Measured: 13 focused recovery/queue tests, strict TypeScript, scoped ESLint,
+and `git diff --check` pass. The production build is pending after the final
+code change.
+
+Working tree 2026-09-08 (Personal Report lineage selection): selecting an
+application Personal Report version now carries its `personalReportVersionId`
+through Matching Report and Strategy Report navigation and generation. Each
+downstream reader filters persisted rows by that lineage instead of silently
+falling back to the newest report; the existing Personal Report date/history
+picker remains the source selector.
+
+Measured: focused lineage/UI/API tests (43 pass), strict TypeScript, scoped
+ESLint, and the production build pass. The build retains the existing three
+`geo-content.ts` dynamic-filesystem tracing warnings; `git diff --check` passes.
+
+Working tree 2026-09-08 (RnD feedback reliability audit): the pasted audit was
+checked against main `0595e2c76fe859baf607adb6cf52eb3149c2987d` and the live
+Supabase project using read-only checks. This patch adds a consent boundary
+around Vercel Analytics/Speed Insights with persisted policy-versioned choices,
+GPC/DNT handling, a footer settings entry point, and a keyboard-trapped shared
+Modal. It also moves saved-program writes behind an authenticated,
+owner-scoped PATCH route that returns the canonical row and rejects zero-row
+updates, and adds `/api/health` as a no-store liveness endpoint. The existing
+university URL-state effect now uses a transition so the repository lint gate
+passes.
+
+Measured: live REST counts were 2,877 published scholarships, 99 universities,
+374 scholarship-university link rows covering 374 unique scholarships, and 604
+rows each in `courses` and `catalog_programmes`. The focused audit tests pass
+(12 files, 64 tests; modal follow-up 4 files, 9 tests); full Vitest passes
+3,699 tests with 2 TODOs; base and strict TypeScript, lint, i18n checks, and
+the production build pass. `verify:pr` stops before its gates because the host
+has Node 24.13.0 while the repository requires 24.19.0. Playwright E2E was
+attempted but Chromium is not installed on this host, so browser assertions
+remain to be run with the pinned Node runtime and Playwright browser.
+
+Full classification and remaining migration/product decisions are recorded in
+[the RnD feedback audit](plans/2026-09-08-rnd-feedback-audit.md).
+
+Working tree 2026-09-06 (VinUni Structure & Flow V2): the authenticated
+application writer and the authenticated public VinUni SOP entry now use the
+same two-pass, evidence-first evaluator. Pass A reconstructs the draft's
+actual narrative units and links; Section B validates seven structure criteria,
+four transition layers, five evolution dimensions, moment depth, deterministic
+balance, the six-link ending progression, and ranked priorities. Legacy stored
+`ideasStructure` payloads remain readable, while invalid rich Section B output
+returns a retryable error instead of fabricated feedback. The public entry uses
+`contextMode: "vinuni_public"` with no application/profile/programme context and
+does not persist the essay.
+
+Measured: focused VinUni/API/UI tests 45 pass; base and strict TypeScript pass;
+scoped ESLint pass; i18n checker and integration tests pass; production build
+passes with the existing `geo-content.ts` tracing warnings; `git diff --check`
+passes. The full Vitest run reports 3,687 passing tests and three failures
+outside this task's VinUni scope: one matching-report timeout and two
+candidate-information auth/idempotency failures.
+
+Working tree 2026-09-06 (reviewed VinUni catalogue import): the owner-reviewed
+`data/VinUni data.xlsx` is normalized to `data/vinuni-reviewed.json` and imported
+through the existing crawl staging/promotion pipeline. This task changes the
+database/import path only; existing application UI sources are unchanged.
+
+Production run `ab305cb7-27fa-49ab-8dc9-e30f8c101b87`
+(`vinuni-reviewed-9348ebddbe35-ce5173dd7282`) promoted 12 `HUMAN_VERIFIED`
+programmes, 4 colleges, 12 primary programme-college relations, 60 structured
+programme facts, and one university profile. The existing BBA kept id
+`c0a00000-0000-4000-a000-000000000004`; the run produced zero catalogue rows
+for non-VinUni universities. A post-import normalization correction maps
+`Medical Doctor` to degree level `professional` and was re-promoted idempotently.
+The production cache revalidation endpoint returned 401; this does not affect
+the imported database rows.
+
+Measured: 61 focused tests pass; base and strict TypeScript pass; scoped ESLint
+passes; both importer syntax checks and `git diff --check` pass; the Next.js
+production CI build passes with the three existing `geo-content.ts` tracing
+warnings.
+
+Working tree 2026-09-05 (Core Web Vitals, part 3: dead CSS, the matches
+catalogue, and three auth round-trips): parts 1 and 2 are merged and live; this
+continues them. Full record in [performance.md](performance.md).
+
+**The `[applicationId]` skeleton from part 2 is confirmed on screen** — the gap
+that entry flagged is closed. With the Plus + admin account the owner supplied,
+the `aria-busy` wrapper was observed ahead of content on `/strategy`,
+`/matching-report` and `/cv/content`, CLS 0.0018 on each.
+
+`globals.css` was 84% dead: 340 of 404 class selectors matched nothing. Now
+**5,042 → 1,192 lines**, 404 → 83 selectors, render-blocking CSS **51.1 → 41.3 KB
+gzipped**. ⚠️ A grep alone was not treated as sufficient — every candidate was
+also checked against the live DOM across 65 page loads on 47 routes, signed in
+*and* signed out (`/auth` and `/onboarding` redirect away when you have a
+session, and `auth-*` was the biggest dead family), and none of the 1,281 live
+classes was on the delete list. Verified by a 28-route pixel diff plus the e2e
+suite. ⚠️ **The audit over-estimated this fix and `CLAUDE.md` has been corrected
+too:** deleting 74% of the source moved the compiled bundle only 18%, because
+most of it is Tailwind utilities, not legacy CSS. The rest needs per-route CSS,
+logged as item 8.
+
+`/universities/matches` was reading all 593 `catalog_programmes` rows with every
+column — `academic_units` alone is 192 kB against 58 kB for the eight fields
+ranking uses — and could not start that read until the university query returned
+ids, for a filter matching every row. Now one narrow `allForMatching()`, both
+catalogue reads in parallel, and the pair cached under the existing
+`universities` tag. ⚠️ The cached value must stay JSON-serialisable —
+`unstable_cache` turns a `Map` into `{}`. Separately, the route was rendering
+**two headers**: `nav-reveal` matches `/universities` exactly, so the app chrome
+came along and only a `:has()` rule in `globals.css` hid it — after it had
+painted, moving `<main>` 73px. Both match routes are now in `OWN_CHROME_ROUTES`.
+Cold load: commit 989 → 446ms, FCP 1576 → 1076ms, fully loaded 10.8 → 3.6s,
+**CLS 0.0530 → 0.0023**.
+
+`/ai-strategy/[applicationId]/*` was making **three** Auth API round-trips per
+request — layout, page, and `ApplicationNav`'s fallback, which the layout never
+passed a `userId`. All 24 sites plus five public pages (`/ai-strategy`,
+`/how-it-works`, `/plus`, `/universities/[id]`, `/mentors/[id]`, which were
+paying a network call just to compute `isSignedIn` for anonymous visitors) now
+use the request-cached `getServerIdentity()`. ⚠️ **Not a weaker check, and this
+was verified rather than assumed:** a live token's header reads `alg: ES256`, so
+`getClaims()` verifies the signature locally against the JWKS; on the legacy
+HS256 secret it would transparently fall back to the Auth server. Guarded by
+`src/__tests__/ai-strategy-auth-dedupe.test.ts`, because the regression is a
+*new* page with the old pattern.
+
+      Gates: `npm run build`, `npx tsc --noEmit`, `npx tsc -p
+      tsconfig.strict.json` all pass; `eslint src` 0 errors / 5 pre-existing
+      warnings; **387 test files, 3,666 passed + 2 todo, 0 failures**;
+      `check-i18n --all` clean. `npx playwright test` 54 passed with one
+      failure — `kitchen-sink › design tokens` — which **fails identically on a
+      clean checkout** and was left rather than re-recorded blind. ⚠️ Stop any
+      `npm start` before running e2e, or Playwright attaches to it, misses
+      `ENABLE_DEV_ROUTES=1`, and 17 `/dev/home` tests fail for no reason.
+
+Working tree 2026-09-05 (Core Web Vitals, part 2: `/ai-strategy` streaming +
+the barrel that put framer-motion everywhere): continues the entry below; the
+full record is [performance.md](performance.md).
+
+A barrel import was costing every route 247 KB. `app/layout.tsx` →
+`nav-reveal.tsx` → `@/features/marketing/ui` → `home-metrics` →
+`home-metrics-grid` → **framer-motion**. Both global nav components were asking
+that barrel for one pure function, `getMarketingNavPresentation`, and the barrel
+also re-exports every Home composition — so `/terms`, which animates nothing,
+carried the whole animation library. ⚠️ The fix is **not** a deep import:
+ESLint's `NO_DEEP_FEATURE_IMPORT` bans three-segment feature paths, and it
+caught the first attempt. The sanctioned route is a slice — a thin re-export at
+`features/marketing/<name>.ts`, the pattern `strategy-help.ts` already set and
+`navigation.ts` already used. `navigation.ts` gained
+`getMarketingNavPresentation`; `strategy-guide`, `strategy-hub` and `about`
+are new. Framer-motion now ships only on `/` and `/vi`, which animate.
+**Supabase stays** — 222 KB / 59 KB gz, reached by three globally-mounted
+components that need real auth state; deferring it would delay sign-in display
+everywhere for 59 KB, which is not a good trade.
+
+All 27 `/ai-strategy/*` routes had zero `loading.tsx` and zero `Suspense`, so
+nothing painted until every await resolved. Added
+`app/ai-strategy/[applicationId]/loading.tsx` and moved anonymous auth to the
+edge: `'/ai-strategy/'` in `PROTECTED_ROUTES` — ⚠️ **the trailing slash is
+load-bearing**, since `startsWith` tests that list and `/ai-strategy` itself is
+the public hub. ⚠️ **The boundary sits at `[applicationId]`, not `/ai-strategy`,
+and must not move up**: Next wraps a segment's `loading.tsx` around the children
+of that segment's *layout*, so at this level the Plus entitlement gate still
+runs server-side. One level up, the shell would flush first and a student
+without Plus would watch a skeleton of a page they cannot have before being
+bounced to `/plus`. `personal-report` and `reflection/*` are deliberately **not**
+done: their `ApplicationNavFromReturn` band is conditional on a search param a
+`loading.tsx` cannot read, so a segment skeleton there would shift a viewport of
+content by the band's height — roughly 0.1 CLS, undoing much of the previous
+entry's work. They need in-page `Suspense` instead; logged as item 3b.
+
+      Measured: first-load JS gzipped — `/terms` **552 → 304 KB (−45%)** across
+      both parts, `/how-it-works` 304, `/about` 310, `/news` 310, `/advisors`
+      312, `/ai-strategy` 315, `/universities` 321, `/scholarships` 323,
+      `/plus` 328. `/` stays 377 (animates) and `/vi` 555 (Vietnamese SSR) by
+      design. CLS unchanged at 0.0035–0.0114. Proxy verified by hand:
+      `/ai-strategy` 200, children 307 to `/auth?redirect=…`; all seven `/vi/*`
+      routes re-checked for Vietnamese copy. Full suite 3,661 passed and 2 todo
+      across 386 files; typecheck, strict typecheck, `npm run build` and
+      `eslint src` (0 errors, 5 pre-existing warnings) all pass. Lint also
+      caught a cascading `setState` inside an effect left by the previous
+      entry's catalog work — the provider now derives the catalog during render
+      instead, which removes the extra render and the state/singleton split that
+      caused the bug that entry describes. **Not exercised locally:** the
+      `[applicationId]` skeleton needs an authenticated Plus session; the
+      boundary is confirmed compiled but has not been seen on screen — check it
+      on the first preview deploy.
+
+Working tree 2026-09-05 (Core Web Vitals: lazy translation catalog + nav layout
+reservation): Speed Insights reported RES **57/100** (Desktop, production, 7
+days) with FCP 4.64s, LCP 4.67s and CLS 0.20, against a TTFB of 0.27s — so the
+server was never the problem, the number of bytes before first paint was. Vietnam
+is 871 of 958 events and scored 56 where the US scored 86, which is the same
+pages over a slower connection. Full audit and the remaining backlog are in
+[performance.md](performance.md); two fixes landed here.
+
+`lib/i18n-dictionary.ts` (534 KB of source) was a static import in `lib/i18n.tsx`,
+`lib/dom-translate.tsx` and `lib/i18n/locale.ts`, all reachable from the root
+layout, so it shipped in the first-load bundle of every one of the 260 routes —
+584 KB raw / 178 KB gzipped, **a third of the JS transfer**, on `/terms` as much
+as on `/`. English never reads it: `t()` returns the source string before the
+lookup. It now sits behind a dynamic import in `lib/i18n-catalog-runtime.ts`.
+⚠️ The invariant that keeps this working: **never statically import
+`i18n-catalog` from client-reachable code** — one such import puts all 584 KB
+back everywhere, silently. `/vi/*` deliberately keeps it eager, and needs *both*
+halves of the prime: `app/vi/vi-catalog.tsx` for the browser, and a direct
+import in `app/vi/layout.tsx` for the server, because a `'use client'` module
+imported from a server component yields a client reference that is not evaluated
+until React renders it — after child server components have already run. Shipped
+without the second half, `/vi/about` rendered its heading in English.
+
+The CLS was one shift, and it was the header. `SiteNavigation` withholds the
+nav actions until Supabase resolves (deliberate — a completed student must not
+see the first-time onboarding CTA flash), which also left the bar 4px shorter
+until then. Measured at 1440×900: the actions box went `89x34 → 398x46` and took
+`<main>` — essentially the whole viewport — down 4px with it, so a near-1.0
+impact fraction multiplied the actions' own 306px sideways move into **0.199 of
+the site's 0.20**. `TopNav` now takes `actionsPending` and holds the height with
+an invisible inert `Button` (a real one, so it tracks the design rather than a
+magic number). Both headers pass it, including `AppTopNav` in `nav-reveal.tsx`.
+
+      Measured: first-load JS **552 → 375 KB gzipped (−32%)** on `/`, `/terms`,
+      `/about`, `/ai-strategy`, `/apply`, `/profile`; `/universities` 566 → 391;
+      `/vi` unchanged at 553 by design. CLS `/` **0.2000 → 0.0036**, `/terms`
+      0.1985 → 0.0035, `/about` 0.2065 → 0.0114 (Playwright, production build,
+      1440×900, 5 Mbps / 80ms / 4× CPU). Local FCP 1212 → 1068ms on `/`, but
+      localhost has no real network — judge this against Speed Insights after
+      deploy, not against that delta. All six `/vi/*` routes re-checked for
+      Vietnamese server copy. Full suite 3,661 passed and 2 todo across 386
+      files; typecheck, strict typecheck, `npm run build` and lint on the
+      touched files all pass. The i18n suite caught a real bug before commit:
+      the load effect skipped adopting an already-primed catalog, which left
+      `t()` stuck on English for the rest of the session after a client
+      navigation off `/vi/*`. `/about`'s residual 0.0114 is a pre-existing shift
+      in its card overlays, not the nav.
+
+Working tree 2026-09-04 (change password while signed in): completes the
+password story — `/profile/security`, reached from the account card on
+`/profile`. The current password is required and verified, because
+`updateUser({ password })` needs only a session and Supabase's "secure password
+change" setting is behind the same organisation-owner wall as leaked-password
+protection; without the prompt, an unlocked browser or a replayed session cookie
+converts temporary access into permanent ownership. Verification runs on a
+throwaway `persistSession: false` client so a read-only check does not rewrite
+the caller's session cookies, and the session it mints is revoked straight away.
+On success every *other* session is revoked (`scope: 'others'`) — refresh tokens
+outlive the password that created them, so a change that leaves them working
+protects nothing — and a "your password was changed" email goes out, which is
+the only signal the real owner gets if someone had both the session and the
+password. A Google-only account has no password hash, so it is offered the
+emailed link instead of a one-click "set a password" that would be the same
+escalation. Rate limited 10 per 15 min per user id, placed after local
+validation and before the HIBP lookup; `route.test.ts` pins that ordering
+because it is invisible in the types. No Figma frame — see
+`known-issues.md §0i`.
+      Measured: full suite 3,652 passed and 2 todo across 385 files; typecheck,
+      strict typecheck, `npm run build` and lint on the touched files pass, and
+      `scripts/check-i18n.mjs --all` reports 0 missing keys. The i18n checker
+      caught the two new page strings before commit. `EyeMark` moved into
+      `shared/ui` on its third call site, replacing the copies in the sign-in
+      and reset forms.
+
+Working tree 2026-09-04 (password reset + localised auth errors): the product
+had no password-reset flow at all — "Forgot password" was a no-op that the Figma
+rebuild dropped — so a user whose password leaked could not rotate it. Added as
+a third mode on the auth card plus `/auth/reset-password`, with request and
+confirm routes. The request route always answers 200 so it cannot be used as an
+account-existence oracle, and is rate limited on both IP and target email (3 per
+15 min) because it mails an address the caller chooses. The recovery token is
+redeemed at the moment the new password is submitted, not at an earlier
+redirect, which binds the change to possession of the email rather than to
+whoever is signed in on the machine; both password checks run before the token
+is spent so a weak choice cannot burn a single-use link. No Figma frame exists
+for any of this — the UI reuses the existing auth card and should be re-derived
+if a frame appears.
+
+Auth error messages now follow the language switcher. Routes return a stable
+`code` plus `vars` alongside the English text, and the form holds the code in
+state rather than a rendered sentence — storing the string would freeze the
+message in whichever language was active when the request failed. Vietnamese
+lives in `lib/i18n-auth.ts`, guarded by tests for missing keys, dropped
+`{placeholder}`s, and untranslated copies, because `t()` falls back to English
+silently and a drifted key is otherwise invisible.
+      Measured: full suite 3,630 passed and 2 todo across 384 files; typecheck,
+      strict typecheck, `npm run build`, and lint on the touched files all pass.
+      Two bugs were caught by the new tests and fixed: `isAuthErrorCode` used
+      `in`, which walks the prototype chain and accepted `code: "toString"`; and
+      `password-reset` was missing from `EmailTemplateId`.
+
+Working tree 2026-09-04 (breached-password check at sign-up): sign-up now
+enforces a password floor of 8 characters (was 6, which accepted `123456`) and
+rejects passwords found in the HaveIBeenPwned corpus. This is a compensating
+control for Supabase's `auth_leaked_password_protection` toggle, which is off
+and can only be enabled by the organisation owner — we are members, not owners,
+so it is blocked rather than ignored. The password never leaves the process:
+only the first 5 hex characters of its SHA-1 are sent, and the match happens
+locally. The check fails OPEN on any HIBP error or a 2.5s timeout, logging a
+warning, so a third-party outage cannot block registration. Pure rules and the
+response parser live in `features/auth/domain/password.ts`; the network adapter
+in `features/auth/api/pwned-passwords.ts`. No composition rules, per NIST
+SP 800-63B. Rationale and the still-open absence of any password-reset flow are
+in `known-issues.md §0i`.
+      Measured: full suite 3,614 passed and 2 todo across 382 files; typecheck,
+      strict typecheck, and lint on the touched files all pass. The one lint
+      error (`strategy-report-v3-view.tsx`, react-hooks/static-components) is
+      pre-existing and untouched.
+
+Also 2026-09-04 (security audit follow-up): an anon `DELETE`/`PATCH` returning
+`204` was investigated and is **not** a vulnerability — PostgREST answers a
+zero-row write that way and RLS filters rather than raising. Recorded with the
+correct test method in `known-issues.md §0h`, along with a full anon-vs-service
+sweep of all 113 REST-exposed tables (no table leaks anything it should not).
+The real exposure remains `§0g`: five anon-callable `SECURITY DEFINER` RPCs,
+re-confirmed live. `supabase-rpc-privilege-hardening.sql` is verified correct
+and complete against the live catalog but **has still not been run**.
+
+Working tree 2026-09-02 (Reflection-tab report regeneration flow): the
+Reflections tab now shows the shared report quota and an "Edit information and
+regenerate reports" action. The action safely re-opens that application,
+returns the student through the existing Reflection editors, and sends the
+confirmed snapshot back to the analysis workspace with an explicit flag that
+regenerates Personal, Matching, and Strategy together. The action is disabled
+at five complete report sets; server-side reopening enforces the same limit.
+      Measured: focused route/UI suites 32 passed and strict typecheck pass.
+
+Working tree 2026-09-02 (complete report-set regeneration quota): the Strategy
+analysis workspace now shows the shared application quota and exposes one
+button to regenerate Personal, Matching, and Strategy together. Each manual
+Personal Report generation counts as one complete set, with a server-side
+limit of five and a disabled button plus explanatory message at the limit.
+Forced Matching and Strategy requests bypass their normal cache/cooldown only
+for this coordinated regeneration flow. Measured: full test suite 3,582
+passed and 2 todo across 379 files, strict typecheck, and full lint (0 errors,
+4 existing warnings) pass.
+
+Working tree 2026-09-02 (English/Vietnamese SEO route parity): public
+Vietnamese routes now render independently at `/vi/**` while English URLs stay
+unchanged. Shared marketing sections, navigation, footer, route-aware language
+switching, metadata, canonical/hreflang alternates, sitemap entries, JSON-LD,
+and HTML `lang` semantics are locale-aware. Public entity routes preserve IDs;
+stored university/news prose remains source text unless a reviewed translation
+exists. The remaining strategy/matching-report lint issues are fixed with a
+static icon resolver and semantic design tokens, and the private report UI now
+has dictionary coverage. Measured: full lint, base and strict typecheck,
+`test:ci` coverage (378/378 files; 3,573 passed, 2 todo), i18n audit with 0
+missing keys and 0 placeholder mismatches, production build, `seo:check`, and
+`git diff --check` pass. The build still emits the existing Edge-runtime
+deprecation and dynamic filesystem tracing warnings from `src/lib/geo-content.ts`.
+
+Working tree 2026-08-30 (AI report retry/cost circuit breakers): the durable
+Personal Report queue now allows one initial run plus at most five automatic
+retries, then blocks the job. Force requests are consumed at claim time so a
+successful forced run cannot requeue itself indefinitely; the SQL claim guard
+also blocks jobs already over the limit. The loading UI no longer auto-retries
+Matching/Strategy or force-requeues Personal while polling, and its generation
+effect is guarded against reruns. Direct Strategy, Matching, and legacy
+applicant-analysis POST routes now share an 8-request/minute per-user AI guard.
+The production runaway job was manually blocked at 470 attempts. Measured:
+focused report/queue suites 106/106, base typecheck, scoped ESLint, and
+`git diff --check` pass. The updated SQL still needs to be applied to Supabase
+before its database guard is active.
+
+Working tree 2026-08-30 (Strategy Report reload deduplication): the direct
+Strategy Report workspace now renders an existing V3 row returned by GET
+without issuing the generation POST. This prevents F5 from creating another
+report when a report already exists; legacy-only rows still POST once for V3
+upgrade. Measured: strategy workspace 2/2, base typecheck, scoped ESLint, and
+`git diff --check` pass.
+
+Commit 7c82a55f (2026-08-30, Strategy analysis reload idempotency): the loading
+workspace now reads the current Personal Report before POSTing generation, so
+reloads reuse an existing non-stale Personal, Matching, and Strategy report;
+generation remains available when Personal is missing/stale or its read is
+temporarily unavailable. Measured: analysis-workspace 16/16 passed.
+
+Working tree 2026-08-30 (Strategy synthesis structured output): a live
+Supabase read of the newest Strategy row passed V3 schema, lineage, reference,
+and activity-cardinality checks, but its empty narrative/roadmap showed the
+model had fallen back from the legacy synthesis shape. Strategy synthesis now
+uses a strict JSON Schema derived from the canonical Zod contract, excludes
+server-owned priorities, and bumps the prompt/engine versions to invalidate the
+fallback cache. Measured: Strategy/route/planning tests 52/52, base typecheck,
+scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-30 (Strategy Report retry gate): the analysis flow no
+longer treats legacy `reportV2`/recommendation rows as a completed Strategy V3
+report. The direct Strategy Report page performs one automatic generation
+request, then shows the legacy fallback instead of retrying a failed AI call.
+Measured: the two Strategy UI suites 18/18, Strategy V3 plus route suites
+23/23, base typecheck, scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-30 (Strategy Report legacy synthesis containment): after
+reference containment, production reached synthesis and exposed a second
+contract failure: the model returned the retired Strategy shape
+(`summary/strengths/coreNarrative`) instead of V3's nested schema. The engine
+now shape-gates synthesis output and uses a deterministic, evidence-empty V3
+scaffold for legacy/incomplete or schema-invalid synthesis; genuinely
+infeasible deadline plans still fail closed. Added a regression for the exact
+legacy payload. Measured: Strategy V3 plus route suites 23/23, base typecheck,
+scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-30 (Strategy Report model-reference containment): a live
+read of the failing application's snapshot, Personal Report, Matching Report,
+and source analysis confirmed that the rejected `experience:*` UUID exists in
+none of them; the model mutated an opaque ID. Strategy now strips only unknown
+generated references at every profile, activity, and synthesis boundary,
+emits count-only telemetry, and downgrades activity claims that lose required
+support. Strict validation remains as the final guard. Added regressions for
+the reported UUID across profile, activity, and synthesis output. Measured:
+Strategy V3 plus route suites 22/22, engine suite 9/9, base typecheck, scoped
+ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-30 (Strategy Report experience provenance fallback):
+Strategy V3 now derives canonical `experience:<id>` evidence aliases directly
+from snapshot achievements and activities, including already-prefixed IDs, so
+an incomplete snapshot Evidence Bank cannot reject valid activity references.
+Validation remains fail-closed for genuinely unknown references. Added a
+regression test for the production UUID failure. Measured: context/engine
+suite 12/12, route suite 8/8, base typecheck, and `git diff --check` pass.
+
+Working tree 2026-08-30 (Strategy Report evidence provenance fix): Strategy V3
+now carries the current Personal Report's evidence references into its own
+allowlist as report-only inputs after snapshot, Matching, and source-analysis
+evidence. This closes the camelCase snapshot vs canonical report-ID gap that
+rejected valid refs such as `profile:study_motivation`. Added a regression
+test. Measured: Strategy V3 and route suite 12/12, base typecheck, scoped
+ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-30 (Matching → Strategy handoff): V2 and V3 Matching
+Reports now end with a clear Strategy Report CTA pointing to the canonical
+application strategy route. The analysis loading screen already auto-generates
+Personal, Matching, then Strategy in order. Measured: focused Matching and
+Analysis workspace suites 27/27, scoped ESLint, strict typecheck, and CI
+production build pass; existing Vite, Edge-runtime, and filesystem tracing
+warnings remain.
+
+Working tree 2026-08-30 (Strategy Report generation wiring): the analysis gate
+now starts Strategy Report generation immediately after the current Personal
+Report and Matching Report complete. It shows Strategy as the third report,
+checks the existing Strategy cache first, and leaves failed generation for an
+explicit retry, and exposes Strategy-specific status/retry/open-report actions.
+Measured:
+focused Analysis/Strategy suite 21/21, base typecheck, and scoped ESLint pass.
+The full i18n audit still reports 71 pre-existing missing Matching UI keys; no
+new Strategy key is missing.
+
+Working tree 2026-08-30 (Matching Report output quality): V3 evidence labels now
+use the canonical raw-source titles instead of generic claim categories. Programme
+gap text is bounded at a sentence boundary, strategic interpretation is rebuilt
+as coherent target-aware prose, and metric/summary prompts receive the canonical
+target programme so an applicant subject cannot rename the target. The report
+footer now labels its coverage as overall, and empty strategic interpretation
+renders as not assessed. Measured: focused Matching/UI suite 20/20, base
+TypeScript, i18n, full lint (0 errors, 4 existing warnings), and production build
+pass; existing Edge-runtime and dynamic filesystem tracing warnings remain.
+
+Working tree 2026-08-30 (Personal Report narrative fail-safe): narrative
+synthesis is now optional presentation prose. Invalid or oversized narrative
+output rejects only its batch; valid sibling batches are retained, and when all
+narrative batches fail both application and legacy generation persist the
+deterministic report instead of returning an AI generation error. Removed the
+broad evidence-id union from the model payload, relaxed mandatory section
+coverage, added explicit fallback telemetry, and bumped the narrative prompt
+version to `report-synthesis-v14-optional-batches`. Measured: narrative suite
+44/44, generation suite 14/14, base typecheck, scoped ESLint, and production
+build pass; build retains the existing Edge-runtime and dynamic filesystem
+tracing warnings. Repository-wide `git diff --check` still reports a
+pre-existing blank line at EOF in `src/features/apply/ui/personal-report/identity-evidence-profile.tsx`.
+
+Working tree 2026-08-30 (Strategy Report V3 flow alignment): implemented the
+snapshot-only Strategy V3 pipeline with exact Personal Report/Matching/Target
+lineage, fail-closed persistence, exact-hash caching, deterministic Top 3
+priorities, four canonical roadmap phases, V3-first reading/Planner handoff,
+and the four-section dashboard with accessible activity filters and overrides.
+Measured: Strategy-focused suite 16/16, base and strict typecheck, i18n check,
+`build:ci`, and full lint (0 errors) pass. Full repository suite: 3,531 passed,
+4 existing timeout/idempotency failures in three unrelated route test files;
+full lint retains 4 existing warnings.
+
+Working tree 2026-08-30 (Matching V3 source and programme-gap validation):
+metric target facts now retain only refs allowed for each metric, scholarship
+refs are excluded from the summary and overall source allowlists, and
+`programmeFit.potentialGap` is capped at 1,000 characters before report parse.
+Added a mixed programme/scholarship source regression test. Measured: matching
+suite 102/102, base typecheck, and scoped ESLint pass; production build also
+passes with the existing Edge-runtime and dynamic filesystem tracing warnings.
+
+Working tree 2026-08-30 (Matching V3 source guard and bounded programme gap):
+metric facts and summary allowlists now exclude scholarship refs, mixed-source
+facts are reduced to only the refs allowed for that metric, and programme
+potential gaps are capped at the schema's 1,000 characters. Added a regression
+test for mixed scholarship/programme sources.
+
+Working tree 2026-08-30 (Matching V3 summary structured output): the final
+Matching summary now uses strict `json_schema` output and explicitly requires
+all four canonical takeaways plus `metricIds` on every takeaway. The summary
+prompt/schema versions are `matching-summary-v3.2.0-structured-output` and
+`matching-report-v3.2.0`, preventing the production failure caused by omitted
+metric ID arrays. Measured: matching suite 101/101, base typecheck, scoped
+ESLint, and production build pass; existing build warnings remain unchanged.
+
+Working tree 2026-08-30 (Matching V3 metric batching and structured output):
+Matching metric reasoning now sends one metric/four-submetric batch per
+parallel provider call, mirroring Personal Report's independent batches.
+The metric prompt and repair path use a strict `json_schema` contract with all
+required fields (`reasoning`, `applicantEvidenceIds`, `missingEvidence`, and
+`limitations` included), preventing legacy `rationale` output from reaching
+validation. Prompt/schema versions are `matching-metric-v3.2.0` and
+`matching-metric-v3.2.0-structured-batches`, invalidating stale metric reuse.
+Measured: matching V3/reasoner 21/21, base typecheck, scoped ESLint, and
+production build pass; build retains the existing Edge-runtime and dynamic
+filesystem tracing warnings.
+
+Working tree 2026-08-30 (Personal Canvas Report modal UI & readability fix):
+Personal Canvas detail modal has been upgraded to `w-[95vw] max-w-6xl` with `max-h-[90vh]`.
+`SnapshotCapabilityProfileView` converted to a spacious 12-column responsive layout,
+preventing narrow capability card wrapping (>340px width per card), styling Why it matters
+as a clear highlighted callout, improving Star badge pills, and upgrading typography/spacing
+across Core Identity, Driving Forces, Positioning, Growth Matrix, and Proof of Me.
+Measured: personal canvas suite 14/14, ESLint passes with 0 errors.
+
+Working tree 2026-08-30 (Target Profile catalogue fallback): Target Profile
+generation now reads the full `courses` row and its linked `universities` row,
+projects public requirements and programme/university facts with catalogue
+provenance refs, and rejects empty source-less cached profiles. Matching can
+therefore use the existing VinUniversity catalogue data without crawling on
+demand. Measured: target-profile and matching suites 109/109, base typecheck,
+scoped ESLint (0 errors), production build, and `git diff --check` pass. The
+build retains the existing Edge-runtime and dynamic filesystem tracing warnings.
+
+Working tree 2026-08-30 (Matching Report persistence compatibility): production
+Matching Report generation was returning `503` after successful AI output because
+the writer used the nonexistent `confidence_score` column and omitted the
+legacy table's required `profile_version`/`current_match_score` fields. The
+writer now uses the deployed `confidence` column, supplies explicit unassessed
+V3 compatibility values, persists `model_name`, and logs safe database error
+metadata. Measured: matching repository/generation suites 28/28, base
+typecheck, scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report retry and word-band guard): the
+confirmed-information progress page now immediately requeues transient
+Personal Report `retry`/`failed` states while polling, with status-transition
+deduplication. Narrative prompts now target safe middle word bands and perform
+a whitespace-count self-check, preventing boundary failures such as a 149-word
+Snapshot against the 150-word minimum; narrative prompt version bumped to
+`report-synthesis-v13-safe-word-bands`. Measured: focused Personal Report,
+generation, and progress-page suites 69/69, typecheck, scoped ESLint, and
+`git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report Structured Outputs): both primary
+narrative batches and their one repair attempt now send per-batch strict
+`json_schema` response formats. The schema is derived from the Zod contract,
+requires every nested field, makes only unavailable sections nullable, and
+leaves word-count, grounding, and evidence-scope checks in the application
+validator. Existing JSON-mode callers keep their default behavior. Measured:
+focused narrative and generation suites 58/58, base typecheck, scoped ESLint,
+and `git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report required-field repair): narrative
+remains mandatory. Each invalid model response receives one repair request that
+reuses the full synthesis contract and explicitly requires every nested field,
+including capability evidence metadata and prose. The prompt version is now
+`report-synthesis-v12-required-fields-repair`; contract version
+`personal-report-v6-required-narrative-repair` still invalidates stale report
+cache entries. Word-length diagnostics retain actual and required counts, and
+failed repairs still cause the job to retry without persisting a report.
+Measured: focused narrative and generation suites 58/58, base typecheck,
+scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report validator tolerance): narrative
+numeric checks now accept values grounded elsewhere in the same deterministic
+input, while unsupported capability/metric labels are dropped and deterministic
+experience counts are restored instead of failing the whole batch. Evidence
+IDs and prose safety guards remain strict. Measured: narrative synthesis
+43/43, base typecheck, scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report schema retry fix): deterministic
+`high`/`medium`/`low` evidence confidence is now translated to the narrative
+schema's `strong`/`moderate`/`limited` vocabulary only in the model payload;
+materialization keeps the canonical confidence mapping. This fixes production
+`schema_response` retries where `medium` reached the strict response enum.
+Measured: narrative synthesis 41/41, base typecheck, scoped ESLint, and
+`git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report focused cleanup): report-mechanics
+validation now rejects only explicit mechanics phrases, F4 recurring behaviour
+is separate from observed activity behaviour, and Profile Positioning counts
+only canonical supporting experiences. Key Takeaways now receive structured
+fact bundles rather than deterministic takeaway prose; Growth may explicitly
+use a `missing_information` basis with no fabricated evidence ID. The V4
+`narrativeDetails` contract, additive application, Evidence Bank, two-batch
+writer, and Matching isolation remain intact. Measured: focused suites 75/75,
+base typecheck, lint, production build, and `git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report post-review fix plan): completed the
+V4 `narrativeDetails`-only writer contract, additive report application,
+canonical activity-dimension grounding, full activity Evidence Bank lineage,
+reflection isolation/Q1-Q7 routing, recursive finding sanitisation, exact
+Social Proof provenance, independent takeaway evidence scopes, section-level
+numeric and voice/mechanics guards, two-batch generation, cache-version
+identity, and structured takeaway rendering with legacy fallback. Matching
+context remains canonical-only. Narrative schema failures now retain the
+affected batch and sanitized Zod issue paths/codes/messages in console and
+generation-job error logs. Measured: focused Personal Report/evaluation/
+domain/API/matching/UI suites 104/104, UI follow-up 8/8, narrative follow-up
+36/36, base and strict typecheck, lint (0 errors; 5 existing warnings), i18n
+checker (0 missing keys), CI production build, and `git diff --check` pass.
+One full Vitest run measured 3,510 passed, 6 failed, and 2 todo; it was before
+the final i18n-label follow-up and included that now-fixed checker failure plus
+five unrelated API timing/parallel-test failures. The
+Personal Report route suite passes 7/7 in isolation.
+
+Working tree 2026-08-29 (saved-program URL handoff): a pasted course URL now
+automatically supplies the saved programme label—using the catalogue match when
+available, otherwise its final URL path—so application planning no longer
+rejects a link-only selection as missing a subject. Measured: focused programme
+domain tests 36/36, production build, scoped ESLint, and `git diff --check` pass.
+
+Working tree 2026-08-29 (Personal Report prompt/spec architecture): the
+Personal Report writer now uses structured Q1–Q7 reflection findings,
+additive narrative activity evidence, exact two-batch section routing,
+section-scoped evidence IDs, numeric/voice/hypothesis guards, and deterministic
+materialization of traits, capabilities, motivation, proof, positioning, and
+takeaways. Narrative detail fields are hydrated by the UI, and extraction plus
+narrative cache identities include their prompt and contract versions. Measured
+locally: focused Personal Report/evaluation/domain/API tests 265/265, UI tests
+29/29, i18n integration 2/2, base and strict typecheck, lint (0 errors; 5
+pre-existing warnings), CI production build (3 pre-existing geo-content
+tracing warnings), and `git diff --check` pass. Full Vitest: 3,496 passed, 6
+failed, 2 todo; failures are existing CV-builder/API timing or stale-job test
+expectations outside this change.
+
+Working tree 2026-08-29 (Personal Report + Matching Report V3 contract repair):
+Target Profile cache identity now includes schema and extraction-prompt
+versions, and the extractor carries source-backed typed university/programme
+facts. Matching V3 now uses the canonical metric/submetric names and weights,
+discrete academic rubric scores, four canonical key takeaways, explicit gap
+types, separate university/programme fit scores, and no fabricated legacy F5
+mapping. Personal Report cache validation is prompt-aware, stored reports are
+schema-validated, and reflection normalization no longer creates generic prose
+when AI extraction fails. The additive `supabase-target-profile-cache-contract.sql`
+migration is required before deploying the target-profile cache changes.
+Measured locally: full Vitest 370 files / 3,496 passed, 6 failed (2 todo),
+typecheck, lint (0 errors; 5 pre-existing warnings), i18n audit, CI production
+build (3 pre-existing geo-content tracing warnings), and `git diff --check`
+passed. GitNexus change detection for the current working tree reported low
+risk across 25 changed tracked files, with no graph-mapped symbols or affected
+execution paths.
+
+Working tree 2026-08-29 (Personal Report narrative batch contract): the prose
+prompt, parser, and optional-section semantics now agree: a batch returns only
+the sections it was asked to write, while omitted or null optional summaries
+(including `snapshot`) are valid. Requested available canonical sections still
+require valid structure, grounded evidence IDs, supported numbers, and
+third-person voice. This fixes the production `schema_response` retry caused
+by an optional `snapshot: null`. Prompt/extraction versions were bumped to
+invalidate stale cached narratives. Measured: narrative synthesis 26/26,
+generation orchestration 13/13, base and strict typecheck, scoped ESLint, and
+`git diff --check` pass.
+
+Working tree 2026-08-28 (Personal Report sample-output UI): the existing report
+contract is now surfaced more completely in the UI. Applicant Snapshot prefers
+the canonical 150–200 word snapshot and shows the overall impression; Core
+Identity shows evidence-backed recurring characteristics; Driving Force exposes
+primary/repeated motivation signals and strategic interpretation; capability
+profiles show an overview and combination note; Social Proof shows activity
+metadata and a grounded numeric conclusion; Positioning labels its profile
+narrative and experience connection; Key Takeaways now renders stored
+structured evidence, confidence, importance, gaps, and directions. Social Proof
+now also surfaces explicit team-member, community-reach, and commitment-year
+figures from the same grounded Proof of Me cards; missing figures are omitted,
+never shown as zero. Measured: focused domain/UI tests (23/23), typecheck,
+ESLint (0 errors, 6 pre-existing warnings), and static i18n audit (0 missing
+keys) pass.
+
+Working tree 2026-08-28 (Personal Report narrative batching): the constrained
+LLM prose layer now generates canonical sections in two parallel batches
+(`3000` completion tokens each) and optional summaries in a separate `1800`
+token batch, then merges them through the existing section-scoped evidence
+validator. This avoids truncating the full report response while preserving
+the deterministic findings, scores, availability, and evidence boundaries.
+Measured: narrative/generation/UI tests (42/42), typecheck, scoped ESLint,
+and CI build pass. The full Vitest run had two unrelated CV-route timeout
+flakes; both pass when run in isolation.
+
+Working tree 2026-08-28 (CI strict typecheck repair): `buildPersonalReport`
+now omits the optional `reflectionAnswerSignals` property when it is undefined,
+which satisfies `exactOptionalPropertyTypes` without changing report output.
+Measured: `npm run typecheck:strict`, the Personal Report domain suite (16/16),
+and `npm run test:ci` pass. This fixes CI #540's TS2379 failure.
+
+Working tree 2026-08-28 (Personal Report architecture alignment): confirmed
+snapshot reconstruction now preserves activity/achievement metadata,
+reflection/reflectionCard, and canonical direction aliases; Q1-Q7 route to
+their specified insight sections; reflection signals require independent
+activity corroboration before becoming repeated; Q4-only capability claims are
+self-reported and capped until corroborated; Social Proof, Positioning,
+Key Takeaways, and later Matching consume the grounded inputs; narrative
+synthesis receives structured findings only and rejects unsupported numeric
+facts. Personal Report strings added to the locale catalog. Measured: requested
+Personal Report/evaluation/API/UI suites pass (153 tests), full Vitest 3,480
+passed with 2 todo, typecheck, i18n integration, CI build, and diff check pass;
+lint has 0 errors and 6 pre-existing source warnings. CI placeholder builds now
+skip mentor/university Supabase reads instead of logging DNS failures; the 3
+existing geo-content filesystem-tracing warnings remain.
+
+Working tree 2026-08-28 (report rendering/localisation): Personal, Matching,
+and Strategy report roots now explicitly opt into AI-backed DOM translation when
+Vietnamese is selected; the Personal Canvas body-level modal is covered too.
+Private-page content outside those roots remains dictionary-only and is not sent
+to `/api/translate`. Empty growth-matrix quadrants now show an explicit
+translated empty state instead of looking broken. Measured: report/translation
+Vitest 24/24, `npm run typecheck`, targeted ESLint, `node scripts/check-i18n.mjs
+--all`, `npm run build`, and `git diff --check` pass. Build retains three
+pre-existing dynamic-filesystem tracing warnings in `src/lib/geo-content.ts`.
+
+Working tree 2026-08-28: production retry reached `gpt-5.6-luna`, but the
+Personal Report provider rejected the legacy `max_tokens` parameter and then
+the custom `temperature` parameter (`max_completion_tokens` is required and
+Luna only supports its default temperature). `openAiJsonCompletion` now sends
+the compatible token parameter and omits temperature for GPT-5 models, with
+regression tests. The same compatibility helper now covers the Matching
+structured-generation path and every remaining direct Chat Completions call;
+no production source occurrence of `max_tokens` remains. Forced retries also
+run immediately from Create Report. Focused Vitest 88/88, base TypeScript,
+scoped ESLint, and `git diff --check` pass. Production must redeploy this
+latest fix before the next report retry.
+
+Working tree 2026-08-28: the analysis gate now treats a current Personal
+Report as complete even when an old active queue row is still pending. This
+prevents the page from staying at `0 / 2` forever and allows Matching Report
+generation to start after a report was completed by another generation path.
+The application Personal Report POST also returns the current report instead
+of re-waiting on that stale queue row. Focused route/UI tests, TypeScript,
+ESLint, and `git diff --check` pass.
 
 Working tree 2026-08-27: canonical Planner micro-steps now carry persisted,
 planning-owned student guidance, shown immediately in the hierarchical List
-and in the task detailâ€™s â€œWhat to doâ€ panel. New and refreshed deterministic,
+and in the task detail’s “What to do” panel. New and refreshed deterministic,
 roadmap, and optional enrichment tasks supply specific guidance; legacy rows
 without the new field safely show a deterministic fallback until they next
 reconcile. `supabase-planner-micro-step-guidance.sql` is a forward-only
@@ -1496,9 +1420,9 @@ response, while leaving route behavior unchanged. Measured: that route suite
 integration was not run locally because `psql` is unavailable.
 
 Working tree 2026-08-27: fixed advisor applications being invisible and
-unactionable at `/admin/achievers`. Submission was already succeeding â€” a
+unactionable at `/admin/achievers`. Submission was already succeeding — a
 read-only production check found 6 reviewable `achiever_profiles` rows, 2 of
-them pending â€” but the page queried with the signed-in request client, whose
+them pending — but the page queried with the signed-in request client, whose
 RLS policy exposes only approved profiles and the caller's own row. Approve and
 Reject used that same browser client, so they could update zero rows without an
 error while the UI still moved the card to Processed. The review queue now
@@ -1547,7 +1471,7 @@ audit still need remediation before calling Matching end-to-end reliable.
 See `docs/plans/2026-08-27-personal-matching-ai-flow-audit.md`; local green
 test/build gates are not production migration verification.
 
-Working tree 2026-08-26: kept the Personal Canvas artwork as the desktop background and changed its four upper/middle hover effects to SVG cutouts. Each highlight now follows its panel and excludes the shared Core Identity hub; rectangular hover shadows were removed. Hotspots 1/4/5 were then lifted to match their artwork, the hover/active highlight was strengthened, and hotspots 2/3 were shortened to stop at their own lower divider (with further 0.75% and 1% trims). The centre hotspot and all cutout ellipses now derive from the actual 1024Ã—731 artwork circle coordinates, rather than estimated per-card percentages. Parts 4/5 now start at their actual divider and extend to their existing bottom edge. Selecting a section now opens the existing accessible centered modal rather than shrinking the canvas into a side panel and drawing a connector; the modal owns Escape, backdrop close, scroll lock, and focus return. Part 6 uses a stronger brand overlay and shadow on hover/selection. Last focused Personal Canvas measurement before the final 1% adjustment: Vitest 13/13 passing and `git diff --check` passing; no test rerun by owner request. ESLint still reports 26 pre-existing raw-colour errors in the same uncommitted canvas overhaul; browser visual verification remains unrun.
+Working tree 2026-08-26: kept the Personal Canvas artwork as the desktop background and changed its four upper/middle hover effects to SVG cutouts. Each highlight now follows its panel and excludes the shared Core Identity hub; rectangular hover shadows were removed. Hotspots 1/4/5 were then lifted to match their artwork, the hover/active highlight was strengthened, and hotspots 2/3 were shortened to stop at their own lower divider (with further 0.75% and 1% trims). The centre hotspot and all cutout ellipses now derive from the actual 1024×731 artwork circle coordinates, rather than estimated per-card percentages. Parts 4/5 now start at their actual divider and extend to their existing bottom edge. Selecting a section now opens the existing accessible centered modal rather than shrinking the canvas into a side panel and drawing a connector; the modal owns Escape, backdrop close, scroll lock, and focus return. Part 6 uses a stronger brand overlay and shadow on hover/selection. Last focused Personal Canvas measurement before the final 1% adjustment: Vitest 13/13 passing and `git diff --check` passing; no test rerun by owner request. ESLint still reports 26 pre-existing raw-colour errors in the same uncommitted canvas overhaul; browser visual verification remains unrun.
 
 Working tree 2026-08-27: fixed the terminal hardened canonical Planner
 reconciler so micro-step inserts collect their IDs in `v_micro_id` and never
@@ -1558,8 +1482,8 @@ hardening's application lock, content-value compatibility/reset rules,
 archiving, and service-role grant. The real PostgreSQL harness now reconciles
 three sibling micro-steps and checks their common parent, stable IDs,
 execution-state preservation, schema-reset behavior, archiving, and atomic
-rollback. The required hardened sequence is Core 3 hierarchy â†’ canonical
-production â†’ Planner Ops â†’ production hardening â†’ the terminal hardening
+rollback. The required hardened sequence is Core 3 hierarchy → canonical
+production → Planner Ops → production hardening → the terminal hardening
 multi-microstep repair; the earlier canonical repair is pre-hardening only.
 Measured locally: Planner Vitest 48 files / 476 tests, migration Vitest 3/3,
 base and strict TypeScript, ESLint, `git diff --check`, and production build
@@ -1590,7 +1514,7 @@ Matching only after Personal completes; focused UI coverage is 9/9.
 
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
-Working tree 2026-08-26: replaced Personal Reflection's previous five prompts with the supplied seven-question â€œAbout Yourselfâ€ and â€œAbout Your Directionâ€ set. Each prompt now includes its guidance and sample answer; completion and progress correctly use seven answers. Measured: focused Vitest 11/11 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
+Working tree 2026-08-26: replaced Personal Reflection's previous five prompts with the supplied seven-question “About Yourself” and “About Your Direction” set. Each prompt now includes its guidance and sample answer; completion and progress correctly use seven answers. Measured: focused Vitest 11/11 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
 Working tree 2026-08-25 (reflection evidence UI continuation): the achievements reflection form now follows the supplied SVG layout more closely: normalized achievement cards, compact activity detail row, corrected searchable picker focus behavior, compact add controls, and the sample upload row. The uncommitted shared reflection shell change was restored to HEAD after review; the unrelated latest SEO commit was not rolled back. Measured after this pass: npm.cmd run typecheck and npm.cmd run lint pass. npm.cmd run build also passes.
 
@@ -1612,7 +1536,7 @@ completion before Matching Report generation, records Personal Report lineage
 on Matching Report rows, and filters Strategy/Planner consumption to the
 current Matching prompt and F5 engine. The canonical planner selects the
 current schema-validated F8 `report_v2` before its F7 fallback and reconciles
-F8 phase/deliverable keys into `application_plans` â†’ phases â†’ steps â†’
+F8 phase/deliverable keys into `application_plans` → phases → steps →
 micro-steps. Regeneration keeps the same deliverable node identity and never
 writes student-owned `status`, `deadline`, submitted content, or evidence.
 Planner context carries stored deadlines, application-requirement IDs, explicit
@@ -1638,42 +1562,42 @@ Full UI Polish across all Planner views (List, Calendar, Board/Kanban) complete 
 
 Wave 2 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
 (Part 6 GenUI) complete 2026-08-23 (commits `d7fccee`, `f5f0112`).
-`contentBlockSchema` variants now accept an optional `v` literal â€” only
+`contentBlockSchema` variants now accept an optional `v` literal — only
 absent (legacy v1) or `1` parses; anything else degrades to `null` on
 read-back with no migration and no generator change, and student
 `content_value` stays unversioned. The degradation tests became a full
 fixture matrix (29 block + 13 value rows), and three ownership-proof
-tests pin reconcile: unchanged `domain_node_id` â‡’ same-row update,
+tests pin reconcile: unchanged `domain_node_id` ⇒ same-row update,
 micro-step writes carry generated keys only (exact key-set assertion),
 checklist user progress survives regeneration. UI side:
 `ui/content-blocks/registry.ts` is an exhaustive block-input map behind a
-thin dispatcher â€” adding a variant without an input is a compile error;
+thin dispatcher — adding a variant without an input is a compile error;
 null/unknown blocks land on an honest FallbackBlock. structured_table
 renders card-per-row below 768px with the desktop table untouched,
 long_text wires its hint via aria-describedby, the checklist is
 regeneration-safe, single_select still saves by value with semanticKey
 never in the DOM. Measured gates: feature suite 39 files / **434 tests**
 (+50 vs Wave 1), typecheck + typecheck:strict clean, eslint clean on all
-changed files, `check-i18n --all` green. Still open in Part 6: Â§6.10
-verify against a real F8 generation (generate â†’ Add-to-Planner â†’ sync Ã—2
-no duplication â†’ one broken block does not sink the page â†’ mobile
+changed files, `check-i18n --all` green. Still open in Part 6: §6.10
+verify against a real F8 generation (generate → Add-to-Planner → sync ×2
+no duplication → one broken block does not sink the page → mobile
 complete), which needs a dev server.
 
 Wave 1 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
 complete 2026-08-23 (commits `def840f`, `9d9f6d9`, `afa726f`, `947c7aa`,
-`ec9a5f6`). Part 5.2â€“5.4: board and calendar are now dispatcher components â€”
+`ec9a5f6`). Part 5.2–5.4: board and calendar are now dispatcher components —
 desktop trees byte-identical, narrow viewports get `BoardMobile` (ARIA tablist
 with per-status counts, one mounted tabpanel, per-card `<select>` through the
 same `onStatusChange`) and a compact calendar grid with a tap-selected day
 agenda plus an unscheduled tray whose drop handlers survive behind a
 disclosure. New `ui/use-media-query.ts` uses `useSyncExternalStore` with a
 desktop server snapshot so hydration never mismatches; the shared matchMedia
-test stub resolves width queries against jsdom's real 1024Ã—768 viewport and
-exposes per-query overrides. Part 5.5â€“5.8: pure reminder policy in
+test stub resolves width queries against jsdom's real 1024×768 viewport and
+exposes per-query overrides. Part 5.5–5.8: pure reminder policy in
 `src/lib/email/planner-reminders.ts` (user-local Intl calendar math anchored
 at UTC midnight, authority gate before parsing, ISO-8601 week keys, throwing
-event-key builders), wired into `/api/cron/lifecycle-emails` as two batched â‰¤200
-processors with per-item try/catch â€” deadline reminders (30/7/1-day +
+event-key builders), wired into `/api/cron/lifecycle-emails` as two batched ≤200
+processors with per-item try/catch — deadline reminders (30/7/1-day +
 same-day, terminal application statuses excluded) and the weekly strategy
 digest over canonical micro-steps only (completed excluded, empty weeks never
 mail). `weeklyStrategyDigestEmail` added to lifecycle templates;
@@ -1688,29 +1612,29 @@ mobile pattern deferred to a second pass.
 Pushed 2026-08-23: `def840f..dda242e main -> origin/main` after the full
 suite measured 320 files / 3063 passed / 0 fail and `npm run build` exited 0.
 Consolidated pending-migration list agreed with the owner same day (each file
-idempotent; verify against a live schema dump before treating any as applied â€”
+idempotent; verify against a live schema dump before treating any as applied —
 this sandbox has no service key):
-**A. now required by the email cron** â€” `supabase-email-system.sql` (dev +
+**A. now required by the email cron** — `supabase-email-system.sql` (dev +
 production; without it the cron still sends but has no durable event_key
-dedup); **B. canonical planner** â€” `supabase-core3-plan-hierarchy.sql` then
-`supabase-canonical-planner-production.sql`; **C. Parts 0â€“4 strategy reports**
-â€” `supabase-matching-report-personal-lineage.sql`,
+dedup); **B. canonical planner** — `supabase-core3-plan-hierarchy.sql` then
+`supabase-canonical-planner-production.sql`; **C. Parts 0–4 strategy reports**
+— `supabase-matching-report-personal-lineage.sql`,
 `supabase-strategy-recommendation-lineage.sql`,
 `supabase-strategy-report-v2.sql`, `supabase-report-overrides.sql`,
 `supabase-recommendation-source-key.sql` (`supabase-match-report-narrative.sql`
 dropped from the list: zero `match_report_narrative` references remain after
-the PR #216 merge removed the narrative layer); **D. Final Check** â€”
+the PR #216 merge removed the narrative layer); **D. Final Check** —
 `supabase-final-check.sql`; **E. repairs still NOT CONFIRMED RUN per
-known-issues Â§5r/s/t** â€” `supabase-application-cascade-repair.sql`,
+known-issues §5r/s/t** — `supabase-application-cascade-repair.sql`,
 `supabase-personal-report-supplements.sql`,
-`supabase-personal-report-versions.sql`; **F. payments, when used** â€”
+`supabase-personal-report-versions.sql`; **F. payments, when used** —
 `supabase-plus-promo-redemption.sql` then `supabase-plus-promo-v2.sql`
 (in that order), `supabase-manual-payment-subscription-conflict-repair.sql`
 (the first repair is confirmed applied), `supabase-vnpay-payments.sql`.
 
 Merge 2026-08-23 (latest): merged `origin/main` (4 incoming commits) into local
-`main`, which had diverged 3/4. The big incoming commit is PR #216 â€” an
-independent implementation of the same Feature-2 surface our Parts 0â€“4 work
+`main`, which had diverged 3/4. The big incoming commit is PR #216 — an
+independent implementation of the same Feature-2 surface our Parts 0–4 work
 covered: real F5 engine (`assessProgrammeFit`, AcademicBand-based
 classification, `strong_match`, fractional scores), Matching Report rebuilt as
 six sections on the canonical route, Strategy Report restructured into five
@@ -1721,16 +1645,16 @@ design wins (it is what their presentation layer, docs, and tests pin); where
 our work was independent and still true, it was preserved. Concretely: our
 `evaluateProgrammeFit`/`compositeScore` engine, the AI `matchingReportNarrative`
 layer (schema + prompt + persistence + retry paths), and its dictionary/tests
-were removed in favour of theirs â€” including reverting
+were removed in favour of theirs — including reverting
 `ai-reports-repository.ts` to base; our lang-aware dates in
 `strategy-recommendation-report.tsx` (`formatUiDate(iso, lang)`) and the
-`withReturn('/profile', â€¦)` thread on the rebuilt Matching Report were ported
+`withReturn('/profile', …)` thread on the rebuilt Matching Report were ported
 onto their versions; the recovered `i18n-dictionary.ts` block survived intact
 and their two workspace-status entries were appended (union, 0 duplicate keys).
 Semantic breakage the textual merge hid and this pass fixed:
 `match-insights/route.ts` still referenced `.narrative`/`.deterministicEvaluation`,
 and domain/index.ts still re-exported the deleted schema. Measured after the
-merge: typecheck âœ…, typecheck:strict âœ…, lint 0 errors (4 pre-existing
+merge: typecheck ✅, typecheck:strict ✅, lint 0 errors (4 pre-existing
 warnings), `check-i18n --all` green (0 missing / 0 mismatch / 0 dynamic gaps),
 dictionary scan 4523 keys / 0 dups, full `npm test` 2944 passed with 2
 timeout-flaky failures that both pass in isolation (resource contention under
@@ -1740,7 +1664,7 @@ tests directly. Backup branch before the merge: `backup/pre-merge-f67b35f`.
 Still unrun: `supabase-final-check.sql` must be applied before Final Check
 generation works in production (per PR #216).
 
-Working tree 2026-08-23 (later): bug-fix pass over the Parts 0â€“4 three-agent
+Working tree 2026-08-23 (later): bug-fix pass over the Parts 0–4 three-agent
 review (every finding re-verified against the working tree before fixing).
 Fixed: `matching-report-view.tsx` "Check profile data" threads `?return=` via
 the shared `withReturn` helper (the exact 5s/5u regression class); report-family
@@ -1752,24 +1676,24 @@ retired radius values in `personal-canvas.tsx` mapped to `rounded-gb-xl/2xl`;
 strategy export route answers **501** ("renderer not built for F8") for
 F8-only rows instead of the misleading 409; the F8 Strategy Report view gained
 an Add-to-Planner card reusing `generateRoadmapTasks` (which already reads
-`report_v2`); ~50 missing VI dictionary entries added â€” matching-report band/
+`report_v2`); ~50 missing VI dictionary entries added — matching-report band/
 status labels (dynamic `t()` calls invisible to the static audit) plus F8
 chrome strings. INCIDENT, recovered: an accidental full-file overwrite
 destroyed the uncommitted tail of `i18n-dictionary.ts`; rebuilt by combining
 HEAD with string-literal pairs extracted from the Turbopack dev cache
 (`.next/**/src_lib_*` chunks keep source-format literals), a verbatim pre-loss
-read of lines 4208â€“4257, and freshly written translations only where no copy
+read of lines 4208–4257, and freshly written translations only where no copy
 existed (F8 chrome, band labels); duplicates against HEAD deduped (11 lines,
 double-quoted HEAD tail the extractor initially missed). Verification this
 pass: typecheck clean on every touched file (repo-wide still blocked by the
 pre-existing untracked `glowbal-resend-v2/` missing deps), eslint 0 errors on
 changed files, `check-i18n --all` green (0 missing / 0 mismatch / 0 dynamic
-gaps). NOT run here: targeted vitest â€” the sandbox denies the child-process
+gaps). NOT run here: targeted vitest — the sandbox denies the child-process
 spawn vitest's config loader needs (`spawn EPERM`); run `npm test` outside
 before committing.
 
-Working tree 2026-08-23: Feature 2 Parts 3â€“4 implemented on top of the
-reviewed Parts 0â€“2. Part 3: F5 deterministic engine hardened (out-of-range
+Working tree 2026-08-23: Feature 2 Parts 3–4 implemented on top of the
+reviewed Parts 0–2. Part 3: F5 deterministic engine hardened (out-of-range
 rejection, complete missingInputs) with a 29-test matrix + drift-detector vs
 `enforceFitClassification` (33 boundary/gate cases); wired into match-insights
 (classification re-derived server-side, renormalisation disclosed in
@@ -1780,7 +1704,7 @@ Part 4: five-section F8 payload (`strategyReportV2Schema`, prompt
 `strategy-report-f8-v3`) persisted in `report_v2` JSONB with legacy-shape
 fallback when migrations lag; student overrides table
 (`application_report_overrides`) + editable Strategic Priority Table layered
-override-first; Strategy Report UI dual-shape (v2 rows â†’ new view, old rows â†’
+override-first; Strategy Report UI dual-shape (v2 rows → new view, old rows →
 F7 layout untouched); Planner seeds from F8 deliverables keyed by deterministic
 `source_key` (migration adds column) so regeneration updates in place and never
 duplicates. Verification: 108 suites / 1053 tests pass, typecheck + strict
@@ -1803,10 +1727,10 @@ not cache-hit. Measured: route regression 4/4, combined F5/AI/route suites
 clean on changed files. Strict TypeScript remains blocked only by the
 pre-existing `hierarchical-application-planner.test.tsx` optional-id error.
 
-Working tree 2026-08-22: Feature 2 Parts 0â€“2 implementation review + bug-fix
+Working tree 2026-08-22: Feature 2 Parts 0–2 implementation review + bug-fix
 pass. Fixed in `strategy/recommendation/route.ts`: the route wrote a
 `student_personal_report_versions.id` into `source_analysis_id`, whose FK still
-references `applicant_analyses(id)` â€” every fresh insert failed 23503 and the
+references `applicant_analyses(id)` — every fresh insert failed 23503 and the
 silent fallback nulled lineage AND made the flawed cache check stale-hit forever
 (`|| !latestStrategy.source_analysis_id`). New guarded migration
 `supabase-strategy-recommendation-lineage.sql` adds `input_hash` +
@@ -1969,7 +1893,7 @@ enrichment, and deliberate legacy backfill/retirement. For local demo, a
 legacy-only Planner now presents a development-only **Generate canonical plan**
 button; it calls a same-origin, authenticated, UUID-validated dev route that is
 404 in production, then refreshes into the canonical hierarchy. The focused
-Core 1â€“4 canonical/legacy Planner, content, and execution suite previously
+Core 1–4 canonical/legacy Planner, content, and execution suite previously
 passed 163/163; the new dev bootstrap route passes 3/3 and strict TypeScript
 passes. Local auth origin tests pass 2/2: non-production now preserves the
 request origin even when `.env.local` contains the production public URL.
@@ -1981,8 +1905,8 @@ the integration checker passes.
 
 Code snapshot: branch `claude/university-application-flow-0khm6v`, merged
 with `main`. Two passes on this branch: the application setup flow redesign
-(Review Profile â†’ Activities & Achievements with per-activity reflection and
-AI Reflection Cards â†’ Personal Reflection â†’ Review & Confirm) against the
+(Review Profile → Activities & Achievements with per-activity reflection and
+AI Reflection Cards → Personal Reflection → Review & Confirm) against the
 owner's implementation spec, then a follow-up UX/navigation correction pass
 (application-return navigation, a dynamic reflection breadcrumb + a separate
 "Application setup" stepper, the approved four-category taxonomy, and a
@@ -2011,14 +1935,14 @@ PR #216): the four Strategy reports. Detail and the decisions behind them are in
   unreachable. Percentages convert as `(score - 1) / 4 * 100`.
 - **The Matching Report route was pointing at the wrong component.**
   `/ai-strategy/[applicationId]/matching-report` rendered `ProgrammeFitReport`
-  (a six-tab view of catalogue facts, no F5 in it), while `MatchingReportView` â€”
-  built on the F5 contract â€” was exported and rendered by nothing. The route now
+  (a six-tab view of catalogue facts, no F5 in it), while `MatchingReportView` —
+  built on the F5 contract — was exported and rendered by nothing. The route now
   renders the latter, rebuilt as six sections. `ProgrammeFitReport` is retained;
   the older `/strategy/analysis/*` surfaces still reach it.
 - **The Strategy Report is five sections**, not six engine-named tabs. Direction
   scores are derived into a key strength and biggest challenge, and the ranking
   now carries the margin to the leader. Academic and experience development
-  strategies are named as not generated rather than padded â€” they need new
+  strategies are named as not generated rather than padded — they need new
   prompt fields.
 - **Final Application Check is built** at `/ai-strategy/[applicationId]/final-check`
   and unlocked in the nav. Readiness is computed deterministically from
@@ -2026,10 +1950,10 @@ PR #216): the four Strategy reports. Detail and the decisions behind them are in
   has no field for a score, so a model cannot author one. `not_required` is
   distinguished from `missing`, and a recommender strategy never counts as a
   reviewed letter.
-  âš ï¸ **`supabase-final-check.sql` has NOT been run.** Until it is, generation
+  ⚠️ **`supabase-final-check.sql` has NOT been run.** Until it is, generation
   returns 503 with a named hint and the page renders the live inventory only.
 - **Four Personal Canvas bugs fixed.** Modifier chords were treated as canvas
-  shortcuts, so Cmd/Ctrl+F toggled focus mode and called `preventDefault()` â€”
+  shortcuts, so Cmd/Ctrl+F toggled focus mode and called `preventDefault()` —
   find-in-page was broken across the whole report. The detail panel moved no
   focus, stranding keyboard and screen-reader users behind a full-screen mobile
   overlay. The keydown effect had no dependency array. `contentEditable` hosts
@@ -2099,6 +2023,14 @@ country-plus-budget 0/6/2, budget-only 0/0/6, and sparse-subject-only 0/0/6
 for top/good/worth. Focused recommendation/domain/API/UI plus i18n tests now
 pass 55/55. No aggregate gate, full Vitest, or production build was run.
 
+Working tree 2026-08-29: the saved-university subject picker restores VinUni's
+typed `vinuni-content.ts` catalogue (4 colleges, 10 programmes). At that time,
+the live `catalog_programmes` view contained only VinUni's BBA row, so using it
+as the picker source hid the other programmes; other universities continue to
+fall back to `universities.strengths`. The picker presentation also restores the
+2026-07-30 navigation and compact subject/paste-link UI while retaining the
+current same-origin return path and saved programme URL behavior.
+
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and
 disabled Stripe choice. The vertical slice includes controlled provider UI,
@@ -2133,7 +2065,7 @@ job. A failing student instruction could consume that slot and leave the new
 founder email untouched at `attempts = 0`. Claim now dispatches a batch of ten,
 and the SQL lease orders `founder_claimed` first. The newest affected founder
 job was retried once and verified `sent` with a provider message ID.
-The manual-payment status surface now has all 24 new ENâ†’VI dictionary entries;
+The manual-payment status surface now has all 24 new EN→VI dictionary entries;
 the production i18n checker reports zero missing static keys and zero placeholder
 mismatches instead of failing CI on that route.
 Transactional payment-email links now use the server-only
@@ -2189,84 +2121,84 @@ code, the code wins.
   full live production schema on 2026-08-12; `application_match_analyses`,
   `student_personal_reports`, `application_strategy_recommendations`, and
   `application_recommendations`'s genUI columns are all confirmed present.
-  Â§0d/Â§0e/Â§0f in `docs/known-issues.md` are marked resolved. This was also
+  §0d/§0e/§0f in `docs/known-issues.md` are marked resolved. This was also
   independently confirmed by a real production error trace on
-  `POST /api/applications/[id]/match-insights` that matched Â§0e's predicted
+  `POST /api/applications/[id]/match-insights` that matched §0e's predicted
   failure mode exactly, before the fix.
 - All twelve Candidate Information questions are rebuilt and merged (PR #172,
-  specs 1â€“3): 1â€“4 (education/nationality/scores), 5â€“8 (subjects, countries,
-  study level, intake), and 9â€“12 (aspirations, per-subject motivation,
+  specs 1–3): 1–4 (education/nationality/scores), 5–8 (subjects, countries,
+  study level, intake), and 9–12 (aspirations, per-subject motivation,
   funding, tuition budget). Step 2 (achievements/activities) is now also
   rebuilt as an upload-first card grid, and a **Review & Confirm checkpoint**
-  now sits after it, locking candidate information before report generation â€”
+  now sits after it, locking candidate information before report generation —
   see the latest row below. **Five migrations are still outstanding** and
   every PATCH/read path degrades gracefully without them:
-  `supabase-reflection-questions.sql` (from #171 â€” `study_motivation`,
+  `supabase-reflection-questions.sql` (from #171 — `study_motivation`,
   `target_intake`), `supabase-reflection-subject-motivations.sql` (from spec
-  3 â€” `subject_motivations`, a JSONB map keyed by subject id),
-  `supabase-reflection-review-status.sql` (from the achievements rebuild â€”
+  3 — `subject_motivations`, a JSONB map keyed by subject id),
+  `supabase-reflection-review-status.sql` (from the achievements rebuild —
   `review_status`/`source_type`/`sources` on `student_achievements` and
   `student_activities`), `supabase-candidate-confirmation.sql`
   (`confirmed_candidate_snapshots` plus `student_profiles.confirmed_at`), and
-  **`supabase-per-application-onboarding.sql`** (new this pass â€”
+  **`supabase-per-application-onboarding.sql`** (new this pass —
   `personal_summary_reviewed_at`/`achievements_reviewed_at`/
   `candidate_confirmed_at` on `course_applications`, plus `application_id` on
   `confirmed_candidate_snapshots`). Until the fourth one runs, the confirm
-  route saves the snapshot but cannot lock the profile (logged, not fatal â€”
+  route saves the snapshot but cannot lock the profile (logged, not fatal —
   see the migration's own comments), and the PATCH lock check fails open
   (reads as "not locked"). **The owner HAS run
   `supabase-candidate-confirmation.sql` in production**, but the original
   version of that file was missing an `INSERT` RLS policy on
-  `confirmed_candidate_snapshots` â€” confirming failed for a real student
+  `confirmed_candidate_snapshots` — confirming failed for a real student
   with a `503` that misleadingly suggested the migration itself hadn't run.
-  Fixed in an earlier pass (Â§5n in `known-issues.md`); **re-run the updated
-  `supabase-candidate-confirmation.sql` in production** â€” it's idempotent â€”
+  Fixed in an earlier pass (§5n in `known-issues.md`); **re-run the updated
+  `supabase-candidate-confirmation.sql` in production** — it's idempotent —
   to pick up the new policy, or run just the `CREATE POLICY
   confirmed_candidate_snapshots_insert_own` block from it directly.
   **`supabase-per-application-onboarding.sql` has been confirmed run in
-  production by the owner (2026-08-14)** â€” the three new
+  production by the owner (2026-08-14)** — the three new
   `course_applications` columns exist and are being written; do not re-flag
   this migration as outstanding.
   **Action required in production, new this pass:
-  `supabase-application-cascade-repair.sql`** â€” deleting an application
+  `supabase-application-cascade-repair.sql`** — deleting an application
   currently leaves its reports/tasks/recommendations/CV+statement work
   orphaned in the database (reported live 2026-08-14). Every
   `supabase-*.sql` file already declares `ON DELETE CASCADE` on these
   tables, but production may still be enforcing whatever delete rule a table
   had on the day it was first created (`CREATE TABLE IF NOT EXISTS` does not
-  retroactively fix a live constraint â€” the same trap as Â§0 in
+  retroactively fix a live constraint — the same trap as §0 in
   `known-issues.md`). This migration finds each table's actual FK constraint
   and repairs it to `CASCADE`, and deletes any row already orphaned by the
   drift, before the constraint is re-added. Safe to run repeatedly; not yet
-  confirmed run. See `known-issues.md` Â§5r.
+  confirmed run. See `known-issues.md` §5r.
   **Action required in production, new this pass:
-  `supabase-personal-report-supplements.sql`** â€” a new, deliberately separate
+  `supabase-personal-report-supplements.sql`** — a new, deliberately separate
   table (`personal_report_supplements`) letting a student answer a Personal
   Report follow-up question inline without touching or reopening the locked
   `student_profiles` confirmation snapshot. Until it runs, the new
   `POST /api/ai-strategy/personal-report/supplement` route degrades to a
   `503` (tolerant-select/migration-missing pattern, same as every other
   optional migration here) rather than 500ing; report generation itself is
-  unaffected either way. See `known-issues.md` Â§5s.
+  unaffected either way. See `known-issues.md` §5s.
   **Action required in production, new this pass:
-  `supabase-personal-report-versions.sql`** â€” replaces the one-row-per-
+  `supabase-personal-report-versions.sql`** — replaces the one-row-per-
   student `student_personal_reports` model with an append-only
   `student_personal_report_versions` table (every generation is its own
   row, never upserted) plus an idempotent backfill of each student's
   existing latest report as their first version. Until it runs,
   `getLatestPersonalReportV2` degrades to `migrationMissing: true` and the
   report page shows its not-enabled state. `student_personal_reports`
-  itself is no longer written to by any code path â€” safe to leave in place,
-  not yet dropped. See `known-issues.md` Â§5t.
+  itself is no longer written to by any code path — safe to leave in place,
+  not yet dropped. See `known-issues.md` §5t.
   **Action required in production, new this pass:
-  `supabase-application-experience-flow.sql`** â€” adds `reflection`/
+  `supabase-application-experience-flow.sql`** — adds `reflection`/
   `reflection_card`/`reflection_card_status`/`reflection_updated_at`/
   `reflection_card_generated_at` to both `student_achievements` and
   `student_activities`, `personal_reflection_answers`/
   `personal_reflection_completed_at` to `student_profiles`, and
   `personal_reflection_reviewed_at` to `course_applications`. Every reader
   degrades gracefully until it runs (tolerant-select-without-the-new-
-  columns retry, same pattern as every migration above) â€” activities and
+  columns retry, same pattern as every migration above) — activities and
   reports simply render without reflection content, nothing 500s. See the
   "Last completed work" row above for the full feature this unlocks.
 
@@ -2274,64 +2206,64 @@ code, the code wins.
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| `working tree` (Planner deadline entry) | **Fixed the Planner deadline field making the year impossible to type.** Reported by the owner with a row saved as `03/03/0002`. A native `<input type="date">` publishes a value the instant all three segments hold something, so hand-typing the year walked it through `0002-â€¦` â†’ `0020-â€¦` â†’ `0202-â€¦` â†’ `2026-â€¦`, firing a change event each step. `DeadlineControl` treated every one as a committed edit â€” and the resulting save set `disabled` on the input, which **removes focus**, so the remaining three digits went nowhere and year 2 was what got PATCHed. The old `^d{4}-d{2}-d{2}$` regex on both `recommendationPatchSchema` and `plannerMicroStepExecutionPatchSchema` accepted it. Now: a shared `isPlannerDeadline` (real calendar day, `DEADLINE_MIN` 2000-01-01 â€¦ `DEADLINE_MAX` 2100-12-31) gates both the control and both schemas; the control never disables itself (save ordering is kept by chaining onto any save still open instead) and holds an editing draft so a re-render cannot reset the segment being typed; `min`/`max` mirror the window into the native picker; an inline "Enter a four-digit year to save this deadline." hint means a half-typed year no longer fails silently. Both planner surfaces share the control, so the list, the calendar tray and the micro-step detail page are all covered. **Save ordering moved to `usePlannerRecommendations`** (Codex review): the control briefly queued saves itself, which deferred the *optimistic update* along with the request and left the queued callback resolving its rollback against a stale render snapshot â€” a failure could then roll the row back past a value the server had already accepted. The hook now reads the array from a `latest` ref updated synchronously by `applyLocally` (correct rollback base), serializes only the PATCH behind any request still open (correct Postgres ordering, immediate optimism), and drops a rollback whose edit has since been superseded (`editSeq`, keyed per `id:field` so a status edit cannot cancel a deadline edit). 334/334 ai-strategy-dashboard tests, both TypeScript checks, ESLint (0 errors), the static i18n audit (0 missing keys) and the production build pass. Pre-existing unrelated failures: `src/lib/payments/vnpay-migration.test.ts` (fails on a clean tree too) and three 5s-timeout flakes under full-suite load (`cv/review`, `cv/target-profile`, `StatementWriter`) that pass in isolation. | A student can type a deadline by hand again. Deadlines outside 2000â€“2100 can no longer be written by any path. **Rows already saved with a bogus year are not cleaned up by this change** â€” the Supabase project was paused, so no audit query was run; `application_recommendations.deadline` outside the window needs a one-off sweep once it is live. |
-| `working tree` (scholarship drawer on the tracker) | **Made the chosen scholarships visible on the application they were chosen for.** Reported by the owner 18/08: an application row means "I saved this university, picked its scholarships and pressed Plan my application", but the row named none of them â€” the only place the choice showed was the saved list further down, i.e. the step before. New `src/app/apply/application-scholarships.tsx`: a rose drawer under each row, open by default when something is chosen, each award a coupon-style ticket (value on a dashed stub, scope, name trimmed of the university by `scholarshipLabel`, deadline, official-page link, Remove), with a header carrying the count and the best stated coverage percentage, and a multi-select picker dialog. Modelled on the gift/voucher block an e-commerce cart nests under a line item, per the owner's reference. Writes go straight to `user_scholarships` with the student's own session (RLS is `auth.uid() = user_id` for all verbs), the same way the saved list's existing attach/remove already work, followed by `router.refresh()` so the saved list's badges and net-tuition figures are re-read rather than guessed. Server side, `fetchApplicationScholarships` in `apply/page.tsx` adds two reads for the whole list â€” the `user_scholarships â†’ scholarships` join, and `byUniversityIds` for what the picker offers. âš ï¸ **Keyed by university, not application**: `user_scholarships` has no `application_id` and none was invented, so two applications at one university show the same awards and a change here also changes the saved list; the picker says so. âš ï¸ **The two sets overlap but neither contains the other** â€” measured live 18/08, 39 of 84 saved awards point at a scholarship that is not linked to the university it was saved under, so `chosen` cannot be derived by filtering the directory's options and the drawer unions them instead. `/dev/saved-list` now renders one preview application so the drawer is reviewable without an account. **Two review findings fixed on top:** (1) `SavedListSection` seeded its local `rows` from props ONCE and never reconciled â€” a pre-existing bug the drawer made reachable a new way, since `router.refresh()` preserves client state, so the saved list below kept showing the old badges and net tuition after any change (including its own "Apply scholarship"); it now re-seeds when the prop identity changes, guarded by a regression test that was confirmed to fail without the fix. (2) A tick and an untick in one Save are two statements with no transaction available from the browser: the delete no longer runs if the upsert failed (a failed swap used to take the old award away and put nothing in its place), and the drawer is set to what actually landed rather than rolled back wholesale, with the dialog staying open and showing the error so the student can retry from their own ticks. | A student sees, on the application itself, which funding they are applying with â€” and can add or drop an award without scrolling to the saved list and re-ticking a university. No migration: `user_scholarships` already carries `university_id` (`supabase-saved-scholarships.sql`). 13 new ENâ†’VI dictionary entries, required because `/apply` is a PII route with machine translation switched off. Measured: base TypeScript clean apart from one pre-existing stale `.next/types/validator.ts` reference to a deleted route, ESLint 0 findings on the changed files, 4 new component tests passing, and the drawer/picker/mobile reflow verified in a browser against live directory data. |
-| `working tree` (contact-details gate) | **Made name / phone / date of birth mandatory on every sign-up path.** Measured cause first: of 409 accounts, 333 came through Google and **none** of them had a phone or a date of birth, because Google's consent screen returns only name/email/picture and no OAuth provider will render our fields. The email path was fine (62/73) â€” its 13 gaps all predate 2026-06-20, when the fields were added to the form. New: `src/features/auth/domain/contact-details.ts` (pure predicate + validation, 12 unit tests) and `/auth/complete-profile`, a three-field screen with **no skip control** (owner's call, hard gate). `src/proxy.ts` holds any signed-in student missing phone or DOB there before the onboarding gate, sharing one profile read with it; `/auth/callback` sends them there at sign-in. `/universities` and `/advisors` stay ungated so browsing never hits the wall. Also closed the email hole: `/api/auth/signup` had `full_name`/`phone`/`date_of_birth` as Zod `.optional()` defaulting to `''`, so HTML `required` was the only enforcement and a direct POST created blank-field accounts. Phone is now normalised to E.164 (VN `0â€¦` â†’ `+84â€¦`) and written straight to `student_profiles` rather than via the lossy auth-metadata copy in the callback â€” the path that turned 63 metadata phones into 16 profile ones. âš ï¸ **`''` is the missing value here, not NULL**: 19 rows are NOT NULL, 16 hold a number. âš ï¸ The E2E account (`E2E_EMAIL`) now needs phone + DOB or `signed-in.spec.ts` fails on its first assertion. **Four review findings fixed on top:** (1) `PROTECTED_ROUTES` is not the set of authenticated routes â€” `/ai-strategy/*`, `/scholarships` and `/universities/matches` each call `getUser()` inside their own server component, so a gate built from that list alone left them reachable by URL; they are now named explicitly in `CONTACT_GATED`, while payment returns (`/plus/success`, `/payment/*`) are deliberately excluded so a paid-for confirmation is never bounced into a form. (2) The form now carries `method="post"` â€” a submit that beats hydration fell back to a native GET, putting name/phone/DOB in the URL, history and access logs. (3) `?next=` accepted `//attacker.example`, which begins with `/` but is protocol-relative and leaves the origin â€” `safeInternalPath` now requires a real same-origin path. (4) `Date.parse` normalises impossible dates (`2002-02-30` â†’ 2 March) rather than rejecting them, so a direct API POST reached Postgres and 500'd; `isRealCalendarDate` round-trips the components instead. |
-| `working tree` (branch `claude/university-application-flow-0khm6v`, Strategy Hub + Plus paywall) | **Rebuilt `/ai-strategy` as the "Strategy Hub"** â€” the animated landing page every "Strategy Master" nav click (`STRATEGY_ACTION` in `nav-items.tsx`, unchanged href) and every "Go to My Portal" CTA now lands on, replacing the old Stage-3 explainer. Built from an owner-supplied combined HTML/CSS/JS prototype (`GlowBal Strategy Hub â€” Combined Demo`) under `src/features/marketing/ui/strategy-hub/`: a hero reusing the homepage's existing `HeroGlobe` canvas animation (not the prototype's static globe image) with a single real CTA into `/apply` (the prototype's two-path "choose existing / start new" chooser modal collapsed to one, since `/apply` is already the unified entry point â€” see its own `page.tsx` comment), a click-to-play animated tour section (explicitly framed as an illustrative animation, not a real recording â€” no fabricated product-tour claims), and a 3-card interactive Reports Hub (Personal â†’ the real `/ai-strategy/personal-report`, Matching/Strategy â†’ `/apply`, since both are application-scoped) plus a 4th "Evaluation Report" card shown disabled/"Coming soon" since that feature does not exist yet. Deliberately ships no fabricated testimonials (the prototype's are explicitly placeholder-labelled) per the project's standing rule against them. Sound: real synthesized Web Audio effects (`use-strategy-hub-sound.ts`, oscillator+gain envelopes, no audio files, ported from the prototype's design), defaulting **on** per explicit owner instruction. Animations (`@keyframes` block in `strategy-hub.tsx`, same one-off pattern as `match-badge.tsx`) all pair `motion-safe:animate-[...]` with a `motion-reduce:` fallback. **Landed the GlowBal Plus paywall the previous `/ai-strategy/page.tsx` comment had been describing as not-yet-built since 01/08**: `/ai-strategy/[applicationId]/layout.tsx` now reads `plus_status`/`plus_expires_at`/`is_admin` alongside its existing ownership check and redirects a non-entitled student to `/plus?application=<id>` (a return-aware redirect target the `/plus` page already supported but nothing called) â€” this gates the whole per-application AI Strategy workspace (matching-report, planner, strategy-report, statement, cv/*) in one place, while the user-level Personal Report and reflections stay free, matching the owner's "paywall goes on the Strategy, after the application stage" instruction. Per explicit owner direction, this is a hard gate on ALL non-admin users (no grandfathering) â€” every student without an active Plus entitlement is redirected the first time they try to continue an application. Added an admin-side manual override alongside it: `/admin/users` (`admin-users-client.tsx` + `api/admin/users/route.ts`) gained a "Grant Plus"/"Revoke Plus" toggle mirroring the existing is_admin pattern (12-month grant, `plus_plan: 'admin-grant'`, best-effort audit row in `plus_subscriptions`), additive to â€” not a replacement for â€” the existing VNPay/manual-bank-transfer checkout paths and the existing `/admin/bookings` manual-payment-claim approval flow. New `src/lib/i18n-strategy-hub.ts` catalog (~65 EN/VI pairs), merged into `i18n-catalog.ts`. Full 282-file/2534-test suite, both TypeScript checks, ESLint (0 errors), the static i18n audit (0 missing keys), and the Next.js production build all pass. Browser verification not done this pass â€” no connected browser instance. | A student who clicks "Strategy Master" now sees a real animated hub instead of a static explainer, with working links into My Portal and the real Personal Report. A student without GlowBal Plus can still browse My Portal and open an application, but hits `/plus` the moment they try to continue into that application's actual AI Strategy workspace â€” no free access to Matching/Strategy reports or the planner for a specific course anymore. An admin can grant or revoke that access directly from a user search, independent of the payment flow. **No new migration required**: `plus_status`/`plus_expires_at`/`plus_plan` already existed on `student_profiles` (`supabase-plus.sql`). |
+| `working tree` (Planner deadline entry) | **Fixed the Planner deadline field making the year impossible to type.** Reported by the owner with a row saved as `03/03/0002`. A native `<input type="date">` publishes a value the instant all three segments hold something, so hand-typing the year walked it through `0002-…` → `0020-…` → `0202-…` → `2026-…`, firing a change event each step. `DeadlineControl` treated every one as a committed edit — and the resulting save set `disabled` on the input, which **removes focus**, so the remaining three digits went nowhere and year 2 was what got PATCHed. The old `^d{4}-d{2}-d{2}$` regex on both `recommendationPatchSchema` and `plannerMicroStepExecutionPatchSchema` accepted it. Now: a shared `isPlannerDeadline` (real calendar day, `DEADLINE_MIN` 2000-01-01 … `DEADLINE_MAX` 2100-12-31) gates both the control and both schemas; the control never disables itself (save ordering is kept by chaining onto any save still open instead) and holds an editing draft so a re-render cannot reset the segment being typed; `min`/`max` mirror the window into the native picker; an inline "Enter a four-digit year to save this deadline." hint means a half-typed year no longer fails silently. Both planner surfaces share the control, so the list, the calendar tray and the micro-step detail page are all covered. **Save ordering moved to `usePlannerRecommendations`** (Codex review): the control briefly queued saves itself, which deferred the *optimistic update* along with the request and left the queued callback resolving its rollback against a stale render snapshot — a failure could then roll the row back past a value the server had already accepted. The hook now reads the array from a `latest` ref updated synchronously by `applyLocally` (correct rollback base), serializes only the PATCH behind any request still open (correct Postgres ordering, immediate optimism), and drops a rollback whose edit has since been superseded (`editSeq`, keyed per `id:field` so a status edit cannot cancel a deadline edit). 334/334 ai-strategy-dashboard tests, both TypeScript checks, ESLint (0 errors), the static i18n audit (0 missing keys) and the production build pass. Pre-existing unrelated failures: `src/lib/payments/vnpay-migration.test.ts` (fails on a clean tree too) and three 5s-timeout flakes under full-suite load (`cv/review`, `cv/target-profile`, `StatementWriter`) that pass in isolation. | A student can type a deadline by hand again. Deadlines outside 2000–2100 can no longer be written by any path. **Rows already saved with a bogus year are not cleaned up by this change** — the Supabase project was paused, so no audit query was run; `application_recommendations.deadline` outside the window needs a one-off sweep once it is live. |
+| `working tree` (scholarship drawer on the tracker) | **Made the chosen scholarships visible on the application they were chosen for.** Reported by the owner 18/08: an application row means "I saved this university, picked its scholarships and pressed Plan my application", but the row named none of them — the only place the choice showed was the saved list further down, i.e. the step before. New `src/app/apply/application-scholarships.tsx`: a rose drawer under each row, open by default when something is chosen, each award a coupon-style ticket (value on a dashed stub, scope, name trimmed of the university by `scholarshipLabel`, deadline, official-page link, Remove), with a header carrying the count and the best stated coverage percentage, and a multi-select picker dialog. Modelled on the gift/voucher block an e-commerce cart nests under a line item, per the owner's reference. Writes go straight to `user_scholarships` with the student's own session (RLS is `auth.uid() = user_id` for all verbs), the same way the saved list's existing attach/remove already work, followed by `router.refresh()` so the saved list's badges and net-tuition figures are re-read rather than guessed. Server side, `fetchApplicationScholarships` in `apply/page.tsx` adds two reads for the whole list — the `user_scholarships → scholarships` join, and `byUniversityIds` for what the picker offers. ⚠️ **Keyed by university, not application**: `user_scholarships` has no `application_id` and none was invented, so two applications at one university show the same awards and a change here also changes the saved list; the picker says so. ⚠️ **The two sets overlap but neither contains the other** — measured live 18/08, 39 of 84 saved awards point at a scholarship that is not linked to the university it was saved under, so `chosen` cannot be derived by filtering the directory's options and the drawer unions them instead. `/dev/saved-list` now renders one preview application so the drawer is reviewable without an account. **Two review findings fixed on top:** (1) `SavedListSection` seeded its local `rows` from props ONCE and never reconciled — a pre-existing bug the drawer made reachable a new way, since `router.refresh()` preserves client state, so the saved list below kept showing the old badges and net tuition after any change (including its own "Apply scholarship"); it now re-seeds when the prop identity changes, guarded by a regression test that was confirmed to fail without the fix. (2) A tick and an untick in one Save are two statements with no transaction available from the browser: the delete no longer runs if the upsert failed (a failed swap used to take the old award away and put nothing in its place), and the drawer is set to what actually landed rather than rolled back wholesale, with the dialog staying open and showing the error so the student can retry from their own ticks. | A student sees, on the application itself, which funding they are applying with — and can add or drop an award without scrolling to the saved list and re-ticking a university. No migration: `user_scholarships` already carries `university_id` (`supabase-saved-scholarships.sql`). 13 new EN→VI dictionary entries, required because `/apply` is a PII route with machine translation switched off. Measured: base TypeScript clean apart from one pre-existing stale `.next/types/validator.ts` reference to a deleted route, ESLint 0 findings on the changed files, 4 new component tests passing, and the drawer/picker/mobile reflow verified in a browser against live directory data. |
+| `working tree` (contact-details gate) | **Made name / phone / date of birth mandatory on every sign-up path.** Measured cause first: of 409 accounts, 333 came through Google and **none** of them had a phone or a date of birth, because Google's consent screen returns only name/email/picture and no OAuth provider will render our fields. The email path was fine (62/73) — its 13 gaps all predate 2026-06-20, when the fields were added to the form. New: `src/features/auth/domain/contact-details.ts` (pure predicate + validation, 12 unit tests) and `/auth/complete-profile`, a three-field screen with **no skip control** (owner's call, hard gate). `src/proxy.ts` holds any signed-in student missing phone or DOB there before the onboarding gate, sharing one profile read with it; `/auth/callback` sends them there at sign-in. `/universities` and `/advisors` stay ungated so browsing never hits the wall. Also closed the email hole: `/api/auth/signup` had `full_name`/`phone`/`date_of_birth` as Zod `.optional()` defaulting to `''`, so HTML `required` was the only enforcement and a direct POST created blank-field accounts. Phone is now normalised to E.164 (VN `0…` → `+84…`) and written straight to `student_profiles` rather than via the lossy auth-metadata copy in the callback — the path that turned 63 metadata phones into 16 profile ones. ⚠️ **`''` is the missing value here, not NULL**: 19 rows are NOT NULL, 16 hold a number. ⚠️ The E2E account (`E2E_EMAIL`) now needs phone + DOB or `signed-in.spec.ts` fails on its first assertion. **Four review findings fixed on top:** (1) `PROTECTED_ROUTES` is not the set of authenticated routes — `/ai-strategy/*`, `/scholarships` and `/universities/matches` each call `getUser()` inside their own server component, so a gate built from that list alone left them reachable by URL; they are now named explicitly in `CONTACT_GATED`, while payment returns (`/plus/success`, `/payment/*`) are deliberately excluded so a paid-for confirmation is never bounced into a form. (2) The form now carries `method="post"` — a submit that beats hydration fell back to a native GET, putting name/phone/DOB in the URL, history and access logs. (3) `?next=` accepted `//attacker.example`, which begins with `/` but is protocol-relative and leaves the origin — `safeInternalPath` now requires a real same-origin path. (4) `Date.parse` normalises impossible dates (`2002-02-30` → 2 March) rather than rejecting them, so a direct API POST reached Postgres and 500'd; `isRealCalendarDate` round-trips the components instead. |
+| `working tree` (branch `claude/university-application-flow-0khm6v`, Strategy Hub + Plus paywall) | **Rebuilt `/ai-strategy` as the "Strategy Hub"** — the animated landing page every "Strategy Master" nav click (`STRATEGY_ACTION` in `nav-items.tsx`, unchanged href) and every "Go to My Portal" CTA now lands on, replacing the old Stage-3 explainer. Built from an owner-supplied combined HTML/CSS/JS prototype (`GlowBal Strategy Hub — Combined Demo`) under `src/features/marketing/ui/strategy-hub/`: a hero reusing the homepage's existing `HeroGlobe` canvas animation (not the prototype's static globe image) with a single real CTA into `/apply` (the prototype's two-path "choose existing / start new" chooser modal collapsed to one, since `/apply` is already the unified entry point — see its own `page.tsx` comment), a click-to-play animated tour section (explicitly framed as an illustrative animation, not a real recording — no fabricated product-tour claims), and a 3-card interactive Reports Hub (Personal → the real `/ai-strategy/personal-report`, Matching/Strategy → `/apply`, since both are application-scoped) plus a 4th "Evaluation Report" card shown disabled/"Coming soon" since that feature does not exist yet. Deliberately ships no fabricated testimonials (the prototype's are explicitly placeholder-labelled) per the project's standing rule against them. Sound: real synthesized Web Audio effects (`use-strategy-hub-sound.ts`, oscillator+gain envelopes, no audio files, ported from the prototype's design), defaulting **on** per explicit owner instruction. Animations (`@keyframes` block in `strategy-hub.tsx`, same one-off pattern as `match-badge.tsx`) all pair `motion-safe:animate-[...]` with a `motion-reduce:` fallback. **Landed the GlowBal Plus paywall the previous `/ai-strategy/page.tsx` comment had been describing as not-yet-built since 01/08**: `/ai-strategy/[applicationId]/layout.tsx` now reads `plus_status`/`plus_expires_at`/`is_admin` alongside its existing ownership check and redirects a non-entitled student to `/plus?application=<id>` (a return-aware redirect target the `/plus` page already supported but nothing called) — this gates the whole per-application AI Strategy workspace (matching-report, planner, strategy-report, statement, cv/*) in one place, while the user-level Personal Report and reflections stay free, matching the owner's "paywall goes on the Strategy, after the application stage" instruction. Per explicit owner direction, this is a hard gate on ALL non-admin users (no grandfathering) — every student without an active Plus entitlement is redirected the first time they try to continue an application. Added an admin-side manual override alongside it: `/admin/users` (`admin-users-client.tsx` + `api/admin/users/route.ts`) gained a "Grant Plus"/"Revoke Plus" toggle mirroring the existing is_admin pattern (12-month grant, `plus_plan: 'admin-grant'`, best-effort audit row in `plus_subscriptions`), additive to — not a replacement for — the existing VNPay/manual-bank-transfer checkout paths and the existing `/admin/bookings` manual-payment-claim approval flow. New `src/lib/i18n-strategy-hub.ts` catalog (~65 EN/VI pairs), merged into `i18n-catalog.ts`. Full 282-file/2534-test suite, both TypeScript checks, ESLint (0 errors), the static i18n audit (0 missing keys), and the Next.js production build all pass. Browser verification not done this pass — no connected browser instance. | A student who clicks "Strategy Master" now sees a real animated hub instead of a static explainer, with working links into My Portal and the real Personal Report. A student without GlowBal Plus can still browse My Portal and open an application, but hits `/plus` the moment they try to continue into that application's actual AI Strategy workspace — no free access to Matching/Strategy reports or the planner for a specific course anymore. An admin can grant or revoke that access directly from a user search, independent of the payment flow. **No new migration required**: `plus_status`/`plus_expires_at`/`plus_plan` already existed on `student_profiles` (`supabase-plus.sql`). |
 | Working tree 2026-08-15 (CI i18n follow-up) | Added the missing Vietnamese dictionary entry for the Plus-gated strategy narrative copy reported by CI. | The targeted `check-i18n.integration.test.ts` passes. The full `verify:pr` gate was not runnable in this checkout because it has Node 22.15.0 while CI requires Node 24.19.0; GitHub Actions run #396 identified this missing key as the only failing test. |
-| Working tree 2026-08-15 (branch CI repair, reconciled with `main`) | Fixed the Vercel build failure on `fix/feedback-log`: the earlier `main` merge (`63304e1`) resolved the import conflict in `src/app/profile/preferences/preferences-form.tsx` by keeping BOTH sidesâ€™ lines, so `SaveBar`/`SelectOptions`/`TagInput` were each declared twice and Turbopack failed with a parse error â€” collapsed to one import carrying `IntakeFields` from this branch and `returnAfterSave` from `main`. This branch had independently made the same legal-page repair `main` shipped as `b37e206` (typographic quotes on `/terms`, a route-scoped Vietnamese-source exemption in `scripts/check-i18n.mjs`); on merging, `main`â€™s implementation was taken verbatim and this branchâ€™s duplicate dropped, so the script is byte-identical to `main`. What was kept from this branch is the regression test in `check-i18n.integration.test.ts` asserting `authoritativeVietnameseRoutes` is exactly `/privacy` and `/terms`. | The deploy unblocks, and the two independent legal-page fixes are reconciled to one implementation rather than left as near-duplicates. The kept test matters because `actionable VI-only source: 0` is satisfiable either by writing English source or by exempting the route â€” widening the exemption to a product screen would silence the check for all of it, so that now fails a test rather than passing quietly. âš ï¸ For Windows contributors: `src/lib/payments/vnpay-migration.test.ts` fails LOCALLY on a CRLF checkout and only there â€” it asserts source-text ordering with an `\n`-joined needle, git stores the route file with LF (`core.autocrlf=true` converts it on checkout), and it passes on CI. Do not "fix" the payments route to satisfy it. Measured on the merged tree, Node 24.19.x: both TypeScript checks clean, ESLint 0 findings, 276 test files (2,508 passed / 2 todo â€” the CRLF artefact above is the only local red), `node scripts/check-i18n.mjs --all` at 0 missing keys and 0 actionable Vietnamese-only source, and the Next.js 16.3.1 production build generating 129/129 static pages. |
+| Working tree 2026-08-15 (branch CI repair, reconciled with `main`) | Fixed the Vercel build failure on `fix/feedback-log`: the earlier `main` merge (`63304e1`) resolved the import conflict in `src/app/profile/preferences/preferences-form.tsx` by keeping BOTH sides’ lines, so `SaveBar`/`SelectOptions`/`TagInput` were each declared twice and Turbopack failed with a parse error — collapsed to one import carrying `IntakeFields` from this branch and `returnAfterSave` from `main`. This branch had independently made the same legal-page repair `main` shipped as `b37e206` (typographic quotes on `/terms`, a route-scoped Vietnamese-source exemption in `scripts/check-i18n.mjs`); on merging, `main`’s implementation was taken verbatim and this branch’s duplicate dropped, so the script is byte-identical to `main`. What was kept from this branch is the regression test in `check-i18n.integration.test.ts` asserting `authoritativeVietnameseRoutes` is exactly `/privacy` and `/terms`. | The deploy unblocks, and the two independent legal-page fixes are reconciled to one implementation rather than left as near-duplicates. The kept test matters because `actionable VI-only source: 0` is satisfiable either by writing English source or by exempting the route — widening the exemption to a product screen would silence the check for all of it, so that now fails a test rather than passing quietly. ⚠️ For Windows contributors: `src/lib/payments/vnpay-migration.test.ts` fails LOCALLY on a CRLF checkout and only there — it asserts source-text ordering with an `\n`-joined needle, git stores the route file with LF (`core.autocrlf=true` converts it on checkout), and it passes on CI. Do not "fix" the payments route to satisfy it. Measured on the merged tree, Node 24.19.x: both TypeScript checks clean, ESLint 0 findings, 276 test files (2,508 passed / 2 todo — the CRLF artefact above is the only local red), `node scripts/check-i18n.mjs --all` at 0 missing keys and 0 actionable Vietnamese-only source, and the Next.js 16.3.1 production build generating 129/129 static pages. |
 | Working tree 2026-08-15 (legal-page deploy repair) | Replaced raw JSX quote characters on `/terms` with typographic Vietnamese quotes and taught the production i18n audit that `/privacy` and `/terms` are intentionally maintained as authoritative Vietnamese legal documents. The exemption is route-specific; their copy remains visible as protected Vietnamese source in the audit report, while every other public route retains the existing bidirectional enforcement. | The complete Node 24.19.0 `npm run verify:pr` gate passes: base and strict TypeScript, ESLint, 274 test files with 2,470 passing tests / 2 todo, coverage, and the Next.js 16.3.1 production build. The three existing `geo-content.ts` Turbopack filesystem-tracing warnings and placeholder-Supabase fetch logs remain non-fatal. |
-| Working tree 2026-08-15 (Plus promo redemption) | Added a promo-code field to the existing Plus payment dialog and a same-origin, authenticated `POST /api/plus/redeem` path. The active `gogogogoglowbal` v2 campaign is checked only on the server, then a service-role-only `redeem_plus_promo` RPC atomically records one redemption per user/campaign, extends the selected Plus plan, grants that plan's canonical AI credits, and writes the subscription audit row. The v2 rotation gives every account a fresh one-use campaign without deleting v1 audit rows or real payment transactions. | A signed-in user can select Monthly, Yearly, or Premium and redeem the campaign without entering the payment flow. Promo subscriptions are labelled `100% off` and have no `payment_transactions` row, so they contribute 0â‚« to the admin revenue total. Replays and concurrent duplicate requests cannot add duration or credits twice. Focused UI/API/migration tests pass 11/11. **Action required: apply `supabase-plus-promo-redemption.sql`, then `supabase-plus-promo-v2.sql`, in production before v2 can grant Plus.** |
-| Working tree 2026-08-15 (target intake month picker) | Replaced the free-text `Target intake` box on /profile/goals and /profile/preferences with a month/year calendar popover (`src/shared/ui/month-picker.tsx`, no Figma source â€” the redesign draws no date control) and turned `Application cycle year` into a generated year list. Both editors now share one `IntakeFields` block in `src/app/profile/_form-parts.tsx`. `student_profiles.target_intake` gains a third written shape, the canonical `YYYY-MM` token from `src/shared/lib/month-value.ts`; `parseIntake` reads it by rounding to the nearest season, and the new `intakeDisplayLabel` is what /profile and the reflection review print instead of the raw column. | Students pick an intake instead of typing one, and cannot store a month that has already passed. A stored answer the picker cannot draw (`undecided`, a season token) is shown on the control and preserved until a month is picked, so saving no longer risks erasing it. Fixes /profile and /ai-strategy/reflection printing raw tokens ("autumn-2027") as a studentâ€™s target intake. Measured on Node 24.19.x: both TypeScript checks clean, ESLint 0 findings, `npm test` 269/270 files passing (2,455 passed, 2 todo) with the one failure â€” `src/lib/payments/vnpay-migration.test.ts` â€” since traced to a Windows CRLF checkout and not a real failure (see the row above), `node scripts/check-i18n.mjs --all` reporting 0 missing keys, and `npm run build` succeeding. |
+| Working tree 2026-08-15 (Plus promo redemption) | Added a promo-code field to the existing Plus payment dialog and a same-origin, authenticated `POST /api/plus/redeem` path. The active `gogogogoglowbal` v2 campaign is checked only on the server, then a service-role-only `redeem_plus_promo` RPC atomically records one redemption per user/campaign, extends the selected Plus plan, grants that plan's canonical AI credits, and writes the subscription audit row. The v2 rotation gives every account a fresh one-use campaign without deleting v1 audit rows or real payment transactions. | A signed-in user can select Monthly, Yearly, or Premium and redeem the campaign without entering the payment flow. Promo subscriptions are labelled `100% off` and have no `payment_transactions` row, so they contribute 0₫ to the admin revenue total. Replays and concurrent duplicate requests cannot add duration or credits twice. Focused UI/API/migration tests pass 11/11. **Action required: apply `supabase-plus-promo-redemption.sql`, then `supabase-plus-promo-v2.sql`, in production before v2 can grant Plus.** |
+| Working tree 2026-08-15 (target intake month picker) | Replaced the free-text `Target intake` box on /profile/goals and /profile/preferences with a month/year calendar popover (`src/shared/ui/month-picker.tsx`, no Figma source — the redesign draws no date control) and turned `Application cycle year` into a generated year list. Both editors now share one `IntakeFields` block in `src/app/profile/_form-parts.tsx`. `student_profiles.target_intake` gains a third written shape, the canonical `YYYY-MM` token from `src/shared/lib/month-value.ts`; `parseIntake` reads it by rounding to the nearest season, and the new `intakeDisplayLabel` is what /profile and the reflection review print instead of the raw column. | Students pick an intake instead of typing one, and cannot store a month that has already passed. A stored answer the picker cannot draw (`undecided`, a season token) is shown on the control and preserved until a month is picked, so saving no longer risks erasing it. Fixes /profile and /ai-strategy/reflection printing raw tokens ("autumn-2027") as a student’s target intake. Measured on Node 24.19.x: both TypeScript checks clean, ESLint 0 findings, `npm test` 269/270 files passing (2,455 passed, 2 todo) with the one failure — `src/lib/payments/vnpay-migration.test.ts` — since traced to a Windows CRLF checkout and not a real failure (see the row above), `node scripts/check-i18n.mjs --all` reporting 0 missing keys, and `npm run build` succeeding. |
 | Working tree 2026-08-15 (manual Plus fulfilment repair) | Root-caused founder-confirmed manual Plus payments that landed in `paid_unfulfilled`: the database function wrapped entitlement/subscription writes and the `student_confirmed` outbox insert in one exception block, then suppressed the SQL error while the review still became `confirmed`. Added `supabase-manual-payment-fulfillment-repair.sql`, which isolates notification failure, records bounded diagnostics, makes failed activation visible as HTTP 409, and idempotently reconciles founder-confirmed Plus payments. The owner applied it; production readback then identified the remaining exact error as PostgreSQL `42P10`: the explicit subscription `ON CONFLICT` target could not infer a partial unique index. Added the append-only `supabase-manual-payment-subscription-conflict-repair.sql` follow-up to replace that index with a full unique index and retry guarded reconciliation. Per owner decision, Plus confirmation has no review deadline; mentorship retains slot/hold safety. | Founder confirmation grants Plus even when reviewed late, and an email-job failure cannot roll back product activation. The follow-up migration preserves idempotency while making the existing explicit conflict target valid. Production remains unfulfilled until that second migration is applied. **Action required: apply `supabase-manual-payment-subscription-conflict-repair.sql` in production; the first repair migration is confirmed applied.** |
 | Working tree 2026-08-15 (Vercel ESLint and Plus gating repair) | Cleared all 38 ESLint findings from the failed deployment (9 errors and 29 warnings), moved the admin bookings service-role reads behind a server-only boundary, exposed the Plus hook through its feature API, removed the synchronous effect state update, replaced raw strategy-report colour literals with design tokens, and retained client-side navigation semantics. The static i18n dictionary now covers the three newly detected Plus strings. | The Vercel CI gate is clean and the Plus blur/upgrade state used by Saved, Scholarships, and Strategy remains derived consistently from the supplied entitlement or fetched status. `npm run verify:pr` passes on Node 24.19.0: both TypeScript checks, full ESLint with 0 findings, 268 test files with 2,426 passing tests / 2 todo, coverage, and the Next.js 16.3.1 production build. Build output still contains three pre-existing Turbopack filesystem-tracing warnings in `geo-content.ts`; they do not fail the build. |
-| Working tree 2026-08-15 (Home roster redesign) | Rebuilt Home's "The team behind your journey." section (`src/features/marketing/ui/home-team.tsx`) from the flat Figma 903:10609 grid into a staggered card deck, and corrected the roster against the owner's member sheet. Five display names now match the sheet: `KhÃ¡nh Linh`â†’`Nguyá»…n KhÃ¡nh Linh`, `HoÃ ng Linh`â†’`Nguyá»…n HoÃ ng Linh`, `Lil Chi`â†’`Pháº¡m Quá»³nh Chi`, `Huáº¥n Rose`â†’`Nguyá»…n Huáº¥n`, `HÆ°Æ¡ng`â†’`HÆ°Æ¡ng PhÃ¹ng`, `James`â†’`James Lapslie`. Each card gained two sheet-sourced facts the Figma grid had no slot for: the university's own crest (new `university-crests.ts` + `public/universities/`, four files) and the programme line, plus â€” for the three members whose sheet row records one â€” a brand-coloured scholarship strip. The five members with an empty scholarship column get no strip rather than a substitute. Layout: 4:5 portraits, `items-start` so cards hug their content, columns 2 and 4 offset 64px via `mt` (not `translate`, which would overhang the section's padding), and hover/focus enrichment (lift, desaturation release, portrait zoom, rule draw) done entirely in CSS â€” the section ships no JavaScript and hides nothing behind hover. An initial pass also added a counted `3/8 of us study on a scholarship` badge above the grid and an editorial `01`â€“`08` counter on each portrait; both were dropped on the owner's follow-up request as filler once the crest/programme/scholarship facts were already doing the section's work. Crest provenance and the nominative-use warning are recorded in `university-crests.ts`. | Home now shows evidence for the claim its own intro paragraph makes: per-member scholarships, programmes and university crests, without a redundant summary stat or card numbering. Verified in the running app at 390/768/1440px on `/` with real Supabase portraits and on `/dev/home` with the initials fallback; all four crests resolve (3Ã— VinUniversity, 3Ã— HUST, 1Ã— Foreign Trade University, 1Ã— University of Birmingham) and hover was captured working, both before and after the badge/counter removal. Strict TypeScript, targeted ESLint, the static i18n audit (0 missing keys), and 41 focused Vitest tests across 7 files pass. E2E `home-preview.spec.ts` team assertions were updated to the new names and now also assert crest counts, but were not rerun. Base typecheck and the production build remain blocked outside this change by the absent `@mdxeditor/editor` dependency, as recorded in the rows below. |
+| Working tree 2026-08-15 (Home roster redesign) | Rebuilt Home's "The team behind your journey." section (`src/features/marketing/ui/home-team.tsx`) from the flat Figma 903:10609 grid into a staggered card deck, and corrected the roster against the owner's member sheet. Five display names now match the sheet: `Khánh Linh`→`Nguyễn Khánh Linh`, `Hoàng Linh`→`Nguyễn Hoàng Linh`, `Lil Chi`→`Phạm Quỳnh Chi`, `Huấn Rose`→`Nguyễn Huấn`, `Hương`→`Hương Phùng`, `James`→`James Lapslie`. Each card gained two sheet-sourced facts the Figma grid had no slot for: the university's own crest (new `university-crests.ts` + `public/universities/`, four files) and the programme line, plus — for the three members whose sheet row records one — a brand-coloured scholarship strip. The five members with an empty scholarship column get no strip rather than a substitute. Layout: 4:5 portraits, `items-start` so cards hug their content, columns 2 and 4 offset 64px via `mt` (not `translate`, which would overhang the section's padding), and hover/focus enrichment (lift, desaturation release, portrait zoom, rule draw) done entirely in CSS — the section ships no JavaScript and hides nothing behind hover. An initial pass also added a counted `3/8 of us study on a scholarship` badge above the grid and an editorial `01`–`08` counter on each portrait; both were dropped on the owner's follow-up request as filler once the crest/programme/scholarship facts were already doing the section's work. Crest provenance and the nominative-use warning are recorded in `university-crests.ts`. | Home now shows evidence for the claim its own intro paragraph makes: per-member scholarships, programmes and university crests, without a redundant summary stat or card numbering. Verified in the running app at 390/768/1440px on `/` with real Supabase portraits and on `/dev/home` with the initials fallback; all four crests resolve (3× VinUniversity, 3× HUST, 1× Foreign Trade University, 1× University of Birmingham) and hover was captured working, both before and after the badge/counter removal. Strict TypeScript, targeted ESLint, the static i18n audit (0 missing keys), and 41 focused Vitest tests across 7 files pass. E2E `home-preview.spec.ts` team assertions were updated to the new names and now also assert crest counts, but were not rerun. Base typecheck and the production build remain blocked outside this change by the absent `@mdxeditor/editor` dependency, as recorded in the rows below. |
 | Working tree 2026-08-15 (approved US programme CSV import) | Added and ran the default-dry-run importer for the owner-supplied `us_uni_program.csv` (200 rows, 10 universities, 73 columns) after explicit approval of run key `manual-us-programs-afd656d40bb5ce85`. It resolves aliases onto the same lowest-id university identities the product uses, validates programme domains, maps degree levels, preserves every raw field in staging provenance, groups choices by school/college, and prevents an existing `(university, programme, degree)` identity from being promoted twice. Shared source URLs receive deterministic fragments rather than collapsing distinct programmes. The write path still requires both `--apply` and the exact dry-run `--confirm-run-key`. | **Production import completed.** Run `60aa495f-a95b-4045-b5b7-5c2a94affbde` is `completed`: staging contains 10 institutions, 108 units, 200 programmes (189 `NEEDS_REVIEW`, 11 duplicate `REJECTED`) and 189 programme-unit relations. Promotion inserted 189 programmes plus 108 academic units and 189 relations, with 0 existing-course updates/re-homes, 0 field values, and 0 university-profile writes. Independent readback found 189 unique catalogue IDs and 189 unique effective URLs on the expected ten product university IDs; each staging payload retains all 73 source columns. Admissions/cost/outcomes text remains staging-only because the CSV lacks per-field source/cycle provenance. Focused Vitest passed 10/10, syntax check and targeted ESLint passed. Base typecheck remains blocked outside this work because the declared `@mdxeditor/editor` dependency is absent from current `node_modules` (plus its downstream implicit-`any` error). |
-| `working tree` (branch `claude/university-application-flow-0khm6v`) | **Redesigned the application setup flow per the owner's spec** so it stops re-asking factual profile questions onboarding already collected and adds real activity-level and cross-cutting reflection. `/ai-strategy/reflection` (step 1) no longer renders the twelve-question `ReflectionAboutForm` â€” it renders a new read-only `ProfileReviewView` (`profile-review-view.tsx`) built from a new `loadProfileReview` reader (`features/apply/api/profile-review.ts`, canonical `student_profiles` + `english_test_scores` + `standardized_test_scores`), with per-section Edit links out to the existing `/profile/academic`, `/profile/english`, `/profile/preferences` editors (never a second copy of the same form) and one "Yes, this information is correct" CTA. Fixed the exact `study_level` vocabulary bug the spec names by example (onboarding writes `undergraduate`/`postgraduate`/`phd`, the old reflection form wrote `INTENDED_LEVELS` display strings into the same column, and a student who only did onboarding read back `intendedLevel: undefined` â€” blocking Review & Confirm on an already-answered question) via a new canonical `study-level.ts` module both flows now read through. Achievements/activities (`reflection/achievements`) gained "Reflect on this experience": a new `ActivityReflectionModal` walks Contextâ†’Motivationâ†’Challengeâ†’Actionâ†’Impactâ†’Transformationâ†’Future one dimension at a time, with category-adapted question wording (`activity-reflection.ts`'s `experienceCategoryFor`/`reflectionQuestion`, mapping the existing achievement/activity category enums onto the spec's seven experience categories) and a hidden-by-default "Need inspiration?" scaffold. Finishing a reflection persists the raw answers first, then calls new stateless `POST /api/reflection/reflection-card` (`src/lib/ai/reflection-card-generation.ts`, grounded system prompt: no invented numbers/roles/outcomes/skills, 3-5 evidence-linked skills) to build a Story/My Contribution/Evidence/Demonstrated Skills/Key Takeaway/Future Connection card (`ReflectionCardView`, with loading/error/edit/regenerate/confirm states); the raw reflection and the generated card are separate fields (`reflection`/`reflectionCard` on both `student_achievements` and `student_activities`, extended via `supabase-application-experience-flow.sql`) and the card never overwrites the raw answers. New Step 3 `/ai-strategy/reflection/personal` (`PersonalReflectionForm`) asks the five fixed cross-cutting questions from the spec, one per screen, saved via new `PATCH /api/reflection/personal` into `student_profiles.personal_reflection_answers` (global, reusable across applications, mirroring how activities already work) â€” deliberately kept a separate, simpler flow from activity reflection. `OnboardingState`/`OnboardingStep` (`features/ai-strategy-dashboard/domain/onboarding.ts`) gained a `personal-reflection` step between achievements and confirm, backed by a new per-application `course_applications.personal_reflection_reviewed_at` column, with the same tolerant-select fallback pattern every other per-application flag already uses. Review & Confirm gained Experiences (activity + confirmed-Reflection-Card counts) and Personal Reflection (questions-completed) sections. **No new snapshot table**: `confirmed_candidate_snapshots.payload` (existing JSONB) automatically carries the new reflection/reflectionCard/personalReflection fields the moment they were added to `ReflectionValues` in `reflection.ts` â€” reused, not replaced, per the spec's own instruction. `candidate-context.ts` (used by both Personal Report and Matching Report generation) now reads the new columns with the same tolerant-select pattern, and `personal-report-v2.ts`'s CMCAITF/competency extraction pipeline now folds a student's own structured reflection answers (and, once confirmed, their Reflection Card's story/key-takeaway/future-connection) into the free text it already runs extraction over â€” richer, still-groundable signal instead of the AI guessing the same seven dimensions from a single unstructured paragraph. **Action required in production: run `supabase-application-experience-flow.sql`** â€” tolerant-select degrades every reader gracefully until it has (new activities/personal reflection simply don't appear; nothing 500s). New/updated tests: `study-level.test.ts` (9), `activity-reflection.test.ts` (13), `personal-reflection.test.ts` (9), `reflection.test.ts` (+5, including the `study_level` vocabulary regression), `reflection/route.test.ts` (+2, the new `profileReviewed` flag), `reflection-card/route.test.ts` (5), `reflection/personal/route.test.ts` (6), `candidate-snapshot-repository.test.ts` (2, new file â€” reflection-column tolerant fallback), `onboarding.test.ts` and `onboarding-status.test.ts` (updated for the new step), `strategy/page.test.tsx` (+1). Full 2310-test suite, both typechecks, full ESLint (0 errors), and the static i18n audit (0 missing keys after ~90 new EN/VI pairs in new `i18n-application-flow.ts`) all pass. Browser verification not done this pass â€” no in-app browser instance connected in this session; see the verification snapshot below. | Starting an application no longer launches the old factual questionnaire â€” a student sees "GlowBal already knows this about me" and reviews/edits it in one page, then builds real per-activity reflections that produce a grounded, editable AI summary, then answers five identity/motivation questions once, then reviews everything (including the new sections) before generating reports. A returning student on a second application still sees their existing profile, activities, and Reflection Cards rather than recreating them. **Follow-up not done this pass** (documented limitation, not silently dropped): application-specific per-application activity *selection/relevance* (the spec's optional "choose which activities apply to this application") was not built â€” every reviewed activity is included in every application by default; the Personal Report's deterministic evaluation engine (`buildPersonalReport`/`runProfileEvaluation`) was not restructured to explicitly cluster themes from Reflection Cards/personal reflection as first-class inputs beyond the free-text enrichment described above; AI follow-up questions on vague activity answers (spec's "1-2 follow-ups per dimension, skippable") were not implemented. |
-| `working tree` 2026-08-15 (branch `claude/university-application-flow-0khm6v`, UX/navigation correction pass) | **Fixed the four issues the owner reported after using the redesigned flow above**: application context lost on every profile edit, a breadcrumb that did not exist, categories that did not match the approved four-bucket framework, and reflection that "looked like homework." Root cause of the navigation loss: `/profile/academic`, `/profile/english`, `/profile/preferences` always linked back to `/profile`, so a student editing a missing field mid-application landed on the generic profile page with no way back to where they were. Fixed with a new `isAllowedInternalReturnPath` guard (`shared/lib/return-path.ts`, rejects protocol-relative/scheme-prefixed values â€” the existing `?return=` convention had no open-redirect check before this) and `resolveApplicationReturn` (`app/profile/_application-return.ts`), which the three editors now call to render "â† {Application}" context, a "Save & return to application" CTA, and a `?updated=` toast on return â€” normal (non-application) profile editing is unchanged. Root cause of the missing breadcrumb: none had ever been built for the reflection flow, because the existing pathname-based registry (`shared/ui/breadcrumbs.tsx`) can only key off `usePathname()`, and the reflection UI is a modal with internal dimension state, not a route. Fixed with a purpose-built `ReflectionBreadcrumb` (`features/apply/ui/reflection-breadcrumb.tsx`) that reads state lifted out of `ActivityReflectionModal` (`dimensionIndex`/`onDimensionIndexChange` are now parent-controlled) instead of extending the route registry â€” deep reflection navigation (Application â†’ Experiences â†’ Activity â†’ Dimension, or â†’ Reflection Card) updates live as that state changes, every earlier crumb stays clickable without losing answers, and mobile renders a compact "â† {Activity} / {Dimension} X of Y" pattern below `sm`. This coexists with (does not replace) a new, separate "Application setup" stepper â€” `candidateInformationStepperSteps` (`ai-strategy-dashboard/domain/`) drives a `<Stepper>` on all four reflection pages showing the same âœ“/â—/â—‹ macro progress the spec asked for. Replaced the seven ad hoc experience categories with the approved four â€” `community_impact` / `leadership_initiative` / `innovation_projects` / `academic_personal_growth` â€” in a rewritten `activity-reflection.ts`: `EXPERIENCE_CATEGORY_META` (labels/icons for the 4 cards), `EXPERIENCE_SUBTYPES` (the optional second-step picker, mapping every subtype onto an *existing* achievement/activity table category â€” no new table, no new column), and `CATEGORY_QUESTIONS` holding the verbatim approved question bank (main question + guidance + optional framework per category Ã— dimension, including the source's intentionally repeated wording â€” Leadership's and Innovation & Projects' Challenge share one sentence, Community Impact's Motivation repeats Context's guidance â€” preserved rather than "fixed"). Legacy stored values are unchanged and re-mapped, not migrated: `research` now resolves to Innovation & Projects and `competition` to Academic & Personal Growth via `experienceCategoryFor`. Reduced reflection's perceived effort with three explicit disclosure levels in `ActivityReflectionModal` â€” always-visible question, guidance behind "ðŸ’¡ Help me think", optional framework nested behind "Need inspiration?" â€” plus a new `useAutoGrowTextarea` hook (compact initial height, grows with content), a conversational placeholder, first-question-only reassurance copy, a debounced (800ms) autosave indicator, and a "Skip for now" control; `PersonalReflectionForm` got the same autogrow/placeholder treatment. Reopening an in-progress activity now resumes at its exact unfinished dimension via `firstUnansweredDimension`, not always Context, with the breadcrumb restoring correctly. `reflection-evidence-form.tsx`'s achievement/activity grids are now grouped under the four category headings (`groupByExperienceCategory`) instead of one flat list per tab, and card status labels now cover the full spec vocabulary â€” not started / in progress Â· N/7 / complete / generating / "Review Reflection Card" / Confirmed â€” with an already-generated card opened read-only (`viewCard`) instead of back into the dimension editor. Caught one real regression only `npm run build:ci` surfaces (typecheck/lint/test all passed despite it): the new `use-autogrow-textarea.ts` used `useRef`/`useLayoutEffect` without a `'use client'` directive, which compiles and tests fine under Vitest's jsdom but fails a real Next.js Server Component build the moment anything imports it transitively â€” fixed by adding the directive; worth remembering that `npm run build:ci`, not just typecheck/lint/test, is part of `verify:pr` and CI for exactly this class of bug. Added ~60 new EN/VI dictionary entries to `i18n-application-flow.ts` for this pass's new copy (breadcrumb/stepper labels, status vocabulary, category cards, the full question bank's main questions) â€” `node scripts/check-i18n.mjs --all` is back to 0 missing keys. New tests: `return-path.test.ts`, `_application-return.test.tsx`, `candidate-information-steps.test.ts`, `reflection-breadcrumb.test.tsx`, and a full rewrite of `activity-reflection.test.ts` for the four-category shape (was still asserting the old seven-category API and a since-removed `reflectionInspiration` export, so `npm run typecheck` failed before this pass touched it). Known limitation: the collapsed Level 2/3 microcopy (guidance bullets, answer-framework sentences) is not yet in the VI dictionary â€” the static i18n checker does not require it (only `heading`/`label`/`description`-shaped properties are scanned, not `guidance`/`framework`), but full bilingual coverage of that content is follow-up work, not done in this pass. |
+| `working tree` (branch `claude/university-application-flow-0khm6v`) | **Redesigned the application setup flow per the owner's spec** so it stops re-asking factual profile questions onboarding already collected and adds real activity-level and cross-cutting reflection. `/ai-strategy/reflection` (step 1) no longer renders the twelve-question `ReflectionAboutForm` — it renders a new read-only `ProfileReviewView` (`profile-review-view.tsx`) built from a new `loadProfileReview` reader (`features/apply/api/profile-review.ts`, canonical `student_profiles` + `english_test_scores` + `standardized_test_scores`), with per-section Edit links out to the existing `/profile/academic`, `/profile/english`, `/profile/preferences` editors (never a second copy of the same form) and one "Yes, this information is correct" CTA. Fixed the exact `study_level` vocabulary bug the spec names by example (onboarding writes `undergraduate`/`postgraduate`/`phd`, the old reflection form wrote `INTENDED_LEVELS` display strings into the same column, and a student who only did onboarding read back `intendedLevel: undefined` — blocking Review & Confirm on an already-answered question) via a new canonical `study-level.ts` module both flows now read through. Achievements/activities (`reflection/achievements`) gained "Reflect on this experience": a new `ActivityReflectionModal` walks Context→Motivation→Challenge→Action→Impact→Transformation→Future one dimension at a time, with category-adapted question wording (`activity-reflection.ts`'s `experienceCategoryFor`/`reflectionQuestion`, mapping the existing achievement/activity category enums onto the spec's seven experience categories) and a hidden-by-default "Need inspiration?" scaffold. Finishing a reflection persists the raw answers first, then calls new stateless `POST /api/reflection/reflection-card` (`src/lib/ai/reflection-card-generation.ts`, grounded system prompt: no invented numbers/roles/outcomes/skills, 3-5 evidence-linked skills) to build a Story/My Contribution/Evidence/Demonstrated Skills/Key Takeaway/Future Connection card (`ReflectionCardView`, with loading/error/edit/regenerate/confirm states); the raw reflection and the generated card are separate fields (`reflection`/`reflectionCard` on both `student_achievements` and `student_activities`, extended via `supabase-application-experience-flow.sql`) and the card never overwrites the raw answers. New Step 3 `/ai-strategy/reflection/personal` (`PersonalReflectionForm`) asks the five fixed cross-cutting questions from the spec, one per screen, saved via new `PATCH /api/reflection/personal` into `student_profiles.personal_reflection_answers` (global, reusable across applications, mirroring how activities already work) — deliberately kept a separate, simpler flow from activity reflection. `OnboardingState`/`OnboardingStep` (`features/ai-strategy-dashboard/domain/onboarding.ts`) gained a `personal-reflection` step between achievements and confirm, backed by a new per-application `course_applications.personal_reflection_reviewed_at` column, with the same tolerant-select fallback pattern every other per-application flag already uses. Review & Confirm gained Experiences (activity + confirmed-Reflection-Card counts) and Personal Reflection (questions-completed) sections. **No new snapshot table**: `confirmed_candidate_snapshots.payload` (existing JSONB) automatically carries the new reflection/reflectionCard/personalReflection fields the moment they were added to `ReflectionValues` in `reflection.ts` — reused, not replaced, per the spec's own instruction. `candidate-context.ts` (used by both Personal Report and Matching Report generation) now reads the new columns with the same tolerant-select pattern, and `personal-report-v2.ts`'s CMCAITF/competency extraction pipeline now folds a student's own structured reflection answers (and, once confirmed, their Reflection Card's story/key-takeaway/future-connection) into the free text it already runs extraction over — richer, still-groundable signal instead of the AI guessing the same seven dimensions from a single unstructured paragraph. **Action required in production: run `supabase-application-experience-flow.sql`** — tolerant-select degrades every reader gracefully until it has (new activities/personal reflection simply don't appear; nothing 500s). New/updated tests: `study-level.test.ts` (9), `activity-reflection.test.ts` (13), `personal-reflection.test.ts` (9), `reflection.test.ts` (+5, including the `study_level` vocabulary regression), `reflection/route.test.ts` (+2, the new `profileReviewed` flag), `reflection-card/route.test.ts` (5), `reflection/personal/route.test.ts` (6), `candidate-snapshot-repository.test.ts` (2, new file — reflection-column tolerant fallback), `onboarding.test.ts` and `onboarding-status.test.ts` (updated for the new step), `strategy/page.test.tsx` (+1). Full 2310-test suite, both typechecks, full ESLint (0 errors), and the static i18n audit (0 missing keys after ~90 new EN/VI pairs in new `i18n-application-flow.ts`) all pass. Browser verification not done this pass — no in-app browser instance connected in this session; see the verification snapshot below. | Starting an application no longer launches the old factual questionnaire — a student sees "GlowBal already knows this about me" and reviews/edits it in one page, then builds real per-activity reflections that produce a grounded, editable AI summary, then answers five identity/motivation questions once, then reviews everything (including the new sections) before generating reports. A returning student on a second application still sees their existing profile, activities, and Reflection Cards rather than recreating them. **Follow-up not done this pass** (documented limitation, not silently dropped): application-specific per-application activity *selection/relevance* (the spec's optional "choose which activities apply to this application") was not built — every reviewed activity is included in every application by default; the Personal Report's deterministic evaluation engine (`buildPersonalReport`/`runProfileEvaluation`) was not restructured to explicitly cluster themes from Reflection Cards/personal reflection as first-class inputs beyond the free-text enrichment described above; AI follow-up questions on vague activity answers (spec's "1-2 follow-ups per dimension, skippable") were not implemented. |
+| `working tree` 2026-08-15 (branch `claude/university-application-flow-0khm6v`, UX/navigation correction pass) | **Fixed the four issues the owner reported after using the redesigned flow above**: application context lost on every profile edit, a breadcrumb that did not exist, categories that did not match the approved four-bucket framework, and reflection that "looked like homework." Root cause of the navigation loss: `/profile/academic`, `/profile/english`, `/profile/preferences` always linked back to `/profile`, so a student editing a missing field mid-application landed on the generic profile page with no way back to where they were. Fixed with a new `isAllowedInternalReturnPath` guard (`shared/lib/return-path.ts`, rejects protocol-relative/scheme-prefixed values — the existing `?return=` convention had no open-redirect check before this) and `resolveApplicationReturn` (`app/profile/_application-return.ts`), which the three editors now call to render "← {Application}" context, a "Save & return to application" CTA, and a `?updated=` toast on return — normal (non-application) profile editing is unchanged. Root cause of the missing breadcrumb: none had ever been built for the reflection flow, because the existing pathname-based registry (`shared/ui/breadcrumbs.tsx`) can only key off `usePathname()`, and the reflection UI is a modal with internal dimension state, not a route. Fixed with a purpose-built `ReflectionBreadcrumb` (`features/apply/ui/reflection-breadcrumb.tsx`) that reads state lifted out of `ActivityReflectionModal` (`dimensionIndex`/`onDimensionIndexChange` are now parent-controlled) instead of extending the route registry — deep reflection navigation (Application → Experiences → Activity → Dimension, or → Reflection Card) updates live as that state changes, every earlier crumb stays clickable without losing answers, and mobile renders a compact "← {Activity} / {Dimension} X of Y" pattern below `sm`. This coexists with (does not replace) a new, separate "Application setup" stepper — `candidateInformationStepperSteps` (`ai-strategy-dashboard/domain/`) drives a `<Stepper>` on all four reflection pages showing the same ✓/●/○ macro progress the spec asked for. Replaced the seven ad hoc experience categories with the approved four — `community_impact` / `leadership_initiative` / `innovation_projects` / `academic_personal_growth` — in a rewritten `activity-reflection.ts`: `EXPERIENCE_CATEGORY_META` (labels/icons for the 4 cards), `EXPERIENCE_SUBTYPES` (the optional second-step picker, mapping every subtype onto an *existing* achievement/activity table category — no new table, no new column), and `CATEGORY_QUESTIONS` holding the verbatim approved question bank (main question + guidance + optional framework per category × dimension, including the source's intentionally repeated wording — Leadership's and Innovation & Projects' Challenge share one sentence, Community Impact's Motivation repeats Context's guidance — preserved rather than "fixed"). Legacy stored values are unchanged and re-mapped, not migrated: `research` now resolves to Innovation & Projects and `competition` to Academic & Personal Growth via `experienceCategoryFor`. Reduced reflection's perceived effort with three explicit disclosure levels in `ActivityReflectionModal` — always-visible question, guidance behind "💡 Help me think", optional framework nested behind "Need inspiration?" — plus a new `useAutoGrowTextarea` hook (compact initial height, grows with content), a conversational placeholder, first-question-only reassurance copy, a debounced (800ms) autosave indicator, and a "Skip for now" control; `PersonalReflectionForm` got the same autogrow/placeholder treatment. Reopening an in-progress activity now resumes at its exact unfinished dimension via `firstUnansweredDimension`, not always Context, with the breadcrumb restoring correctly. `reflection-evidence-form.tsx`'s achievement/activity grids are now grouped under the four category headings (`groupByExperienceCategory`) instead of one flat list per tab, and card status labels now cover the full spec vocabulary — not started / in progress · N/7 / complete / generating / "Review Reflection Card" / Confirmed — with an already-generated card opened read-only (`viewCard`) instead of back into the dimension editor. Caught one real regression only `npm run build:ci` surfaces (typecheck/lint/test all passed despite it): the new `use-autogrow-textarea.ts` used `useRef`/`useLayoutEffect` without a `'use client'` directive, which compiles and tests fine under Vitest's jsdom but fails a real Next.js Server Component build the moment anything imports it transitively — fixed by adding the directive; worth remembering that `npm run build:ci`, not just typecheck/lint/test, is part of `verify:pr` and CI for exactly this class of bug. Added ~60 new EN/VI dictionary entries to `i18n-application-flow.ts` for this pass's new copy (breadcrumb/stepper labels, status vocabulary, category cards, the full question bank's main questions) — `node scripts/check-i18n.mjs --all` is back to 0 missing keys. New tests: `return-path.test.ts`, `_application-return.test.tsx`, `candidate-information-steps.test.ts`, `reflection-breadcrumb.test.tsx`, and a full rewrite of `activity-reflection.test.ts` for the four-category shape (was still asserting the old seven-category API and a since-removed `reflectionInspiration` export, so `npm run typecheck` failed before this pass touched it). Known limitation: the collapsed Level 2/3 microcopy (guidance bullets, answer-framework sentences) is not yet in the VI dictionary — the static i18n checker does not require it (only `heading`/`label`/`description`-shaped properties are scanned, not `guidance`/`framework`), but full bilingual coverage of that content is follow-up work, not done in this pass. |
 | Working tree 2026-08-15 (VNPay Sandbox) | Added a provider-neutral payment ledger/migration, server-only VNPay 2.1.0 signing and verification, authenticated checkout for mentorship and Plus, public checksum-protected IPN processing, a read-only Return page, bilingual payment-method UI, fixed Sandbox FX disclosure for non-VND mentor pricing, slot/booking expiry recovery, late-payment reconciliation, Plus duration enforcement, and focused regression tests. Existing Stripe routes were not modified; Stripe is a disabled demo choice. | Both products can enter VNPay Sandbox checkout without trusting client prices or browser returns. Fulfilment is idempotent and database-atomic; browser roles cannot invoke security-definer payment RPCs. Focused payment Vitest passed 23/23, both TypeScript checks and the production build passed, and full ESLint reported 0 errors. Deployment still requires applying `supabase-vnpay-payments.sql`, private environment configuration, public HTTPS IPN registration, and manual Sandbox SIT. |
 | Working tree 2026-08-15 (CI lockfile) | Corrected the lockfile repair after commit `348e26a` still failed CI. Root cause: that lockfile was generated locally with npm 11.6.2, whose optional-dependency layout passed its own `npm ci` check but was rejected by CI's npm 11.17.0 as missing nested `@emnapi/core@1.10.0` / `@emnapi/runtime@1.10.0`. Regenerated `package-lock.json` using npm 11.17.0; `package.json` and runtime dependencies are unchanged. | The exact CI command now passes under npm 11.17.0: `npm ci --dry-run --ignore-scripts --no-audit --no-fund`. CI dependency installation no longer relies on the local npm resolver version. |
 | Working tree 2026-08-15 (VinUni Essay Review) | Fixed the production `Cannot read properties of undefined (reading 'filter')` failure in VinUni Essay Review. The application-specific V2 grounded NDJSON pipeline is now selected by code whenever an `applicationId` is present, and the grounded streaming response no longer depends on `VINUNI_GROUNDED_PIPELINE_ENABLED` or `VINUNI_ESSAY_PIPELINE_VERSION` being configured in production. `StatementWriter` also treats a missing `sections` array on an error event as an empty list and preserves the server message instead of masking it with a client-side TypeError. | Production can use the VinUni streaming review with only the existing OpenAI configuration; no new Vercel environment variables are required. Regression coverage includes an env-free V2 response and a malformed stream-error event. Focused Vitest passed 34/34; base and strict TypeScript, targeted ESLint, and the Next.js 16.3.1 production build passed before updating to the latest `main`; the post-update build also passed. Production smoke test is pending deployment. |
-| `working tree` | **Redesigned the Personal Report against a formal implementation spec ("GlowBal Personal Report Claude Implementation Spec") the owner supplied with three reference screenshots â€” chart-rich, "profile at a glance" synopsis, evidence-summary donuts â€” on top of the existing canonical report, not a parallel one.** Four layers, all additive to `PersonalReportV2` via new OPTIONAL fields (`analytics`, `overview`, `overallSummary`) so a stored report version predating this change still renders, just without the extra charts/synopsis. (1) **Deterministic analytics** (`src/features/apply/domain/personal-report-analytics.ts`) â€” one pure pass over the same `ProfileEvaluation`/`NarrativeActivity[]` the six sections already read, never a second model call: a 6-axis Competency & Evidence Profile (F2 hard/soft/meta + F3 tangible/intangible/traceability/evidence), F4's 5 base metrics as "Narrative identity signals" (`growthArc`/`evidenceDensity` stay `null` â€” the underlying engine never scores them, so the chart says "N/A" rather than a fabricated number), Signature Pattern step support counts, Theme maturity (a declared categoricalâ†’display encoding, spec-mandated over invented decimals), F4.5 Positioning dimensions (strong=100/limited=25/not_available=null, same reasoning), and an Evidence Summary (verification tier counts, strength counts, competency-claim counts) â€” all traceable to a real engine value, several unit tests assert exact derivation. (2) **Constrained narrative synthesis** (`src/lib/ai/personal-report-narrative-synthesis.ts`) â€” the one place an LLM is allowed to touch report prose: given only the already-decided structured findings (never raw free text) plus a closed list of valid evidence IDs, it may rewrite headlines/paragraphs, but any response citing an evidence ID outside that list fails the WHOLE synthesis (no partial acceptance), and any exception falls back to the existing deterministic template copy â€” wired into `regeneratePersonalReport()` right after `buildPersonalReport()`; `PERSONAL_REPORT_EXTRACTION_VERSION` bumped so every existing cached report regenerates once. (3) **Four SVG chart primitives** (`src/shared/ui/charts/`: `RadarChart`, `HorizontalBarChart`, `DonutChart`, `MetricBar`) â€” no charting dependency, so print/a11y/determinism stay simple; every chart pairs a decorative (`aria-hidden`) SVG with a visible legend list that IS the accessible copy, and a `null` score never plots as a fabricated zero (a dashed/"N/A" state instead). (4) **View broken into `src/features/apply/ui/personal-report/*` section files** (was one 762-line file) â€” a new "Profile at a glance" section (synopsis + the two report-wide charts) now sits above Core Identity; Signature Pattern, Emerging Themes, and Personal Positioning each gained their matching chart; Proof of Me gained the three evidence-summary donuts plus the new "What this report suggests overall" paragraph; every chart-augmented section degrades to no-chart (not a crash) when `analytics` is absent on an old version. Also added a lightweight print pass (`print:hidden` on interactive-only chrome, `print:break-inside-avoid` on every section Panel). Full 40-section spec was treated as the complete directive â€” no follow-up question was needed. New/updated tests: `personal-report-analytics.test.ts` (16), `personal-report-narrative-synthesis.test.ts` (13), 4 new chart-primitive test files (10), `personal-report-generation.test.ts` (extended to mock the new synthesis call), `personal-report-v2-view.test.tsx` (2 new analytics-wiring tests). Full 2264-test suite, both typechecks, full ESLint, and the static i18n audit (0 missing keys after ~40 new EN/VI pairs, including axis labels no prior pass had registered) all pass. Browser verification not done this pass â€” see the verification snapshot below. | The Personal Report now shows the same "profile at a glance" chart summary, per-section charts, and evidence-summary donuts as the owner-approved redesign screenshots, with report-writing prose optionally polished by a tightly evidence-checked model call â€” while every number on every chart still traces back to a real F1-F4 engine value (never an invented one), and a student who opens an older version from the history dropdown still sees it render cleanly without the new charts. |
-| `working tree` | **Fixed three more entry points into the Personal Report that never carried `?return=`, reported live with a real screenshot right after the previous pass shipped.** Â§5s fixed the ONE entry point that already had `returnTo` (the nav tab) and made every in-page link correctly forward whatever `returnTo` the page received, but never audited every route that navigates a student TO the page in the first place. Three had `applicationId` sitting right there in scope and never used it: `AnalysisWorkspace`'s `personalHref` (the "View my reports"/"Open report" links right after generation â€” the most common path in), `confirmedReflectionContinueHref` (the "Continue" button on the read-only Reflections/Achievements/Review & Confirm views once reports exist â€” very likely the exact path in the reported screenshot), and the legacy `/ai-strategy/[applicationId]/strategy/analysis/portrait` compatibility redirect (it didn't even destructure `params`). All three now build the same `?return=<app>/strategy/analysis` shape every other entry point already used. With `returnTo` populated, the nav band renders again, and â€” since gap-action buttons already run every href through `withReturn()` â€” "Add more detail to your existing activities" now correctly lands on the SAME application's own achievements page with its own per-application lock state, instead of silently falling back to the global "has ever confirmed any application" flag and dead-ending on a read-only view. Also investigated the accompanying "report looks shallow" complaint: the evaluation engine's activity-count threshold was satisfied (7 items clears the 3+ floor); what was missing was `role`/`behaviour` text the extraction pipeline can only synthesise from a rich `detail`/`description` field, and short one-line achievement entries genuinely don't carry that â€” the report is deliberately built to say "insufficient evidence" rather than invent depth, and the now-fixed gap-filling loop is the intended way a student adds it. Not a separate bug; not touched further without a specific product call once the loop is verified working with real added detail. Full incident writeup: `known-issues.md Â§5u`. New/updated tests: `onboarding.test.ts` (2 new, `confirmedReflectionContinueHref`), `analysis-workspace.test.tsx` (3 assertions updated), new `portrait/page.test.tsx` (1). Full 2223-test suite, both typechecks, targeted ESLint, and i18n check (0 missing keys, no new strings needed) all pass. Browser verification not done this pass â€” see the verification snapshot below. | A student landing on the Personal Report via the confirm screen's "View my reports," the read-only Reflections/Achievements "Continue" button, or an old bookmarked portrait link now sees the same header nav/breadcrumb as everywhere else in the flow, and "Add more detail" opens an actually-editable achievements page instead of a locked read-only one. |
+| `working tree` | **Redesigned the Personal Report against a formal implementation spec ("GlowBal Personal Report Claude Implementation Spec") the owner supplied with three reference screenshots — chart-rich, "profile at a glance" synopsis, evidence-summary donuts — on top of the existing canonical report, not a parallel one.** Four layers, all additive to `PersonalReportV2` via new OPTIONAL fields (`analytics`, `overview`, `overallSummary`) so a stored report version predating this change still renders, just without the extra charts/synopsis. (1) **Deterministic analytics** (`src/features/apply/domain/personal-report-analytics.ts`) — one pure pass over the same `ProfileEvaluation`/`NarrativeActivity[]` the six sections already read, never a second model call: a 6-axis Competency & Evidence Profile (F2 hard/soft/meta + F3 tangible/intangible/traceability/evidence), F4's 5 base metrics as "Narrative identity signals" (`growthArc`/`evidenceDensity` stay `null` — the underlying engine never scores them, so the chart says "N/A" rather than a fabricated number), Signature Pattern step support counts, Theme maturity (a declared categorical→display encoding, spec-mandated over invented decimals), F4.5 Positioning dimensions (strong=100/limited=25/not_available=null, same reasoning), and an Evidence Summary (verification tier counts, strength counts, competency-claim counts) — all traceable to a real engine value, several unit tests assert exact derivation. (2) **Constrained narrative synthesis** (`src/lib/ai/personal-report-narrative-synthesis.ts`) — the one place an LLM is allowed to touch report prose: given only the already-decided structured findings (never raw free text) plus a closed list of valid evidence IDs, it may rewrite headlines/paragraphs, but any response citing an evidence ID outside that list fails the WHOLE synthesis (no partial acceptance), and any exception falls back to the existing deterministic template copy — wired into `regeneratePersonalReport()` right after `buildPersonalReport()`; `PERSONAL_REPORT_EXTRACTION_VERSION` bumped so every existing cached report regenerates once. (3) **Four SVG chart primitives** (`src/shared/ui/charts/`: `RadarChart`, `HorizontalBarChart`, `DonutChart`, `MetricBar`) — no charting dependency, so print/a11y/determinism stay simple; every chart pairs a decorative (`aria-hidden`) SVG with a visible legend list that IS the accessible copy, and a `null` score never plots as a fabricated zero (a dashed/"N/A" state instead). (4) **View broken into `src/features/apply/ui/personal-report/*` section files** (was one 762-line file) — a new "Profile at a glance" section (synopsis + the two report-wide charts) now sits above Core Identity; Signature Pattern, Emerging Themes, and Personal Positioning each gained their matching chart; Proof of Me gained the three evidence-summary donuts plus the new "What this report suggests overall" paragraph; every chart-augmented section degrades to no-chart (not a crash) when `analytics` is absent on an old version. Also added a lightweight print pass (`print:hidden` on interactive-only chrome, `print:break-inside-avoid` on every section Panel). Full 40-section spec was treated as the complete directive — no follow-up question was needed. New/updated tests: `personal-report-analytics.test.ts` (16), `personal-report-narrative-synthesis.test.ts` (13), 4 new chart-primitive test files (10), `personal-report-generation.test.ts` (extended to mock the new synthesis call), `personal-report-v2-view.test.tsx` (2 new analytics-wiring tests). Full 2264-test suite, both typechecks, full ESLint, and the static i18n audit (0 missing keys after ~40 new EN/VI pairs, including axis labels no prior pass had registered) all pass. Browser verification not done this pass — see the verification snapshot below. | The Personal Report now shows the same "profile at a glance" chart summary, per-section charts, and evidence-summary donuts as the owner-approved redesign screenshots, with report-writing prose optionally polished by a tightly evidence-checked model call — while every number on every chart still traces back to a real F1-F4 engine value (never an invented one), and a student who opens an older version from the history dropdown still sees it render cleanly without the new charts. |
+| `working tree` | **Fixed three more entry points into the Personal Report that never carried `?return=`, reported live with a real screenshot right after the previous pass shipped.** §5s fixed the ONE entry point that already had `returnTo` (the nav tab) and made every in-page link correctly forward whatever `returnTo` the page received, but never audited every route that navigates a student TO the page in the first place. Three had `applicationId` sitting right there in scope and never used it: `AnalysisWorkspace`'s `personalHref` (the "View my reports"/"Open report" links right after generation — the most common path in), `confirmedReflectionContinueHref` (the "Continue" button on the read-only Reflections/Achievements/Review & Confirm views once reports exist — very likely the exact path in the reported screenshot), and the legacy `/ai-strategy/[applicationId]/strategy/analysis/portrait` compatibility redirect (it didn't even destructure `params`). All three now build the same `?return=<app>/strategy/analysis` shape every other entry point already used. With `returnTo` populated, the nav band renders again, and — since gap-action buttons already run every href through `withReturn()` — "Add more detail to your existing activities" now correctly lands on the SAME application's own achievements page with its own per-application lock state, instead of silently falling back to the global "has ever confirmed any application" flag and dead-ending on a read-only view. Also investigated the accompanying "report looks shallow" complaint: the evaluation engine's activity-count threshold was satisfied (7 items clears the 3+ floor); what was missing was `role`/`behaviour` text the extraction pipeline can only synthesise from a rich `detail`/`description` field, and short one-line achievement entries genuinely don't carry that — the report is deliberately built to say "insufficient evidence" rather than invent depth, and the now-fixed gap-filling loop is the intended way a student adds it. Not a separate bug; not touched further without a specific product call once the loop is verified working with real added detail. Full incident writeup: `known-issues.md §5u`. New/updated tests: `onboarding.test.ts` (2 new, `confirmedReflectionContinueHref`), `analysis-workspace.test.tsx` (3 assertions updated), new `portrait/page.test.tsx` (1). Full 2223-test suite, both typechecks, targeted ESLint, and i18n check (0 missing keys, no new strings needed) all pass. Browser verification not done this pass — see the verification snapshot below. | A student landing on the Personal Report via the confirm screen's "View my reports," the read-only Reflections/Achievements "Continue" button, or an old bookmarked portrait link now sees the same header nav/breadcrumb as everywhere else in the flow, and "Add more detail" opens an actually-editable achievements page instead of a locked read-only one. |
 | Working tree 2026-08-14 (PR #192 review follow-up) | Addressed all three unresolved Codex review threads on the Home scholarship spotlight. `/scholarships` now serializes the valid directory query into `/auth?redirect=...` before redirecting a signed-out visitor, so password login, signup confirmation, and Google OAuth return to the selected scholarship/filter state. The horizontal rail derives `activeIndex` from the native scroll position using the same snap-start coordinate as the arrow controls. Funding enums now use the shared scholarship label map as separately translatable text nodes; funding, deadline, and country fallbacks are no longer inside `data-no-auto-translate`, and the legacy `full_tuition` label has an explicit Vietnamese dictionary entry. | Signed-out Home visitors no longer lose the scholarship they selected, touch/trackpad scrolling keeps the active border, `aria-current`, live announcement, and next/previous actions synchronized, and Vietnamese cards no longer leave generated funding or fallback metadata in English. Two focused Vitest files pass 12/12; targeted ESLint, strict TypeScript, the static i18n audit (0 missing keys / 0 placeholder mismatches), and `git diff --check` pass. Base TypeScript and the production build remain blocked outside this change because the declared `@mdxeditor/editor` dependency is absent from the current `node_modules`; the build reaches the admin news editor before failing module resolution. |
-| Working tree 2026-08-14 (Home scholarship spotlight) | Connected `HomeScholarships` immediately after `HomeMetrics` and redesigned it as a white editorial break before the black â€œHave you ever?â€ band. The headline runs horizontally at desktop widths, the live published count is now a bordered brand-subtle stat panel, and â€œScholarship spotlightâ€ is a solid brand badge. Six information-rich cards form a three-up horizontal rail with native swipe/scroll and previous/next controls. Automatic movement and its pause control were removed together; logo captions, swipe instructions, and card sequence numbers were also removed. Cards expose coverage/value, funding type, destination, deadline, ranking, and a full-card action. The official-brand registry uses verified Rhodes, Gates Cambridge, and Knight-Hennessy programme marks. The Yenching Academy siteâ€™s referenced JPEG was measured as a valid but visually blank image, so Yenching intentionally falls back to its linked Peking University crest. Failed programme images now retry the university crest before showing the generic mark. | Home separates the scholarship story from the next inverse section, keeps the requested horizontal hierarchy, and guarantees a visible identity without fabricating logos. Live Supabase inspection confirmed that featured Knight-Hennessy row 139 has no provider, country, or university link, so the verified KHS registry supplies Stanford identity metadata; Yenching row 153 is linked to Peking University and its working stored crest. The cached query still obtains the exact count and at most 36 candidates instead of loading the full 2,877-row directory. Local `/dev/home` returned 200 with the Knight-Hennessy wordmark, Peking fallback, enhanced count treatment, directional controls, and none of the removed copy or sequence numbers. Base and strict TypeScript, targeted ESLint, seven focused Vitest tests, the static i18n audit, `git diff --check`, and the Next.js 16.2.3 production build passed (123/123 static pages generated). The in-app browser had no connected instance, so a new visual screenshot and E2E were not run. |
-| `49ed6ea` + working-tree review follow-up (scholarship â†’ My Portal handoff) | Replaced `/scholarships`'s `universityIds[0]` fallback with an explicit destination flow. A scholarship with exactly one structured university link saves that university automatically; one with several links opens a university picker limited to those linked schools; an award with no structured link opens a searchable university-directory picker and tells the student to verify the official eligibility rules. Saved scholarship state now carries its destination university, repairs legacy NULL-destination rows through an updating upsert, and only counts a scholarship as â€œSaved to My Universitiesâ€ when the matching `user_universities` row exists. The PR review follow-up gives each async option load a generation id so a closed/superseded picker cannot overwrite the next one's choices, replaces the scholarship detail modal before opening the picker so only one Escape/scroll-lock owner exists, and loads persisted saves in `saved_at, id` order before using the last destination. | â€œContinue to Applyâ€ now focuses the university actually chosen for the most recent scholarship instead of an inferred first/focused school. Country, provider, consortium, and multi-university awards can all enter My Portal without silently attaching to the wrong university or disappearing under a NULL destination. Slow/stale directory reads cannot attach a scholarship to a previous picker's university, detail â†’ picker has one active dialog, and reload ordering is deterministic. The two writes remain retry-safe and a failed scholarship write cannot create an orphaned scholarship; an already-saved university is never removed. Focused Vitest passed 13/13, base and strict TypeScript passed, targeted ESLint passed, the static i18n audit reported 0 missing keys / 0 placeholder mismatches, and the Next.js 16.2.3 production build passed (122/122 static pages generated). No browser instance was connected, so the signed-in visual click-through was not run. |
-| `working tree` | **Fixed 4 reported problems on `/ai-strategy/personal-report`: no nav bar, partly-Vietnamese content, a dead-end back into the locked Reflections page, and a Matching Report link that ignored which application the student came from.** Reported live from a screenshot showing all four at once, including a literal `"...|null"` string leaking into rendered text. (1) **Navigation**: the Personal Report page now accepts `?return=`, derives+re-verifies `applicationId` the same way the reflection pages already do, and renders `ApplicationNavFromReturn`; `aiStrategyApplicationNav()`'s `personalReport` entry now carries the same `?return=` shape as `reflections`. (2) **English-only content**: hardcoded Vietnamese strings written directly into template/boilerplate code across the report domain builder, the AI orchestration layer, the view, `candidate-context.ts`, and two API routes' error messages were all translated â€” this was never a translation-system bug, `t()` was not involved for any of these. Also fixed the root cause of the `"|null"` leak: three AI extraction prompts used an ambiguous `"...|null"` shorthand the model sometimes echoed literally; rewrote the prompts with concrete worked examples and added `sanitizeExtractedField()` as defence-in-depth. (3) **Inline report-answering without reopening the confirmed-data lock**: per an explicit owner decision (`AskUserQuestion` â€” "store answers separately from confirmed data"), new answers to a report's own follow-up questions now go into a new `personal_report_supplements` table (`user_id`, `field_key`, `answer`), read only at report-generation time and merged onto a copy of the candidate context â€” the confirmed `student_profiles` snapshot and its lock are never touched. New `POST /api/ai-strategy/personal-report/supplement` (zod-validated against an explicit field-key allow-list); the Driving Force section's gap action now expands into an inline textarea instead of linking out, saves, then triggers the existing regenerate call. (4) **Matching Report link**: the bottom CTA now receives a `matchingReportHref` computed by the page (`/ai-strategy/<id>/matching-report` when an application resolves, the generic `/ai-strategy/matching` otherwise) instead of a hardcoded generic link. Full incident writeup: `known-issues.md Â§5s`. New/updated tests: `personal-report-v2-repository.test.ts` (5), `supplement/route.test.ts` (5), `sanitize-extracted-field.test.ts` (7), `personal-report-v2-view.test.tsx` (2, including a regression test asserting the inline-answerable action never renders as a link to the reflections page), plus updated assertions in `personal-report.test.ts` and `ai-strategy-route-model.test.ts`. Full 2178-test suite and i18n check (0 missing keys after 2 new EN/VI pairs) both pass. Browser verification not done this pass â€” see the verification snapshot below. | A student opening the Personal Report or Reflections pages now sees the same header nav/breadcrumb as the rest of the application flow; the report reads entirely in English; a gap the report flags (currently the study-motivation question) can be answered right there and the report regenerated, without being sent back to a Reflections page that may already be locked; and "Continue to Matching Report" opens the exact report for the application being viewed instead of a generic matching page. |
-| `working tree` | **Replaced the Personal Report's one-row-per-student model with an append-only version history, removed the regeneration cooldown that was silently blocking it, and added two automatic regeneration triggers.** Reported live immediately after the previous pass shipped: "The personal report now isn't generating at all. I believe this is because it's shared with multiple applications." Root cause: `student_personal_reports` was one row per student with a 24h free-tier regeneration cooldown built around a manual "regenerate" button; once per-application onboarding (Â§5p) made editing achievements/reflections possible again for every new application, a student routinely changed their shared profile between applications and `AnalysisWorkspace`'s `fetchOrGeneratePersonal` (fired on every application's confirm screen) kept hitting the cooldown wall on a report that had nothing to do with the application in front of them â€” the exact "shared with multiple applications" symptom reported. Fix, five parts: (1) new append-only `student_personal_report_versions` table (`supabase-personal-report-versions.sql`, same insert-per-generation shape `application_match_analyses` already uses for the Matching Report), with an idempotent backfill of each student's existing latest report as version one. (2) **No more time-based cooldown** â€” regeneration is now gated purely on whether the input actually changed (checked before any OpenAI call, so a no-op trigger costs nothing), an explicit owner decision via `AskUserQuestion` ("remove the time cooldown," the option that directly fixes this bug). (3) Every version records a `trigger` (`manual` / `matching_report` / `supplement_answer`) for the new version-history dropdown. (4) New shared `regeneratePersonalReport` (`src/features/apply/api/personal-report-generation.ts`) used by both the existing `POST /api/ai-strategy/personal-report` and, new, `POST /api/applications/[id]/match-insights` â€” a Matching Report generating now also refreshes the Personal Report, best-effort, never failing the Matching Report response if the refresh itself fails. (5) Two new read routes (`GET .../versions`, `GET .../versions/[id]`) and a version-history `Select` on the report page â€” picking a past version shows it read-only (the Driving Force inline-answer action falls back to a plain link, since answering only ever updates the latest version) with a "Back to latest" banner. Also fixed a genuine pre-existing `exactOptionalPropertyTypes` violation in `buildProfileEvaluationInput`'s three extraction calls, invisible until the new `features/apply/api` orchestration file pulled that module into `tsconfig.strict.json`'s graph for the first time â€” widened the three extraction functions' `model?: string` params to `model?: string | undefined`, no behavior change. Full incident writeup: `known-issues.md Â§5t`. New/updated tests: `personal-report-v2-repository.test.ts` (rewritten for the versioned functions), `personal-report-generation.test.ts` (5, the orchestration function's cached/regenerated/migration-missing/not-configured/error paths), `personal-report/route.test.ts` (7), `versions/route.test.ts` (3), `versions/[id]/route.test.ts` (4), `match-insights/route.test.ts` (2, the new trigger and its failure-tolerance), `personal-report-v2-view.test.tsx` (updated + 2 new version-history tests). Full 2213-test suite and i18n check (0 missing keys after ~10 new EN/VI pairs) both pass. Browser verification not done this pass â€” see the verification snapshot below. | A student working through a second, third, or later application no longer finds the Personal Report stuck "failed" for 24 hours after a routine edit to their shared profile â€” it simply regenerates when the data actually changed. Every past version stays viewable via a dropdown at the top of the report. Generating a Matching Report now keeps the Personal Report in step automatically, without the student needing to visit it and click anything. |
-| Working tree (previous pass) | **Fixed 4 reported problems on `/ai-strategy/personal-report`: no nav bar, partly-Vietnamese content, a dead-end back into the locked Reflections page, and a Matching Report link that ignored which application the student came from.** Reported live from a screenshot showing all four at once, including a literal `"...|null"` string leaking into rendered text. (1) **Navigation**: the Personal Report page now accepts `?return=`, derives+re-verifies `applicationId` the same way the reflection pages already do, and renders `ApplicationNavFromReturn`; `aiStrategyApplicationNav()`'s `personalReport` entry now carries the same `?return=` shape as `reflections`. (2) **English-only content**: hardcoded Vietnamese strings written directly into template/boilerplate code across the report domain builder, the AI orchestration layer, the view, `candidate-context.ts`, and two API routes' error messages were all translated â€” this was never a translation-system bug, `t()` was not involved for any of these. Also fixed the root cause of the `"|null"` leak: three AI extraction prompts used an ambiguous `"...|null"` shorthand the model sometimes echoed literally; rewrote the prompts with concrete worked examples and added `sanitizeExtractedField()` as defence-in-depth. (3) **Inline report-answering without reopening the confirmed-data lock**: per an explicit owner decision (`AskUserQuestion` â€” "store answers separately from confirmed data"), new answers to a report's own follow-up questions now go into a new `personal_report_supplements` table (`user_id`, `field_key`, `answer`), read only at report-generation time and merged onto a copy of the candidate context â€” the confirmed `student_profiles` snapshot and its lock are never touched. New `POST /api/ai-strategy/personal-report/supplement` (zod-validated against an explicit field-key allow-list); the Driving Force section's gap action now expands into an inline textarea instead of linking out, saves, then triggers the existing regenerate call. (4) **Matching Report link**: the bottom CTA now receives a `matchingReportHref` computed by the page (`/ai-strategy/<id>/matching-report` when an application resolves, the generic `/ai-strategy/matching` otherwise) instead of a hardcoded generic link. Full incident writeup: `known-issues.md Â§5s`. New/updated tests: `personal-report-v2-repository.test.ts` (5), `supplement/route.test.ts` (5), `sanitize-extracted-field.test.ts` (7), `personal-report-v2-view.test.tsx` (2, including a regression test asserting the inline-answerable action never renders as a link to the reflections page), plus updated assertions in `personal-report.test.ts` and `ai-strategy-route-model.test.ts`. Full 2178-test suite and i18n check (0 missing keys after 2 new EN/VI pairs) both pass. Browser verification not done this pass â€” see the verification snapshot below. | A student opening the Personal Report or Reflections pages now sees the same header nav/breadcrumb as the rest of the application flow; the report reads entirely in English; a gap the report flags (currently the study-motivation question) can be answered right there and the report regenerated, without being sent back to a Reflections page that may already be locked; and "Continue to Matching Report" opens the exact report for the application being viewed instead of a generic matching page. |
-| `working tree` | **Wrote a repair migration for orphaned per-application data left behind by `DELETE /api/applications/[id]`, reported live 2026-08-14: "when an application is deleted, all the other elements outside the direct application (including reports) are kept."** `DELETE /api/applications/[id]` has always been a single `DELETE FROM course_applications`, relying entirely on `ON DELETE CASCADE` â€” and every `supabase-*.sql` file in this repo already declares that on every table storing per-application data (stages, tasks, requirements, sources, Matching Report, Personal Report v1, Personalized Strategy, events, and the CV/statement/coach tables one level further down via `application_strategies`/`application_recommendations`). No code was wrong. Root-caused to the exact trap `known-issues.md` Â§0 already cost the owner four re-runs over: `CREATE TABLE IF NOT EXISTS` is a no-op against a table that already exists, so if any of these tables were first created in production before their file's `ON DELETE CASCADE` clause was written, the live constraint never picked up the change â€” production may still be enforcing whatever rule (typically `NO ACTION`) the table had on day one, no matter what the `.sql` file says today. Could not verify which tables actually drifted from this sandbox (no `SUPABASE_SERVICE_ROLE_KEY`, the same recurring limitation noted throughout this file), so the fix does not depend on knowing in advance: new `supabase-application-cascade-repair.sql` looks up each table's ACTUAL FK constraint by inspecting `information_schema` (never a guessed name), drops it, and re-adds an identical one with `ON DELETE CASCADE` â€” a no-op wherever it was already correct, a real repair wherever it was not â€” and deletes any row already orphaned by the drift first, since `ADD CONSTRAINT` would otherwise fail on the first pre-existing violation and leaving those rows behind is the exact "keep our databases clean" complaint this exists to fix. `confirmed_candidate_snapshots` and `personal_statements` are deliberately excluded (their `application_id` FK is `ON DELETE SET NULL` by design). Only touches tables that exist in the target environment; safe to run repeatedly. Full incident writeup: `known-issues.md` Â§5r. No application code changed â€” this is a database-only fix, matching the existing `DELETE` route's own doc comment about how deletion is supposed to work. | Once run in production, deleting an application will actually take every piece of data scoped to it along, instead of silently leaving reports/tasks/recommendations/CV+statement work behind in the database. **Action required: run `supabase-application-cascade-repair.sql` in production** â€” not yet confirmed run. |
-| Working tree (previous pass) | **Fixed the two bugs reported live the day after the per-application migration (PR #181) shipped and was confirmed run in production: the read-only "Continue" button didn't work, and the nav header wasn't showing a "Reflections" option.** Root cause of both: `reflection/confirm/page.tsx` (Review & Confirm) redirected away unconditionally the instant `confirmedAt` was set â€” `if (confirmedAt) redirect(returnTo \|\| '/ai-strategy/report')` â€” so the exact page the owner wanted a "Reflections" nav entry to link to, read-only, could never actually render in its confirmed state. Fix, three parts: (1) `reflection/confirm/page.tsx` now renders `ReviewConfirmView` in a new `readOnly` mode instead of redirecting â€” checkbox, Confirm button, edit links and the confirmation modal are hidden; a confirmed banner and "Continue" button take their place, matching the pattern the other two read-only Candidate Information views already used. (2) `applicationSubNav()` (`src/shared/lib/app-routes.ts`) gained a `candidateConfirmed` option and a `reflections` entry linking to `/ai-strategy/reflection/confirm?return=...`, which REPLACES `overview` once `analysisReady` is true (owner: "maybe remove the overview option after we've generated the reports") rather than showing both; `activeSubNavKey()` now maps every `/ai-strategy/reflection*` path to `'reflections'`. (3) The "Continue" button on all three read-only Candidate Information views (`ReviewConfirmView`, `ConfirmedReflectionView`, `ConfirmedAchievementsView`) used to carry a raw, static `returnTo` that could point at the analysis gate even after this application's reports already existed. All three now take a computed `continueHref` built by the new `confirmedReflectionContinueHref(applicationId, aiAnalysisComplete)` (`domain/onboarding.ts`) â€” the report-generation gate while pending, the Personal Report once reports exist â€” each page computing it with one extra `fetchOnboardingState` call when `applicationId` resolves, falling back to the legacy raw `returnTo` when it does not. Full incident writeup: `known-issues.md` Â§5q. New/updated tests: `app-routes.test.ts` (Overviewâ†”Reflections swap, locked-until-confirmed edge case, `activeSubNavKey` coverage for all three reflection routes), a new `review-confirm-view.test.tsx` (read-only banner/Continue/hidden-panel assertions), and the two existing confirmed-view tests updated for the `continueHref` prop rename. Full 2008-test suite and i18n check (0 missing keys after 2 new EN/VI pairs) both pass. Browser verification not done this pass â€” see the verification snapshot below. | A student who has confirmed Candidate Information for an application can now actually open "Reflections" from the nav bar and see their locked answers read-only, with a working "Continue" that goes to report generation or straight to the Personal Report depending on whether reports exist yet â€” instead of the page bouncing them away and the nav never offering the option at all. |
-| Working tree (previous pass) | **Made Candidate Information review/confirmation per-APPLICATION instead of per-student â€” reversing PR #179's own "deliberately not done" call, at explicit owner correction the same day.** PR #179 fixed a dead-end navigation loop by making the Overview CTA route through `nextOnboardingStep(state)`; but `state` was still computed from the GLOBAL `student_profiles.confirmed_at`, so once a student confirmed on ANY application, every future application's onboarding silently skipped Reflections, Achievements, and Review & Confirm entirely and jumped straight into report generation. Reported live: "this is wrong. We want them to go through the normal reflections and application UI again... but for the flow to always be the same." New migration `supabase-per-application-onboarding.sql` adds `personal_summary_reviewed_at`/`achievements_reviewed_at`/`candidate_confirmed_at` to `course_applications` (plus a nullable `application_id` on `confirmed_candidate_snapshots`, tagging each confirmation with the application it belongs to). `fetchOnboardingState` now reads these three columns instead of the global ones â€” the change that makes `nextOnboardingStep` correctly resolve to `'personal-summary'` for every new application again. `apply/page.tsx`'s `fetchStrategyReadiness` (the My Portal tracker's "ready"/"continue applying" label) had the identical global-flag bug independently and got the same fix, restructured to keep its one still-independent read (`applicant_analyses`, filtered by `user_id` not application id) starting in parallel with `course_applications` rather than serialized behind it. The underlying candidate data (`student_profiles`, `student_achievements`, `student_activities`) stays one profile shared across every application, unchanged â€” only the review/confirmation STATE is now tracked per application, so editing is unlocked again for a new application even after being locked for an earlier one: `PATCH /api/reflection`'s lock and `POST /api/candidate-information/confirm`'s idempotency both moved from `student_profiles.confirmed_at` to `course_applications.candidate_confirmed_at` for the application in question, verified server-side by a new shared `verifiedApplicationId` helper (`features/apply/api/verified-application-id.ts`) â€” `applicationId` arrives from the client already derived from an untrusted `?return=` URL via the existing `applicationIdFromPath`, the same pattern `ApplicationNavFromReturn` already used, and every route independently re-checks ownership rather than trusting it. Per explicit owner direction, confirmed via `AskUserQuestion`: the flow order is always Reflections â†’ Achievements â†’ Review & Confirm â†’ Analysis, for every application, never silently skipped by the system â€” but each of the first two pages gained a one-click "Skip â€” my answers/achievements are still correct" button at the top for a returning student who doesn't need to retype anything (calls the exact same validate-and-continue path the Next/Finish buttons already used). Every entry point with no application context (the legacy `/ai-strategy/report` generation, `personal-report-view.tsx`, marketing help pages) falls back to today's exact global behaviour, unchanged, when no `applicationId` resolves â€” deliberately out of scope, per the existing "two generations, not interchangeable" note. Full incident writeup: `known-issues.md` Â§5p. New/updated tests: `onboarding-status.test.ts` (including a regression test asserting one application's review state never leaks onto a different, brand-new application), `reflection/route.test.ts` and `confirm/route.test.ts` (per-application lock/idempotency/stamping, plus the existing global-fallback paths staying green), `verified-application-id.test.ts`, `apply-page-logo-performance.test.ts` (updated to check the new `applicant_analyses`-starts-in-parallel property instead of the removed `student_profiles` one). Browser verification not done this pass â€” see the verification snapshot below. | A student can now open a second, third, or later application and genuinely go through Reflections, Achievements, and Review & Confirm for it â€” seeing their existing answers prefilled with a one-click way to accept them unchanged â€” instead of the system silently deciding for them that nothing needs reviewing. Confirming a new application no longer locks editing for applications after it. |
-| Working tree 2026-08-14 (homepage testimonials) | Rebuilt `HomeTestimonials` as a pure-black editorial band with a larger red â€œTestimonialsâ€ label, responsive image-led cards, boxed anonymous attribution, and overlapping white quote panels. Added three original AI-generated portraits of Vietnamese university students as local WebP assets; each card explicitly labels the portrait as illustrative and keeps the supplied testimonial anonymous instead of fabricating a student identity. Added static Vietnamese translations for the new labels and a focused component test. | The homepage now follows the supplied black/red testimonial reference on desktop and mobile without making the generated portraits look like the real authors of anonymous quotes. Local `/` returned 200 with the new copy and all three assets returned 200. Targeted ESLint, base and strict TypeScript, two focused Vitest tests (2/2 across the component and i18n audit files), and the Next.js 16.2.3 production build pass. The in-app browser was unavailable, so no new visual screenshot was captured and E2E was not rerun. |
+| Working tree 2026-08-14 (Home scholarship spotlight) | Connected `HomeScholarships` immediately after `HomeMetrics` and redesigned it as a white editorial break before the black “Have you ever?” band. The headline runs horizontally at desktop widths, the live published count is now a bordered brand-subtle stat panel, and “Scholarship spotlight” is a solid brand badge. Six information-rich cards form a three-up horizontal rail with native swipe/scroll and previous/next controls. Automatic movement and its pause control were removed together; logo captions, swipe instructions, and card sequence numbers were also removed. Cards expose coverage/value, funding type, destination, deadline, ranking, and a full-card action. The official-brand registry uses verified Rhodes, Gates Cambridge, and Knight-Hennessy programme marks. The Yenching Academy site’s referenced JPEG was measured as a valid but visually blank image, so Yenching intentionally falls back to its linked Peking University crest. Failed programme images now retry the university crest before showing the generic mark. | Home separates the scholarship story from the next inverse section, keeps the requested horizontal hierarchy, and guarantees a visible identity without fabricating logos. Live Supabase inspection confirmed that featured Knight-Hennessy row 139 has no provider, country, or university link, so the verified KHS registry supplies Stanford identity metadata; Yenching row 153 is linked to Peking University and its working stored crest. The cached query still obtains the exact count and at most 36 candidates instead of loading the full 2,877-row directory. Local `/dev/home` returned 200 with the Knight-Hennessy wordmark, Peking fallback, enhanced count treatment, directional controls, and none of the removed copy or sequence numbers. Base and strict TypeScript, targeted ESLint, seven focused Vitest tests, the static i18n audit, `git diff --check`, and the Next.js 16.2.3 production build passed (123/123 static pages generated). The in-app browser had no connected instance, so a new visual screenshot and E2E were not run. |
+| `49ed6ea` + working-tree review follow-up (scholarship → My Portal handoff) | Replaced `/scholarships`'s `universityIds[0]` fallback with an explicit destination flow. A scholarship with exactly one structured university link saves that university automatically; one with several links opens a university picker limited to those linked schools; an award with no structured link opens a searchable university-directory picker and tells the student to verify the official eligibility rules. Saved scholarship state now carries its destination university, repairs legacy NULL-destination rows through an updating upsert, and only counts a scholarship as “Saved to My Universities” when the matching `user_universities` row exists. The PR review follow-up gives each async option load a generation id so a closed/superseded picker cannot overwrite the next one's choices, replaces the scholarship detail modal before opening the picker so only one Escape/scroll-lock owner exists, and loads persisted saves in `saved_at, id` order before using the last destination. | “Continue to Apply” now focuses the university actually chosen for the most recent scholarship instead of an inferred first/focused school. Country, provider, consortium, and multi-university awards can all enter My Portal without silently attaching to the wrong university or disappearing under a NULL destination. Slow/stale directory reads cannot attach a scholarship to a previous picker's university, detail → picker has one active dialog, and reload ordering is deterministic. The two writes remain retry-safe and a failed scholarship write cannot create an orphaned scholarship; an already-saved university is never removed. Focused Vitest passed 13/13, base and strict TypeScript passed, targeted ESLint passed, the static i18n audit reported 0 missing keys / 0 placeholder mismatches, and the Next.js 16.2.3 production build passed (122/122 static pages generated). No browser instance was connected, so the signed-in visual click-through was not run. |
+| `working tree` | **Fixed 4 reported problems on `/ai-strategy/personal-report`: no nav bar, partly-Vietnamese content, a dead-end back into the locked Reflections page, and a Matching Report link that ignored which application the student came from.** Reported live from a screenshot showing all four at once, including a literal `"...|null"` string leaking into rendered text. (1) **Navigation**: the Personal Report page now accepts `?return=`, derives+re-verifies `applicationId` the same way the reflection pages already do, and renders `ApplicationNavFromReturn`; `aiStrategyApplicationNav()`'s `personalReport` entry now carries the same `?return=` shape as `reflections`. (2) **English-only content**: hardcoded Vietnamese strings written directly into template/boilerplate code across the report domain builder, the AI orchestration layer, the view, `candidate-context.ts`, and two API routes' error messages were all translated — this was never a translation-system bug, `t()` was not involved for any of these. Also fixed the root cause of the `"|null"` leak: three AI extraction prompts used an ambiguous `"...|null"` shorthand the model sometimes echoed literally; rewrote the prompts with concrete worked examples and added `sanitizeExtractedField()` as defence-in-depth. (3) **Inline report-answering without reopening the confirmed-data lock**: per an explicit owner decision (`AskUserQuestion` — "store answers separately from confirmed data"), new answers to a report's own follow-up questions now go into a new `personal_report_supplements` table (`user_id`, `field_key`, `answer`), read only at report-generation time and merged onto a copy of the candidate context — the confirmed `student_profiles` snapshot and its lock are never touched. New `POST /api/ai-strategy/personal-report/supplement` (zod-validated against an explicit field-key allow-list); the Driving Force section's gap action now expands into an inline textarea instead of linking out, saves, then triggers the existing regenerate call. (4) **Matching Report link**: the bottom CTA now receives a `matchingReportHref` computed by the page (`/ai-strategy/<id>/matching-report` when an application resolves, the generic `/ai-strategy/matching` otherwise) instead of a hardcoded generic link. Full incident writeup: `known-issues.md §5s`. New/updated tests: `personal-report-v2-repository.test.ts` (5), `supplement/route.test.ts` (5), `sanitize-extracted-field.test.ts` (7), `personal-report-v2-view.test.tsx` (2, including a regression test asserting the inline-answerable action never renders as a link to the reflections page), plus updated assertions in `personal-report.test.ts` and `ai-strategy-route-model.test.ts`. Full 2178-test suite and i18n check (0 missing keys after 2 new EN/VI pairs) both pass. Browser verification not done this pass — see the verification snapshot below. | A student opening the Personal Report or Reflections pages now sees the same header nav/breadcrumb as the rest of the application flow; the report reads entirely in English; a gap the report flags (currently the study-motivation question) can be answered right there and the report regenerated, without being sent back to a Reflections page that may already be locked; and "Continue to Matching Report" opens the exact report for the application being viewed instead of a generic matching page. |
+| `working tree` | **Replaced the Personal Report's one-row-per-student model with an append-only version history, removed the regeneration cooldown that was silently blocking it, and added two automatic regeneration triggers.** Reported live immediately after the previous pass shipped: "The personal report now isn't generating at all. I believe this is because it's shared with multiple applications." Root cause: `student_personal_reports` was one row per student with a 24h free-tier regeneration cooldown built around a manual "regenerate" button; once per-application onboarding (§5p) made editing achievements/reflections possible again for every new application, a student routinely changed their shared profile between applications and `AnalysisWorkspace`'s `fetchOrGeneratePersonal` (fired on every application's confirm screen) kept hitting the cooldown wall on a report that had nothing to do with the application in front of them — the exact "shared with multiple applications" symptom reported. Fix, five parts: (1) new append-only `student_personal_report_versions` table (`supabase-personal-report-versions.sql`, same insert-per-generation shape `application_match_analyses` already uses for the Matching Report), with an idempotent backfill of each student's existing latest report as version one. (2) **No more time-based cooldown** — regeneration is now gated purely on whether the input actually changed (checked before any OpenAI call, so a no-op trigger costs nothing), an explicit owner decision via `AskUserQuestion` ("remove the time cooldown," the option that directly fixes this bug). (3) Every version records a `trigger` (`manual` / `matching_report` / `supplement_answer`) for the new version-history dropdown. (4) New shared `regeneratePersonalReport` (`src/features/apply/api/personal-report-generation.ts`) used by both the existing `POST /api/ai-strategy/personal-report` and, new, `POST /api/applications/[id]/match-insights` — a Matching Report generating now also refreshes the Personal Report, best-effort, never failing the Matching Report response if the refresh itself fails. (5) Two new read routes (`GET .../versions`, `GET .../versions/[id]`) and a version-history `Select` on the report page — picking a past version shows it read-only (the Driving Force inline-answer action falls back to a plain link, since answering only ever updates the latest version) with a "Back to latest" banner. Also fixed a genuine pre-existing `exactOptionalPropertyTypes` violation in `buildProfileEvaluationInput`'s three extraction calls, invisible until the new `features/apply/api` orchestration file pulled that module into `tsconfig.strict.json`'s graph for the first time — widened the three extraction functions' `model?: string` params to `model?: string | undefined`, no behavior change. Full incident writeup: `known-issues.md §5t`. New/updated tests: `personal-report-v2-repository.test.ts` (rewritten for the versioned functions), `personal-report-generation.test.ts` (5, the orchestration function's cached/regenerated/migration-missing/not-configured/error paths), `personal-report/route.test.ts` (7), `versions/route.test.ts` (3), `versions/[id]/route.test.ts` (4), `match-insights/route.test.ts` (2, the new trigger and its failure-tolerance), `personal-report-v2-view.test.tsx` (updated + 2 new version-history tests). Full 2213-test suite and i18n check (0 missing keys after ~10 new EN/VI pairs) both pass. Browser verification not done this pass — see the verification snapshot below. | A student working through a second, third, or later application no longer finds the Personal Report stuck "failed" for 24 hours after a routine edit to their shared profile — it simply regenerates when the data actually changed. Every past version stays viewable via a dropdown at the top of the report. Generating a Matching Report now keeps the Personal Report in step automatically, without the student needing to visit it and click anything. |
+| Working tree (previous pass) | **Fixed 4 reported problems on `/ai-strategy/personal-report`: no nav bar, partly-Vietnamese content, a dead-end back into the locked Reflections page, and a Matching Report link that ignored which application the student came from.** Reported live from a screenshot showing all four at once, including a literal `"...|null"` string leaking into rendered text. (1) **Navigation**: the Personal Report page now accepts `?return=`, derives+re-verifies `applicationId` the same way the reflection pages already do, and renders `ApplicationNavFromReturn`; `aiStrategyApplicationNav()`'s `personalReport` entry now carries the same `?return=` shape as `reflections`. (2) **English-only content**: hardcoded Vietnamese strings written directly into template/boilerplate code across the report domain builder, the AI orchestration layer, the view, `candidate-context.ts`, and two API routes' error messages were all translated — this was never a translation-system bug, `t()` was not involved for any of these. Also fixed the root cause of the `"|null"` leak: three AI extraction prompts used an ambiguous `"...|null"` shorthand the model sometimes echoed literally; rewrote the prompts with concrete worked examples and added `sanitizeExtractedField()` as defence-in-depth. (3) **Inline report-answering without reopening the confirmed-data lock**: per an explicit owner decision (`AskUserQuestion` — "store answers separately from confirmed data"), new answers to a report's own follow-up questions now go into a new `personal_report_supplements` table (`user_id`, `field_key`, `answer`), read only at report-generation time and merged onto a copy of the candidate context — the confirmed `student_profiles` snapshot and its lock are never touched. New `POST /api/ai-strategy/personal-report/supplement` (zod-validated against an explicit field-key allow-list); the Driving Force section's gap action now expands into an inline textarea instead of linking out, saves, then triggers the existing regenerate call. (4) **Matching Report link**: the bottom CTA now receives a `matchingReportHref` computed by the page (`/ai-strategy/<id>/matching-report` when an application resolves, the generic `/ai-strategy/matching` otherwise) instead of a hardcoded generic link. Full incident writeup: `known-issues.md §5s`. New/updated tests: `personal-report-v2-repository.test.ts` (5), `supplement/route.test.ts` (5), `sanitize-extracted-field.test.ts` (7), `personal-report-v2-view.test.tsx` (2, including a regression test asserting the inline-answerable action never renders as a link to the reflections page), plus updated assertions in `personal-report.test.ts` and `ai-strategy-route-model.test.ts`. Full 2178-test suite and i18n check (0 missing keys after 2 new EN/VI pairs) both pass. Browser verification not done this pass — see the verification snapshot below. | A student opening the Personal Report or Reflections pages now sees the same header nav/breadcrumb as the rest of the application flow; the report reads entirely in English; a gap the report flags (currently the study-motivation question) can be answered right there and the report regenerated, without being sent back to a Reflections page that may already be locked; and "Continue to Matching Report" opens the exact report for the application being viewed instead of a generic matching page. |
+| `working tree` | **Wrote a repair migration for orphaned per-application data left behind by `DELETE /api/applications/[id]`, reported live 2026-08-14: "when an application is deleted, all the other elements outside the direct application (including reports) are kept."** `DELETE /api/applications/[id]` has always been a single `DELETE FROM course_applications`, relying entirely on `ON DELETE CASCADE` — and every `supabase-*.sql` file in this repo already declares that on every table storing per-application data (stages, tasks, requirements, sources, Matching Report, Personal Report v1, Personalized Strategy, events, and the CV/statement/coach tables one level further down via `application_strategies`/`application_recommendations`). No code was wrong. Root-caused to the exact trap `known-issues.md` §0 already cost the owner four re-runs over: `CREATE TABLE IF NOT EXISTS` is a no-op against a table that already exists, so if any of these tables were first created in production before their file's `ON DELETE CASCADE` clause was written, the live constraint never picked up the change — production may still be enforcing whatever rule (typically `NO ACTION`) the table had on day one, no matter what the `.sql` file says today. Could not verify which tables actually drifted from this sandbox (no `SUPABASE_SERVICE_ROLE_KEY`, the same recurring limitation noted throughout this file), so the fix does not depend on knowing in advance: new `supabase-application-cascade-repair.sql` looks up each table's ACTUAL FK constraint by inspecting `information_schema` (never a guessed name), drops it, and re-adds an identical one with `ON DELETE CASCADE` — a no-op wherever it was already correct, a real repair wherever it was not — and deletes any row already orphaned by the drift first, since `ADD CONSTRAINT` would otherwise fail on the first pre-existing violation and leaving those rows behind is the exact "keep our databases clean" complaint this exists to fix. `confirmed_candidate_snapshots` and `personal_statements` are deliberately excluded (their `application_id` FK is `ON DELETE SET NULL` by design). Only touches tables that exist in the target environment; safe to run repeatedly. Full incident writeup: `known-issues.md` §5r. No application code changed — this is a database-only fix, matching the existing `DELETE` route's own doc comment about how deletion is supposed to work. | Once run in production, deleting an application will actually take every piece of data scoped to it along, instead of silently leaving reports/tasks/recommendations/CV+statement work behind in the database. **Action required: run `supabase-application-cascade-repair.sql` in production** — not yet confirmed run. |
+| Working tree (previous pass) | **Fixed the two bugs reported live the day after the per-application migration (PR #181) shipped and was confirmed run in production: the read-only "Continue" button didn't work, and the nav header wasn't showing a "Reflections" option.** Root cause of both: `reflection/confirm/page.tsx` (Review & Confirm) redirected away unconditionally the instant `confirmedAt` was set — `if (confirmedAt) redirect(returnTo \|\| '/ai-strategy/report')` — so the exact page the owner wanted a "Reflections" nav entry to link to, read-only, could never actually render in its confirmed state. Fix, three parts: (1) `reflection/confirm/page.tsx` now renders `ReviewConfirmView` in a new `readOnly` mode instead of redirecting — checkbox, Confirm button, edit links and the confirmation modal are hidden; a confirmed banner and "Continue" button take their place, matching the pattern the other two read-only Candidate Information views already used. (2) `applicationSubNav()` (`src/shared/lib/app-routes.ts`) gained a `candidateConfirmed` option and a `reflections` entry linking to `/ai-strategy/reflection/confirm?return=...`, which REPLACES `overview` once `analysisReady` is true (owner: "maybe remove the overview option after we've generated the reports") rather than showing both; `activeSubNavKey()` now maps every `/ai-strategy/reflection*` path to `'reflections'`. (3) The "Continue" button on all three read-only Candidate Information views (`ReviewConfirmView`, `ConfirmedReflectionView`, `ConfirmedAchievementsView`) used to carry a raw, static `returnTo` that could point at the analysis gate even after this application's reports already existed. All three now take a computed `continueHref` built by the new `confirmedReflectionContinueHref(applicationId, aiAnalysisComplete)` (`domain/onboarding.ts`) — the report-generation gate while pending, the Personal Report once reports exist — each page computing it with one extra `fetchOnboardingState` call when `applicationId` resolves, falling back to the legacy raw `returnTo` when it does not. Full incident writeup: `known-issues.md` §5q. New/updated tests: `app-routes.test.ts` (Overview↔Reflections swap, locked-until-confirmed edge case, `activeSubNavKey` coverage for all three reflection routes), a new `review-confirm-view.test.tsx` (read-only banner/Continue/hidden-panel assertions), and the two existing confirmed-view tests updated for the `continueHref` prop rename. Full 2008-test suite and i18n check (0 missing keys after 2 new EN/VI pairs) both pass. Browser verification not done this pass — see the verification snapshot below. | A student who has confirmed Candidate Information for an application can now actually open "Reflections" from the nav bar and see their locked answers read-only, with a working "Continue" that goes to report generation or straight to the Personal Report depending on whether reports exist yet — instead of the page bouncing them away and the nav never offering the option at all. |
+| Working tree (previous pass) | **Made Candidate Information review/confirmation per-APPLICATION instead of per-student — reversing PR #179's own "deliberately not done" call, at explicit owner correction the same day.** PR #179 fixed a dead-end navigation loop by making the Overview CTA route through `nextOnboardingStep(state)`; but `state` was still computed from the GLOBAL `student_profiles.confirmed_at`, so once a student confirmed on ANY application, every future application's onboarding silently skipped Reflections, Achievements, and Review & Confirm entirely and jumped straight into report generation. Reported live: "this is wrong. We want them to go through the normal reflections and application UI again... but for the flow to always be the same." New migration `supabase-per-application-onboarding.sql` adds `personal_summary_reviewed_at`/`achievements_reviewed_at`/`candidate_confirmed_at` to `course_applications` (plus a nullable `application_id` on `confirmed_candidate_snapshots`, tagging each confirmation with the application it belongs to). `fetchOnboardingState` now reads these three columns instead of the global ones — the change that makes `nextOnboardingStep` correctly resolve to `'personal-summary'` for every new application again. `apply/page.tsx`'s `fetchStrategyReadiness` (the My Portal tracker's "ready"/"continue applying" label) had the identical global-flag bug independently and got the same fix, restructured to keep its one still-independent read (`applicant_analyses`, filtered by `user_id` not application id) starting in parallel with `course_applications` rather than serialized behind it. The underlying candidate data (`student_profiles`, `student_achievements`, `student_activities`) stays one profile shared across every application, unchanged — only the review/confirmation STATE is now tracked per application, so editing is unlocked again for a new application even after being locked for an earlier one: `PATCH /api/reflection`'s lock and `POST /api/candidate-information/confirm`'s idempotency both moved from `student_profiles.confirmed_at` to `course_applications.candidate_confirmed_at` for the application in question, verified server-side by a new shared `verifiedApplicationId` helper (`features/apply/api/verified-application-id.ts`) — `applicationId` arrives from the client already derived from an untrusted `?return=` URL via the existing `applicationIdFromPath`, the same pattern `ApplicationNavFromReturn` already used, and every route independently re-checks ownership rather than trusting it. Per explicit owner direction, confirmed via `AskUserQuestion`: the flow order is always Reflections → Achievements → Review & Confirm → Analysis, for every application, never silently skipped by the system — but each of the first two pages gained a one-click "Skip — my answers/achievements are still correct" button at the top for a returning student who doesn't need to retype anything (calls the exact same validate-and-continue path the Next/Finish buttons already used). Every entry point with no application context (the legacy `/ai-strategy/report` generation, `personal-report-view.tsx`, marketing help pages) falls back to today's exact global behaviour, unchanged, when no `applicationId` resolves — deliberately out of scope, per the existing "two generations, not interchangeable" note. Full incident writeup: `known-issues.md` §5p. New/updated tests: `onboarding-status.test.ts` (including a regression test asserting one application's review state never leaks onto a different, brand-new application), `reflection/route.test.ts` and `confirm/route.test.ts` (per-application lock/idempotency/stamping, plus the existing global-fallback paths staying green), `verified-application-id.test.ts`, `apply-page-logo-performance.test.ts` (updated to check the new `applicant_analyses`-starts-in-parallel property instead of the removed `student_profiles` one). Browser verification not done this pass — see the verification snapshot below. | A student can now open a second, third, or later application and genuinely go through Reflections, Achievements, and Review & Confirm for it — seeing their existing answers prefilled with a one-click way to accept them unchanged — instead of the system silently deciding for them that nothing needs reviewing. Confirming a new application no longer locks editing for applications after it. |
+| Working tree 2026-08-14 (homepage testimonials) | Rebuilt `HomeTestimonials` as a pure-black editorial band with a larger red “Testimonials” label, responsive image-led cards, boxed anonymous attribution, and overlapping white quote panels. Added three original AI-generated portraits of Vietnamese university students as local WebP assets; each card explicitly labels the portrait as illustrative and keeps the supplied testimonial anonymous instead of fabricating a student identity. Added static Vietnamese translations for the new labels and a focused component test. | The homepage now follows the supplied black/red testimonial reference on desktop and mobile without making the generated portraits look like the real authors of anonymous quotes. Local `/` returned 200 with the new copy and all three assets returned 200. Targeted ESLint, base and strict TypeScript, two focused Vitest tests (2/2 across the component and i18n audit files), and the Next.js 16.2.3 production build pass. The in-app browser was unavailable, so no new visual screenshot was captured and E2E was not rerun. |
 | Working tree 2026-08-14 (runtime) | Upgraded the pinned runtime from Node 20.20.2 to Node 24.19.0 across `.node-version`, `.nvmrc`, package engines, the lockfile, and setup documentation. The local NVM installation is switched to 24.19.0. | `npm run dev` can use the repository's existing `--use-system-ca` flag instead of exiting with `node: bad option`. Full `npm run verify:pr` passed on Node 24.19.0 in 248 seconds: both typechecks, lint (0 errors / 23 warnings), 195 test files with 1,983 passing tests / 2 todo and coverage, and the Next.js 16.2.3 production build. E2E was not rerun. |
 | Working tree 2026-08-14 | Fixed missing university logos in My Portal at the identity layer. `resolveUniversity` now has a genuinely non-mutating match-only mode; `/api/cron/link-applications?dryRun=1` and `?create=0` pass that policy into the resolver before any insert can occur, and report `would-match`/`would-create` outcomes. Bare legacy domains such as `www.birmingham.ac.uk` now participate in domain matching. The reconciliation route is scheduled daily at 02:30 UTC, before the 03:00 imagery job. Newly resolved logos are downloaded, normalised to WebP, uploaded to deterministic paths in Supabase Storage, and only then written to `universities.logo_url`; a failed upload leaves the field empty for retry. The imagery cron now uses a 20-second resolver phase, four concurrent logo workers, six-second host timeouts, a shared 50-second work deadline, and oldest-attempt-first rotation. Shared `Avatar` now falls back to initials if a non-empty URL fails in the browser. Production repair was executed after a zero-write preview: 8/8 rows linked, 0 failures; Birmingham's two applications both join Storage-backed logo ID 108. | Existing initials-only Birmingham and other legacy cards receive their real crests without adding a query or external fetch to `/apply`. New/imported applications link during parsing, the scheduled reconciler repairs any future transient miss, and broken remote images degrade cleanly instead of showing a broken-image glyph. Slow or unavailable sources no longer make as many as 40 sequential 20-second downloads consume the 60-second invocation or repeatedly starve later rows. The cron follow-up passes 10/10 focused tests; base and strict typechecks, targeted lint, and the production build pass on the resulting tree. The earlier full Vitest run reached 1,982 pass / 2 todo with only `check-i18n.integration.test.ts` exceeding its 5s timeout under parallel load (5.74s); that test passed alone in 2.26s. E2E not run. |
 | PR #180 CI repair | Fixed the failure after the static-i18n merge: the university performance source-contract test now accepts the intentionally localized `t(saved ? ...)` accessibility label while still requiring `data-no-auto-translate`, `aria-pressed`, and `aria-label` on the same save button. The course-search POST re-fetch no longer relies on `.order()` support in every Supabase test chain; it checks the fetch error and sorts the small stored-result set by rank in memory, with an out-of-order response test. | The full CI suite can preserve both the translator-safe save control and Vietnamese accessibility labels. Course-search tests no longer log repeated false runtime errors, and API results remain deterministically rank-ordered. Full `npm run verify:pr` passes on Node 20.20.2: both typechecks, lint (0 errors, 23 existing warnings), 192 test files / 1972 tests passed / 2 todo with coverage, and the production build. E2E was not rerun. |
 | `53beab0` | Rebuilt the advisor registration process and related UI, including validation, private verification documents, pricing, availability, review, success-state copy, and static English/Vietnamese coverage. | Advisor applicants get a complete, localized registration journey with clearer validation and privacy handling. |
 | `66b7224` | Removed the repository-installed pre-push hook and its `prepare` installer. The complete `npm run verify:pr` gate remains in GitHub Actions and is available as an explicit local command. | A normal push no longer waits several minutes for typechecks, coverage tests, and a production build; pull requests still receive the full CI gate. |
 | `937feaf` (#179) | Fixed later applications getting stuck before confirmation/report generation by routing the overview CTA through the actual onboarding state and adding Continue links to confirmed read-only reflection views. | A student can reach confirmation or analysis for a second or later application instead of entering a dead-end loop. |
-| `b6592c9` (#177) | **Redesigned the post-confirm Report Generation screen** (`AnalysisWorkspace`, `/ai-strategy/[applicationId]/strategy/analysis`) to the look and feel of an owner-supplied 50-section "Report Generation Page" spec, deliberately scoped down from it. The spec described a persisted `ReportGenerationRun`/`GeneratedReport` backend, polling/realtime status updates, per-report retry infrastructure, and four independently-tracked report types (Personal, Matching, Strategy, Evaluation) plus CV Suggestions â€” none of which exist in this codebase: the actual post-confirm step generates exactly two reports (Personal + Matching) synchronously in one page visit, Strategy Report is a separate later onboarding step (F7), and "Evaluation Report"/"CV Suggestions" do not exist anywhere in the product. Rather than build the spec's backend or silently ship a token visual tweak, used `AskUserQuestion` to get an explicit scope decision from the owner: **"Redesign the existing 2-report flow"** â€” rebuild the visual/informational design to match the spec around the two reports that actually generate here, keep everything synchronous (no generation-run table, no polling API, no per-report retry infra), and never claim a status the code cannot back up. What shipped: a confirmation hero (checkmark, "Your information is confirmed" â†’ "Your reports are ready" on completion, an optional "Confirmed {date}" line read from the new `student_profiles.confirmed_at` via a tolerant `loadConfirmedAt` select so a pre-migration deployment degrades to no date rather than a 500), a shrunk loading video/GIF next to an overall progress bar (shown only pre-completion), a `<ul>` of two independently-tracked report rows (Personal, Matching â€” each its own status: generating/complete/failed, its own "Open report" link once done, its own "Try again" retry that re-fires only that report's fetch, not both) with an `aria-live="polite"` status region, a failure-reassurance panel when any report fails ("your confirmed information is safe"), and an honest "you can leave this page â€” we'll keep working in the background" note (genuinely true here: no `AbortController`, a client-side nav away doesn't cancel either in-flight fetch). The two reports are generated via module-level pure async functions (`fetchOrGeneratePersonal`/`fetchOrGenerateMatching` â€” GET-then-POST-if-missing against the existing `applicant-analysis`/`course-match`+`match-insights` routes, unchanged), kept setState-free so they're independently unit-testable and so mounting them via a nested `function run() {}` declaration inside each `useEffect` (not a `useCallback` referenced by name) avoids a real `react-hooks/set-state-in-effect` false positive â€” confirmed by reading the rule's own HIR-based analysis in `node_modules/eslint-plugin-react-hooks`, which flags any setState reachable from an effect regardless of whether it happens before or after an `await`; the same nested-declaration workaround is already established elsewhere in this codebase (`strategy-recommendation-workspace.tsx`). 4 new tests (`analysis-workspace.test.tsx`): both reports completing, one report finishing while the other is still mid-flight and openable independently, one report failing with its own retry while the other succeeds, and the confirmed-date/course-subtitle rendering. Caught and fixed during this pass: several of the ~21 newly-added i18n dictionary entries were typed with curly apostrophes (`'`) by habit â€” matching the convention used by many *other* entries elsewhere in this large dictionary â€” while the component's actual source strings use straight apostrophes (`'`) throughout; since the dictionary is keyed by exact string match, the mismatched entries would have silently failed to resolve translations for real strings. Browser verification not done this pass â€” see the verification snapshot below. | The screen shown right after "Confirm & Generate Reports" now looks and reads like the approved design â€” a clear confirmation state, per-report status a student can actually trust (not a faked progress bar), and an explicit "you can leave" message that is true rather than aspirational â€” while the actual generation behavior (two reports, synchronous, existing routes) is unchanged. A report that fails can be retried on its own without re-running the one that already succeeded. The four-report/polling/persisted-run vision from the full spec remains a known future scope, not attempted here. |
-| `48a1b10` (#176) | **Fixed a production incident: confirming Candidate Information failed for every student with a misleading `503`.** Owner-reported with a real Vercel function trace showing `POST confirmed_candidate_snapshots` â†’ `403`. Two bugs, not one: (1) `supabase-candidate-confirmation.sql`'s RLS setup had a `SELECT` policy but no `INSERT` policy on `confirmed_candidate_snapshots` â€” the confirm route inserts through the ordinary user-session client (not `createAdminClient`), so RLS applies, and with no `INSERT` policy it defaults to denying everyone, including the row's own owner. Fixed by adding `confirmed_candidate_snapshots_insert_own` (`WITH CHECK (auth.uid() = user_id)`), idempotently, to the same migration file. (2) The route's own `migrationMissing()` classifier made the failure invisible: it matched any error whose *message* contained the string `confirmed_candidate_snapshots`, and Postgres's RLS-violation message ("new row violates row-level security policy for table ...") happens to contain exactly that â€” so a real permission error (`42501`) was misclassified as "migration not run yet," returning a `503` telling the student to retry a request that could never succeed. Narrowed the check to match only on the Postgres/PostgREST codes that actually mean "does not exist" (`42703`/`PGRST204`/`42P01`) or the phrase "does not exist" in the message; an RLS or other permission error now correctly falls through to a plain `500`. New test asserts a `42501` error returns `500`, not `503`. Full writeup: `known-issues.md` Â§5n. **Action required in production**: re-run `supabase-candidate-confirmation.sql` (idempotent) to pick up the new policy â€” the code fix alone does not grant the missing database permission. | Confirming Candidate Information ("Confirm & Generate Reports") will work once the updated migration is re-run in production, instead of failing for every student with a message that told them to do the one thing (wait, retry) that could never fix it. Any future permission/constraint error on this route will now surface as a genuine error instead of the same misleading "try again shortly." |
-| `4c95861` (#175) | **Rebuilt the Edit Achievement / Edit Activity modal as a large two-column editor, and fixed a latent focus-theft bug in the shared `Modal` component along the way.** Owner-supplied approved design (2 screenshots: current cramped popup vs. the approved large editor). (1) `EditEvidenceModal` (`features/apply/ui/edit-evidence-modal.tsx`) is now a `min(1120px, 100vwâˆ’64px)` two-column workspace (near-full-height single column on mobile) instead of the old `max-w-sm` six-field popup: header with a category icon in a pastel square, title, subtitle, and a labelled `Close editor` button; a real `Level` dropdown (`LEVEL_SUGGESTIONS` plus `Not applicable`/`Other`, the latter revealing a free-text field â€” `level` stays free text in the schema, per its own existing "not a boundary" rationale, so a custom value already on a record is never coerced into one of the suggestions) instead of a text input; a generated `Award year` dropdown instead of a bare number spinner; a `Description` textarea with a live `1500`-character counter; sticky footer. (2) Inline validation (title, description, and â€” achievement-only â€” award year) replaces the old `disabled`-until-valid button, with real per-field error text and `aria-invalid`/`aria-describedby` wiring â€” and deliberately does NOT use the native HTML `required` attribute on those fields, only `aria-required`, because `required` on a field inside a `<form>` makes the browser's own constraint-validation tooltip intercept a submit-button click before this component's `onSubmit` ever runs, silently replacing the custom inline message with a native one (which is itself the kind of "browser alert" the spec says to avoid) â€” caught by a same-day test failure where clicking Save with an empty required field never showed the inline error at all. (3) Unsaved-change protection: closing via X, Cancel, Escape, or a backdrop click while the form is dirty shows a "Discard changes?" confirmation instead of closing silently, implemented as a single in-panel overlay (not a second stacked `Modal`) specifically to avoid two independent Escape-key listeners firing for one keypress. (4) Fields that came back from AI extraction reading literally `N/A` (a real, observed extraction artifact, not something this codebase's own code ever writes) are normalised to blank on open â€” showing "N/A" as if it were the student's own answer was an explicit thing the spec asked to fix. (5) **Root-caused and fixed a real bug in the shared `Modal` component**, not specific to this editor: its focus-management effect keyed on `[open, onClose]`, and `onClose` is a fresh function reference on every render for nearly every caller in this app (an inline arrow, or â€” as in this new editor â€” a function whose identity depends on render-local dirty-tracking state). Every one of those re-renders re-ran the effect and yanked focus back to the panel's first focusable control, which is what made typing into "Achievement name" reliably lose keystrokes to the achievement-type dropdown the moment the field went from empty to non-empty (a real, user-visible mid-typing focus jump in any browser, not merely a test artifact â€” a Vitest+Testing-Library reproduction is what surfaced it). Fixed by reading `onClose` through a ref updated every render instead of closing over the prop directly, so the effect depends only on `[open]`; every other `Modal` caller in the app benefits from the same fix without any of them needing to memoize their own `onClose`. **No backend or schema changes**: there is no per-item `PATCH /api/candidate/achievements/:id` in this codebase â€” "Save changes" still commits to the parent page's in-memory achievements/activities list (`reflection-evidence-form.tsx`), which is what already makes the card update with no reload, and the whole list is persisted together via the existing `PATCH /api/reflection` (already `423`s once the profile is confirmed) when the student reaches Review & Confirm; achievement/activity category enums, `period` staying one free-text field (not split into start/end), and the description's stored 2000-char schema cap (vs. this editor's 1500-char UI limit, enforced client-side only) were all left as-is â€” none of the two supplied screenshots show a reason to change them, and widening the achievement-type enum in particular would be a real data-model change outside "improve the editor" scope. 8 new tests (`edit-evidence-modal.test.tsx`: N/A normalisation, save, blocked-save inline errors, dirty-aware close/discard, activity-specific fields, add-mode labelling); the full 1940-test suite (including every other existing `Modal`-based dialog) and i18n check (0 missing keys after ~40 new EN/VI pairs) both pass. Browser verification not done this pass â€” see the verification snapshot below. | Opening Edit on an achievement or activity now opens a spacious, easy-to-scan editing workspace instead of a cramped popup, with a working "Level" dropdown, a real year picker, a description counter, and genuine inline validation messages a student can actually see (previously invisible behind the browser's own tooltip). Closing with unsaved changes now asks first instead of silently discarding them. Separately, every OTHER modal in the app (remove-confirmation, rename, add-type chooser, duplicate-merge prompt, etc.) is now free of a focus-stealing bug that existed before this change touched any of them. |
-| `5375782` (#174) | **Added a Review & Confirm checkpoint between finishing Candidate Information and report generation, with an immutable snapshot and a profile lock.** Owner-supplied 74-section spec plus 6 mockups. Scoped down from the spec's own Â§52 ("all reports must read from the snapshot, not live tables") by explicit owner choice â€” that would mean rewiring the already-shipped Personal/Matching/Strategy report generation across three features; existing reports keep reading the live tables, which are frozen anyway once the profile is locked. What shipped: (1) A new `/ai-strategy/reflection/confirm` page â€” readiness summary (four required-question checks plus any achievement/activity still `needs_review`, both reusing the exact rule `reflection-about-form.tsx`'s own Next-button gate already enforced, now extracted into `reflectionBlockingIssues`/`candidateReadiness` and shared with the server), per-section review cards with Edit links back into the two step forms, a checkbox acknowledgement, and a confirmation modal. Deep-linking Edit to the one wrong question (spec Â§11) was descoped by owner decision â€” Edit always reopens the step form, and the analysis-gate route guards (see below) mean an edit always funnels back through this checkpoint before reports can run. (2) `POST /api/candidate-information/confirm` â€” idempotent (a second call returns the existing snapshot rather than creating one), re-validates readiness server-side rather than trusting the client, inserts one `confirmed_candidate_snapshots` row (a single JSONB `{reflection, documents}` blob â€” the exact shape already read/written everywhere else in this feature, not a six-plus-table normalized schema) and sets `student_profiles.confirmed_at`. (3) `PATCH /api/reflection` now checks the lock first and returns `423 PROFILE_LOCKED` once confirmed; a missing `confirmed_at` column (migration not yet run) fails open, matching every other tolerant-read in this route. (4) The two reflection pages (`/ai-strategy/reflection`, `/ai-strategy/reflection/achievements`) branch on `confirmedAt` into dedicated read-only views (`ConfirmedReflectionView`, `ConfirmedAchievementsView` â€” new components, not the editable cards/forms with their actions hidden, per the spec's own "not a disabled copy" principle) instead of the editable form. (5) `nextOnboardingStep` gained a `confirm` step between `achievements` and `analysis`; the `analysis`/`analysis/fit`/`analysis/portrait`/`analysis/recommendation` route guards, which previously only checked `personal-summary`/`achievements`, now also redirect a not-yet-confirmed student back to `/confirm` â€” without this, a student could reach report generation without ever passing through the checkpoint. (6) The achievements page's "Finish" CTA now always routes to `/ai-strategy/reflection/confirm?return=<original destination>` instead of pushing straight to the analysis gate or the standalone report page; both are carried through as the confirm page's own `return` param, so confirming lands exactly where the old CTA used to. New `confirmed_candidate_snapshots` table + `student_profiles.confirmed_at` column (`supabase-candidate-confirmation.sql`, append-only, SELECT-only RLS). One consolidated server-side loader, `loadCandidateReflection` (`features/apply/api/candidate-snapshot-repository.ts`), replaces what would otherwise have been a third near-duplicate of the two pages' existing tolerant-select loaders â€” used by the confirm route and both read-only views. 39 new/changed tests (readiness domain logic, onboarding step-machine, the confirm route's idempotency/readiness/migration-degradation paths, the PATCH lock); the full 1932-test suite and i18n check (0 missing keys after ~50 new EN/VI pairs, including ~8 backfilled for the previous session's read-only views, which had shipped without dictionary entries) both pass. Browser verification not done this pass â€” see the verification snapshot below. | A student can no longer submit an edit that quietly changes what a report was generated from: once they press "Confirm & Generate Reports," their candidate information, achievements, activities, and documents are locked exactly as reviewed, shown back to them as read-only from that point on, and a direct or bookmarked link into report generation bounces them back to this checkpoint first if they have not been through it yet. |
-| `a57f0f1` | **Rebuilt the Achievements & Activities page (Candidate Information step 2) as an upload-first card grid â€” owner-supplied 60-section spec plus a mockup screenshot.** Replaces the giant `RepeatableFieldset` form, where every achievement/activity (extracted from a PDF or typed by hand) rendered as the same six-field inline block, with the flow the spec describes: **upload â†’ AI extracts â†’ cards appear â†’ review/edit â†’ finish.** (1) Extracted items now become cards immediately â€” tagged "Extracted from {file}" and `needs_review` (new `review_status`/`source_type`/`sources` columns, `supabase-reflection-review-status.sql`) â€” instead of sitting in a separate checkbox-approval panel before anything is added to the profile; a **"Review achievements" drawer** steps through the unreviewed ones one at a time (Keep/Edit/Remove), closing with "All extracted achievements reviewed". `NULL` on a pre-existing row reads as already-reviewed/manual, so nothing already saved is retroactively flagged. (2) A same-title extraction is now flagged **"Possible duplicate"** (Merge / Keep both) rather than silently dropped, which was the previous behaviour and indistinguishable from the extraction having missed it; Merge unions the source list and fills only the fields the existing record was missing, keeping its id so an edit made before the merge survives. (3) **Edit is a small modal**, not the old inline form â€” one component handling both kinds via a `kind` discriminant, since achievement and activity share five of six fields â€” and a manual achievement/activity (added via a "What would you like to add?" type chooser) looks identical to an extracted one once saved, no visual penalty. (4) The document panel lists **every uploaded document**, not just the current session's (new `uploaded_documents` read in `page.tsx`, `useEvidenceDocuments` hook), each with **Preview/Rename/Reprocess/Remove**; Preview opens the **browser's own PDF viewer** in a right-side drawer via a signed URL (`#page=N` for page-jump) rather than a hand-built page/zoom control set â€” nothing in this codebase renders a PDF today, and every major browser already ships a full viewer. Removing a document does not touch achievements already extracted from it (they are separate rows the moment they exist). (5) Card icons use **one consistent brand tint**, not the five-to-six soft category colours the spec's mockup draws: `tokens.css` defines exactly three soft fills, and CLAUDE.md rules out inventing kit variants â€” every sibling control in this redesign (`SelectionCard`, `OptionCards`) already answers "tell options apart" with icon shape on one tint, not colour. **Three scope simplifications, stated rather than hidden:** extraction stays the existing synchronous request/response route (not a new background-job/polling/realtime architecture â€” the inline "Finding achievementsâ€¦" status covers the same UX ground); duplicate detection stays title-based (extending the comparison `applyEvidenceCandidates` already made) rather than a general fuzzy/AI merge across documents; `activitySchema.period` stays one free-text field rather than being split into start/end dates, per its own existing design rationale. Verified in a browser: upload â†’ extract â†’ an unreviewed card with its source badge â†’ the one-at-a-time review drawer (Keep confirms, card badge flips to "âœ“ Reviewed", the Review button disappears once the queue is empty) â†’ edit modal (type-dependent fields) â†’ type chooser â†’ remove confirmation, on both the academic and extracurricular tabs; mobile at 390px (tab bar scrolls independently within its own row, zero page-level horizontal overflow). 15 new/changed tests (duplicate flagging, merge field-filling, review-status defaulting on read); the full 1914-test suite and i18n check (0 missing keys after ~65 new EN/VI pairs) both pass. Branch restarted from `main` after PR #172 merged mid-session; see the "Code snapshot" line above. | A student uploads a CV once and sees achievement/activity cards appear from it, tagged with exactly where each fact came from, instead of retyping an entire academic history into a giant form or wading through a checkbox list before anything lands on their profile; a same-title duplicate is caught and offered a merge instead of silently vanishing or duplicating; and every document they have ever uploaded â€” not just this session's â€” stays visible, previewable, and removable without deleting what was already learned from it. |
-| `3b1f831` (PR #172, spec 2) | **Questions 5â€“8 rebuilt to spec 2: subject and destination grids, study-level cards, and a generated intake picker.** (1) Q5/Q6 share one `SearchableMultiSelectGrid` â€” the spec asks for that, and the reason is the reason everything else here is shared: two grids that merely look alike drift. Each tile is a `<label>` around a real checkbox, so Space toggles, Tab moves and the selected state is never carried by colour alone. (2) Subjects come from a new config-driven catalogue of 45 across nine groups (the previous list was `subjectFamilies`, a computing-dominated discovery taxonomy â€” a student wanting Nursing or Politics had nothing to click), with stable slugs, icons and aliases so `CS`/`AI`/`IT`/`maths` resolve. Searching for something absent offers **Add as Other**, which stores the typed words separately rather than as a slug matching cannot resolve. (3) Destinations cover every country, built as a view over the ISO nationality catalogue rather than a second list. Popular destinations lead; the rest are behind **Show all countries** (200 tiles inline made a page nobody scrolls), and searching bypasses the cap. **`ðŸŒ I'm open to other countries` is a flag, not 197 selections** â€” selecting everything is the absence of a preference, so there is deliberately no Select all here. (4) Q7 is full-width `SelectionCard`s with contextual guidance when the chosen level outruns the stated qualification â€” guidance, never a block, per the spec. (5) Q8's intake is **generated from today's date** and stored as `{type, season, year}`; the old list was seven hardcoded strings that would have kept offering 2026 in 2029, and a display string has to be parsed before anything can match on it. Four questions now block Next with an inline message. **A real gap found while verifying:** deriving destinations from nationalities silently dropped Hong Kong â€” a territory, not a UN member, and a destination the spec names â€” visible only because the popular block came back one tile short; `EXTRA_DESTINATION_ISO` adds it and Macau, with a test. Both storage readers accept the display strings the previous form wrote, so nobody loses their destinations or intake. | A student picks subjects from a list that includes their subject, finds a country by typing `UK`, says they are open to suggestions instead of ticking 197 boxes, and chooses an intake that will still be correct in 2029. Verified in a browser end to end: 44 subject tiles, alias search, the empty state and Add-as-Other, all four inline validation messages, the 20â†’200 country expansion with Hong Kong present, and the intake listbox under keyboard control. 46 new tests. |
-| `ac1117d` (PR #172, spec 3) | **Rebuilt Questions 9â€“12 of the Candidate Information questionnaire: AI-assisted written answers, per-subject motivation, funding as cards, and a multi-currency tuition budget.** Owner-supplied spec plus 4 mock-ups, built on top of specs 1â€“2 in the same PR. (1) Q9 ("What do you want to do after you graduate?") gets a 1500-character textarea with a live counter, three prompts, a reassurance line, and **Generate ideas with AI** â€” new `POST /api/reflection/ideas` (`generateAspirationIdeas`) returns 2â€“4 short first-person sentences built only from what the student already told the form (their chosen subjects, their own draft), never a name, grade or nationality. A suggestion is **appended, never applied**: it lands in the textarea only on click and is ordinary editable text from that instant â€” the route has no write path at all, which is the only way to actually enforce "assist, not replace". (2) Q10 ("Why this subject?") is now asked **per subject**, driven by the subjects chosen in Q5 â€” one box was unanswerable for a student who picked three. Only one subject needs an answer; the rest are optional tabs with a tick once answered. The map lives in a new `subject_motivations` JSONB column with a `__primary` key naming which subject mirrors into the pre-existing `study_motivation` string column, so `match-insights.ts`'s `personalContext` and the portrait's "driving force" section keep reading the one column they always read â€” nothing downstream needed to learn about the map. A student who answered the old one-box version keeps seeing their text above the new boxes; which subject they meant is not guessed at. (3) Q11 (funding) becomes full-width `SelectionCard`s with a sentence of explanation per option, and now stores a stable id (`personal_savings_or_parents`, etc., new `funding-catalog.ts`) instead of the option's display string â€” the last reflection field that was still doing that. `fundingSourceFromStored` still reads the old prose values, so nobody's existing answer disappears. (4) Q12 (tuition budget) is now a real range in the student's **own currency** â€” GBP/USD/EUR/CNY as pills plus nine more behind "Other" â€” replacing the VND slider + 5-band USD enum pair, which forced every non-Vietnamese budget through a Ä‘á»“ng conversion to answer at all. Changing currency **re-expresses** the amount (`reBase`) rather than resetting the handles; the top of each scale is the open-ended "and above" band (`max: null`); the other-currency conversions shown under the slider are explicitly labelled approximate and are never stored â€” only `{currency, min, max}` is. The legacy `tuition_budget_usd` band is derived from the structured budget on write, so `candidate-context.ts` and the matching prompt keep the input they already read. Verified end-to-end in a browser by walking `/dev/reflection` through all twelve questions (seeded past the required-intake gate that had been silently blocking Q9â€“12 in the dev preview), including switching Q10 between two subjects and Q12 between currencies; a double-labelled Q9 textarea (heading printed the same string as the field's own `<label>`) was caught and fixed the same way. 15 new tests (funding catalogue + the new reflection read/write paths); the pre-existing 211-test `features/apply` suite and the 1911-test full suite both still pass; i18n clean (0 missing keys after adding ~55 new EN/VI pairs). | A student can answer "what do you want to do after graduating?" with an AI-suggested starting sentence they can freely edit, give a different reason for each subject they're considering, pick how they'll fund their study from cards that explain what each option means, and set their tuition budget in whichever currency they actually think in â€” with a live approximate conversion to the others, never silently converted and stored. |
-| `#172` (specs 1â€“2) | **Redesigned the Candidate Information questionnaire: two display modes, rich per-question controls, real score scales, and AI grade conversion.** Owner-supplied spec plus mock-ups. (1) A **One question at a time / Show all questions** toggle. Both modes render the *same* `AboutQuestion` component â€” one calls it once, the other twelve times â€” so switching cannot lose an answer or downgrade a control to a plain input, and there is no second implementation to drift. (2) Every question now draws through one `QuestionCard` (icon, heading, one-line explanation), which is what makes twelve questions read as one designed thing rather than a pile of form controls; the icon comes from `ABOUT_QUESTIONS` so copy and visual are decided together. (3) Education is large selectable option cards with an **Other â†’ describe it** field; the free text is stored on `current_qualification` in place of the literal word "Other", so the portrait reads the real qualification. (4) Nationality is a compact flag trigger opening a searchable grid over all 197 nationalities â€” new `src/lib/nationality-catalog.ts`, keyed by ISO code so flags derive from the code and country names come from `Intl.DisplayNames` (the Vietnamese half is translated by the platform, not by 197 dictionary rows). Aliases mean "UK", "United Kingdom", "England" and "British" all find the same row; matching is accent-insensitive. (5) **Scores now know their own scales.** The form previously took GPA and IELTS as unvalidated free text â€” its own IELTS placeholder read "7 / 10", a band IELTS does not issue. New `academic-scores.ts` states GPA 0â€“4.0, IELTS 0â€“9.0 in half bands, TOEFL 120, PTE 90, Duolingo 160, Cambridge 230, and (unused but ready, per the spec's insistence) SAT 400â€“1600, ACT, IB, AP. Out-of-range values show an inline error naming the scale. (6) **Three kinds of conversion, only one using a model.** A published English test â†’ IELTS is a documented concordance done in code (instant, free, cannot hallucinate); a free-text description of grades â†’ GPA, and an unlisted English qualification â†’ IELTS, go to `POST /api/reflection/convert-score`. The model may answer "I am not sure" â€” that is a 200 with a null value and a reason, and the UI shows the reason instead of a number. Server-side clamping holds any estimate to the scale and snaps IELTS to half bands. Nothing is ever written without the student pressing "Use this"; the original description and the conversion method are stored alongside the value in `grades_summary`, so a converted 4.0 is never mistaken for one the student was awarded â€” **and none of it needs a migration.** (7) Debounced autosave with a subtle "âœ“ Saved", and Save & Exit. Verified in a browser: all twelve questions, both modes, mode-switch data retention, GPA 4.5 and IELTS 9.5/6.25 inline errors, TOEFL 95 â†’ IELTS 7.0, the AI result card, mobile at 390px (zero horizontal overflow, tracker collapses to a bar, nationality grid to two columns), Escape-to-close and keyboard reachability. | A student picks their education from cards, finds their nationality by flag or by typing "UK", and â€” whatever school system they come from â€” can describe their grades in their own words and get a defensible estimate they confirm before it is used. Scores can no longer be stored off their own scale. 54 new tests cover the catalogue/stored-list sync in both directions, every concordance table for monotonicity and range, the validators, and the conversion clamping. |
-| `#171` | **Rebuilt reflection step 1 as a one-question-at-a-time flow, gave the reflection pages the application nav band, replaced three free-text fields with pickers, synced the two budget controls, and added the three questions the reports were already asking for.** Owner-reported, five items. (1) Step 1's twelve questions are now one per screen with Back/Next, and the progress bar fills a notch per answer instead of sitting at 50% from arrival â€” the order lives in `ABOUT_QUESTIONS` (`domain/reflection-steps.ts`) so the sequence and the progress maths cannot disagree. Step 2 keeps its list layout (owner decision: repeatable lists are not single questions). (2) The reflection pages sit at `/ai-strategy/reflection`, outside the `[applicationId]` layout that mounts the red band everywhere else, which is why they were the one place in the flow with no breadcrumbs â€” `ApplicationNavFromReturn` derives the id from the `?return=` param the onboarding router already builds, and **re-checks ownership against `course_applications`** because a query parameter is untrusted. (3) Nationality is a 197-entry `Select`; majors and countries are searchable `MultiSelect`s over `subjectFamilies`/`regions`, replacing comma-separated text. Both gained a visible question label â€” `MultiSelect` renders its `label` as `aria-label` only, which left a bare search box on a one-question screen. (4) The VND slider and the USD band were two independent controls for what the owner confirmed is one quantity; both are relabelled **annual tuition** and now update each other through `vndRangeFromUsdBand`/`usdBandFromVndRange`, with the exchange rate printed in the UI rather than applied silently. Syncing the previous labels (total cost vs annual tuition) would have needed an invented course length and living-cost estimate. (5) Added career goal â†’ the existing `goals` column, why-this-subject â†’ new `study_motivation`, and target intake â†’ new `target_intake`; `match-insights.ts` builds `careerDirection`/`personalContext` from those columns and F7 scores a `futureAlignment` dimension against them, and nothing in reflection had ever written any of them. The PATCH retries without the two new columns on a missing-column error, so an unapplied migration costs the two new answers rather than the whole step. Run `supabase-reflection-questions.sql`. | A student answers one question at a time with honest progress, can get back to their application from inside reflections, picks subjects and countries from real lists instead of typing comma-separated text, sees the two budget controls agree, and is asked the three things the Personal, Matching and Strategy reports were previously scoring against a blank. 25 new domain tests cover the budget conversions (including the round-trip that keeps the two controls from rewriting each other) and the per-question progress. |
-| `#170` | **Fixed every Planner task detail page returning an error page, and the Planner dashboard crashing for any application with a deadline.** Reported by the owner with a live URL after Â§5i had supposedly fixed the same symptom â€” Â§5i was aimed at the wrong cause. The task detail page is a server component that imported `categoryLabel`/`categoryVariant`/`formatDate`/`PRIORITY_LABEL`/`PRIORITY_VARIANT` from the feature's `ui` barrel, which re-exported them from `planner-shared.tsx` â€” a `'use client'` module. A client module's exports reach a server component as client references, not values, and the two failure modes are asymmetric: **calling** one throws (`Attempted to call categoryLabel() from the serverâ€¦`), which is what 500'd every task page, since a generated recommendation essentially always has a category; **reading** one (`PRIORITY_VARIANT[priority]`) silently yields `undefined`, so the priority badge would have rendered blank. `dashboard-summary.tsx` had the same bug in a narrower form â€” it called `formatDate(deadline)`, so the Planner dashboard crashed only when the application had a deadline set. Fixed by extracting the pure mappings and the formatter into a new directive-free `planner-presentation.ts`, usable from both module graphs; `planner-shared.tsx` keeps only the React components. Diagnosed and confirmed with a throwaway server-component probe route under `src/app/dev/` (neither `tsc` nor `next build` catches this â€” the types are identical and the failure is at render), then re-verified by rendering the detail page's exact body against a synthetic row with every branch populated. Also swept the whole repo with a one-off scanner for other server modules importing non-component values from `'use client'` modules; the only remaining hits are `T` (a component, safe) and `useT` in three components that are already only rendered inside client trees. See `docs/known-issues.md Â§5l`. | Clicking any task in the Planner opens its detail page again instead of an error page, and the Planner dashboard no longer crashes for an application with a deadline. New `planner-presentation.test.tsx` (8 tests) guards the structural property that prevents a recurrence, since a unit test cannot reproduce the RSC boundary itself. |
-| `e61545e` (#169) | **Three owner-requested follow-ons to the header animation.** (1) The three background words now size against the header's own height (`mainFontSize`/`subFontSize` as fractions of it, `textBaseline: 'middle'`) instead of the deliberately small text #168 shipped â€” the header itself does not grow, so the rows overlap rather than stack. (2) The boot line's alignment flash now overlays only `bootText.slice(0, 2)` ("Go") instead of the full typed "Goooooâ€¦" string â€” the repeated `o`s never turn white. (3) The brand-red fill and the real breadcrumb/nav content now hold back ~3 seconds after mount (`gb-app-nav-reveal`, `src/styles/tokens.css`, `animation-delay: 3s`) so a visitor sees the animation play against the page's own background before the chrome arrives; the canvas itself is unaffected by the delay. Building (3) surfaced a real bug, caught only by pixel-sampling a screenshot (not visible in a compressed PNG â€” the same false alarm #168 nearly repeated): the delayed fill `<div>` was placed *after* `ApplicationNavBackground` in JSX, so once its fade-in finished it painted on top of the canvas and silently buried the animation instead of becoming its backdrop. Fixed by moving the fill before the canvas in source order. See `docs/known-issues.md Â§5k`. Verified visually via a throwaway `/dev/nav-preview` route, Playwright screenshots across the full cycle (mount, mid-boot, pre-reveal, post-reveal, settled), and pixel/opacity sampling to confirm both the reveal timing and the stacking fix, before removing the scaffold. | The animation now visibly fills the header without adding height, only ever flashes "Go" white (never the repeated `o`s), and plays on its own for ~3 seconds before the red chrome and real navigation settle in around it â€” with the animation still visible as texture on the red afterward, not buried under it. |
-| `5a78a1f` (#168) | **Rebuilt the header animation to fit inside the existing header and follow the full reference spec.** Owner feedback on PR #167: the animation had to live inside the header's own bounds, not add a strip below it, and had to follow the supplied spec's full three-phase choreography (an easing-curve "Go"â†’"Goooooâ€¦" typing reveal, two marquee rows decelerating via the exact integrated-velocity physics formula, and a sine-fade alignment flash with a 1-second anticipatory lead on the second row) rather than the simplified single-row version shipped in #167. Ported the algorithm faithfully, scaled to the header's real (unchanged) height instead of the reference's viewport-width sizing. Caught and fixed a real bug in the port along the way: the flash was lighting up an entire tiled row at once instead of only the one word instance the reference's own alignment math targets â€” confined to a header with no spare space, a whole-row flash competed with the real nav text the same way the dedicated-strip version was built specifically to avoid. Fixed to flash only the matching instance, and added a low base-opacity pass (`BASE_ALPHA`/`FLASH_PEAK_ALPHA`) since three lines of decorative text at full strength directly behind two lines of real content reads as clutter at this scale, not texture. | The header animation now lives entirely within the header's existing footprint â€” no added height â€” and matches the supplied spec's actual choreography and physics, while never outshining the real breadcrumb/nav text on top of it. |
-| `642abe7` (#167) | **Added a kinetic-typography accent strip under the brand-red application header** â€” superseded by the entry above; see it for why the strip approach was replaced. | â€” |
+| `b6592c9` (#177) | **Redesigned the post-confirm Report Generation screen** (`AnalysisWorkspace`, `/ai-strategy/[applicationId]/strategy/analysis`) to the look and feel of an owner-supplied 50-section "Report Generation Page" spec, deliberately scoped down from it. The spec described a persisted `ReportGenerationRun`/`GeneratedReport` backend, polling/realtime status updates, per-report retry infrastructure, and four independently-tracked report types (Personal, Matching, Strategy, Evaluation) plus CV Suggestions — none of which exist in this codebase: the actual post-confirm step generates exactly two reports (Personal + Matching) synchronously in one page visit, Strategy Report is a separate later onboarding step (F7), and "Evaluation Report"/"CV Suggestions" do not exist anywhere in the product. Rather than build the spec's backend or silently ship a token visual tweak, used `AskUserQuestion` to get an explicit scope decision from the owner: **"Redesign the existing 2-report flow"** — rebuild the visual/informational design to match the spec around the two reports that actually generate here, keep everything synchronous (no generation-run table, no polling API, no per-report retry infra), and never claim a status the code cannot back up. What shipped: a confirmation hero (checkmark, "Your information is confirmed" → "Your reports are ready" on completion, an optional "Confirmed {date}" line read from the new `student_profiles.confirmed_at` via a tolerant `loadConfirmedAt` select so a pre-migration deployment degrades to no date rather than a 500), a shrunk loading video/GIF next to an overall progress bar (shown only pre-completion), a `<ul>` of two independently-tracked report rows (Personal, Matching — each its own status: generating/complete/failed, its own "Open report" link once done, its own "Try again" retry that re-fires only that report's fetch, not both) with an `aria-live="polite"` status region, a failure-reassurance panel when any report fails ("your confirmed information is safe"), and an honest "you can leave this page — we'll keep working in the background" note (genuinely true here: no `AbortController`, a client-side nav away doesn't cancel either in-flight fetch). The two reports are generated via module-level pure async functions (`fetchOrGeneratePersonal`/`fetchOrGenerateMatching` — GET-then-POST-if-missing against the existing `applicant-analysis`/`course-match`+`match-insights` routes, unchanged), kept setState-free so they're independently unit-testable and so mounting them via a nested `function run() {}` declaration inside each `useEffect` (not a `useCallback` referenced by name) avoids a real `react-hooks/set-state-in-effect` false positive — confirmed by reading the rule's own HIR-based analysis in `node_modules/eslint-plugin-react-hooks`, which flags any setState reachable from an effect regardless of whether it happens before or after an `await`; the same nested-declaration workaround is already established elsewhere in this codebase (`strategy-recommendation-workspace.tsx`). 4 new tests (`analysis-workspace.test.tsx`): both reports completing, one report finishing while the other is still mid-flight and openable independently, one report failing with its own retry while the other succeeds, and the confirmed-date/course-subtitle rendering. Caught and fixed during this pass: several of the ~21 newly-added i18n dictionary entries were typed with curly apostrophes (`'`) by habit — matching the convention used by many *other* entries elsewhere in this large dictionary — while the component's actual source strings use straight apostrophes (`'`) throughout; since the dictionary is keyed by exact string match, the mismatched entries would have silently failed to resolve translations for real strings. Browser verification not done this pass — see the verification snapshot below. | The screen shown right after "Confirm & Generate Reports" now looks and reads like the approved design — a clear confirmation state, per-report status a student can actually trust (not a faked progress bar), and an explicit "you can leave" message that is true rather than aspirational — while the actual generation behavior (two reports, synchronous, existing routes) is unchanged. A report that fails can be retried on its own without re-running the one that already succeeded. The four-report/polling/persisted-run vision from the full spec remains a known future scope, not attempted here. |
+| `48a1b10` (#176) | **Fixed a production incident: confirming Candidate Information failed for every student with a misleading `503`.** Owner-reported with a real Vercel function trace showing `POST confirmed_candidate_snapshots` → `403`. Two bugs, not one: (1) `supabase-candidate-confirmation.sql`'s RLS setup had a `SELECT` policy but no `INSERT` policy on `confirmed_candidate_snapshots` — the confirm route inserts through the ordinary user-session client (not `createAdminClient`), so RLS applies, and with no `INSERT` policy it defaults to denying everyone, including the row's own owner. Fixed by adding `confirmed_candidate_snapshots_insert_own` (`WITH CHECK (auth.uid() = user_id)`), idempotently, to the same migration file. (2) The route's own `migrationMissing()` classifier made the failure invisible: it matched any error whose *message* contained the string `confirmed_candidate_snapshots`, and Postgres's RLS-violation message ("new row violates row-level security policy for table ...") happens to contain exactly that — so a real permission error (`42501`) was misclassified as "migration not run yet," returning a `503` telling the student to retry a request that could never succeed. Narrowed the check to match only on the Postgres/PostgREST codes that actually mean "does not exist" (`42703`/`PGRST204`/`42P01`) or the phrase "does not exist" in the message; an RLS or other permission error now correctly falls through to a plain `500`. New test asserts a `42501` error returns `500`, not `503`. Full writeup: `known-issues.md` §5n. **Action required in production**: re-run `supabase-candidate-confirmation.sql` (idempotent) to pick up the new policy — the code fix alone does not grant the missing database permission. | Confirming Candidate Information ("Confirm & Generate Reports") will work once the updated migration is re-run in production, instead of failing for every student with a message that told them to do the one thing (wait, retry) that could never fix it. Any future permission/constraint error on this route will now surface as a genuine error instead of the same misleading "try again shortly." |
+| `4c95861` (#175) | **Rebuilt the Edit Achievement / Edit Activity modal as a large two-column editor, and fixed a latent focus-theft bug in the shared `Modal` component along the way.** Owner-supplied approved design (2 screenshots: current cramped popup vs. the approved large editor). (1) `EditEvidenceModal` (`features/apply/ui/edit-evidence-modal.tsx`) is now a `min(1120px, 100vw−64px)` two-column workspace (near-full-height single column on mobile) instead of the old `max-w-sm` six-field popup: header with a category icon in a pastel square, title, subtitle, and a labelled `Close editor` button; a real `Level` dropdown (`LEVEL_SUGGESTIONS` plus `Not applicable`/`Other`, the latter revealing a free-text field — `level` stays free text in the schema, per its own existing "not a boundary" rationale, so a custom value already on a record is never coerced into one of the suggestions) instead of a text input; a generated `Award year` dropdown instead of a bare number spinner; a `Description` textarea with a live `1500`-character counter; sticky footer. (2) Inline validation (title, description, and — achievement-only — award year) replaces the old `disabled`-until-valid button, with real per-field error text and `aria-invalid`/`aria-describedby` wiring — and deliberately does NOT use the native HTML `required` attribute on those fields, only `aria-required`, because `required` on a field inside a `<form>` makes the browser's own constraint-validation tooltip intercept a submit-button click before this component's `onSubmit` ever runs, silently replacing the custom inline message with a native one (which is itself the kind of "browser alert" the spec says to avoid) — caught by a same-day test failure where clicking Save with an empty required field never showed the inline error at all. (3) Unsaved-change protection: closing via X, Cancel, Escape, or a backdrop click while the form is dirty shows a "Discard changes?" confirmation instead of closing silently, implemented as a single in-panel overlay (not a second stacked `Modal`) specifically to avoid two independent Escape-key listeners firing for one keypress. (4) Fields that came back from AI extraction reading literally `N/A` (a real, observed extraction artifact, not something this codebase's own code ever writes) are normalised to blank on open — showing "N/A" as if it were the student's own answer was an explicit thing the spec asked to fix. (5) **Root-caused and fixed a real bug in the shared `Modal` component**, not specific to this editor: its focus-management effect keyed on `[open, onClose]`, and `onClose` is a fresh function reference on every render for nearly every caller in this app (an inline arrow, or — as in this new editor — a function whose identity depends on render-local dirty-tracking state). Every one of those re-renders re-ran the effect and yanked focus back to the panel's first focusable control, which is what made typing into "Achievement name" reliably lose keystrokes to the achievement-type dropdown the moment the field went from empty to non-empty (a real, user-visible mid-typing focus jump in any browser, not merely a test artifact — a Vitest+Testing-Library reproduction is what surfaced it). Fixed by reading `onClose` through a ref updated every render instead of closing over the prop directly, so the effect depends only on `[open]`; every other `Modal` caller in the app benefits from the same fix without any of them needing to memoize their own `onClose`. **No backend or schema changes**: there is no per-item `PATCH /api/candidate/achievements/:id` in this codebase — "Save changes" still commits to the parent page's in-memory achievements/activities list (`reflection-evidence-form.tsx`), which is what already makes the card update with no reload, and the whole list is persisted together via the existing `PATCH /api/reflection` (already `423`s once the profile is confirmed) when the student reaches Review & Confirm; achievement/activity category enums, `period` staying one free-text field (not split into start/end), and the description's stored 2000-char schema cap (vs. this editor's 1500-char UI limit, enforced client-side only) were all left as-is — none of the two supplied screenshots show a reason to change them, and widening the achievement-type enum in particular would be a real data-model change outside "improve the editor" scope. 8 new tests (`edit-evidence-modal.test.tsx`: N/A normalisation, save, blocked-save inline errors, dirty-aware close/discard, activity-specific fields, add-mode labelling); the full 1940-test suite (including every other existing `Modal`-based dialog) and i18n check (0 missing keys after ~40 new EN/VI pairs) both pass. Browser verification not done this pass — see the verification snapshot below. | Opening Edit on an achievement or activity now opens a spacious, easy-to-scan editing workspace instead of a cramped popup, with a working "Level" dropdown, a real year picker, a description counter, and genuine inline validation messages a student can actually see (previously invisible behind the browser's own tooltip). Closing with unsaved changes now asks first instead of silently discarding them. Separately, every OTHER modal in the app (remove-confirmation, rename, add-type chooser, duplicate-merge prompt, etc.) is now free of a focus-stealing bug that existed before this change touched any of them. |
+| `5375782` (#174) | **Added a Review & Confirm checkpoint between finishing Candidate Information and report generation, with an immutable snapshot and a profile lock.** Owner-supplied 74-section spec plus 6 mockups. Scoped down from the spec's own §52 ("all reports must read from the snapshot, not live tables") by explicit owner choice — that would mean rewiring the already-shipped Personal/Matching/Strategy report generation across three features; existing reports keep reading the live tables, which are frozen anyway once the profile is locked. What shipped: (1) A new `/ai-strategy/reflection/confirm` page — readiness summary (four required-question checks plus any achievement/activity still `needs_review`, both reusing the exact rule `reflection-about-form.tsx`'s own Next-button gate already enforced, now extracted into `reflectionBlockingIssues`/`candidateReadiness` and shared with the server), per-section review cards with Edit links back into the two step forms, a checkbox acknowledgement, and a confirmation modal. Deep-linking Edit to the one wrong question (spec §11) was descoped by owner decision — Edit always reopens the step form, and the analysis-gate route guards (see below) mean an edit always funnels back through this checkpoint before reports can run. (2) `POST /api/candidate-information/confirm` — idempotent (a second call returns the existing snapshot rather than creating one), re-validates readiness server-side rather than trusting the client, inserts one `confirmed_candidate_snapshots` row (a single JSONB `{reflection, documents}` blob — the exact shape already read/written everywhere else in this feature, not a six-plus-table normalized schema) and sets `student_profiles.confirmed_at`. (3) `PATCH /api/reflection` now checks the lock first and returns `423 PROFILE_LOCKED` once confirmed; a missing `confirmed_at` column (migration not yet run) fails open, matching every other tolerant-read in this route. (4) The two reflection pages (`/ai-strategy/reflection`, `/ai-strategy/reflection/achievements`) branch on `confirmedAt` into dedicated read-only views (`ConfirmedReflectionView`, `ConfirmedAchievementsView` — new components, not the editable cards/forms with their actions hidden, per the spec's own "not a disabled copy" principle) instead of the editable form. (5) `nextOnboardingStep` gained a `confirm` step between `achievements` and `analysis`; the `analysis`/`analysis/fit`/`analysis/portrait`/`analysis/recommendation` route guards, which previously only checked `personal-summary`/`achievements`, now also redirect a not-yet-confirmed student back to `/confirm` — without this, a student could reach report generation without ever passing through the checkpoint. (6) The achievements page's "Finish" CTA now always routes to `/ai-strategy/reflection/confirm?return=<original destination>` instead of pushing straight to the analysis gate or the standalone report page; both are carried through as the confirm page's own `return` param, so confirming lands exactly where the old CTA used to. New `confirmed_candidate_snapshots` table + `student_profiles.confirmed_at` column (`supabase-candidate-confirmation.sql`, append-only, SELECT-only RLS). One consolidated server-side loader, `loadCandidateReflection` (`features/apply/api/candidate-snapshot-repository.ts`), replaces what would otherwise have been a third near-duplicate of the two pages' existing tolerant-select loaders — used by the confirm route and both read-only views. 39 new/changed tests (readiness domain logic, onboarding step-machine, the confirm route's idempotency/readiness/migration-degradation paths, the PATCH lock); the full 1932-test suite and i18n check (0 missing keys after ~50 new EN/VI pairs, including ~8 backfilled for the previous session's read-only views, which had shipped without dictionary entries) both pass. Browser verification not done this pass — see the verification snapshot below. | A student can no longer submit an edit that quietly changes what a report was generated from: once they press "Confirm & Generate Reports," their candidate information, achievements, activities, and documents are locked exactly as reviewed, shown back to them as read-only from that point on, and a direct or bookmarked link into report generation bounces them back to this checkpoint first if they have not been through it yet. |
+| `a57f0f1` | **Rebuilt the Achievements & Activities page (Candidate Information step 2) as an upload-first card grid — owner-supplied 60-section spec plus a mockup screenshot.** Replaces the giant `RepeatableFieldset` form, where every achievement/activity (extracted from a PDF or typed by hand) rendered as the same six-field inline block, with the flow the spec describes: **upload → AI extracts → cards appear → review/edit → finish.** (1) Extracted items now become cards immediately — tagged "Extracted from {file}" and `needs_review` (new `review_status`/`source_type`/`sources` columns, `supabase-reflection-review-status.sql`) — instead of sitting in a separate checkbox-approval panel before anything is added to the profile; a **"Review achievements" drawer** steps through the unreviewed ones one at a time (Keep/Edit/Remove), closing with "All extracted achievements reviewed". `NULL` on a pre-existing row reads as already-reviewed/manual, so nothing already saved is retroactively flagged. (2) A same-title extraction is now flagged **"Possible duplicate"** (Merge / Keep both) rather than silently dropped, which was the previous behaviour and indistinguishable from the extraction having missed it; Merge unions the source list and fills only the fields the existing record was missing, keeping its id so an edit made before the merge survives. (3) **Edit is a small modal**, not the old inline form — one component handling both kinds via a `kind` discriminant, since achievement and activity share five of six fields — and a manual achievement/activity (added via a "What would you like to add?" type chooser) looks identical to an extracted one once saved, no visual penalty. (4) The document panel lists **every uploaded document**, not just the current session's (new `uploaded_documents` read in `page.tsx`, `useEvidenceDocuments` hook), each with **Preview/Rename/Reprocess/Remove**; Preview opens the **browser's own PDF viewer** in a right-side drawer via a signed URL (`#page=N` for page-jump) rather than a hand-built page/zoom control set — nothing in this codebase renders a PDF today, and every major browser already ships a full viewer. Removing a document does not touch achievements already extracted from it (they are separate rows the moment they exist). (5) Card icons use **one consistent brand tint**, not the five-to-six soft category colours the spec's mockup draws: `tokens.css` defines exactly three soft fills, and CLAUDE.md rules out inventing kit variants — every sibling control in this redesign (`SelectionCard`, `OptionCards`) already answers "tell options apart" with icon shape on one tint, not colour. **Three scope simplifications, stated rather than hidden:** extraction stays the existing synchronous request/response route (not a new background-job/polling/realtime architecture — the inline "Finding achievements…" status covers the same UX ground); duplicate detection stays title-based (extending the comparison `applyEvidenceCandidates` already made) rather than a general fuzzy/AI merge across documents; `activitySchema.period` stays one free-text field rather than being split into start/end dates, per its own existing design rationale. Verified in a browser: upload → extract → an unreviewed card with its source badge → the one-at-a-time review drawer (Keep confirms, card badge flips to "✓ Reviewed", the Review button disappears once the queue is empty) → edit modal (type-dependent fields) → type chooser → remove confirmation, on both the academic and extracurricular tabs; mobile at 390px (tab bar scrolls independently within its own row, zero page-level horizontal overflow). 15 new/changed tests (duplicate flagging, merge field-filling, review-status defaulting on read); the full 1914-test suite and i18n check (0 missing keys after ~65 new EN/VI pairs) both pass. Branch restarted from `main` after PR #172 merged mid-session; see the "Code snapshot" line above. | A student uploads a CV once and sees achievement/activity cards appear from it, tagged with exactly where each fact came from, instead of retyping an entire academic history into a giant form or wading through a checkbox list before anything lands on their profile; a same-title duplicate is caught and offered a merge instead of silently vanishing or duplicating; and every document they have ever uploaded — not just this session's — stays visible, previewable, and removable without deleting what was already learned from it. |
+| `3b1f831` (PR #172, spec 2) | **Questions 5–8 rebuilt to spec 2: subject and destination grids, study-level cards, and a generated intake picker.** (1) Q5/Q6 share one `SearchableMultiSelectGrid` — the spec asks for that, and the reason is the reason everything else here is shared: two grids that merely look alike drift. Each tile is a `<label>` around a real checkbox, so Space toggles, Tab moves and the selected state is never carried by colour alone. (2) Subjects come from a new config-driven catalogue of 45 across nine groups (the previous list was `subjectFamilies`, a computing-dominated discovery taxonomy — a student wanting Nursing or Politics had nothing to click), with stable slugs, icons and aliases so `CS`/`AI`/`IT`/`maths` resolve. Searching for something absent offers **Add as Other**, which stores the typed words separately rather than as a slug matching cannot resolve. (3) Destinations cover every country, built as a view over the ISO nationality catalogue rather than a second list. Popular destinations lead; the rest are behind **Show all countries** (200 tiles inline made a page nobody scrolls), and searching bypasses the cap. **`🌍 I'm open to other countries` is a flag, not 197 selections** — selecting everything is the absence of a preference, so there is deliberately no Select all here. (4) Q7 is full-width `SelectionCard`s with contextual guidance when the chosen level outruns the stated qualification — guidance, never a block, per the spec. (5) Q8's intake is **generated from today's date** and stored as `{type, season, year}`; the old list was seven hardcoded strings that would have kept offering 2026 in 2029, and a display string has to be parsed before anything can match on it. Four questions now block Next with an inline message. **A real gap found while verifying:** deriving destinations from nationalities silently dropped Hong Kong — a territory, not a UN member, and a destination the spec names — visible only because the popular block came back one tile short; `EXTRA_DESTINATION_ISO` adds it and Macau, with a test. Both storage readers accept the display strings the previous form wrote, so nobody loses their destinations or intake. | A student picks subjects from a list that includes their subject, finds a country by typing `UK`, says they are open to suggestions instead of ticking 197 boxes, and chooses an intake that will still be correct in 2029. Verified in a browser end to end: 44 subject tiles, alias search, the empty state and Add-as-Other, all four inline validation messages, the 20→200 country expansion with Hong Kong present, and the intake listbox under keyboard control. 46 new tests. |
+| `ac1117d` (PR #172, spec 3) | **Rebuilt Questions 9–12 of the Candidate Information questionnaire: AI-assisted written answers, per-subject motivation, funding as cards, and a multi-currency tuition budget.** Owner-supplied spec plus 4 mock-ups, built on top of specs 1–2 in the same PR. (1) Q9 ("What do you want to do after you graduate?") gets a 1500-character textarea with a live counter, three prompts, a reassurance line, and **Generate ideas with AI** — new `POST /api/reflection/ideas` (`generateAspirationIdeas`) returns 2–4 short first-person sentences built only from what the student already told the form (their chosen subjects, their own draft), never a name, grade or nationality. A suggestion is **appended, never applied**: it lands in the textarea only on click and is ordinary editable text from that instant — the route has no write path at all, which is the only way to actually enforce "assist, not replace". (2) Q10 ("Why this subject?") is now asked **per subject**, driven by the subjects chosen in Q5 — one box was unanswerable for a student who picked three. Only one subject needs an answer; the rest are optional tabs with a tick once answered. The map lives in a new `subject_motivations` JSONB column with a `__primary` key naming which subject mirrors into the pre-existing `study_motivation` string column, so `match-insights.ts`'s `personalContext` and the portrait's "driving force" section keep reading the one column they always read — nothing downstream needed to learn about the map. A student who answered the old one-box version keeps seeing their text above the new boxes; which subject they meant is not guessed at. (3) Q11 (funding) becomes full-width `SelectionCard`s with a sentence of explanation per option, and now stores a stable id (`personal_savings_or_parents`, etc., new `funding-catalog.ts`) instead of the option's display string — the last reflection field that was still doing that. `fundingSourceFromStored` still reads the old prose values, so nobody's existing answer disappears. (4) Q12 (tuition budget) is now a real range in the student's **own currency** — GBP/USD/EUR/CNY as pills plus nine more behind "Other" — replacing the VND slider + 5-band USD enum pair, which forced every non-Vietnamese budget through a đồng conversion to answer at all. Changing currency **re-expresses** the amount (`reBase`) rather than resetting the handles; the top of each scale is the open-ended "and above" band (`max: null`); the other-currency conversions shown under the slider are explicitly labelled approximate and are never stored — only `{currency, min, max}` is. The legacy `tuition_budget_usd` band is derived from the structured budget on write, so `candidate-context.ts` and the matching prompt keep the input they already read. Verified end-to-end in a browser by walking `/dev/reflection` through all twelve questions (seeded past the required-intake gate that had been silently blocking Q9–12 in the dev preview), including switching Q10 between two subjects and Q12 between currencies; a double-labelled Q9 textarea (heading printed the same string as the field's own `<label>`) was caught and fixed the same way. 15 new tests (funding catalogue + the new reflection read/write paths); the pre-existing 211-test `features/apply` suite and the 1911-test full suite both still pass; i18n clean (0 missing keys after adding ~55 new EN/VI pairs). | A student can answer "what do you want to do after graduating?" with an AI-suggested starting sentence they can freely edit, give a different reason for each subject they're considering, pick how they'll fund their study from cards that explain what each option means, and set their tuition budget in whichever currency they actually think in — with a live approximate conversion to the others, never silently converted and stored. |
+| `#172` (specs 1–2) | **Redesigned the Candidate Information questionnaire: two display modes, rich per-question controls, real score scales, and AI grade conversion.** Owner-supplied spec plus mock-ups. (1) A **One question at a time / Show all questions** toggle. Both modes render the *same* `AboutQuestion` component — one calls it once, the other twelve times — so switching cannot lose an answer or downgrade a control to a plain input, and there is no second implementation to drift. (2) Every question now draws through one `QuestionCard` (icon, heading, one-line explanation), which is what makes twelve questions read as one designed thing rather than a pile of form controls; the icon comes from `ABOUT_QUESTIONS` so copy and visual are decided together. (3) Education is large selectable option cards with an **Other → describe it** field; the free text is stored on `current_qualification` in place of the literal word "Other", so the portrait reads the real qualification. (4) Nationality is a compact flag trigger opening a searchable grid over all 197 nationalities — new `src/lib/nationality-catalog.ts`, keyed by ISO code so flags derive from the code and country names come from `Intl.DisplayNames` (the Vietnamese half is translated by the platform, not by 197 dictionary rows). Aliases mean "UK", "United Kingdom", "England" and "British" all find the same row; matching is accent-insensitive. (5) **Scores now know their own scales.** The form previously took GPA and IELTS as unvalidated free text — its own IELTS placeholder read "7 / 10", a band IELTS does not issue. New `academic-scores.ts` states GPA 0–4.0, IELTS 0–9.0 in half bands, TOEFL 120, PTE 90, Duolingo 160, Cambridge 230, and (unused but ready, per the spec's insistence) SAT 400–1600, ACT, IB, AP. Out-of-range values show an inline error naming the scale. (6) **Three kinds of conversion, only one using a model.** A published English test → IELTS is a documented concordance done in code (instant, free, cannot hallucinate); a free-text description of grades → GPA, and an unlisted English qualification → IELTS, go to `POST /api/reflection/convert-score`. The model may answer "I am not sure" — that is a 200 with a null value and a reason, and the UI shows the reason instead of a number. Server-side clamping holds any estimate to the scale and snaps IELTS to half bands. Nothing is ever written without the student pressing "Use this"; the original description and the conversion method are stored alongside the value in `grades_summary`, so a converted 4.0 is never mistaken for one the student was awarded — **and none of it needs a migration.** (7) Debounced autosave with a subtle "✓ Saved", and Save & Exit. Verified in a browser: all twelve questions, both modes, mode-switch data retention, GPA 4.5 and IELTS 9.5/6.25 inline errors, TOEFL 95 → IELTS 7.0, the AI result card, mobile at 390px (zero horizontal overflow, tracker collapses to a bar, nationality grid to two columns), Escape-to-close and keyboard reachability. | A student picks their education from cards, finds their nationality by flag or by typing "UK", and — whatever school system they come from — can describe their grades in their own words and get a defensible estimate they confirm before it is used. Scores can no longer be stored off their own scale. 54 new tests cover the catalogue/stored-list sync in both directions, every concordance table for monotonicity and range, the validators, and the conversion clamping. |
+| `#171` | **Rebuilt reflection step 1 as a one-question-at-a-time flow, gave the reflection pages the application nav band, replaced three free-text fields with pickers, synced the two budget controls, and added the three questions the reports were already asking for.** Owner-reported, five items. (1) Step 1's twelve questions are now one per screen with Back/Next, and the progress bar fills a notch per answer instead of sitting at 50% from arrival — the order lives in `ABOUT_QUESTIONS` (`domain/reflection-steps.ts`) so the sequence and the progress maths cannot disagree. Step 2 keeps its list layout (owner decision: repeatable lists are not single questions). (2) The reflection pages sit at `/ai-strategy/reflection`, outside the `[applicationId]` layout that mounts the red band everywhere else, which is why they were the one place in the flow with no breadcrumbs — `ApplicationNavFromReturn` derives the id from the `?return=` param the onboarding router already builds, and **re-checks ownership against `course_applications`** because a query parameter is untrusted. (3) Nationality is a 197-entry `Select`; majors and countries are searchable `MultiSelect`s over `subjectFamilies`/`regions`, replacing comma-separated text. Both gained a visible question label — `MultiSelect` renders its `label` as `aria-label` only, which left a bare search box on a one-question screen. (4) The VND slider and the USD band were two independent controls for what the owner confirmed is one quantity; both are relabelled **annual tuition** and now update each other through `vndRangeFromUsdBand`/`usdBandFromVndRange`, with the exchange rate printed in the UI rather than applied silently. Syncing the previous labels (total cost vs annual tuition) would have needed an invented course length and living-cost estimate. (5) Added career goal → the existing `goals` column, why-this-subject → new `study_motivation`, and target intake → new `target_intake`; `match-insights.ts` builds `careerDirection`/`personalContext` from those columns and F7 scores a `futureAlignment` dimension against them, and nothing in reflection had ever written any of them. The PATCH retries without the two new columns on a missing-column error, so an unapplied migration costs the two new answers rather than the whole step. Run `supabase-reflection-questions.sql`. | A student answers one question at a time with honest progress, can get back to their application from inside reflections, picks subjects and countries from real lists instead of typing comma-separated text, sees the two budget controls agree, and is asked the three things the Personal, Matching and Strategy reports were previously scoring against a blank. 25 new domain tests cover the budget conversions (including the round-trip that keeps the two controls from rewriting each other) and the per-question progress. |
+| `#170` | **Fixed every Planner task detail page returning an error page, and the Planner dashboard crashing for any application with a deadline.** Reported by the owner with a live URL after §5i had supposedly fixed the same symptom — §5i was aimed at the wrong cause. The task detail page is a server component that imported `categoryLabel`/`categoryVariant`/`formatDate`/`PRIORITY_LABEL`/`PRIORITY_VARIANT` from the feature's `ui` barrel, which re-exported them from `planner-shared.tsx` — a `'use client'` module. A client module's exports reach a server component as client references, not values, and the two failure modes are asymmetric: **calling** one throws (`Attempted to call categoryLabel() from the server…`), which is what 500'd every task page, since a generated recommendation essentially always has a category; **reading** one (`PRIORITY_VARIANT[priority]`) silently yields `undefined`, so the priority badge would have rendered blank. `dashboard-summary.tsx` had the same bug in a narrower form — it called `formatDate(deadline)`, so the Planner dashboard crashed only when the application had a deadline set. Fixed by extracting the pure mappings and the formatter into a new directive-free `planner-presentation.ts`, usable from both module graphs; `planner-shared.tsx` keeps only the React components. Diagnosed and confirmed with a throwaway server-component probe route under `src/app/dev/` (neither `tsc` nor `next build` catches this — the types are identical and the failure is at render), then re-verified by rendering the detail page's exact body against a synthetic row with every branch populated. Also swept the whole repo with a one-off scanner for other server modules importing non-component values from `'use client'` modules; the only remaining hits are `T` (a component, safe) and `useT` in three components that are already only rendered inside client trees. See `docs/known-issues.md §5l`. | Clicking any task in the Planner opens its detail page again instead of an error page, and the Planner dashboard no longer crashes for an application with a deadline. New `planner-presentation.test.tsx` (8 tests) guards the structural property that prevents a recurrence, since a unit test cannot reproduce the RSC boundary itself. |
+| `e61545e` (#169) | **Three owner-requested follow-ons to the header animation.** (1) The three background words now size against the header's own height (`mainFontSize`/`subFontSize` as fractions of it, `textBaseline: 'middle'`) instead of the deliberately small text #168 shipped — the header itself does not grow, so the rows overlap rather than stack. (2) The boot line's alignment flash now overlays only `bootText.slice(0, 2)` ("Go") instead of the full typed "Gooooo…" string — the repeated `o`s never turn white. (3) The brand-red fill and the real breadcrumb/nav content now hold back ~3 seconds after mount (`gb-app-nav-reveal`, `src/styles/tokens.css`, `animation-delay: 3s`) so a visitor sees the animation play against the page's own background before the chrome arrives; the canvas itself is unaffected by the delay. Building (3) surfaced a real bug, caught only by pixel-sampling a screenshot (not visible in a compressed PNG — the same false alarm #168 nearly repeated): the delayed fill `<div>` was placed *after* `ApplicationNavBackground` in JSX, so once its fade-in finished it painted on top of the canvas and silently buried the animation instead of becoming its backdrop. Fixed by moving the fill before the canvas in source order. See `docs/known-issues.md §5k`. Verified visually via a throwaway `/dev/nav-preview` route, Playwright screenshots across the full cycle (mount, mid-boot, pre-reveal, post-reveal, settled), and pixel/opacity sampling to confirm both the reveal timing and the stacking fix, before removing the scaffold. | The animation now visibly fills the header without adding height, only ever flashes "Go" white (never the repeated `o`s), and plays on its own for ~3 seconds before the red chrome and real navigation settle in around it — with the animation still visible as texture on the red afterward, not buried under it. |
+| `5a78a1f` (#168) | **Rebuilt the header animation to fit inside the existing header and follow the full reference spec.** Owner feedback on PR #167: the animation had to live inside the header's own bounds, not add a strip below it, and had to follow the supplied spec's full three-phase choreography (an easing-curve "Go"→"Gooooo…" typing reveal, two marquee rows decelerating via the exact integrated-velocity physics formula, and a sine-fade alignment flash with a 1-second anticipatory lead on the second row) rather than the simplified single-row version shipped in #167. Ported the algorithm faithfully, scaled to the header's real (unchanged) height instead of the reference's viewport-width sizing. Caught and fixed a real bug in the port along the way: the flash was lighting up an entire tiled row at once instead of only the one word instance the reference's own alignment math targets — confined to a header with no spare space, a whole-row flash competed with the real nav text the same way the dedicated-strip version was built specifically to avoid. Fixed to flash only the matching instance, and added a low base-opacity pass (`BASE_ALPHA`/`FLASH_PEAK_ALPHA`) since three lines of decorative text at full strength directly behind two lines of real content reads as clutter at this scale, not texture. | The header animation now lives entirely within the header's existing footprint — no added height — and matches the supplied spec's actual choreography and physics, while never outshining the real breadcrumb/nav text on top of it. |
+| `642abe7` (#167) | **Added a kinetic-typography accent strip under the brand-red application header** — superseded by the entry above; see it for why the strip approach was replaced. | — |
 | `8fb9f2f` | **Fixed Log 3 User Profile option selection.** `/profile/preferences` now gives countries and target subjects an accessible local combobox: deterministic, case-insensitive search ranks prefix matches first; mouse and Arrow/Enter/Escape selection work; selected values are excluded; case-insensitive duplicates are prevented. Countries use onboarding `regions` plus the existing `Open to ideas` sentinel; subjects are flattened from `subjectFamilies`; cities remain flexible free-text tags. The sentinel is exclusive. Added 13 focused `TagInput` tests. | Students can type a country or subject fragment, see valid matching choices, and select one without changing the existing authenticated `student_profiles` upsert or the flexible city workflow. |
-| `9b769ee` (#166) | **Made the Matching Report the application's permanent home, and added "generate Planner tasks from this strategy report."** `/ai-strategy/[applicationId]/strategy` no longer computes `nextOnboardingStep`/redirects onward through intro â†’ strategy â†’ dashboard once the analysis exists â€” it now always lands on `/strategy/analysis/fit`, for every application, regardless of how far the student has since progressed; Personalized Strategy and the Planner are reached only through the nav bar now. Also: `strategy-recommendation-report.tsx`'s Roadmap tab gained an "Add to Planner" button (`POST /api/applications/[id]/strategy/roadmap-tasks` â†’ `generateRoadmapTasks`) that turns the F7 report's `roadmap.prioritize`/`.avoid` into `application_recommendations` rows under a new `strategy-roadmap` category â€” no new AI call, reconciled by (category, title) via a generalised `reconcileSeeds` (extracted from `reconcileRecommendations`, which is now a thin wrapper over it), so re-clicking after the report regenerates updates the same tasks instead of duplicating them. Same PR also fixed a recommendation detail page crash on a malformed genUI `content_schema` â€” `parseContentBlock`/`parseContentBlockValue` now validate the full shape via zod instead of only the `type` field. See `docs/known-issues.md Â§5i`. | The Matching Report is now a stable "home" for an application instead of a moving target. A student reading the Personalized Strategy report can turn its roadmap directly into trackable Planner tasks with one click. A malformed task no longer crashes the detail page. |
-| `06efde1` (#165) | **Fixed `/strategy/analysis/portrait` and `/strategy/analysis/fit` 404ing for every application, and merged the duplicate navigation bar.** Reported same-day, right after Â§0d/Â§0e/Â§0f were confirmed closed: both report pages 404'd. Root cause was not a migration gap â€” `load-evaluation.ts` selected `tuition_fee`/`entry_requirements_summary`/`english_requirements_summary`/`image_url`/`logo_url` directly off `course_applications`, but the live table (`supabase-apply-v2.sql`'s UUID-id schema) never had those columns; they exist on `courses` (via `course_id`, following the same join `application-workspace.ts` already uses) and `universities`. A stale, superseded `CREATE TABLE IF NOT EXISTS course_applications` in `supabase-apply-system.sql` (a TEXT-id schema) does have all five, which is how the mismatch went unnoticed by the schema-dump reconciliation. See `docs/known-issues.md Â§5h`. Also removed the redundant black `StageBar` the three report pages rendered under the layout's red `ApplicationNav` bar (same five-ish destinations, occasionally disagreeing on what was unlocked), and changed `SubNav` so a locked entry is omitted rather than shown dimmed, per explicit product direction. | Both reports load again for every application. One navigation bar instead of two stacked bars; a student only ever sees destinations they can actually open. |
-| `19a5d7c` (#163) | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row â€” stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work â€” is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint â€” its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
-| `59c334e` (#159) | Fixed a same-day production incident (the fourth on the checklist/F7 feature that day, and the root cause of the whole day's trouble): `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** â€” confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made Â§5e/Â§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (Â§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway â€” reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (Â§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md Â§5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page â€” every other (non-application) entry point into those forms is unchanged. |
-| `b610087` (#158) | Fixed a same-day production incident: Overview was only shown to a student with neither reflection step done, so a returning student (reflections globally already marked complete) skipped it entirely. See `docs/known-issues.md Â§5f`. | `strategy/page.tsx` gated Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags; `/apply/[applicationId]/page.tsx` simplified to bounce to `/ai-strategy/[id]/strategy` rather than duplicating the decision. |
-| `dac93c0` (#157) | Fixed a same-day production incident: `fetchOnboardingState`'s `aiAnalysisComplete` only checked the Personal Report, not the Matching Report, letting an incomplete analysis reach the F7 page. See `docs/known-issues.md Â§5e`. | `aiAnalysisComplete` now requires both reports; the F7 workspace redirects to the analysis gate on a `needsInputs` response instead of retrying the same doomed call. |
-| `573db50` (#156) | Retired the free `/apply/[applicationId]` checklist/match-insights UI (now a pure onboarding redirect) and built F7 "Personalized Strategy" â€” a new, separate, read-only, downloadable-PDF report page, deliberately distinct from the task-tracking Planner. | Clicking into an application lands wherever the student actually is in the gated pipeline (Reflection â†’ Personal Report â†’ Matching Report â†’ Personalized Strategy â†’ Planner). New `application_strategy_recommendations` table; one new OpenAI call synthesising the Personal Report and Matching Report into six sections, written in English by product decision. |
-| `f845ddb` | Added genUI content blocks to AI-generated recommendations. | Every recommendation's detail page body now comes from one of three AI-chosen shapes (`structured_table`/`long_text`/`checklist`) declared at generation time, or none when the task routes to a tool. Its migration (Â§0d) is now confirmed run in production as of 2026-08-12. |
+| `9b769ee` (#166) | **Made the Matching Report the application's permanent home, and added "generate Planner tasks from this strategy report."** `/ai-strategy/[applicationId]/strategy` no longer computes `nextOnboardingStep`/redirects onward through intro → strategy → dashboard once the analysis exists — it now always lands on `/strategy/analysis/fit`, for every application, regardless of how far the student has since progressed; Personalized Strategy and the Planner are reached only through the nav bar now. Also: `strategy-recommendation-report.tsx`'s Roadmap tab gained an "Add to Planner" button (`POST /api/applications/[id]/strategy/roadmap-tasks` → `generateRoadmapTasks`) that turns the F7 report's `roadmap.prioritize`/`.avoid` into `application_recommendations` rows under a new `strategy-roadmap` category — no new AI call, reconciled by (category, title) via a generalised `reconcileSeeds` (extracted from `reconcileRecommendations`, which is now a thin wrapper over it), so re-clicking after the report regenerates updates the same tasks instead of duplicating them. Same PR also fixed a recommendation detail page crash on a malformed genUI `content_schema` — `parseContentBlock`/`parseContentBlockValue` now validate the full shape via zod instead of only the `type` field. See `docs/known-issues.md §5i`. | The Matching Report is now a stable "home" for an application instead of a moving target. A student reading the Personalized Strategy report can turn its roadmap directly into trackable Planner tasks with one click. A malformed task no longer crashes the detail page. |
+| `06efde1` (#165) | **Fixed `/strategy/analysis/portrait` and `/strategy/analysis/fit` 404ing for every application, and merged the duplicate navigation bar.** Reported same-day, right after §0d/§0e/§0f were confirmed closed: both report pages 404'd. Root cause was not a migration gap — `load-evaluation.ts` selected `tuition_fee`/`entry_requirements_summary`/`english_requirements_summary`/`image_url`/`logo_url` directly off `course_applications`, but the live table (`supabase-apply-v2.sql`'s UUID-id schema) never had those columns; they exist on `courses` (via `course_id`, following the same join `application-workspace.ts` already uses) and `universities`. A stale, superseded `CREATE TABLE IF NOT EXISTS course_applications` in `supabase-apply-system.sql` (a TEXT-id schema) does have all five, which is how the mismatch went unnoticed by the schema-dump reconciliation. See `docs/known-issues.md §5h`. Also removed the redundant black `StageBar` the three report pages rendered under the layout's red `ApplicationNav` bar (same five-ish destinations, occasionally disagreeing on what was unlocked), and changed `SubNav` so a locked entry is omitted rather than shown dimmed, per explicit product direction. | Both reports load again for every application. One navigation bar instead of two stacked bars; a student only ever sees destinations they can actually open. |
+| `19a5d7c` (#163) | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
+| `59c334e` (#159) | Fixed a same-day production incident (the fourth on the checklist/F7 feature that day, and the root cause of the whole day's trouble): `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** — confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made §5e/§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway — reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md §5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page — every other (non-application) entry point into those forms is unchanged. |
+| `b610087` (#158) | Fixed a same-day production incident: Overview was only shown to a student with neither reflection step done, so a returning student (reflections globally already marked complete) skipped it entirely. See `docs/known-issues.md §5f`. | `strategy/page.tsx` gated Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags; `/apply/[applicationId]/page.tsx` simplified to bounce to `/ai-strategy/[id]/strategy` rather than duplicating the decision. |
+| `dac93c0` (#157) | Fixed a same-day production incident: `fetchOnboardingState`'s `aiAnalysisComplete` only checked the Personal Report, not the Matching Report, letting an incomplete analysis reach the F7 page. See `docs/known-issues.md §5e`. | `aiAnalysisComplete` now requires both reports; the F7 workspace redirects to the analysis gate on a `needsInputs` response instead of retrying the same doomed call. |
+| `573db50` (#156) | Retired the free `/apply/[applicationId]` checklist/match-insights UI (now a pure onboarding redirect) and built F7 "Personalized Strategy" — a new, separate, read-only, downloadable-PDF report page, deliberately distinct from the task-tracking Planner. | Clicking into an application lands wherever the student actually is in the gated pipeline (Reflection → Personal Report → Matching Report → Personalized Strategy → Planner). New `application_strategy_recommendations` table; one new OpenAI call synthesising the Personal Report and Matching Report into six sections, written in English by product decision. |
+| `f845ddb` | Added genUI content blocks to AI-generated recommendations. | Every recommendation's detail page body now comes from one of three AI-chosen shapes (`structured_table`/`long_text`/`checklist`) declared at generation time, or none when the task routes to a tool. Its migration (§0d) is now confirmed run in production as of 2026-08-12. |
 | `de4a7fe` | Made Planner List/Calendar/Board view switching client-side. | Switching `?view=` no longer refetches the dynamic server page; the URL remains bookmarkable while the UI changes immediately. |
 | `169ca25` | Centralized optimistic Planner state and added deadline editing to the list. | Status and deadline edits appear in all three planner views without a reload; failed writes roll back per edit. |
 | `8d3da8f` | Put the brand-red application context bar on the six primary per-application surfaces. | Overview, Personal Report, Matching Report, Planner, CV builder, and Statement now expose a consistent way back to the rest of the application. Route groups changed file placement only; public URLs did not change. LOR intentionally remains outside this six-item bar. |
@@ -2355,7 +2287,7 @@ code, the code wins.
 - My Portal: `/apply` is the post-login landing and combines saved universities
   with application progress. The bare `/my-universities` permanently redirects
   to `/apply`; its subject picker and legacy task children still exist. Each
-  application row now has **Delete** (real, cascading, confirmed in a modal â€”
+  application row now has **Delete** (real, cascading, confirmed in a modal —
   not the `status='archived'` soft-delete the schema has a column for but no
   code ever wrote) and, when the row has a `university_id`, **Add another
   course** (pastes a second course URL through the existing
@@ -2364,12 +2296,12 @@ code, the code wins.
   drawer** (`src/app/apply/application-scholarships.tsx`, 18/08): the awards
   chosen for that row's university, shown as coupon-style tickets under the
   row, with a multi-select picker that writes straight to `user_scholarships`.
-  It is keyed by **university**, not by application â€” `user_scholarships` has
-  no `application_id` and none was invented â€” so two applications at one
+  It is keyed by **university**, not by application — `user_scholarships` has
+  no `application_id` and none was invented — so two applications at one
   university show the same awards, and a change here also changes the saved
   list below. A row with no `university_id` gets no drawer.
 - Per-application work: `/apply/[applicationId]` is now a pure redirect (no
-  checklist UI of its own) â€” it sends the student to wherever they are in the
+  checklist UI of its own) — it sends the student to wherever they are in the
   onboarding pipeline via `fetchOnboardingState`/`nextOnboardingStep`, unless
   the analysis already exists, in which case it goes straight to the Matching
   Report (see below). The pipeline now has a **Review & Confirm** checkpoint
@@ -2378,36 +2310,36 @@ code, the code wins.
   reflection pages switch to read-only views once locked, and every analysis
   route guard redirects a not-yet-confirmed student back to this checkpoint. The shared application navigation exposes Personal
   Report, Matching Report, **Personalized Strategy**, Planner, CV builder, and
-  Statement â€” a locked entry is omitted from the bar rather than shown dimmed.
+  Statement — a locked entry is omitted from the bar rather than shown dimmed.
   The analysis and planner pages live below `/ai-strategy/[applicationId]/strategy/*`.
   The band itself carries a low-key looping canvas animation behind the
   breadcrumb/nav text (`ApplicationNavBackground`,
-  `src/components/application-nav-background.tsx`) â€” a "Go" â†’ "Goooooâ€¦"
+  `src/components/application-nav-background.tsx`) — a "Go" → "Gooooo…"
   typing reveal settling into two "Glow"/"GlowBal" marquee rows crawling in
-  opposite directions, with an occasional per-instance flash â€” sized to the
+  opposite directions, with an occasional per-instance flash — sized to the
   header's own height (no added space) and kept at low opacity so it reads
   as texture, never competing with the real white nav text on top. Purely
   decorative, `aria-hidden`, gone under `prefers-reduced-motion`.
 - **The Matching Report is the application's home once it exists**, not a
   step in a funnel. `/ai-strategy/[applicationId]/strategy` (what "Overview"
   and `/apply/[id]` both bounce through) used to keep auto-advancing a
-  returning student through intro â†’ strategy â†’ dashboard every visit; now,
+  returning student through intro → strategy → dashboard every visit; now,
   once `aiAnalysisComplete`, it always lands on `/strategy/analysis/fit`,
   for every application, regardless of how far the student has gone since.
   Personalized Strategy and the Planner are reached deliberately through the
   nav bar now, which is also the only thing gating them.
 - Strategy: applicant portrait, programme-fit report, the **Personalized
-  Strategy report (F7)** â€” a separate, read-only, downloadable-PDF report,
-  not part of the Planner â€” recommendation board, recommendation
+  Strategy report (F7)** — a separate, read-only, downloadable-PDF report,
+  not part of the Planner — recommendation board, recommendation
   detail/coach/evidence flows, and List/Calendar/Board planner views are
   implemented. F7's Roadmap tab has an **"Add to Planner" button**
   (`generateRoadmapTasks`) that turns `roadmap.prioritize`/`.avoid` into
-  Planner tasks under a new `strategy-roadmap` category â€” reconciled by
+  Planner tasks under a new `strategy-roadmap` category — reconciled by
   (category, title) the same way the existing Match-Analysis-driven
   generator is, so re-clicking after a regenerate updates in place rather
   than duplicating. A recommendation's `content_schema`/`content_value`
   (the detail page's genUI body) are now fully shape-validated on read
-  (`contentBlockSchema`/`contentValueSchema` in `recommendation.ts`) â€” a
+  (`contentBlockSchema`/`contentValueSchema` in `recommendation.ts`) — a
   malformed row degrades to no content block instead of crashing the page.
 - Documents: CV hub/import/content/layout/review/target-profile flows, the
   OpenAI-backed CV Builder compatibility routes, Statement feedback, LOR
@@ -2431,7 +2363,7 @@ code, the code wins.
 
 ## Architecture facts and current gaps
 
-- The intended shape is `app` â†’ feature API/domain/UI/hook slices â†’ shared/server
+- The intended shape is `app` → feature API/domain/UI/hook slices → shared/server
   leaves, with legacy `src/components` and `src/lib` still load-bearing.
 - The current feature directories are `ai-strategy-dashboard`,
   `application-strategy`, `apply`, `auth`, `marketing`, `mentorship`,
@@ -2455,7 +2387,7 @@ code, the code wins.
 
 Latest task-specific measurement, on 2026-08-15 after the UX/navigation
 correction pass (application-return navigation, reflection breadcrumb +
-stepper, four-category taxonomy, low-effort reflection UX â€” see the top row
+stepper, four-category taxonomy, low-effort reflection UX — see the top row
 of "Last completed work"):
 
 | Gate | Result |
@@ -2465,13 +2397,13 @@ of "Last completed work"):
 | `npx eslint .` | **Pass: 0 errors, 24 warnings, all pre-existing and unrelated to this session's changes.** One real error caught and fixed mid-pass: `activity-reflection-modal.tsx` was calling `setState` synchronously inside a `useEffect` (`react-hooks/set-state-in-effect`); rewritten to the "adjust state during render" pattern instead. |
 | `npx vitest run` | **Pass: 2337 passed, 2 todo, 250 files passed, 0 failed** (was 2317/246 before this pass's new test files: `return-path.test.ts`, `_application-return.test.tsx`, `candidate-information-steps.test.ts`, `reflection-breadcrumb.test.tsx`, plus a full rewrite of `activity-reflection.test.ts` for the new four-category domain shape). |
 | `node scripts/check-i18n.mjs --all` | **Pass: 0 missing keys**, 0 placeholder mismatches, after adding ~60 EN/VI entries to `i18n-application-flow.ts` for this pass's new copy. |
-| `npm run build:ci` | **Pass**, all routes compile â€” but only after a real fix: `shared/ui/use-autogrow-textarea.ts` used `useRef`/`useLayoutEffect` without a `'use client'` directive. `tsc`, `eslint`, and `vitest` (jsdom) all passed with that bug present; only the actual Next.js Turbopack build caught it, because a Server Component transitively importing the hook is invalid regardless of what the hook does at runtime. Worth remembering `build:ci` is part of `verify:pr`/CI for exactly this class of bug â€” the three faster checks are not a substitute for it. |
+| `npm run build:ci` | **Pass**, all routes compile — but only after a real fix: `shared/ui/use-autogrow-textarea.ts` used `useRef`/`useLayoutEffect` without a `'use client'` directive. `tsc`, `eslint`, and `vitest` (jsdom) all passed with that bug present; only the actual Next.js Turbopack build caught it, because a Server Component transitively importing the hook is invalid regardless of what the hook does at runtime. Worth remembering `build:ci` is part of `verify:pr`/CI for exactly this class of bug — the three faster checks are not a substitute for it. |
 | `npm run test:e2e` | Not rerun in this pass. |
-| Manual browser check | **Not run this pass** â€” same sandbox limitation as prior entries (no connected browser instance). Next manual step: from an application's Activities & Achievements page, open a category card, answer a couple of dimensions, navigate away via the breadcrumb, and confirm both the breadcrumb and the modal resume at the same unfinished dimension; separately, open `/profile/academic` from inside an application's Review Profile page, save, and confirm it returns to that application (not `/profile`) with the "âœ“ updated" banner visible. |
+| Manual browser check | **Not run this pass** — same sandbox limitation as prior entries (no connected browser instance). Next manual step: from an application's Activities & Achievements page, open a category card, answer a couple of dimensions, navigate away via the breadcrumb, and confirm both the breadcrumb and the modal resume at the same unfinished dimension; separately, open `/profile/academic` from inside an application's Review Profile page, save, and confirm it returns to that application (not `/profile`) with the "✓ updated" banner visible. |
 
 Prior snapshot, on 2026-08-14 after fixing the three
 remaining `?return=`-dropping entry points into the Personal Report (see the
-top row of "Last completed work" and `known-issues.md Â§5u`):
+top row of "Last completed work" and `known-issues.md §5u`):
 
 | Gate | Result |
 |---|---|
@@ -2480,7 +2412,7 @@ top row of "Last completed work" and `known-issues.md Â§5u`):
 | `npx eslint .` | **Pass:** 0 errors, 24 warnings, all pre-existing and unrelated to this session's changes. |
 | `npx vitest run` | **Pass: 2223 passed, 2 todo, 234 files passed, 0 failed.** |
 | `node scripts/check-i18n.mjs --all` | **Pass: 0 missing keys**, 0 placeholder mismatches (no new user-facing strings this pass). |
-| `npm run build` / browser check | **Not run this pass** â€” same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`, no connected browser instance). Manual next step: from a confirmed application with existing reports, click "Continue" on the read-only Reflections view and confirm the Personal Report now shows its nav band; click "Add more detail to your existing activities" and confirm it opens the (editable, if this application isn't itself confirmed) achievements page instead of a read-only one. |
+| `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`, no connected browser instance). Manual next step: from a confirmed application with existing reports, click "Continue" on the read-only Reflections view and confirm the Personal Report now shows its nav band; click "Add more detail to your existing activities" and confirm it opens the (editable, if this application isn't itself confirmed) achievements page instead of a read-only one. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
 Prior snapshot, measured 2026-08-14 after the PR #192 review
@@ -2494,7 +2426,7 @@ missing package after starting the Next.js 16.2.3 production build. No browser
 or E2E run was needed for this state/auth/i18n regression follow-up.
 Latest task-specific measurement, on 2026-08-14 after the Personal Report
 nav/i18n/inline-answer/matching-report-link fixes (see the top row of "Last
-completed work" and `known-issues.md Â§5s`):
+completed work" and `known-issues.md §5s`):
 
 | Gate | Result |
 |---|---|
@@ -2503,17 +2435,17 @@ completed work" and `known-issues.md Â§5s`):
 | `npx eslint .` | **Pass:** 0 errors, 24 warnings, all pre-existing and unrelated to this session's changes. |
 | `npx vitest run` | **Pass: 2213 passed, 2 todo, 232 files passed, 0 failed.** |
 | `node scripts/check-i18n.mjs --all` | **Pass: 0 missing keys**, 0 placeholder mismatches (~10 new EN/VI pairs added, including 3 version-history trigger labels caught by the dynamic-catalog scan). |
-| `npm run build` / browser check | **Not run this pass** â€” same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`, no connected browser instance). Manual next step: open a real application's confirm screen, verify the Personal Report no longer shows "failed" after a routine profile edit on a second application; generate a Matching Report and confirm the Personal Report picks up a new version; open the version-history dropdown and confirm an older version renders read-only. |
+| `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`, no connected browser instance). Manual next step: open a real application's confirm screen, verify the Personal Report no longer shows "failed" after a routine profile edit on a second application; generate a Matching Report and confirm the Personal Report picks up a new version; open the version-history dropdown and confirm an older version renders read-only. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
 Prior snapshot, measured on 2026-08-14 after the Personal Report
-nav/i18n/inline-answer/matching-report-link fixes (`known-issues.md Â§5s`):
+nav/i18n/inline-answer/matching-report-link fixes (`known-issues.md §5s`):
 base and strict TypeScript passed; targeted ESLint passed; 2178 Vitest tests
 passed across 227 files; i18n check passed with 0 missing keys. Browser
 verification was not done that pass either.
 
 The prior broad snapshot below was measured on 2026-08-14 after the
-scholarship â†’ My Portal handoff repair and PR review follow-up: base and
+scholarship → My Portal handoff repair and PR review follow-up: base and
 strict TypeScript passed; targeted ESLint passed; four focused files passed
 13/13 Vitest tests; `node scripts/check-i18n.mjs` reported 0 missing keys and
 0 placeholder mismatches; and `npm run build` passed on Next.js 16.2.3
@@ -2529,22 +2461,22 @@ then-current uncommitted working tree (`npx` invocations, equivalent to the
 | `npx tsc --noEmit` | **Pass**, 0 errors. |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 2008 passed, 2 todo, 199 files passed, 0 failed.** New/updated: `app-routes.test.ts` (the Overviewâ†”Reflections swap in `applicationSubNav`, the locked-until-confirmed edge case, `activeSubNavKey` for all three reflection routes), new `review-confirm-view.test.tsx` (read-only banner, Continue link, hidden confirm panel/edit links), `confirmed-reflection-view.test.tsx` and `confirmed-achievements-view.test.tsx` (updated for the `returnTo` â†’ `continueHref` prop rename). |
-| `node scripts/check-i18n.mjs` | **Pass: 0 missing keys** (2 new keys added â€” the read-only Review & Confirm banner copy). |
-| `npm run build` / browser check | **Not run this pass** â€” same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`). This pass touches the Candidate Information confirm route guard and the application nav bar â€” a real browser click-through (confirm an application â†’ click "Reflections" in the nav â†’ verify the read-only summary renders instead of bouncing away, and "Continue" lands on report generation or the Personal Report as appropriate) is the priority next verification step. |
+| `npx vitest run` | **Pass: 2008 passed, 2 todo, 199 files passed, 0 failed.** New/updated: `app-routes.test.ts` (the Overview↔Reflections swap in `applicationSubNav`, the locked-until-confirmed edge case, `activeSubNavKey` for all three reflection routes), new `review-confirm-view.test.tsx` (read-only banner, Continue link, hidden confirm panel/edit links), `confirmed-reflection-view.test.tsx` and `confirmed-achievements-view.test.tsx` (updated for the `returnTo` → `continueHref` prop rename). |
+| `node scripts/check-i18n.mjs` | **Pass: 0 missing keys** (2 new keys added — the read-only Review & Confirm banner copy). |
+| `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`). This pass touches the Candidate Information confirm route guard and the application nav bar — a real browser click-through (confirm an application → click "Reflections" in the nav → verify the read-only summary renders instead of bouncing away, and "Continue" lands on report generation or the Personal Report as appropriate) is the priority next verification step. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
 **Previously-open thread, now resolved**: the user reported "report creation
-still isn't working" after four same-day fixes (Â§5e-Â§5g) had already
+still isn't working" after four same-day fixes (§5e-§5g) had already
 shipped, with no specific error at first. They then supplied a real Vercel
-function trace (`POST /api/applications/[id]/match-insights` â†’ 503) showing
-`GET student_personal_reports` â†’ 404 and `POST application_match_analyses`
-â†’ 400 â€” the exact failure Â§0e predicted. They then ran the migration and
-pasted the resulting production schema, confirming Â§0d/Â§0e/Â§0f are now all
-applied. This is real, hard evidence â€” not the usual "should be fixed now"
-â€” so treat the migration side of this incident as closed. A manual
-click-through of the full flow (Overview â†’ reflections â†’ achievements â†’
-analysis â†’ intro â†’ Personalized Strategy â†’ Planner) on a genuinely fresh
+function trace (`POST /api/applications/[id]/match-insights` → 503) showing
+`GET student_personal_reports` → 404 and `POST application_match_analyses`
+→ 400 — the exact failure §0e predicted. They then ran the migration and
+pasted the resulting production schema, confirming §0d/§0e/§0f are now all
+applied. This is real, hard evidence — not the usual "should be fixed now"
+— so treat the migration side of this incident as closed. A manual
+click-through of the full flow (Overview → reflections → achievements →
+analysis → intro → Personalized Strategy → Planner) on a genuinely fresh
 student account has still not been done by anyone and remains the one
 verification step nobody has done yet, though the migration gap that would
 have blocked it is gone.
@@ -2552,7 +2484,7 @@ have blocked it is gone.
 **Immediately after that**, the owner reported the Personal Report and
 Matching Report both 404ing on a real application, plus two stacked
 navigation bars on the strategy pages (screenshot attached). Neither was a
-migration issue â€” see `docs/known-issues.md Â§5h` for the column-mismatch
+migration issue — see `docs/known-issues.md §5h` for the column-mismatch
 root cause and the nav-bar merge. Both fixed this pass; the manual
 click-through above still has not happened and remains the best next
 verification step, now with one fewer known-broken page in the path.
@@ -2620,9 +2552,35 @@ See [audit-2026-08-03.md](audit-2026-08-03.md) for the point-in-time audit and
 
 3c0a5b6 (2026-08-26): completed Personal Report Task 8 wiring: application-scoped generation reads one confirmed snapshot, persists analysis/evidence/report lineage, validates the 150-200-word snapshot contract, handles cache/force/idempotency and deterministic fallback, and passes applicationId through report-generation callers. Measured: focused 71/71 tests, `npm.cmd run typecheck`, scoped ESLint, and `npm.cmd run build` pass. Strict typecheck remains blocked by pre-existing errors in matching/canvas UI and an evidence-bank test.
 
-2026-08-26 application Personal Report Tasks 9â€“12: Task 9 history reads and version routes committed as `c952d69`; Task 10 downstream report lineage committed as `2114eb7`; Task 11 application-scoped Personal Report UI/evidence wiring committed as `1749ca8` with the regeneration/read-only hardening follow-up in `a10c294`; Task 12 isolation/concurrency integration coverage is committed with the task log. Measured: report/evaluation/evidence/AI suite 80 files/822 tests passed, focused application/report suite 11 files/70 tests passed, integration fixture 3/3 passed, `npm.cmd run typecheck` passed, scoped ESLint passed, and `npm.cmd run build` passed with existing Turbopack filesystem-tracing warnings. A clean worktree then passed the complete Node 24.19.0 `npm.cmd run verify:pr` gate: 345 test files, 3276 passing tests/2 todo, both typechecks, ESLint 0 errors/7 warnings, coverage, and production build. Owner applied `supabase-application-personal-report-state.sql`; read-only schema verification confirmed all 7 new tables, required lineage columns/types, and 24 legacy rows retaining `application_id = NULL`, without production writes. GitNexus was refreshed at `dac508e`; impact review reports critical graph fan-out for the shared orchestrator and canonical route, with focused tests and the full gate passing. Authenticated cross-user RLS behavior remains unverified because no non-production/local database is configured; do not treat the live read-only schema check as proof of that behavior.
+2026-08-26 application Personal Report Tasks 9–12: Task 9 history reads and version routes committed as `c952d69`; Task 10 downstream report lineage committed as `2114eb7`; Task 11 application-scoped Personal Report UI/evidence wiring committed as `1749ca8` with the regeneration/read-only hardening follow-up in `a10c294`; Task 12 isolation/concurrency integration coverage is committed with the task log. Measured: report/evaluation/evidence/AI suite 80 files/822 tests passed, focused application/report suite 11 files/70 tests passed, integration fixture 3/3 passed, `npm.cmd run typecheck` passed, scoped ESLint passed, and `npm.cmd run build` passed with existing Turbopack filesystem-tracing warnings. A clean worktree then passed the complete Node 24.19.0 `npm.cmd run verify:pr` gate: 345 test files, 3276 passing tests/2 todo, both typechecks, ESLint 0 errors/7 warnings, coverage, and production build. Owner applied `supabase-application-personal-report-state.sql`; read-only schema verification confirmed all 7 new tables, required lineage columns/types, and 24 legacy rows retaining `application_id = NULL`, without production writes. GitNexus was refreshed at `dac508e`; impact review reports critical graph fan-out for the shared orchestrator and canonical route, with focused tests and the full gate passing. Authenticated cross-user RLS behavior remains unverified because no non-production/local database is configured; do not treat the live read-only schema check as proof of that behavior.
 
-2026-09-09 acquisition source-ecosystem expansion is present in the working tree. `SourceEcosystemConfig` and `build_source_registry()` wire configured official web/catalogue, PDF, JSON API, IPEDS and College Scorecard resources through the existing admission and raw-evidence boundaries with explicit provenance. The bounded fixture smoke discovered/admitted 10 resources and persisted 6; search and archive remain disabled because only fixture implementations are available. See [acquisition-expansion-source-ecosystem-smoke.md](architecture/acquisition-expansion-source-ecosystem-smoke.md). Measured verification: the full ingestion suite passed 401 tests; no live crawl, provider call, Benchmark V3 run, promotion change, or production schema change was performed.
+2026-08-28 Personal Canvas overflow fix (working tree): navigation previews now compact verbose model output and apply line clamping/overflow clipping to every canvas card, while full findings remain in the existing portal modal. Added a regression test for long Core Identity output. Measured: `personal-canvas.test.tsx` 14/14 passed and scoped ESLint passed; repository typecheck remains blocked by four existing matching errors (`reasoner.ts`, `v3-scoring.ts`).
+
+2026-08-29 Personal Report narrative/latency guard: raw Q1–Q7 answers now go only to a dedicated AI normalization extractor, which returns short findings and rejects near-verbatim copies. The report and prose writer receive normalized findings plus scoped evidence IDs, never raw reflection text; activity-level motivation is likewise represented as a finding, not quoted. Narrative synthesis was reduced from three duplicated-payload calls (7,800 max completion tokens) to two scoped concurrent calls (3,600), and a request-time leased worker starts immediately after enqueue while Vercel Cron remains the durable fallback. Versions are `report-synthesis-v7-scoped-fast-narrative` and `personal-report-extraction-v8-normalized-reflections`, forcing a fresh report. Measured: focused report/queue/route regressions 83/83 passed, full Vitest passed 370 files / 3492 tests with 2 todo, base and strict typecheck passed, lint passed with 0 errors and 5 pre-existing warnings, and build:ci passed with 3 existing `geo-content.ts` tracing warnings.
+
+2026-08-29 Matching Report V3 (working tree): implemented the additive V3 contract, structured Applicant Context, expanded target profiles, deterministic hard-requirement checks, provenance/reference validation, current-input-only scoring, metric reuse, one-call summary/takeaways, V3-first persistence/read paths, Strategy downstream consumption, and V3 UI with V2/legacy fallback. The existing `application_match_analyses.report_v2` JSONB column remains the versioned storage envelope; no database migration or external state change is required. Scholarship alignment remains explicitly unassessed when no canonical selected scholarship exists. See [matching_report_v3_agent_prompt.md](plans/matching_report_v3_agent_prompt.md) for the task contract.
+
+Measured: `npm.cmd test` passed 370 files / 3492 tests with 2 todo; focused V3/matching/target/UI/Strategy suites passed; base and strict typecheck passed; `npm.cmd run lint` passed with 0 errors and 5 existing warnings; `node scripts/check-i18n.mjs --all` reported 0 missing keys, 0 placeholder mismatches, and 0 dynamic catalog misses; `npm.cmd run build:ci` passed 141 static pages with 3 existing `geo-content.ts` tracing warnings; `git diff --check` passed. Personal Report and Matching Report V3 changes are committed together because both are part of this application-report flow.
+
+2026-08-29 course catalogue link fix (working tree): applications created from a saved university or a pasted course URL now resolve an existing `courses.id` by canonical programme URL, then exact programme name, before insertion. This closes the legacy-parser gap where `course_id` stayed null even after parsing, and lets known catalogue data remain usable when the source page is temporarily blocked. The affected VinUniversity application was repaired to catalogue course `c0a00000-0000-4000-a000-000000000004`; its separate page-fetch failure remains honestly marked `parse_status = failed`. Measured: resolver tests 2/2, scoped ESLint, base typecheck, and `git diff --check` pass.
+
+2026-08-29 Matching Report retry fix (working tree): the confirmation workspace now retries the full Matching Report read/create cycle once immediately after an HTTP, response, or network failure, instead of exposing a failed state after one attempt. Manual retry remains available after both attempts fail. Measured: `analysis-workspace.test.tsx` 12/12, scoped ESLint, and base typecheck pass.
+
+2026-08-29 Matching Report sparse-target fix (working tree): V3 now marks each metric `not_available` without calling the model when its target profile has no source-backed facts. This prevents confident model output with no target grounding from being rejected by the provenance validator, while preserving explicit missing-data state. Measured: matching suite 98/98, V3 regression 4/4, scoped ESLint, and base typecheck pass.
+
+2026-08-29 Matching Report lineage fix (working tree): the application-scoped V3 composer call now receives `targetProfileSchemaVersion` and `personalReportInputHash` at the top level required by its contract; previously they existed only inside `lineage`, causing every production composition to fail before AI generation. Measured: matching generation/V3 suites 24/24, scoped ESLint, base typecheck, and `git diff --check` pass.
+
+2026-08-29 Matching Report summary reference fix (working tree): the summary model now receives explicit `evidenceIds`, `targetSourceRefs`, and `metricIds` allowlists, while the same cross-reference checks run inside the Zod schema so the shared one-attempt repair can correct unknown IDs. Previously the prompt omitted those lists and post-generation validation failed with `V3 summary returned an unknown evidence id.` Measured: V3 suite 5/5, scoped ESLint, base typecheck, and `git diff --check` pass.
+
+2026-08-29 Matching Report validation-log fix (working tree): observability now preserves `StructuredGenerationError.issues` string summaries instead of treating them as Zod issue objects and logging every failure as `root: Invalid`. Added regression coverage for the real cross-reference issue format. Measured: observability suite 27/27, scoped ESLint, base typecheck, and `git diff --check` pass.
+
+2026-08-29 Matching Report evidence-ref mapping fix (working tree): Applicant Matching Context now canonicalizes legacy `achievement:<id>` references from Personal Report output to the matching Evidence Bank claim ID (for example `experience:<id>`), using the claim's source refs; refs with no canonical claim are omitted. This prevents deterministic competitive-advantage candidates from feeding source IDs into V3 summary provenance validation. Measured: matching context/V3 suites 7/7, scoped ESLint, base typecheck, and `git diff --check` pass.
+
+2026-08-29 Matching Report missing-evidence wording fix (working tree): V3 summary validation now blocks only explicit claims that the applicant/candidate/student is unable or incapable, while allowing neutral data-limit wording such as “unable to establish from the available evidence.” The summary prompt states the preferred wording and the V3 prompt/bundle versions are bumped to `3.1.1`. Measured: reasoner/V3 suites 20/20, scoped ESLint, base typecheck, and `git diff --check` pass.
+
+2026-08-30 Matching Report V3 UI detail fix (working tree): the canonical V3 page now renders the four canonical Programme Fit metrics without duplicating University Academic Readiness, uses report-generated summaries/alignment instead of hardcoded copy, exposes metric status/coverage/confidence and expandable submetrics with reasoning, shows strengths/gaps/positioning opportunities, scholarship alignment, evidence/source records, and hard-requirement applicant/required values plus deadline status. V2 and legacy callers retain the existing optional-prop behavior. Measured: Matching UI/AI suites 11 files / 116 tests passed, base and strict typecheck passed, scoped ESLint passed, and `npm.cmd run build:ci` passed with the existing 3 `geo-content.ts` tracing warnings. The i18n audit currently reports 79 static missing Matching keys (dynamic catalog misses: 0); the newly added V3 keys are cataloged.
+
+2026-08-30 Matching Report UI density pass (`4f231c71`): redesigned the V3 fit cards into compact score/metric layouts with insights below, removed equal-height column stretching that created large blank areas, and collapsed long report summaries, evidence records, and insight descriptions behind accessible disclosures while keeping full content available. Measured: Matching UI/AI suites 11 files / 116 tests passed, strict typecheck passed, scoped ESLint passed, and `npm.cmd run build:ci` passed with the existing 3 `geo-content.ts` tracing warnings. No data or report-generation behavior changed.
 
 ## Handoff protocol
 
@@ -2635,3 +2593,176 @@ After material work, update this file in the same change:
 5. remove or rewrite risks that the change actually closed;
 6. link a detailed design, plan, or incident note instead of turning this file
    into a chronological diary.
+## 2026-08-30 — Strategy V3 accepts canonical target requirement references
+
+- Root cause: target-profile requirements use canonical IDs such as `adm:academic_entry_requirement`, while Matching V3 exposes transformed criterion IDs in `matching.hardRequirements`; Strategy V3 validated only the latter even though the model receives the former in `target.requirements`.
+- Fix: profile and final Strategy report validation now use a strict union of target requirement IDs and Matching hard-requirement IDs. Arbitrary model-generated IDs remain rejected.
+- Regression coverage: `src/lib/ai/strategy-v3/engine.test.ts` verifies the reported target requirement ID passes profile provenance validation.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 13 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/strategy-v3/context.ts src/lib/ai/strategy-v3/context.test.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-08-30 — Strategy V3 restores canonical Evidence Bank claims
+
+- Root cause: Strategy treated the stored Evidence Bank object as an array, so its canonical `experience:*`, `academic:*`, `follow_up:*`, `supplement:*`, and `competency:*` claims were omitted when the persisted Matching evidence index was incomplete; snapshot activity IDs also lacked the canonical `experience:*` alias.
+- Fix: Strategy context now reads stored Evidence Bank `claims` and derives canonical experience aliases from the confirmed snapshot. The existing strict reference validation remains in place.
+- Regression coverage: `src/lib/ai/strategy-v3/context.test.ts` verifies both stored claims and snapshot experience aliases.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 14 tests passed); `npx eslint src/lib/ai/strategy-v3/context.ts src/lib/ai/strategy-v3/context.test.ts src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-08-30 — Strategy V3 scopes activity analysis per batch
+
+- Root cause: each activity request contained all canonical activities inside `context.activities` plus the current batch in a second field, leaving the model with two competing scopes and causing missing or duplicate analyses.
+- Fix: each activity request now sends only its batch in both context and activity fields, includes an explicit `requiredActivityIds` checklist, and updates the activity prompt version.
+- Regression coverage: `src/lib/ai/strategy-v3/engine.test.ts` verifies multi-batch generation and that both activity scopes match the required IDs.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 15 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/runtime/prompt-registry.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-08-30 — Strategy V3 lineage, Planner, grounding, and runtime hardening (working tree)
+
+- Strategy UI now ensures the current POST/hash lineage before rendering; the API fails closed with `strategy_v3_stale_inputs` when Matching declares an unavailable target-profile version, and cache hits require the complete current lineage plus engine/contract/formula/prompt/model inputs.
+- Strategy V3 is now a first-class Core 3 Planner source. Its semantic deliverable IDs flow through the existing reconciliation layer, which preserves student execution fields, avoids duplicate syncs, updates same-key wording, and archives removed nodes; F8/F7 remain fallback sources.
+- Evidence status follows the canonical Evidence Bank distinction (document-backed/test-backed vs applicant-stated/report-only). Deterministic priorities now use structured references, consolidate overlapping candidates, validate structured durations, and emit stable non-positional deliverable keys. Sparse core narratives may have empty evidence IDs when no causal evidence exists.
+- Override PUT failures now rollback optimistic edits and show an explicit error; `Editable` synchronizes incoming values in an effect; internal `rawPriority` is hidden from the applicant UI.
+- Measured checks: Strategy/Planner/UI scope 13 files / 90 tests passed; `npm.cmd run typecheck` passed; `npm.cmd run build:ci` passed (141 static pages, existing Edge/dynamic-filesystem warnings); `git diff --check` passed with only LF/CRLF warnings. Full `npm.cmd test` returned 3542 passed, 2 todo, 8 failures outside this change's files (including existing UI/i18n/auth test timeout/assertion failures). Full `npm.cmd run lint` returned 15 existing raw-hex errors in `src/features/apply/ui/matching-report/key-takeaways-grid.tsx` plus 5 warnings; touched Strategy files pass targeted ESLint.
+
+## 2026-08-30 — Strategy V3 limits activity-stage token bursts (working tree)
+
+- Root cause: activity batches were sent concurrently and each repeated the full Strategy context, so concurrent GPT-5.6 Luna requests exhausted the organization TPM limit and returned 429.
+- Fix: activity batches now run sequentially, send a compact batch-only model context, and use a 6,000-token completion budget; strict one-result-per-canonical-activity and reference validation remain unchanged.
+- Regression coverage: the multi-batch engine test now verifies batch scoping, compact context, and the activity token budget.
+- Measured checks: `npx vitest run src/lib/ai/strategy-v3 src/app/api/applications/[id]/strategy/recommendation/route.test.ts` (3 files, 15 tests passed); `npx eslint src/lib/ai/strategy-v3/engine.ts src/lib/ai/strategy-v3/engine.test.ts src/lib/ai/runtime/prompt-registry.ts` passed; `npx tsc --noEmit` passed; `git diff --check` passed with only existing LF/CRLF warnings.
+
+## 2026-09-02 — Localized route toggle and homepage copy (`5afb60da`)
+
+- Root cause: the language switcher read `window.location` through an empty subscription, so client navigation could leave it on the previous locale; `/vi` also nested a second provider and used replacement homepage copy.
+- Fix: the switcher now follows Next's pathname, the root provider is route-authoritative, the nested Vietnamese provider is removed, and homepage hero copy reuses the established catalog translations (`Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”`).
+- Regression coverage: route mapping, explicit locale precedence, and the existing reflection switch test.
+- Measured checks: full `npm.cmd run test:ci` passed (379 files, 3576 passed, 2 todo, coverage thresholds passed); `npm.cmd run typecheck:strict` passed; scoped ESLint passed; `npm.cmd run build:ci` passed (141 static pages, 3 existing `geo-content.ts` tracing warnings).
+
+## 2026-09-03 — Duplicate `universities` rows merged (`supabase-university-duplicate-merge.sql`)
+
+- Trigger: the 21/08 Beta Product Review reported that saving UC Berkeley or MIT returned zero scholarships, and read it as thin scholarship coverage.
+- Root cause: `universities` held 108 rows for 99 institutions. Nine duplicates in one contiguous id block (98-106) split the data — canonical rows carried the editorial fields and all 25 scholarship links, duplicates carried 180 of 593 `courses`, 39 of 196 `academic_units`, and 7 of 17 `university_profiles`. Students saving the plainer-named duplicate saw an empty school. Not a coverage bug.
+- Fix: new migration repoints all 13 FK children onto the canonical row, then deletes the shells, then adds `universities_normalized_name_key` — a unique index on the name with case, punctuation and parenthetical suffixes normalised out, which is the enforcement that was missing when the import doubled the catalogue.
+- Safety: single transaction; three abort guards (missing canonical target, name drift, any child row still pointing at a duplicate); every deleted row archived verbatim to `public.university_merge_archive` (RLS on, no policies, anon reads back `[]`).
+- Applied: by the owner on 2026-09-03 19:04 UTC via the Supabase SQL editor. **Confirmed run.**
+- Measured after the fact: 0 duplicate rows, 99 universities, 0 normalized-name collisions, 0 orphaned courses, Berkeley 1 scholarship, MIT 4 scholarships / 40 courses / 11 academic units, archive holding 9 + 1 rows and nothing else. 232 rows repointed, 10 deleted.
+- Not run: no application code changed, so no typecheck/build/test gate applies. `npm run verify:pr` was not run for this change.
+- Still open, and separate: only 374 of 2,877 scholarships are linked to any university (`scholarship_universities`), so 87% remain unreachable through the save-a-university flow. See `known-issues.md` §1d.
+
+## 2026-09-04 — Security headers added; anon-callable definer RPCs found (OPEN)
+
+- Trigger: auditing the system after the 21/08 Beta Product Review, at the owner's direction to look at backend/frontend correctness rather than copy.
+- **Headers (done, verified).** `next.config.ts` gained a `headers()` block. Production previously served only `Strict-Transport-Security` — confirmed with a live request to `glowbal-education.com`, not assumed. Now also sends `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and CSP.
+- **The CSP is `Content-Security-Policy-Report-Only` deliberately.** App Router inlines hydration payloads and styles, so an enforcing policy without per-request nonces breaks hydration and every `style` attribute. Promoting it means adding nonce generation in `src/proxy.ts` first; renaming the header alone will take the site down. The header comment says so.
+- Measured: `npm run typecheck` passed; `npm run build` passed; all five headers then read back off the built server running locally on `127.0.0.1:3000` (status 200). Not yet confirmed on the Vercel deployment.
+- **🔴 OPEN — `supabase-rpc-privilege-hardening.sql` written, NOT YET RUN.** Three `SECURITY DEFINER` RPCs are `EXECUTE`-able by `anon` with no `auth.uid()` check: `get_user_entitlement(uuid)` (any user's plan and quota), `reset_billing_period(uuid)` and `reset_all_billing_periods()` (reset any/every user's billing window, which uncaps free usage limits). Two anon-callable maintenance functions also DELETE rows. See `known-issues.md` §0g.
+- Why this was not in the beta review: `SECURITY DEFINER` runs as the function owner and ignores RLS, so table-level probing cannot find it. Audit `pg_proc` grants alongside `pg_policies`.
+- No application code calls the five revoked functions; the only callers are two scripts on the service-role key, which the revokes do not affect.
+- Not run: `npm run verify:pr` (lint/test/E2E) for this change — only typecheck and build.
+
+## 2026-09-04 — Directory search boxes stopped reverting mid-typing
+
+- Trigger: feedback item "Searchbox behavior @ /universities & /scholarships" — the box reverts to the previous result after roughly 600ms, worse for slow typists. Reported as a missing debounce.
+- **The reported cause was wrong.** Both pages already debounced at 300ms, and `use-directory-navigation` already aborts superseded fetches and sequence-guards their responses, so no stale response ever wins. Raising the delay would only have widened the window the reader types into.
+- Real cause: each page re-seeded its search box from the RESPONSE. `/universities` keyed `DirectoryBrowseView` on `` `${search} ${country}` ``, remounting the whole filter subtree on every response; `/scholarships` keyed each `<input>` on its own `queryState` value with `defaultValue`. A response lands a debounce plus a round trip after the keystroke that caused it, so anything typed in between was overwritten by the older query — and because the re-seed was a remount, the focused `<input>` was destroyed and the caret went with it. Every typing pause longer than 300ms started another request, hence "worse when typing slowly".
+- Second, unreported bug on `/scholarships`: `navigate(patch)` merged its delta onto the `queryState` captured at render time. A debounced commit fires up to 300ms later, so any filter the reader touched in between (country, sort, the other search box) was silently reverted.
+- Fix: new `src/shared/hooks/use-debounced-search-field.ts`. Reader→server stays debounced and remembers the value it sent; server→reader is applied only when the incoming value is NOT an echo of that, i.e. only for Back/Forward, "clear filters" and deep links. The input is uncontrolled and the rare adoption is written to the DOM node, so a re-render has no value to push and typing no longer re-renders the result grid. `takePending()` lets a submit button or a sibling filter claim the pending draft instead of racing it.
+- Also: `/universities` country select now navigates immediately instead of sitting behind the text debounce; `/scholarships` "Find scholarships" flushes both boxes instead of only scrolling; `navigate` there builds from an optimistic `intendedRef` round-tripped through `parseScholarshipSearchParams`, so back-to-back filter edits compose.
+- Debounce stays at 300ms (`SEARCH_DEBOUNCE_MS`), one constant if it ever needs tuning.
+- Regression coverage: `src/shared/hooks/use-debounced-search-field.test.tsx`, 4 tests. The in-flight case was mutation-checked — removing the echo guard fails it.
+- Measured: `npm run typecheck`, `npm run typecheck:strict`, `npm run build` pass; `npm test` 380 files / 3,590 passed, 2 todo; `npm run lint` reports the one pre-existing `react-hooks/static-components` error in `strategy-report-v3-view.tsx` and 5 pre-existing warnings, none in the changed files. `npx playwright test tests/e2e/guest-universities.spec.ts` 4 passed against a production build.
+## 2026-09-06 — Strategy V3 → Planner wiring reliability patch (working tree)
+
+- Strategy source selection now parses newest rows and chooses newest valid V3,
+  then F8, then valid F7, without exact prompt-version gates. V3 deliverables
+  deduplicate by stable key, map one-to-one to canonical Planner micro-steps,
+  carry exact success criteria checklists, and retain stable regeneration,
+  insertion, and archive behavior. V3 roadmap content now participates in the
+  Planner source fingerprint while volatile timestamps are excluded.
+- V3 tool launchers use the shared route helper for Personal Canvas, CV Builder,
+  and Statement Writer. Canonical Planner navigation still ensures and refreshes
+  the plan; legacy CTA clicks generate roadmap tasks through the existing endpoint
+  before navigation. No migration or external state change was required.
+- Measured: focused Strategy/Planner/UI suite 8 files / 78 tests passed;
+  `npm.cmd run typecheck` passed; `npm.cmd run typecheck:strict` passed;
+  `npm.cmd run lint` passed with 4 existing warnings; i18n checker passed with
+  zero missing keys, placeholder mismatches, and dynamic catalog misses;
+  `npm.cmd run build` passed with 141 static pages and 3 existing
+  `geo-content.ts` tracing warnings; `git diff --check` passed. Full
+  `npm.cmd test` reached 377 files / 3597 passed / 2 todo, with 3 unrelated
+  failures: one Matching Report UI timeout and two candidate-confirm test
+  timeout/assertion failures.
+- `estimatedDurationDays` remains a documented gap because the canonical
+  Planner micro-step model has no duration field and this patch adds no
+  scheduling migration.
+
+## 2026-09-06 — Strategy V3 → Planner follow-up reliability patch (working tree)
+
+- Real errors reading the V3/F8 `report_v2` source now fail closed instead of
+  silently selecting a stale F7 roadmap; known schema-gap codes still permit
+  the F7 compatibility fallback.
+- V3 phase success criteria remain labeled step-level guidance. V3 Planner
+  micro-tasks now write `contentSchema: null` and `submitChecklist: []`; the
+  Strategy Report UI remains the phase-criteria display.
+- V3 legacy Planner generation now has end-to-end coverage for three
+  deliverables and regeneration by stable `source_key` (rename/update, insert,
+  archive), while status and deadline are excluded from planning updates.
+- Measured: focused Strategy/Planner suite 4 files / 51 tests passed;
+  `npm.cmd run typecheck` passed; `npm.cmd run typecheck:strict` passed;
+  targeted ESLint passed; `npm.cmd run build` passed (146 static pages, 3
+  existing `geo-content.ts` tracing warnings); `git diff --check` passed with
+  LF/CRLF warnings. Full `npm.cmd test` reached 383 files / 3678 passed / 2
+  todo with 5 unrelated timeout failures. Full `npm.cmd run lint` remains
+  blocked by the existing `react-hooks/set-state-in-effect` error at
+  `src/app/universities/university-list-client.tsx:298` plus 4 warnings.
+
+## 2026-09-08 — Google Analytics 4, consent-gated (working tree)
+
+- Trigger: owner asked for GA4 with five named product events, explicitly
+  constrained so it does not grow the critical path that the `/ai-strategy/*`
+  FCP/LCP work is measuring.
+- **GA is mounted inside `ConsentBoundary`, NOT the root layout.** The task
+  specified `app/layout.tsx`, but this branch had just added a consent gate that
+  renders `<Analytics />`/`<SpeedInsights />` only when `consent.analytics` is
+  true. Mounting GA in the layout would have fetched gtag.js and started a GA
+  session for a visitor who pressed "Reject non-essential" — the one outcome
+  that component exists to prevent. `layout.tsx` is therefore unchanged.
+- **Events re-read consent on every call.** Unmounting `<GoogleAnalytics />`
+  does not unload gtag.js: the script has run, `window.dataLayer` survives, and
+  `sendGAEvent` would keep pushing for the rest of the session. `emit()` reads
+  the stored record through `parseStoredConsent`, so revocation takes effect
+  immediately rather than at next reload. Storage failure returns `false` —
+  analytics fails closed.
+- **No PII, enforced by re-use rather than by care.** `ga.ts` sends payloads
+  through `sanitiseMetadata` from `track.ts` (primitives only, forbidden-key
+  list, 120-char ceiling), so there is one definition of "PII-shaped" instead of
+  two that drift. Only institution names, a `surface` label and `value`/
+  `currency` ever leave. `help_topic`, `help_questions`, SOP/CV text, user ids
+  and emails are never passed; verified by grep across all six call sites.
+- `ga.ts` sits beside `track.ts` and does not replace it. `track.ts` writes
+  first-party, RLS-protected `application_events` rows keyed to a user; GA4
+  answers anonymous funnel questions. They are not substitutes.
+- **`sendGAEvent` is browser-only.** It pushes onto `window.dataLayer`, so a
+  webhook, cron or API route cannot emit a GA event — a fact that changed where
+  two of the five events could go. See known-issues §8.
+- CSP (`next.config.ts`) gained `https://www.googletagmanager.com` to
+  `script-src`, plus the `*.google-analytics.com`/`*.analytics.google.com`
+  endpoints to `connect-src` and `img-src`. The header is still report-only, so
+  this changes nothing today; it is listed so GA does not file a violation
+  report on every page load, and does not silently die the day the header is
+  promoted to enforcing.
+- Call sites: `my-application-section.tsx` (success path only — 409 duplicate
+  and 403 plan-limit return before it), `StatementWriter.tsx` (both the generic
+  and the streamed VinUni completion paths), `mentor-booking.tsx` (checkout
+  created, before the redirect tears the page down), `university-match-results.tsx`
+  (once per mount, `demo` excluded), `manual-status-panel.tsx` (once, gated on
+  `product_type === 'mentorship'`).
+- Setup: `NEXT_PUBLIC_GA_ID`. It is inlined at build time, so adding it to
+  Vercel requires a redeploy before it takes effect. Unset = no script, no
+  events, no console noise — the CI and local default.
+- Measured: base TypeScript, lint (0 errors, 5 pre-existing warnings in
+  untouched files), production build, and 263 tests across the touched areas all
+  pass. Per-route first-load JS from an A/B build on this branch: `/`
+  1,126,510 → 1,141,934, `/ai-strategy` 934,548 → 949,972,
+  `/ai-strategy/[applicationId]` 1,268,411 → 1,283,835 — a flat +15,424 bytes
+  uncompressed, plus 171 bytes on the two routes that also import a helper.
+  gtag.js is external and `afterInteractive`, so none of it blocks render.
+  Not run: `verify:pr`, Playwright E2E.

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { ApplicationNav } from '@/components/application-nav';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { PRIVATE_ROBOTS } from '@/lib/seo/indexability';
 import { ReflectionChrome } from '../reflection-chrome';
 
@@ -49,10 +49,7 @@ export default async function StrategyApplicationLayout({
 }) {
   const { applicationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect(`/auth?redirect=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy`)}`);
 
@@ -90,8 +87,18 @@ export default async function StrategyApplicationLayout({
      * a `max-w-4xl` Container.
      */
     <ReflectionChrome
-      user={user}
-      nav={<ApplicationNav applicationId={applicationId} courseName={application.course_name} />}
+      nav={
+        /* `userId` is not optional here in practice: without it `ApplicationNav`
+           falls back to resolving the session itself, which used to make this a
+           third auth round-trip on every request in the subtree. Now that both
+           sides share `getServerIdentity()` the fallback is only a cache hit,
+           but passing it is still one less thing to resolve. */
+        <ApplicationNav
+          applicationId={applicationId}
+          userId={user.id}
+          courseName={application.course_name}
+        />
+      }
     >
       {children}
     </ReflectionChrome>

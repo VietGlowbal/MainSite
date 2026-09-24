@@ -3,6 +3,7 @@
 import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { GlowbalIcon } from '@/shared/ui';
 
 function UnsubscribeForm() {
   const searchParams = useSearchParams();
@@ -52,10 +53,7 @@ function UnsubscribeForm() {
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
           <div className="mb-6 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-pink-100">
-              <svg className="h-8 w-8 text-pink-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <path d="m3 7 9 6 9-6" />
-              </svg>
+              <GlowbalIcon name="newsletter" size={32} />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Unsubscribe from Newsletter</h1>
             <p className="mt-2 text-sm text-slate-600">
@@ -120,7 +118,8 @@ function UnsubscribeForm() {
         </div>
 
         <div className="mt-6 text-center text-sm text-slate-600">
-          <p>
+          <p className="inline-flex flex-wrap items-center justify-center gap-1.5">
+            <GlowbalIcon name="contact" size={16} />
             If you&apos;re having trouble unsubscribing, please contact us at{' '}
             <a href="mailto:hello@glowbal.com" className="text-pink-600 hover:text-pink-700">
               hello@glowbal.com

@@ -40,4 +40,6 @@ export async function generateMetadata({
   };
 }
 
-export default MentorDetailPage;
+export default async function VietnameseMentorDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return <MentorDetailPage params={params} locale="vi" />;
+}

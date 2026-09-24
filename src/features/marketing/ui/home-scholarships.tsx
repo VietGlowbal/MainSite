@@ -1,5 +1,6 @@
 import { Button, Container, ICONS, KitIcon } from '@/shared/ui';
 import { TID, testId } from '@/shared/lib/testids';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import {
   HomeScholarshipPillars,
   type ScholarshipTeaser,
@@ -16,10 +17,12 @@ export function HomeScholarships({
   entries = [],
   total = 0,
   seeMoreHref = '/scholarships',
+  locale = 'en',
 }: {
   entries?: readonly ScholarshipTeaser[];
   total?: number;
   seeMoreHref?: string;
+  locale?: Locale;
 }) {
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
 
@@ -38,7 +41,7 @@ export function HomeScholarships({
           <div className="flex flex-col gap-gb-2xl border-b border-line pb-gb-4xl sm:flex-row sm:items-center sm:justify-between">
             <span className="inline-flex w-fit items-center gap-gb-lg rounded-gb-full border border-brand bg-brand px-gb-xl py-gb-lg text-gb-md font-semibold text-on-brand shadow-gb-xs-skeuomorphic">
               <KitIcon art={ICONS.gift01} frame={20} />
-              Scholarship spotlight
+              {getLocaleText(locale, 'Scholarship spotlight')}
             </span>
 
             {total > 0 ? (
@@ -54,10 +57,10 @@ export function HomeScholarships({
                 </span>
                 <span className="border-l border-brand/20 pl-gb-xl leading-tight">
                   <span className="block text-gb-sm font-semibold text-fg">
-                    published scholarships
+                    {getLocaleText(locale, 'published scholarships')}
                   </span>
                   <span className="mt-gb-xs block text-gb-sm font-semibold text-brand">
-                    ready to explore
+                    {getLocaleText(locale, 'ready to explore')}
                   </span>
                 </span>
               </div>
@@ -65,31 +68,30 @@ export function HomeScholarships({
           </div>
 
           <h2 className="mt-gb-4xl font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg lg:whitespace-nowrap lg:text-gb-display-md">
-            A world of funding, brought into focus.
+            {getLocaleText(locale, 'A world of funding, brought into focus.')}
           </h2>
 
           <div className="mt-gb-2xl flex flex-col gap-gb-2xl md:flex-row md:items-end md:justify-between">
             <p className="max-w-gb-width-lg text-gb-lg leading-relaxed text-fg-secondary">
-              Start with a few standout opportunities, then explore the library to find the
-              scholarships that fit your goals, destination and story.
+              {getLocaleText(locale, 'Start with a few standout opportunities, then explore the library to find the scholarships that fit your goals, destination and story.')}
             </p>
-            <Button href={seeMoreHref} size="xl" variant="primary" className="shrink-0">
-              Explore all scholarships
+            <Button href={localizePath(seeMoreHref, locale)} size="xl" variant="primary" className="shrink-0">
+              {getLocaleText(locale, 'Explore all scholarships')}
               <KitIcon art={ICONS.arrowRight} frame={20} />
             </Button>
           </div>
         </header>
 
         {entries.length > 0 ? (
-          <HomeScholarshipPillars entries={entries} />
+          <HomeScholarshipPillars entries={entries} locale={locale} />
         ) : (
           <div className="mt-gb-5xl flex min-h-[260px] items-center justify-center rounded-gb-2xl border border-line bg-surface-subtle p-gb-5xl text-center">
             <div className="max-w-gb-width-sm">
               <h3 className="font-display text-gb-display-xs font-semibold text-fg">
-                Find scholarships that fit your goals
+                {getLocaleText(locale, 'Find scholarships that fit your goals')}
               </h3>
               <p className="mt-gb-lg text-gb-md text-fg-secondary">
-                Create a free profile to save opportunities and build a focused application plan.
+                {getLocaleText(locale, 'Create a free profile to save opportunities and build a focused application plan.')}
               </p>
             </div>
           </div>

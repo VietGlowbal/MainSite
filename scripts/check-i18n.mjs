@@ -53,6 +53,10 @@ const protectedStatic = new Set([
   'A missing dimension must use a null score.',
   'An assessed or limited dimension requires a score.',
   'A*AA',
+  '&amp;',
+  'bg-emerald-100/80 text-emerald-800 border-emerald-200',
+  'bg-amber-100/80 text-amber-800 border-amber-200',
+  'bg-blue-100/80 text-blue-800 border-blue-200',
 ]);
 
 function routeFromPageFile(filePath) {

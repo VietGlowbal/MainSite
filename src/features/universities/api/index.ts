@@ -45,6 +45,7 @@ export { SupabaseProgrammeRepository };
 export { degreeLabel, durationYears } from './programme-queries';
 export type {
   CatalogueProgramme,
+  MatchingProgramme,
   ProgrammeAcademicUnit,
   ProgrammeQueries,
 } from './programme-queries';

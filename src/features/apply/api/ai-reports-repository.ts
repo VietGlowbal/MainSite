@@ -1,5 +1,6 @@
 ﻿import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
-import { matchingReportV2Schema, type MatchingReportV2 } from '@/lib/ai/matching/domain';
+import { matchingReportV2Schema, matchingReportV3Schema, type MatchingReportV2, type MatchingReportV3 } from '@/lib/ai/matching/domain';
+import { buildProgrammeFitPlaceholder } from '@/shared/evaluation/f5-programme-fit';
 import {
   MATCH_PROMPT_VERSION_V2,
   enforceFitClassification,
@@ -40,8 +41,48 @@ function reportFromRow(row: Record<string, unknown>): MatchingReportV2 | null {
   return parsed.success ? parsed.data : null;
 }
 
+function reportV3FromRow(row: Record<string, unknown>): MatchingReportV3 | null {
+  const parsed = matchingReportV3Schema.safeParse(row.report_v2);
+  return parsed.success ? parsed.data : null;
+}
+
+function v3CompatibilityFit(): MatchingAnalysisView['fit'] {
+  const placeholder = buildProgrammeFitPlaceholder();
+  return programmeFitSchema.parse({
+    classification: placeholder.classification,
+    confidence: placeholder.confidencePercent,
+    limitations: placeholder.limitations,
+    eligibility: placeholder.eligibility,
+    dimensions: Object.fromEntries(
+      Object.entries(placeholder.dimensions).map(([key, dimension]) => [key, {
+        status: dimension.status,
+        score: dimension.score,
+        summary: dimension.summary || 'Not assessed',
+        strengths: dimension.strengths,
+        gaps: dimension.gaps,
+        evidence: dimension.evidenceRefs.map((ref) => ref.id),
+        limitation: dimension.limitation,
+      }]),
+    ),
+  });
+}
+
 export function analysisFromRow(row: Record<string, unknown> | null): MatchingAnalysisView | null {
   if (!row) return null;
+  const reportV3 = reportV3FromRow(row);
+  if (reportV3) {
+    const legacy = legacyAnalysisFromRow(row);
+    return {
+      fit: legacy?.fit ?? v3CompatibilityFit(),
+      createdAt: String(row.created_at),
+      promptVersion: reportV3.metadata.promptVersion,
+      inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+      strengths: reportV3.strengths.map((item) => item.title),
+      weaknesses: reportV3.gaps.map((item) => item.title),
+      reportV3,
+      reportV2: null,
+    };
+  }
   const reportV2 = reportFromRow(row);
   if (reportV2) {
     const fit = programmeFitSchema.safeParse(reportV2.programmeFit);
@@ -61,13 +102,45 @@ export function analysisFromRow(row: Record<string, unknown> | null): MatchingAn
 }
 
 function latestAnalysisFromRows(rows: Array<Record<string, unknown>>): MatchingAnalysisView | null {
-  // Prefer the newest valid V2 artifact so a later legacy-only row cannot hide it.
+  // Prefer the newest valid V3, then V2, then legacy artifact. A malformed
+  // newest row must not hide an older valid report.
+  for (const row of rows) {
+    if (reportV3FromRow(row)) return analysisFromRow(row);
+  }
   for (const row of rows) {
     if (reportFromRow(row)) return analysisFromRow(row);
   }
   for (const row of rows) {
     const analysis = analysisFromRow(row);
     if (analysis) return analysis;
+  }
+  return null;
+}
+
+function personalReportVersionFromRow(row: Record<string, unknown>): string | null {
+  if (typeof row.source_personal_report_version_id === 'string') return row.source_personal_report_version_id;
+  for (const report of [reportV3FromRow(row), reportFromRow(row)]) {
+    const metadata = report && typeof report === 'object' && 'metadata' in report
+      ? (report.metadata as { personalReportVersionId?: unknown })
+      : null;
+    if (typeof metadata?.personalReportVersionId === 'string') return metadata.personalReportVersionId;
+  }
+  return null;
+}
+
+function matchesPersonalReportVersion(row: Record<string, unknown>, versionId: string): boolean {
+  return personalReportVersionFromRow(row) === versionId;
+}
+
+function latestRecordFromRows(rows: Array<Record<string, unknown>>): MatchingAnalysisRecord | null {
+  for (const row of rows) {
+    if (reportV3FromRow(row)) return toMatchingAnalysisRecord(row);
+  }
+  for (const row of rows) {
+    if (reportFromRow(row)) return toMatchingAnalysisRecord(row);
+  }
+  for (const row of rows) {
+    if (analysisFromRow(row)) return toMatchingAnalysisRecord(row);
   }
   return null;
 }
@@ -149,6 +222,7 @@ export async function getMatchingReportPageData(
   supabase: SupabaseClient,
   userId: string,
   applicationId: string,
+  personalReportVersionId?: string | null,
 ): Promise<{ data: MatchingReportPageData | null; migrationMissing: boolean }> {
   const { data: application, error } = await supabase
     .from('course_applications')
@@ -180,6 +254,11 @@ export async function getMatchingReportPageData(
     analysisRows = (legacyResult.data ?? []) as Array<Record<string, unknown>>;
     analysisError = legacyResult.error;
   }
+  if (personalReportVersionId) {
+    analysisRows = analysisRows.filter((row) => matchesPersonalReportVersion(row, personalReportVersionId));
+  }
+  const resolvedPersonalReportVersionId =
+    personalReportVersionId ?? analysisRows.map(personalReportVersionFromRow).find(Boolean) ?? null;
   const [universityResult, scholarshipLinksResult] = await Promise.all([
     universityId == null
       ? Promise.resolve({ data: null, error: null })
@@ -239,6 +318,7 @@ export async function getMatchingReportPageData(
       analysis: latestAnalysisFromRows(
         analysisRows,
       ),
+      personalReportVersionId: resolvedPersonalReportVersionId,
       universityId,
       courseUrl: application.course_url ?? courseText('course_url'),
       studyMode: application.study_mode ?? courseText('study_mode'),
@@ -309,6 +389,7 @@ export interface MatchingAnalysisRecord {
   fitLimitations: string[] | null;
   // V2 columns (present if report_v2 exists)
   reportV2: MatchingReportV2 | null;
+  reportV3: MatchingReportV3 | null;
   reportContractVersion: string | null;
   matchingEngineVersion: string | null;
   targetProfileVersionId: string | null;
@@ -333,7 +414,10 @@ export function isMigrationMissing(error: PostgrestError | null | undefined): bo
 
 export function toMatchingAnalysisRecord(row: Record<string, unknown>): MatchingAnalysisRecord {
   let parsedReport: MatchingReportV2 | null = null;
+  let parsedReportV3: MatchingReportV3 | null = null;
   if (row.report_v2) {
+    const parsedV3 = matchingReportV3Schema.safeParse(row.report_v2);
+    if (parsedV3.success) parsedReportV3 = parsedV3.data;
     const parsed = matchingReportV2Schema.safeParse(row.report_v2);
     if (parsed.success) {
       parsedReport = parsed.data;
@@ -364,6 +448,7 @@ export function toMatchingAnalysisRecord(row: Record<string, unknown>): Matching
     fitLimitations: Array.isArray(row.fit_limitations) ? row.fit_limitations.filter((l) => typeof l === 'string') : null,
 
     reportV2: parsedReport,
+    reportV3: parsedReportV3,
     reportContractVersion: typeof row.report_contract_version === 'string' ? row.report_contract_version : null,
     matchingEngineVersion: typeof row.matching_engine_version === 'string' ? row.matching_engine_version : null,
     targetProfileVersionId: typeof row.target_profile_version_id === 'string' ? row.target_profile_version_id : null,
@@ -394,7 +479,7 @@ export async function getLatestApplicationMatchingAnalysis(
     query = query.eq('analysis_status', filter.analysisStatus);
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(20);
 
   if (error) {
     const missing = isMigrationMissing(error);
@@ -402,24 +487,27 @@ export async function getLatestApplicationMatchingAnalysis(
     return { record: null, migrationMissing: missing };
   }
 
-  if (!data) return { record: null, migrationMissing: false };
-
-  return { record: toMatchingAnalysisRecord(data), migrationMissing: false };
+  const rows = (Array.isArray(data) ? data : data ? [data] : []) as Array<Record<string, unknown>>;
+  return { record: latestRecordFromRows(rows), migrationMissing: false };
 }
 
 export async function getMatchingAnalysisByInputHash(
   supabase: SupabaseClient,
   scope: { userId: string; applicationId: string },
   inputHash: string,
+  identity?: { contractVersion?: string; engineVersion?: string; promptVersion?: string },
 ): Promise<{ record: MatchingAnalysisRecord | null; migrationMissing: boolean }> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('application_match_analyses')
     .select(MATCHING_ANALYSIS_SELECT)
     .eq('application_id', scope.applicationId)
     .eq('user_id', scope.userId)
     .eq('input_hash', inputHash)
-    .eq('analysis_status', 'complete')
-    .maybeSingle();
+    .eq('analysis_status', 'complete');
+  if (identity?.contractVersion) query = query.eq('report_contract_version', identity.contractVersion);
+  if (identity?.engineVersion) query = query.eq('matching_engine_version', identity.engineVersion);
+  if (identity?.promptVersion) query = query.eq('prompt_version', identity.promptVersion);
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     const missing = isMigrationMissing(error);
@@ -454,7 +542,7 @@ export async function saveApplicationMatchingAnalysis(
       explanation: string;
     };
     // V2 report
-    reportV2: MatchingReportV2;
+    reportV2: MatchingReportV2 | MatchingReportV3;
     // Lineage
     modelName: string;
     targetProfileVersionId: string;
@@ -478,17 +566,22 @@ export async function saveApplicationMatchingAnalysis(
     prompt_version: args.promptVersion,
     analysis_status: 'complete',
 
-    current_match_score: args.legacy.currentMatchScore,
+    // The original table requires these legacy fields even when report_v2 is
+    // the canonical V3 payload. Keep an explicit unassessed compatibility
+    // value; V3 consumers must read report_v2 instead of these fields.
+    profile_version: 1,
+    current_match_score: args.legacy.currentMatchScore ?? 0,
     max_possible_match_score: args.legacy.maxPossibleMatchScore,
     score_label: args.legacy.scoreLabel,
     max_score_label: args.legacy.maxScoreLabel,
     pillars: args.legacy.pillars,
-    confidence_score: args.legacy.confidence,
+    confidence: args.legacy.confidence,
     inputs_present: args.legacy.inputsPresent,
     strengths: args.legacy.strengths,
     weaknesses: args.legacy.weaknesses,
     improvement_actions: args.legacy.improvementActions,
     explanation: args.legacy.explanation,
+    model_name: args.modelName,
 
     fit_dimensions: args.fitDimensions,
     fit_eligibility: args.fitEligibility,
@@ -516,13 +609,24 @@ export async function saveApplicationMatchingAnalysis(
     .single();
 
   if (error) {
+    console.error('[matching-analysis] insert failed', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     if (error.code === '23505') {
       const existing = await getMatchingAnalysisByInputHash(
         supabase,
         { userId: args.userId, applicationId: args.applicationId },
         args.inputHash,
+        {
+          contractVersion: args.reportV2.contractVersion,
+          engineVersion: args.reportV2.metadata.matchingEngineVersion,
+          promptVersion: args.promptVersion,
+        },
       );
-      if (existing.record?.analysisStatus === 'complete' && existing.record.reportV2) {
+      if (existing.record?.analysisStatus === 'complete' && (existing.record.reportV2 || existing.record.reportV3)) {
         return existing;
       }
     }

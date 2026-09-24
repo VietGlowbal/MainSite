@@ -21,3 +21,22 @@ export type {
   ContactDetailsInput,
   ContactDetailsRow,
 } from './contact-details';
+export {
+  countBreaches,
+  hasPasswordIdentity,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  splitHashForRange,
+  validatePassword,
+  validatePasswordChange,
+} from './password';
+export type { PasswordChangeProblem, PasswordProblem } from './password';
+export {
+  AUTH_ERROR_MESSAGES,
+  authErrorBody,
+  authErrorFromResponse,
+  authErrorText,
+  formatAuthError,
+  isAuthErrorCode,
+} from './errors';
+export type { AuthErrorBody, AuthErrorCode, AuthErrorState, AuthErrorVars } from './errors';

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { countApplicationReportGenerations } from '@/features/apply/api';
+import { APPLICATION_REPORT_GENERATION_LIMIT } from '@/features/apply/domain';
 import { logger, startTimer } from '@/server/observability';
 
 /**
@@ -59,6 +61,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   if (!owned.data) {
     return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+  }
+
+  const quota = await countApplicationReportGenerations(supabase, { userId: user.id, applicationId });
+  if (quota.count >= APPLICATION_REPORT_GENERATION_LIMIT) {
+    return NextResponse.json(
+      {
+        code: 'REPORT_LIMIT_REACHED',
+        reportCount: quota.count,
+        reportLimit: APPLICATION_REPORT_GENERATION_LIMIT,
+        message: 'You have reached the maximum number of report generations.',
+      },
+      { status: 409 },
+    );
   }
 
   // The unlock itself. Scoped by BOTH columns (defence in depth on top of

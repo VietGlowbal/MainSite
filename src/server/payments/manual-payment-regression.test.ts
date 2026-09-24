@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 
-const migration = readFileSync('supabase-manual-payment-founder.sql', 'utf8');
+const migration = readFileSync('sql/supabase-manual-payment-founder.sql', 'utf8');
 
 describe('manual payment regression contracts', () => {
   it('leases transaction and review payloads into jsonb variables without record wrappers', () => {

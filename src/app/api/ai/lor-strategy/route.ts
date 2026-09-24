@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import {
   LorStrategyInputSchema,
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body: unknown;
+  const model = process.env.OPENAI_MODEL || 'gpt-4o';
   try {
     body = await request.json();
   } catch {
@@ -100,13 +102,12 @@ Return JSON only with this exact shape:
       },
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(60_000)]),
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-4o',
+        model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.3,
-        max_tokens: 3_500,
+        ...openAiCompletionParameters({ model, temperature: 0.3, maxTokens: 3_500 }),
         response_format: { type: 'json_object' },
       }),
     });

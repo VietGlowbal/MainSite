@@ -196,6 +196,31 @@ describe('PersonalCanvasView', () => {
       'true',
     );
   });
+
+  it('keeps verbose generated findings in the detail modal instead of overflowing the canvas', () => {
+    const verbose =
+      'I genuinely enjoy exploring artificial intelligence, especially how machine learning systems learn, make decisions, and sometimes fail. What interests me most is understanding what happens underneath them from model architecture to real-world deployment.';
+    const candidate = report();
+    candidate.coreIdentity.headline = null;
+    candidate.coreIdentity.recurringRole = verbose;
+
+    render(
+      <PersonalCanvasView
+        report={candidate}
+        activeSection={null}
+        onSelect={() => undefined}
+      />,
+    );
+
+    const previews = document.querySelectorAll(
+      '[data-canvas-section="coreIdentity"] [data-no-auto-translate]',
+    );
+    expect(previews.length).toBe(2);
+    for (const preview of previews) {
+      expect(preview.textContent).toContain('…');
+      expect(preview.textContent).not.toContain('real-world deployment');
+    }
+  });
 });
 
 describe('PersonalCanvasWorkspace', () => {

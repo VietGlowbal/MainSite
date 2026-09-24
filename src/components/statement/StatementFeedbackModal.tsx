@@ -86,7 +86,7 @@ export function StatementFeedbackModal({ applicationId, targetName, contextNote,
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 md:px-6">
           <div>
-            <p className="text-[0.65rem] font-bold uppercase tracking-wider text-pink-600">
+            <p className="text-[0.65rem] font-bold uppercase tracking-wider text-rose-600">
               AI statement feedback
             </p>
             <h2 id="statement-feedback-title" className="mt-0.5 text-lg font-semibold text-slate-900">
@@ -110,7 +110,7 @@ export function StatementFeedbackModal({ applicationId, targetName, contextNote,
         {/* Body */}
         {loading || !draft ? (
           <div className="flex flex-1 flex-col items-center justify-center p-10">
-            <div className="mb-3 h-8 w-8 animate-spin rounded-full border-[3px] border-pink-200 border-t-pink-500" />
+            <div className="mb-3 h-8 w-8 animate-spin rounded-full border-[3px] border-rose-200 border-t-rose-600" />
             <p className="text-sm text-slate-500">Loading your draft…</p>
           </div>
         ) : (

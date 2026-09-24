@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useId, useState } from 'react';
-import { ICONS, KitIcon } from './icons';
+import { GlowbalIcon } from './glowbal-icon';
 
 /**
  * FileDropzone — the click-or-drag upload target from the CV and Submit Audit
@@ -108,7 +108,7 @@ export function FileDropzone({
         } ${disabled ? 'pointer-events-none opacity-60' : ''} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand`}
       >
         <span className="flex size-gb-6xl items-center justify-center rounded-gb-md border border-line bg-surface text-fg-tertiary">
-          <KitIcon art={ICONS.uploadCloud} frame={20} />
+          <GlowbalIcon name="documentUpload" size={20} />
         </span>
 
         <span className="flex flex-col gap-gb-xxs">

@@ -2,7 +2,7 @@
  * @deprecated Moved to `@/features/universities/ui/explorer-context`.
  *
  * Kept as a re-export so the three existing importers keep compiling. Note one
- * of them is `src/app/universities/page.tsx`, a Server Component importing a
+ * of them is `src/app/universities/(directory)/page.tsx`, a Server Component importing a
  * type from a `'use client'` module — that works only because types erase, and
  * is why `ApplicationEntry` now also lives in the feature's domain slice.
  *

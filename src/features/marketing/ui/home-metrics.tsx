@@ -1,5 +1,6 @@
 import { ICONS, KitIcon, Section } from '@/shared/ui';
 import { HomeMetricsGrid } from './home-metrics-grid';
+import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 
 /**
  * Metrics — Figma 375:9879 (1440x508, white) on the "Khanh Linh - Chi" canvas.
@@ -24,7 +25,7 @@ import { HomeMetricsGrid } from './home-metrics-grid';
  * card carries a pointer-following brand glow. That interaction stays in a
  * small client boundary so this heading and its copy remain server-rendered.
  */
-export function HomeMetrics() {
+export function HomeMetrics({ locale = 'en' }: { locale?: Locale } = {}) {
   return (
     <Section
       padded={false}
@@ -48,7 +49,7 @@ export function HomeMetrics() {
             <KitIcon art={ICONS.zapFast} frame={28} />
           </span>
           <h2 className="text-center font-display text-gb-display-md font-semibold tracking-gb-display-open text-fg">
-            Standout numbers
+            {getLocaleText(locale, 'Standout numbers')}
           </h2>
         </div>
         {/* A quotation in the frame, quotation marks included. Written as a JS
@@ -56,11 +57,11 @@ export function HomeMetrics() {
             DOM character-for-character or DomTranslator will not match the
             dictionary key, and as bare JSX text they would need entities. */}
         <p className="text-center text-gb-xl text-fg-tertiary">
-          {'"GlowBal has shown how much it invests in product quality, and how well it answers what the market actually needs"'}
+          {getLocaleText(locale, '"GlowBal has shown how much it invests in product quality, and how well it answers what the market actually needs"')}
         </p>
       </div>
 
-      <HomeMetricsGrid />
+      <HomeMetricsGrid locale={locale} />
     </Section>
   );
 }

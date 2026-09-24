@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { getFinalCheckPageData } from '@/features/apply/api';
 import { FinalCheckView } from '@/features/apply/ui';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * Final Application Check — the last surface in the Strategy journey.
@@ -17,10 +17,7 @@ export default async function FinalCheckPage({
   params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const { data, migrationMissing } = await getFinalCheckPageData(

@@ -14,6 +14,7 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useT } from '@/lib/i18n';
+import { trackSopFeedbackGenerated } from '@/lib/analytics/ga';
 import { createClient } from '@/lib/supabase/client';
 import type {
   AaccAnalysis,
@@ -25,6 +26,10 @@ import type {
   VinUniRequestedSection,
   VinUniV2SectionEvent,
   VinUniV2StreamEvent,
+} from '@/lib/ai/vinuni-evaluation-v2';
+import {
+  collectStructureFlowClaims,
+  legacyIdeasStructureFromStructureFlow,
 } from '@/lib/ai/vinuni-evaluation-v2';
 import {
   createVinUniInputHash,
@@ -236,6 +241,33 @@ function applyVinUniSection(
     return next;
   }
   if (event.section === 'B') {
+    if ('narrativeOverview' in event.data) {
+      const legacyIdeas = legacyIdeasStructureFromStructureFlow(event.data);
+      const next = {
+        ...current,
+        sections: {
+          ...current.sections!,
+          ideasStructure: {
+            strengths: textOf(legacyIdeas.strengths),
+            weaknesses: legacyIdeas.weaknesses.map((group) => ({
+              category: group.category,
+              title: group.title,
+              items: textOf(group.items),
+            })),
+            suggestions: textOf(legacyIdeas.suggestions),
+          },
+        },
+      };
+      const v2 = ensureV2Analysis(next);
+      return {
+        ...v2,
+        review: {
+          ...v2.review,
+          structureFlow: event.data,
+          ideasStructure: legacyIdeas,
+        },
+      };
+    }
     const next = {
       ...current,
       sections: {
@@ -251,20 +283,6 @@ function applyVinUniSection(
         },
       },
     };
-    if (
-      [...event.data.strengths, ...event.data.suggestions].some(
-        (item) => 'evidenceRefs' in item,
-      )
-    ) {
-      const v2 = ensureV2Analysis(next);
-      return {
-        ...v2,
-        review: {
-          ...v2.review,
-          ideasStructure: event.data as AaccAnalysisV2['review']['ideasStructure'],
-        },
-      };
-    }
     return next;
   }
   if (event.section === 'C') {
@@ -640,6 +658,10 @@ export function StatementWriter({
         setStatus('done');
         setVinUniStatus('');
         setViewMode('review');
+        // The streamed VinUni path finishes here rather than at the generic
+        // `return` below, so it needs its own call or the AACC rubric — the
+        // busiest review flow on the site — would report zero feedback events.
+        if (!streamError) trackSopFeedbackGenerated(targetName);
         if (
           completeEvent.current &&
           'versions' in completeEvent.current &&
@@ -664,6 +686,9 @@ export function StatementWriter({
       setActiveTab('suggestions');
       setViewMode('review');
       await saveDraft(text, genericResult);
+      // Institution name only. The draft, the score and the quoted suggestions
+      // in `genericResult` stay local — GA never sees document content.
+      trackSopFeedbackGenerated(targetName);
       onAnalysisComplete?.();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -707,9 +732,13 @@ export function StatementWriter({
     return [
       ...(vinUniAnalysis.diagnostics?.issues ?? []),
       ...review.overall,
-      ...review.ideasStructure.strengths,
-      ...review.ideasStructure.weaknesses.flatMap(({ items }) => items),
-      ...review.ideasStructure.suggestions,
+      ...(review.structureFlow
+        ? []
+        : [
+            ...review.ideasStructure.strengths,
+            ...review.ideasStructure.weaknesses.flatMap(({ items }) => items),
+            ...review.ideasStructure.suggestions,
+          ]),
       ...review.hookEngagement.analysis,
       ...review.hookEngagement.suggestions,
       ...Object.values(review.pillars).flatMap((pillar) => [
@@ -719,6 +748,7 @@ export function StatementWriter({
       ]),
       ...review.nextSteps.actions,
       ...review.nextSteps.questions,
+      ...collectStructureFlowClaims(review.structureFlow),
     ];
   }, [vinUniAnalysis]);
 
@@ -876,7 +906,7 @@ export function StatementWriter({
           <button
             type="button"
             onClick={() => setReviewEditing((current) => !current)}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition duration-300 hover:border-pink-300 hover:text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition duration-300 hover:border-rose-300 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
           >
             {reviewEditing ? t('View highlights') : t('Edit essay')}
           </button>
@@ -884,7 +914,7 @@ export function StatementWriter({
             type="button"
             onClick={() => void handleAnalyze()}
             disabled={status === 'analyzing' || text.trim().length < minimumAnalysisLength}
-            className="rounded-full bg-pink-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition duration-300 hover:bg-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition duration-300 hover:bg-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === 'analyzing' ? t('Analysing…') : t('Analyse again')}
           </button>
@@ -895,7 +925,7 @@ export function StatementWriter({
           aria-label={t('Edit essay')}
           value={text}
           onChange={(event) => setText(event.target.value)}
-          className="min-h-[520px] w-full resize-y rounded-xl border border-slate-200 bg-white p-4 text-base leading-8 text-slate-700 outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100"
+          className="min-h-[520px] w-full resize-y rounded-xl border border-line bg-surface p-4 text-base leading-8 text-fg outline-none transition focus:border-brand-subtle focus:ring-2 focus:ring-brand-subtle"
         />
       ) : (
         renderVinUniEvidence()
@@ -910,15 +940,15 @@ export function StatementWriter({
       viewMode === 'review',
   );
   const outerClass = vinUniWorkspaceReview
-    ? 'block min-h-0 flex-1 overflow-y-auto bg-slate-50'
+    ? 'block min-h-0 flex-1 overflow-y-auto bg-surface'
     : embedded
-      ? 'flex min-h-0 min-w-0 w-full flex-1 flex-col gap-10 bg-[#FAFAFA] lg:flex-row'
-      : 'flex min-w-0 w-full flex-1 flex-col gap-10 overflow-hidden bg-[#FAFAFA] lg:flex-row';
+      ? 'flex min-h-0 min-w-0 w-full flex-1 flex-col gap-gb-xl bg-surface lg:flex-row'
+      : 'flex min-w-0 w-full flex-1 flex-col gap-gb-xl overflow-hidden bg-surface lg:flex-row';
 
   return (
     <div className={outerClass}>
       {workspace && !vinUniWorkspaceReview && (
-        <div className="grid shrink-0 grid-cols-2 rounded-lg border border-neutral-200 bg-white p-2 lg:hidden">
+        <div className="grid shrink-0 grid-cols-2 rounded-lg border border-line bg-surface p-2 lg:hidden">
           {[
             ['essay', isLor ? 'Recommendation letter' : 'Essay'],
             ['feedback', 'Feedback'],
@@ -929,8 +959,8 @@ export function StatementWriter({
               onClick={() => setWorkspacePane(pane as 'essay' | 'feedback')}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                 workspacePane === pane
-                  ? 'bg-pink-50 text-pink-600'
-                  : 'text-slate-500 hover:bg-slate-50'
+                  ? 'bg-brand-subtle text-brand'
+                  : 'text-fg-muted hover:bg-surface-subtle'
               }`}
             >
               {t(label)}
@@ -941,7 +971,7 @@ export function StatementWriter({
       {/* ── Left: Editor ── */}
       {!vinUniWorkspaceReview ? <section
         aria-label={isLor ? t('Recommendation letter') : t('Essay')}
-        className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
+        className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-gb-2xl border border-line bg-surface lg:basis-0`}
       >
         <div className="flex shrink-0 flex-col items-stretch gap-4 px-4 pt-6 md:px-6">
           <h2 className="font-display text-2xl font-medium leading-8 text-neutral-900">
@@ -956,7 +986,7 @@ export function StatementWriter({
               <select
                 value={docType}
                 onChange={(e) => setDocType(e.target.value as DocType)}
-                className={isLor ? 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-pink-300 focus:outline-none' : 'rounded-full border-0 bg-rose-50 px-4 py-1 text-sm font-medium text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600'}
+                className={isLor ? 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-rose-300 focus:outline-none' : 'rounded-full border-0 bg-rose-50 px-4 py-1 text-sm font-medium text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600'}
               >
                 <option value="personal_statement">Personal Statement</option>
                 <option value="statement_of_purpose">Statement of Purpose</option>
@@ -1056,8 +1086,8 @@ export function StatementWriter({
       <section
         aria-label={t('Feedback')}
         className={vinUniWorkspaceReview
-          ? 'block w-full bg-slate-50'
-          : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
+          ? 'block w-full bg-surface'
+          : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-gb-2xl border border-line bg-surface lg:basis-0`}
       >
         {!vinUniWorkspaceReview && (
           <h2 className="px-4 pt-6 font-display text-2xl font-medium leading-8 text-neutral-900 md:px-6">
@@ -1067,7 +1097,7 @@ export function StatementWriter({
         {isVinUni && !vinUniAnalysis ? (
           <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-4 py-3 text-[11px] font-semibold text-slate-600">
             <span className="rounded-full border border-slate-200 px-3 py-1.5">Essay</span>
-            <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">VinUni AACC</span>
+            <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">VinUni AACC</span>
             <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">{t('Programme · server confirmed')}</span>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">{t('Profile · if available')}</span>
           </div>
@@ -1085,7 +1115,7 @@ export function StatementWriter({
 
         {status === 'analyzing' && !vinUniAnalysis && (
           <div className="flex flex-1 flex-col items-center justify-center p-8">
-            <div className="mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-pink-200 border-t-pink-500" />
+            <div className="mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-rose-200 border-t-rose-600" />
             <h2 className="text-base font-semibold text-slate-600">
               {isLor ? 'Reviewing the recommendation letter…' : 'Reading like an admissions officer…'}
             </h2>
@@ -1096,9 +1126,9 @@ export function StatementWriter({
         {vinUniStatus ? (
           <div
             role="status"
-            className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-pink-200 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+            className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-medium text-slate-700"
           >
-            <span className="h-2 w-2 animate-pulse rounded-full bg-pink-500" aria-hidden />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-rose-600" aria-hidden />
             {vinUniStatus}
           </div>
         ) : null}
@@ -1129,7 +1159,7 @@ export function StatementWriter({
             {'context' in vinUniAnalysis ? (
               <div className="mb-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
                 <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5">Essay</span>
-                <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">VinUni AACC</span>
+                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">VinUni AACC</span>
                 <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">
                   Programme · {vinUniAnalysis.context.programmeName ?? 'VinUni chung'}
                 </span>
@@ -1169,13 +1199,13 @@ export function StatementWriter({
                   onClick={() => setActiveTab(tab)}
                   className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-semibold capitalize transition ${
                     activeTab === tab
-                      ? 'border-pink-500 text-pink-600'
+                      ? 'border-rose-600 text-rose-600'
                       : 'border-transparent text-slate-400 hover:text-slate-600'
                   }`}
                 >
                   {tab}
                   {tab === 'suggestions' && analysis.suggestions.length > 0 && (
-                    <span className="rounded-full bg-pink-100 px-1.5 py-0.5 text-[10px] text-pink-600">
+                    <span className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] text-rose-600">
                       {analysis.suggestions.length}
                     </span>
                   )}
@@ -1206,8 +1236,8 @@ export function StatementWriter({
                   </div>
                   {isLor && isLorReview(analysis) ? (
                     <>
-                      <div className="rounded-xl border border-pink-200 bg-pink-50 p-5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-pink-600">
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-rose-600">
                           Overall quality
                         </p>
                         <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
@@ -1231,7 +1261,7 @@ export function StatementWriter({
                                 <p className="text-sm font-semibold text-slate-800">
                                   {dimension.label}
                                 </p>
-                                <span className="shrink-0 font-mono text-xs font-bold text-pink-600">
+                                <span className="shrink-0 font-mono text-xs font-bold text-rose-600">
                                   {dimension.score}/{dimension.maxScore}
                                 </span>
                               </div>
@@ -1292,7 +1322,7 @@ export function StatementWriter({
                             <article key={item.trait} className="rounded-lg bg-slate-50 p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <h4 className="text-sm font-semibold text-slate-900">{item.trait}</h4>
-                                <span className="text-xs font-semibold text-pink-600">
+                                <span className="text-xs font-semibold text-rose-600">
                                   {formatCoverageStatus(item.status)}
                                 </span>
                               </div>
@@ -1364,7 +1394,7 @@ export function StatementWriter({
                               type="button"
                               onClick={() => acceptSuggestion(sug)}
                               disabled={!canApply}
-                              className="mt-3 w-full rounded-lg border border-pink-300 bg-white py-2 text-xs font-semibold text-pink-600 transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                              className="mt-3 w-full rounded-lg border border-rose-300 bg-white py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                             >
                               {canApply ? 'Apply change' : 'Manual edit required'}
                             </button>

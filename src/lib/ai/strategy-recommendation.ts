@@ -20,6 +20,7 @@ import {
 } from '@/features/ai-strategy-dashboard/domain';
 import type { PersonalReportV2, ProgrammeFit } from '@/features/apply/domain';
 import { strategyReportV2Schema, type StrategyReportV2 } from '@/features/ai-strategy-dashboard/domain';
+import type { MatchingReportV3 } from './matching/domain';
 import { openAiJsonCompletion, defaultOpenAIModel } from './openai-client';
 
 export const STRATEGY_RECOMMENDATION_PROMPT_VERSION = 'strategy-recommendation-f8-v2';
@@ -49,6 +50,7 @@ export type StrategyActivityInput = {
 export type StrategyRecommendationInputs = {
   personalReport: PersonalReportV2;
   fit: ProgrammeFit;
+  matchingReportV3?: MatchingReportV3 | null;
   programme: StrategyProgrammeInput;
   achievements: StrategyAchievementInput[];
   activities: StrategyActivityInput[];
@@ -57,7 +59,7 @@ export type StrategyRecommendationInputs = {
 };
 
 function buildSystemPrompt(): string {
-  return `You are a senior university admissions strategist writing a Strategic Recommendation Report for one applicant applying to one specific programme. You have their structured Personal Report (who they are: Core Identity, Driving Force, Signature Pattern, Emerging Themes, Personal Positioning, Proof of Me, Evidence Confidence) and their Matching Report (Programme Fit: classification, dimension assessments, eligibility filters, limitations). Your job is to synthesise these canonical facts into a high-impact strategy: what direction to commit to, how to position the profile, how to evaluate their activity portfolio, how to differentiate, and an actionable roadmap before submission.
+  return `You are a senior university admissions strategist writing a Strategic Recommendation Report for one applicant applying to one specific programme. You have their structured Personal Report (who they are: Core Identity, Driving Force, Signature Pattern, Emerging Themes, Personal Positioning, Proof of Me, Evidence Confidence) and their Matching Report (V3 University Fit and Programme Fit when present, otherwise the legacy Programme Fit shape). Your job is to synthesise these canonical facts into a high-impact strategy: what direction to commit to, how to position the profile, how to evaluate their activity portfolio, how to differentiate, and an actionable roadmap before submission.
 
 Never calculate, estimate, or imply an admission probability, acceptance rate, or numerical chance of admission. Focus entirely on strategic positioning, fit alignment, and portfolio strengthening.
 
@@ -99,6 +101,7 @@ FIELD NOTES (F7.1-F7.6, one JSON section per module):
 
 RULES:
 - Base everything ONLY on the Personal Report, Matching Report, programme facts and activities/achievements provided. Do not invent facts about the applicant — you MAY propose plausible new opportunities for F7.4's "ai_proposed" entries.
+- If a V3 Matching Report is supplied, treat University Fit, Programme Fit, hard requirements, strengths, gaps, positioning opportunities, Key Takeaways, scholarship alignment and evidence provenance as canonical. Do not recompute or translate V3 into an F5 score; the F5 shape is compatibility fallback only.
 - Every real achievement/activity provided to you must appear as an "existing_activity" entry in "portfolioEvaluations" — do not omit any.
 - Write every field in English.
 - All six-dimension scores in "directionOptions" are 0-10, one decimal place is fine.
@@ -112,6 +115,7 @@ function buildUserPrompt(
   programme: StrategyProgrammeInput,
   achievements: StrategyAchievementInput[],
   activities: StrategyActivityInput[],
+  matchingReportV3?: MatchingReportV3 | null,
 ): string {
   const parts: string[] = [];
 
@@ -202,29 +206,46 @@ function buildUserPrompt(
 
   parts.push(`Overall Evidence Confidence: ${personalReport.overallEvidenceConfidence}`);
 
-  parts.push('\nCANONICAL MATCHING REPORT (Programme Fit F5):');
-  parts.push(`Classification: ${fit.classification}`);
-  parts.push(`Match Confidence: ${fit.confidence}%`);
-  parts.push('Eligibility Status:');
-  parts.push(`- Required Subjects: ${fit.eligibility.requiredSubjects}`);
-  parts.push(`- Minimum Qualification: ${fit.eligibility.minimumQualification}`);
-  parts.push(`- Language Requirement: ${fit.eligibility.languageRequirement}`);
-  parts.push(`- Citizenship Requirement: ${fit.eligibility.citizenshipRequirement}`);
-  parts.push(`- Deadline: ${fit.eligibility.deadline}`);
+  if (matchingReportV3) {
+    parts.push('\nCANONICAL MATCHING REPORT V3 (the current matching source):');
+    parts.push(JSON.stringify({
+      overall: matchingReportV3.overall,
+      universityFit: matchingReportV3.universityFit,
+      programmeFit: matchingReportV3.programmeFit,
+      hardRequirements: matchingReportV3.hardRequirements,
+      scholarshipAlignment: matchingReportV3.scholarshipAlignment,
+      strengths: matchingReportV3.strengths,
+      gaps: matchingReportV3.gaps,
+      positioningOpportunities: matchingReportV3.positioningOpportunities,
+      keyTakeaways: matchingReportV3.keyTakeaways,
+      evidenceIndex: matchingReportV3.evidenceIndex,
+      targetSourceIndex: matchingReportV3.targetSourceIndex,
+    }));
+  } else {
+    parts.push('\nCANONICAL MATCHING REPORT (Programme Fit F5 fallback):');
+    parts.push(`Classification: ${fit.classification}`);
+    parts.push(`Match Confidence: ${fit.confidence}%`);
+    parts.push('Eligibility Status:');
+    parts.push(`- Required Subjects: ${fit.eligibility.requiredSubjects}`);
+    parts.push(`- Minimum Qualification: ${fit.eligibility.minimumQualification}`);
+    parts.push(`- Language Requirement: ${fit.eligibility.languageRequirement}`);
+    parts.push(`- Citizenship Requirement: ${fit.eligibility.citizenshipRequirement}`);
+    parts.push(`- Deadline: ${fit.eligibility.deadline}`);
 
-  parts.push('Dimensions:');
-  for (const [key, dim] of Object.entries(fit.dimensions)) {
-    parts.push(
-      `- ${key}: ${dim.status}${dim.score !== null ? ` (${dim.score}/5)` : ''} — ${dim.summary}`,
-    );
-    if (dim.strengths.length > 0) parts.push(`  Strengths: ${dim.strengths.join('; ')}`);
-    if (dim.gaps.length > 0) parts.push(`  Gaps: ${dim.gaps.join('; ')}`);
-    if (dim.evidence.length > 0) parts.push(`  Evidence: ${dim.evidence.join('; ')}`);
-    if (dim.limitation) parts.push(`  Limitation: ${dim.limitation}`);
-  }
+    parts.push('Dimensions:');
+    for (const [key, dim] of Object.entries(fit.dimensions)) {
+      parts.push(
+        `- ${key}: ${dim.status}${dim.score !== null ? ` (${dim.score}/5)` : ''} — ${dim.summary}`,
+      );
+      if (dim.strengths.length > 0) parts.push(`  Strengths: ${dim.strengths.join('; ')}`);
+      if (dim.gaps.length > 0) parts.push(`  Gaps: ${dim.gaps.join('; ')}`);
+      if (dim.evidence.length > 0) parts.push(`  Evidence: ${dim.evidence.join('; ')}`);
+      if (dim.limitation) parts.push(`  Limitation: ${dim.limitation}`);
+    }
 
-  if (fit.limitations.length > 0) {
-    parts.push(`Fit Limitations: ${fit.limitations.join('; ')}`);
+    if (fit.limitations.length > 0) {
+      parts.push(`Fit Limitations: ${fit.limitations.join('; ')}`);
+    }
   }
 
   parts.push('\nREAL ACHIEVEMENTS (must each appear as an "existing_activity" portfolio entry):');
@@ -260,6 +281,7 @@ export async function generateStrategyRecommendation(
   const {
     personalReport,
     fit,
+    matchingReportV3,
     programme,
     achievements,
     activities,
@@ -272,7 +294,7 @@ export async function generateStrategyRecommendation(
     model,
     messages: [
       { role: 'system', content: buildSystemPrompt() },
-      { role: 'user', content: buildUserPrompt(personalReport, fit, programme, achievements, activities) },
+      { role: 'user', content: buildUserPrompt(personalReport, fit, programme, achievements, activities, matchingReportV3) },
     ],
     temperature: 0.4,
     maxTokens: 3500,
@@ -291,7 +313,7 @@ export async function generateStrategyRecommendation(
 // ─── F8 five-section Strategy Report (report_v2) ────────────────────────────
 
 function buildSystemPromptV2(): string {
-  return `You are a senior university admissions strategist writing the five-section Strategy Report for one applicant applying to one specific programme. You have their structured Personal Report (Core Identity, Driving Force, Signature Pattern, Emerging Themes, Personal Positioning, Proof of Me, Evidence Confidence) and their Matching Report (Programme Fit classification, five dimension assessments, eligibility gates, limitations). Synthesise these canonical facts into an actionable strategy.
+  return `You are a senior university admissions strategist writing the five-section Strategy Report for one applicant applying to one specific programme. You have their structured Personal Report (Core Identity, Driving Force, Signature Pattern, Emerging Themes, Personal Positioning, Proof of Me, Evidence Confidence) and their Matching Report (V3 University Fit and Programme Fit when present, otherwise the legacy Programme Fit shape). Synthesise these canonical facts into an actionable strategy.
 
 ABSOLUTE RULES:
 - Never calculate, estimate, or imply an admission probability, acceptance rate, or numerical chance of admission. You are shaping strategy and positioning, never predicting outcomes.
@@ -299,6 +321,7 @@ ABSOLUTE RULES:
 - Do not restate or recompute any fit score or classification.
 - Every "key"/"phaseKey" field MUST be a short deterministic slug (lowercase letters/digits/hyphens/underscores) naming the IDEA (e.g. "quant_portfolio_depth", "ielts_7_target") — student edits and Planner tasks key on it, so it must describe meaning, not position in a list.
 - Write every field in English.
+- If a V3 Matching Report is supplied, use its University Fit, Programme Fit, hard requirements, strengths, gaps, positioning opportunities, Key Takeaways, scholarship alignment and evidence provenance as canonical. Do not recompute or translate it into an F5 score; use the F5 shape only as fallback.
 
 Respond with VALID JSON ONLY matching exactly:
 {
@@ -346,6 +369,7 @@ export async function generateStrategyReportV2(
   const {
     personalReport,
     fit,
+    matchingReportV3,
     programme,
     achievements,
     activities,
@@ -360,7 +384,7 @@ export async function generateStrategyReportV2(
       { role: 'system', content: buildSystemPromptV2() },
       // Same canonical input rendering as the legacy prompt — one source of
       // truth for how the structured reports reach the model.
-      { role: 'user', content: buildUserPrompt(personalReport, fit, programme, achievements, activities) },
+      { role: 'user', content: buildUserPrompt(personalReport, fit, programme, achievements, activities, matchingReportV3) },
     ],
     temperature: 0.4,
     maxTokens: 4500,

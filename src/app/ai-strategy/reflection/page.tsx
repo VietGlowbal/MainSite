@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import {
   loadApplicationSummary,
   loadCandidateReflection,
@@ -53,10 +53,7 @@ export default async function ReflectionAboutPage({
 }: {
   searchParams: Promise<{ return?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect('/auth');
 
@@ -88,7 +85,7 @@ export default async function ReflectionAboutPage({
     ) : undefined;
 
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
+    <ReflectionChrome nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
       {confirmedAt ? (
         <ConfirmedReflectionView values={initial} confirmedAt={confirmedAt} continueHref={continueHref} />
       ) : (

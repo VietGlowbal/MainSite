@@ -3,6 +3,13 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { SITE_GATE_COOKIE, isSiteLockEnabled, verifyGateCookie } from '@/lib/site-gate';
 import { contactDetailsComplete } from '@/features/auth/domain';
+import {
+  NONCE_HEADER,
+  SUPABASE_AUTH_COOKIE_OPTIONS,
+  buildContentSecurityPolicy,
+  createNonce,
+  type ContentSecurityPolicy,
+} from '@/shared/lib';
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
@@ -13,6 +20,23 @@ const PROTECTED_ROUTES = [
   '/writer',
   '/admin',
   '/onboarding/complete',
+  /*
+   * ⚠️ TRAILING SLASH IS LOAD-BEARING. `/ai-strategy` itself is the public
+   * Strategy Hub — marketing copy about a feature must not require an account
+   * (see the note in its page.tsx). `'/ai-strategy/'` matches every child and
+   * not the hub, because `startsWith` is what tests this list.
+   *
+   * All 26 child pages already redirected anonymous visitors themselves; this
+   * moves that decision to the edge. Two reasons. It stops the server rendering
+   * a page for someone who will never see it — and, since `[applicationId]`
+   * now streams a skeleton (see its loading.tsx), a page-level redirect can no
+   * longer be a clean 307 once the shell has flushed. Deciding here keeps the
+   * anonymous case a real redirect with nothing painted first.
+   *
+   * No extra cost: `getClaims()` above already runs for these paths — only the
+   * redirect decision is new.
+   */
+  '/ai-strategy/',
 ];
 
 const PUBLIC_MARKETING_ROUTES = new Set([
@@ -52,8 +76,16 @@ function noindexRedirect(url: URL | string): NextResponse {
   return res;
 }
 
+function withContentSecurityPolicy(res: NextResponse, csp: ContentSecurityPolicy): NextResponse {
+  res.headers.set('Content-Security-Policy', csp.enforced);
+  res.headers.set('Content-Security-Policy-Report-Only', csp.reportOnly);
+  return res;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-glowbal-locale', pathname === '/vi' || pathname.startsWith('/vi/') ? 'vi' : 'en');
 
   // ── Pre-launch site lock ────────────────────────────────────────────────
   // See src/lib/site-gate.ts. SITE_LOCK_ENABLED=1 walls the
@@ -82,29 +114,39 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // One fresh nonce per page request. Next reads it back off the forwarded
+  // request's CSP header while rendering and stamps it on its own scripts, so
+  // the request and the response must carry the same policy. Every response
+  // that can render a page below goes out through withContentSecurityPolicy.
+  // See src/shared/lib/content-security-policy.ts.
+  const csp = buildContentSecurityPolicy({
+    nonce: createNonce(),
+    isDev: process.env.NODE_ENV === 'development',
+  });
+  requestHeaders.set(NONCE_HEADER, csp.nonce);
+  requestHeaders.set('Content-Security-Policy', csp.enforced);
+
   // These pages render guest-only HTML and hydrate identity in the browser.
-  // Avoid an auth round trip on every public request; the query-backed
-  // university directory is identical for all visitors and safe to edge-cache.
+  // Avoid an auth round trip on every public request.
+  //
+  // No CDN cache header. `/universities` used to send
+  // `Vercel-CDN-Cache-Control: s-maxage=43200`, but the root layout reads
+  // `headers()`, so Next answers `private, no-store` and Vercel never served it
+  // from cache (3 × MISS, measured 2026-09-14). Under a per-request nonce it
+  // would also be unsafe: a cached body carries an old nonce under a fresh
+  // policy, and every script on the page is blocked.
   if (PUBLIC_MARKETING_ROUTES.has(pathname)) {
-    const publicResponse = NextResponse.next();
-    if (pathname === '/universities') {
-      publicResponse.headers.set(
-        'Vercel-CDN-Cache-Control',
-        'public, s-maxage=43200, stale-while-revalidate=86400',
-      );
-    }
-    return publicResponse;
+    return withContentSecurityPolicy(NextResponse.next({ request: { headers: requestHeaders } }), csp);
   }
 
   // Create a Supabase client that can read cookies from the request
-  const response = NextResponse.next({
-    request: { headers: request.headers },
-  });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: SUPABASE_AUTH_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -140,11 +182,26 @@ export async function proxy(request: NextRequest) {
   // /auth/complete-profile is exempt alongside /auth/callback: it is a screen
   // only a signed-in student can be on, so without the exemption the gate below
   // would redirect them to /apply and /apply would redirect them straight back.
+  //
+  // /auth/reset-password is exempt because BEING SIGNED IN IS NOT A REASON TO
+  // REFUSE A RECOVERY LINK. Two ways a signed-in browser opens one:
+  //
+  //   * the Google-only "set a password" card on /profile/security mails the
+  //     link to a user who is signed in by definition — bouncing them here
+  //     breaks that flow outright;
+  //   * anyone who requested a reset on one device and opens the mail on
+  //     another where they are still signed in.
+  //
+  // The redirect also drops the query string, so the token is not merely
+  // deferred — it is destroyed, and the single-use link has to be re-requested.
+  // Letting the page render is safe: it does nothing until the token is posted,
+  // and the confirm route validates it independently of any session.
   if (
     userId &&
     pathname.startsWith('/auth') &&
     !pathname.startsWith('/auth/callback') &&
-    !pathname.startsWith('/auth/complete-profile')
+    !pathname.startsWith('/auth/complete-profile') &&
+    !pathname.startsWith('/auth/reset-password')
   ) {
     const redirectTarget = request.nextUrl.searchParams.get('redirect');
     if (redirectTarget?.startsWith('/')) {
@@ -244,7 +301,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return response;
+  return withContentSecurityPolicy(response, csp);
 }
 
 export const config = {

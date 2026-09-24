@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { Section } from '@/shared/ui';
+import { GlowbalIcon, Section } from '@/shared/ui';
 
 const TESTIMONIALS = [
   {
@@ -31,6 +31,7 @@ export function HomeTestimonials() {
       containerClassName="flex flex-col gap-gb-7xl"
     >
       <div className="mx-auto max-w-gb-width-xl text-center">
+        <GlowbalIcon name="studentStories" size={40} className="mx-auto mb-gb-xl block" />
         <p className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-brand md:text-gb-display-sm">
           Testimonials
         </p>

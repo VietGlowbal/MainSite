@@ -9,6 +9,8 @@ export type ApplicationRouteKey =
   | 'planner'
   | 'cv'
   | 'essay'
+  | 'lor'
+  | 'documents'
   | 'scholarships'
   | 'finalCheck';
 
@@ -57,47 +59,62 @@ export function aiStrategyApplicationNav(
 ): SubNavItem[] {
   const app = `/ai-strategy/${applicationId}`;
   const returnParam = `?return=${encodeURIComponent(`${app}/strategy/analysis`)}`;
+  // `icon` values are product icon names (src/shared/ui/glowbal-icon-art.ts) —
+  // the redrawn Feature 2 set. SubNav ignores a name its icon set cannot draw.
   const leadItem: SubNavItem = readiness.analysisReady
     ? {
         key: 'reflections',
         label: 'Reflections',
         href: `/ai-strategy/reflection/confirm${returnParam}`,
+        icon: 'reflection',
         ...(readiness.candidateConfirmed ? {} : { locked: true }),
       }
-    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}` };
+    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}`, icon: 'myApplication' };
 
   return [
     leadItem,
-    { key: 'personalReport', label: 'Personal Report', href: `/ai-strategy/personal-report${returnParam}` },
+    {
+      key: 'personalReport',
+      label: 'Personal Report',
+      href: `/ai-strategy/personal-report${returnParam}`,
+      icon: 'personalReport',
+    },
     {
       key: 'matchingReport',
       label: 'Matching Report',
       href: `${app}/matching-report`,
+      icon: 'matchingReport',
       ...(readiness.analysisReady ? {} : { locked: true }),
     },
     {
       key: 'strategyReport',
       label: 'Personalized Strategy',
       href: `${app}/strategy-report`,
+      icon: 'personalizedStrategy',
       ...(readiness.strategyReady ? {} : { locked: true }),
     },
     {
       key: 'planner',
       label: 'Planner',
       href: `${app}/planner`,
+      icon: 'applicationPlanner',
       ...(readiness.plannerReady ? {} : { locked: true }),
     },
     // Deliberate compatibility adapters pending the CV/Essay consolidation.
-    { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv` },
-    { key: 'essay', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback` },
+    { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv`, icon: 'cvSupport' },
+    { key: 'essay', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback`, icon: 'essaySupport' },
+    { key: 'lor', label: 'LOR Support', href: `/apply/${applicationId}/lor-feedback`, icon: 'lorSupport' },
+    {
+      key: 'documents',
+      label: 'Documents',
+      href: `/profile/documents?return=${encodeURIComponent(`${app}/strategy/analysis`)}`,
+      icon: 'documents',
+    },
     // Canonical future destinations. Locked items are intentionally omitted by
     // SubNav until their product phases are implemented.
     { key: 'scholarships', label: 'Scholarships', href: `${app}/scholarships`, locked: true },
-    // Final Check is implemented and unlocked. The page handles its own
-    // "not enough attached yet" state rather than being gated here, because a
-    // student needs to see WHAT is missing — which is most of the report's
-    // value before any document exists.
-    { key: 'finalCheck', label: 'Final Check', href: `${app}/final-check` },
+    // Final Evaluation (Final Check) is implemented and unlocked.
+    { key: 'finalCheck', label: 'Final Evaluation', href: `${app}/final-check`, icon: 'finalEvaluation' },
   ];
 }
 
@@ -117,7 +134,11 @@ export function activeAiStrategyApplicationKey(
   // Compatibility for old URLs while their route-level redirects resolve.
   if (/\/strategy\/analysis\/fit$/.test(clean)) return 'matchingReport';
   if (/\/strategy\/analysis\/recommendation$/.test(clean)) return 'strategyReport';
+  if (/\/strategy-report$/.test(clean)) return 'strategyReport';
   if (/\/strategy\/(dashboard|recommendations)/.test(clean)) return 'planner';
   if (/\/strategy\/analysis\/portrait$/.test(clean)) return 'personalReport';
+  if (/\/lor-feedback$/.test(clean)) return 'lor';
+  if (/\/documents(\/|$)/.test(clean)) return 'documents';
+  if (/\/final-check$/.test(clean)) return 'finalCheck';
   return null;
 }

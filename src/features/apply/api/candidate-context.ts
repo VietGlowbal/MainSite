@@ -38,7 +38,7 @@ const PROFILE_FIELDS = [
   'study_motivation',
   'subject_motivations',
   /*
-   * The five cross-cutting Personal Reflection answers (see
+   * The seven cross-cutting Personal Reflection answers (see
    * `personal-reflection.ts`) — what patterns exist across the student's
    * experiences and what genuinely drives them. Read here so the Personal
    * Report's pattern-detection pass sees the same answers the confirmed

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const sql = readFileSync(new URL('../../../../supabase-application-personal-report-generation-jobs.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('../../../../sql/supabase-application-personal-report-generation-jobs.sql', import.meta.url), 'utf8');
 
 describe('Personal Report generation job migration', () => {
   it('provides an owner-isolated queue with an atomic service-role claim RPC', () => {
@@ -10,5 +10,8 @@ describe('Personal Report generation job migration', () => {
     expect(sql).toMatch(/grant execute on function public\.claim_application_personal_report_generation_jobs\(text, integer\) to service_role/i);
     expect(sql).toContain('application_personal_report_generation_jobs_select_own');
     expect(sql).toContain('course_applications.user_id = auth.uid()');
+    expect(sql).toContain('attempts >= 6');
+    expect(sql).toContain("error_code = 'MAX_RETRIES_EXCEEDED'");
+    expect(sql).toContain('attempts < 6');
   });
 });

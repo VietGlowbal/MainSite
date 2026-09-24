@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createPersonalReportV2Version,
+  countApplicationReportGenerations,
   findPersonalReportV2ByCacheKey,
   getLatestApplicationPersonalReportV2,
   getLatestPersonalReportV2,
@@ -150,6 +151,24 @@ describe('listPersonalReportV2Versions', () => {
     const { versions, migrationMissing } = await listPersonalReportV2Versions(supabase as never, 'user-1');
     expect(versions).toEqual([]);
     expect(migrationMissing).toBe(true);
+  });
+});
+
+describe('countApplicationReportGenerations', () => {
+  it('counts manual and legacy-null versions for one application', async () => {
+    const query: Record<string, unknown> = {};
+    query.select = vi.fn(() => query);
+    query.eq = vi.fn(() => query);
+    query.or = vi.fn(async () => ({ count: 4, error: null }));
+    const supabase = { from: vi.fn(() => query) };
+
+    const result = await countApplicationReportGenerations(supabase as never, {
+      userId: 'user-1',
+      applicationId: 'app-1',
+    });
+
+    expect(result).toEqual({ count: 4, migrationMissing: false });
+    expect(query.or).toHaveBeenCalledWith('trigger.eq.manual,trigger.is.null');
   });
 });
 

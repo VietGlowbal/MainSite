@@ -3,6 +3,7 @@
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { ICONS, KitIcon } from '@/shared/ui';
+import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 
 const METRICS = [
   {
@@ -53,11 +54,13 @@ function AnimatedMetricCard({
   index,
   active,
   reducedMotion,
+  locale,
 }: {
   metric: (typeof METRICS)[number];
   index: number;
   active: boolean;
   reducedMotion: boolean;
+  locale: Locale;
 }) {
   const valueRef = useRef<HTMLSpanElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -144,7 +147,7 @@ function AnimatedMetricCard({
           </span>
         </p>
         <p className="max-w-[22ch] text-gb-sm font-semibold text-fg">
-          {metric.label}
+          {getLocaleText(locale, metric.label)}
         </p>
       </div>
 
@@ -163,7 +166,7 @@ function AnimatedMetricCard({
   );
 }
 
-export function HomeMetricsGrid() {
+export function HomeMetricsGrid({ locale = 'en' }: { locale?: Locale } = {}) {
   const gridRef = useRef<HTMLDivElement>(null);
   const inView = useInView(gridRef, { once: true, amount: 0.2 });
   const prefersReducedMotion = useReducedMotion();
@@ -183,6 +186,7 @@ export function HomeMetricsGrid() {
             index={index}
             active={inView}
             reducedMotion={reducedMotion}
+            locale={locale}
           />
         ))}
       </div>

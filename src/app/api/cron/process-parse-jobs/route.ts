@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isAuthorizedCron } from '@/lib/cron-auth';
-import { claimPendingJobs } from '@/lib/course-parser/job-queue';
+import { claimPendingJobs, reapStaleParseJobs } from '@/lib/course-parser/job-queue';
 import { processParseJob } from '@/lib/course-parser/job-processor';
 
 /**
@@ -10,6 +10,10 @@ import { processParseJob } from '@/lib/course-parser/job-processor';
  * claims a batch of pending jobs (FOR UPDATE SKIP LOCKED) and processes them:
  * fetch + AI-parse the official course page, then write the extracted details
  * onto the course_applications row.
+ *
+ * Includes an automated watchdog / reaper path: stale processing leases
+ * (jobs older than 10 minutes without a heartbeat) are recovered or failed
+ * before new pending jobs are claimed.
  *
  * This replaces the need to run scripts/course-parse-worker.mjs as a long-lived
  * process — Vercel Cron invokes this on a schedule instead.
@@ -22,7 +26,7 @@ import { processParseJob } from '@/lib/course-parser/job-processor';
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const DEFAULT_BATCH = 5;
 const MAX_BATCH = 20;
@@ -38,6 +42,14 @@ async function handle(request: NextRequest) {
     ? Math.min(Math.max(requested, 1), MAX_BATCH)
     : DEFAULT_BATCH;
 
+  // Run watchdog to reclaim any stale or deadlocked processing jobs
+  let reapedSummary = { reaped: 0, recovered: 0, failed: 0 };
+  try {
+    reapedSummary = await reapStaleParseJobs(10);
+  } catch (reapError) {
+    console.error('[process-parse-jobs] Watchdog reap error (non-fatal):', reapError);
+  }
+
   const workerId = `vercel-cron-${Date.now()}`;
 
   let claimed;
@@ -52,13 +64,23 @@ async function handle(request: NextRequest) {
   }
 
   if (!claimed || claimed.length === 0) {
-    return NextResponse.json({ claimed: 0, processed: 0, results: [] });
+    return NextResponse.json({
+      reaped: reapedSummary.reaped,
+      recovered: reapedSummary.recovered,
+      staleFailed: reapedSummary.failed,
+      claimed: 0,
+      processed: 0,
+      results: [],
+    });
   }
 
   // Process claimed jobs concurrently; each is independent.
   const results = await Promise.all(claimed.map((job) => processParseJob(job)));
 
   const summary = {
+    reaped: reapedSummary.reaped,
+    recovered: reapedSummary.recovered,
+    staleFailed: reapedSummary.failed,
     claimed: claimed.length,
     processed: results.length,
     complete: results.filter((r) => r.status === 'complete').length,

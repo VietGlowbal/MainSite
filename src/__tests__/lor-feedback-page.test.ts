@@ -23,7 +23,7 @@ vi.mock('@/components/statement/StatementFeedbackWorkspace', () => ({
   StatementFeedbackWorkspace: vi.fn(() => null),
 }));
 
-import LorFeedbackPage from '@/app/apply/[applicationId]/lor-feedback/page';
+import LorFeedbackPage from '@/app/apply/[applicationId]/(features)/lor-feedback/page';
 
 describe('LorFeedbackPage', () => {
   beforeEach(() => {

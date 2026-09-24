@@ -17,10 +17,28 @@ import { FIELD_OF_STUDY_TRANSLATIONS } from './fields-of-study';
  * Do NOT translate brand names (GLOWBAL) or university names.
  */
 export const translations: Record<string, string> = {
+  'Cannot find the subject you want? Paste a link to it': 'Không tìm thấy ngành học bạn muốn? Hãy dán liên kết vào đây',
   // The comprehensive academic-profile subject taxonomy lives beside its
   // canonical values. Entries declared later in this object deliberately win
   // when an established product translation already exists for the same word.
   ...FIELD_OF_STUDY_TRANSLATIONS,
+  'Next-ranked options': 'Các lựa chọn tiếp theo',
+  'Recommendation filters': 'Bộ lọc đề xuất',
+  'Current / Latest institution (optional)': 'Trường hiện tại / gần nhất (không bắt buộc)',
+  GRE: 'GRE',
+  GMAT: 'GMAT',
+  'Reading this course page is taking longer than usual. You can wait or retry.':
+    'Đọc trang khóa học này đang mất nhiều thời gian hơn bình thường. Bạn có thể chờ hoặc thử lại.',
+  'Achievements & skills': 'Thành tích & kỹ năng',
+  'Awards, activities, work evidence and reflections are managed together so applications and reports use the same facts.':
+    'Giải thưởng, hoạt động, kinh nghiệm làm việc và suy ngẫm được quản lý cùng nhau để hồ sơ và báo cáo dùng chung một nguồn thông tin.',
+  'Manage achievements and activities': 'Quản lý thành tích và hoạt động',
+  'Create my CV': 'Tạo CV của tôi',
+  'Already have a CV?': 'Bạn đã có CV?',
+  'Best Fits': 'Phù hợp nhất',
+  'Explore All': 'Khám phá tất cả',
+  'Explore all recommendations': 'Khám phá tất cả gợi ý',
+  'Back to shortlist': 'Quay lại danh sách rút gọn',
 
   // ── Navigation ───────────────────────────────────────────────────────────
   Home: 'Trang chủ',
@@ -36,6 +54,27 @@ export const translations: Record<string, string> = {
   'Advisor hub': 'Trung tâm cố vấn',
   'Advising hub': 'Trung tâm cố vấn',
   Admin: 'Quản trị',
+  'AI report review': 'Kiểm tra báo cáo AI',
+  'Trace the latest Personal, Matching and Strategy report for each application.': 'Theo dõi báo cáo Cá nhân, Độ phù hợp và Chiến lược mới nhất cho từng hồ sơ.',
+  'Select an application': 'Chọn một hồ sơ',
+  'Most recent 100 applications with AI report activity.': '100 hồ sơ gần nhất có hoạt động báo cáo AI.',
+  'No reviewable reports yet.': 'Chưa có báo cáo nào để kiểm tra.',
+  'Loading report details…': 'Đang tải chi tiết báo cáo…',
+  'Could not load report details.': 'Không thể tải chi tiết báo cáo.',
+  'Stored report': 'Báo cáo đã lưu',
+  'Waiting on report': 'Đang chờ báo cáo',
+  'Input lineage and generation metadata.': 'Nguồn đầu vào và siêu dữ liệu tạo báo cáo.',
+  Generated: 'Thời điểm tạo',
+  Model: 'Mô hình',
+  'Input hash': 'Mã băm đầu vào',
+  'Input lineage': 'Nguồn đầu vào',
+  'Stored output': 'Kết quả đã lưu',
+  'Raw prompts and model responses are not stored in this review.': 'Prompt thô và phản hồi nguyên văn của mô hình không được lưu trong trang kiểm tra này.',
+  'No report generated yet.': 'Chưa có báo cáo được tạo.',
+  'Candidate snapshot': 'Bản chụp thông tin ứng viên',
+  'Profile analysis': 'Phân tích hồ sơ',
+  'Personal Report version': 'Phiên bản Báo cáo Cá nhân',
+  'Target programme profile': 'Hồ sơ chương trình mục tiêu',
   Advisors: 'Cố vấn',
   News: 'Tin tức',
   Profile: 'Hồ sơ',
@@ -155,12 +194,18 @@ export const translations: Record<string, string> = {
   // ── Home (Figma 884:12026; copy source: Home.md) ─────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
   // must stay character-identical to the JSX in features/marketing/ui.
-  'The all-in-one solution for scholarship seekers':
+  'The ultimate solution for scholarship hunters':
     'Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”',
   'From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.':
     'GlowBal giúp bạn đưa ra quyết định chọn trường và học bổng phù hợp, từ đó xây dựng chiến lược cá nhân hoá, đồng hành theo dõi hồ sơ cùng bạn trong toàn bộ hành trình chinh phục giấc mơ du học.',
-  'Find a University that Fits You 100% free':
-    'Công cụ Tìm trường Phù hợp Hoàn toàn Miễn phí',
+  'Find a Scholarship that Fits You 100% free':
+    'Công cụ tìm Học bổng phù hợp hoàn toàn Miễn phí',
+  // Under the hero globe. Added 2026-09-20 from the owner's English copy; the
+  // Vietnamese is a draft for the owner to confirm. "3000+" (no comma) matches
+  // the journey-section line further down.
+  'With 3000+ scholarships, we help you find and conquer the best route for your global education journey':
+    'Với 3000+ học bổng, chúng tôi giúp bạn tìm ra và chinh phục lộ trình tốt nhất cho hành trình du học toàn cầu của mình',
+  'Register for Free Consultation': 'Đăng ký Tư vấn Miễn phí',
   // Still rendered by the legacy landing at src/components/landing/home until
   // that tree is deleted. Remove this key with those files, not before.
   'Find my scholarships': 'Tìm học bổng của tôi',
@@ -184,7 +229,35 @@ export const translations: Record<string, string> = {
   'View all universities': 'Xem tất cả các trường đại học',
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
+  // Superseded on "/" by the {value} form below, which carries the owner's
+  // aggregate. Kept because the plain heading is still the right one anywhere
+  // the money claim is not wanted.
+  "Choose from 200+ of the world's leading universities with {value} in total scholarship value":
+    'Chọn từ 200+ đại học hàng đầu thế giới với tổng giá trị học bổng {value}',
+  // No longer rendered: the partner orbit's CTA became "Find scholarships" on
+  // 2026-09-20. Kept because the string is the obvious label for a directory
+  // CTA and will be wanted again; delete it with the next dictionary sweep if
+  // nothing has claimed it.
   'Find a university': 'Tìm Đại học',
+  // ── Home: partner orbit CTA and the Scholarship Library preview ──────────
+  // Vietnamese drafted 2026-09-20, awaiting the owner's confirmation.
+  // 'Find scholarships' is NOT redefined here — it already exists in the footer
+  // block further down ('Tìm Học bổng'), and a second copy would silently win
+  // or lose by source order.
+  'Hide scholarships': 'Ẩn học bổng',
+  'Up to {value}': 'Tối đa {value}',
+  'Scholarship Library': 'Thư viện Học bổng',
+  'A preview of what you can search inside GlowBal.':
+    'Xem trước những gì bạn có thể tìm kiếm trong GlowBal.',
+  'Search scholarships': 'Tìm kiếm học bổng',
+  'Search by name, university or country': 'Tìm theo tên, trường hoặc quốc gia',
+  'Showing {shown} of {total} published scholarships':
+    'Đang hiển thị {shown} trong {total} học bổng đã đăng',
+  'Register to view details': 'Đăng ký để xem chi tiết',
+  'No scholarship in this preview matches that search — the full library has many more.':
+    'Không có học bổng nào trong bản xem trước khớp với tìm kiếm này — thư viện đầy đủ còn nhiều hơn.',
+  'Leave your details and a GlowBal advisor will send the scholarships that fit your profile.':
+    'Để lại thông tin, cố vấn GlowBal sẽ gửi cho bạn những học bổng phù hợp với hồ sơ của bạn.',
   'Recommended for you': 'Đề xuất dành cho bạn',
   'These universities are ranked by how well they match your preferences. Admission selectivity uses available overall university acceptance data. Programme-specific competitiveness may differ, and this is not a prediction of your personal admission chances.':
     'Các trường này được xếp hạng theo mức độ phù hợp với sở thích của bạn. Mức độ chọn lọc tuyển sinh dùng dữ liệu tỷ lệ trúng tuyển tổng thể hiện có của trường. Tính cạnh tranh của từng chương trình có thể khác, và đây không phải là dự đoán cơ hội trúng tuyển cá nhân của bạn.',
@@ -838,6 +911,9 @@ export const translations: Record<string, string> = {
   'Get a personalised plan and smart recommendations.':
     'Nhận một kế hoạch cá nhân hóa và các gợi ý thông minh.',
   'Profile strength': 'Độ hoàn thiện hồ sơ',
+  'Profile completeness': 'Độ hoàn thiện hồ sơ',
+  'This shows how much of your profile information is filled in. It is not an assessment of applicant quality or admission chances.':
+    'Chỉ số này cho biết mức độ thông tin hồ sơ đã được điền. Đây không phải là đánh giá chất lượng ứng viên hay cơ hội trúng tuyển.',
   'Improve profile': 'Cải thiện hồ sơ',
   'Your documents': 'Tài liệu của bạn',
   'Academic transcript': 'Bảng điểm học tập',
@@ -1271,6 +1347,66 @@ export const translations: Record<string, string> = {
   'Standardized Test': 'Kỳ thi chuẩn hóa',
   'Your score': 'Điểm của bạn',
 
+  // PG & PhD onboarding branching
+  'Tell us about your bachelor or current degree, institution, and academic results.':
+    'Cho chúng tôi biết về bằng đại học/hiện tại, trường và kết quả học tập của bạn.',
+  'Academic & Research Information': 'Thông tin học thuật & nghiên cứu',
+  'Tell us about your degree history, research experience, and intended direction.':
+    'Chia sẻ về quá trình học tập, kinh nghiệm nghiên cứu và định hướng của bạn.',
+  'Add your English proficiency and any graduate test scores (GRE/GMAT) you have.':
+    'Thêm kết quả tiếng Anh và các bài thi sau đại học (GRE/GMAT) nếu có.',
+  'Language Proficiency': 'Trình độ ngôn ngữ',
+  'Add any English language test results you already have.':
+    'Thêm kết quả bài thi tiếng Anh bạn đã có.',
+  'Bachelor / Current degree': 'Bằng Cử nhân / Bằng hiện tại',
+  'e.g. Bachelor of Science, Bachelor of Engineering': 'Ví dụ: Cử nhân Khoa học, Cử nhân Kỹ thuật',
+  'Institution name': 'Tên trường / Cơ sở đào tạo',
+  'e.g. National University of Singapore': 'Ví dụ: National University of Singapore',
+  'Field of study / Major': 'Ngành học / Chuyên ngành',
+  'e.g. Computer Science, Finance': 'Ví dụ: Khoa học máy tính, Tài chính',
+  '100% Percentage': 'Thang điểm 100%',
+  'Percentage / Average mark (0–100%)': 'Điểm trung bình / phần trăm (0–100%)',
+  'UK Honours classification': 'Xếp loại bằng Anh (UK Honours)',
+  'Degree classification': 'Xếp loại bằng tốt nghiệp',
+  'Other / Letter grade': 'Khác / Điểm chữ',
+  'GPA / Classification': 'GPA / Xếp loại',
+  'Graduation / Completion year': 'Năm tốt nghiệp / Hoàn thành',
+  'Expected or actual graduation year': 'Năm tốt nghiệp dự kiến hoặc thực tế',
+  'Year of graduation or expected completion': 'Năm tốt nghiệp hoặc dự kiến hoàn thành',
+  'Graduate admission test': 'Bài thi chuẩn hóa sau đại học',
+  'Graduate Admission Test': 'Bài thi chuẩn hóa sau đại học',
+  'GRE total': 'Tổng điểm GRE',
+  'GMAT total': 'Tổng điểm GMAT',
+  'e.g. BSc Computer Science, NUS (2020)': 'Ví dụ: Cử nhân Khoa học máy tính, NUS (2020)',
+  'e.g. MSc Data Science, NTU (2022)': 'Ví dụ: Thạc sĩ Khoa học dữ liệu, NTU (2022)',
+  'Current / Latest institution': 'Trường hiện tại / gần nhất',
+  "Master's degree & institution (if applicable)": 'Bằng Thạc sĩ & trường đào tạo (nếu có)',
+  "Bachelor's degree & institution": 'Bằng Cử nhân & trường đào tạo',
+  'Research experience & publications': 'Kinh nghiệm nghiên cứu & công bố',
+  'Research experience': 'Kinh nghiệm nghiên cứu',
+  'Describe your lab experience, research projects, methodologies, or thesis work...':
+    'Mô tả kinh nghiệm phòng lab, dự án nghiên cứu, phương pháp luận hoặc luận văn...',
+  'Describe your lab experience, research projects, publications, or thesis work...':
+    'Mô tả kinh nghiệm phòng lab, dự án nghiên cứu, bài báo khoa học hoặc luận văn...',
+  'Publications & research outputs (optional)': 'Công bố khoa học & kết quả nghiên cứu (nếu có)',
+  'e.g. Papers, conference proceedings, preprints, patents, or thesis titles...':
+    'Ví dụ: Bài báo khoa học, kỷ yếu hội nghị, preprint, bằng sáng chế hoặc tên luận văn...',
+  'Intended research direction': 'Định hướng nghiên cứu dự kiến',
+  'Describe your target research topics, questions, or methodologies...':
+    'Mô tả đề tài, câu hỏi nghiên cứu hoặc phương pháp bạn quan tâm...',
+  'Supervisor / Research fit context': 'Giáo sư hướng dẫn / Định hướng phù hợp',
+  'Identify potential supervisors, labs, or faculty alignments you are interested in...':
+    'Nêu các giáo sư, nhóm nghiên cứu hoặc phòng lab bạn quan tâm hướng dẫn...',
+  'Enter your degree or current qualification.': 'Vui lòng nhập bằng cấp hoặc trình độ hiện tại.',
+  'Enter your university or institution name.': 'Vui lòng nhập tên trường đại học hoặc cơ sở đào tạo.',
+  'Enter your field of study or major.': 'Vui lòng nhập ngành học hoặc chuyên ngành.',
+  'Enter your research experience or publications summary.':
+    'Vui lòng nhập tóm tắt kinh nghiệm nghiên cứu hoặc công bố.',
+  'Enter your intended research direction.': 'Vui lòng nhập định hướng nghiên cứu dự kiến.',
+  'Enter your supervisor or research fit context.':
+    'Vui lòng nhập thông tin giáo sư hoặc định hướng nghiên cứu phù hợp.',
+
+
   // Curricula. The exam-board names are proper nouns and stay as they are.
   'Vietnamese National Curriculum': 'Chương trình Giáo dục Phổ thông Việt Nam',
   'Others...': 'Khác...',
@@ -1323,6 +1459,16 @@ export const translations: Record<string, string> = {
     'Chỉ chọn nếu trường bạn cộng trọng số cho lớp AP và honours.',
   'Your overall average as a percentage.':
     'Điểm trung bình chung của bạn tính theo phần trăm.',
+  'Reported as Verbal + Quant (260 to 340).': 'Báo cáo theo Verbal + Quant (260 đến 340).',
+  'Reported score (200 to 805).': 'Điểm được báo cáo (200 đến 805).',
+  'Cumulative GPA on a 4.0 scale.': 'GPA tích lũy trên thang điểm 4.0.',
+  'Cumulative average on a 10-point scale.': 'Điểm trung bình tích lũy trên thang điểm 10.',
+  'Overall percentage mark out of 100.': 'Điểm phần trăm tổng thể trên thang 100.',
+  'First Class (1st), Upper Second (2:1), Lower Second (2:2), etc.':
+    'Hạng Nhất (1st), Hạng Nhì cao (2:1), Hạng Nhì (2:2), v.v.',
+  'Enter your degree classification.': 'Nhập xếp loại bằng tốt nghiệp của bạn.',
+  'Your degree result or grading summary.': 'Kết quả bằng cấp hoặc tóm tắt điểm của bạn.',
+  'Enter your academic result.': 'Nhập kết quả học tập của bạn.',
   'Start with the number — for example 18/20 or 87%.':
     'Bắt đầu bằng con số — ví dụ 18/20 hoặc 87%.',
   'Half bands only — 0 to 9.': 'Chỉ theo nửa band — 0 đến 9.',
@@ -1439,11 +1585,52 @@ export const translations: Record<string, string> = {
   'Last name': 'Họ',
   'Phone number': 'Số điện thoại',
   'Country dialling code': 'Mã vùng quốc gia',
+  'Switch to': 'Chuyển sang',
   'Leave us a message...': 'Để lại lời nhắn cho chúng tôi...',
   'Get advice': 'Tư vấn cho tôi',
   'Sending…': 'Đang gửi…',
   'You agree to our friendly': 'Bạn đồng ý với',
   'privacy policy': 'chính sách bảo mật',
+  'Cookie preferences': 'Tùy chọn cookie',
+  'Necessary cookies keep GlowBal working. Optional analytics help us understand site use.':
+    'Cookie cần thiết giúp GlowBal hoạt động. Phân tích tùy chọn giúp chúng tôi hiểu cách trang được sử dụng.',
+  'Accept Essential Cookies': 'Chấp nhận cookie cần thiết',
+  Configure: 'Tùy chỉnh',
+  'Privacy settings': 'Cài đặt quyền riêng tư',
+  'Choose which cookies GlowBal may use. Turning off optional cookies does not limit anything you can do on GlowBal.':
+    'Chọn loại cookie GlowBal được phép sử dụng. Tắt cookie tùy chọn không làm hạn chế bất kỳ việc gì bạn làm trên GlowBal.',
+  'Reject all optional cookies': 'Từ chối tất cả cookie tùy chọn',
+  'Accept all cookies': 'Chấp nhận tất cả cookie',
+  'Or choose by category': 'Hoặc chọn theo từng loại',
+  Necessary: 'Cần thiết',
+  'Needed for GlowBal to work, so they cannot be turned off.': 'Cần để GlowBal hoạt động nên không thể tắt.',
+  'Always on': 'Luôn bật',
+  Analytics: 'Phân tích',
+  'Help us see which pages students use and how fast they load. Not needed for your account or applications.':
+    'Giúp chúng tôi biết sinh viên dùng những trang nào và trang tải nhanh ra sao. Không cần thiết cho tài khoản hay hồ sơ ứng tuyển của bạn.',
+  On: 'Bật',
+  Off: 'Tắt',
+  "What's included ({count})": 'Bao gồm những gì ({count})',
+  'Sign-in session': 'Phiên đăng nhập',
+  'Keeps you signed in while you move between pages.': 'Giữ bạn đăng nhập khi chuyển giữa các trang.',
+  Language: 'Ngôn ngữ',
+  'Remembers whether you read GlowBal in English or Vietnamese.':
+    'Ghi nhớ bạn đọc GlowBal bằng tiếng Anh hay tiếng Việt.',
+  'Your privacy choice': 'Lựa chọn quyền riêng tư của bạn',
+  'Remembers what you pick here, so we do not ask again on every page.':
+    'Ghi nhớ lựa chọn của bạn ở đây để không phải hỏi lại trên mỗi trang.',
+  'Referral code': 'Mã giới thiệu',
+  'Records which ambassador link brought you here.': 'Ghi lại đường dẫn đại sứ đã đưa bạn đến đây.',
+  'Which pages you visit and a few key steps, such as finishing an essay review. Never the content of your documents.':
+    'Các trang bạn xem và một vài bước chính, như hoàn tất nhận xét bài luận. Không bao giờ gồm nội dung tài liệu của bạn.',
+  'Anonymous page-view counts.': 'Đếm lượt xem trang ẩn danh.',
+  'How fast pages load on your device.': 'Tốc độ tải trang trên thiết bị của bạn.',
+  'Referral visit ID': 'Mã lượt truy cập giới thiệu',
+  'Tells repeat visits apart when you open an ambassador link.':
+    'Phân biệt các lượt truy cập lặp lại khi bạn mở đường dẫn đại sứ.',
+  'Your browser privacy signal keeps optional analytics turned off.':
+    'Tín hiệu quyền riêng tư của trình duyệt đang giữ phân tích tùy chọn ở trạng thái tắt.',
+  'Save my choices': 'Lưu lựa chọn của tôi',
 
   // ── Footer (Figma 104:7404) ──────────────────────────────────────────────
   'Helping students find global universities, scholarships, and application strategies.':
@@ -1484,6 +1671,14 @@ export const translations: Record<string, string> = {
   // Card ('View profile' is defined elsewhere)
   'QS ranking': 'Xếp hạng QS',
   'International tuition': 'Học phí quốc tế',
+  'Difficulty': 'Mức độ cạnh tranh',
+  'Tuition (USD)': 'Học phí (USD)',
+  'Living cost (USD)': 'Chi phí sinh hoạt (USD)',
+  'Industry connections': 'Kết nối với ngành nghề',
+  'Log in to continue': 'Đăng nhập để tiếp tục',
+  'Ready to study at {name}?': 'Sẵn sàng du học tại {name}?',
+  "Find courses and start building your application with GlowBal's AI course picker.":
+    'Tìm khóa học và bắt đầu xây dựng hồ sơ ứng tuyển với công cụ chọn khóa học AI của GlowBal.',
   'Global top 50': 'Top 50 toàn cầu',
   'Top 200 worldwide': 'Top 200 toàn cầu',
   'Saved to your list': 'Đã lưu vào danh sách của bạn',
@@ -1521,6 +1716,7 @@ export const translations: Record<string, string> = {
   'Finding courses for you': 'Đang tìm khoá học cho bạn',
   'Loading your applications': 'Đang tải hồ sơ ứng tuyển của bạn',
   'Loading your profile': 'Đang tải hồ sơ của bạn',
+  'Loading your matches': 'Đang tải trường phù hợp với bạn',
   'Adding courses to your plan': 'Đang thêm khoá học vào kế hoạch',
   'Reading your statement': 'Đang đọc bài luận của bạn',
   'Analysing your statement': 'Đang phân tích bài luận của bạn',
@@ -2349,6 +2545,29 @@ export const translations: Record<string, string> = {
   // Programme Fit
   'How well you match this course, university and its scholarships':
     'Phân tích mức độ phù hợp (giữa ứng viên với ngành - trường - học bổng)',
+  'no valid V3 or compatible F5 report found': 'Không tìm thấy báo cáo V3 hợp lệ hoặc báo cáo F5 tương thích',
+  'selected F5 report changed during parsing': 'Báo cáo F5 đã chọn thay đổi trong khi phân tích',
+  Assessed: 'Đã đánh giá',
+  alignment: 'mức độ phù hợp',
+  'University Fit': 'Mức độ phù hợp với trường',
+  'Alignment with the university’s mission, community, learning environment and named opportunities—not an admissions probability.':
+    'Mức độ phù hợp với sứ mệnh, cộng đồng, môi trường học tập và cơ hội cụ thể của trường — không phải xác suất trúng tuyển.',
+  'Programme Fit': 'Mức độ phù hợp với ngành học',
+  'Alignment with the programme’s curriculum, competencies, experience opportunities and future direction.':
+    'Mức độ phù hợp với chương trình đào tạo, năng lực, cơ hội trải nghiệm và định hướng tương lai của ngành.',
+  'Programme interpretation': 'Diễn giải mức độ phù hợp với ngành',
+  'Strongest alignment': 'Mức độ phù hợp nổi bật nhất',
+  'Potential gap': 'Khoảng trống tiềm ẩn',
+  'Hard Requirements': 'Yêu cầu bắt buộc',
+  'These statuses are deterministic checks. Unknown means the available evidence could not establish a result.':
+    'Các trạng thái này được kiểm tra theo quy tắc xác định. Chưa rõ nghĩa là bằng chứng hiện có chưa đủ để kết luận.',
+  'Scholarship alignment is shown separately from programme fit.': 'Mức độ phù hợp với học bổng được hiển thị riêng với mức độ phù hợp ngành học.',
+  'No selected scholarship was available for this application, so scholarship alignment was not assessed.':
+    'Hồ sơ này chưa có học bổng được chọn theo nguồn chuẩn, nên chưa đánh giá mức độ phù hợp với học bổng.',
+  'Scores describe alignment with the supplied evidence and target sources. They do not predict admission decisions.':
+    'Điểm số mô tả mức độ phù hợp dựa trên bằng chứng đã cung cấp và nguồn thông tin mục tiêu. Điểm số không dự đoán quyết định tuyển sinh.',
+  'Overall evidence coverage': 'Độ phủ dẫn chứng tổng thể',
+  'Target source': 'Nguồn mục tiêu',
   // "Why this university", "Admission requirements", "Costs and scholarships"
   // and "Scholarships" are already translated above for the university detail
   // page, which uses the same section names. Reusing those keys is the point of
@@ -2551,6 +2770,8 @@ export const translations: Record<string, string> = {
   'Click directly on the CV content to edit it before running a review.':
     'Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi đánh giá.',
   'Evidence coverage': 'Độ phủ dẫn chứng',
+  'Evidence Base': 'Nền tảng dẫn chứng',
+  'Key themes': 'Chủ đề chính',
   '3 strengths': '3 điểm mạnh',
   'Needs more evidence': 'Cần bổ sung',
   'AI needs more from you': 'AI cần bạn bổ sung',
@@ -2608,10 +2829,12 @@ export const translations: Record<string, string> = {
   'My Application': 'Theo dõi Tiến độ',
   'Saved Universities': 'Trường đã lưu',
   Reflection: 'Nhập Thông Tin',
+  Strategy: 'Chiến lược',
   'Profile Support': 'Xây dựng Hồ sơ cùng GlowBal AI',
   'Essay Support': 'Xây dựng Bài luận',
   'CV Support': 'Xây dựng CV',
   'LOR Support': 'Xây dựng Thư giới thiệu',
+  'Final Evaluation': 'Đánh giá lần cuối',
   // Static-audit additions (rendered UI remains local when machine translation
   // is unavailable or blocked).
   'Open My Portal': 'Mở Trang lưu',
@@ -3264,6 +3487,8 @@ export const translations: Record<string, string> = {
   'What happened instead?': 'Thực tế đã xảy ra điều gì?',
   Screenshot: 'Ảnh chụp màn hình',
   'Three stages,': 'Ba giai đoạn,',
+  'Three stages, {count} steps. Save the universities worth your time, turn one into a real application plan, then work through a strategy built from your profile and that course’s actual requirements — without leaving GlowBal.':
+    'Ba giai đoạn, {count} bước. Lưu những trường xứng đáng với thời gian của bạn, biến một lựa chọn thành kế hoạch ứng tuyển thực tế, rồi xây dựng chiến lược dựa trên hồ sơ và yêu cầu thực tế của khóa học — tất cả ngay trong GlowBal.',
   'Start with universities': 'Bắt đầu với các trường đại học',
   steps: 'bước',
   'Browse universities first': 'Trước tiên, hãy xem các trường đại học',
@@ -3301,6 +3526,8 @@ export const translations: Record<string, string> = {
   'If you&rsquo;re having trouble unsubscribing, please contact us at': 'Nếu bạn gặp khó khăn khi hủy đăng ký, hãy liên hệ với chúng tôi tại',
   'If you’re having trouble unsubscribing, please contact us at': 'Nếu bạn gặp khó khăn khi hủy đăng ký, hãy liên hệ với chúng tôi tại',
   'Lost in space': 'Lạc giữa không gian',
+  'The page you’re looking for doesn’t exist. It may have been moved or never existed.': 'Trang bạn đang tìm không tồn tại. Có thể trang đã bị chuyển đi hoặc chưa từng tồn tại.',
+  'Page not found': 'Không tìm thấy trang',
   'Browse universities': 'Xem các trường đại học',
   'Anything else?': 'Còn điều gì khác không?',
   'Extracurricular certificates, degrees, or achievements we should take into account.': 'Các chứng chỉ ngoại khóa, bằng cấp hoặc thành tích khác mà chúng tôi nên xem xét.',
@@ -3714,6 +3941,26 @@ export const translations: Record<string, string> = {
   'LOR review stages': 'Các giai đoạn xem xét thư giới thiệu',
   'Personal Statement': 'Bài luận cá nhân',
   'Statement of Purpose': 'Bài luận mục tiêu',
+  'One possible planning framework': 'Một khung lập kế hoạch có thể dùng',
+  'Use these prompts flexibly; your essay does not need to follow a fixed structure.': 'Hãy dùng các gợi ý này linh hoạt; bài luận không cần theo một cấu trúc cố định.',
+  'Structure and flow': 'Cấu trúc và mạch kể',
+  'Not established from the current draft': 'Chưa được thiết lập từ bản nháp hiện tại',
+  'Actual narrative architecture': 'Kiến trúc tự sự thực tế',
+  'How this draft is built': 'Bản nháp này được xây dựng như thế nào',
+  'Core purpose': 'Mục đích cốt lõi',
+  'Observed links': 'Các mối nối quan sát được',
+  'Seven structure criteria': 'Bảy tiêu chí cấu trúc',
+  'Transitions and continuity': 'Chuyển đoạn và tính liên tục',
+  'Each transition is checked for logical, causal, thematic, and personal continuity.': 'Mỗi chuyển đoạn được kiểm tra về tính logic, nhân quả, chủ đề và cá nhân.',
+  'No explicit transitions were established from the current draft.': 'Chưa xác lập được chuyển đoạn hiển ngôn nào từ bản nháp hiện tại.',
+  'Development and evolution': 'Phát triển và tiến hóa',
+  'Important moments and depth': 'Khoảnh khắc quan trọng và chiều sâu',
+  'No important moment was established from the current draft.': 'Chưa xác lập được khoảnh khắc quan trọng nào từ bản nháp hiện tại.',
+  'Focus and narrative balance': 'Trọng tâm và cân bằng mạch kể',
+  'Ending and forward progression': 'Kết bài và bước tiến phía trước',
+  'Prioritised improvements': 'Các ưu tiên cải thiện',
+  'Specific direction': 'Định hướng cụ thể',
+  'Example or template': 'Ví dụ hoặc khung mẫu',
   words: 'từ',
   'Save draft': 'Lưu bản nháp',
   '· UCAS max: 650': '· Tối đa UCAS: 650',
@@ -4503,6 +4750,9 @@ export const translations: Record<string, string> = {
   'Preview {fileName}': 'Xem trước {fileName}',
   'Need to make a change? Contact GlowBal Support if something in your confirmed information is incorrect.':
     'Cần thay đổi? Liên hệ Hỗ trợ GlowBal nếu có thông tin nào trong hồ sơ đã xác nhận của bạn không chính xác.',
+  'Edit information and regenerate reports': 'Chỉnh sửa thông tin và tạo lại báo cáo',
+  'Opening edit mode…': 'Đang mở chế độ chỉnh sửa…',
+  'Could not open your information for editing.': 'Không thể mở thông tin để chỉnh sửa.',
   'We could not confirm your information. Please try again.':
     'Chúng tôi không thể xác nhận thông tin của bạn. Vui lòng thử lại.',
   'Check everything below carefully — once confirmed, this information is locked and used to generate your reports.':
@@ -4604,9 +4854,11 @@ export const translations: Record<string, string> = {
   'Report generation progress': 'Tiến trình tạo báo cáo',
   'Personal Report is ready.': 'Báo cáo cá nhân đã sẵn sàng.',
   'Matching Report is ready.': 'Báo cáo phù hợp đã sẵn sàng.',
+  'Strategy Report is ready.': 'Báo cáo chiến lược đã sẵn sàng.',
   'A complete overview of your profile, strengths, achievements and academic background.':
     'Tổng quan đầy đủ về hồ sơ, thế mạnh, thành tích và nền tảng học vấn của bạn.',
   'Generating…': 'Đang tạo…',
+  'Waiting for Personal and Matching Reports…': 'Đang chờ Báo cáo cá nhân và Báo cáo phù hợp…',
   "We couldn't finish this report. We'll retry it using your confirmed information.":
     'Chúng tôi chưa hoàn thành báo cáo này. Chúng tôi sẽ thử lại bằng thông tin đã xác nhận của bạn.',
   'Open report': 'Mở báo cáo',
@@ -5945,6 +6197,7 @@ export const translations: Record<string, string> = {
   'Other evidence-backed gaps': 'Khoảng trống khác có bằng chứng',
   'Outcome + capability + evidence': 'Kết quả + năng lực + bằng chứng',
   'Overall evidence confidence': 'Độ tin cậy tổng thể của bằng chứng',
+  'Overall impression': 'Ấn tượng tổng quan',
   'Overall Match Summary': 'Tổng quan mức độ phù hợp',
   'Part of GlowBal Plus': 'Thuộc gói GlowBal Plus',
   'Pattern consistency': 'Tính nhất quán của mẫu hành vi',
@@ -6286,4 +6539,144 @@ export const translations: Record<string, string> = {
   'Positioning Opportunities': 'Cơ hội định vị hồ sơ',
   'Scholarship Alignment': 'Mức độ phù hợp học bổng',
   'Evidence That Would Improve This Assessment': 'Bằng chứng giúp cải thiện đánh giá này',
+
+  // AI strategy and matching report v3 UI.
+  'Academic preparedness and alignment with learning culture.': 'Sự chuẩn bị học thuật và mức độ phù hợp với văn hóa học tập.',
+  'Academic preparedness and alignment with the learning culture.': 'Sự chuẩn bị học thuật và mức độ phù hợp với văn hóa học tập.',
+  'Academic Readiness': 'Mức độ sẵn sàng học thuật',
+  'Activity-Level Strategic Evaluation': 'Đánh giá chiến lược theo từng hoạt động',
+  'Add to Application Planner': 'Thêm vào Kế hoạch hồ sơ',
+  'Admission Roadmap': 'Lộ trình tuyển sinh',
+  'AI Strategy Architecture V3': 'Kiến trúc chiến lược AI V3',
+  'Applicant–Target Matching': 'Đối sánh ứng viên–mục tiêu',
+  'Area Diagnostic': 'Chẩn đoán khía cạnh',
+  'Assessment Factors:': 'Yếu tố đánh giá:',
+  'Automatically syncs each roadmap milestone and deliverable into your interactive Kanban board & calendar planner with live progress tracking.': 'Tự động đồng bộ từng cột mốc và sản phẩm của lộ trình vào bảng Kanban và lịch kế hoạch tương tác để theo dõi tiến độ trực tiếp.',
+  'Calibrated and ranked by urgency, leverage, and admission impact': 'Được hiệu chỉnh và xếp hạng theo mức độ cấp thiết, đòn bẩy và tác động tuyển sinh',
+  'Capabilities Built': 'Năng lực đã xây dựng',
+  Capability: 'Năng lực',
+  'Capability Fit': 'Mức độ phù hợp về năng lực',
+  'Career & Future Direction': 'Nghề nghiệp & định hướng tương lai',
+  'Career & Future Direction Fit': 'Mức độ phù hợp về nghề nghiệp & định hướng tương lai',
+  'Check official course page →': 'Kiểm tra trang khóa học chính thức →',
+  'Click node': 'Nhấp vào nút',
+  'Cohesive storytelling arc, thematic hooks, and tension resolutions': 'Mạch kể chuyện nhất quán, điểm nhấn chủ đề và hướng giải quyết các mâu thuẫn',
+  'Community & Contribution': 'Cộng đồng & đóng góp',
+  'Community & Contribution Fit': 'Mức độ phù hợp về cộng đồng & đóng góp',
+  'Competitive advantage': 'Lợi thế cạnh tranh',
+  'Competitive Advantage': 'Lợi thế cạnh tranh',
+  'Convert these matching insights into a step-by-step personalized strategy and application checklist.': 'Chuyển những nhận định đối sánh này thành chiến lược cá nhân hóa và danh sách kiểm tra hồ sơ theo từng bước.',
+  'Core Motivation': 'Động lực cốt lõi',
+  'Core Narrative Arc Progression': 'Tiến trình mạch tự sự cốt lõi',
+  'Core Profile Strengths': 'Thế mạnh cốt lõi của hồ sơ',
+  'Could not save this edit. Please try again.': 'Không thể lưu chỉnh sửa này. Vui lòng thử lại.',
+  'Critical gap': 'Khoảng trống nghiêm trọng',
+  'Current Evaluation': 'Đánh giá hiện tại',
+  'Curriculum Relevance Fit': 'Mức độ phù hợp về tính liên quan của chương trình',
+  'Deliverables & Application Tools': 'Sản phẩm cần hoàn thành & công cụ hồ sơ',
+  'Detailed evaluation across the programme’s distinct focus areas.': 'Đánh giá chi tiết trên các trọng tâm riêng biệt của chương trình.',
+  'Dimension diagnostics and specific portfolio interventions': 'Chẩn đoán từng khía cạnh và các biện pháp can thiệp cụ thể cho hồ sơ',
+  'Dimension Summary': 'Tóm tắt khía cạnh',
+  'Dimensional scores reflect evidence verified in your profile.': 'Điểm theo từng khía cạnh phản ánh các bằng chứng đã được xác minh trong hồ sơ của bạn.',
+  'Distinctive Opportunity': 'Cơ hội khác biệt',
+  'Distinctive Opportunity Fit': 'Mức độ phù hợp về cơ hội khác biệt',
+  'English requirements': 'Yêu cầu tiếng Anh',
+  'Entry Requirements & Eligibility Checks': 'Yêu cầu đầu vào & kiểm tra điều kiện',
+  'Evidence Behind the Fit': 'Bằng chứng phía sau mức độ phù hợp',
+  'Evidence Snapshot': 'Tóm tắt bằng chứng',
+  'Evidence Strength': 'Độ mạnh bằng chứng',
+  'Evidence-Grounded Blueprint': 'Bản thiết kế dựa trên bằng chứng',
+  'Expected Outcome': 'Kết quả kỳ vọng',
+  'Experience & Exposure': 'Kinh nghiệm & trải nghiệm',
+  'Experience & Exposure Fit': 'Mức độ phù hợp về kinh nghiệm & trải nghiệm',
+  'Future Trajectory': 'Định hướng tương lai',
+  'Global mindset, teamwork, and cross-functional experience distinguish you.': 'Tư duy toàn cầu, khả năng làm việc nhóm và kinh nghiệm liên chức năng tạo nên điểm khác biệt của bạn.',
+  'Good Fit': 'Phù hợp tốt',
+  'High-level executive diagnosis & core priorities': 'Chẩn đoán tổng quan cấp điều hành & các ưu tiên cốt lõi',
+  'Highlight analytical projects and case competitions.': 'Làm nổi bật các dự án phân tích và cuộc thi tình huống.',
+  'Highlight analytical projects, case competitions, or research initiatives in your applications and interviews.': 'Làm nổi bật các dự án phân tích, cuộc thi tình huống hoặc sáng kiến nghiên cứu trong hồ sơ và phỏng vấn.',
+  'Highlight analytical projects, case competitions, or research initiatives in your applications.': 'Làm nổi bật các dự án phân tích, cuộc thi tình huống hoặc sáng kiến nghiên cứu trong hồ sơ.',
+  'Ideal Profile': 'Hồ sơ lý tưởng',
+  'Individual appraisal and recommended posture for each profile entry': 'Đánh giá từng mục và định hướng đề xuất cho mỗi thành phần hồ sơ',
+  'Interest & Motivation': 'Mối quan tâm & động lực',
+  'Interest & Motivation Fit': 'Mức độ phù hợp về mối quan tâm & động lực',
+  'Key Actions': 'Hành động then chốt',
+  'Key Actions Taken': 'Hành động then chốt đã thực hiện',
+  'Key Challenge': 'Thách thức chính',
+  'Key Dimension Highlights': 'Điểm nổi bật của các khía cạnh chính',
+  'Learning Environment': 'Môi trường học tập',
+  'Learning Environment Fit': 'Mức độ phù hợp về môi trường học tập',
+  'Limited Fit': 'Phù hợp hạn chế',
+  'Limited research exposure compared to top applicants.': 'Mức độ tiếp xúc nghiên cứu còn hạn chế so với các ứng viên hàng đầu.',
+  'Main area to strengthen for this profile.': 'Khía cạnh chính cần củng cố cho hồ sơ này.',
+  'Moderate Fit': 'Phù hợp trung bình',
+  'Motivations and career direction align strongly with the programme.': 'Động lực và định hướng nghề nghiệp phù hợp mạnh với chương trình.',
+  'Multi-dimensional tactical blueprint aligning your academic readiness, standout experiences, core narrative arc, and phased execution timeline for maximum admission competitiveness.': 'Bản thiết kế chiến thuật đa chiều kết nối sự sẵn sàng học thuật, trải nghiệm nổi bật, mạch tự sự cốt lõi và lộ trình thực thi theo giai đoạn để tối đa hóa năng lực cạnh tranh tuyển sinh.',
+  'Narrative Strategy & Framing': 'Chiến lược & định khung tự sự',
+  'Narrative Tension & Strategic Resolution': 'Căng thẳng tự sự & hướng giải quyết chiến lược',
+  'Observed Gap & Vulnerability': 'Khoảng trống & điểm dễ tổn thương đã nhận diện',
+  'Open Tool': 'Mở công cụ',
+  'Origin & Spark': 'Khởi nguồn & động lực ban đầu',
+  'Overall University Fit': 'Mức độ phù hợp tổng thể với trường',
+  'Personalized Strategic Roadmap & Positioning': 'Lộ trình chiến lược & định vị cá nhân hóa',
+  'PHASE 0': 'GIAI ĐOẠN 0',
+  'Phase Goal': 'Mục tiêu giai đoạn',
+  'Phased milestone plan with concrete deliverables and verification checks': 'Kế hoạch cột mốc theo giai đoạn với sản phẩm cụ thể và bước xác minh',
+  'Phased Milestones': 'Cột mốc theo giai đoạn',
+  'Position as unique narrative differentiator': 'Định vị như một điểm khác biệt độc đáo trong câu chuyện cá nhân',
+  'Potential Gap': 'Khoảng trống tiềm ẩn',
+  'Primary Opportunity': 'Cơ hội chính',
+  'Priority Gap to Fix': 'Khoảng trống ưu tiên cần khắc phục',
+  'Profile Alignment & Evidence': 'Mức độ phù hợp của hồ sơ & bằng chứng',
+  'Profile Calibrated': 'Hồ sơ đã được hiệu chỉnh',
+  'Profile Development': 'Phát triển hồ sơ',
+  'Profile Strength': 'Thế mạnh hồ sơ',
+  'Programme Fit Overview': 'Tổng quan mức độ phù hợp chương trình',
+  'Programme Fit Radar Chart': 'Biểu đồ radar mức độ phù hợp chương trình',
+  'Published requirements': 'Yêu cầu đã công bố',
+  'Recommended Path': 'Lộ trình đề xuất',
+  'Recommended Strategic Move': 'Bước đi chiến lược đề xuất',
+  'Research Exposure': 'Mức độ tiếp xúc nghiên cứu',
+  'Research exposure is the key area to deepen.': 'Mức độ tiếp xúc nghiên cứu là khía cạnh then chốt cần đào sâu.',
+  'Research exposure is the key area to deepen. Consider projects, independent research, or publications to strengthen this dimension.': 'Mức độ tiếp xúc nghiên cứu là khía cạnh then chốt cần đào sâu. Hãy cân nhắc các dự án, nghiên cứu độc lập hoặc bài công bố để củng cố khía cạnh này.',
+  'Research exposure is the key area to deepen. Consider projects, independent research, or publications.': 'Mức độ tiếp xúc nghiên cứu là khía cạnh then chốt cần đào sâu. Hãy cân nhắc các dự án, nghiên cứu độc lập hoặc bài công bố.',
+  STAGE: 'GIAI ĐOẠN',
+  'Step 1 of 4': 'Bước 1 trên 4',
+  'Step 2 of 4': 'Bước 2 trên 4',
+  'Step 3 of 4': 'Bước 3 trên 4',
+  'Step 4 of 4': 'Bước 4 trên 4',
+  'Strategic direction': 'Định hướng chiến lược',
+  'Strategic Direction': 'Định hướng chiến lược',
+  'Strategic Execution Roadmap': 'Lộ trình thực thi chiến lược',
+  'Strategic Fit': 'Mức độ phù hợp chiến lược',
+  'Strategic Goal': 'Mục tiêu chiến lược',
+  'Strategic Narrative Positioning Options': 'Các phương án định vị tự sự chiến lược',
+  'Strategic Opportunity': 'Cơ hội chiến lược',
+  'Strategic Resolution Direction': 'Hướng giải quyết chiến lược',
+  'Strategic Story Synthesis': 'Tổng hợp câu chuyện chiến lược',
+  'Strengthen research exposure to match expectations.': 'Tăng cường trải nghiệm nghiên cứu để đáp ứng kỳ vọng.',
+  'Strengthen research exposure to match the expectations of research-active institutions.': 'Tăng cường trải nghiệm nghiên cứu để đáp ứng kỳ vọng của các cơ sở đào tạo chú trọng nghiên cứu.',
+  'Strong academic foundation and demonstrated motivation position you as a high-potential candidate.': 'Nền tảng học thuật vững chắc và động lực được thể hiện rõ giúp bạn trở thành ứng viên giàu tiềm năng.',
+  'Strong Fit': 'Phù hợp mạnh',
+  'Strongest Alignment': 'Mức độ phù hợp cao nhất',
+  'Strongest Fit': 'Mức độ phù hợp nổi bật nhất',
+  'Strongest fit': 'Mức độ phù hợp nổi bật nhất',
+  'Success Criteria & Verification': 'Tiêu chí thành công & xác minh',
+  Summary: 'Tóm tắt',
+  'Supporting Thematic Pillars': 'Các trụ cột chủ đề hỗ trợ',
+  'Target schools that value leadership, global perspective, and problem-solving.': 'Nhắm đến các trường coi trọng năng lực lãnh đạo, góc nhìn toàn cầu và khả năng giải quyết vấn đề.',
+  'This analysis is based on your academic record, test scores, work experience, extracurricular activities, essays, and alignment with the university and programme priorities.': 'Phân tích này dựa trên học bạ, điểm thi, kinh nghiệm làm việc, hoạt động ngoại khóa, bài luận và mức độ phù hợp với ưu tiên của trường và chương trình.',
+  'This report evaluates how well your profile aligns with the target university and programme based on academic, experiential, and strategic factors.': 'Báo cáo này đánh giá mức độ phù hợp của hồ sơ với trường đại học và chương trình mục tiêu dựa trên các yếu tố học thuật, trải nghiệm và chiến lược.',
+  'Top Three Strategic Priorities': 'Ba ưu tiên chiến lược hàng đầu',
+  'Turn this roadmap into trackable Planner tasks': 'Chuyển lộ trình này thành các nhiệm vụ có thể theo dõi trong Kế hoạch',
+  'Unique Differentiator': 'Điểm khác biệt độc đáo',
+  'Values Alignment': 'Mức độ phù hợp về giá trị',
+  'Very Strong': 'Rất mạnh',
+  'What Drives Your Fit': 'Điều thúc đẩy mức độ phù hợp',
+  'Whether you can apply at all, which is a deterministic check separate from your competitive alignment score.': 'Bạn có đủ điều kiện nộp hồ sơ hay không; đây là kiểm tra mang tính xác định, tách biệt với điểm phù hợp cạnh tranh.',
+  'You demonstrate a profile with key academic readiness and purposeful intent. Universities in your target tier will evaluate your demonstrated strengths alongside specific programmatic expectations.': 'Bạn thể hiện một hồ sơ có sự sẵn sàng học thuật và mục tiêu rõ ràng. Các trường trong nhóm mục tiêu sẽ đánh giá thế mạnh đã thể hiện cùng với kỳ vọng cụ thể của chương trình.',
+  'Your alignment with the {course} programme based on curriculum, skills, experience, and career goals.': 'Mức độ phù hợp của bạn với chương trình {course} dựa trên chương trình học, kỹ năng, kinh nghiệm và mục tiêu nghề nghiệp.',
+  'Your Fit': 'Mức độ phù hợp của bạn',
+  'Your motivations and career direction align strongly with what this programme offers and where it can take you.': 'Động lực và định hướng nghề nghiệp của bạn phù hợp mạnh với những gì chương trình cung cấp và hướng phát triển mà chương trình mở ra.',
+  'Your profile shows evaluation across the key dimensions universities consider when evaluating candidates.': 'Hồ sơ của bạn được đánh giá trên các khía cạnh chính mà trường đại học xem xét khi đánh giá ứng viên.',
 };

@@ -1,4 +1,3 @@
-import type { User } from '@supabase/supabase-js';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
 import {
@@ -7,7 +6,7 @@ import {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+} from '@/features/marketing/navigation';
 import { Container, Footer } from '@/shared/ui';
 
 /**
@@ -24,7 +23,6 @@ export function ReflectionChrome({
   containerClassName,
   children,
 }: {
-  user: User | null;
   /**
    * Full-bleed band between the header and the content — in practice
    * `ApplicationNav`, for the pages scoped to one application.

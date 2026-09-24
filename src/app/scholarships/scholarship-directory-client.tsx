@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -12,6 +12,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { clearFocusUniversity, getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
 import { TID, testId } from '@/shared/lib/testids';
 import { useLanguage } from '@/lib/i18n';
+import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import {
   FUNDING_TYPES,
@@ -20,6 +21,7 @@ import {
 } from '@/lib/scholarship-constants';
 import type { DirectoryScholarship } from '@/lib/scholarships-data';
 import {
+  parseScholarshipSearchParams,
   scholarshipSearchParams,
   type Page,
   type ScholarshipFacets,
@@ -30,7 +32,9 @@ import {
 } from '@/features/scholarships/directory-query';
 import { scorePersonalMatch, scholarshipSaveDestination } from '@/features/scholarships/domain';
 import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
+import { useDebouncedSearchField } from '@/shared/hooks/use-debounced-search-field';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
+import { GlowbalIcon, type GlowbalIconName } from '@/shared/ui';
 import {
   ScholarshipUniversityPicker,
   type ScholarshipUniversityOption,
@@ -89,6 +93,7 @@ type Props = {
   savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
   canonicalSearch: string;
   isPlus?: boolean;
+  locale?: Locale;
 };
 
 const MAJOR_FILTERS: ReadonlyArray<{ value: ScholarshipMajor; label: string }> = [
@@ -105,18 +110,18 @@ const DEGREE_FILTERS: ReadonlyArray<{ value: ScholarshipDegree; label: string }>
   { value: 'doctoral', label: 'Doctoral / PhD' },
 ];
 
-function scholarshipHref(state: ScholarshipQueryState, patch: Partial<ScholarshipQueryState>) {
+function scholarshipHref(state: ScholarshipQueryState, patch: Partial<ScholarshipQueryState>, locale: Locale = 'en') {
   const params = scholarshipSearchParams(state, patch);
-  return params.size > 0 ? `/scholarships?${params}` : '/scholarships';
+  return localizePath(params.size > 0 ? `/scholarships?${params}` : '/scholarships', locale);
 }
 
-function scholarshipPrefetchHrefs(data: ScholarshipDirectoryResponse) {
+function scholarshipPrefetchHrefs(data: ScholarshipDirectoryResponse, locale: Locale) {
   const hrefs: string[] = [];
   if (data.directoryPage?.hasMore || data.focusPage?.hasMore) {
-    hrefs.push(scholarshipHref(data.query, { page: data.query.page + 1 }));
+    hrefs.push(scholarshipHref(data.query, { page: data.query.page + 1 }, locale));
   }
   if (data.countryPage?.hasMore) {
-    hrefs.push(scholarshipHref(data.query, { countryPage: data.query.countryPage + 1 }));
+    hrefs.push(scholarshipHref(data.query, { countryPage: data.query.countryPage + 1 }, locale));
   }
   return hrefs;
 }
@@ -135,8 +140,12 @@ export function ScholarshipDirectoryClient({
   savedScholarships = [],
   canonicalSearch,
   isPlus: initialIsPlus,
+  locale = 'en',
 }: Props) {
-  const { t } = useLanguage();
+  const { t: contextT } = useLanguage();
+  const t = locale === 'vi'
+    ? (source: string, vars?: Record<string, string | number>) => getLocaleText(locale, source, vars)
+    : contextT;
   const { isPlus } = usePlusStatus(initialIsPlus);
   const router = useRouter();
   const initialDirectory = useMemo<ScholarshipDirectoryResponse>(() => ({
@@ -154,9 +163,9 @@ export function ScholarshipDirectoryClient({
     initialFocusUniversity,
     initialQueryState,
   ]);
-  const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data), []);
+  const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data, locale), [locale]);
   const directory = useDirectoryNavigation({
-    pathname: '/scholarships',
+    pathname: localizePath('/scholarships', locale),
     endpoint: '/api/directory/scholarships',
     initialData: initialDirectory,
     getPrefetchHrefs,
@@ -192,11 +201,11 @@ export function ScholarshipDirectoryClient({
       if (cached) {
         sessionStorage.setItem(RESTORING_FOCUS_KEY, String(cached.id));
         const params = scholarshipSearchParams(queryState, { universityId: cached.id });
-        router.replace(`/scholarships?${params}`);
+        router.replace(localizePath(`/scholarships?${params}`, locale));
       }
     }
     // Run once on mount; the param is fixed for the page's lifetime.
-  }, [focusUniversityProp, queryState, router]);
+  }, [focusUniversityProp, locale, queryState, router]);
 
   // A scholarship is "saved to My Universities" only when it has a concrete
   // destination university. Keeping the destination in state (instead of only
@@ -402,36 +411,54 @@ export function ScholarshipDirectoryClient({
   // Filters. Pagination for the full directory is 9 cards (3 columns × 3 rows).
   const resultsTopRef = useRef<HTMLDivElement>(null);
 
+  /*
+   * Every navigation patches onto `intendedRef`, never onto the `queryState`
+   * captured when the caller rendered.
+   *
+   * A patch here is a delta -- `{ search: 'x' }` is merged over eleven other
+   * filters -- so the base it merges onto has to be current. It often was not:
+   * a debounced field fires up to 300ms after the render that scheduled it and
+   * the response lands later still, so anything the reader touched in between
+   * (a country, a sort, the other search box) was quietly reverted by the older
+   * snapshot. Applying the patch optimistically and round-tripping it through
+   * the same parser the server uses keeps the ref in exactly the shape the next
+   * response will confirm, so back-to-back edits compose instead of racing.
+   */
+  const intendedRef = useRef(queryState);
+  useEffect(() => {
+    intendedRef.current = queryState;
+  }, [queryState]);
+
   const navigate = useCallback(
     (patch: Partial<ScholarshipQueryState>, replace = true) => {
-      const href = scholarshipHref(queryState, patch);
-      const nextView = patch.view ?? queryState.view;
-      if (queryState.view === 'ai' || nextView === 'ai') {
+      const base = intendedRef.current;
+      const params = scholarshipSearchParams(base, patch);
+      intendedRef.current = parseScholarshipSearchParams(Object.fromEntries(params));
+      const href = localizePath(
+        params.size > 0 ? `/scholarships?${params}` : '/scholarships',
+        locale,
+      );
+      if (base.view === 'ai' || intendedRef.current.view === 'ai') {
         if (replace) router.replace(href);
         else router.push(href);
         return;
       }
       directory.navigate(href, replace);
     },
-    [directory, queryState, router],
+    [directory, locale, router],
   );
 
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const universityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const debounceFilter = (
-    timer: MutableRefObject<ReturnType<typeof setTimeout> | null>,
-    patch: Partial<ScholarshipQueryState>,
-  ) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => navigate(patch, true), 300);
-  };
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-      if (universityTimer.current) clearTimeout(universityTimer.current);
-    },
-    [],
-  );
+  // Both boxes search as you type. The hook owns the debounce AND the rule that
+  // a response never overwrites text typed while it was in flight -- see
+  // useDebouncedSearchField for why re-seeding from the response was the bug.
+  const searchField = useDebouncedSearchField({
+    value: queryState.search,
+    onCommit: (value) => navigate({ search: value }),
+  });
+  const universityField = useDebouncedSearchField({
+    value: queryState.universitySearch,
+    onCommit: (value) => navigate({ universitySearch: value }),
+  });
 
   const scholarships = useMemo(
     () => [
@@ -613,7 +640,7 @@ export function ScholarshipDirectoryClient({
             tab === 'ai' ? 'bg-surface-inverse text-fg-on-inverse shadow-sm' : 'text-fg-tertiary hover:bg-surface-muted hover:text-fg'
           }`}
         >
-          <SparklesIcon />
+          <GlowbalIcon name="aiInsight" size={16} tone="current" />
           {t('Match my courses (AI)')}
         </button>
       </div>
@@ -628,6 +655,15 @@ export function ScholarshipDirectoryClient({
               className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
               onSubmit={(event) => {
                 event.preventDefault();
+                // Enter / "Find scholarships" should not wait out the debounce.
+                const search = searchField.takePending();
+                const universitySearch = universityField.takePending();
+                if (
+                  search !== queryState.search ||
+                  universitySearch !== queryState.universitySearch
+                ) {
+                  navigate({ search, universitySearch });
+                }
                 resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
             >
@@ -637,12 +673,9 @@ export function ScholarshipDirectoryClient({
                   <SearchIcon />
                 </span>
                 <input
-                  key={queryState.search}
                   type="search"
-                  defaultValue={queryState.search}
-                  onChange={(event) =>
-                    debounceFilter(searchTimer, { search: event.target.value.slice(0, 100) })
-                  }
+                  {...searchField.inputProps}
+                  maxLength={100}
                   placeholder={t('Search by scholarship name')}
                   className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 />
@@ -691,14 +724,9 @@ export function ScholarshipDirectoryClient({
                   <SearchIcon />
                 </span>
                 <input
-                  key={queryState.universitySearch}
                   type="search"
-                  defaultValue={queryState.universitySearch}
-                  onChange={(event) =>
-                    debounceFilter(universityTimer, {
-                      universitySearch: event.target.value.slice(0, 100),
-                    })
-                  }
+                  {...universityField.inputProps}
+                  maxLength={100}
                   placeholder={t('Search by university name')}
                   className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 />
@@ -1032,7 +1060,10 @@ function ScholarshipDirectoryCard({
           saved ? 'border-brand-subtle bg-brand-subtle text-brand' : 'border-line bg-surface text-fg-muted hover:border-brand hover:text-brand'
         }`}
       >
-        <HeartIcon filled={saved} />
+        {/* Saved Scholarship, not the university heart: the handoff maps the
+            shortlist toggle to its own icon. The glyph follows the button's
+            colour, and the button's fill is what says "saved". */}
+        <GlowbalIcon name="savedScholarship" size={16} tone="current" />
       </button>
 
       {/* Header */}
@@ -1052,25 +1083,29 @@ function ScholarshipDirectoryCard({
 
       {/* Amount / coverage */}
       {(s.amountLabel || s.coverage) && (
-        <div className="mb-4 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3">
-          {s.amountLabel ? (
-            <p className="font-[family-name:var(--font-gb-display)] text-xl font-semibold tracking-tight text-fg-brand">{s.amountLabel}</p>
-          ) : (
-            <AutoTranslate
-              as="p"
-              className="text-sm font-semibold text-fg-brand line-clamp-2"
-              text={s.coverage}
-            />
-          )}
-          {s.amountLabel && s.coverage && (
-            <AutoTranslate as="p" className="mt-1 text-xs text-fg-brand/80 line-clamp-1" text={s.coverage} />
-          )}
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3">
+          <GlowbalIcon name="awardAmount" size={20} className="mt-1" />
+          <div className="min-w-0 flex-1">
+            {s.amountLabel ? (
+              <p className="font-[family-name:var(--font-gb-display)] text-xl font-semibold tracking-tight text-fg-brand">{s.amountLabel}</p>
+            ) : (
+              <AutoTranslate
+                as="p"
+                className="text-sm font-semibold text-fg-brand line-clamp-2"
+                text={s.coverage}
+              />
+            )}
+            {s.amountLabel && s.coverage && (
+              <AutoTranslate as="p" className="mt-1 text-xs text-fg-brand/80 line-clamp-1" text={s.coverage} />
+            )}
+          </div>
         </div>
       )}
 
       {/* Funding-type tags */}
       {s.funding_type.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-1.5">
+        <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          <GlowbalIcon name="fundingType" size={16} />
           {s.funding_type.slice(0, 2).map((ft) => (
             <Badge key={ft} tone="neutral" size="sm">
               {t(FUNDING_TYPE_LABELS[ft as keyof typeof FUNDING_TYPE_LABELS] ?? ft)}
@@ -1081,18 +1116,21 @@ function ScholarshipDirectoryCard({
 
       {/* Eligibility preview */}
       {s.eligibility && (
-        <AutoTranslate
-          as="p"
-          className="mb-4 text-sm leading-6 text-fg-tertiary line-clamp-2"
-          text={s.eligibility}
-        />
+        <div className="mb-4 flex items-start gap-2">
+          <GlowbalIcon name="eligibility" size={16} className="mt-1" />
+          <AutoTranslate
+            as="p"
+            className="min-w-0 flex-1 text-sm leading-6 text-fg-tertiary line-clamp-2"
+            text={s.eligibility}
+          />
+        </div>
       )}
 
       {/* Footer */}
       <div className="mt-auto flex items-center justify-between border-t border-line pt-4">
         {s.deadlineLabel ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-fg-tertiary">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+            <GlowbalIcon name="deadlineAlert" size={16} />
             {s.deadlineLabel}
           </span>
         ) : (
@@ -1101,14 +1139,6 @@ function ScholarshipDirectoryCard({
         <span className="text-sm font-semibold text-fg-brand transition group-hover:translate-x-0.5">{t('View details')} →</span>
       </div>
     </Card>
-  );
-}
-
-function HeartIcon({ filled }: { filled: boolean }) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
   );
 }
 
@@ -1180,19 +1210,29 @@ function ScholarshipDetailModal({
               {s.countryFlag ?? '🎓'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-fg-secondary">{t('Scholarship value')}</p>
+              <p className="flex items-center gap-2 text-xs font-semibold text-fg-secondary">
+                <GlowbalIcon name="awardAmount" size={16} />
+                {t('Scholarship value')}
+              </p>
               {s.amountLabel && <p className="mt-1 font-[family-name:var(--font-gb-display)] text-3xl font-semibold tracking-[-0.03em] text-fg-brand">{s.amountLabel}</p>}
               {s.coverage && <AutoTranslate as="p" className="mt-2 text-sm leading-6 text-fg-secondary" text={s.coverage} />}
-              {s.deadlineLabel && <p className="mt-3 text-sm font-semibold text-fg-tertiary">{t('Deadline')}: {s.deadlineLabel}</p>}
+              {s.deadlineLabel && (
+                <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-fg-tertiary">
+                  <GlowbalIcon name="deadlineAlert" size={16} />
+                  {t('Deadline')}: {s.deadlineLabel}
+                </p>
+              )}
             </div>
           </div>
         </section>
 
         <div className="mt-6 space-y-5">
-          <Section label={t('Eligibility')} text={s.eligibility} />
-          <Section label={t('Conditions')} text={s.conditions} />
-          <Section label={t('Insight')} text={s.insight} />
-          {s.ranking_note && <Section label={t('Ranking / acceptance')} text={s.ranking_note} />}
+          <Section label={t('Eligibility')} text={s.eligibility} icon="eligibility" />
+          <Section label={t('Conditions')} text={s.conditions} icon="requirements" />
+          <Section label={t('Insight')} text={s.insight} icon="aiInsight" />
+          {s.ranking_note && (
+            <Section label={t('Ranking / acceptance')} text={s.ranking_note} icon="ranking" />
+          )}
         </div>
 
         {/* Applicable universities */}
@@ -1226,7 +1266,7 @@ function ScholarshipDetailModal({
               saved ? 'bg-brand-subtle text-fg-brand hover:bg-brand-surface' : 'bg-surface text-fg-brand hover:bg-brand-subtle'
             }`}
           >
-            <HeartIcon filled={saved} />
+            <GlowbalIcon name="savedScholarship" size={16} tone="current" />
             {saved ? t('Saved to My Universities') : t('Save to My Universities')}
           </button>
           {s.source_url && (
@@ -1251,11 +1291,22 @@ function DetailBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Section({ label, text }: { label: string; text: string | null }) {
+function Section({
+  label,
+  text,
+  icon,
+}: {
+  label: string;
+  text: string | null;
+  icon?: GlowbalIconName;
+}) {
   if (!text) return null;
   return (
     <section>
-      <h3 className="mb-2 text-sm font-semibold text-fg">{label}</h3>
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-fg">
+        {icon ? <GlowbalIcon name={icon} size={16} /> : null}
+        {label}
+      </h3>
       <AutoTranslate as="p" className="whitespace-pre-line text-sm leading-6 text-fg-secondary" text={text} />
     </section>
   );
@@ -1265,19 +1316,7 @@ function Section({ label, text }: { label: string; text: string | null }) {
    ICONS
 ───────────────────────────────────────────────────────────────────────── */
 
+/** The field affordance on both search inputs; muted, so it follows the field's text colour. */
 function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function SparklesIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-    </svg>
-  );
+  return <GlowbalIcon name="search" size={16} tone="current" />;
 }

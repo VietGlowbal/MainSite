@@ -163,6 +163,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
   }
 
+  const documentKeys = [
+    input.cv_storage_key,
+    input.acceptance_letter_storage_key,
+    input.transcript_storage_key,
+    input.student_card_storage_key,
+  ].filter((key): key is string => Boolean(key));
+  if (documentKeys.some((key) => {
+    const parts = key.split('/');
+    return parts.length < 2 || parts[0] !== user.id || parts.includes('..');
+  })) {
+    return NextResponse.json(
+      { error: 'Verification documents must be stored in your own folder.' },
+      { status: 400 },
+    );
+  }
+
   // Check if a profile already exists; if so, return its status so the
   // client can route the user to their dashboard.
   const { data: existing } = await supabase

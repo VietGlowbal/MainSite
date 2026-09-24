@@ -47,6 +47,7 @@ export {
 export type { StoredApplicationProfileAnalysis } from './application-analysis-repository';
 export {
   createPersonalReportV2Version,
+  countApplicationReportGenerations,
   getApplicationPersonalReportV2Version,
   getApplicationPersonalReportSupplements,
   getLatestApplicationPersonalReportV2,
@@ -70,6 +71,11 @@ export {
   retryApplicationPersonalReportGeneration,
 } from './personal-report-generation-job-queue';
 export type { ApplicationPersonalReportGenerationJob } from './personal-report-generation-job-queue';
+export {
+  DEFAULT_PERSONAL_REPORT_GENERATION_BATCH,
+  MAX_PERSONAL_REPORT_GENERATION_BATCH,
+  processApplicationPersonalReportGenerations,
+} from './personal-report-generation-worker';
 
 export {
   getFinalCheckPageData,

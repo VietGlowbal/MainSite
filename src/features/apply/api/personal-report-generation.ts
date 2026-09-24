@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
+  APPLICATION_REPORT_GENERATION_LIMIT,
   buildPersonalReport,
   PERSONAL_REPORT_CONTRACT_VERSION,
   type PersonalReportTrigger,
 } from '../domain';
+import { validatePersonalReportFramework } from '../domain/personal-report';
 import { buildPersonalCanvasDetails } from '../domain/personal-canvas-details';
 import {
   applyPersonalReportSupplements,
@@ -11,7 +13,11 @@ import {
   PERSONAL_REPORT_EXTRACTION_VERSION,
 } from '@/lib/ai/personal-report-v2';
 import { isOpenAIConfigured } from '@/lib/ai/openai-client';
-import { applyNarrativeSynthesis, synthesizePersonalReportNarrative } from '@/lib/ai/personal-report-narrative-synthesis';
+import {
+  applyNarrativeSynthesis,
+  synthesizePersonalReportNarrative,
+  type PersonalReportNarrativeFailureContext,
+} from '@/lib/ai/personal-report-narrative-synthesis';
 import {
   ENGINE_VERSION,
   runProfileEvaluation,
@@ -36,6 +42,7 @@ import {
   createPersonalReportV2Version,
   findPersonalReportV2ByCacheKey,
   getApplicationPersonalReportSupplements,
+  countApplicationReportGenerations,
   getLatestApplicationPersonalReportV2,
   getLatestPersonalReportV2,
   getPersonalReportSupplements,
@@ -45,6 +52,7 @@ import type {
   PersonalReportV2Record,
 } from './personal-report-v2-repository';
 import { randomUUID } from 'node:crypto';
+import { REPORT_PROMPT_VERSIONS } from '@/lib/ai/runtime/prompt-registry';
 
 /**
  * The one place that decides whether the Personal Report needs a new
@@ -70,6 +78,7 @@ export type RegeneratePersonalReportResult =
   | { status: 'regenerated'; record: PersonalReportV2Record }
   | { status: 'snapshot_missing' }
   | { status: 'insufficient_evidence' }
+  | { status: 'limit_reached'; count: number; limit: number }
   | { status: 'migration_missing' }
   | { status: 'not_configured' }
   | { status: 'error'; message: string; record: PersonalReportV2Record | null };
@@ -129,6 +138,21 @@ function reportRecord(args: {
   };
 }
 
+function reportContractFailure(
+  coverage: ReturnType<typeof validatePersonalReportFramework>,
+): string | null {
+  if (!coverage.structuralCompleteness.complete) {
+    return `The generated report is missing required components: ${coverage.structuralCompleteness.missing.join(', ')}.`;
+  }
+  if (!coverage.contentCompleteness.complete) {
+    return `The generated report contains incomplete components: ${coverage.contentCompleteness.missing.join(', ')}.`;
+  }
+  if (!coverage.groundingValidity.valid) {
+    return 'The generated report cited evidence outside the confirmed report inputs.';
+  }
+  return null;
+}
+
 function stateEvidenceBank(
   state: ApplicantAIState,
   supplements: Record<string, string>,
@@ -142,6 +166,18 @@ function stateEvidenceBank(
       title: item.title,
       freeText: item.freeText,
       evidenceKey: item.evidenceKey ?? null,
+      metadata: {
+        organisation: item.organisation ?? null,
+        level: item.level ?? null,
+        year: item.year ?? null,
+        period: item.period ?? null,
+        competition: item.competition ?? null,
+        reviewStatus: item.reviewStatus ?? null,
+        sourceType: item.sourceType ?? null,
+        sources: item.sources ?? [],
+        reflection: item.reflection ?? null,
+        reflectionCard: item.reflectionCard ?? null,
+      },
     };
   });
   const documents = state.evidenceBank
@@ -172,7 +208,7 @@ function stateEvidenceBank(
   });
 }
 
-function interpretationsFromEvaluationInput(
+export function interpretationsFromEvaluationInput(
   input: ProfileEvaluationInput,
 ): EvidenceBank['interpretations'] {
   return [
@@ -194,7 +230,7 @@ function interpretationsFromEvaluationInput(
       id: `narrative:${activity.id}`,
       origin: 'ai_extraction' as const,
       module: 'narrative_activity_extraction',
-      payload: { role: activity.role, domainTheme: activity.domainTheme },
+      payload: activity,
       sourceRefs: [activity.id],
     })),
   ];
@@ -286,6 +322,7 @@ async function regenerateApplicationPersonalReport(
     inputHash,
     engineVersion: ENGINE_VERSION,
     promptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
+    narrativePromptVersion: REPORT_PROMPT_VERSIONS.report_narrative_synthesis,
     reportContractVersion: PERSONAL_REPORT_CONTRACT_VERSION,
   });
   const cacheKey = idempotencyKey
@@ -310,10 +347,19 @@ async function regenerateApplicationPersonalReport(
       current.inputHash === inputHash &&
       current.engineVersion === ENGINE_VERSION &&
       current.promptVersion === PERSONAL_REPORT_EXTRACTION_VERSION &&
-      current.reportContractVersion === PERSONAL_REPORT_CONTRACT_VERSION,
+      current.reportContractVersion === PERSONAL_REPORT_CONTRACT_VERSION &&
+      current.cacheKey === baseCacheKey,
   );
-  if (current && !force && (current.cacheKey === baseCacheKey || currentMatches)) {
+  if (current && !force && currentMatches) {
     return { status: 'cached', record: current };
+  }
+
+  if (trigger === 'manual') {
+    const versionCount = await countApplicationReportGenerations(supabase, { userId, applicationId });
+    if (versionCount.migrationMissing) return { status: 'migration_missing' };
+    if (versionCount.count >= APPLICATION_REPORT_GENERATION_LIMIT) {
+      return { status: 'limit_reached', count: versionCount.count, limit: APPLICATION_REPORT_GENERATION_LIMIT };
+    }
   }
 
   let evaluation: ProfileEvaluation;
@@ -389,47 +435,79 @@ async function regenerateApplicationPersonalReport(
     generatedAt,
     evidenceBank,
   });
-  if (
-    !deterministicReport.coreIdentity.available &&
-    !deterministicReport.drivingForce.available &&
-    !deterministicReport.signaturePattern.available &&
-    !deterministicReport.emergingThemes.available &&
-    !deterministicReport.personalPositioning.available &&
-    !deterministicReport.proofOfMe.available
-  ) {
-    return { status: 'insufficient_evidence' };
-  }
+  const canvasDetails = buildPersonalCanvasDetails({
+    activities: evaluationInput.narrativeActivities,
+    coreIdentity: deterministicReport.coreIdentity,
+    drivingForce: deterministicReport.drivingForce,
+    emergingThemes: deterministicReport.emergingThemes,
+    personalPositioning: deterministicReport.personalPositioning,
+    proofOfMe: deterministicReport.proofOfMe,
+    intendedDirection: evaluationInput.intendedDirection,
+    profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
+      .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
+      .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
+  });
   const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };
+  let narrativeFailure = 'unknown';
+  let narrativeFailureContext: PersonalReportNarrativeFailureContext | undefined;
   const synthesis = await synthesizePersonalReportNarrative({
     report: deterministicReport,
     intendedDirection: evaluationInput.intendedDirection,
     apiKey,
     model: modelName,
-    grounding: { evaluationInput, evaluation, evidenceBank },
+    grounding: { evaluationInput, evaluation, evidenceBank, canvasDetails },
+    onFailure: (code, context) => {
+      narrativeFailure = code;
+      narrativeFailureContext = context;
+    },
   });
-  if (!synthesis) {
-    return {
-      status: 'error',
-      message: 'The AI could not produce a complete evidence-grounded report. Generation will retry automatically.',
-      record: current,
-    };
+  if (narrativeFailure !== 'unknown') {
+    logger.warn('personal_report_generate', {
+      userId,
+      applicationId,
+      trigger,
+      stage: 'generated',
+      outcome: 'personal_report_incomplete',
+      metadata: {
+        narrativeOutcome: synthesis ? 'partial_narrative' : 'deterministic_fallback',
+        narrativeFailure,
+        narrativeFailureContext,
+      },
+      durationMs: getElapsed(),
+    });
   }
   let reportV2 = applyNarrativeSynthesis(deterministicReport, synthesis);
 
   reportV2 = {
     ...reportV2,
-    canvasDetails: buildPersonalCanvasDetails({
-      activities: evaluationInput.narrativeActivities,
-      coreIdentity: reportV2.coreIdentity,
-      drivingForce: reportV2.drivingForce,
-      emergingThemes: reportV2.emergingThemes,
-      personalPositioning: reportV2.personalPositioning,
-      proofOfMe: reportV2.proofOfMe,
-      intendedDirection: evaluationInput.intendedDirection,
-    }),
+    canvasDetails,
   } as PersonalReportV2Record['reportV2'];
+  const frameworkCoverage = validatePersonalReportFramework(reportV2);
+  reportV2 = { ...reportV2, frameworkCoverage };
+  const contractFailure = reportContractFailure(frameworkCoverage);
+  if (contractFailure) {
+    logger.error('personal_report_generate', new Error(contractFailure), {
+      userId,
+      applicationId,
+      trigger,
+      stage: 'validated',
+      outcome: 'failed',
+      metadata: {
+        coverageStatus: 'invalid_contract',
+        missingSections: frameworkCoverage.structuralCompleteness.missing,
+        incompleteSections: frameworkCoverage.contentCompleteness.missing,
+        invalidEvidenceCount: frameworkCoverage.groundingValidity.invalidEvidenceIds.length,
+      },
+      durationMs: getElapsed(),
+    });
+    return {
+      status: 'error',
+      message: 'The AI could not produce a complete, evidence-grounded report. Your previous report, if any, has been kept.',
+      record: current,
+    };
+  }
 
   const inserted = await createPersonalReportV2Version(supabase, {
     userId,
@@ -518,7 +596,12 @@ async function regenerateLegacyPersonalReport(
   // touch `student_profiles` itself. Hashed as part of the effective
   // context so answering one is enough to trigger a regeneration.
   const context = applyPersonalReportSupplements(rawContext, supplements);
-  const inputHash = candidateContextHash(context);
+  const inputHash = stableHash({
+    contextHash: candidateContextHash(context),
+    extractionPromptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
+    narrativePromptVersion: REPORT_PROMPT_VERSIONS.report_narrative_synthesis,
+    reportContractVersion: PERSONAL_REPORT_CONTRACT_VERSION,
+  });
   const current = latest.record;
   const extractionChanged = Boolean(current && current.promptVersion !== PERSONAL_REPORT_EXTRACTION_VERSION);
   const regenerate =
@@ -567,21 +650,46 @@ async function regenerateLegacyPersonalReport(
       intendedDirection: evaluationInput.intendedDirection,
       generatedAt,
     });
+    const canvasDetails = buildPersonalCanvasDetails({
+      activities: evaluationInput.narrativeActivities,
+      coreIdentity: deterministicReport.coreIdentity,
+      drivingForce: deterministicReport.drivingForce,
+      emergingThemes: deterministicReport.emergingThemes,
+      personalPositioning: deterministicReport.personalPositioning,
+      proofOfMe: deterministicReport.proofOfMe,
+      intendedDirection: evaluationInput.intendedDirection,
+      profileCapabilityClaims: (evaluation.competencies?.claims ?? [])
+        .filter((claim) => claim.evidenceRefs.some((ref) => ref.kind === 'profile_reflection'))
+        .map((claim) => ({ label: claim.label, evidenceRefs: claim.evidenceRefs })),
+    });
 
     const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
+    let narrativeFailure = 'unknown';
+    let narrativeFailureContext: PersonalReportNarrativeFailureContext | undefined;
     const synthesis = await synthesizePersonalReportNarrative({
       report: deterministicReport,
       intendedDirection: evaluationInput.intendedDirection,
       apiKey,
       model: modelName,
-      grounding: { evaluationInput, evaluation, evidenceBank: null },
+      grounding: { evaluationInput, evaluation, evidenceBank: null, canvasDetails },
+      onFailure: (code, context) => {
+        narrativeFailure = code;
+        narrativeFailureContext = context;
+      },
     });
-    if (!synthesis) {
-      return {
-        status: 'error',
-        message: 'The AI could not produce a complete evidence-grounded report.',
-        record: current,
-      };
+    if (narrativeFailure !== 'unknown') {
+      logger.warn('personal_report_generate', {
+        userId,
+        trigger,
+        stage: 'generated',
+        outcome: 'personal_report_incomplete',
+        metadata: {
+          narrativeOutcome: synthesis ? 'partial_narrative' : 'deterministic_fallback',
+          narrativeFailure,
+          narrativeFailureContext,
+        },
+        durationMs: getElapsed(),
+      });
     }
     const synthesizedReport = applyNarrativeSynthesis(deterministicReport, synthesis);
 
@@ -589,18 +697,33 @@ async function regenerateLegacyPersonalReport(
     // append-only report version. The UI therefore never invents a new score
     // on render, and revisiting a historical report always shows the same
     // stars/bars/pathways that belonged to that snapshot.
-    const reportV2 = {
+    const reportWithCanvas = {
       ...synthesizedReport,
-      canvasDetails: buildPersonalCanvasDetails({
-        activities: evaluationInput.narrativeActivities,
-        coreIdentity: synthesizedReport.coreIdentity,
-        drivingForce: synthesizedReport.drivingForce,
-        emergingThemes: synthesizedReport.emergingThemes,
-        personalPositioning: synthesizedReport.personalPositioning,
-        proofOfMe: synthesizedReport.proofOfMe,
-        intendedDirection: evaluationInput.intendedDirection,
-      }),
+      canvasDetails,
     };
+    const frameworkCoverage = validatePersonalReportFramework(reportWithCanvas);
+    const reportV2 = { ...reportWithCanvas, frameworkCoverage };
+    const contractFailure = reportContractFailure(frameworkCoverage);
+    if (contractFailure) {
+      logger.error('personal_report_generate', new Error(contractFailure), {
+        userId,
+        trigger,
+        stage: 'validated',
+        outcome: 'failed',
+        metadata: {
+          coverageStatus: 'invalid_contract',
+          missingSections: frameworkCoverage.structuralCompleteness.missing,
+          incompleteSections: frameworkCoverage.contentCompleteness.missing,
+          invalidEvidenceCount: frameworkCoverage.groundingValidity.invalidEvidenceIds.length,
+        },
+        durationMs: getElapsed(),
+      });
+      return {
+        status: 'error',
+        message: 'The AI could not produce a complete, evidence-grounded report. Your previous report, if any, has been kept.',
+        record: current,
+      };
+    }
 
     const { record: inserted, error } = await createPersonalReportV2Version(supabase, {
       userId,

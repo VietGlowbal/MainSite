@@ -97,8 +97,6 @@ describe('StatementFeedbackWorkspace', () => {
       />,
     );
 
-    expect(screen.getAllByRole('link', { name: 'GlowBal home' })).toHaveLength(2);
-    expect(screen.getAllByRole('link', { name: 'GlowBal home' })[0]).toHaveAttribute('href', '/');
     expect(screen.getByRole('main')).toHaveClass('bg-surface');
     expect(screen.getByRole('main').firstElementChild).toHaveClass(
       'w-full',
@@ -155,11 +153,8 @@ describe('StatementFeedbackWorkspace', () => {
      */
     expect(screen.queryByRole('link', { name: /Quay lại Apply/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('main')).toHaveClass('bg-[#FAFAFA]', 'pb-24');
-    expect(screen.getByRole('main').firstElementChild).toHaveClass('!max-w-[1600px]');
-    expect(screen.getByRole('heading', { name: 'Strengthen your statement' })).toHaveClass(
-      'text-4xl',
-    );
+    expect(screen.getByRole('main')).toHaveClass('bg-surface');
+    expect(screen.getByRole('heading', { name: 'Strengthen your statement' })).toBeVisible();
     const writer = await screen.findByTestId('statement-writer');
     expect(writer.parentElement?.parentElement?.parentElement).toHaveClass('min-h-[680px]');
     expect(writer).toHaveAttribute(
@@ -195,10 +190,7 @@ describe('StatementFeedbackWorkspace', () => {
       'data-doc-type',
       'recommendation_letter',
     );
-    expect(screen.getByRole('link', { name: /Back to Apply/i })).toHaveAttribute(
-      'href',
-      '/apply/application-1',
-    );
+    expect(screen.queryByRole('link', { name: /Back to Apply/i })).not.toBeInTheDocument();
     expect(mocks.query.eq).toHaveBeenCalledWith('doc_type', 'recommendation_letter');
   });
 

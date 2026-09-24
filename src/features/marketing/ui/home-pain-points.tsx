@@ -1,4 +1,5 @@
 import { ICONS, KitIcon, Section } from '@/shared/ui';
+import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 
 const PAIN_POINTS = [
   {
@@ -27,7 +28,7 @@ const PAIN_POINTS = [
 ] as const;
 
 /** Pain-point bridge — Figma 884:12064, expanded to include all Home.md copy. */
-export function HomePainPoints() {
+export function HomePainPoints({ locale = 'en' }: { locale?: Locale } = {}) {
   return (
     <Section
       tone="dark"
@@ -39,9 +40,9 @@ export function HomePainPoints() {
         <span className="flex size-[48px] items-center justify-center rounded-gb-full bg-brand/15 text-brand">
           <KitIcon art={ICONS.zapFast} frame={24} />
         </span>
-        <p className="mt-gb-xl text-gb-md font-semibold text-brand">Have you ever?</p>
+        <p className="mt-gb-xl text-gb-md font-semibold text-brand">{getLocaleText(locale, 'Have you ever?')}</p>
         <h2 className="mt-gb-lg font-display text-gb-display-sm font-semibold md:text-gb-display-md">
-          A study-abroad dream, but no clear path forward
+          {getLocaleText(locale, 'A study-abroad dream, but no clear path forward')}
         </h2>
       </div>
 
@@ -61,9 +62,9 @@ export function HomePainPoints() {
                 </span>
               </div>
               <h3 className="mt-gb-4xl font-display text-gb-xl font-semibold text-white">
-                {point.title}
+                {getLocaleText(locale, point.title)}
               </h3>
-              <p className="mt-gb-lg text-gb-md leading-relaxed text-white/65">{point.body}</p>
+              <p className="mt-gb-lg text-gb-md leading-relaxed text-white/65">{getLocaleText(locale, point.body)}</p>
             </article>
           ))}
         </div>

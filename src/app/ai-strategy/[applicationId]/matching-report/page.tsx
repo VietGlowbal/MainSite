@@ -1,9 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
+import { z } from 'zod';
 import { getMatchingReportPageData } from '@/features/apply/api';
 import { MatchingReportView } from '@/features/apply/ui';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * Canonical application-level Matching Report route.
@@ -27,14 +28,16 @@ import { createClient } from '@/lib/supabase/server';
  */
 export default async function MatchingReportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
+  searchParams: Promise<{ personalReportVersionId?: string }>;
 }) {
   const { applicationId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { personalReportVersionId: requestedVersionId } = await searchParams;
+  const parsedVersionId = z.string().uuid().safeParse(requestedVersionId);
+  const personalReportVersionId = parsedVersionId.success ? parsedVersionId.data : null;
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const state = await fetchOnboardingState(supabase, user.id, applicationId);
@@ -56,6 +59,7 @@ export default async function MatchingReportPage({
     supabase,
     user.id,
     applicationId,
+    personalReportVersionId,
   );
   if (!data) notFound();
 

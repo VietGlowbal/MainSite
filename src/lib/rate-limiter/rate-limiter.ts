@@ -207,3 +207,36 @@ export const strategyExportLimiter = new RateLimiter({
   maxRequests: 5,
   windowMs: 60000,
 });
+
+/**
+ * Password-reset request guard.
+ *
+ * This endpoint sends an email to any address handed to it, so it is a spam
+ * relay if left open, and it is also where an attacker would probe for which
+ * addresses hold accounts. Applied twice per request — once per IP and once per
+ * target email — so neither "one host, many addresses" nor "many hosts, one
+ * victim" gets through. Deliberately tighter than the other limiters: a real
+ * person requests a reset once, and twice if the first mail is slow.
+ */
+export const passwordResetLimiter = new RateLimiter({
+  maxRequests: process.env.NODE_ENV === 'development' ? 1000 : 3,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+});
+
+/**
+ * Change-password guard, keyed on the signed-in user.
+ *
+ * Separate from the reset limiter because it bounds a different thing. This
+ * endpoint takes the CURRENT password and reports whether it was right, which
+ * makes it an online guessing oracle for anyone holding a stolen session — the
+ * exact situation the current-password prompt exists to survive. Unlimited, an
+ * attacker with a session cookie could work a wordlist and take the account.
+ *
+ * Ten rather than the reset flow's three: a genuine user mistypes a password
+ * they are about to replace, and a lockout here is more annoying than a lockout
+ * on a link they can simply request again.
+ */
+export const passwordChangeLimiter = new RateLimiter({
+  maxRequests: process.env.NODE_ENV === 'development' ? 1000 : 10,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+});

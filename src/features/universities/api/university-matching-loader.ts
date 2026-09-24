@@ -1,5 +1,7 @@
+import { unstable_cache } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { StudentProfile } from '@/lib/types';
+import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
   rankUniversityRecommendations,
   RECOMMENDATION_CONFIG,
@@ -9,7 +11,7 @@ import {
   type RecommendationUniversity,
 } from '../domain';
 import { getProgrammeQueries, getUniversityQueries } from './index';
-import type { CatalogueProgramme, UniversityListItem } from './index';
+import type { MatchingProgramme, UniversityListItem } from './index';
 
 type UniversityRecommendationProfileRow = Pick<StudentProfile,
   | 'study_level'
@@ -62,7 +64,7 @@ function toUniversity(university: UniversityListItem): RecommendationUniversity 
   };
 }
 
-function toProgramme(programme: CatalogueProgramme): RecommendationProgramme {
+function toProgramme(programme: MatchingProgramme): RecommendationProgramme {
   return {
     id: programme.id,
     universityId: programme.universityId,
@@ -75,14 +77,51 @@ function toProgramme(programme: CatalogueProgramme): RecommendationProgramme {
   };
 }
 
-function toProgrammeMap(
-  programmes: Map<number, CatalogueProgramme[]>,
-): Map<number, RecommendationProgramme[]> {
-  return new Map([...programmes.entries()].map(([universityId, entries]) => [
-    universityId,
-    entries.map(toProgramme),
-  ]));
+function groupByUniversity(programmes: MatchingProgramme[]): Map<number, RecommendationProgramme[]> {
+  const grouped = new Map<number, RecommendationProgramme[]>();
+  for (const programme of programmes) {
+    const current = grouped.get(programme.universityId);
+    if (current) current.push(toProgramme(programme));
+    else grouped.set(programme.universityId, [toProgramme(programme)]);
+  }
+  return grouped;
 }
+
+/**
+ * The half of the recommendation inputs that is the same for every student.
+ *
+ * `universities` and `catalog_programmes` are public reference data rewritten
+ * by a nightly crawl and the occasional operator CSV import — nothing about
+ * them depends on who is asking. Reading them fresh on every request was most
+ * of why this route measured ~640ms of server time for eight visits.
+ *
+ * ⚠️ The cached value must stay JSON-serialisable. `unstable_cache` writes it
+ * to the Next data cache, and a `Map` comes back as `{}` — which is why
+ * `allForMatching` returns a flat array and the grouping happens after the
+ * cache boundary rather than inside it.
+ *
+ * ⚠️ **This entry is the only cached reader of `catalog_programmes`, and that
+ * table has a writer the `universities` tag did not originally cover.** The
+ * tag is invalidated by the nightly `discover-universities` cron and by
+ * `/api/admin/universities/revalidate`; the programme CSV importer
+ * (`scripts/import-university-programs-csv.mjs`) writes straight to Postgres
+ * and used to trigger neither, so caching here silently gave a student
+ * pre-import rankings for up to twelve hours. The importer now calls that
+ * endpoint itself on a successful `--apply`. Anything else that learns to write
+ * `catalog_programmes` must do the same. See the producer registry in
+ * `src/server/cache/tags.ts` and docs/performance.md fix 6.
+ */
+const getMatchingCatalogue = unstable_cache(
+  async () => {
+    const [universities, programmes] = await Promise.all([
+      getUniversityQueries().allForMatching(),
+      getProgrammeQueries().allForMatching(),
+    ]);
+    return { universities, programmes };
+  },
+  ['university-matching-catalogue'],
+  { revalidate: CACHE_TTL_LONG, tags: [CACHE_TAGS.universities] },
+);
 
 /** Load server-side recommendation inputs and return a typed UI response. */
 export async function loadUniversityRecommendations(
@@ -91,13 +130,16 @@ export async function loadUniversityRecommendations(
 ): Promise<RecommendationResponse> {
   const generatedAt = new Date().toISOString();
   try {
-    const [profileResult, universities] = await Promise.all([
+    // The only per-user read is the profile; everything else is the shared
+    // catalogue, so both sides go out at once and the catalogue side is a cache
+    // hit for all but the first request in a twelve-hour window.
+    const [profileResult, catalogue] = await Promise.all([
       supabase
         .from('student_profiles')
         .select('study_level,target_subjects,preferred_countries,budget_range,campus_preferences')
         .eq('user_id', userId)
         .maybeSingle(),
-      getUniversityQueries().allForMatching(),
+      getMatchingCatalogue(),
     ]);
 
     if (profileResult.error) {
@@ -113,12 +155,10 @@ export async function loadUniversityRecommendations(
     if (!recommendationProfileHasPreferences(profile)) {
       return { status: 'incomplete_profile', results: [], algorithmVersion: RECOMMENDATION_CONFIG.version, generatedAt };
     }
-    const universityIds = universities.map((university) => university.id);
-    const programmeRows = await getProgrammeQueries().byUniversityIds(universityIds);
     return rankUniversityRecommendations(
       profile,
-      universities.map(toUniversity),
-      toProgrammeMap(programmeRows),
+      catalogue.universities.map(toUniversity),
+      groupByUniversity(catalogue.programmes),
       { asOf: generatedAt },
     );
   } catch (error) {

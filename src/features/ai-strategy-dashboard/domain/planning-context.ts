@@ -29,6 +29,7 @@ import type {
   StrategyRoadmap,
 } from './strategy-recommendation';
 import type { Recommendation, StrategyReportV2 } from './recommendation';
+import type { StrategyReportV3 } from '@/lib/ai/strategy-v3/domain';
 import type {
   ApplicationRequirement,
   ApplicationStage,
@@ -216,7 +217,7 @@ export type HardConstraint = {
  *   - f5_limitation: a top-level ProgrammeFit limitation
  *   - f4_limitation: a limitation from the ProfileEvaluation narrative base
  */
-export type PlanningGapSource = 'f5_dimension' | 'f5_limitation' | 'f4_limitation';
+export type PlanningGapSource = 'f5_dimension' | 'f5_limitation' | 'f4_limitation' | 'v3_metric';
 
 export type PlanningGap = {
   /** Stable identifier within the context: e.g. `f5_dimension_academicCompetitiveness_0`. */
@@ -489,8 +490,13 @@ export type PlanningStrategy = {
   // Provenance lives in PlanningProvenance.strategy — not embedded here.
 };
 
-/** The current F8 roadmap, or the older F7 roadmap when F8 is unavailable. */
+/** The current V3 roadmap, or the F8/F7 compatibility roadmap when unavailable. */
 export type PlanningStrategyRoadmap =
+  | {
+    kind: 'v3';
+    data: Pick<StrategyReportV3, 'strategicRoadmap'>;
+    provenance: SourceProvenance;
+  }
   | {
     kind: 'f8';
     data: Pick<StrategyReportV2, 'executionRoadmap'>;
@@ -783,6 +789,11 @@ export type PlanningContextSources = {
    */
   strategyRecommendation: {
     data: StrategyRecommendation;
+    provenance: SourceProvenance;
+  } | null;
+  /** New Matching Report V3 read model; F5 remains only as a legacy fallback. */
+  programmeFitV3?: {
+    data: import('@/lib/ai/matching/domain').MatchingReportV3;
     provenance: SourceProvenance;
   } | null;
   /** Optional while older callers still provide only strategyRecommendation. */

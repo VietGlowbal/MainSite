@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import { getLocaleFromPath, getLocaleText, localizePath } from '@/lib/i18n/locale';
 import { Avatar } from './avatar';
 import { Button } from './button';
 import { LanguageSwitcher } from './language-switcher';
@@ -98,6 +99,25 @@ type Props = {
   secondaryAction?: TopNavItem | undefined;
   /** Present => signed-in state (203:12356). */
   user?: TopNavUser | null | undefined;
+  /**
+   * True while the browser session is still unresolved, so `primaryAction`,
+   * `secondaryAction` and `user` are all deliberately withheld.
+   *
+   * ⚠️ This is a LAYOUT concern, not a cosmetic one. The actions are the
+   * tallest thing in the bar, so with all three withheld the header rendered
+   * 34px of content instead of 46px and grew by 4px the moment Supabase
+   * answered — pushing `<main>` (essentially the whole viewport) down with it.
+   * Measured on 2026-09-05 at 1440x900: that single shift was CLS 0.199 of the
+   * site's 0.20, because a near-full-viewport impact fraction multiplied the
+   * actions' own 306px sideways move.
+   *
+   * So when this is set the bar reserves a button's worth of height with an
+   * invisible spacer. Nothing is shown and nothing is focusable — the reason
+   * the actions are withheld (see site-navigation.tsx: a completed student must
+   * not see the first-time onboarding CTA flash) is untouched. Only the space
+   * they will occupy is held open.
+   */
+  actionsPending?: boolean | undefined;
   /** Defaults to the dark bar the marketing pages use. */
   tone?: Tone | undefined;
   /**
@@ -341,9 +361,12 @@ export function TopNav({
   user,
   tone = 'dark',
   utility,
+  actionsPending = false,
 }: Props) {
   const t = useT();
   const pathname = usePathname();
+  const routeLocale = getLocaleFromPath(pathname);
+  const translate = routeLocale === 'vi' ? (label: string) => getLocaleText(routeLocale, label) : t;
   // Destructured rather than held as one object: react-hooks/refs treats a
   // value carrying a ref as a ref itself, and reading `.top` off it during
   // render trips the rule even though `top` is ordinary state.
@@ -362,6 +385,9 @@ export function TopNav({
        * that follows the page cannot cover a dialog.
        */
       style={{ top: navTop }}
+      // Product icons in the bar and its dropdown panel (a DOM child, even
+      // though it is position: fixed) take their tones from this.
+      data-surface={tone}
       /*
        * The shadow goes with `isFloating`, but NOT while parked off-screen: a
        * box-shadow paints outside the border box, so a fully hidden bar would
@@ -387,8 +413,8 @@ export function TopNav({
               opposite approach and its callers wrap the node themselves, so do
               not pass an already-linked node in here or the anchors nest. */}
           <Link
-            href="/"
-            aria-label="GlowBal home"
+            href={localizePath('/', routeLocale)}
+            aria-label={getLocaleText(routeLocale, 'GlowBal home')}
             className="flex shrink-0 items-center rounded-gb-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {logo}
@@ -415,7 +441,7 @@ export function TopNav({
            * on that component before changing either.
            */}
           <nav
-            aria-label={t('Primary')}
+            aria-label={translate('Primary')}
             className="flex min-w-0 items-center gap-gb-md overflow-hidden 2xl:gap-gb-xl"
           >
             {items.map((item) =>
@@ -462,6 +488,20 @@ export function TopNav({
           </div>
 
           <div className="flex shrink-0 items-center gap-gb-lg">
+            {/* Holds the bar's height while the session resolves — see the
+                `actionsPending` prop note. A real Button rather than a fixed
+                height so it tracks whatever the design says a nav action
+                measures; ` ` gives it a line box to be as tall as. */}
+            {actionsPending ? (
+              <Button
+                variant="primary-on-dark"
+                className="invisible"
+                aria-hidden="true"
+                tabIndex={-1}
+              >
+                {' '}
+              </Button>
+            ) : null}
             {/* Signed in, the design shows no "Sign in" button at all. */}
             {user == null && secondaryAction ? (
               <Button

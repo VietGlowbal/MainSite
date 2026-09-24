@@ -1,4 +1,5 @@
 import { SITE_URL } from '@/lib/site-url';
+import { localizePath } from '@/lib/i18n/locale';
 
 export type LocaleAlternates = {
   canonical: string;
@@ -13,10 +14,9 @@ export type LocaleAlternates = {
  * Generates reciprocal hreflang and canonical metadata for English (default) URLs.
  */
 export function buildLocaleAlternates(path: string): LocaleAlternates {
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const normalizedPath = cleanPath === '/' ? '' : cleanPath;
-  const enUrl = `${SITE_URL}${normalizedPath}`;
-  const viUrl = `${SITE_URL}/vi${normalizedPath}`;
+  const enUrl = `${SITE_URL}${localizePath(path, 'en') === '/' ? '' : localizePath(path, 'en')}`;
+  const viPath = localizePath(path, 'vi');
+  const viUrl = `${SITE_URL}${viPath === '/' ? '' : viPath}`;
 
   return {
     canonical: enUrl,
@@ -32,10 +32,10 @@ export function buildLocaleAlternates(path: string): LocaleAlternates {
  * Generates reciprocal hreflang and canonical metadata for Vietnamese (/vi/...) URLs.
  */
 export function buildViLocaleAlternates(path: string): LocaleAlternates {
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const normalizedPath = cleanPath === '/' ? '' : cleanPath;
-  const enUrl = `${SITE_URL}${normalizedPath}`;
-  const viUrl = `${SITE_URL}/vi${normalizedPath}`;
+  const enPath = localizePath(path, 'en');
+  const enUrl = `${SITE_URL}${enPath === '/' ? '' : enPath}`;
+  const viPath = localizePath(path, 'vi');
+  const viUrl = `${SITE_URL}${viPath === '/' ? '' : viPath}`;
 
   return {
     canonical: viUrl,

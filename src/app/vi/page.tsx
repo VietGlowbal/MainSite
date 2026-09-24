@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import Home from '../page';
+import { MarketingHome } from '../page';
 import { SITE_URL } from '@/lib/site-url';
 import { buildViLocaleAlternates } from '@/lib/seo/alternates';
+import { homeCopy } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
-  title: 'GlowBal | Tìm Kiếm Trường Đại Học, Học Bổng & Chiến Lược Du Học',
-  description:
-    'Nền tảng hướng nghiệp và du học toàn cầu chuẩn cá nhân hóa. Khám phá 100+ đại học thế giới, săn học bổng và xây dựng chiến lược ứng tuyển bằng AI cùng cố vấn thực tế.',
+  title: homeCopy.vi.metadataTitle,
+  description: homeCopy.vi.metadataDescription,
   keywords: [
     'học bổng du học',
     'du học',
@@ -17,9 +17,8 @@ export const metadata: Metadata = {
   ],
   alternates: buildViLocaleAlternates('/'),
   openGraph: {
-    title: 'GlowBal | Tìm Kiếm Trường Đại Học, Học Bổng & Chiến Lược Du Học',
-    description:
-      'Nền tảng hướng nghiệp và du học toàn cầu chuẩn cá nhân hóa. Khám phá 100+ đại học thế giới, săn học bổng và xây dựng chiến lược ứng tuyển bằng AI cùng cố vấn thực tế.',
+    title: homeCopy.vi.metadataTitle,
+    description: homeCopy.vi.metadataDescription,
     url: `${SITE_URL}/vi`,
     siteName: 'GlowBal',
     locale: 'vi_VN',
@@ -35,13 +34,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GlowBal | Tìm Kiếm Trường Đại Học, Học Bổng & Chiến Lược Du Học',
-    description:
-      'Nền tảng hướng nghiệp và du học toàn cầu chuẩn cá nhân hóa. Khám phá 100+ đại học thế giới, săn học bổng và xây dựng chiến lược ứng tuyển bằng AI cùng cố vấn thực tế.',
+    title: homeCopy.vi.metadataTitle,
+    description: homeCopy.vi.metadataDescription,
     images: ['/glowbal-logo.png'],
   },
 };
 
 export const revalidate = 43200;
 
-export default Home;
+export default async function VietnameseHome() {
+  return <MarketingHome locale="vi" />;
+}

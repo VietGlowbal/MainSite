@@ -1,20 +1,22 @@
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
+import { getLocalizedFooter } from '@/features/marketing/navigation';
 import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
-import { Badge, Container, Footer, VerifiedMark } from '@/shared/ui';
+  Badge,
+  Container,
+  Footer,
+  GlowbalIcon,
+  VerifiedMark,
+  type GlowbalIconName,
+} from '@/shared/ui';
 import { formatMoney } from '@/lib/currency';
 import { T } from '@/lib/i18n';
 import type { PublicMentor, PublicMentorReview } from '@/lib/mentors';
 import type { Currency, MentorAvailabilitySlot } from '@/types/mentorship';
 import { MentorBooking } from './mentor-booking';
 import { LocalizedReviewByline } from './mentor-i18n';
+import { localizePath, type Locale } from '@/lib/i18n/locale';
 
 /**
  * /mentors/[id] — Figma 375:21633 "Detail cố vấn" (1440x1823).
@@ -71,10 +73,13 @@ const DEGREE_LABELS: Record<string, string> = {
 function SectionCard({
   id,
   heading,
+  icon,
   children,
 }: {
   id: string;
   heading: string;
+  /** What the section is about, drawn at the row density beside the heading. */
+  icon: GlowbalIconName;
   children: React.ReactNode;
 }) {
   return (
@@ -84,8 +89,9 @@ function SectionCard({
     >
       <h2
         id={`${id}-heading`}
-        className="font-display text-gb-display-xs font-semibold text-fg"
+        className="flex items-center gap-gb-lg font-display text-gb-display-xs font-semibold text-fg"
       >
+        <GlowbalIcon name={icon} size={24} />
         <T k={heading} />
       </h2>
       <div className="mt-gb-3xl">{children}</div>
@@ -209,8 +215,9 @@ function BookingCard({
   return (
     <div className="rounded-gb-2xl border border-line bg-surface p-gb-4xl shadow-gb-xs">
       <span className="flex size-[56px] items-center justify-center rounded-gb-lg border border-line bg-surface text-fg-secondary shadow-gb-xs">
-        {/* The kit's paper plane, lifted for this card — see ICONS.send. */}
-        <SendMark />
+        {/* Book a Session, which replaced the kit's paper plane — the plane
+            said "send", and what this card does is book. */}
+        <GlowbalIcon name="bookSession" size={24} />
       </span>
 
       <div className="mt-gb-3xl flex flex-col gap-gb-xs">
@@ -237,27 +244,6 @@ function BookingCard({
         <T k="Book a session" />
       </a>
     </div>
-  );
-}
-
-/* Inlined rather than imported through KitIcon so the 56px tile can size it
-   directly; the art itself lives in the shared registry. */
-function SendMark() {
-  return (
-    <svg
-      viewBox="0 0 24.4373 24.4373"
-      width={24}
-      height={24}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M10.4763 13.961L22.7263 1.71095M10.6252 14.3437L13.6913 22.228C13.9614 22.9226 14.0965 23.2699 14.2911 23.3713C14.4598 23.4592 14.6607 23.4593 14.8295 23.3716C15.0243 23.2704 15.1597 22.9233 15.4306 22.2291L23.1194 2.52668C23.3639 1.89997 23.4862 1.58662 23.4193 1.38639C23.3612 1.2125 23.2248 1.07603 23.0509 1.01794C22.8507 0.951051 22.5373 1.07334 21.9106 1.3179L2.20823 9.00663C1.51398 9.27756 1.16685 9.41303 1.06569 9.60775C0.977992 9.77655 0.978111 9.97751 1.066 10.1462C1.16739 10.3408 1.51468 10.4759 2.20925 10.746L10.0936 13.8121C10.2346 13.8669 10.3051 13.8944 10.3644 13.9367C10.417 13.9742 10.4631 14.0202 10.5006 14.0728C10.5429 14.1322 10.5703 14.2027 10.6252 14.3437Z" />
-    </svg>
   );
 }
 
@@ -315,18 +301,21 @@ export function MentorDetail({
   reviews,
   reviewCount,
   isSignedIn,
+  locale = 'en',
 }: {
   mentor: PublicMentor;
   slots: readonly MentorAvailabilitySlot[];
   reviews: readonly PublicMentorReview[];
   reviewCount: number;
   isSignedIn: boolean;
+  locale?: Locale;
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
   const currency = mentor.hourly_rate_currency;
   const amount = Number(mentor.hourly_rate_amount ?? 0);
   const hasPrice = amount > 0;
+  const footer = getLocalizedFooter(locale);
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
@@ -338,7 +327,7 @@ export function MentorDetail({
               only way back to the directory is the browser button — the same
               gap /universities/[id] fills with its own back link. */}
           <Link
-            href="/advisors"
+            href={localizePath('/advisors', locale)}
             className="inline-flex items-center gap-gb-sm text-gb-sm font-semibold text-fg-tertiary transition-colors hover:text-fg"
           >
             <span aria-hidden="true">←</span> <T k="All advisors" />
@@ -363,7 +352,7 @@ export function MentorDetail({
              */}
             <div className="order-2 flex min-w-0 flex-col gap-gb-5xl lg:order-none">
               {mentor.bio ? (
-                <SectionCard id="about" heading="About">
+                <SectionCard id="about" heading="About" icon="mentorProfile">
                   <p className="whitespace-pre-line text-gb-lg text-fg-tertiary">
                     <T k={mentor.bio} />
                   </p>
@@ -371,7 +360,7 @@ export function MentorDetail({
               ) : null}
 
               {mentor.strengths && mentor.strengths.length > 0 ? (
-                <SectionCard id="strengths" heading="Strengths">
+                <SectionCard id="strengths" heading="Strengths" icon="expertiseTag">
                   <ul className="flex flex-wrap gap-gb-md">
                     {mentor.strengths.map((strength) => (
                       <li key={strength}>
@@ -383,7 +372,7 @@ export function MentorDetail({
               ) : null}
 
               {mentor.help_topics.length > 0 ? (
-                <SectionCard id="best-for" heading="Best for">
+                <SectionCard id="best-for" heading="Best for" icon="eligibility">
                   <ul className="flex flex-wrap gap-gb-md">
                     {mentor.help_topics.map((topic) => (
                       <li key={topic}>
@@ -403,7 +392,7 @@ export function MentorDetail({
                 isSignedIn={isSignedIn}
               />
 
-              <SectionCard id="reviews" heading="Reviews">
+              <SectionCard id="reviews" heading="Reviews" icon="ratingReview">
                 <ReviewList reviews={reviews} count={reviewCount} />
               </SectionCard>
             </div>
@@ -425,7 +414,7 @@ export function MentorDetail({
                     <T k="This advisor hasn’t set a session price. Browse the directory for advisors who are taking bookings." />
                   </p>
                   <Link
-                    href="/advisors"
+                    href={localizePath('/advisors', locale)}
                     className="mt-gb-2xl flex w-full items-center justify-center rounded-gb-md border border-line bg-surface px-gb-xl py-gb-lg text-gb-md font-semibold text-fg transition-colors hover:bg-surface-hover"
                   >
                     <T k="Find an advisor" />
@@ -439,11 +428,11 @@ export function MentorDetail({
 
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );

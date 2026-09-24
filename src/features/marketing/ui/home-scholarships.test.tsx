@@ -44,13 +44,18 @@ const ENTRIES: ScholarshipTeaser[] = [
 
 describe('HomeScholarships', () => {
   it('uses verified programme branding only for registered scholarships', () => {
-    expect(getOfficialScholarshipBranding('Rhodes Scholarship')?.logoUrl).toContain(
-      'rhodes-logo-main-dark',
+    // Asserted as a same-origin path on purpose: these marks are served from
+    // public/ so the home page makes no third-party request before consent.
+    expect(getOfficialScholarshipBranding('Rhodes Scholarship')?.logoUrl).toBe(
+      '/brand/scholarships/rhodes.svg',
     );
     expect(getOfficialScholarshipBranding('Gates Cambridge')?.logoTone).toBe('dark');
-    expect(getOfficialScholarshipBranding('Knight Hennessy Scholarships')?.logoUrl).toContain(
-      'khs_logo_primary_rgb.png',
+    expect(getOfficialScholarshipBranding('Knight Hennessy Scholarships')?.logoUrl).toBe(
+      '/brand/scholarships/knight-hennessy.png',
     );
+    for (const name of ['Rhodes Scholarship', 'Gates Cambridge', 'Knight Hennessy Scholarships']) {
+      expect(getOfficialScholarshipBranding(name)?.logoUrl.startsWith('/')).toBe(true);
+    }
     expect(getOfficialScholarshipBranding('Yenching Academy')).toBeNull();
     expect(getOfficialScholarshipBranding('Lester B. Pearson Scholarship')).toBeNull();
   });

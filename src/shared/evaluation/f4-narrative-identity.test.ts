@@ -81,6 +81,20 @@ describe('F4 — activity-count pattern rules', () => {
     expect(identity.valueOrientation).toBeNull();
   });
 
+  it('does not establish identity from an isolated Q1–Q3 signal, but accepts corroborated context', () => {
+    const isolated = synthesizeIdentity([TUTORING, CODING_CLUB], [
+      { dimension: 'values_growth', value: 'peer learning', status: 'isolated' },
+    ]);
+    expect(isolated.valueOrientation).toBeNull();
+
+    const repeated = synthesizeIdentity([TUTORING, CODING_CLUB, SCHOLARSHIP_DRIVE], [
+      { dimension: 'values_growth', value: 'peer learning', status: 'repeated' },
+    ]);
+    // Mature activity themes remain authoritative; a repeated questionnaire
+    // value is only a fallback when activities do not supply a theme.
+    expect(repeated.valueOrientation).toBe('education access');
+  });
+
   it('three or more activities can establish a mature, full synthesis', () => {
     const readiness = synthesisReadiness([TUTORING, CODING_CLUB, SCHOLARSHIP_DRIVE]);
     expect(readiness.level).toBe('mature');
@@ -246,6 +260,29 @@ describe('F4.5 Applicant Positioning', () => {
     });
     expect(result.positioningStatus).toBe('strong_positioning');
     expect(result.credible).toBe(true);
+  });
+
+  it('records capability and motivation evidence in the positioning intersection', () => {
+    const activities = [TUTORING, CODING_CLUB, SCHOLARSHIP_DRIVE];
+    const result = assessApplicantPositioning({
+      identity: synthesizeIdentity(activities),
+      pattern: extractBehavioralPattern(activities),
+      theme: assessThemeMaturity('education access', [
+        { linked: 'explicit' },
+        { linked: 'explicit' },
+        { linked: 'implicit' },
+      ]),
+      intendedDirection: 'Study education policy.',
+      coherent: true,
+      capabilityEvidenceRefs: [{ id: 'capability-1', kind: 'activity', label: 'Programme design' }],
+      motivationEvidenceRefs: [{ id: 'motivation-1', kind: 'profile', label: 'Study motivation' }],
+    });
+
+    expect(result.evidenceRefs.map((ref) => ref.id)).toEqual(
+      expect.arrayContaining(['capability-1', 'motivation-1']),
+    );
+    expect(result.capabilityInformed).toBe(true);
+    expect(result.motivationInformed).toBe(true);
   });
 });
 

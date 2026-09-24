@@ -1,15 +1,17 @@
 import type { Metadata } from 'next';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
+// The narrow slices, not the `marketing/ui` barrel — see the note in
+// how-it-works/page.tsx and docs/performance.md.
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  StrategyHub,
-} from '@/features/marketing/ui';
-import { createClient } from '@/lib/supabase/server';
+} from '@/features/marketing/navigation';
+import { StrategyHub } from '@/features/marketing/strategy-hub';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { Footer } from '@/shared/ui';
 
 /**
@@ -55,10 +57,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AiStrategyPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { identity: user } = await getServerIdentity();
 
   const isSignedIn = Boolean(user);
 

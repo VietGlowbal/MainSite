@@ -22,6 +22,12 @@ export { HomeHowItWorks } from './home-how-it-works';
 export { HomeMetrics } from './home-metrics';
 export { HomePainPoints } from './home-pain-points';
 export { HomePartners } from './home-partners';
+export { HomeScholarshipPreview } from './home-scholarship-preview';
+export {
+  PARTNER_SCHOLARSHIP_VALUE,
+  PARTNER_TOTAL_SCHOLARSHIP_VALUE,
+  partnerScholarshipValue,
+} from './partner-scholarship-value';
 export { HomeScholarships } from './home-scholarships';
 export type { ScholarshipTeaser } from './home-scholarships';
 export { getOfficialScholarshipBranding } from './home-scholarship-branding';
@@ -38,6 +44,7 @@ export {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
+  getLocalizedFooter,
   getMarketingNavPresentation,
   MARKETING_NAV_ITEMS,
   MARKETING_NAV_ACTIONS,

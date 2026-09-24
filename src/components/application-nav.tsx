@@ -3,7 +3,7 @@ import { nextOnboardingStep } from '@/features/ai-strategy-dashboard/domain';
 import { aiStrategyApplicationNav } from '@/shared/lib/ai-strategy-route-model';
 import { Breadcrumbs } from '@/shared/ui/breadcrumbs';
 import { Container } from '@/shared/ui/container';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { ApplicationNavBackground } from './application-nav-background';
 import { ApplicationSubNav } from './application-sub-nav';
 
@@ -20,12 +20,13 @@ export async function ApplicationNav({
   userId?: string;
   courseName?: string | null;
 }) {
-  const supabase = await createClient();
-  const authenticatedUserId =
-    userId ??
-    (
-      await supabase.auth.getUser()
-    ).data.user?.id;
+  // `getServerIdentity` is React-`cache()`d per request and verifies the access
+  // token's ES256 signature locally, so the caller that already resolved the
+  // session (every one of them does) pays nothing for this second read — where
+  // `supabase.auth.getUser()` was a fresh Auth API round-trip each time this
+  // band rendered. See docs/performance.md fix 7.
+  const { supabase, identity } = await getServerIdentity();
+  const authenticatedUserId = userId ?? identity?.id;
 
   if (!authenticatedUserId) return null;
 
@@ -34,7 +35,7 @@ export async function ApplicationNav({
   const plannerMode = await getPlannerMode(supabase, authenticatedUserId);
   const items = aiStrategyApplicationNav(applicationId, {
     analysisReady: state.aiAnalysisComplete,
-    strategyReady: state.strategyComplete,
+    strategyReady: Boolean(state.strategyComplete || step === 'strategy' || step === 'dashboard'),
     // Plus/admin users have the canonical Planner as their product entry
     // point. It derives whatever useful work it can from the application, so
     // it must not disappear behind the legacy recommendation onboarding flow.
@@ -44,7 +45,9 @@ export async function ApplicationNav({
   });
 
   return (
-    <div data-no-auto-translate className="relative overflow-hidden">
+    // data-surface="brand": product icons in the sub-nav follow its white text
+    // rather than painting a rose accent onto the rose band (tokens.css, "Surfaces").
+    <div data-no-auto-translate data-surface="brand" className="relative overflow-hidden">
       <div className="absolute inset-0 animate-gb-app-nav-reveal bg-brand motion-reduce:animate-none" />
       <ApplicationNavBackground />
       <Container className="relative animate-gb-app-nav-reveal flex flex-col gap-gb-lg pt-gb-2xl motion-reduce:animate-none">

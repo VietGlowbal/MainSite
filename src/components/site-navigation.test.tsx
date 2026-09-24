@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/link', () => ({ default: ({ children }: { children: React.ReactNode }) => children }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
 vi.mock('@/components/glowbal-logo', () => ({ GlowbalLogo: () => <span>GlowBal</span> }));
 vi.mock('@/components/saved-nav-link', () => ({ SavedNavLink: () => <span>Saved</span> }));
 vi.mock('@/components/navigation-session', () => ({

@@ -18,4 +18,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default HowItWorksPage;
+export default async function VietnameseHowItWorksPage() {
+  return <HowItWorksPage locale="vi" />;
+}

@@ -188,6 +188,31 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
       expect(data.applicationsCreated).toHaveLength(2);
       expect(data.skippedDuplicates).toHaveLength(0);
     });
+
+    it('passes only the authenticated session and result IDs to the RPC', async () => {
+      const sessionId = '550e8400-e29b-41d4-a716-446655440000';
+      const resultId = '650e8400-e29b-41d4-a716-446655440001';
+      const mockSupabase = buildAddCoursesSupabase({
+        user: { id: 'user-123' },
+        session: { id: sessionId, user_id: 'user-123', status: 'complete', university_id: null },
+        results: [{ id: resultId, course_name: 'Course One', course_url: 'https://university.edu/one' }],
+      });
+      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, selectedResultIds: [resultId] }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('add_selected_courses_to_apply', {
+        p_session_id: sessionId,
+        p_result_ids: [resultId],
+      });
+    });
   });
 
   describe('Authentication', () => {

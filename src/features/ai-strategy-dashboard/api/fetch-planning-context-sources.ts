@@ -31,9 +31,11 @@ import {
   enforceFitClassification,
   programmeFitSchema,
 } from '@/features/apply/domain';
+import { matchingReportV3Schema } from '@/lib/ai/matching/domain';
 import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
 import { recommendationFromRow } from '../domain/recommendation';
 import { strategyRecommendationFromRow, strategyReportV2FromRow } from '../domain/strategy-recommendation';
+import { strategyReportV3FromRow } from '@/lib/ai/strategy-v3/domain';
 import type {
   DeadlineAuthority,
   DeadlineCandidate,
@@ -53,10 +55,9 @@ import {
   parseImprovementActions,
 } from './planning-context-source-parsers';
 
-// Core 1 must select the same current persisted F8 shape as its writer. Keep
-// this local to avoid importing the model-generation module into the context
-// compiler (which creates a runtime cycle under test).
-const CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION = 'strategy-report-f8-v3';
+function isSchemaGap(error: { code?: string; message?: string } | null): boolean {
+  return Boolean(error && ['42P01', 'PGRST204', 'PGRST205'].includes(error.code ?? ''));
+}
 
 // ─── Fatal error ──────────────────────────────────────────────────────────────
 
@@ -530,60 +531,92 @@ export async function fetchPlanningContextSources(
 
   // ── 8. Programme Fit (F5 — application_match_analyses) ────────────────────
   let programmeFit: PlanningContextSources['programmeFit'] = null;
+  let programmeFitV3: PlanningContextSources['programmeFitV3'] = null;
 
-  // Consume the canonical F5 columns written alongside Matching Report V2;
-  // the planner does not parse report_v2 itself.
-  const { data: matchRow, error: matchError } = await supabase
+  // Prefer the newest valid V3 row, then the newest compatible F5 row. A
+  // malformed newest row must not hide an older valid report.
+  const { data: matchRows, error: matchError } = await supabase
     .from('application_match_analyses')
     .select(
       'id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,' +
-      'fit_limitations,input_hash,prompt_version,f5_engine_version,model_name,improvement_actions,created_at',
+      'fit_limitations,input_hash,prompt_version,f5_engine_version,model_name,improvement_actions,created_at,' +
+      'report_v2,report_contract_version,matching_engine_version',
     )
     .eq('application_id', applicationId)
     .eq('user_id', userId)
     .eq('analysis_status', 'complete')
-    .eq('f5_engine_version', F5_ENGINE_VERSION)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
   if (matchError) {
     diagnostics.push({ source: 'application_match_analyses', status: 'unavailable', message: 'query failed' });
-  } else if (!matchRow) {
+  } else if (!Array.isArray(matchRows) || matchRows.length === 0) {
     diagnostics.push({ source: 'application_match_analyses', status: 'missing' });
   } else {
-    const row = matchRow as unknown as Record<string, unknown>;
-    const fitParsed = programmeFitSchema.safeParse({
+    const rows = matchRows as unknown as Record<string, unknown>[];
+    const selected = rows.find((candidate) => matchingReportV3Schema.safeParse(candidate.report_v2).success)
+      ?? rows.find((candidate) => {
+        const f5Version = candidate.f5_engine_version;
+        if (typeof f5Version === 'string' && f5Version !== F5_ENGINE_VERSION) return false;
+        return programmeFitSchema.safeParse({
+          classification: candidate.fit_classification,
+          confidence: candidate.fit_confidence ?? 0,
+          limitations: candidate.fit_limitations ?? [],
+          eligibility: candidate.fit_eligibility,
+          dimensions: candidate.fit_dimensions,
+        }).success && parseImprovementActions(candidate.improvement_actions) !== null;
+      });
+
+    if (!selected) {
+      diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'no valid V3 or compatible F5 report found' });
+    } else {
+      const row = selected;
+      const v3 = matchingReportV3Schema.safeParse(row.report_v2);
+      if (v3.success) {
+      const provenance: SourceProvenance = {
+        id: row.id as string,
+        generatedAt: row.created_at as string,
+        inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+        promptVersion: v3.data.metadata.promptVersion,
+        engineVersion: v3.data.metadata.matchingEngineVersion,
+        modelName: v3.data.metadata.model,
+        sourceAnalysisId: v3.data.metadata.sourceAnalysisVersionId,
+        sourceMatchAnalysisId: row.id as string,
+      };
+      programmeFitV3 = { data: v3.data, provenance };
+      diagnostics.push({ source: 'application_match_analyses', status: 'present' });
+      programmeFit = null;
+    } else {
+      const fitParsed = programmeFitSchema.safeParse({
       classification: row.fit_classification,
       confidence: row.fit_confidence ?? 0,
       limitations: row.fit_limitations ?? [],
       eligibility: row.fit_eligibility,
       dimensions: row.fit_dimensions,
-    });
+      });
 
-    const improvementActions = parseImprovementActions(row.improvement_actions);
-
-    if (!fitParsed.success) {
-      diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'programmeFitSchema parse failed' });
-    } else if (improvementActions === null) {
-      diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'improvement_actions failed structural validation' });
-    } else {
-      const provenance: SourceProvenance = {
-        id: row.id as string,
-        generatedAt: row.created_at as string,
-        inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
-        promptVersion: typeof row.prompt_version === 'string' ? row.prompt_version : null,
-        engineVersion: typeof row.f5_engine_version === 'string' ? row.f5_engine_version : null,
-        modelName: typeof row.model_name === 'string' ? row.model_name : null,
-        sourceAnalysisId: null,
-        sourceMatchAnalysisId: null,
-      };
-      programmeFit = {
-        data: enforceFitClassification(fitParsed.data),
-        improvementActions,
-        provenance,
-      };
-      diagnostics.push({ source: 'application_match_analyses', status: 'present' });
+      const improvementActions = parseImprovementActions(row.improvement_actions);
+      if (!fitParsed.success || improvementActions === null) {
+        diagnostics.push({ source: 'application_match_analyses', status: 'invalid', message: 'selected F5 report changed during parsing' });
+      } else {
+        const provenance: SourceProvenance = {
+          id: row.id as string,
+          generatedAt: row.created_at as string,
+          inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+          promptVersion: typeof row.prompt_version === 'string' ? row.prompt_version : null,
+          engineVersion: typeof row.f5_engine_version === 'string' ? row.f5_engine_version : null,
+          modelName: typeof row.model_name === 'string' ? row.model_name : null,
+          sourceAnalysisId: null,
+          sourceMatchAnalysisId: null,
+        };
+        programmeFit = {
+          data: enforceFitClassification(fitParsed.data),
+          improvementActions,
+          provenance,
+        };
+        diagnostics.push({ source: 'application_match_analyses', status: 'present' });
+      }
+      }
     }
   }
 
@@ -591,20 +624,59 @@ export async function fetchPlanningContextSources(
   let strategyRecommendation: PlanningContextSources['strategyRecommendation'] = null;
   let strategyRoadmap: NonNullable<PlanningContextSources['strategyRoadmap']> | null = null;
 
-  // F8 is the canonical shape. Query it first so an older F7 row cannot
-  // displace the current report_v2 roadmap by created_at alone.
-  const { data: f8Row } = await supabase
+  // Strategy report rows are ordered newest-first, then validated by their
+  // readers. Prompt versions are provenance, not selection gates: a future V3
+  // prompt bump must not make a valid roadmap invisible to Planner.
+  const { data: reportRows, error: reportRowsError } = await supabase
     .from('application_strategy_recommendations')
     .select(
-      'id,source_analysis_id,source_match_analysis_id,report_v2,input_hash,' +
-      'model_name,prompt_version,created_at',
+      'id,application_id,source_analysis_id,source_match_analysis_id,' +
+      'direction_options,chosen_direction,chosen_direction_why,narrative,' +
+      'positioning_before,positioning_after,positioning_rationale,' +
+      'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
+      'roadmap,report_v2,input_hash,model_name,prompt_version,created_at',
     )
     .eq('application_id', applicationId)
-    .eq('prompt_version', CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION)
     .not('report_v2', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
+  const reportRowsReadFailed = Boolean(reportRowsError && !isSchemaGap(reportRowsError));
+  const reportRowsAsRecords = reportRowsError
+    ? []
+    : (Array.isArray(reportRows) ? reportRows : reportRows ? [reportRows] : [])
+      .map((candidate) => candidate as unknown as Record<string, unknown>);
+  const v3Row = reportRowsAsRecords
+    .map((candidate) => candidate as unknown as Record<string, unknown>)
+    .find((candidate) => Boolean(strategyReportV3FromRow(candidate)));
+
+  if (v3Row) {
+    const row = v3Row as unknown as Record<string, unknown>;
+    const reportV3 = strategyReportV3FromRow(row);
+    if (reportV3) {
+      strategyRoadmap = {
+        kind: 'v3',
+        data: { strategicRoadmap: reportV3.strategicRoadmap },
+        provenance: {
+          id: typeof row.id === 'string' ? row.id : '',
+          generatedAt: typeof row.created_at === 'string' ? row.created_at : reportV3.generatedAt,
+          inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+          promptVersion: typeof row.prompt_version === 'string'
+            ? row.prompt_version
+            : reportV3.metadata.synthesisPromptVersion,
+          engineVersion: reportV3.metadata.strategyEngineVersion,
+          modelName: reportV3.metadata.model,
+          sourceAnalysisId: reportV3.metadata.sourceAnalysisVersionId,
+          sourceMatchAnalysisId: reportV3.metadata.matchingReportId,
+        },
+      };
+    }
+  }
+
+  // F8 is the compatibility shape. Select the newest valid F8 only when no
+  // valid V3 was found, regardless of its prompt version.
+  const f8Row = strategyRoadmap
+    ? null
+    : reportRowsAsRecords.find((candidate) => Boolean(strategyReportV2FromRow(candidate))) ?? null;
 
   if (f8Row) {
     const row = f8Row as unknown as Record<string, unknown>;
@@ -628,22 +700,34 @@ export async function fetchPlanningContextSources(
   }
 
   // Mirror the GET route: newest first, no prompt_version filter (F7 does not
-  // have the same version-gating as F5).
-  const { data: stratRow, error: stratError } = await supabase
-    .from('application_strategy_recommendations')
-    .select(
-      'id,application_id,source_analysis_id,source_match_analysis_id,' +
-      'direction_options,chosen_direction,chosen_direction_why,narrative,' +
-      'positioning_before,positioning_after,positioning_rationale,' +
-      'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
-      'roadmap,model_name,prompt_version,pdf_storage_path,created_at',
-    )
-    .eq('application_id', applicationId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // have the same version-gating as F5). A real report read failure is
+  // fail-closed: it must not be hidden by a stale F7 row.
+  const { data: stratRow, error: stratError } = reportRowsReadFailed
+    ? { data: null, error: null }
+    : await supabase
+      .from('application_strategy_recommendations')
+      .select(
+        'id,application_id,source_analysis_id,source_match_analysis_id,' +
+        'direction_options,chosen_direction,chosen_direction_why,narrative,' +
+        'positioning_before,positioning_after,positioning_rationale,' +
+        'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
+        'roadmap,model_name,prompt_version,pdf_storage_path,created_at',
+      )
+      .eq('application_id', applicationId)
+      .order('created_at', { ascending: false })
+      .limit(20);
 
-  if (stratError) {
+  const legacyStrategyRows = Array.isArray(stratRow) ? stratRow : stratRow ? [stratRow] : [];
+  const legacyStrategy = legacyStrategyRows
+    .map((candidate) => {
+      const row = candidate as unknown as Record<string, unknown>;
+      return { row, parsed: strategyRecommendationFromRow(row) };
+    })
+    .find((candidate) => candidate.parsed);
+
+  if (reportRowsReadFailed) {
+    diagnostics.push({ source: 'application_strategy_recommendations', status: 'unavailable', message: 'query failed' });
+  } else if (stratError) {
     // Treat missing migration as 'unavailable' — same pattern as the GET route.
     const isMigration =
       stratError.code === '42P01' ||
@@ -654,14 +738,14 @@ export async function fetchPlanningContextSources(
       status: 'unavailable',
       message: isMigration ? 'migration missing' : 'query failed',
     });
-  } else if (!stratRow) {
+  } else if (legacyStrategyRows.length === 0) {
     diagnostics.push({ source: 'application_strategy_recommendations', status: 'missing' });
   } else {
-    const row = stratRow as unknown as Record<string, unknown>;
-    const parsed = strategyRecommendationFromRow(row);
+    const { parsed } = legacyStrategy ?? {};
     if (!parsed) {
       diagnostics.push({ source: 'application_strategy_recommendations', status: 'invalid', message: 'strategyRecommendationSchema parse failed' });
     } else {
+      const row = legacyStrategy?.row ?? {};
       const provenance: SourceProvenance = {
         id: parsed.id,
         generatedAt: parsed.createdAt,
@@ -702,7 +786,7 @@ export async function fetchPlanningContextSources(
       provenance: strategyRecommendation.provenance,
     };
   }
-  if (strategyRoadmap?.kind === 'f8') {
+  if (strategyRoadmap?.kind === 'f8' || strategyRoadmap?.kind === 'v3') {
     strategyRecommendation = null;
     const diagnosticIndex = diagnostics.findIndex((diagnostic) => diagnostic.source === 'application_strategy_recommendations');
     const diagnostic = { source: 'application_strategy_recommendations', status: 'present' as const };
@@ -765,6 +849,7 @@ export async function fetchPlanningContextSources(
     evidenceInventory,
     profileEvaluation,
     programmeFit,
+    programmeFitV3,
     strategyRecommendation,
     strategyRoadmap,
     userConstraints,

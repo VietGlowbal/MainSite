@@ -298,9 +298,9 @@ describe('StatementWriter VinUni routing', { timeout: 30_000 }, () => {
       .getByText('Your feedback will appear here once you submit your essay')
       .closest('section');
 
-    expect(essayCard?.parentElement).toHaveClass('w-full', 'min-w-0', 'gap-10', 'bg-[#FAFAFA]');
-    expect(essayCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
-    expect(feedbackCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
+    expect(essayCard?.parentElement).toHaveClass('w-full', 'min-w-0', 'bg-surface');
+    expect(essayCard).toHaveClass('min-w-0', 'rounded-gb-2xl', 'border-line', 'bg-surface');
+    expect(feedbackCard).toHaveClass('min-w-0', 'rounded-gb-2xl', 'border-line', 'bg-surface');
     expect(screen.getByRole('button', { name: 'Analyze' })).toHaveClass('bg-rose-600');
   });
 
@@ -342,9 +342,9 @@ describe('StatementWriter VinUni routing', { timeout: 30_000 }, () => {
       .getByText('Your feedback will appear here once you submit your letter')
       .closest('section');
 
-    expect(letterCard?.parentElement).toHaveClass('w-full', 'min-w-0', 'gap-10', 'bg-[#FAFAFA]');
-    expect(letterCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
-    expect(feedbackCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
+    expect(letterCard?.parentElement).toHaveClass('w-full', 'min-w-0', 'bg-surface');
+    expect(letterCard).toHaveClass('min-w-0', 'rounded-gb-2xl', 'border-line', 'bg-surface');
+    expect(feedbackCard).toHaveClass('min-w-0', 'rounded-gb-2xl', 'border-line', 'bg-surface');
     expect(screen.getByRole('button', { name: 'Analyze' })).toHaveClass('bg-rose-600');
   });
 
@@ -713,8 +713,8 @@ describe('StatementWriter VinUni routing', { timeout: 30_000 }, () => {
 
     const essay = screen.getByRole('region', { name: 'Bài luận' });
     const feedback = screen.getByRole('region', { name: 'Phản hồi' });
-    expect(essay).toHaveClass('lg:basis-0', 'rounded-2xl');
-    expect(feedback).toHaveClass('lg:basis-0', 'rounded-2xl');
+    expect(essay).toHaveClass('lg:basis-0', 'rounded-gb-2xl');
+    expect(feedback).toHaveClass('lg:basis-0', 'rounded-gb-2xl');
 
     await userEvent.click(screen.getByRole('button', { name: 'Phản hồi' }));
     expect(essay).toHaveClass('hidden');

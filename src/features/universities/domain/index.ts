@@ -31,7 +31,7 @@ export type {
   ScholarshipCandidate,
 } from './saved-list';
 
-export { filterOptions, isCourseUrl, optionsForGroup, programChoices } from './programs';
+export { courseNameFromUrl, filterOptions, isCourseUrl, optionsForGroup, programChoices } from './programs';
 export type {
   CatalogueEntry,
   ProgramChoices,

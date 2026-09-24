@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
-  createClient: vi.fn(),
+  getServerIdentity: vi.fn(),
   fetchOnboardingState: vi.fn(),
   getPlannerMode: vi.fn(() => 'legacy'),
   nextOnboardingStep: vi.fn(() => 'dashboard'),
   aiStrategyApplicationNav: vi.fn(() => []),
 }));
 
-vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
+vi.mock('@/server/auth/server-identity', () => ({ getServerIdentity: mocks.getServerIdentity }));
 vi.mock('@/features/ai-strategy-dashboard/api', () => ({
   fetchOnboardingState: mocks.fetchOnboardingState,
   getPlannerMode: mocks.getPlannerMode,
@@ -26,22 +26,25 @@ import { ApplicationNav } from './application-nav';
 describe('ApplicationNav', () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it('reuses an authenticated user id instead of reading auth again', async () => {
+  it('prefers the id its caller already resolved over the one in the session', async () => {
     const getUser = vi.fn();
     const supabase = { auth: { getUser } };
-    mocks.createClient.mockResolvedValue(supabase);
+    mocks.getServerIdentity.mockResolvedValue({ supabase, identity: { id: 'session-user' } });
     mocks.fetchOnboardingState.mockResolvedValue({ aiAnalysisComplete: true });
     mocks.nextOnboardingStep.mockReturnValue('dashboard');
 
     await ApplicationNav({ applicationId: 'app-1', courseName: 'Course', userId: 'user-1' });
 
+    // The Auth API is not touched at all now — `getServerIdentity` verifies the
+    // token locally and is request-cached, so the layout above has already paid
+    // for this call. See docs/performance.md fix 7.
     expect(getUser).not.toHaveBeenCalled();
     expect(mocks.fetchOnboardingState).toHaveBeenCalledWith(supabase, 'user-1', 'app-1');
   });
 
   it('keeps the explicitly localized nav outside the legacy DOM translator', async () => {
     const supabase = { auth: { getUser: vi.fn() } };
-    mocks.createClient.mockResolvedValue(supabase);
+    mocks.getServerIdentity.mockResolvedValue({ supabase, identity: { id: 'session-user' } });
     mocks.fetchOnboardingState.mockResolvedValue({ aiAnalysisComplete: true });
     mocks.nextOnboardingStep.mockReturnValue('dashboard');
 
@@ -54,7 +57,7 @@ describe('ApplicationNav', () => {
 
   it('unlocks the Planner for canonical Plus/admin users before legacy onboarding finishes', async () => {
     const supabase = { auth: { getUser: vi.fn() } };
-    mocks.createClient.mockResolvedValue(supabase);
+    mocks.getServerIdentity.mockResolvedValue({ supabase, identity: { id: 'session-user' } });
     mocks.fetchOnboardingState.mockResolvedValue({ aiAnalysisComplete: false, strategyComplete: false });
     mocks.nextOnboardingStep.mockReturnValue('analysis');
     mocks.getPlannerMode.mockResolvedValue('canonical');

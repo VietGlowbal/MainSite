@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { strategyAiLimiter } from '@/lib/rate-limiter';
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -68,6 +69,7 @@ function context() {
 
 describe('POST /api/applications/[id]/match-insights', () => {
   beforeEach(() => {
+    strategyAiLimiter.resetAll();
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.getLatestApplicationMatchingAnalysis.mockResolvedValue({ record: null, migrationMissing: false });
     mocks.generateApplicationMatchingReport.mockResolvedValue({

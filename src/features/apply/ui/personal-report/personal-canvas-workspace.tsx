@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { PersonalReportV2, PersonalReportTrigger } from '../../domain';
-import { Badge, Modal } from '@/shared/ui';
+import { Badge, ICONS, KitIcon, Modal } from '@/shared/ui';
 import { AreasForGrowthView } from './areas-for-growth';
 import { CoreIdentityView } from './core-identity';
 import { DrivingForceView } from './driving-force';
@@ -214,7 +214,7 @@ function sectionSpecs({
           label: 'Overview',
           content: (
             <div className="flex flex-col gap-gb-lg">
-              <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
+              <CoreIdentityView section={report.coreIdentity} report={report} returnTo={returnTo} />
               <IdentityEvidenceProfileView report={report} />
             </div>
           ),
@@ -247,6 +247,7 @@ function sectionSpecs({
           content: (
             <DrivingForceView
               section={report.drivingForce}
+              report={report}
               returnTo={returnTo}
               onAnswered={onAnswered}
             />
@@ -279,6 +280,7 @@ function sectionSpecs({
           content: (
             <PersonalPositioningView
               section={report.personalPositioning}
+              report={report}
               positioningDimensions={report.analytics?.positioningDimensions}
               returnTo={returnTo}
             />
@@ -461,22 +463,22 @@ export function PersonalCanvasWorkspace({
           open={Boolean(activeSection)}
           onClose={closePanel}
           label={`${activeSpec.label} details`}
-          className="max-w-4xl overflow-hidden p-0"
+          className="w-[95vw] max-w-6xl overflow-hidden p-0"
         >
-          <div className="flex max-h-[85vh] min-h-0 flex-col">
-              <header className="shrink-0 border-b border-line bg-surface px-gb-xl pt-gb-xl">
+          <div className="flex max-h-[90vh] min-h-0 flex-col" data-report-auto-translate>
+              <header className="shrink-0 border-b border-line bg-surface px-6 pt-6 sm:px-8 sm:pt-8">
                 <div className="flex items-start justify-between gap-gb-lg">
                   <div className="min-w-0">
                     <Badge variant="brand-subtle">
                       {activeSpec.index}. {activeSpec.label}
                     </Badge>
                     <h2
-                      className="mt-gb-lg font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg"
+                      className="mt-gb-md font-display text-gb-display-xs sm:text-gb-display-sm font-semibold tracking-gb-display-tight text-fg"
                       data-no-auto-translate
                     >
                       {activeSpec.title}
                     </h2>
-                    <p className="mt-gb-sm text-gb-sm leading-relaxed text-fg-tertiary">
+                    <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-tertiary">
                       {activeSpec.description}
                     </p>
                   </div>
@@ -486,9 +488,9 @@ export function PersonalCanvasWorkspace({
                       type="button"
                       onClick={closePanel}
                       aria-label="Close section"
-                      className="grid h-10 w-10 place-items-center rounded-gb-lg border border-line bg-surface text-gb-lg text-fg-tertiary shadow-sm transition hover:border-brand/30 hover:bg-brand/5 hover:text-fg-brand"
+                      className="grid h-10 w-10 place-items-center rounded-gb-lg border border-line bg-surface text-fg-tertiary shadow-xs transition hover:border-brand/30 hover:bg-brand/5 hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                     >
-                      ×
+                      <KitIcon art={ICONS.close} frame={20} />
                     </button>
                   </div>
                 </div>
@@ -502,7 +504,7 @@ export function PersonalCanvasWorkspace({
                       aria-selected={candidate.id === tab?.id}
                       onClick={() => selectTab(candidate.id)}
                       className={[
-                        'shrink-0 border-b-2 pb-gb-md text-gb-sm font-semibold transition',
+                        'shrink-0 border-b-2 pb-gb-md text-gb-sm sm:text-gb-base font-semibold transition',
                         candidate.id === tab?.id
                           ? 'border-brand text-fg-brand'
                           : 'border-transparent text-fg-muted hover:text-fg',
@@ -517,7 +519,7 @@ export function PersonalCanvasWorkspace({
               <div
                 key={`${activeSection}-${tab?.id ?? 'overview'}`}
                 role="tabpanel"
-                className="min-h-0 flex-1 overflow-y-auto p-gb-xl"
+                className="min-h-0 flex-1 overflow-y-auto p-6 sm:p-8"
               >
                 <PersonalReportInlineUpdateProvider onAnswered={onAnswered} applicationId={applicationId}>
                   {tab?.content}

@@ -14,7 +14,7 @@ import {
   StrategyCategoryBoard,
 } from '@/features/ai-strategy-dashboard/ui';
 import { getUniversityQueries } from '@/features/universities/api';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { Container } from '@/shared/ui';
 
 /** Canonical application-level Planner route. */
@@ -25,10 +25,7 @@ export default async function PlannerPage({
 }) {
   const { applicationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
   const plannerMode = await getPlannerMode(supabase, user.id);
 

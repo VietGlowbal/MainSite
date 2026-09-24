@@ -1,6 +1,15 @@
 'use client';
 
-import { ICONS, KitIcon, type KitIconArt } from '@/shared/ui';
+import {
+  GlowbalIcon,
+  ICONS,
+  KitIcon,
+  type GlowbalIconName,
+  type GlowbalIconSize,
+  type GlowbalIconTone,
+  type KitIconArt,
+} from '@/shared/ui';
+import { isGlowbalIconName } from '@/shared/ui/glowbal-icon-art';
 
 /**
  * The frame every Candidate Information question is drawn in, and the
@@ -27,10 +36,36 @@ import { ICONS, KitIcon, type KitIconArt } from '@/shared/ui';
  * the icon is not.
  */
 
-/** Icon key → the traced art. Unknown keys fall back rather than crashing. */
-export function questionIcon(key: string): KitIconArt {
-  const art = (ICONS as Record<string, KitIconArt | undefined>)[key];
-  return art ?? ICONS.checkCircle;
+/**
+ * An icon key from the questionnaire's data, drawn.
+ *
+ * The keys are plain strings in `features/apply/domain` — the domain does not
+ * import UI types — and two vocabularies arrive through them:
+ *
+ *  - PRODUCT ICON NAMES (`GlowbalIconName`): the question headers and the
+ *    funding options. Each names a GlowBal function the product set draws.
+ *  - THE OLD KITICON KEYS (`zap`, `heart`, `markerPin02`…): the subject
+ *    catalogue, degree levels and evidence categories. Those are decoration
+ *    with no product meaning — Biology is not a GlowBal function — so they keep
+ *    their traced art until the design draws subject icons, rather than being
+ *    forced onto a product icon that would claim a meaning it does not have.
+ *
+ * An unknown key falls back to the checklist rather than crashing.
+ */
+export function QuestionGlyph({
+  icon,
+  size,
+  tone = 'current',
+}: {
+  icon: string;
+  size: GlowbalIconSize;
+  tone?: GlowbalIconTone;
+}) {
+  if (isGlowbalIconName(icon)) return <GlowbalIcon name={icon} size={size} tone={tone} />;
+  const art = (ICONS as Record<string, KitIconArt | undefined>)[icon];
+  if (art) return <KitIcon art={art} frame={size} />;
+  const fallback: GlowbalIconName = 'checklist';
+  return <GlowbalIcon name={fallback} size={size} tone={tone} />;
 }
 
 export function QuestionCard({
@@ -54,7 +89,7 @@ export function QuestionCard({
           aria-hidden="true"
           className="flex size-12 shrink-0 items-center justify-center rounded-gb-lg bg-brand-subtle text-fg-brand"
         >
-          <KitIcon art={questionIcon(icon)} frame={22} />
+          <QuestionGlyph icon={icon} size={24} tone="two-tone" />
         </span>
         <div className="flex flex-col gap-gb-xs">
           {section ? (

@@ -5,6 +5,11 @@
 #
 # This will automatically send newsletters when new content is added to the repo
 # Customize the paths and logic to match your content publishing workflow
+#
+# STALE AS WRITTEN (2026-09-20): the paths below no longer exist. News articles
+# now live in the `geo_articles` table, not in committed files, so a push-path
+# trigger can never fire. Enabling this as-is gives you a workflow that is
+# silently never invoked. Trigger it from the CMS publish transition instead.
 
 name: Send Newsletter on New Content
 

@@ -34,6 +34,30 @@ material work; keep detailed design history in the topic-specific documents.
    See [known-issues.md §0](known-issues.md) for the migration trap and
    [§1a](known-issues.md) for the guessing one.
 
+   The REST spec above answers table shape, row counts and RLS *behaviour*, but
+   not policy text, indexes, or `pg_proc` grants. For those run
+   [`sql/introspect.sql`](../sql/introspect.sql) in the Supabase SQL editor — one
+   read-only statement returning a single JSON cell, safe on production — and
+   paste the result back.
+
+   **It was run on 2026-09-05T16:26Z and the results are written up in**
+   [`audit-2026-09-05-database.md`](audit-2026-09-05-database.md) **§2 and §4.**
+   Headline: 0 of 108 tables have RLS disabled, 0 of 5 views lack
+   `security_invoker`, 0 of 31 definer functions has an unpinned `search_path`,
+   and no policy anywhere uses the weak `USING (auth.uid() IS NOT NULL)` form.
+   That run also **closed [known-issues.md §0g](known-issues.md)**, which had
+   stood at "🔴 OPEN, most urgent item in this file" on the belief that the RPC
+   hardening migration had never been applied — `pg_proc.proacl` shows it had.
+   Re-run the file rather than trusting these numbers if the date matters. **Do not conclude a function is locked down from the
+   `REVOKE` in a `.sql` file:** several files in `sql/` were never applied
+   (2026-09-05: `add_selected_courses_to_apply` is defined in the repo and absent
+   from the live database). Grants live in `pg_proc.proacl`, not in the repo.
+
+   ⚠️ **The migrations moved on 2026-09-05.** The 95 `supabase-*.sql` files that
+   lived at the repo root are now in [`sql/`](../sql/). The PreToolUse guard
+   matches on filename, so it still fires; prose elsewhere in this repo may still
+   name them without the `sql/` prefix.
+
 ## Read order
 
 Use this table as a router: load the smallest set of documents needed for the
@@ -46,12 +70,14 @@ unrelated history end to end.
 | [feature-2-plan.md](feature-2-plan.md) · [strategy-reports-spec.md](strategy-reports-spec.md) | Before touching any of the four Strategy reports. The plan is the sequenced twelve-part breakdown with the owner's decisions recorded; the spec carries the F5 weights, the classification rule, the report layouts and a build-status table of what is and is not implemented. |
 | [plans/2026-08-23-feature-2-parts-5-9-execution-v2.md](plans/2026-08-23-feature-2-parts-5-9-execution-v2.md) | **Before executing any Parts 5–9 work** (Planner mobile/reminders, GenUI task UI, CV/Essay consolidation, Final Check gaps). Active wave plan post-PR #216 merge, with the READY/GATE/BLOCKED matrix and the open owner questions. |
 | [redesign-status.md](redesign-status.md) | When changing a route or comparing it with Figma. It is the route/frame decision ledger, not the primary current-status file. |
-| [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, `/mentors`, saving, auth — **or any `supabase-*.sql` file**. §0 is the migration trap; §1b is the mentorship RLS gap. |
+| [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, `/mentors`, saving, auth, analytics — **or any `sql/supabase-*.sql` file**. §0 is the migration trap; §1b is the mentorship RLS gap; §7 is why `.env.example` documents nothing; §8 is what GA4 does and does not measure; §9 is why the banner's second button accepts everything, and where the seam for Google Ads consent is. |
 | [design-system.md](design-system.md) | Before writing any component. Token names, the primitives that already exist. |
+| [performance.md](performance.md) | Before touching `lib/i18n*`, the nav headers, or anything you expect to change bundle size or Core Web Vitals. Carries the measured baseline, **the rule that `i18n-catalog` must never be statically imported from client-reachable code**, the two theories (the globe, the fonts) that measurement already ruled out, and — since 2026-09-08 — the third-party analytics cost plus **how to measure per-route first-load JS, which the Turbopack build output does not print**. |
 | [architecture.md](architecture.md) | Before adding a file under `features/`, `shared/`, or `server/`. |
 | [verification.md](verification.md) | Before claiming anything works. Commands, the latest measured local baseline, CI behavior, and how to see gated pages. |
 | [data-platform-artifacts.md](data-platform-artifacts.md) | Configuring the Data Platform Drive-desktop immutable archive, raw evidence retention, compatibility reads, and its run budget. |
 | [audit-2026-08-03.md](audit-2026-08-03.md) | For the security/operations audit evidence. It is a dated snapshot; use its revalidation banner before quoting a finding as current. |
+| [audit-2026-09-05-database.md](audit-2026-09-05-database.md) | Before touching RLS, an RPC, a `sql/supabase-*.sql` file, or anything schema-shaped. Full map of the 113 live relations, measured RLS posture per table, the `achiever_profiles` mentor-PII exposure, and the case for a migration baseline. Dated snapshot — re-measure before quoting. |
 | [plans/](plans/) and the `*-design.md` files | For original intent and decisions. Their headers say whether implementation completed and where it landed. |
 
 ## Root-level documents this router does NOT cover
@@ -66,7 +92,7 @@ read them speculatively; open one only when the row below matches your task.
 | `README.md`, `SETUP.md` | Environment, install, env vars, running locally. `SETUP.md` is the fuller one. |
 | `AGENTS.md`, `CLAUDE.md` | Always loaded automatically — no need to open them. |
 | `ADMISSION_FIT_FEATURE.md` | Changing reach/recommend/safe tiering or `src/lib/admission-fit.ts`. |
-| `GEO_CMS_SPEC.md` | Working on the GEO/news CMS or the `geo:*` npm scripts. |
+| `GEO_CMS_SPEC.md` | Working on the GEO/news CMS. The `geo:*` scripts and the daily pipeline it describes were removed 2026-09-20 — read its header banner first. |
 | `UNIVERSITY_CRONS.md` | Touching university data crons or refresh scheduling. |
 | `NEWSLETTER_*.md` (5 files) | Newsletter work only. `NEWSLETTER_SYSTEM.md` is the entry point; the other four are architecture, deployment checklist, an implementation summary, and an end-user guide. Read one, not five. |
 | `MENTORSHIP_REDESIGN.md` | Historical redesign summary. `known-issues.md §1b` is the live mentorship record — prefer it. |

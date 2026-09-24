@@ -213,4 +213,60 @@ describe('ai-reports-repository helpers', () => {
     expect(result).toEqual({ record: null, migrationMissing: true });
     expect(insert).toHaveBeenCalledTimes(1);
   });
+
+  it('writes V3 reports with the deployed legacy compatibility columns', async () => {
+    const single = vi.fn().mockResolvedValue({ data: { id: 'saved-1' }, error: null });
+    const select = vi.fn(() => ({ single }));
+    const insertedRows: Array<Record<string, unknown>> = [];
+    const insert = vi.fn((row: Record<string, unknown>) => {
+      insertedRows.push(row);
+      return { select };
+    });
+    const supabase = { from: vi.fn(() => ({ insert })) } as any;
+
+    await saveApplicationMatchingAnalysis(supabase, {
+      applicationId: 'app-1',
+      userId: 'user-1',
+      inputHash: 'hash-1',
+      promptVersion: 'matching-prompts-v3',
+      legacy: {
+        currentMatchScore: null,
+        maxPossibleMatchScore: null,
+        scoreLabel: 'Not assessed',
+        maxScoreLabel: 'Not assessed',
+        pillars: {},
+        confidence: 0,
+        inputsPresent: {},
+        strengths: [],
+        weaknesses: [],
+        improvementActions: [],
+        explanation: 'Not assessed',
+      },
+      reportV2: {
+        contractVersion: 'matching-report-v3.1.0',
+        metadata: { matchingEngineVersion: 'matching-v3.1.0' },
+      } as any,
+      modelName: 'test-model',
+      targetProfileVersionId: 'tp-1',
+      sourceAnalysisVersionId: 'sa-1',
+      confirmedSnapshotId: 'cs-1',
+      sourcePersonalReportVersionId: 'pr-1',
+      sourcePersonalReportInputHash: 'pr-hash',
+      f5EngineVersion: 'f5-v1',
+      fitDimensions: {},
+      fitEligibility: {},
+      fitClassification: 'insufficient_data',
+      fitConfidence: 0,
+      fitLimitations: [],
+    });
+
+    const row = insertedRows[0];
+    expect(row).toEqual(expect.objectContaining({
+      profile_version: 1,
+      current_match_score: 0,
+      confidence: 0,
+      model_name: 'test-model',
+    }));
+    expect(row).not.toHaveProperty('confidence_score');
+  });
 });

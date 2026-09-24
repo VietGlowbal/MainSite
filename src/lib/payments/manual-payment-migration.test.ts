@@ -2,14 +2,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = resolve(process.cwd(), 'supabase-manual-payment-founder.sql');
+const migrationPath = resolve(process.cwd(), 'sql/supabase-manual-payment-founder.sql');
 const fulfillmentRepairPath = resolve(
   process.cwd(),
-  'supabase-manual-payment-fulfillment-repair.sql',
+  'sql/supabase-manual-payment-fulfillment-repair.sql',
 );
 const subscriptionConflictRepairPath = resolve(
   process.cwd(),
-  'supabase-manual-payment-subscription-conflict-repair.sql',
+  'sql/supabase-manual-payment-subscription-conflict-repair.sql',
 );
 
 describe('manual founder-payment migration contract', () => {

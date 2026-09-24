@@ -144,6 +144,16 @@ describe('POST /api/ai-strategy/personal-report', () => {
     expect(response.status).toBe(422);
   });
 
+  it('returns 409 when the shared report generation limit is reached', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'limit_reached', count: 5, limit: 5 });
+    const response = await post(request({ applicationId: 'app-1', force: true }));
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body).toMatchObject({ code: 'REPORT_LIMIT_REACHED', reportCount: 5, reportLimit: 5 });
+  });
+
   it('returns 502 and keeps any previous report on generation failure', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({

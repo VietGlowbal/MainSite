@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { formatUiDate } from '@/shared/lib';
 import type {
@@ -20,6 +20,26 @@ import {
   withReturn,
 } from './personal-report';
 
+const PERSONAL_REPORT_MAX_POLLS = 150;
+
+function withPersonalReportVersion(href: string, versionId: string | null): string {
+  if (!versionId) return href;
+  const separator = href.includes('?') ? '&' : '?';
+  return `${href}${separator}personalReportVersionId=${encodeURIComponent(versionId)}`;
+}
+
+function syncSelectedVersionInUrl(
+  applicationId: string | undefined,
+  versionId: string | null,
+  latestId: string | null,
+) {
+  if (!applicationId || typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (versionId && versionId !== latestId) url.searchParams.set('personalReportVersionId', versionId);
+  else url.searchParams.delete('personalReportVersionId');
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
 /**
  * Canonical user-level Personal Report.
  *
@@ -31,6 +51,7 @@ import {
 export function PersonalReportV2View({
   initialReport,
   initialVersionId,
+  initialLatestVersionId,
   initialVersions,
   applicationId,
   applicationConfirmed,
@@ -43,6 +64,7 @@ export function PersonalReportV2View({
 }: {
   initialReport: PersonalReportV2 | null;
   initialVersionId: string | null;
+  initialLatestVersionId?: string | null;
   initialVersions: PersonalReportVersionSummary[];
   applicationId?: string | undefined;
   applicationConfirmed?: boolean | undefined;
@@ -57,11 +79,12 @@ export function PersonalReportV2View({
   const [report, setReport] = useState(initialReport);
   const [versions, setVersions] = useState(initialVersions);
   const [selectedVersionId, setSelectedVersionId] = useState(initialVersionId);
-  const [latestVersionId, setLatestVersionId] = useState(initialVersionId);
+  const [latestVersionId, setLatestVersionId] = useState(initialLatestVersionId ?? initialVersionId);
   const [viewedGeneratedAt, setViewedGeneratedAt] = useState(generatedAt);
   const [busy, setBusy] = useState(false);
   const [waitingForGeneration, setWaitingForGeneration] = useState(false);
   const [versionLoading, setVersionLoading] = useState(false);
+  const generationInFlightRef = useRef(false);
   const reportEndpoint = applicationId
     ? `/api/applications/${applicationId}/personal-report`
     : '/api/ai-strategy/personal-report';
@@ -100,10 +123,12 @@ export function PersonalReportV2View({
   }
 
   async function generate(trigger: PersonalReportTrigger = 'manual', force = false) {
+    if (generationInFlightRef.current || busy || waitingForGeneration) return;
     if (applicationId && applicationConfirmed === false) {
       setError(t('Confirm Candidate Information before generating this report.'));
       return;
     }
+    generationInFlightRef.current = true;
     setBusy(true);
     setError(null);
 
@@ -136,6 +161,7 @@ export function PersonalReportV2View({
       if (body.versionId) {
         setSelectedVersionId(body.versionId as string);
         setLatestVersionId(body.versionId as string);
+        syncSelectedVersionInUrl(applicationId, body.versionId as string, body.versionId as string);
       }
       if (body.generatedAt) setViewedGeneratedAt(body.generatedAt as string);
 
@@ -146,6 +172,7 @@ export function PersonalReportV2View({
         requestError instanceof Error ? requestError.message : t('Could not create the report.'),
       );
     } finally {
+      generationInFlightRef.current = false;
       if (!queued) setBusy(false);
     }
   }
@@ -153,7 +180,15 @@ export function PersonalReportV2View({
   useEffect(() => {
     if (!waitingForGeneration) return;
     let cancelled = false;
+    let pollCount = 0;
     const poll = async () => {
+      if (pollCount >= PERSONAL_REPORT_MAX_POLLS) {
+        setError(t('Could not create the report.'));
+        setWaitingForGeneration(false);
+        setBusy(false);
+        return;
+      }
+      pollCount += 1;
       try {
         const response = await fetch(reportEndpoint);
         const body = await response.json().catch(() => ({}));
@@ -174,6 +209,7 @@ export function PersonalReportV2View({
           setReport(body.reportV2 as PersonalReportV2);
           setSelectedVersionId(body.versionId as string | null);
           setLatestVersionId(body.versionId as string | null);
+          syncSelectedVersionInUrl(applicationId, body.versionId as string | null, body.versionId as string | null);
           setViewedGeneratedAt(body.generatedAt as string | null);
           setWaitingForGeneration(false);
           setBusy(false);
@@ -194,7 +230,7 @@ export function PersonalReportV2View({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [reportEndpoint, t, waitingForGeneration]);
+  }, [applicationId, reportEndpoint, t, waitingForGeneration]);
 
   async function viewVersion(versionId: string) {
     if (versionId === selectedVersionId) return;
@@ -210,6 +246,7 @@ export function PersonalReportV2View({
       setReport(body.reportV2 as PersonalReportV2);
       setSelectedVersionId(versionId);
       setViewedGeneratedAt(body.generatedAt as string);
+      syncSelectedVersionInUrl(applicationId, versionId, latestVersionId);
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : t('Could not load that version.'),
@@ -240,7 +277,7 @@ export function PersonalReportV2View({
         {error ? <p className="max-w-xl text-gb-sm text-fg-error">{error}</p> : null}
         <Button
           size="lg"
-          onClick={() => void generate()}
+          onClick={() => void generate('manual', true)}
           disabled={
             busy ||
             migrationMissing ||
@@ -264,41 +301,42 @@ export function PersonalReportV2View({
       };
 
   return (
-    <div className="flex flex-col gap-gb-3xl">
-      <header className="flex flex-col gap-gb-lg">
-        <div className="flex flex-wrap items-center gap-gb-sm">
+    <div className="flex flex-col gap-gb-3xl" data-report-auto-translate>
+      <header className="flex flex-col gap-gb-xl">
+        <div className="flex items-center gap-gb-xs">
           <Badge variant="brand-subtle">{t('Personal Report')}</Badge>
-          <span className="text-gb-xs text-fg-muted">Personal Canvas</span>
+          <span className="text-gb-xs text-fg-muted">/</span>
+          <span className="text-gb-xs font-medium text-fg-tertiary">Personal Canvas</span>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-gb-lg">
-          <div className="flex flex-col gap-gb-xs">
+        <div className="flex flex-wrap items-start justify-between gap-gb-xl">
+          <div className="flex max-w-2xl flex-col gap-gb-xs">
             <h1
               className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg"
               data-no-auto-translate
             >
               {studentName}
             </h1>
-            <p className="max-w-2xl text-gb-sm text-fg-tertiary">
+            <p className="text-gb-sm leading-relaxed text-fg-tertiary">
               A profile of who you are as an applicant — built from your reflected experiences,
               evidence and recurring patterns.
             </p>
             {viewedGeneratedAt ? (
-              <p className="text-gb-xs text-fg-muted">
+              <p className="mt-gb-xxs text-gb-xs text-fg-muted">
                 {t('Generated')}: {formatUiDate(viewedGeneratedAt, lang)}
               </p>
             ) : null}
           </div>
 
-          <div className="flex items-center gap-gb-md rounded-gb-xl bg-surface-muted px-gb-lg py-gb-md">
-            <span className="text-gb-sm text-fg-tertiary">
+          <div className="flex items-center gap-gb-sm rounded-gb-xl border border-line bg-surface-muted/60 px-gb-lg py-gb-sm">
+            <span className="text-gb-xs font-medium text-fg-muted">
               {t('Overall evidence confidence')}:
             </span>
             <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-gb-lg border-t border-line pt-gb-lg print:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-gb-md border-t border-line/70 pt-gb-md print:hidden">
           <Button
             href={withReturn('/ai-strategy/reflection', returnTo)}
             variant="secondary"
@@ -345,7 +383,7 @@ export function PersonalReportV2View({
         />
       </div>
 
-      <PersonalReportPrintView report={report} returnTo={returnTo} />
+      <PersonalReportPrintView report={report} returnTo={returnTo} includeGlobalSections={false} />
 
       <KeyTakeawaysView report={report} />
 
@@ -369,7 +407,9 @@ export function PersonalReportV2View({
         <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">
           {t('View confirmed information')}
         </Button>
-        <Button href={matchingReportHref ?? '/ai-strategy/matching'}>
+        <Button
+          href={withPersonalReportVersion(matchingReportHref ?? '/ai-strategy/matching', selectedVersionId)}
+        >
           {t('Continue to Matching Report')}
         </Button>
       </div>

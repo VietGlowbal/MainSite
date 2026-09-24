@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { BookingStatus } from '@/types/achievers';
+import { GlowbalIcon } from '@/shared/ui';
 
 function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
@@ -233,7 +234,10 @@ export function BookingsDashboardClient({
               {/* Meeting link for confirmed */}
               {booking.status === 'confirmed' && booking.meeting_link && (
                 <div className="glow-muted-card text-sm">
-                  <p className="font-medium text-slate-700">Meeting link</p>
+                  <p className="flex items-center gap-2 font-medium text-slate-700">
+                    <GlowbalIcon name="videoCall" size={16} />
+                    Meeting link
+                  </p>
                   <a
                     href={booking.meeting_link}
                     target="_blank"
@@ -250,8 +254,9 @@ export function BookingsDashboardClient({
                 <div className="pt-2 border-t border-black/5">
                   <Link
                     href={`/dashboard/bookings/${booking.id}/review`}
-                    className="glow-button-secondary text-xs px-4 py-2"
+                    className="glow-button-secondary inline-flex items-center gap-2 text-xs px-4 py-2"
                   >
+                    <GlowbalIcon name="ratingReview" size={16} tone="current" />
                     Leave a review
                   </Link>
                 </div>

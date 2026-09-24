@@ -53,6 +53,12 @@ export default defineConfig({
             // Top-level route tests (sitemap) and the GEO pipeline script
             // tests, which are pure node — no window needed.
             'src/app/*.test.ts',
+            // Route handlers that do NOT live under src/app/api — /c/<code>,
+            // /start, /auth/callback. Without this they match no project and
+            // run nowhere, which reads as a pass; the same trap the shared/
+            // note above records. Named `route.test.ts` so it cannot pick up a
+            // component test that happens to sit beside a route.
+            'src/app/**/route.test.ts',
             'scripts/**/*.test.ts',
           ],
         },

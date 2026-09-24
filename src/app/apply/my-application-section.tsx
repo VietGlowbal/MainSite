@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,9 +13,11 @@ import {
 import type { DeadlineTone } from '@/features/apply/workspace-domain';
 import { ResearchingInline } from '@/features/apply/tracker-ui';
 import type { CourseApplication } from '@/lib/apply-types';
+import { trackCourseImportCompleted } from '@/lib/analytics/ga';
 import { useT } from '@/lib/i18n';
 import { Avatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
+import { GlowbalIcon } from '@/shared/ui/glowbal-icon';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
 import { Input } from '@/shared/ui/input';
 import { Modal } from '@/shared/ui/modal';
@@ -145,14 +147,102 @@ function DeadlineCountdown({ tone, days }: { tone: DeadlineTone; days: number })
     tone === 'urgent' ? 'text-brand' : tone === 'soon' ? 'text-fg-secondary' : 'text-fg-muted';
 
   return (
-    <span className={`text-gb-sm font-medium ${colour}`}>
-      {days} <span>{days === 1 ? 'day left' : 'days left'}</span>
+    <span className={`flex items-center gap-gb-xs text-gb-sm font-medium ${colour}`}>
+      {/* Follows the countdown's colour, which is how urgency already reads. */}
+      <GlowbalIcon name="countdown" size={16} tone="current" />
+      <span>
+        {days} <span>{days === 1 ? 'day left' : 'days left'}</span>
+      </span>
     </span>
   );
 }
 
 function isPending(app: CourseApplication): boolean {
   return isParsePending(app.parseStatus);
+}
+
+type AuthoritativeParseState = {
+  status: CourseApplication['parseStatus'] | null;
+  active: boolean;
+  isStale: boolean;
+  canRetry: boolean;
+  error: string | null;
+};
+
+/**
+ * The list must not derive lease age from `course_applications.updated_at`.
+ * That timestamp also changes for unrelated edits, while the parser worker's
+ * heartbeat lives on the parse-job row. Read the same status endpoint used by
+ * the workspace/retry flow so Retry is shown only when the backend agrees.
+ */
+export function useAuthoritativeParseState(
+  applicationId: string,
+  pending: boolean,
+): AuthoritativeParseState {
+  const [state, setState] = useState<AuthoritativeParseState>({
+    status: null,
+    // Be conservative until the endpoint confirms that no worker lease is
+    // active. A failed application projection can briefly lag an active job.
+    active: pending,
+    isStale: false,
+    canRetry: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    if (!pending) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const refresh = async () => {
+      try {
+        const response = await fetch(`/api/applications/${applicationId}/parse-status`, {
+          cache: 'no-store',
+        });
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as {
+          parseStatus?: CourseApplication['parseStatus'];
+          active?: boolean;
+          isStale?: boolean;
+          canRetry?: boolean;
+          error?: string | null;
+        };
+        if (cancelled) return;
+        const status = body.parseStatus ?? null;
+        setState({
+          status,
+          active: Boolean(body.active),
+          isStale: Boolean(body.isStale),
+          canRetry: Boolean(body.canRetry),
+          error: body.error ?? null,
+        });
+        // Stop once the server reports a terminal state. The parent will
+        // normally refresh the row, but this avoids a detached row polling
+        // forever when a terminal transition happens between page refreshes.
+        if (status && !body.active && !isParsePending(status) && interval) {
+          clearInterval(interval);
+          interval = undefined;
+        }
+      } catch {
+        // A transient status request failure must not invent a stale lease.
+      }
+    };
+
+    void refresh();
+    interval = setInterval(() => void refresh(), 10_000);
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, [applicationId, pending]);
+
+  return state;
 }
 
 function courseLine(app: CourseApplication): string | null {
@@ -325,6 +415,11 @@ function AddCourseButton({
         setSubmitting(false);
         return;
       }
+      // Only on the success path — a 409 duplicate or a 403 plan limit returns
+      // above, so those do not count as an import. The university label is the
+      // one already on screen; the pasted URL is deliberately not sent, since a
+      // course page link can carry the student's session parameters.
+      trackCourseImportCompleted(universityLabel);
       setOpen(false);
       setUrl('');
       router.refresh();
@@ -339,8 +434,9 @@ function AddCourseButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
+        <GlowbalIcon name="multipleCourses" size={16} tone="current" />
         {t('Add another course')}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} label={t('Apply to another course')}>
@@ -399,7 +495,16 @@ function ApplicationRow({
   const university = displayUniversityName(app.universityName);
   const urlLabel = courseUrlLabel(app.courseUrl);
   const pending = isPending(app);
-  const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+  const hasFailure = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+  const authoritative = useAuthoritativeParseState(app.id, pending || hasFailure);
+  const rowActive = authoritative.active || (authoritative.status === null && (pending || hasFailure));
+  const rowPending = rowActive || (pending && (
+    authoritative.status === null || isParsePending(authoritative.status)
+  ));
+  const failed = !rowActive && (hasFailure
+    || (pending && (authoritative.status === 'failed' || authoritative.status === 'timeout')));
+  const isStale = !rowActive && authoritative.isStale;
+
   const urgency = deadlineUrgency(app.deadline);
   const workspaceHref = `/apply/${app.id}`;
 
@@ -446,7 +551,7 @@ function ApplicationRow({
             </p>
             {course ? <p className="text-gb-md text-fg-tertiary">{course}</p> : null}
 
-            {pending ? (
+            {rowPending && !isStale ? (
               <div className="flex max-w-sm flex-col gap-gb-md">
                 <ProgressBar label="Reading the course page" size="sm" />
                 <ResearchingInline>
@@ -455,10 +560,19 @@ function ApplicationRow({
               </div>
             ) : null}
 
+            {rowPending && isStale ? (
+              <div className="flex flex-col gap-gb-sm">
+                <p className="text-gb-sm text-fg-secondary">
+                  Reading this course page is taking longer than usual. You can wait or retry.
+                </p>
+                <RetryParse applicationId={app.id} />
+              </div>
+            ) : null}
+
             {failed ? (
               <div className="flex flex-col gap-gb-sm">
                 <p className="text-gb-sm text-fg-error">
-                  {app.parseError ?? 'We could not read that course page.'}
+                  {app.parseError ?? authoritative.error ?? 'We could not read that course page.'}
                 </p>
                 <RetryParse applicationId={app.id} />
               </div>
@@ -469,16 +583,19 @@ function ApplicationRow({
           <div className="flex flex-wrap items-center gap-gb-xl">
             {app.country ? (
               <span className="flex items-center gap-gb-sm">
-                <KitIcon art={ICONS.markerPin02} frame={20} className="shrink-0 text-fg-tertiary" />
+                <GlowbalIcon name="location" size={20} />
                 <span className="text-gb-sm font-semibold text-fg-tertiary">{app.country}</span>
               </span>
             ) : null}
             {app.deadline ? (
               <span className="flex items-center gap-gb-sm">
-                <KitIcon
-                  art={ICONS.clock}
-                  frame={20}
-                  className={`shrink-0 ${urgency?.tone === 'urgent' ? 'text-brand' : 'text-fg-tertiary'}`}
+                {/* `current`, not two-tone: this icon's colour IS the urgency
+                    signal (rose when urgent), so it follows the text colour. */}
+                <GlowbalIcon
+                  name="deadlineAlert"
+                  size={20}
+                  tone="current"
+                  className={urgency?.tone === 'urgent' ? 'text-brand' : 'text-fg-tertiary'}
                 />
                 <span className="text-gb-sm font-semibold text-fg-tertiary">
                   Deadline: {formatDeadline(app.deadline)}
@@ -687,8 +804,8 @@ export function MyApplicationSection({
         <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-gb-brand-100 bg-brand-subtle p-gb-5xl">
           {/* An empty list is the first thing most students see here, so it is
               the one place on the page worth spending a little colour on. */}
-          <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-surface text-brand">
-            <KitIcon art={ICONS.zapFast} frame={28} />
+          <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-surface">
+            <GlowbalIcon name="emptyState" size={24} />
           </span>
           <p className="text-gb-md text-fg-tertiary">
             Tick a university in your saved list below, choose the subject you want, and plan its

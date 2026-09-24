@@ -1,6 +1,10 @@
 export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
+  'Evidence context and confidence': 'Bối cảnh và độ tin cậy của bằng chứng',
+  experiences: 'trải nghiệm',
+  'Exploring Potential Pathways': 'Khám phá các hướng đi tiềm năng',
   'Open Matching Report': 'Mở Báo cáo Độ phù hợp',
   'More evidence needed': 'Cần thêm bằng chứng',
+  'No current priority in this quadrant.': 'Chưa có ưu tiên hiện tại trong nhóm này.',
   'Add another activity or achievement': 'Thêm một hoạt động hoặc thành tích khác',
   'Add more detail to your existing activities (context, action, outcome)':
     'Bổ sung chi tiết cho các hoạt động đã có (bối cảnh, hành động, kết quả)',
@@ -9,6 +13,12 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Explain why you are interested in these subjects': 'Giải thích vì sao bạn quan tâm đến các môn học này',
   'Core Identity': 'Bản sắc cốt lõi',
   'Who they consistently are': 'Bạn nhất quán thể hiện mình là ai',
+  'Identity statement': 'Tuyên bố bản sắc',
+  'An emerging identity signal': 'Một tín hiệu bản sắc đang hình thành',
+  'This is a meaningful observation from the available activity evidence, but it is not yet a recurring identity claim.':
+    'Đây là một quan sát có ý nghĩa từ bằng chứng hoạt động hiện có, nhưng chưa phải là nhận định về bản sắc lặp lại.',
+  'No applicant-specific identity statement is supported by the current evidence.':
+    'Bằng chứng hiện tại chưa hỗ trợ một tuyên bố bản sắc cụ thể về ứng viên.',
   'Recurring role': 'Vai trò lặp lại',
   'Value orientation': 'Định hướng giá trị',
   'What GlowBal observed': 'Những gì GlowBal quan sát được',
@@ -36,6 +46,17 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Direction aligned': 'Phù hợp định hướng',
   Credible: 'Đáng tin cậy',
   'What prevents stronger positioning': 'Điều đang cản trở định vị mạnh hơn',
+  'Profile narrative': 'Câu chuyện hồ sơ',
+  'Positioning options': 'Các lựa chọn định vị',
+  'Experience connection': 'Mối liên kết giữa các trải nghiệm',
+  'A complete positioning narrative is not supported by the current evidence yet.':
+    'Bằng chứng hiện tại chưa hỗ trợ một câu chuyện định vị hoàn chỉnh.',
+  'The available experiences do not yet form a defensible connection.':
+    'Các trải nghiệm hiện có chưa tạo thành một mối liên kết đủ cơ sở.',
+  'No evidence-backed positioning option is available yet.':
+    'Chưa có lựa chọn định vị nào được bằng chứng hỗ trợ.',
+  '{count} linked evidence references · {confidenceLabel}: {confidence}':
+    '{count} tham chiếu bằng chứng liên kết · {confidenceLabel}: {confidence}',
   'Proof of Me': 'Bằng chứng về tôi',
   'The evidence behind every claim above': 'Bằng chứng đứng sau từng nhận định ở trên',
   Supports: 'Hỗ trợ',
@@ -46,6 +67,11 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
     'GlowBal đọc phần tự nhìn nhận, thành tích và hoạt động của bạn để tìm các mẫu hành vi có bằng chứng hỗ trợ. Dữ liệu còn thiếu sẽ được nêu rõ thay vì để AI tự điền.',
   'Overall evidence confidence': 'Độ tin cậy tổng thể của bằng chứng',
   'Create report': 'Tạo báo cáo',
+  'Generate all reports again': 'Tạo lại toàn bộ báo cáo',
+  'Generating all reports…': 'Đang tạo lại toàn bộ báo cáo…',
+  'Reports generated: {count}/{limit}': 'Đã tạo báo cáo: {count}/{limit}',
+  'You have reached the maximum number of report generations.':
+    'Bạn đã đạt tối đa số lần tạo báo cáo.',
   'Creating report…': 'Đang tạo báo cáo…',
   Generated: 'Đã tạo',
   'Review Reflection': 'Xem lại phần Tự nhìn nhận',
@@ -68,6 +94,8 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Could not save the application analysis.': 'Không thể lưu phân tích hồ sơ ứng tuyển.',
   'The AI could not produce a valid report. Your previous report, if any, has been kept.':
     'AI chưa thể tạo báo cáo hợp lệ. Báo cáo trước đó, nếu có, vẫn được giữ nguyên.',
+  'The AI could not produce a complete, evidence-grounded report. Your previous report, if any, has been kept.':
+    'AI chưa thể tạo báo cáo đầy đủ dựa trên bằng chứng. Báo cáo trước đó, nếu có, vẫn được giữ nguyên.',
 
   // Redesign — profile-at-a-glance, chart axis labels, evidence-summary charts.
   'Profile at a glance': 'Tổng quan hồ sơ',
@@ -80,12 +108,26 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Why this fits': 'Vì sao điều này phù hợp',
   'Evidence verification': 'Xác minh bằng chứng',
   'Evidence strength': 'Mức độ mạnh của bằng chứng',
+  'Supporting activities': 'Hoạt động hỗ trợ',
   Limited: 'Hạn chế',
   'Competency claims': 'Các năng lực được ghi nhận',
   'Hard skill': 'Kỹ năng cứng',
   'Soft skill': 'Kỹ năng mềm',
   'Meta skill': 'Kỹ năng tự nhận thức',
   'What this report suggests overall': 'Báo cáo này gợi ý điều gì nói chung',
+  'What the numbers suggest': 'Các con số gợi ý điều gì',
+  'The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {verified} are verified or checkable. These counts describe the evidence base, not an admissions prediction.':
+    'Hồ sơ hiện có {activities} trải nghiệm đã ghi nhận; {quantified} có kết quả định lượng và {verified} đã được xác minh hoặc có thể kiểm tra. Các con số này mô tả nền tảng bằng chứng, không phải dự đoán tuyển sinh.',
+  'The current record contains {activities} recorded experiences; {quantified} include quantified outcomes and {checkable} are verified or checkable. These counts describe the evidence base, not an admissions prediction.':
+    'Hồ sơ hiện có {activities} trải nghiệm đã ghi nhận; {quantified} có kết quả định lượng và {checkable} đã được xác minh hoặc có thể kiểm tra. Các con số này mô tả nền tảng bằng chứng, không phải dự đoán tuyển sinh.',
+  'The current record contains {recorded} explicitly recorded outcomes, including {quantified} quantified outcomes. These are source-backed contribution measures, not an admissions prediction.':
+    'Hồ sơ hiện có {recorded} kết quả đóng góp được ghi nhận rõ ràng, trong đó {quantified} có định lượng. Đây là các chỉ số đóng góp có nguồn, không phải dự đoán tuyển sinh.',
+  'Team members led': 'Thành viên đội nhóm đã dẫn dắt',
+  'Largest explicitly quantified team or group': 'Quy mô đội nhóm lớn nhất được nêu rõ bằng số',
+  'Community reach': 'Phạm vi tiếp cận cộng đồng',
+  'Largest explicitly quantified audience or beneficiary group': 'Nhóm người hưởng lợi hoặc khán giả lớn nhất được nêu rõ bằng số',
+  'Years of commitment': 'Số năm cam kết',
+  'Longest explicit activity period recorded': 'Khoảng thời gian hoạt động dài nhất được ghi nhận rõ ràng',
   'No evidence recorded yet.': 'Chưa có bằng chứng nào được ghi nhận.',
   Authenticity: 'Tính chân thực',
   Coherence: 'Tính mạch lạc',
@@ -116,6 +158,21 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.':
     'Hồ sơ về bạn với tư cách ứng viên — được xây dựng từ các trải nghiệm đã tự nhìn nhận, bằng chứng và những mẫu hành vi lặp lại.',
   'Applicant Snapshot': 'Chân dung Ứng viên',
+  'Overall impression': 'Ấn tượng tổng quan',
+  'Defining traits / key characteristics': 'Đặc điểm định hình / nét chính',
+  'Each characteristic is tied to source evidence and labelled by maturity. Emerging means the action is meaningful but not yet recurring across independent experiences.':
+    'Mỗi đặc điểm đều gắn với bằng chứng nguồn và được phân loại theo mức độ trưởng thành. Đang hình thành nghĩa là hành động có ý nghĩa nhưng chưa lặp lại qua các trải nghiệm độc lập.',
+  'No defining characteristic is established yet. Observed signals remain visible as evidence to investigate, not as recurring traits.':
+    'Chưa có đặc điểm định hình nào được xác lập. Các tín hiệu quan sát được vẫn hiển thị như bằng chứng cần tìm hiểu, không phải nét lặp lại.',
+  'source evidence item': 'mục bằng chứng nguồn',
+  'Observed signals': 'Các tín hiệu quan sát được',
+  'Add a detailed activity or reflection to establish a characteristic from demonstrated behaviour.':
+    'Hãy thêm hoạt động hoặc phần tự nhìn nhận chi tiết để xác lập đặc điểm từ hành vi đã thể hiện.',
+  'These characteristics are recurring behaviours extracted from activity evidence, not traits inferred from a single answer.':
+    'Các đặc điểm này là những hành vi lặp lại được rút ra từ bằng chứng hoạt động, không phải nét tính cách suy ra từ một câu trả lời đơn lẻ.',
+  'Recorded in the activity evidence.': 'Được ghi nhận trong bằng chứng hoạt động.',
+  'This behaviour recurs in the activity record, so it is used as a pattern signal.':
+    'Hành vi này lặp lại trong hồ sơ hoạt động nên được dùng làm tín hiệu mẫu hành vi.',
   'Applicant profile themes': 'Các chủ đề trong hồ sơ ứng viên',
   'Evidence base': 'Nền tảng bằng chứng',
   'Your applicant profile is still taking shape': 'Hồ sơ ứng viên của bạn vẫn đang dần định hình',
@@ -131,6 +188,21 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
   'Keyboard: 1–6 opens a section · Esc closes': 'Bàn phím: 1–6 mở một phần · Esc đóng',
   'Driving Forces': 'Các động lực',
+  'Primary motivation': 'Động lực chính',
+  'Repeated motivation signals': 'Các tín hiệu động lực lặp lại',
+  'Repeated choices': 'Các lựa chọn lặp lại',
+  'No repeated choice is established from the available evidence.': 'Chưa xác lập được lựa chọn lặp lại từ bằng chứng hiện có.',
+  'Underlying values': 'Các giá trị nền tảng',
+  'Recurring problems': 'Các vấn đề lặp lại',
+  'Decision-making': 'Cách ra quyết định',
+  'The Motivation Landscape remains visible, but the current record does not support a substantive conclusion yet.': 'Bản đồ động lực vẫn được hiển thị, nhưng dữ liệu hiện tại chưa đủ để đưa ra kết luận có cơ sở.',
+  'Not established from the available evidence.': 'Chưa được xác lập từ bằng chứng hiện có.',
+  'No repeated opportunity choice is established yet.': 'Chưa xác lập được lựa chọn cơ hội lặp lại.',
+  'No recurring problem domain is established yet.': 'Chưa xác lập được lĩnh vực vấn đề lặp lại.',
+  'No decision-making pattern is established yet.': 'Chưa xác lập được mô thức ra quyết định.',
+  'Values cannot be interpreted confidently yet.': 'Chưa thể diễn giải các giá trị với độ tin cậy đủ cao.',
+  "Add a detailed motivation and activity reflection before interpreting the applicant's values or strategic direction.": 'Hãy bổ sung phản ánh chi tiết về động lực và hoạt động trước khi diễn giải giá trị hoặc định hướng chiến lược của applicant.',
+  'Strategic interpretation': 'Diễn giải chiến lược',
   'Proven Capabilities': 'Năng lực đã được chứng minh',
   'Social Proof': 'Bằng chứng xã hội',
   'Areas for Growth': 'Các lĩnh vực cần phát triển',
@@ -202,9 +274,28 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'What to remember before you build the application': 'Những điều cần ghi nhớ trước khi xây dựng hồ sơ ứng tuyển',
   'Three evidence-backed ideas to carry into your positioning, university matching and application strategy.':
     'Ba ý chính có bằng chứng hỗ trợ để bạn sử dụng trong định vị, lựa chọn trường phù hợp và chiến lược ứng tuyển.',
+  'A result or change is explicitly stated': 'Một kết quả hoặc thay đổi được nêu rõ',
+  'An explicit measurable result is stated': 'Một kết quả đo lường được được nêu rõ',
+  'Profile Positioning': 'Định vị hồ sơ',
+  'How your experiences connect, what the current evidence can support, and which future directions remain possibilities rather than past achievements.':
+    'Cách các trải nghiệm kết nối, bằng chứng hiện tại hỗ trợ được điều gì và những hướng đi tương lai nào vẫn chỉ là khả năng thay vì thành tích đã có.',
+  'The evidence-backed ideas to carry into your positioning, university matching and application strategy.':
+    'Những ý tưởng có bằng chứng hỗ trợ để bạn sử dụng trong định vị, lựa chọn trường phù hợp và chiến lược ứng tuyển.',
   'What Makes You Stand Out': 'Điều khiến bạn nổi bật',
   'Your Competitive Advantage': 'Lợi thế cạnh tranh của bạn',
   'Your Growth Opportunity': 'Cơ hội phát triển của bạn',
+  'Evidence basis': 'Cơ sở bằng chứng',
+  'Evidence pattern': 'Mẫu bằng chứng',
+  Advantage: 'Lợi thế',
+  'Application relevance': 'Mức độ liên quan khi ứng tuyển',
+  'Growth area': 'Lĩnh vực phát triển',
+  'Current gap': 'Khoảng trống hiện tại',
+  'Recommended direction': 'Hướng đi đề xuất',
+  Repeated: 'Lặp lại',
+  Isolated: 'Đơn lẻ',
+  Insufficient: 'Chưa đủ',
+  '{scope} signal · {count} linked evidence references · {confidence} confidence':
+    'Tín hiệu {scope} · {count} tham chiếu bằng chứng liên kết · độ tin cậy {confidence}',
   'Your strongest differentiator will become clearer as you add more reflected experiences.':
     'Điểm khác biệt mạnh nhất của bạn sẽ rõ hơn khi bạn bổ sung thêm các trải nghiệm đã tự nhìn nhận.',
   'Your competitive advantage is still emerging from the evidence currently available.':
@@ -214,6 +305,12 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
 
   // Pass 2 capability, motivation, proof, growth and pathway analytics.
   'Capability profile': 'Hồ sơ năng lực',
+  'Capability overview': 'Tổng quan năng lực',
+  'The clearest capabilities in this snapshot are {capabilities}. They are grounded in {count} recorded experiences.':
+    'Các năng lực rõ nét nhất trong ảnh chụp này là {capabilities}. Chúng dựa trên {count} trải nghiệm đã ghi nhận.',
+  'How these capabilities combine': 'Cách các năng lực kết hợp',
+  'This profile shows how the named capabilities overlap across the same evidence record. The combination is more informative than any single score and remains bounded by the supporting activities shown above.':
+    'Hồ sơ này cho thấy các năng lực được nêu tên giao nhau như thế nào trong cùng một tập bằng chứng. Sự kết hợp này có ý nghĩa hơn một điểm số đơn lẻ và vẫn được giới hạn bởi các hoạt động hỗ trợ hiển thị ở trên.',
   'The strongest named capabilities in this report snapshot. Scores represent strength of supporting evidence, not an ability ceiling.':
     'Các năng lực nổi bật nhất được nêu tên trong phiên bản báo cáo này. Điểm số thể hiện độ mạnh của bằng chứng hỗ trợ, không phải giới hạn năng lực.',
   'The strongest named capabilities extracted from your evidence. Scores represent evidence strength, not ability ceilings.':
@@ -231,6 +328,28 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Medium confidence': 'Độ tin cậy trung bình',
   'Low confidence': 'Độ tin cậy thấp',
   'Motivation profile': 'Hồ sơ động lực',
+  'No repeated stated motivation is established yet. Explicit interests may still be present elsewhere, but this view does not infer a stable motivation without supporting evidence.':
+    'Chưa xác lập được động lực được nêu lặp lại. Sở thích rõ ràng có thể xuất hiện ở nơi khác, nhưng phần này không suy ra động lực ổn định nếu thiếu bằng chứng hỗ trợ.',
+  'No repeated stated motivation is established in this report version yet.':
+    'Chưa xác lập được động lực được nêu lặp lại trong phiên bản báo cáo này.',
+  'No independently demonstrated capability is established in this report version yet.':
+    'Chưa có năng lực nào được thể hiện độc lập được xác lập trong phiên bản báo cáo này.',
+  'No quantified or counted contribution is available in this report version. Qualitative evidence remains in the experience records.':
+    'Phiên bản báo cáo này chưa có đóng góp được định lượng hoặc đếm được. Bằng chứng định tính vẫn nằm trong các hồ sơ trải nghiệm.',
+  'No specific development gap is established from the current evidence.':
+    'Chưa có khoảng trống phát triển cụ thể nào được xác lập từ bằng chứng hiện tại.',
+  'No stated direction or evidence-backed theme is available in this report version yet.':
+    'Phiên bản báo cáo này chưa có định hướng được nêu rõ hoặc chủ đề có bằng chứng hỗ trợ.',
+  'No independently demonstrated capability is established in the current activity evidence. This section remains visible so self-reported signals are not mistaken for proven capabilities.':
+    'Bằng chứng hoạt động hiện tại chưa xác lập năng lực nào được thể hiện độc lập. Phần này vẫn hiển thị để các tín hiệu tự khai không bị nhầm là năng lực đã được chứng minh.',
+  'Self-reported signals — not yet demonstrated': 'Tín hiệu tự khai — chưa được thể hiện',
+  'Social proof': 'Bằng chứng đóng góp',
+  'No quantified or counted contribution is available in the current record. Qualitative evidence remains in the experience and supporting-evidence sections.':
+    'Hồ sơ hiện tại chưa có đóng góp được định lượng hoặc đếm được. Bằng chứng định tính vẫn nằm trong các phần trải nghiệm và bằng chứng hỗ trợ.',
+  'No specific development gap is established from the current evidence. Add another reflected experience or clarify the intended direction to make this matrix more useful.':
+    'Chưa có khoảng trống phát triển cụ thể nào được xác lập từ bằng chứng hiện tại. Hãy thêm một trải nghiệm có tự nhìn nhận hoặc làm rõ định hướng để ma trận này hữu ích hơn.',
+  'No stated direction or evidence-backed theme is available yet. This is an evidence limitation, not a prediction about the applicant’s future.':
+    'Chưa có định hướng được nêu rõ hoặc chủ đề có bằng chứng hỗ trợ. Đây là giới hạn về bằng chứng, không phải dự đoán về tương lai của ứng viên.',
   'What repeatedly appears in your stated motivations': 'Những điều liên tục xuất hiện trong các động lực bạn đã nêu',
   'These bars show recurrence across motivations you explicitly recorded. They are not personality scores.':
     'Các thanh này cho thấy mức độ lặp lại trong những động lực bạn đã ghi nhận rõ ràng. Đây không phải điểm số tính cách.',
@@ -238,6 +357,12 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'These bars show recurrence across the motivations you explicitly recorded. They are not personality scores.':
     'Các thanh này cho thấy mức độ lặp lại trong những động lực bạn đã ghi nhận rõ ràng. Đây không phải điểm số tính cách.',
   'Repeated stated motivations': 'Các động lực đã nêu lặp lại',
+  'Personal reflection — What You Are Proud Of': 'Suy ngẫm cá nhân — Điều bạn tự hào',
+  'Personal reflection — interests and motivations': 'Suy ngẫm cá nhân — mối quan tâm và động lực',
+  'Personal reflection — problem domains': 'Suy ngẫm cá nhân — các lĩnh vực vấn đề',
+  'Evidence metadata captured': 'Siêu dữ liệu minh chứng đã được lưu',
+  'Experiences retaining organisation, level, period, competition or verification provenance':
+    'Các trải nghiệm còn giữ tổ chức, cấp độ, thời gian, cuộc thi hoặc nguồn xác minh',
   'Experiences analysed': 'Trải nghiệm đã phân tích',
   'Activities contributing evidence to this report': 'Các hoạt động đóng góp bằng chứng cho báo cáo này',
   'Strong evidence items': 'Hạng mục bằng chứng mạnh',
@@ -277,6 +402,21 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Medium impact · High effort': 'Tác động trung bình · Nỗ lực cao',
   impact: 'tác động',
   effort: 'nỗ lực',
+  'High impact': 'Tác động cao',
+  'Medium impact': 'Tác động trung bình',
+  'Low impact': 'Tác động thấp',
+  'High effort': 'Nỗ lực cao',
+  'Medium effort': 'Nỗ lực trung bình',
+  'Low effort': 'Nỗ lực thấp',
+  'high impact': 'Tác động cao',
+  'medium impact': 'Tác động trung bình',
+  'low impact': 'Tác động thấp',
+  'high effort': 'Nỗ lực cao',
+  'medium effort': 'Nỗ lực trung bình',
+  'low effort': 'Nỗ lực thấp',
+  'identity signal': 'Tín hiệu bản sắc',
+  'positioning signal': 'Tín hiệu định vị',
+  'theme signal': 'Tín hiệu chủ đề',
   signal: 'tín hiệu',
   Positioning: 'Định vị',
   Theme: 'Chủ đề',

@@ -1,18 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { personalReportLimiter } from '@/lib/rate-limiter';
+import { PERSONAL_REPORT_EXTRACTION_VERSION } from '@/lib/ai/personal-report-v2';
+import { PERSONAL_REPORT_CONTRACT_VERSION } from '@/features/apply/domain';
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   getLatest: vi.fn(),
+  countReportGenerations: vi.fn(),
   enqueue: vi.fn(),
   getGeneration: vi.fn(),
+  after: vi.fn(),
+  process: vi.fn(),
 }));
 
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after: mocks.after,
+}));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => supabaseMock }));
 vi.mock('@/features/apply/api', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatest,
+  countApplicationReportGenerations: mocks.countReportGenerations,
   enqueueApplicationPersonalReportGeneration: mocks.enqueue,
   getApplicationPersonalReportGeneration: mocks.getGeneration,
+  processApplicationPersonalReportGenerations: mocks.process,
 }));
 
 function chain(result: { data: unknown; error: unknown }) {
@@ -68,11 +79,13 @@ describe('application Personal Report route', () => {
     setup();
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.getLatest.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.countReportGenerations.mockResolvedValue({ count: 0, migrationMissing: false });
     mocks.enqueue.mockResolvedValue({
       migrationMissing: false,
       job: { id: 'job-1', status: 'pending', attempts: 0 },
     });
     mocks.getGeneration.mockResolvedValue({ migrationMissing: false, job: null });
+    mocks.after.mockImplementation(() => undefined);
   });
 
   it('requires authentication and ownership', async () => {
@@ -101,6 +114,7 @@ describe('application Personal Report route', () => {
     expect(mocks.enqueue).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       userId: 'user-1', applicationId: 'app-1', force: true, idempotencyKey: 'req-1',
     }));
+    expect(mocks.after).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it('returns an already-active job without consuming the generation rate limit', async () => {
@@ -114,6 +128,51 @@ describe('application Personal Report route', () => {
       await expect(response.json()).resolves.toMatchObject({ queued: true, generation: { status: 'pending' } });
     }
 
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('returns the current report instead of waiting on a stale active job', async () => {
+    const { POST } = await import('./route');
+    mocks.getLatest.mockResolvedValue({
+      migrationMissing: false,
+      record: {
+        id: 'report-1',
+        reportV2: { coreIdentity: {} },
+        confirmedSnapshotId: 'snapshot-1',
+        reportContractVersion: PERSONAL_REPORT_CONTRACT_VERSION,
+        engineVersion: '1.1.0',
+        promptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
+        generatedAt: '2026-08-28T00:00:00Z',
+        trigger: 'manual',
+      },
+    });
+    mocks.getGeneration.mockResolvedValue({
+      migrationMissing: false,
+      job: { id: 'job-1', status: 'pending', attempts: 0 },
+    });
+
+    const response = await POST(request(), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      queued: false,
+      cached: true,
+      versionId: 'report-1',
+      stale: false,
+    });
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('blocks the sixth complete report generation', async () => {
+    const { POST } = await import('./route');
+    mocks.countReportGenerations.mockResolvedValue({ count: 5, migrationMissing: false });
+
+    const response = await POST(request({ force: true }), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body).toMatchObject({ code: 'REPORT_LIMIT_REACHED', reportCount: 5, reportLimit: 5 });
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 

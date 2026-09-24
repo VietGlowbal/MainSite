@@ -4,8 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnalysisWorkspace } from './analysis-workspace';
 
 const PERSONAL_POST = '/api/applications/app-1/personal-report';
+const PERSONAL_GET = '/api/applications/app-1/personal-report';
 const MATCHING_GET = '/api/applications/app-1/strategy/course-match';
 const MATCHING_POST = '/api/applications/app-1/match-insights';
+const STRATEGY_GET = '/api/applications/app-1/strategy/recommendation';
+const STRATEGY_POST = '/api/applications/app-1/strategy/recommendation';
 const FRIENDLY_REPORT_ERROR = "We couldn't finish this report. We'll retry it using your confirmed information.";
 
 function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 500) {
@@ -17,6 +20,96 @@ afterEach(() => {
 });
 
 describe('AnalysisWorkspace', () => {
+  it('shows the shared report quota and regenerates all three reports from one button', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, versionId: 'p1', stale: false, reportCount: 1, reportLimit: 5 });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} }, reportCount: 2, reportLimit: 5 });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm2' } });
+      if (url === STRATEGY_POST && init?.method === 'POST') return jsonResponse({ reportV3: { id: 's2' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(screen.getByText('Reports generated: 1/5')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Generate all reports again' }));
+    await waitFor(() => expect(screen.getByText('Reports generated: 2/5')).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ trigger: 'manual', force: true }),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith(MATCHING_POST, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ force: true }),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith(STRATEGY_POST, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ force: true }),
+    }));
+  });
+
+  it('disables the shared regeneration button after five report generations', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, versionId: 'p5', stale: false, reportCount: 5, reportLimit: 5 });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Generate all reports again' })).toBeDisabled();
+    expect(screen.getByText('You have reached the maximum number of report generations.')).toBeInTheDocument();
+  });
+
+  it('forces all three reports after the Reflection edit flow returns here', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_GET && !init) {
+        return jsonResponse({ reportV2: { coreIdentity: {} }, versionId: 'p1', stale: false, reportCount: 1, reportLimit: 5 });
+      }
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} }, reportCount: 2, reportLimit: 5 });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm2' } });
+      if (url === STRATEGY_POST && init?.method === 'POST') return jsonResponse({ reportV3: { id: 's2' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" regenerateOnLoad />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, expect.objectContaining({ body: JSON.stringify({ trigger: 'manual', force: true }) }));
+    expect(fetchMock).toHaveBeenCalledWith(MATCHING_POST, expect.objectContaining({ body: JSON.stringify({ force: true }) }));
+    expect(fetchMock).toHaveBeenCalledWith(STRATEGY_POST, expect.objectContaining({ body: JSON.stringify({ force: true }) }));
+  });
+
+  it('reuses all existing reports after reload without starting generation', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, stale: false });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock.mock.calls.map(([url, init]) => [url, init?.method ?? 'GET'])).toEqual([
+      [PERSONAL_GET, 'GET'],
+      [MATCHING_GET, 'GET'],
+      [STRATEGY_GET, 'GET'],
+    ]);
+  });
+
   it('does not start Matching Report generation until Personal Report completes', async () => {
     let resolvePersonal: (() => void) | undefined;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
@@ -27,6 +120,7 @@ describe('AnalysisWorkspace', () => {
       }
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -52,6 +146,7 @@ describe('AnalysisWorkspace', () => {
       if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -78,16 +173,90 @@ describe('AnalysisWorkspace', () => {
     expect(screen.queryByText('Generating…')).not.toBeInTheDocument();
   });
 
+  it('starts Strategy Report generation only after Personal and Matching Reports complete', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: null });
+      if (url === STRATEGY_POST && init?.method === 'POST') return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledWith(STRATEGY_POST, { method: 'POST' });
+    const urls = fetchMock.mock.calls.map(([url]) => url);
+    expect(urls.indexOf(STRATEGY_GET)).toBeGreaterThan(urls.indexOf(MATCHING_POST));
+    expect(urls.indexOf(STRATEGY_POST)).toBeGreaterThan(urls.indexOf(MATCHING_POST));
+    expect(screen.getAllByRole('link', { name: 'Open my Strategy Report' })[0]).toHaveAttribute(
+      'href',
+      '/ai-strategy/app-1/strategy-report',
+    );
+  });
+
+  it('does not retry Strategy Report automatically after a failed attempt', async () => {
+    let strategyAttempt = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: null });
+      if (url === STRATEGY_POST && init?.method === 'POST') {
+        strategyAttempt += 1;
+        return strategyAttempt === 1
+          ? jsonResponse({ error: 'Temporary failure' }, false, 502)
+          : jsonResponse({ reportV3: { id: 's1' } });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText(FRIENDLY_REPORT_ERROR)).toBeInTheDocument());
+    expect(strategyAttempt).toBe(1);
+  });
+
+  it('does not let a legacy Strategy row suppress V3 generation', async () => {
+    let strategyPostCalls = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: null, reportV2: { legacy: true } });
+      if (url === STRATEGY_POST && init?.method === 'POST') {
+        strategyPostCalls += 1;
+        return jsonResponse({ reportV3: { id: 's1' } });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(strategyPostCalls).toBe(1);
+  });
+
   it('waits for queued Personal Report generation before starting Matching Report generation', async () => {
+    let initialRead = true;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') {
         return jsonResponse({ queued: true }, true, 202);
       }
       if (url === PERSONAL_POST && !init) {
+        if (initialRead) {
+          initialRead = false;
+          return jsonResponse({ generation: { status: 'pending' }, reportV2: null });
+        }
         return jsonResponse({ generation: { status: 'complete' }, reportV2: { coreIdentity: {} } });
       }
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -98,8 +267,72 @@ describe('AnalysisWorkspace', () => {
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       PERSONAL_POST,
       PERSONAL_POST,
+      PERSONAL_POST,
       MATCHING_GET,
       MATCHING_POST,
+      STRATEGY_GET,
+    ]);
+  });
+
+  it('does not requeue a failed Personal Report from the polling client', async () => {
+    let initialRead = true;
+    let personalPoll = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') {
+        return jsonResponse({ queued: true }, true, 202);
+      }
+      if (url === PERSONAL_POST && !init) {
+        if (initialRead) {
+          initialRead = false;
+          return jsonResponse({ generation: { status: 'pending' }, reportV2: null });
+        }
+        personalPoll += 1;
+        return personalPoll === 1
+          ? jsonResponse({ generation: { status: 'retry' }, reportV2: null })
+          : jsonResponse({ generation: { status: 'complete' }, reportV2: { coreIdentity: {} } });
+      }
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument(), { timeout: 5_000 });
+    const personalPosts = fetchMock.mock.calls.filter(([url, init]) => url === PERSONAL_POST && init?.method === 'POST');
+    expect(personalPosts).toHaveLength(1);
+    expect(personalPosts.some(([, init]) => String(init?.body).includes('"force":true'))).toBe(false);
+  });
+
+  it('uses a current Personal Report even when an old queue row is still active', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') {
+        return jsonResponse({ queued: true }, true, 202);
+      }
+      if (url === PERSONAL_POST && !init) {
+        return jsonResponse({
+          reportV2: { coreIdentity: {} },
+          stale: false,
+          generation: { status: 'pending' },
+        });
+      }
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      PERSONAL_GET,
+      MATCHING_GET,
+      MATCHING_POST,
+      STRATEGY_GET,
     ]);
   });
 
@@ -135,10 +368,11 @@ describe('AnalysisWorkspace', () => {
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
       if (url === MATCHING_POST && init?.method === 'POST') {
         matchingAttempt += 1;
-        return matchingAttempt === 1
-          ? jsonResponse({ error: 'AI service not configured' })
+        return matchingAttempt <= 1
+          ? jsonResponse({ error: 'AI service not configured' }, false, 502)
           : jsonResponse({ analysis: { id: 'm1' } });
       }
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
       throw new Error(`unexpected fetch ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -155,6 +389,28 @@ describe('AnalysisWorkspace', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(screen.getAllByRole('link', { name: 'Open report' })).toHaveLength(2));
+  });
+
+  it('does not retry Matching Report automatically after a failed generation', async () => {
+    let matchingAttempt = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') {
+        matchingAttempt += 1;
+        return matchingAttempt === 1
+          ? jsonResponse({ error: 'Temporary failure' }, false, 502)
+          : jsonResponse({ analysis: { id: 'm1' } });
+      }
+      if (url === STRATEGY_GET && !init) return jsonResponse({ reportV3: { id: 's1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText(FRIENDLY_REPORT_ERROR)).toBeInTheDocument());
+    expect(matchingAttempt).toBe(1);
   });
 
   it('fails Personal Report visibly if the canonical report generation fails', async () => {

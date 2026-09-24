@@ -11,12 +11,22 @@ import {
 } from '@/components/navigation-roles';
 import { useNavigationSession, type NavigationSessionValue } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { getMarketingNavPresentation } from '@/features/marketing/ui';
+/*
+ * The `navigation` slice, NOT the `@/features/marketing/ui` barrel.
+ *
+ * This component is mounted by the root layout, so whatever it can reach is in
+ * the first-load bundle of every route. The barrel re-exports the Home page
+ * compositions, and `home-metrics` → `home-metrics-grid` imports framer-motion
+ * — so asking the barrel for one pure function put **247 KB of animation
+ * library on `/terms`**. See `docs/performance.md`.
+ */
+import { getMarketingNavPresentation } from '@/features/marketing/navigation';
 import { useLanguage } from '@/lib/i18n';
+import { getLocaleFromPath, getLocaleText, type Locale } from '@/lib/i18n/locale';
 import { MobileNav, type MobileNavEntry } from '@/shared/ui/mobile-nav';
 import { isNavGroup } from '@/shared/ui/nav-model';
 import { TopNav } from '@/shared/ui/top-nav';
-import { suppressesGlobalNavigation } from './navigation-visibility';
+import { normalizeNavigationPathname, suppressesGlobalNavigation } from './navigation-visibility';
 
 /* ─────────────────────────────────────────────────────────────────────────
    Persisted nav preferences
@@ -92,11 +102,12 @@ function navEntriesFor(
   roles: NavigationRoles | null,
   t: (key: string) => string,
   session: Pick<NavigationSessionValue, 'ready' | 'signedIn' | 'completed'>,
+  locale: Locale = 'en',
 ): MobileNavEntry[] {
   const audience = session.ready
     ? { signedIn: session.signedIn, completed: session.completed }
     : { signedIn: true, completed: true };
-  const shared: MobileNavEntry[] = getMarketingNavPresentation(audience, t).items.map((entry) =>
+  const shared: MobileNavEntry[] = getMarketingNavPresentation(audience, t, locale).items.map((entry) =>
     isNavGroup(entry)
       ? { label: entry.label, items: [...entry.items] }
       : { href: entry.href, label: entry.label },
@@ -127,19 +138,23 @@ function navEntriesFor(
 function MobileNavigation({
   roles,
   session,
+  locale = 'en',
 }: {
   roles: NavigationRoles | null;
   session: NavigationSessionValue;
+  locale?: Locale;
 }) {
   const { t } = useLanguage();
+  const translate = locale === 'vi' ? (key: string) => getLocaleText(locale, key) : t;
 
   const presentation = getMarketingNavPresentation(
     session.ready
       ? { signedIn: session.signedIn, completed: session.completed }
       : { signedIn: true, completed: true },
-    t,
+    translate,
+    locale,
   );
-  const items = navEntriesFor(roles, t, session);
+  const items = navEntriesFor(roles, translate, session, locale);
 
   return (
     <MobileNav
@@ -151,8 +166,8 @@ function MobileNavigation({
       items={items}
       primaryAction={session.ready ? presentation.primaryAction : undefined}
       secondaryAction={session.ready ? presentation.accountAction : undefined}
-      openLabel={t('Menu')}
-      closeLabel={t('Close menu')}
+      openLabel={translate('Menu')}
+      closeLabel={translate('Close menu')}
       utility={<SavedNavLink variant="row" />}
     />
   );
@@ -186,26 +201,34 @@ function AppTopNav({
   user,
   roles,
   session,
+  locale = 'en',
 }: {
   user: UserSummary | null;
   roles: NavigationRoles | null;
   session: NavigationSessionValue;
+  locale?: Locale;
 }) {
   const { t } = useLanguage();
+  const translate = locale === 'vi' ? (key: string) => getLocaleText(locale, key) : t;
 
   const presentation = getMarketingNavPresentation(
     session.ready
       ? { signedIn: session.signedIn, completed: session.completed }
       : { signedIn: true, completed: true },
-    t,
+    translate,
+    locale,
   );
-  const items = navEntriesFor(roles, t, session);
+  const items = navEntriesFor(roles, translate, session, locale);
 
   return (
     <TopNav
       tone="light"
       logo={<GlowbalLogo height={28} />}
       items={items}
+      /* Same reservation as site-navigation.tsx: the actions stay withheld
+         until the session resolves, but the bar keeps their height so the page
+         below it does not move. See TopNav's `actionsPending` note. */
+      actionsPending={!session.ready}
       primaryAction={session.ready ? presentation.primaryAction : undefined}
       utility={<SavedNavLink />}
       {...(user
@@ -230,7 +253,9 @@ export function NavReveal() {
   const roles = useNavigationRoles();
 
   // Hide nav on home page regardless of revealed state
-  const isHomePage = pathname === '/';
+  const navigationPath = normalizeNavigationPathname(pathname);
+  const locale = getLocaleFromPath(pathname);
+  const isHomePage = navigationPath === '/';
 
   /*
    * Pages that ship their own header. The redesigned pages carry the TopNav +
@@ -257,6 +282,22 @@ export function NavReveal() {
     '/',
     '/dev/home',
     '/universities',
+    /*
+     * Both match pages ship `SiteNavigation` + `Footer` themselves, exactly
+     * like `/universities` above, but neither was on this list — `/universities`
+     * matches exactly and the numeric-id regex below does not accept a word.
+     *
+     * ⚠️ THIS WAS WORTH 0.05 CLS, NOT JUST TIDINESS. Without an entry here the
+     * app chrome renders too, and the only thing that stopped two headers being
+     * on screen was `body:has(.glowbal-main-content [data-testid='nav-header'])
+     * [data-global-navigation] { display: none }` in globals.css. That rule
+     * fires when the page's own header parses, which is *after* the app header
+     * has painted — so `<main>` was measured jumping 73px upward
+     * (y=73 h=827 -> y=0 h=900) on a cold load, a full-viewport shift worth
+     * 0.0507. Suppressing the nav here means the rule never has to fire.
+     */
+    '/universities/matches',
+    '/universities/matches/demo',
     '/auth',
     // Pre-launch site lock — bare centered card, same
     // treatment as /auth, no app chrome to double up.
@@ -320,7 +361,7 @@ export function NavReveal() {
   const OWN_CHROME_PREFIXES = ['/ai-strategy'];
 
   // The dashboard owns its header; its document workspaces use the shared one.
-  const isApplicationWorkspaceRoute = /^\/apply\/[^/]+$/.test(pathname);
+  const isApplicationWorkspaceRoute = /^\/apply\/[^/]+$/.test(navigationPath);
 
   /*
    * `/universities/<id>` — the rebuilt detail page (Figma 375:10629) — ships
@@ -329,7 +370,7 @@ export function NavReveal() {
    * the new route is keyed on the numeric id because `universities` has no slug
    * column. When vinuni is retired this can become a prefix entry.
    */
-  const isNumericUniversityRoute = /^\/universities\/\d+$/.test(pathname);
+  const isNumericUniversityRoute = /^\/universities\/\d+$/.test(navigationPath);
 
   /*
    * `/mentors/<uuid>` — the rebuilt profile page (Figma 375:21633). Same
@@ -339,15 +380,15 @@ export function NavReveal() {
    * what separates the two — `apply` cannot match this shape.
    */
   const isMentorProfileRoute =
-    /^\/advisors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
+    /^\/advisors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(navigationPath);
 
   const rendersOwnChrome =
     suppressesGlobalNavigation(pathname) ||
-    OWN_CHROME_ROUTES.has(pathname) ||
+    OWN_CHROME_ROUTES.has(navigationPath) ||
     isApplicationWorkspaceRoute ||
     isNumericUniversityRoute ||
     isMentorProfileRoute ||
-    OWN_CHROME_PREFIXES.some((base) => pathname === base || pathname.startsWith(`${base}/`));
+    OWN_CHROME_PREFIXES.some((base) => navigationPath === base || navigationPath.startsWith(`${base}/`));
 
   /*
    * The reveal gate only ever mattered for the landing page: everywhere else
@@ -382,10 +423,12 @@ export function NavReveal() {
         user={navigationSession.user}
         roles={roles}
         session={navigationSession}
+        locale={locale}
       />
       <MobileNavigation
         roles={roles}
         session={navigationSession}
+        locale={locale}
       />
     </div>
   );

@@ -26,9 +26,11 @@ export function mergeStrategyRoadmapPlan(
   const roadmap = context.strategyRoadmap;
   const strategyPhases = !roadmap
     ? []
-    : roadmap.kind === 'f8'
-      ? f8Phases(roadmap, context, nextOrder(deterministicPlan.phases))
-      : f7Phases(roadmap, context, nextOrder(deterministicPlan.phases));
+    : roadmap.kind === 'v3'
+      ? v3Phases(roadmap, context, nextOrder(deterministicPlan.phases))
+      : roadmap.kind === 'f8'
+        ? f8Phases(roadmap, context, nextOrder(deterministicPlan.phases))
+        : f7Phases(roadmap, context, nextOrder(deterministicPlan.phases));
   const withRoadmap = strategyPhases.length === 0
     ? deterministicPlan
     : {
@@ -139,6 +141,49 @@ function f8Phases(
   });
 }
 
+function v3Phases(
+  roadmap: Extract<PlanningStrategyRoadmap, { kind: 'v3' }>,
+  context: StrategyRoadmapPlanContext,
+  firstOrder: number,
+): PlanPhase[] {
+  const seen = new Set<string>();
+  const seenDeliverables = new Set<string>();
+  return roadmap.data.strategicRoadmap.flatMap((phase) => {
+    if (seen.has(phase.phaseKey)) return [];
+    seen.add(phase.phaseKey);
+    const contextText = factualContext(context);
+    const successCriteria = phase.successCriteria.length
+      ? `Phase success criteria: ${phase.successCriteria.join(' ')}`
+      : null;
+    return [{
+      id: `phase:strategy-roadmap:${phase.phaseKey}`,
+      title: phase.name,
+      objective: [phase.goal, `Timeline: ${phase.estimatedTimeline}`].join(' '),
+      order: firstOrder + seen.size - 1,
+      sourceDecisionIds: [],
+      sourceProvenances: sourceProvenances(context),
+      steps: [{
+        id: `step:strategy-roadmap:${phase.phaseKey}:deliverables`,
+        title: 'Complete roadmap deliverables',
+        objective: [phase.keyActions.join(' '), successCriteria, contextText].filter(Boolean).join(' '),
+        order: 1,
+        sourceDecisionIds: [],
+        sourceProvenances: sourceProvenances(context),
+        microSteps: uniqueDeliverables(phase.deliverables, seenDeliverables).map((deliverable, index) => ({
+          id: `micro-step:strategy-roadmap:${phase.phaseKey}:${deliverable.key}`,
+          title: deliverable.label,
+          guidance: `Complete this deliverable: ${deliverable.label} ${phase.goal}`,
+          order: index + 1,
+          readiness: 'requires_enrichment' as const,
+          contentSchema: null,
+          sourceDecisionIds: [],
+          sourceProvenances: sourceProvenances(context),
+        })),
+      }],
+    }];
+  });
+}
+
 function f7Phases(
   roadmap: Extract<PlanningStrategyRoadmap, { kind: 'f7' }>,
   context: StrategyRoadmapPlanContext,
@@ -174,8 +219,7 @@ function f7Phases(
   }];
 }
 
-function uniqueDeliverables<T extends { key: string }>(deliverables: readonly T[]): T[] {
-  const seen = new Set<string>();
+function uniqueDeliverables<T extends { key: string }>(deliverables: readonly T[], seen = new Set<string>()): T[] {
   return deliverables.filter((deliverable) => {
     if (seen.has(deliverable.key)) return false;
     seen.add(deliverable.key);

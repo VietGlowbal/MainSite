@@ -12,8 +12,8 @@ import {
   categoryVariant,
   formatDate,
 } from '@/features/ai-strategy-dashboard/ui';
-import { createClient } from '@/lib/supabase/server';
-import { Badge, Container, ICONS, KitIcon, Panel } from '@/shared/ui';
+import { getServerIdentity } from '@/server/auth/server-identity';
+import { Badge, Container, GlowbalIcon, ICONS, KitIcon, Panel } from '@/shared/ui';
 
 /**
  * `/ai-strategy/[applicationId]/strategy/recommendations/[recommendationId]`
@@ -41,10 +41,7 @@ export default async function RecommendationDetailPage({
 }) {
   const { applicationId, recommendationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const { data: row } = await supabase
@@ -95,7 +92,7 @@ export default async function RecommendationDetailPage({
           <div className="flex flex-wrap items-center gap-gb-2xl rounded-gb-lg border border-line bg-surface-muted px-gb-xl py-gb-lg text-gb-sm text-fg-tertiary">
             {rec.deadline ? (
               <span className="flex items-center gap-gb-xs">
-                <KitIcon art={ICONS.calendar} frame={16} className="shrink-0" />
+                <GlowbalIcon name="deadlineAlert" size={16} />
                 Due {formatDate(rec.deadline)}
               </span>
             ) : null}
@@ -107,7 +104,7 @@ export default async function RecommendationDetailPage({
             ) : null}
             {rec.evidenceRequired ? (
               <span className="flex items-center gap-gb-xs">
-                <KitIcon art={ICONS.checkCircle} frame={16} className="shrink-0" />
+                <GlowbalIcon name="documentUpload" size={16} />
                 Evidence required
               </span>
             ) : null}
@@ -116,14 +113,19 @@ export default async function RecommendationDetailPage({
 
         {rec.reason ? (
           <Panel>
-            <p className="text-gb-sm font-semibold text-fg">Why this matters</p>
+            {/* The reason is AI-written, so it wears the AI Insight icon. */}
+            <p className="flex items-center gap-gb-sm text-gb-sm font-semibold text-fg">
+              <GlowbalIcon name="aiInsight" size={16} />
+              Why this matters
+            </p>
             <p className="mt-gb-xs text-gb-sm text-fg-tertiary">{rec.reason}</p>
           </Panel>
         ) : null}
 
         {rec.estimatedImpact != null ? (
           <Panel>
-            <p className="text-gb-sm font-semibold text-fg">
+            <p className="flex items-center gap-gb-sm text-gb-sm font-semibold text-fg">
+              <GlowbalIcon name="progressUpdate" size={16} />
               How much it could improve admission chances
             </p>
             <p className="mt-gb-xs text-gb-sm text-fg-tertiary">
@@ -134,7 +136,10 @@ export default async function RecommendationDetailPage({
 
         {rec.submitChecklist.length > 0 ? (
           <Panel>
-            <p className="text-gb-sm font-semibold text-fg">What to submit</p>
+            <p className="flex items-center gap-gb-sm text-gb-sm font-semibold text-fg">
+              <GlowbalIcon name="checklist" size={16} />
+              What to submit
+            </p>
             <ul className="mt-gb-md flex flex-col gap-gb-sm">
               {rec.submitChecklist.map((item) => (
                 <li key={item} className="flex items-start gap-gb-sm text-gb-sm text-fg-tertiary">
@@ -157,7 +162,10 @@ export default async function RecommendationDetailPage({
             never populates. See domain/strategy-tool.ts. */}
         {help ? (
           <Panel>
-            <p className="text-gb-sm font-semibold text-fg">Suggested next step</p>
+            <p className="flex items-center gap-gb-sm text-gb-sm font-semibold text-fg">
+              <GlowbalIcon name="actionStep" size={16} />
+              Suggested next step
+            </p>
             {help.external ? (
               <a
                 href={help.href}

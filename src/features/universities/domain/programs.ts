@@ -368,6 +368,23 @@ export function isCourseUrl(raw: string): boolean {
   return url.hostname.includes('.');
 }
 
+/** A usable saved-list label when a student supplies only an official course URL. */
+export function courseNameFromUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw.trim());
+    const segment = url.pathname.split('/').filter(Boolean).at(-1);
+    if (!segment) return null;
+    const label = decodeURIComponent(segment)
+      .replace(/\.[a-z0-9]{2,5}$/i, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return label ? label.replace(/\b\w/g, (letter) => letter.toUpperCase()) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Drop repeats, keyed on name AND degree.
  *

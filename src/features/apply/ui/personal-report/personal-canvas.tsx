@@ -30,6 +30,19 @@ function firstUseful(values: Array<string | null | undefined>, fallback: string)
   return values.find((value) => Boolean(value?.trim()))?.trim() ?? fallback;
 }
 
+/**
+ * Canvas cards are navigation previews, not the report body. Keep malformed
+ * or overly verbose model output inside the fixed artwork; the full finding
+ * remains available in the section modal.
+ */
+function compactCanvasPreview(value: string, maxLength = 120): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+
+  const clipped = normalized.slice(0, maxLength - 1).replace(/\s+\S*$/, '').trim();
+  return `${clipped || normalized.slice(0, maxLength - 1).trim()}…`;
+}
+
 function strongestCapabilityLabels(report: PersonalReportV2): string[] {
   const stored = (report as ReportWithCanvasDetails).canvasDetails?.capabilities;
   if (stored && stored.length > 0) {
@@ -56,36 +69,46 @@ function canvasPreviews(report: PersonalReportV2): Record<PersonalCanvasSectionK
   const storedGrowth = canvasDetails?.growthPriorities[0]?.gap;
 
   return {
-    coreIdentity: firstUseful(
-      [
-        report.coreIdentity.recurringRole,
-        report.coreIdentity.valueOrientation,
-        report.coreIdentity.headline,
-      ],
-      'Your recurring identity patterns',
+    coreIdentity: compactCanvasPreview(
+      firstUseful(
+        [
+          report.coreIdentity.headline,
+          report.coreIdentity.recurringRole,
+          report.coreIdentity.valueOrientation,
+        ],
+        'Your recurring identity patterns',
+      ),
     ),
-    drivingForces:
+    drivingForces: compactCanvasPreview(
       canvasDetails?.motivations
         .slice(0, 2)
         .map((motivation) => motivation.label)
         .join(' · ') ||
-      report.drivingForce.repeatedMotivations.slice(0, 2).join(' · ') ||
-      firstUseful([report.drivingForce.headline], 'Driving Force Analysis'),
-    provenCapabilities: capabilities.join(' · ') || 'What your evidence shows you can do',
-    socialProof:
+        report.drivingForce.repeatedMotivations.slice(0, 2).join(' · ') ||
+        firstUseful([report.drivingForce.headline], 'Driving Force Analysis'),
+    ),
+    provenCapabilities: compactCanvasPreview(
+      capabilities.join(' · ') || 'What your evidence shows you can do',
+    ),
+    socialProof: compactCanvasPreview(
       evidenceCount == null
         ? 'The evidence behind your profile'
         : `${evidenceCount} evidence item${evidenceCount === 1 ? '' : 's'} supporting your profile`,
-    areasForGrowth: firstUseful(
-      [
-        storedGrowth,
-        report.personalPositioning.whatPreventsStrongerPositioning[0],
-        report.coreIdentity.stillDeveloping[0],
-        report.emergingThemes.themes[0]?.limitation,
-      ],
-      'Identity, signature pattern and theme do not yet point toward the same direction.',
     ),
-    longTermVision: themes.join(' × ') || 'The directions emerging from your current trajectory',
+    areasForGrowth: compactCanvasPreview(
+      firstUseful(
+        [
+          storedGrowth,
+          report.personalPositioning.whatPreventsStrongerPositioning[0],
+          report.coreIdentity.stillDeveloping[0],
+          report.emergingThemes.themes[0]?.limitation,
+        ],
+        'Identity, signature pattern and theme do not yet point toward the same direction.',
+      ),
+    ),
+    longTermVision: compactCanvasPreview(
+      themes.join(' × ') || 'The directions emerging from your current trajectory',
+    ),
   };
 }
 
@@ -215,7 +238,7 @@ function CanvasCell({
             {title}
           </h3>
           <p
-            className={`text-gb-sm leading-relaxed text-white/85 ${
+            className={`line-clamp-3 overflow-hidden text-gb-sm leading-relaxed text-white/85 ${
               isRight ? 'text-right' : 'text-left'
             }`}
             data-no-auto-translate
@@ -379,7 +402,7 @@ function LongTermVisionBanner({
           <h3 className="mt-gb-xs font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-neutral-900">
             Long-Term Vision
           </h3>
-          <p className="text-gb-sm leading-relaxed text-neutral-700" data-no-auto-translate>
+          <p className="line-clamp-2 overflow-hidden text-gb-sm leading-relaxed text-neutral-700" data-no-auto-translate>
             {preview}
           </p>
           <span className="mt-gb-xs inline-flex items-center gap-1 text-gb-xs font-semibold text-brand transition-all group-hover:translate-x-1">
@@ -522,7 +545,7 @@ export function PersonalCanvasView({
             1. Core
           </span>
           <p className="mt-gb-lg font-display text-gb-display-xs font-semibold">Core Identity</p>
-          <p className="mt-gb-xs text-gb-sm text-white/80" data-no-auto-translate>
+          <p className="mt-gb-xs line-clamp-2 overflow-hidden text-gb-sm text-white/80" data-no-auto-translate>
             {previews.coreIdentity}
           </p>
         </button>
@@ -606,7 +629,7 @@ export function PersonalCanvasView({
               onClick={() => onSelect('coreIdentity')}
               className={[
                 'group absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-30',
-                'flex flex-col items-center justify-center rounded-full text-center text-white cursor-pointer',
+                'flex flex-col items-center justify-center overflow-hidden rounded-full px-2 text-center text-white cursor-pointer',
                 'transition-all duration-300 ease-out hover:scale-[1.04] hover:bg-white/18 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-white',
                 activeSection === 'coreIdentity'
                   ? 'ring-4 ring-white shadow-2xl scale-[1.04] bg-white/23'
@@ -626,7 +649,7 @@ export function PersonalCanvasView({
                   Core Identity
                 </span>
                 <span
-                  className="mt-0.5 max-w-[170px] text-[11px] leading-tight text-white/85"
+                  className="mt-0.5 line-clamp-3 max-w-[170px] overflow-hidden text-[11px] leading-tight text-white/85"
                   data-no-auto-translate
                 >
                   {previews.coreIdentity}
@@ -663,7 +686,7 @@ export function PersonalCanvasView({
                   Driving Forces
                 </h3>
                 <p
-                  className="text-xs leading-snug text-white/85"
+                  className="line-clamp-2 overflow-hidden text-xs leading-snug text-white/85"
                   data-no-auto-translate
                 >
                   {previews.drivingForces}
@@ -704,7 +727,7 @@ export function PersonalCanvasView({
                   Proven Capabilities
                 </h3>
                 <p
-                  className="text-xs leading-snug text-white/85 text-right"
+                  className="line-clamp-2 overflow-hidden text-xs leading-snug text-white/85 text-right"
                   data-no-auto-translate
                 >
                   {previews.provenCapabilities}
@@ -745,7 +768,7 @@ export function PersonalCanvasView({
                   Areas for Growth
                 </h3>
                 <p
-                  className="text-xs leading-snug text-white/85"
+                  className="line-clamp-2 overflow-hidden text-xs leading-snug text-white/85"
                   data-no-auto-translate
                 >
                   {previews.areasForGrowth}
@@ -786,7 +809,7 @@ export function PersonalCanvasView({
                   Social Proof
                 </h3>
                 <p
-                  className="text-xs leading-snug text-white/85 text-right"
+                  className="line-clamp-2 overflow-hidden text-xs leading-snug text-white/85 text-right"
                   data-no-auto-translate
                 >
                   {previews.socialProof}
@@ -827,7 +850,7 @@ export function PersonalCanvasView({
                   Long-Term Vision
                 </h3>
                 <p
-                  className="text-xs leading-snug text-neutral-700"
+                  className="line-clamp-2 overflow-hidden text-xs leading-snug text-neutral-700"
                   data-no-auto-translate
                 >
                   {previews.longTermVision}

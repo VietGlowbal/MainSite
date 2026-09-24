@@ -5,6 +5,7 @@ import type {
   PersonalReportV2,
   PersonalReportVersionSummary,
 } from '../domain/personal-report';
+import { personalReportV2Schema } from '../domain/personal-report';
 
 /**
  * One version of the canonical (v2) Personal Report — a row in the
@@ -61,17 +62,7 @@ const VERSION_SELECT =
 const VERSION_SELECT_WITH_LINEAGE = `${VERSION_SELECT},application_id,confirmed_snapshot_id,source_analysis_version_id,report_contract_version,cache_key`;
 
 function isPersonalReportV2(value: unknown): value is PersonalReportV2 {
-  if (!value || typeof value !== 'object') return false;
-  const keys: (keyof PersonalReportV2)[] = [
-    'coreIdentity',
-    'drivingForce',
-    'signaturePattern',
-    'emergingThemes',
-    'personalPositioning',
-    'proofOfMe',
-    'overallEvidenceConfidence',
-  ];
-  return keys.every((key) => key in (value as Record<string, unknown>));
+  return personalReportV2Schema.safeParse(value).success;
 }
 
 function isMigrationMissing(error: { code?: string; message?: string }): boolean {
@@ -85,7 +76,7 @@ function isMigrationMissing(error: { code?: string; message?: string }): boolean
 
 function toRecord(row: Record<string, unknown>): PersonalReportV2Record | null {
   if (!row.report_v2 || !isPersonalReportV2(row.report_v2)) {
-    if (row.report_v2) console.error('[personal-report-v2] stored report_v2 failed the structural check');
+    if (row.report_v2) console.error('[personal-report-v2] stored report_v2 failed schema validation');
     return null;
   }
   return {
@@ -258,6 +249,26 @@ export async function listApplicationPersonalReportV2Versions(
     })),
     migrationMissing: false,
   };
+}
+
+/** Count the manual Personal Report versions that represent complete report generations. */
+export async function countApplicationReportGenerations(
+  supabase: SupabaseClient,
+  scope: ApplicationReportScope,
+): Promise<{ count: number; migrationMissing: boolean }> {
+  const { count, error } = await supabase
+    .from('student_personal_report_versions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', scope.userId)
+    .eq('application_id', scope.applicationId)
+    .or('trigger.eq.manual,trigger.is.null');
+
+  if (error) {
+    const migrationMissing = isMigrationMissing(error);
+    if (!migrationMissing) console.error('[personal-report-v2] application version count failed', error);
+    return { count: 0, migrationMissing };
+  }
+  return { count: count ?? 0, migrationMissing: false };
 }
 
 /** One past version of ONE application — ownership checked on all three columns. */

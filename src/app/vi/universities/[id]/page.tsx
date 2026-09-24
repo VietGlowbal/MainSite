@@ -50,4 +50,6 @@ export async function generateMetadata({
   };
 }
 
-export default UniversityDetailPage;
+export default async function VietnameseUniversityDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return <UniversityDetailPage params={params} locale="vi" />;
+}

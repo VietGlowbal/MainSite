@@ -7,6 +7,7 @@ import type {
   EvidenceSourceKind,
   NarrativeActivity,
   ProfileEvaluationInput,
+  ReflectionFinding,
   ReflectionRecord,
   VaguenessField,
 } from '@/shared/evaluation';
@@ -18,7 +19,9 @@ import {
 import {
   extractRoleAndTheme,
   type RoleThemeExtractionInput,
+  type RoleThemeExtractionResult,
 } from './evaluation/narrative-activity-extraction';
+import { extractReflectionFindings } from './evaluation/reflection-signal-extraction';
 
 /**
  * Bump when the semantic extraction/grounding contract changes independently
@@ -26,7 +29,7 @@ import {
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v5-complete-ai-narrative';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v13-semantic-grounding';
 
 /** Dynamic report-only evidence rows use this namespace in the supplements table. */
 export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';
@@ -42,6 +45,31 @@ type InlineEvidenceSupplement = { answer: string };
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function textList(value: unknown): string {
+  if (Array.isArray(value)) return value.map(text).filter(Boolean).join(', ');
+  return text(value);
+}
+
+function explicitFindingText(finding: ReflectionFinding | undefined): string {
+  if (!finding) return '';
+  const values = Object.entries(finding)
+    .filter(([key]) => key !== 'key' && key !== 'summary')
+    .flatMap(([, value]) => {
+      if (typeof value === 'string') return [value];
+      if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
+      if (value && typeof value === 'object') return Object.values(value).flatMap((item) => {
+        if (typeof item === 'string') return [item];
+        return Array.isArray(item) ? item.filter((entry): entry is string => typeof entry === 'string') : [];
+      });
+      return [];
+    });
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))].join('; ');
+}
+
+function normalizedFindingText(signal: { summary?: string; finding?: ReflectionFinding }): string {
+  return signal.summary?.trim() || explicitFindingText(signal.finding);
 }
 
 function normalize(value: string): string {
@@ -105,6 +133,26 @@ function meaningfulTokens(value: string): string[] {
     .filter((token) => token.length >= 3 && !GROUNDING_STOP_WORDS.has(token));
 }
 
+const GROUNDING_CONCEPTS: Record<string, readonly string[]> = {
+  adaptation: ['adapt', 'redesign', 'improv', 'transform', 'rework', 'modify'],
+  education: ['educat', 'workshop', 'lesson', 'student', 'teach', 'learn', 'curriculum', 'simulation'],
+  problem: ['problem', 'issue', 'gap', 'challenge', 'notic', 'identif', 'losing', 'struggl', 'barrier'],
+  initiative: ['initiative', 'independent', 'proactiv', 'redesign', 'introduc', 'launch'],
+  coordination: ['organis', 'coordinat', 'plan', 'schedul', 'manag', 'facilitat'],
+  leadership: ['lead', 'manag', 'coordinat', 'recruit', 'supervis', 'own'],
+  impact: ['reach', 'support', 'impact', 'benefit', 'improv', 'increase', 'reduce', 'outcome', 'result'],
+};
+
+function conceptSet(tokens: readonly string[]): Set<string> {
+  const concepts = new Set<string>();
+  for (const token of tokens) {
+    for (const [concept, stems] of Object.entries(GROUNDING_CONCEPTS)) {
+      if (stems.some((stem) => token.startsWith(stem))) concepts.add(concept);
+    }
+  }
+  return concepts;
+}
+
 function numbers(value: string): string[] {
   return value.match(/\d+(?:[.,]\d+)?/g) ?? [];
 }
@@ -137,11 +185,37 @@ export function isGroundedInSource(
 
   const candidateTokens = meaningfulTokens(candidate);
   if (candidateTokens.length === 0) return false;
-  const sourceTokens = new Set(meaningfulTokens(source));
-  const matched = candidateTokens.filter((token) => sourceTokens.has(token)).length;
+  const sourceTokens = meaningfulTokens(source);
+  const sourceTokenSet = new Set(sourceTokens);
+  const sourceConcepts = conceptSet(sourceTokens);
+  const ownershipClaim = /\b(?:found(?:ed|er)?|led|leadership|managed|coordinated|recruited|supervised|owned)\b/i.test(candidate);
+  const ownershipEvidence = /\b(?:found(?:ed|er)?|led|leadership|managed|coordinated|recruited|supervised|owned)\b/i.test(source);
+  if (ownershipClaim && !ownershipEvidence) return false;
+  const matched = candidateTokens.filter((token) => {
+    if (sourceTokenSet.has(token)) return true;
+    return Object.entries(GROUNDING_CONCEPTS).some(([concept, stems]) =>
+      sourceConcepts.has(concept) && stems.some((stem) => token.startsWith(stem)),
+    );
+  }).length;
   const required =
     candidateTokens.length <= 3 ? 1 : Math.ceil(candidateTokens.length * threshold);
   return matched >= required;
+}
+
+const ROLE_THEME_FACTUAL_FIELDS = ['trigger', 'problem', 'ownership', 'method'] as const;
+
+export function groundRoleThemeEvidence(
+  results: readonly RoleThemeExtractionResult[],
+  sourcesById: ReadonlyMap<string, { freeText: string }>,
+): RoleThemeExtractionResult[] {
+  return results.map((result) => {
+    const source = sourcesById.get(result.id)?.freeText ?? '';
+    const grounded = { ...result };
+    for (const field of ROLE_THEME_FACTUAL_FIELDS) {
+      grounded[field] = isGroundedInSource(result[field], source, 0.8) ? result[field] : null;
+    }
+    return grounded;
+  });
 }
 
 /**
@@ -169,7 +243,7 @@ export function isGroundedInSource(
  */
 function enrichedFreeText(row: Record<string, unknown>, baseText: string): string {
   const reflection = row['reflection'] as Record<string, unknown> | null | undefined;
-  const card = row['reflection_card'] as Record<string, unknown> | null | undefined;
+  const card = (row['reflection_card'] ?? row['reflectionCard']) as Record<string, unknown> | null | undefined;
 
   const reflectionLines = reflection
     ? (['context', 'motivation', 'challenge', 'action', 'impact', 'transformation', 'future'] as const)
@@ -288,12 +362,12 @@ function writtenFieldsFor(context: CandidateContext): VaguenessField[] {
     {
       field: 'careerGoal',
       label: 'Career goal after graduation',
-      value: text(profile.goals) || null,
+      value: text(profile.goals ?? profile.careerGoal) || null,
     },
     {
       field: 'studyMotivation',
       label: 'Why you are interested in these subjects',
-      value: text(profile.study_motivation) || null,
+      value: text(profile.study_motivation ?? profile.studyMotivation) || null,
     },
   ];
 }
@@ -303,12 +377,12 @@ function profileMotivationsFor(
 ): NonNullable<ProfileEvaluationInput['profileMotivations']> {
   const profile = context.profile as Record<string, unknown>;
   const result: Array<{ id: string; label: string; value: string }> = [];
-  const general = text(profile.study_motivation);
+  const general = text(profile.study_motivation ?? profile.studyMotivation);
   if (general) {
     result.push({ id: 'profile:study_motivation', label: 'Study motivation', value: general });
   }
 
-  const subjectMotivations = profile.subject_motivations;
+  const subjectMotivations = profile.subject_motivations ?? profile.subjectMotivations;
   if (
     subjectMotivations &&
     typeof subjectMotivations === 'object' &&
@@ -386,34 +460,81 @@ export async function buildProfileEvaluationInput(args: {
   const achievements = achievementRecords(context);
   const activities = activityRecords(context);
   const all = [...achievements, ...activities];
-  const sourceById = new Map(all.map((record) => [record.id, record]));
+  const profile = context.profile as Record<string, unknown>;
+  const reflectionAnswers = (profile.personal_reflection_answers ?? profile.personalReflection ?? null) as
+    | Record<string, string | undefined>
+    | null;
+  const reflectionAnalysis = analyzeReflectionAnswers(
+    reflectionAnswers,
+    all.map((record) => record.freeText),
+  );
+  const q4Signal = reflectionAnalysis.signals.find((signal) => signal.key === 'q4');
+  const capabilityReflectionRecord: FreeTextRecord | null = q4Signal
+    ? {
+        id: `profile:reflection_${q4Signal.key}`,
+        title: 'Personal reflection — capability ownership',
+        freeText: q4Signal.value,
+        row: { source_type: 'profile_reflection', review_status: 'reviewed' },
+      }
+    : null;
+  const sourceById = new Map(
+    [...all, ...(capabilityReflectionRecord ? [capabilityReflectionRecord] : [])].map((record) => [
+      record.id,
+      record,
+    ]),
+  );
 
   const cmcaitfInputs: CmcaitfExtractionInput[] = all.map((record) => ({
     id: record.id,
     title: record.title,
     freeText: record.freeText,
   }));
-  const competencySources: CompetencyExtractionSource[] = all.map((record) => ({
-    id: record.id,
-    kind: record.id.startsWith('achievement:') ? 'achievement' : 'activity',
-    text: record.freeText,
-  }));
+  const competencySources: CompetencyExtractionSource[] = [
+    ...all.map((record) => ({
+      id: record.id,
+      kind: record.id.startsWith('achievement:') ? 'achievement' : 'activity',
+      text: record.freeText,
+    })),
+    ...(capabilityReflectionRecord
+      ? [{
+          id: capabilityReflectionRecord.id,
+          kind: 'profile_reflection',
+          text: capabilityReflectionRecord.freeText,
+        }]
+      : []),
+  ];
   const roleThemeInputs: RoleThemeExtractionInput[] = all.map((record) => ({
     id: record.id,
     title: record.title,
     freeText: record.freeText,
   }));
 
-  const [rawReflectionRecords, rawCompetencyClaims, roleThemeResults] = await Promise.all([
+  const [rawReflectionRecords, rawCompetencyClaims, rawRoleThemeResults, reflectionFindings] = await Promise.all([
     extractCmcaitfFields({ inputs: cmcaitfInputs, apiKey, model }),
     extractCompetencyClaims({ sources: competencySources, apiKey, model }),
     extractRoleAndTheme({ inputs: roleThemeInputs, apiKey, model }),
+    extractReflectionFindings({
+      signals: reflectionAnalysis.signals,
+      apiKey,
+      ...(model ? { model } : {}),
+    }),
   ]);
+  const reflectionSignals = reflectionAnalysis.signals.map((signal) => {
+    const finding = reflectionFindings.get(signal.key);
+    return finding
+      ? {
+          ...signal,
+          finding,
+          ...(finding.summary ? { summary: finding.summary } : {}),
+        }
+      : signal;
+  });
 
   const reflectionRecords = rawReflectionRecords.map((record) =>
     groundCmcaitf(record, sourceById.get(record.id)?.freeText ?? ''),
   );
   const competencyClaims = groundCompetencies(rawCompetencyClaims, sourceById);
+  const roleThemeResults = groundRoleThemeEvidence(rawRoleThemeResults, sourceById);
   const cmcaitfById = new Map(
     reflectionRecords.map((record) => [record.id, record.cmcaitf]),
   );
@@ -427,11 +548,47 @@ export async function buildProfileEvaluationInput(args: {
     return {
       id: record.id,
       title: record.title,
+      organisation: text(record.row.organisation ?? record.row.organization) || null,
+      level: text(record.row.level) || null,
+      year: typeof record.row.year === 'number' ? record.row.year : null,
+      period: text(record.row.period) || null,
+      competition: text(record.row.competition) || null,
+      evidenceKey: text(record.row.evidence_key ?? record.row.evidenceKey) || null,
+      reviewStatus: text(record.row.review_status ?? record.row.reviewStatus) || null,
+      sourceType: text(record.row.source_type ?? record.row.sourceType) || null,
+      sources: Array.isArray(record.row.sources) ? record.row.sources : [],
+      reflection:
+        record.row.reflection && typeof record.row.reflection === 'object'
+          ? (record.row.reflection as Record<string, unknown>)
+          : null,
+      reflectionCard:
+        (record.row.reflection_card ?? record.row.reflectionCard) &&
+        typeof (record.row.reflection_card ?? record.row.reflectionCard) === 'object'
+          ? ((record.row.reflection_card ?? record.row.reflectionCard) as Record<string, unknown>)
+          : null,
       role: roleTheme?.role ?? null,
       behaviour: cmcaitf?.action ?? null,
       domainTheme: roleTheme?.domainTheme ?? null,
       statedMotivation: cmcaitf?.motivation ?? null,
       outcome: cmcaitf?.impact ?? cmcaitf?.transformation ?? null,
+      narrativeEvidence: {
+        context: cmcaitf?.context ?? null,
+        trigger: roleTheme?.trigger ?? null,
+        problem: roleTheme?.problem ?? null,
+        motivation: cmcaitf?.motivation ?? null,
+        challenge: cmcaitf?.challenge ?? null,
+        action: cmcaitf?.action ?? null,
+        ownership: roleTheme?.ownership ?? null,
+        method: roleTheme?.method ?? null,
+        impact: cmcaitf?.impact ?? null,
+        transformation: cmcaitf?.transformation ?? null,
+        future: cmcaitf?.future ?? null,
+        role: roleTheme?.role ?? null,
+        domainTheme: roleTheme?.domainTheme ?? null,
+        candidateCapabilitySignals: competencyClaims
+          .filter((claim) => claim.evidenceRefs.some((ref) => ref.id === record.id))
+          .map((claim) => claim.label),
+      },
       evidenceRefs: [{ id: record.id, kind: evidenceKind, label: record.title }],
     };
   });
@@ -446,47 +603,62 @@ export async function buildProfileEvaluationInput(args: {
     return {
       id: record.id,
       title: record.title,
+      organisation: text(record.row.organisation ?? record.row.organization) || null,
+      competition: text(record.row.competition) || null,
+      year: typeof record.row.year === 'number' ? record.row.year : null,
+      period: text(record.row.period) || null,
+      evidenceKey: text(record.row.evidence_key ?? record.row.evidenceKey) || null,
+      reviewStatus: text(record.row.review_status ?? record.row.reviewStatus) || null,
+      sourceType: text(record.row.source_type ?? record.row.sourceType) || null,
+      sources: Array.isArray(record.row.sources) ? record.row.sources : [],
       sourceKind: evidenceSourceKindFor(record, kind),
       quantifiedOutcome,
       qualitativeOutcome,
-      hasDocument: kind === 'achievement' && Boolean(text(record.row.evidence_key)),
+      hasDocument: kind === 'achievement' && Boolean(text(record.row.evidence_key ?? record.row.evidenceKey)),
       attributingOrganisation:
-        text(record.row.organisation) || text(record.row.competition) || null,
+        text(record.row.organisation ?? record.row.organization) || text(record.row.competition) || null,
       level: text(record.row.level) || null,
     };
   });
 
-  const profile = context.profile as Record<string, unknown>;
-
-  // The seven Personal Reflection answers — previously ignored entirely
-  // (plan Task 6 regression). They now (a) join the vagueness-graded written
-  // fields, (b) feed profile motivations, and (c) ride along as dimension-
-  // tagged Identity/Direction signals so downstream consumers and the input
-  // hash both see them.
-  const reflectionAnswers = (profile.personal_reflection_answers ?? null) as
-    | Record<string, string | undefined>
-    | null;
-  const reflectionAnalysis = analyzeReflectionAnswers(reflectionAnswers);
-  const reflectionWrittenFields: VaguenessField[] = reflectionAnalysis.signals.map((signal) => ({
+  // The seven Personal Reflection answers are routed by dimension. Activity
+  // and achievement text is the independent corroborating source for status.
+  const reflectionWrittenFields: VaguenessField[] = reflectionSignals.map((signal) => ({
     field: `reflection_${signal.key}`,
     label: `Personal reflection — ${signal.dimension.replaceAll('_', ' ')}`,
     value: signal.value,
   }));
-  const reflectionMotivations = reflectionAnalysis.signals
+  const reflectionMotivations = reflectionSignals
+    .filter((signal) => signal.key === 'q1' || signal.key === 'q2' || signal.key === 'q3')
+    .map((signal) => ({ signal, value: normalizedFindingText(signal) }))
+    .filter(({ value }) => Boolean(value))
     .map((signal) => ({
-      id: `profile:reflection_${signal.key}`,
-      label: `Reflection — ${signal.dimension.replaceAll('_', ' ')}`,
+      id: `profile:reflection_${signal.signal.key}`,
+      label: `Reflection — ${signal.signal.dimension.replaceAll('_', ' ')}`,
       value: signal.value,
     }));
 
-  const reflectionDirection = reflectionAnalysis.signals
-    .filter((signal) => signal.key === 'q5' || signal.key === 'q6')
-    .map((signal) => signal.value)
+  const reflectionDirection = reflectionSignals
+    .filter((signal) => signal.key === 'q5' || signal.key === 'q6' || signal.key === 'q7')
+    .map((signal) => normalizedFindingText(signal))
     .filter(Boolean)
     .join('; ');
-  const intendedDirection = [text(profile.goals), reflectionDirection]
+  const rawSubjects = profile.target_subjects ?? profile.majors;
+  const subjectDirection = Array.isArray(rawSubjects)
+    ? rawSubjects.map(text).filter(Boolean).join(', ')
+    : text(rawSubjects);
+  const careerDirection = textList(profile.career_interests ?? profile.careerInterests);
+  const intendedDirection = [text(profile.goals ?? profile.careerGoal), subjectDirection, careerDirection, reflectionDirection]
     .filter(Boolean)
     .join('; ') || null;
+  const directionSignals = {
+      academicDirection:
+      normalizedFindingText(reflectionSignals.find((signal) => signal.key === 'q5') ?? {}) || subjectDirection || null,
+    careerDirection:
+      normalizedFindingText(reflectionSignals.find((signal) => signal.key === 'q6') ?? {}) || careerDirection || null,
+    preferredEnvironment:
+      normalizedFindingText(reflectionSignals.find((signal) => signal.key === 'q7') ?? {}) || null,
+  };
 
   return {
     subjectId,
@@ -496,7 +668,13 @@ export async function buildProfileEvaluationInput(args: {
     evidenceItems,
     narrativeActivities,
     profileMotivations: [...profileMotivationsFor(context), ...reflectionMotivations],
-    reflectionAnswerSignals: reflectionAnalysis.signals,
+    reflectionAnswerSignals: reflectionSignals,
+    capabilitySignals: q4Signal
+      ? [
+          q4Signal,
+        ]
+      : [],
+    directionSignals,
     intendedDirection,
     generatedAt,
   };

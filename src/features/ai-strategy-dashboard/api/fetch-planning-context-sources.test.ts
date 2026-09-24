@@ -54,6 +54,7 @@ function buildSupabase(db: {
   application_match_analyses_error?: { code?: string; message: string } | null;
   application_strategy_recommendations?: MockTable[] | null;
   application_strategy_recommendations_error?: { code?: string; message: string } | null;
+  application_strategy_recommendations_report_error?: { code?: string; message: string } | null;
   application_plans?: MockTable[] | null;
   application_plan_phases?: MockTable[] | null;
   application_plan_steps?: MockTable[] | null;
@@ -65,13 +66,22 @@ function buildSupabase(db: {
 }) {
   function makeBuilder(table: string) {
     const builder: Record<string, unknown> = {};
+    const filters: Record<string, unknown> = {};
 
     const resolve = () => {
       const errKey = `${table}_error` as keyof typeof db;
       const dataKey = table as keyof typeof db;
-      const err = db[errKey] as { code?: string; message: string } | null | undefined;
+      const reportErr = table === 'application_strategy_recommendations' && filters.report_v2_read
+        ? db.application_strategy_recommendations_report_error
+        : undefined;
+      const err = (reportErr ?? db[errKey]) as { code?: string; message: string } | null | undefined;
       if (err) return { data: null, error: err };
-      const rows = db[dataKey] as MockTable[] | null | undefined;
+      let rows = db[dataKey] as MockTable[] | null | undefined;
+      if (table === 'application_strategy_recommendations' && rows) {
+        rows = rows.filter((row) => Object.entries(filters)
+          .filter(([column]) => column !== 'report_v2_read')
+          .every(([column, value]) => row[column] === value));
+      }
       // Return null data for empty/not-provided tables (maybeSingle semantics
       // for tables with no rows)
       if (rows === undefined || rows === null) return { data: null, error: null };
@@ -88,8 +98,15 @@ function buildSupabase(db: {
     // Every method returns builder for chaining; terminations resolve.
     const chain = () => builder;
     builder.select = chain;
-    builder.eq = chain;
+    builder.eq = (column: string, value: unknown) => {
+      if (table === 'application_strategy_recommendations') filters[column] = value;
+      return builder;
+    };
     builder.not = chain;
+    builder.not = (column: string) => {
+      if (table === 'application_strategy_recommendations' && column === 'report_v2') filters.report_v2_read = true;
+      return builder;
+    };
     builder.is = chain;
     builder.in = chain;
     builder.order = chain;
@@ -385,6 +402,112 @@ const VALID_F8_STRATEGY_ROW: MockTable = {
         successCriteria: ['A test is booked'],
         timeline: 'Before application',
       }],
+    },
+  },
+};
+
+const VALID_V3_STRATEGY_ROW: MockTable = {
+  id: 'strategy-v3-1',
+  application_id: 'app-1',
+  source_analysis_id: 'analysis-1',
+  source_match_analysis_id: 'match-1',
+  input_hash: 'strategy-v3-hash',
+  model_name: 'gpt-5.6-luna',
+      prompt_version: 'strategy-report-synthesis-v3.1.0-structured-output',
+  created_at: '2025-01-04T00:00:00Z',
+  report_v2: {
+    contractVersion: 'strategy-report-v3',
+    generatedAt: '2025-01-04T00:00:00Z',
+    strategicOverview: {
+      currentPosition: {
+        summary: 'Current profile.',
+        profileStrength: { statement: 'Strength.', evidenceIds: [], metricIds: [] },
+        keyChallenge: { statement: 'Challenge.', gapIds: [], requirementIds: [] },
+        unclearArea: null,
+        differentiatedPotential: null,
+      },
+      strategicOpportunity: { statement: 'Opportunity.', priorityKeys: [] },
+      strategicGoal: { directionOfImprovement: 'Improve.', communicationGoal: 'Communicate.' },
+      topPriorities: [],
+      expectedOutcome: 'A clearer application.',
+    },
+    profileDevelopmentStrategy: {
+      areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => ({
+        key: category,
+        category,
+        label: category,
+        status: 'maintain',
+        diagnosis: 'Stable.',
+        whyItMatters: 'It matters.',
+        suggestedDirection: 'Maintain it.',
+        evidenceIds: [],
+        metricIds: [],
+        requirementIds: [],
+        targetSourceRefs: [],
+      })),
+      activityAnalyses: [],
+    },
+    narrativeStrategy: {
+      coreNarrativeDirection: {
+        originTrigger: null,
+        recurringMotivation: null,
+        actions: [],
+        capabilitiesDeveloped: [],
+        emergingDirection: null,
+        insight: 'No pattern established.',
+        evidenceIds: [],
+      },
+      supportingThemes: [],
+      narrativeTension: null,
+      narrativeOptions: [],
+    },
+    strategicRoadmap: ['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise'].map((phaseKey) => ({
+      phaseKey,
+      name: phaseKey,
+      goal: 'Continue.',
+      keyActions: [],
+      deliverables: [],
+      successCriteria: [],
+      estimatedTimeline: 'As needed.',
+      linkedPriorityKeys: [],
+    })),
+    evidenceIndex: [],
+    targetSourceIndex: [],
+    metadata: {
+      strategyEngineVersion: 'strategy-v3.0.0',
+      reportContractVersion: 'strategy-report-v3',
+      profileDiagnosisPromptVersion: 'strategy-profile-diagnosis-v3.0.0',
+      activityAnalysisPromptVersion: 'strategy-activity-analysis-v3.2.0',
+      synthesisPromptVersion: 'strategy-report-synthesis-v3.1.0-structured-output',
+      priorityFormulaVersion: 'impact-relevance-evidence-gap-feasibility-urgency-v1',
+      personalReportVersionId: 'report-1',
+      personalReportInputHash: 'hash-abc',
+      sourceAnalysisVersionId: 'analysis-1',
+      confirmedSnapshotId: 'snapshot-1',
+      matchingReportId: 'match-1',
+      matchingInputHash: 'match-hash',
+      matchingContractVersion: 'matching-report-v3',
+      matchingEngineVersion: 'matching-v3.1.0',
+      targetProfileVersionId: null,
+      selectedScholarshipVersionId: null,
+      applicationDeadlineEvaluatedAt: '2025-01-04T00:00:00Z',
+      model: 'gpt-5.6-luna',
+      aiCallCount: 2,
+    },
+  },
+};
+
+const VALID_V3_STRATEGY_ROW_V32: MockTable = {
+  ...VALID_V3_STRATEGY_ROW,
+  id: 'strategy-v3-2',
+  prompt_version: 'strategy-report-synthesis-v3.2.0-grounded-narrative-options',
+  created_at: '2025-01-05T00:00:00Z',
+  report_v2: {
+    ...(VALID_V3_STRATEGY_ROW.report_v2 as Record<string, unknown>),
+    generatedAt: '2025-01-05T00:00:00Z',
+    metadata: {
+      ...((VALID_V3_STRATEGY_ROW.report_v2 as Record<string, unknown>).metadata as Record<string, unknown>),
+      synthesisPromptVersion: 'strategy-report-synthesis-v3.2.0-grounded-narrative-options',
     },
   },
 };
@@ -685,6 +808,23 @@ describe('fetchPlanningContextSources', () => {
     expect(diag?.status).toBe('invalid');
   });
 
+  it('falls back to the newest valid report when a newer row is malformed', async () => {
+    const badMatch: MockTable = {
+      ...VALID_MATCH_ROW,
+      id: 'match-bad',
+      fit_classification: 'INVALID_ENUM_VALUE',
+      created_at: '2025-02-01T00:00:00Z',
+    };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_match_analyses: [badMatch, VALID_MATCH_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.programmeFit?.provenance.id).toBe('match-1');
+    expect(result.diagnostics.find((diagnostic) => diagnostic.source === 'application_match_analyses')?.status).toBe('present');
+  });
+
   // ── 13. Valid F7 → strategyRecommendation populated ──────────────────────────
   it('populates strategyRecommendation with provenance including F7 ancestry IDs', async () => {
     const supabase = buildSupabase({
@@ -720,6 +860,107 @@ describe('fetchPlanningContextSources', () => {
       data: { executionRoadmap: { phases: [{ phaseKey: 'strengthen_foundation' }] } },
     });
     expect(result.strategyRecommendation).toBeNull();
+  });
+
+  it('selects a validated Strategy V3 roadmap before F8/F7 compatibility fallbacks', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_V3_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({
+      kind: 'v3',
+      provenance: {
+        id: 'strategy-v3-1',
+        inputHash: 'strategy-v3-hash',
+        engineVersion: 'strategy-v3.0.0',
+      },
+    });
+    expect(result.strategyRecommendation).toBeNull();
+  });
+
+  it('fails closed on an unexpected report read error instead of falling back to F7', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_STRATEGY_ROW],
+      application_strategy_recommendations_report_error: { code: '42501', message: 'permission denied' },
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toBeNull();
+    expect(result.strategyRecommendation).toBeNull();
+    expect(result.diagnostics).toContainEqual({
+      source: 'application_strategy_recommendations',
+      status: 'unavailable',
+      message: 'query failed',
+    });
+  });
+
+  it('keeps the F7 compatibility fallback for a known report schema gap', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_STRATEGY_ROW],
+      application_strategy_recommendations_report_error: { code: 'PGRST204', message: 'missing report_v2' },
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'f7', provenance: { id: 'strat-1' } });
+    expect(result.strategyRecommendation).not.toBeNull();
+  });
+
+  it('selects the newest valid V3 report without requiring an exact prompt version', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_V3_STRATEGY_ROW_V32, VALID_F8_STRATEGY_ROW, VALID_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({
+      kind: 'v3',
+      provenance: {
+        id: 'strategy-v3-2',
+        promptVersion: 'strategy-report-synthesis-v3.2.0-grounded-narrative-options',
+      },
+    });
+    expect(result.strategyRecommendation).toBeNull();
+  });
+
+  it('skips a malformed newest V3 row and selects the older valid V3 row', async () => {
+    const malformedNewest: MockTable = {
+      ...VALID_V3_STRATEGY_ROW_V32,
+      id: 'strategy-v3-invalid',
+      report_v2: { malformed: true },
+    };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [malformedNewest, VALID_V3_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'v3', provenance: { id: 'strategy-v3-1' } });
+  });
+
+  it('selects the newest valid F8 row when no valid V3 row exists', async () => {
+    const malformedNewest: MockTable = { ...VALID_F8_STRATEGY_ROW, id: 'strategy-f8-invalid', report_v2: { malformed: true } };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [malformedNewest, VALID_F8_STRATEGY_ROW, VALID_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'f8', provenance: { id: 'strategy-f8-1' } });
+  });
+
+  it('skips a malformed newest F7 row and selects the older valid F7 fallback', async () => {
+    const malformedNewest: MockTable = { ...VALID_STRATEGY_ROW, id: 'strategy-f7-invalid', chosen_direction: 'Unknown direction' };
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [malformedNewest, VALID_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'f7', provenance: { id: 'strat-1' } });
   });
 
   // ── 14. Malformed F7 → null + invalid ─────────────────────────────────────────

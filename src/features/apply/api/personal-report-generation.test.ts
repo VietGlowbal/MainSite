@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getLatestApplicationPersonalReportV2: vi.fn(),
   findPersonalReportV2ByCacheKey: vi.fn(),
   getApplicationPersonalReportSupplements: vi.fn(),
+  countApplicationReportGenerations: vi.fn(),
   getPersonalReportSupplements: vi.fn(),
   createPersonalReportV2Version: vi.fn(),
   getLatestApplicationProfileAnalysis: vi.fn(),
@@ -46,6 +47,7 @@ vi.mock('./personal-report-v2-repository', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatestApplicationPersonalReportV2,
   findPersonalReportV2ByCacheKey: mocks.findPersonalReportV2ByCacheKey,
   getApplicationPersonalReportSupplements: mocks.getApplicationPersonalReportSupplements,
+  countApplicationReportGenerations: mocks.countApplicationReportGenerations,
   getPersonalReportSupplements: mocks.getPersonalReportSupplements,
   createPersonalReportV2Version: mocks.createPersonalReportV2Version,
 }));
@@ -70,6 +72,7 @@ vi.mock('@/shared/evaluation', () => ({
   shouldRegenerate: mocks.shouldRegenerate,
 }));
 vi.mock('../domain', () => ({
+  APPLICATION_REPORT_GENERATION_LIMIT: 5,
   buildPersonalReport: mocks.buildPersonalReport,
   PERSONAL_REPORT_CONTRACT_VERSION: 'personal-report-v3',
 }));
@@ -104,14 +107,48 @@ const FAKE_RECORD = {
   createdAt: '2026-08-13T00:00:00.000Z',
 };
 
+const EVIDENCE_LIMITATION = {
+  reason: 'The current confirmed record does not establish this pattern yet.',
+  actions: ['Add another detailed activity reflection or outcome.'],
+};
+
 const NARRATIVE_READY_REPORT = {
-  overallEvidenceConfidence: 'medium',
-  coreIdentity: { available: true },
-  drivingForce: { available: false },
-  signaturePattern: { available: false },
-  emergingThemes: { available: false },
-  personalPositioning: { available: false },
-  proofOfMe: { available: false },
+  overallEvidenceConfidence: 'low',
+  snapshot: { summary: 'The current record is evidence-limited and does not yet establish a recurring applicant profile.' },
+  overallSummary: { paragraphs: ['The available record is not sufficient to establish a recurring overall impression yet.'] },
+  limitations: ['The current confirmed record is sparse.'],
+  growthAreas: [],
+  coreIdentity: {
+    available: false,
+    headline: '',
+    interpretation: '',
+    recurringBehaviours: [],
+    observedBehaviours: [],
+    evidenceRefs: [],
+    insufficientData: EVIDENCE_LIMITATION,
+  },
+  drivingForce: {
+    available: false,
+    primaryMotivation: null,
+    repeatedMotivations: [],
+    repeatedChoices: [],
+    recurringProblems: [],
+    decisionMaking: null,
+    underlyingValues: [],
+    strategicInterpretation: null,
+    evidenceRefs: [],
+    insufficientData: EVIDENCE_LIMITATION,
+  },
+  signaturePattern: { available: false, steps: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  emergingThemes: { available: false, themes: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  personalPositioning: { available: false, statement: '', whyThisFits: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  proofOfMe: { available: false, cards: [], evidenceRefs: [], insufficientData: EVIDENCE_LIMITATION },
+  keyTakeaways: {
+    whatMakesYouStandOut: {},
+    competitiveAdvantage: {},
+    growthOpportunity: {},
+    limitations: ['No evidence-backed takeaway is established yet.'],
+  },
 };
 
 describe('regeneratePersonalReport', () => {
@@ -120,6 +157,7 @@ describe('regeneratePersonalReport', () => {
     mocks.buildApplicantStateFromSnapshot.mockResolvedValue(FAKE_STATE);
     mocks.candidateContextFromState.mockReturnValue(FAKE_CONTEXT);
     mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.countApplicationReportGenerations.mockResolvedValue({ count: 0, migrationMissing: false });
     mocks.getLatestApplicationProfileAnalysis.mockResolvedValue(null);
     mocks.getApplicationPersonalReportSupplements.mockResolvedValue({});
     mocks.findPersonalReportV2ByCacheKey.mockResolvedValue({ record: null, migrationMissing: false });
@@ -171,14 +209,7 @@ describe('regeneratePersonalReport', () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
-    const deterministicReport = {
-      overallEvidenceConfidence: 'medium',
-      coreIdentity: {},
-      drivingForce: {},
-      emergingThemes: {},
-      personalPositioning: {},
-      proofOfMe: {},
-    };
+    const deterministicReport = { ...NARRATIVE_READY_REPORT };
     mocks.buildPersonalReport.mockReturnValue(deterministicReport);
     const canvasDetails = {
       capabilities: [],
@@ -214,7 +245,7 @@ describe('regeneratePersonalReport', () => {
       expect.objectContaining({
         userId: 'user-1',
         trigger: 'matching_report',
-        inputHash: 'hash-current',
+        inputHash: 'stable-hash',
         reportV2: expect.objectContaining({ canvasDetails }),
       }),
     );
@@ -310,17 +341,14 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
-  it('blocks an application report with no evidence-backed section instead of retrying AI', async () => {
+  it('persists an evidence-limited application report instead of returning an operational error', async () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'low' });
-    mocks.buildPersonalReport.mockReturnValue({
-      coreIdentity: { available: false },
-      drivingForce: { available: false },
-      signaturePattern: { available: false },
-      emergingThemes: { available: false },
-      personalPositioning: { available: false },
-      proofOfMe: { available: false },
+    mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT });
+    mocks.createPersonalReportV2Version.mockResolvedValue({
+      record: { id: 'v-sparse', generatedAt: '2026-08-14T00:00:00.000Z' },
+      error: null,
     });
     const originalKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = 'test-key';
@@ -334,8 +362,9 @@ describe('regeneratePersonalReport', () => {
     });
 
     process.env.OPENAI_API_KEY = originalKey;
-    expect(result.status).toBe('insufficient_evidence');
-    expect(mocks.synthesizePersonalReportNarrative).not.toHaveBeenCalled();
+    expect(result.status).toBe('regenerated');
+    expect(mocks.synthesizePersonalReportNarrative).toHaveBeenCalled();
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalled();
   });
 
   it('returns the application cache for the same snapshot and contracts', async () => {
@@ -363,6 +392,34 @@ describe('regeneratePersonalReport', () => {
     expect(result.status).toBe('cached');
     expect(mocks.buildProfileEvaluationInput).not.toHaveBeenCalled();
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+
+  it('blocks a manual application generation after five report sets', async () => {
+    mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({
+      migrationMissing: false,
+      record: {
+        ...FAKE_RECORD,
+        applicationId: 'app-a',
+        confirmedSnapshotId: 'snapshot-a',
+        sourceAnalysisVersionId: 'analysis-a',
+        reportContractVersion: 'personal-report-v3',
+        cacheKey: 'stable-hash',
+        inputHash: 'stable-hash',
+      },
+    });
+    mocks.countApplicationReportGenerations.mockResolvedValue({ count: 5, migrationMissing: false });
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+      force: true,
+    });
+
+    expect(result).toEqual({ status: 'limit_reached', count: 5, limit: 5 });
+    expect(mocks.buildProfileEvaluationInput).not.toHaveBeenCalled();
   });
 
   it('force generation reuses the analysis snapshot and appends a new version', async () => {
@@ -425,12 +482,19 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
-  it('keeps the prior report and does not persist a deterministic fallback when narrative synthesis fails', async () => {
+  it('persists the deterministic report when narrative validation fails', async () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
-    mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT, limitations: [] });
-    mocks.synthesizePersonalReportNarrative.mockResolvedValue(null);
+    mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT });
+    mocks.synthesizePersonalReportNarrative.mockImplementation(async (args: {
+      onFailure?: (code: string, context?: { issues?: Array<{ path: Array<string | number>; code: string; message: string }> }) => void;
+    }) => {
+      args.onFailure?.('invalid_evidence_scope', {
+        issues: [{ path: ['narrativeDetails', 'coreIdentity', 'evidenceIds'], code: 'too_small', message: 'Array must contain at least 1 element(s)' }],
+      });
+      return null;
+    });
     mocks.createPersonalReportV2Version.mockResolvedValue({
       record: { id: 'application-v1', generatedAt: '2026-08-26T00:00:00.000Z' },
       error: null,
@@ -442,8 +506,11 @@ describe('regeneratePersonalReport', () => {
     const result = await regeneratePersonalReport({ supabase: {} as never, userId: 'user-1', applicationId: 'app-a', trigger: 'manual' });
     process.env.OPENAI_API_KEY = originalKey;
 
-    expect(result.status).toBe('error');
-    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+    expect(result.status).toBe('regenerated');
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ reportV2: expect.objectContaining({ canvasDetails: expect.anything() }) }),
+    );
   });
 
   it('keeps the previous report and writes no analysis when an extractor fails', async () => {
@@ -464,5 +531,46 @@ describe('regeneratePersonalReport', () => {
     expect(result.status).toBe('error');
     expect(mocks.saveApplicationProfileAnalysis).not.toHaveBeenCalled();
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+});
+
+describe('interpretationsFromEvaluationInput', () => {
+  it('stores the complete narrative activity bundle as an AI interpretation', async () => {
+    const { interpretationsFromEvaluationInput } = await importSubject();
+    const [interpretation] = interpretationsFromEvaluationInput({
+      narrativeActivities: [{
+        id: 'activity:1',
+        title: 'Peer tutoring',
+        role: 'organiser',
+        behaviour: 'planned sessions',
+        domainTheme: 'education access',
+        statedMotivation: 'help learners',
+        outcome: 'more participation',
+        narrativeEvidence: {
+          context: 'school setting',
+          trigger: 'noticed a gap',
+          problem: 'learners lacked support',
+          motivation: 'help learners',
+          challenge: 'different levels',
+          action: 'planned sessions',
+          ownership: 'set the schedule',
+          method: 'grouped learners',
+          impact: 'more participation',
+          transformation: null,
+          future: 'build better tools',
+          role: 'organiser',
+          domainTheme: 'education access',
+          candidateCapabilitySignals: ['Leadership'],
+        },
+        evidenceRefs: [{ id: 'activity:1', kind: 'activity', label: 'Peer tutoring' }],
+      }],
+    } as never);
+
+    expect(interpretation).toMatchObject({
+      origin: 'ai_extraction',
+      module: 'narrative_activity_extraction',
+      sourceRefs: ['activity:1'],
+      payload: { narrativeEvidence: { trigger: 'noticed a gap', ownership: 'set the schedule', candidateCapabilitySignals: ['Leadership'] } },
+    });
   });
 });

@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import type { SubNavItem } from '@/shared/lib';
 import { useLanguage } from '@/lib/i18n';
+import { GlowbalIcon } from './glowbal-icon';
+import { isGlowbalIconName } from './glowbal-icon-art';
+import type { GlowbalIconName } from './glowbal-icon-art';
 
 /**
  * A secondary navigation bar, scoped to one thing the student is working on.
@@ -38,22 +41,60 @@ import { useLanguage } from '@/lib/i18n';
  * active label become white, because a rose underline on rose is invisible, and
  * the resting labels drop to a partial white rather than a grey — grey text on
  * a saturated red reads as damaged rather than secondary.
+ *
+ * ─── ICONS ───────────────────────────────────────────────────────────────────
+ *
+ * Product icons (`GlowbalIcon`), never colour-picked here. On the band the
+ * wrapper declares `data-surface="brand"`, so each icon follows its tab's text
+ * through rest, hover and active; on a white page it is the two-tone ink + rose.
+ * These replaced nine hand-drawn Feather-style glyphs on 2026-09-15.
  */
 export type SubNavTone = 'light' | 'on-brand';
 
 /** Per-tone classes, kept as whole strings so Tailwind's scanner extracts them. */
-const TONES: Record<SubNavTone, { nav: string; active: string; rest: string }> = {
+const TONES: Record<SubNavTone, { nav: string; active: string; rest: string; divider: string }> = {
   light: {
-    nav: 'border-b border-line',
-    active: 'border-brand text-fg-brand',
-    rest: 'border-transparent text-fg-secondary hover:text-fg-brand',
+    nav: 'border-b border-line pb-gb-sm',
+    active: 'bg-brand/10 text-fg-brand font-medium shadow-sm',
+    rest: 'text-fg-secondary hover:text-fg hover:bg-surface-muted',
+    divider: 'bg-line',
   },
   'on-brand': {
-    nav: 'border-b border-on-brand/20',
-    active: 'border-on-brand text-on-brand',
-    rest: 'border-transparent text-on-brand/75 hover:text-on-brand',
+    nav: 'pb-gb-sm',
+    active: 'bg-white/20 text-white font-medium shadow-sm',
+    rest: 'text-white/80 hover:text-white hover:bg-white/10',
+    divider: 'bg-white/20',
   },
 };
+
+/**
+ * The icon for a tab that does not name its own. Keyed by `SubNavItem.key`, so
+ * every caller of the bar gets the same icon for the same destination.
+ */
+const ITEM_ICON: Readonly<Record<string, GlowbalIconName>> = {
+  overview: 'myApplication',
+  reflections: 'reflection',
+  personalReport: 'personalReport',
+  matchingReport: 'matchingReport',
+  strategyReport: 'personalizedStrategy',
+  planner: 'applicationPlanner',
+  cv: 'cvSupport',
+  essay: 'essaySupport',
+  statement: 'essaySupport',
+  lor: 'lorSupport',
+  documents: 'documents',
+  finalCheck: 'finalEvaluation',
+};
+
+/**
+ * An item's own `icon` wins when it names a real product icon. Anything else —
+ * a stale name from before the icon set existed — falls back to the key's icon
+ * rather than rendering nothing.
+ */
+function resolveItemIcon(item: SubNavItem): GlowbalIconName | null {
+  if (item.icon && isGlowbalIconName(item.icon)) return item.icon;
+  return ITEM_ICON[item.key] ?? null;
+}
 
 export function SubNav({
   items,
@@ -81,24 +122,31 @@ export function SubNav({
       aria-label={label}
       className={`-mx-gb-xl overflow-x-auto px-gb-xl ${palette.nav}`}
     >
-      <ul className="flex min-w-max items-center gap-gb-2xl">
+      <ul className="flex min-w-max items-center gap-1 sm:gap-2">
         {reachable.map((item) => {
           const isActive = item.key === activeKey;
+          const icon = resolveItemIcon(item);
 
           return (
             <li key={item.key}>
               <Link
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`inline-block whitespace-nowrap border-b-2 pb-gb-md pt-gb-sm text-gb-sm font-medium transition-colors ${focusRing} ${
+                className={`flex flex-col items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center transition-all ${focusRing} ${
                   isActive ? palette.active : palette.rest
                 }`}
               >
-                {t(item.label)}
+                {icon ? <GlowbalIcon name={icon} size={20} /> : null}
+                <span className="whitespace-nowrap text-gb-xs font-medium tracking-tight">
+                  {t(item.label)}
+                </span>
               </Link>
             </li>
           );
         })}
+        {tone === 'on-brand' ? (
+          <li className={`h-6 w-px ${palette.divider} my-auto ml-1 shrink-0`} aria-hidden="true" />
+        ) : null}
       </ul>
     </nav>
   );

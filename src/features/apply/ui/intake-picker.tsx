@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { intakeOptionId, type IntakeChoice, type IntakeOption } from '../domain';
 import { useT } from '@/lib/i18n';
 import { localizeIntakeOption } from './intake-copy';
-import { ICONS, KitIcon } from '@/shared/ui';
+import { GlowbalIcon, ICONS, KitIcon } from '@/shared/ui';
 
 /**
  * The intake dropdown — a custom listbox rather than a styled `<select>`.
@@ -145,9 +145,15 @@ export function IntakePicker({
         }`}
       >
         <span className="flex items-center gap-gb-md">
-          <span aria-hidden="true" className="text-gb-lg leading-none">
-            {selected?.glyph ?? '📅'}
-          </span>
+          {/* A chosen intake keeps its own season glyph; the empty picker gets
+              the Intake Date icon in place of the old calendar emoji. */}
+          {selected ? (
+            <span aria-hidden="true" className="text-gb-lg leading-none">
+              {selected.glyph}
+            </span>
+          ) : (
+            <GlowbalIcon name="intakeDate" size={20} />
+          )}
           {selected ? (
             <span className="flex flex-col">
               <span className="text-gb-sm font-semibold text-fg">{selected.label}</span>

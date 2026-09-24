@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import {
@@ -9,13 +10,18 @@ import {
 } from '@/components/navigation-roles';
 import { useNavigationSession } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { getMarketingNavPresentation } from '@/features/marketing/ui';
+// The `navigation` slice, not the `marketing/ui` barrel — see the note in
+// nav-reveal.tsx. This header is on nearly every page, so reaching the barrel
+// here would put the Home page's framer-motion into all of them.
+import { getMarketingNavPresentation } from '@/features/marketing/navigation';
 import { useLanguage } from '@/lib/i18n';
+import { getLocaleFromPath, getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { MobileNav, TopNav } from '@/shared/ui';
 
 type Props = {
   tone?: 'dark' | 'light';
   showSaved?: boolean;
+  locale?: Locale;
 };
 
 const subscribeToHydration = () => () => {};
@@ -37,12 +43,15 @@ function useHydrated() {
  * but no account-specific actions. That prevents a completed student from
  * seeing the first-time onboarding CTA flash during hydration.
  */
-export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
+export function SiteNavigation({ tone = 'dark', showSaved = false, locale }: Props) {
   // Read the locale itself as well as the translator. The persistent shell can
   // survive a locale toggle; keying the nav islands to the locale guarantees
   // that a translated action label (notably Strategy Master) is never retained
   // across EN ↔ VI updates.
   const { lang, t } = useLanguage();
+  const pathname = usePathname();
+  const routeLocale = locale ?? getLocaleFromPath(pathname);
+  const translate = routeLocale === 'vi' ? (label: string) => getLocaleText('vi', label) : t;
   const session = useNavigationSession();
   const roles = useNavigationRoles();
   const hydrated = useHydrated();
@@ -54,7 +63,8 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
       : // The completed list is the neutral subset: it contains no first-time
         // Strategy item and actions are withheld separately below.
         { signedIn: true, completed: true },
-    t,
+    translate,
+    routeLocale,
   );
 
   const primaryAction = sessionReady ? presentation.primaryAction : undefined;
@@ -63,7 +73,7 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
   const items = withNavigationRoleItems(
     presentation.items,
     sessionReady ? roles : null,
-    t,
+    translate,
   );
 
   return (
@@ -73,6 +83,10 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
         tone={tone}
         logo={<GlowbalLogo height={28} />}
         items={items}
+        /* Withholding the actions below is deliberate; it also used to make the
+           bar 4px shorter until the session resolved, which moved the whole
+           page. TopNav reserves the height instead — see its prop note. */
+        actionsPending={!sessionReady}
         primaryAction={primaryAction}
         {...(showSaved ? { utility: <SavedNavLink /> } : {})}
         {...(user
@@ -90,7 +104,7 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
       <MobileNav
         key={`mobile-nav-${lang}`}
         logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
+          <Link href={localizePath('/', routeLocale)} aria-label={getLocaleText(routeLocale, 'GlowBal home')} className="inline-flex items-center">
             <GlowbalLogo height={28} />
           </Link>
         }
@@ -98,8 +112,8 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
         primaryAction={primaryAction}
         secondaryAction={accountAction}
         {...(showSaved ? { utility: <SavedNavLink variant="row" /> } : {})}
-        openLabel={t('Menu')}
-        closeLabel={t('Close menu')}
+        openLabel={translate('Menu')}
+        closeLabel={translate('Close menu')}
       />
     </>
   );

@@ -1,6 +1,9 @@
 'use client';
 
 import { useLanguage } from '@/lib/i18n';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { getLocaleFromPath, getLocaleText, isLocalizedPublicPath, localizePath } from '@/lib/i18n/locale';
 
 /**
  * EN / VI toggle.
@@ -49,22 +52,30 @@ const BUTTON_TONE: Record<'dark' | 'light', string> = {
 };
 
 export function LanguageSwitcher({ variant = 'button', tone = 'light' }: Props = {}) {
-  const { lang, toggle, t } = useLanguage();
-  const next = lang === 'en' ? 'Vietnamese' : 'English';
-  const code = lang === 'en' ? 'EN' : 'VI';
-  const flag = lang === 'en' ? '🇬🇧' : '🇻🇳';
+  const { lang, setLang, t } = useLanguage();
+  const pathname = usePathname();
+  const routeLocale = getLocaleFromPath(pathname);
+  const current = isLocalizedPublicPath(pathname) ? routeLocale : lang;
+  const next = current === 'en' ? 'vi' : 'en';
+  const nextLabel = next === 'en' ? 'English' : 'Vietnamese';
+  const currentLabel = current === 'en' ? 'English' : 'Vietnamese';
+  const code = current === 'en' ? 'EN' : 'VI';
+  const flag = current === 'en' ? '🇬🇧' : '🇻🇳';
+  const href = localizePath(pathname, next);
+  const label = getLocaleText(current, currentLabel);
+  const switchLabel = `${getLocaleText(current, 'Switch to')} ${getLocaleText(current, nextLabel)}`;
 
   if (variant === 'row') {
     return (
-      <button
-        type="button"
-        onClick={toggle}
-        aria-label={`Switch to ${next}`}
+      <Link
+        href={href}
+        onClick={() => setLang(next)}
+        aria-label={switchLabel}
         className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
       >
-        <span>{flag} {t(lang === 'en' ? 'English' : 'Vietnamese')}</span>
+        <span>{flag} {current === 'vi' ? label : t(label)}</span>
         <span className="text-gb-xs font-semibold tracking-wide text-fg-muted">{code}</span>
-      </button>
+      </Link>
     );
   }
 
@@ -76,15 +87,15 @@ export function LanguageSwitcher({ variant = 'button', tone = 'light' }: Props =
    * right edge.
    */
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={`Switch to ${next}`}
-      title={`Switch to ${next}`}
+    <Link
+      href={href}
+      onClick={() => setLang(next)}
+      aria-label={switchLabel}
+      title={switchLabel}
       className={`flex shrink-0 items-center gap-gb-sm rounded-gb-md border px-gb-lg py-gb-sm text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${BUTTON_TONE[tone]}`}
     >
       <span aria-hidden="true">{flag}</span>
       <span>{code}</span>
-    </button>
+    </Link>
   );
 }

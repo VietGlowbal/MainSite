@@ -4,20 +4,21 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SiteNavigation } from '@/components/site-navigation';
+import { SavedNavLink } from '@/components/saved-nav-link';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+  MARKETING_NAV_ITEMS,
+} from '@/features/marketing/navigation';
 import {
+  courseNameFromUrl,
   isCourseUrl,
   optionsForGroup,
   type ProgramChoices,
 } from '@/features/universities/domain';
-import { createClient } from '@/lib/supabase/client';
 import {
   Button,
   Container,
@@ -25,7 +26,9 @@ import {
   ICONS,
   Input,
   KitIcon,
+  MobileNav,
   MultiSelect,
+  TopNav,
   type MultiSelectOption,
 } from '@/shared/ui';
 
@@ -88,7 +91,6 @@ export function ProgramPicker({
   returnTo: string;
 }) {
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
 
   const [group, setGroup] = useState<string | null>(null);
   const [program, setProgram] = useState<string | null>(initialProgram);
@@ -111,43 +113,18 @@ export function ProgramPicker({
 
   const subjectOptions: MultiSelectOption[] = useMemo(
     () =>
-      optionsForGroup(choices, group).map((option) => {
-        /*
-         * The frame puts the course length on this line. The catalogue almost
-         * never has one (null on 400 of 404 rows), but it does have the degree
-         * level — and that is the more useful discriminator anyway, because the
-         * same subject is catalogued as both a bachelor's and a master's. Both
-         * are shown when both exist, neither is invented when they do not.
-         *
-         * Each part is its own <span>, so each is a whole text node the static
-         * dictionary can translate. This route has no machine fallback, and
-         * "Bachelor · 4 years" as one string could never be a dictionary hit.
-         */
-        const parts: React.ReactNode[] = [];
-        if (option.degree) parts.push(<span key="degree">{option.degree}</span>);
-        if (option.durationYears != null) {
-          // Built as ONE string, not `{n} {'years'}` — that produces separate
-          // child nodes and the dictionary keys the whole node ("4 years").
-          const years = `${option.durationYears} ${option.durationYears === 1 ? 'year' : 'years'}`;
-          parts.push(<span key="duration">{years}</span>);
-        }
-
-        return {
+      optionsForGroup(choices, group).map((option) => ({
           value: option.name,
           label: option.name,
-          ...(parts.length > 0
+          // The frame's "(4 năm)". Only where the catalogue actually says so.
+          ...(option.durationYears != null
             ? {
-                description: (
-                  <>
-                    {parts[0]}
-                    {parts.length > 1 ? ' · ' : null}
-                    {parts[1]}
-                  </>
-                ),
+                description: `${option.durationYears} ${
+                  option.durationYears === 1 ? 'year' : 'years'
+                }`,
               }
             : {}),
-        };
-      }),
+        })),
     [choices, group],
   );
 
@@ -161,9 +138,10 @@ export function ProgramPicker({
   );
 
   const urlProvided = url.trim().length > 0;
+  const urlProgram = urlProvided ? courseNameFromUrl(url.trim()) : null;
   const urlValid = !urlProvided || isCourseUrl(url);
   /* Nothing chosen is not an error, but it is not a submission either. */
-  const canSave = (program != null || urlProvided) && urlValid && !saving;
+  const canSave = (program != null || urlProgram != null) && urlValid && !saving;
 
   async function save() {
     if (!canSave) return;
@@ -186,35 +164,31 @@ export function ProgramPicker({
      * own `official_url` for the programme they picked.
      */
     const programUrl = urlProvided ? url.trim() : chosenOfficialUrl;
+    const programFromUrl = urlProvided
+      ? choices.options.find((option) => option.officialUrl === programUrl)?.name ?? urlProgram
+      : null;
 
-    const { error: updateError } = await supabase
-      .from('user_universities')
-      .update({ program, program_url: programUrl })
-      .eq('id', savedId);
-
-    if (updateError) {
+    let response: Response;
+    try {
+      response = await fetch('/api/my-universities/program', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          savedId,
+          program: program ?? programFromUrl,
+          programUrl,
+        }),
+      });
+    } catch {
       setSaving(false);
-      /*
-       * Name the failure. The likely one on a project where
-       * supabase-saved-program.sql has not been run is a missing column, and a
-       * generic "please try again" would send someone retrying a write that can
-       * never succeed.
-       *
-       * Matched on the CODE, verified against the live API rather than guessed:
-       * PostgREST answers an unknown column with PGRST204 and the message
-       * "Could not find the 'program' column of 'user_universities' in the schema
-       * cache" — note the word "column" comes AFTER the column name, which an
-       * obvious /column .*program/ pattern misses. 42703 is Postgres's own
-       * undefined_column, in case the request ever reaches it directly.
-       */
-      const code = (updateError as { code?: string }).code ?? '';
-      const missingColumn =
-        code === 'PGRST204' || code === '42703' || /'program(_url)?' column/i.test(updateError.message);
-      setError(
-        missingColumn
-          ? 'Saving a subject is not switched on in this environment yet — the user_universities.program column has not been added. Nothing was changed.'
-          : 'We could not save that. Please try again.',
-      );
+      setError('We could not save that. Please try again.');
+      return;
+    }
+
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!response.ok) {
+      setSaving(false);
+      setError(result?.error ?? 'We could not save that. Please try again.');
       return;
     }
 
@@ -222,9 +196,32 @@ export function ProgramPicker({
     router.refresh();
   }
 
+  const primaryAction = { href: '/universities', label: 'Search universities' };
+
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <SiteNavigation tone="light" showSaved />
+      <TopNav
+        tone="light"
+        logo={<GlowbalLogo height={28} />}
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={primaryAction}
+        utility={<SavedNavLink />}
+      />
+      <MobileNav
+        logo={
+          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
+            <GlowbalLogo height={28} />
+          </Link>
+        }
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={primaryAction}
+        /* Always the profile link: this page is behind the auth gate, so there is
+           no signed-out state to offer "Sign in" for. */
+        secondaryAction={{ href: '/profile', label: 'Profile' }}
+        utility={<SavedNavLink variant="row" />}
+        openLabel="Menu"
+        closeLabel="Close menu"
+      />
 
       <main className="min-h-screen py-gb-6xl">
         <Container>
@@ -313,27 +310,6 @@ export function ProgramPicker({
                 {/* 375:13716 — subjects. */}
                 <div className="flex flex-col gap-gb-md">
                   <h2 className="text-gb-sm font-semibold text-fg">Subject</h2>
-                  {/*
-                    WHERE THE LIST CAME FROM, said once.
-
-                    Catalogue rows are crawler output: collected from the
-                    university's own pages, not curated by us. The obvious
-                    alternatives were both worse — filtering to the
-                    rule-validated rows would leave this list working for ONE of
-                    the 24 catalogued universities, and badging the rest would
-                    put the same marker on 96.5% of rows, which cannot help
-                    anyone choose between two of them. One honest sentence plus
-                    a link to the source does.
-
-                    Not shown over `strengths`, which is our own editorial
-                    subject line and makes no such claim.
-                  */}
-                  {choices.source === 'catalogue' ? (
-                    <p className="text-gb-sm text-fg-muted">
-                      Collected from this university&rsquo;s own course catalogue. Check the official
-                      page before you apply.
-                    </p>
-                  ) : null}
                   <MultiSelect
                     name="program-subject"
                     label="Subject"
@@ -344,50 +320,15 @@ export function ProgramPicker({
                     maxVisible={6}
                     onChange={(next) => setProgram(next[0] ?? null)}
                   />
-                  {/* The chosen programme's own page — the way to check a
-                      collected listing against the source. Shown for the
-                      selection rather than on every row, where 20 identical
-                      links would be noise. */}
-                  {chosenOfficialUrl ? (
-                    <a
-                      href={chosenOfficialUrl}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="flex items-center gap-gb-xs self-start text-gb-sm font-semibold text-brand hover:text-brand-hover"
-                    >
-                      Open the official course page
-                      <KitIcon art={ICONS.arrowUpRight} frame={20} />
-                    </a>
-                  ) : null}
                 </div>
               </>
             )}
 
-            {/*
-              375:13729 — the paste-a-link field.
-
-              ⚠️ IT IS OPTIONAL NOW, AND IT LOOKS IT (01/08). This used to read
-              "Cannot find the subject you want? Paste a link to it" as an h2 in
-              full-weight foreground, because a link was the only thing that
-              could become an application — /apply posted it to
-              from-course-url. Since applications are created from the saved
-              university itself, a subject alone is enough, and the paste-a-URL
-              bar on /apply is gone entirely.
-
-              It is kept rather than removed (owner's call) because it is still
-              the only way a university outside the programme catalogue — 82 of
-              106 — can ever get an AI-read checklist rather than the baseline.
-              So it stays, stated as what it now buys, one type step down and in
-              muted ink so it no longer competes with the subject list above it.
-            */}
+            {/* 375:13729 — the paste-a-link fallback. */}
             <div className="flex flex-col gap-gb-lg border-t border-line pt-gb-3xl">
-              <h2 className="text-gb-sm font-semibold text-fg-tertiary">
-                Have a link to the course page? (optional)
+              <h2 className="text-gb-md font-semibold text-fg">
+                Cannot find the subject you want? Paste a link to it
               </h2>
-              <p className="text-gb-sm text-fg-muted">
-                We will read it and build a checklist specific to this course. Without one you still
-                get the standard application checklist.
-              </p>
               <Input
                 name="programUrl"
                 label="Course page"

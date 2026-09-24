@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/server/db/admin';
+import { createAdminClient, isPlaceholderSupabaseConfig } from '@/server/db/admin';
 import type { University } from '@/lib/types';
 import { normaliseUniversityName } from '../domain/match-university';
 import {
@@ -31,6 +31,7 @@ export class SupabaseUniversityRepository implements UniversityQueries {
     const page = clampPage(query.page);
     const pageSize = clampPageSize(query.pageSize);
     const from = (page - 1) * pageSize;
+    if (isPlaceholderSupabaseConfig()) return toPage<UniversityListItem>([], 0, page, pageSize);
 
     const admin = createAdminClient();
     let q = admin
@@ -64,6 +65,7 @@ export class SupabaseUniversityRepository implements UniversityQueries {
 
   /** @deprecated See {@link UniversityQueries.listAllForLegacyExplorer}. */
   async listAllForLegacyExplorer(): Promise<UniversityListItem[]> {
+    if (isPlaceholderSupabaseConfig()) return [];
     const admin = createAdminClient();
     const { data, error } = await admin
       .from('universities')

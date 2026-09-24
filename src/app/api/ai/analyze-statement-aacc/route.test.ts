@@ -250,6 +250,35 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     );
   });
 
+  it('uses an authenticated applicationless V2 context for the public VinUni page', async () => {
+    vi.stubEnv('VINUNI_ESSAY_PIPELINE_VERSION', 'v1');
+    streamVinUniEvaluationV2Mock.mockImplementation(async function* () {
+      yield {
+        type: 'complete',
+        analysis: { isComplete: true },
+        inputHash: 'v2-public',
+        versions: { schema: 'v2-schema', rubric: 'v2-rubric', prompt: 'v2-prompt' },
+        timing: { firstSectionMs: 1000, totalMs: 5000 },
+      };
+    });
+
+    const response = await POST(
+      request({ applicationId: '', contextMode: 'vinuni_public', essayPrompt: '' }),
+    );
+    await response.text();
+
+    expect(response.status).toBe(200);
+    expect(fetchApplicationWorkspaceMock).not.toHaveBeenCalled();
+    expect(buildVinUniEvaluationContextMock).toHaveBeenCalledWith({
+      application: { id: null, universityName: 'VinUniversity', courseName: null },
+      course: null,
+      profile: null,
+    });
+    expect(streamVinUniEvaluationV2Mock).toHaveBeenCalledWith(
+      expect.objectContaining({ essayPrompt: expect.any(String) }),
+    );
+  });
+
   it('does not expose the VinUni demo endpoint in production', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('VINUNI_ESSAY_PIPELINE_VERSION', 'v2');
@@ -280,5 +309,86 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     expect(shortEssay.status).toBe(400);
     expect(longPrompt.status).toBe(400);
     expect(fetchApplicationWorkspaceMock).not.toHaveBeenCalled();
+  });
+
+  it('queries structured student_achievements and activities without selecting achievements from student_profiles when profile context is enabled', async () => {
+    vi.stubEnv('VINUNI_PROFILE_CONTEXT_ENABLED', 'true');
+    vi.stubEnv('VINUNI_ESSAY_PIPELINE_VERSION', 'v2');
+
+    const tableSelects: Record<string, string> = {};
+    const createQuery = (table: string, result: unknown) => {
+      const builder: Record<string, unknown> = {};
+      const chain = () => builder;
+      Object.assign(builder, {
+        select: vi.fn((cols: string) => {
+          tableSelects[table] = cols;
+          return builder;
+        }),
+        eq: chain,
+        maybeSingle: async () => ({ data: result, error: null }),
+        then: (resolve: (val: unknown) => unknown) => Promise.resolve({ data: result, error: null }).then(resolve),
+      });
+      return builder;
+    };
+
+    createClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })),
+      },
+      from: vi.fn((table: string) => {
+        if (table === 'student_profiles') {
+          return createQuery(table, {
+            academic_background: 'Science',
+            goals: 'AI Research',
+            skills: ['Python'],
+          });
+        }
+        if (table === 'student_achievements') {
+          return createQuery(table, [
+            { title: 'Olympiad Medal', detail: 'Gold medal', competition: 'IMO', organisation: 'Org', level: 'Int', year: '2025' },
+          ]);
+        }
+        if (table === 'student_activities') {
+          return createQuery(table, [
+            { title: 'Robotics Club', description: 'Leader', organisation: 'School', level: 'Local', period: '2024' },
+          ]);
+        }
+        return createQuery(table, null);
+      }),
+    });
+
+    streamVinUniEvaluationV2Mock.mockImplementation(async function* () {
+      yield {
+        type: 'complete',
+        analysis: { isComplete: true },
+        timing: { firstSectionMs: 100, totalMs: 500 },
+      };
+    });
+
+    const response = await POST(request());
+    expect(response.status).toBe(200);
+
+    // Verify student_profiles select does NOT contain achievements
+    expect(tableSelects['student_profiles']).toBeDefined();
+    expect(tableSelects['student_profiles']).not.toContain('achievements');
+
+    // Verify structured tables were queried
+    expect(tableSelects['student_achievements']).toBe('title, detail, competition, organisation, level, year');
+    expect(tableSelects['student_activities']).toBe('title, description, organisation, level, period');
+
+    // Verify buildVinUniEvaluationContext was called with merged structured evidence
+    expect(buildVinUniEvaluationContextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profile: expect.objectContaining({
+          academic_background: 'Science',
+          achievements: [
+            expect.objectContaining({ title: 'Olympiad Medal' }),
+          ],
+          activities: [
+            expect.objectContaining({ title: 'Robotics Club' }),
+          ],
+        }),
+      }),
+    );
   });
 });

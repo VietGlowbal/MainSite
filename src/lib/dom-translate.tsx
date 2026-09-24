@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
-import { translations as dictionary } from '@/lib/i18n-dictionary';
+import { getCatalog, isCatalogLoaded, loadCatalog } from '@/lib/i18n-catalog-runtime';
 
 /**
  * Whole-page auto-translation.
@@ -18,8 +18,10 @@ import { translations as dictionary } from '@/lib/i18n-dictionary';
  *   attributes (placeholder, aria-label, title). An input's `value` is NEVER
  *   touched — it's controlled state owned by React.
  * - <script>, <style>, <code>, <pre>, <textarea> and anything inside a
- *   [data-no-auto-translate] region are skipped. The nav and the news/guide
- *   pages opt out that way because they already translate via the dictionary.
+ *   [data-no-auto-translate] region are skipped. Report roots may explicitly
+ *   opt in with [data-report-auto-translate] so private AI-generated report
+ *   prose follows the user's selected language without enabling translation
+ *   for the rest of a private page.
  * - Original English is remembered per node/attribute, so toggling back to
  *   English restores it instantly.
  * - A MutationObserver re-translates content that React re-renders or that
@@ -42,8 +44,8 @@ const ATTRS = ['placeholder', 'aria-label', 'title'] as const;
 // Whole-page machine translation is DISABLED here so that no PII is ever
 // forwarded to the translation service (/api/translate → OpenAI). These pages
 // still localise their chrome/labels via the static dictionary (t()) and any
-// explicit <AutoTranslate> the developer opted in to — and personal data like
-// a user's name or email should never be translated anyway.
+// explicit <AutoTranslate> the developer opted in to. Report roots are the
+// deliberate exception: the user asked for AI translation of report prose.
 const PII_ROUTE_PREFIXES = [
   '/profile',
   '/apply',
@@ -64,9 +66,29 @@ function isPiiRoute(pathname: string): boolean {
 const LS_KEY = 'glowbal-mt-cache-vi-v2';
 const HAS_LETTER = /\p{L}/u;
 
-// english(core) -> vietnamese. Seeded with the static dictionary so common
-// strings are instant and free (no API round-trip).
-const cache = new Map<string, string>(Object.entries(dictionary));
+// english(core) -> vietnamese. Seeded from the static catalog so common strings
+// are instant and free (no API round-trip).
+//
+// The seeding is deferred: the catalog is no longer a static import (see
+// `i18n-catalog-runtime.ts`), so these start empty and are filled by
+// `seedFromCatalog()` once it is available. Before that the maps behave exactly
+// as they do for a string the dictionary never covered — nothing matches, and
+// the English source stands.
+const cache = new Map<string, string>();
+let translatedValues = new Set<string>();
+let seeded = false;
+
+function seedFromCatalog() {
+  if (seeded || !isCatalogLoaded()) return;
+  seeded = true;
+  const dictionary = getCatalog();
+  // Entries already in `cache` came from localStorage (machine translations)
+  // and are only kept where the catalog has nothing — same precedence the
+  // eager version had, where the dictionary was written first.
+  for (const [k, v] of Object.entries(dictionary)) cache.set(k, v);
+  translatedValues = new Set(Object.values(dictionary));
+}
+
 const original = new WeakMap<Text, string>();
 // Per-element snapshot of original attribute values, so toggling back to
 // English restores them (mirrors `original` for text nodes).
@@ -78,6 +100,7 @@ function loadCache() {
   cacheLoaded = true;
   try {
     const raw = localStorage.getItem(LS_KEY);
+    const dictionary = getCatalog();
     if (raw) for (const [k, v] of Object.entries(JSON.parse(raw) as Record<string, string>))
       if (!(k in dictionary)) cache.set(k, v);   // chỉ nạp MT cho key CHƯA có trong từ điển
   } catch {
@@ -105,8 +128,13 @@ function eligible(node: Text): boolean {
   if (!parent) return false;
   if (SKIP_TAGS.has(parent.tagName)) return false;
   if (parent.isContentEditable) return false;
-  if (parent.closest('[data-no-auto-translate]')) return false;
+  const protectedRegion = parent.closest('[data-no-auto-translate]');
+  if (protectedRegion && !parent.closest('[data-report-auto-translate]')) return false;
   return true;
+}
+
+function reportOptedIn(element: Element | null): boolean {
+  return Boolean(element?.closest('[data-report-auto-translate]'));
 }
 
 // Same trust boundary as text nodes, applied to an attribute's value. Values
@@ -115,7 +143,8 @@ function eligibleAttrValue(el: Element, value: string | null): value is string {
   if (!value || !HAS_LETTER.test(value)) return false;
   if (SKIP_TAGS.has(el.tagName)) return false;
   if ((el as HTMLElement).isContentEditable) return false;
-  if (el.closest('[data-no-auto-translate]')) return false;
+  const protectedRegion = el.closest('[data-no-auto-translate]');
+  if (protectedRegion && !el.closest('[data-report-auto-translate]')) return false;
   return true;
 }
 
@@ -155,16 +184,44 @@ export function DomTranslator() {
   const { lang } = useLanguage();
   const pathname = usePathname();
 
+  /*
+   * Tracks the deferred catalog. `/vi/*` primes it before render so this starts
+   * true and the translate pass runs exactly once, as it always did. Elsewhere
+   * it flips only when the reader switches to Vietnamese, costing one extra
+   * pass on a click — never on first paint.
+   */
+  const [catalogReady, setCatalogReady] = useState(isCatalogLoaded);
+
+  useEffect(() => {
+    if (lang !== 'vi' || catalogReady) return;
+    let active = true;
+    void loadCatalog().then(() => {
+      if (active) setCatalogReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [lang, catalogReady]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    seedFromCatalog();
     loadCache();
-    const root = document.querySelector('main.glowbal-main-content');
-    if (!root) return;
+    const mainRoot = document.querySelector('main.glowbal-main-content');
+    if (!mainRoot) return;
+    // Canvas section details render through a body-level portal. Include only
+    // explicitly opted-in report roots outside <main>; the main root already
+    // contains any report subtree rendered in the normal page flow.
+    const getRoots = (): Element[] => [
+      mainRoot,
+      ...Array.from(document.querySelectorAll('[data-report-auto-translate]')).filter(
+        (element) => !mainRoot.contains(element),
+      ),
+    ];
 
-    // On pages that render private user data we still apply the static
-    // dictionary and any already-cached translations (both purely local, no
-    // network), but we NEVER send uncovered strings to /api/translate — that
-    // request forwards to OpenAI and could leak PII (names, emails, etc.).
+    // On private pages, only a report root explicitly opted in with
+    // data-report-auto-translate may send uncovered strings to /api/translate.
+    // Everything else keeps the PII-safe static-dictionary-only behaviour.
     const networkAllowed = !isPiiRoute(pathname);
     const controller = new AbortController();
 
@@ -172,12 +229,14 @@ export function DomTranslator() {
     let frame = 0;
 
     const collect = (): Text[] => {
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-        acceptNode: (n) => (eligible(n as Text) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
-      });
-      const nodes: Text[] = [];
-      for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n as Text);
-      return nodes;
+      const nodes = new Set<Text>();
+      for (const root of getRoots()) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+          acceptNode: (n) => (eligible(n as Text) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+        });
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.add(n as Text);
+      }
+      return [...nodes];
     };
 
     const write = (node: Text, value: string) => {
@@ -186,8 +245,15 @@ export function DomTranslator() {
       }
     };
 
-    const collectAttrEls = (): Element[] =>
-      Array.from(root.querySelectorAll('[placeholder],[aria-label],[title]'));
+    const collectAttrEls = (): Element[] => {
+      const elements = new Set<Element>();
+      for (const root of getRoots()) {
+        for (const element of root.querySelectorAll('[placeholder],[aria-label],[title]')) {
+          elements.add(element);
+        }
+      }
+      return [...elements];
+    };
 
     const writeAttr = (el: Element, attr: string, value: string) => {
       if (el.getAttribute(attr) !== value) el.setAttribute(attr, value);
@@ -215,9 +281,13 @@ export function DomTranslator() {
           writeAttr(el, attr, raw);
           continue;
         }
+        if (translatedValues.has(core)) {
+          writeAttr(el, attr, raw);
+          continue;
+        }
         const vi = cache.get(core);
         if (vi) writeAttr(el, attr, `${lead}${vi}${trail}`);
-        else if (missing) missing.add(core);
+        else if (missing && (networkAllowed || reportOptedIn(el))) missing.add(core);
       }
     };
 
@@ -236,9 +306,13 @@ export function DomTranslator() {
           write(node, raw);
           continue;
         }
+        if (translatedValues.has(core)) {
+          write(node, raw);
+          continue;
+        }
         const vi = cache.get(core);
         if (vi) write(node, `${lead}${vi}${trail}`);
-        else missing.add(core);
+        else if (networkAllowed || reportOptedIn(node.parentElement)) missing.add(core);
       }
       // Same pass for user-visible attributes (placeholder/aria-label/title).
       for (const el of collectAttrEls()) applyAttrs(el, missing);
@@ -248,7 +322,7 @@ export function DomTranslator() {
         suppress = false;
       });
 
-      if (lang === 'vi' && missing.size > 0 && networkAllowed) {
+      if (lang === 'vi' && missing.size > 0) {
         await translateBatch([...missing], controller.signal);
         if (controller.signal.aborted) return;
         // second pass to apply the freshly-fetched translations
@@ -298,15 +372,45 @@ export function DomTranslator() {
     });
 
     void apply();
-    observer.observe(root, { childList: true, subtree: true, characterData: true });
+    observer.observe(mainRoot, { childList: true, subtree: true, characterData: true });
+    const observeReportRoots = () => {
+      for (const root of getRoots()) {
+        if (root !== mainRoot) {
+          observer.observe(root, { childList: true, subtree: true, characterData: true });
+        }
+      }
+    };
+    observeReportRoots();
+    // A Personal Canvas modal is portaled to <body>. Watch only direct body
+    // insertions for a report marker, then observe that report subtree; other
+    // private modal content never enters the translation observer.
+    const portalObserver = new MutationObserver((records) => {
+      const reportRootAdded = records.some(
+        (record) =>
+          Array.from(record.addedNodes).some(
+            (node) =>
+              node instanceof Element &&
+              (node.matches('[data-report-auto-translate]') ||
+                node.querySelector('[data-report-auto-translate]')),
+          ),
+      );
+      if (!reportRootAdded) return;
+      observeReportRoots();
+      schedule();
+    });
+    portalObserver.observe(document.body, { childList: true });
 
     return () => {
       controller.abort();
       observer.disconnect();
+      portalObserver.disconnect();
       clearTimeout(debounce);
       cancelAnimationFrame(frame);
     };
-  }, [lang, pathname]);
+    // `catalogReady` re-runs the pass once the deferred catalog arrives, so a
+    // reader who switches to Vietnamese gets the static dictionary applied
+    // without waiting for a navigation.
+  }, [lang, pathname, catalogReady]);
 
   return null;
 }

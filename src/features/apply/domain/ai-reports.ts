@@ -209,6 +209,7 @@ export type MatchingAnalysisView = {
   strengths: string[];
   weaknesses: string[];
   reportV2?: import('@/lib/ai/matching/domain').MatchingReportV2 | null;
+  reportV3?: import('@/lib/ai/matching/domain').MatchingReportV3 | null;
 };
 
 export type MatchingApplicationSummary = {
@@ -222,6 +223,7 @@ export type MatchingApplicationSummary = {
 };
 
 export type MatchingReportPageData = MatchingApplicationSummary & {
+  personalReportVersionId?: string | null;
   universityId: number | null;
   courseUrl: string | null;
   studyMode: string | null;

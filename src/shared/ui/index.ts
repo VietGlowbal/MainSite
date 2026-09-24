@@ -38,6 +38,7 @@ export type { FooterColumn, FooterLink, FooterSocial } from './footer';
 export {
   BRAND_ICONS,
   BrandIcon,
+  EyeMark,
   ICONS,
   InstagramMark,
   KitIcon,
@@ -45,6 +46,10 @@ export {
   VerifiedMark,
 } from './icons';
 export type { BrandIconArt, KitIconArt } from './icons';
+export { GlowbalIcon, IconLabel } from './glowbal-icon';
+export type { GlowbalIconSize, GlowbalIconTone, IconLabelProps } from './glowbal-icon';
+export { GLOWBAL_ICONS } from './glowbal-icon-art';
+export type { GlowbalIconName } from './glowbal-icon-art';
 export { GlobeLoader, LoadingScreen, PageLoaderOverlay, usePrefersReducedMotion } from './globe-loader';
 export type { GlobeLoaderSize } from './globe-loader';
 export { LOADING_PHRASES, nextPhraseIndex } from './loading-phrases';

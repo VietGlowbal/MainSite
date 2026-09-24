@@ -45,9 +45,64 @@ export const REFLECTION_ANSWER_DIMENSIONS: Record<ReflectionAnswerKey, Reflectio
   q7: 'environment_preference',
 };
 
+export type ReflectionFinding = {
+  key: ReflectionAnswerKey;
+  summary: string | null;
+  q1?: {
+    interests: string[];
+    intellectualCuriosity: string[];
+    problemInterests: string[];
+    themeCandidates: string[];
+  } | null;
+  q2?: {
+    turningPoint: string | null;
+    values: string[];
+    mindsetShift: string | null;
+    personalGrowth: string | null;
+  } | null;
+  q3?: {
+    problemCaredAbout: string | null;
+    affectedGroups: string[];
+    socialConcern: string | null;
+    personalConnection: string | null;
+    ownershipSignal: string | null;
+  } | null;
+  q4?: {
+    builtImprovedSolved: string | null;
+    actions: string[];
+    agencySignals: string[];
+    capabilitySignals: string[];
+    impactSignals: string[];
+  } | null;
+  q5?: {
+    intendedMajor: string | null;
+    academicMotivation: string | null;
+    majorRationale: string | null;
+    intellectualDirection: string | null;
+  } | null;
+  q6?: {
+    futureProblem: string | null;
+    desiredChange: string | null;
+    futureAmbition: string | null;
+    desiredImpact: string | null;
+  } | null;
+  q7?: {
+    learningPreferences: string[];
+    collaborationPreferences: string[];
+    researchProjectPreferences: string[];
+    mentorshipPreferences: string[];
+    extracurricularPreferences: string[];
+    preferredOpportunities: string[];
+  } | null;
+};
+
 export type ReflectionAnswerSignal = {
   key: ReflectionAnswerKey;
   dimension: ReflectionAnswerDimension;
+  /** Short AI-normalized finding. Raw `value` remains evidence-only. */
+  summary?: string;
+  /** Structured explicit meaning; raw answer text remains in `value` only. */
+  finding?: ReflectionFinding;
   value: string;
   /** repeated = ≥2 independent sources; isolated = this single answer only. */
   status: 'repeated' | 'isolated';
@@ -87,6 +142,14 @@ export type ProfileEvaluationInput = {
    * Additive and optional so pre-existing callers stay valid.
    */
   reflectionAnswerSignals?: readonly ReflectionAnswerSignal[];
+  /** Q4 capability/ownership evidence remains separate from motivation inputs. */
+  capabilitySignals?: readonly ReflectionAnswerSignal[];
+  /** Canonical direction bundle used by Growth/Matching consumers. */
+  directionSignals?: {
+    academicDirection?: string | null;
+    careerDirection?: string | null;
+    preferredEnvironment?: string | null;
+  };
   /** F4.5 — stated only when the student has actually said where they are heading; never inferred. */
   intendedDirection: string | null;
   generatedAt: string;
@@ -108,6 +171,9 @@ export type ProfileEvaluation = {
   competencies: CompetencyProfile;
   evidence: EvidenceProfile;
   narrativeIdentity: F4Result;
+  reflectionAnswerSignals?: ReflectionAnswerSignal[];
+  capabilitySignals?: ReflectionAnswerSignal[];
+  directionSignals?: ProfileEvaluationInput['directionSignals'];
   programmeFit: ProgrammeFitResult;
   /** The floor across every framework that produced a confidence value — never an average. */
   confidence: Confidence;
@@ -131,6 +197,14 @@ export function runProfileEvaluation(input: ProfileEvaluationInput): ProfileEval
     .map((signal) => signal.value.trim())
     .filter(Boolean)
     .join('; ');
+  const reflectionDirectionSignals = {
+    academicDirection:
+      reflectionSignals.find((signal) => signal.dimension === 'academic_direction')?.value ?? null,
+    careerDirection:
+      reflectionSignals.find((signal) => signal.dimension === 'career_direction')?.value ?? null,
+    preferredEnvironment:
+      reflectionSignals.find((signal) => signal.dimension === 'environment_preference')?.value ?? null,
+  };
   const identity = {
     ...synthesizeIdentity(input.narrativeActivities, reflectionSignals),
     reflectionSignals: Object.fromEntries(
@@ -142,12 +216,18 @@ export function runProfileEvaluation(input: ProfileEvaluationInput): ProfileEval
     input.profileMotivations ?? [],
   );
   const pattern = extractBehavioralPattern(input.narrativeActivities);
+  const capabilityEvidenceRefs = competencies.claims
+    .flatMap((claim) => claim.evidenceRefs)
+    .filter((ref) => ref.kind !== 'profile_reflection');
+  const motivationEvidenceRefs = motivation.evidenceRefs;
   const positioning = assessApplicantPositioning({
     identity,
     pattern,
     theme: null,
     intendedDirection: input.intendedDirection ?? (reflectionDirection || null),
     coherent: identity.kind !== 'missing' && pattern.pattern !== null,
+    capabilityEvidenceRefs,
+    motivationEvidenceRefs,
   });
 
   // F5 — interfaces only in this phase. The Matching Report phase owns the
@@ -169,6 +249,12 @@ export function runProfileEvaluation(input: ProfileEvaluationInput): ProfileEval
     competencies,
     evidence,
     narrativeIdentity: { base, readiness, identity, motivation, pattern, positioning },
+    reflectionAnswerSignals: [...reflectionSignals],
+    ...(input.capabilitySignals ? { capabilitySignals: [...input.capabilitySignals] } : {}),
+    directionSignals: {
+      ...reflectionDirectionSignals,
+      ...input.directionSignals,
+    },
     programmeFit,
     confidence: lowestConfidence(confidenceInputs),
     generatedAt: input.generatedAt,

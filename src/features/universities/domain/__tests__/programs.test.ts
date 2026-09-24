@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  courseNameFromUrl,
   filterOptions,
   isCourseUrl,
   optionsForGroup,
@@ -376,5 +377,17 @@ describe('isCourseUrl', () => {
     // what actually turns these away.
     expect(isCourseUrl('http:///course')).toBe(false);
     expect(isCourseUrl('http://localhost:3000/programs')).toBe(false);
+  });
+});
+
+describe('courseNameFromUrl', () => {
+  it('uses the final URL path segment as a readable saved-program label', () => {
+    expect(courseNameFromUrl('https://vinuni.edu.vn/programs/multimedia-communication/')).toBe(
+      'Multimedia Communication',
+    );
+  });
+
+  it('does not invent a label when the URL has no course path', () => {
+    expect(courseNameFromUrl('https://vinuni.edu.vn/')).toBeNull();
   });
 });

@@ -30,11 +30,51 @@ function FormatCard({ id, title, description, selected, onSelect }: {
   onSelect: (id: CvPublicTemplateId) => void;
 }) {
   return (
-    <article className={`flex min-h-[318px] flex-col rounded-gb-xl border bg-surface p-gb-3xl transition ${selected ? 'border-brand ring-2 ring-brand/15' : 'border-line'}`}>
-      <span className="grid size-10 place-items-center rounded-gb-full bg-surface-muted text-fg"><SparkleIcon className="size-5" /></span>
+    <article
+      onClick={() => onSelect(id)}
+      className={`relative flex min-h-[318px] cursor-pointer flex-col rounded-gb-xl border-2 bg-surface p-gb-3xl transition-all duration-200 ${
+        selected
+          ? 'border-brand bg-brand/[0.02] shadow-md shadow-brand/10 ring-4 ring-brand/20'
+          : 'border-line hover:border-fg-muted/40 hover:shadow-gb-xs'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="grid size-10 place-items-center rounded-gb-full bg-surface-muted text-fg">
+          <SparkleIcon className="size-5" />
+        </span>
+        <span
+          className={`flex size-6 items-center justify-center rounded-full transition-all ${
+            selected
+              ? 'bg-brand text-white shadow-sm ring-2 ring-brand/30'
+              : 'border-2 border-line bg-surface-muted text-transparent'
+          }`}
+          aria-hidden="true"
+        >
+          <svg className="size-3.5 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </span>
+      </div>
       <h2 className="mt-gb-2xl text-gb-xl font-semibold tracking-tight text-fg-brand"><T k={title} /></h2>
       <p className="mt-gb-md max-w-xl text-gb-md leading-6 text-fg-secondary"><T k={description} /></p>
-      <button type="button" aria-pressed={selected} onClick={() => onSelect(id)} className="mt-auto inline-flex min-h-12 items-center justify-center rounded-gb-md bg-brand px-gb-xl text-gb-md font-semibold text-on-brand shadow-gb-xs transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(id);
+        }}
+        className={`mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-gb-md px-gb-xl text-gb-md font-semibold text-on-brand shadow-gb-xs transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+          selected
+            ? 'bg-brand shadow-md ring-2 ring-brand ring-offset-2'
+            : 'bg-brand hover:bg-brand-hover'
+        }`}
+      >
+        {selected ? (
+          <svg className="size-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : null}
         <T k="Choose now" />
       </button>
     </article>
@@ -75,8 +115,20 @@ export function CvStartFlow({ applicationId }: { applicationId: string }) {
       <section id="cv-start" aria-labelledby="cv-start-heading" className="mt-28">
         <h2 id="cv-start-heading" className="text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"><T k="Where would you like to start?" /></h2>
         <div className="mt-8 grid gap-10 md:grid-cols-2">
-          <StartCard title="Build from scratch" description="Bring your experience together into a target profile and an English CV for the programme" href={template ? `/apply/${applicationId}/cv-builder${query}` : null} actionLabel="Start building your CV" icon={<SparkleIcon className="size-5" />} />
-          <StartCard title="Input" description="Upload or paste an existing CV to receive evidence-based feedback" href={template ? `/apply/${applicationId}/cv-review${query}` : null} actionLabel="Upload" icon={<UploadIcon />} />
+          <StartCard
+            title="Create my CV"
+            description="Bring your experience together into a targeted English CV. Known profile and application information is used when available."
+            href={template ? `/apply/${applicationId}/cv-builder${query}` : null}
+            actionLabel="Create my CV"
+            icon={<SparkleIcon className="size-5" />}
+          />
+          <StartCard
+            title="Already have a CV?"
+            description="Upload or paste an existing CV to receive evidence-based feedback"
+            href={template ? `/apply/${applicationId}/cv-review${query}` : null}
+            actionLabel="Upload for review"
+            icon={<UploadIcon />}
+          />
         </div>
       </section>
     </>

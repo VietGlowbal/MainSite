@@ -61,7 +61,7 @@ describe('VinUni provider streaming', () => {
       stream: true,
       stream_options: { include_usage: true },
       temperature: 0.2,
-      max_tokens: 2600,
+      max_completion_tokens: 2600,
     });
     expect(body).not.toHaveProperty('thinking');
     expect(body).not.toHaveProperty('reasoning_effort');

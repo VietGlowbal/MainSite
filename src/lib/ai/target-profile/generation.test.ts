@@ -39,7 +39,8 @@ const PROJECTION: CatalogueProjection = {
 
 function supabaseHarness(options: {
   programmeRow: Record<string, unknown> | null;
-  latestVersion: { id: string; source_fingerprint: string; profile?: unknown } | null;
+  universityRow?: Record<string, unknown> | null;
+  latestVersion: { id: string; source_fingerprint: string; schema_version?: string; extraction_prompt_version?: string; profile?: unknown } | null;
   inserted?: Record<string, unknown>[];
 }) {
   const inserts: Record<string, unknown>[] = [];
@@ -48,6 +49,13 @@ function supabaseHarness(options: {
       return {
         select: () => ({
           eq: () => ({ maybeSingle: async () => ({ data: options.programmeRow, error: null }) }),
+        }),
+      };
+    }
+    if (table === 'universities') {
+      return {
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: options.universityRow ?? null, error: null }) }),
         }),
       };
     }
@@ -83,10 +91,8 @@ function supabaseHarness(options: {
       return builder;
     }
     if (table === 'programme_target_profile_versions') {
-      let selects = 0;
       const builder: Record<string, unknown> = {
         select: () => {
-          selects += 1;
           return builder;
         },
         eq: () => builder,
@@ -146,7 +152,13 @@ describe('resolveTargetProfile', () => {
     // Second run against a cache seeded with exactly that fingerprint hits it.
     const cachedHarness = supabaseHarness({
       programmeRow: PROJECTION.programme,
-      latestVersion: { id: 'tp-cached', source_fingerprint: fingerprint, profile: { programme: {} } },
+      latestVersion: {
+        id: 'tp-cached',
+        source_fingerprint: fingerprint,
+        schema_version: 'tp-v2',
+        extraction_prompt_version: 'target-profile-v2',
+        profile: generated.profile,
+      },
     });
     const result = await resolveTargetProfile({ ...BASE_ARGS, supabase: cachedHarness.supabase });
 
@@ -154,6 +166,29 @@ describe('resolveTargetProfile', () => {
     expect(result.versionId).toBe('tp-cached');
     expect(cachedHarness.inserts).toHaveLength(0);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('regenerates a matching cache entry when the stored profile has no source-backed data', async () => {
+    const generating = supabaseHarness({ programmeRow: PROJECTION.programme, latestVersion: null });
+    const generated = await resolveTargetProfile({ ...BASE_ARGS, supabase: generating.supabase });
+    const fingerprint = generating.inserts[0].source_fingerprint as string;
+
+    const cachedHarness = supabaseHarness({
+      programmeRow: PROJECTION.programme,
+      latestVersion: {
+        id: 'tp-empty',
+        source_fingerprint: fingerprint,
+        schema_version: 'tp-v2',
+        extraction_prompt_version: 'target-profile-v2',
+        profile: { programme: {} },
+      },
+    });
+    const result = await resolveTargetProfile({ ...BASE_ARGS, supabase: cachedHarness.supabase });
+
+    expect(generated.status).toBe('ready');
+    expect(result.status).toBe('stale');
+    expect(result.versionId).toBe('tp-new');
+    expect(cachedHarness.inserts).toHaveLength(1);
   });
 
   it('generates a NEW version and reports stale when the ingested content hash changes', async () => {
@@ -192,6 +227,75 @@ describe('resolveTargetProfile', () => {
     expect(inserts).toHaveLength(1);
   });
 
+  it('projects public course and university catalogue fields into source-backed facts', async () => {
+    const { supabase } = supabaseHarness({
+      programmeRow: {
+        ...PROJECTION.programme,
+        university_id: 'uni-1',
+        course_url: 'https://example.edu/business',
+        entry_requirements_summary: 'Strong high-school results and an interview.',
+        english_requirements_summary: 'IELTS 6.5 overall.',
+        teaching_style: 'Discussion-led classes with practical projects.',
+      },
+      universityRow: {
+        id: 'uni-1',
+        name: 'Demo University',
+        best_for: 'Students seeking an entrepreneurial business environment.',
+        industry_connections: 'Strong employer partnerships.',
+        scholarship: 'Merit awards cover up to 50% of tuition.',
+      },
+      latestVersion: null,
+    });
+
+    const result = await resolveTargetProfile({ ...BASE_ARGS, supabase });
+
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      expect(result.profile.sources.map((source) => source.ref)).toEqual(expect.arrayContaining([
+        'catalogue:course:prog-1',
+        'catalogue:university:uni-1',
+      ]));
+      expect(result.profile.requirements.map((requirement) => requirement.detail)).toEqual(expect.arrayContaining([
+        'Strong high-school results and an interview.',
+        'IELTS 6.5 overall.',
+        'Merit awards cover up to 50% of tuition.',
+      ]));
+      expect(result.profile.universityProfile?.studentProfile?.value).toContain('entrepreneurial');
+      expect(result.profile.universityProfile?.learningEnvironment.teachingModel?.value).toContain('Discussion-led');
+      expect(result.profile.programmeProfile?.opportunities.map((fact) => fact.value)).toEqual(expect.arrayContaining([
+        'Strong employer partnerships.',
+      ]));
+    }
+  });
+
+  it('preserves typed extracted facts with source provenance', async () => {
+    const projection: CatalogueProjection = {
+      ...PROJECTION,
+      fieldValues: [{
+        id: 'fv-prose',
+        field_name: 'unstructured_programme_note',
+        value: 'Students learn through supervised research projects.',
+        source_run_id: 'run-1',
+      }],
+    };
+    const { supabase } = supabaseWithProjection(projection, null);
+    const result = await resolveTargetProfile({
+      ...BASE_ARGS,
+      supabase,
+      extractor: async () => ({
+        requirements: [],
+        facts: [{ field: 'research', value: 'supervised research projects', sourceRefs: ['run-1'] }],
+      }),
+    });
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      expect(result.profile.universityProfile?.learningEnvironment.research).toEqual({
+        value: 'supervised research projects',
+        sourceRefs: ['run-1'],
+      });
+    }
+  });
+
   it('never crawls: no request path performs a network fetch', async () => {
     vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network access attempted'));
     const { supabase } = supabaseHarness({ programmeRow: PROJECTION.programme, latestVersion: null });
@@ -227,7 +331,7 @@ describe('resolveTargetProfile', () => {
   });
 });
 
-function supabaseWithProjection(projection: CatalogueProjection, latestVersion: { id: string; source_fingerprint: string } | null) {
+function supabaseWithProjection(projection: CatalogueProjection, latestVersion: { id: string; source_fingerprint: string; schema_version?: string; extraction_prompt_version?: string } | null) {
   const builderFor = (table: string) => {
     if (table === 'courses') {
       return {

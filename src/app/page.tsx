@@ -6,11 +6,6 @@ import { getUniversityQueries } from '@/features/universities/api';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
   HomeContact,
   HomeFaq,
   HomeFeatures,
@@ -24,6 +19,7 @@ import {
   HomeTeam,
   PARTNER_LOGOS,
   type ContactState,
+  getLocalizedFooter,
 } from '@/features/marketing/ui';
 import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
@@ -33,8 +29,9 @@ import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
 import { getTeamMembers } from '@/lib/team';
 import { SITE_URL } from '@/lib/site-url';
-import { serializeJsonLd } from '@/lib/seo/json-ld';
+import { buildOrganizationJsonLd, buildWebSiteJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
+import { homeCopy, type Locale } from '@/lib/i18n/locale';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -48,9 +45,8 @@ const contactLimiter = new RateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 100
  */
 
 export const metadata: Metadata = {
-  title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
-  description:
-    'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+  title: homeCopy.en.metadataTitle,
+  description: homeCopy.en.metadataDescription,
   keywords: [
     'study abroad scholarships',
     'university scholarships',
@@ -66,9 +62,8 @@ export const metadata: Metadata = {
   ],
   alternates: buildLocaleAlternates('/'),
   openGraph: {
-    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
-    description:
-      'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+    title: homeCopy.en.metadataTitle,
+    description: homeCopy.en.metadataDescription,
     url: SITE_URL,
     siteName: 'GlowBal',
     images: [
@@ -83,16 +78,24 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
-    description:
-      'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+    title: homeCopy.en.metadataTitle,
+    description: homeCopy.en.metadataDescription,
     images: ['/glowbal-logo.png'],
   },
 };
 
-// Nothing on this page reads PER-REQUEST state, so it still prerenders. The 12h
-// window was kept from the previous landing page "ready for the first section
-// that does take a Supabase read" — the partner orbit below is now that section.
+// ⚠️ THIS PAGE NO LONGER PRERENDERS, and this line does not make it. Nothing
+// *here* reads per-request state, but `app/layout.tsx` awaits `headers()` for
+// the locale, and a dynamic API in the root layout takes every route with it:
+// `next build` marks 257 of 261 routes `ƒ Dynamic`, this one included. So "/"
+// is server-rendered per request and `revalidate` only bounds the
+// `unstable_cache` entries below, not a full-route cache. Measured 2026-09-08:
+// TTFB 21-66ms once those caches are warm, 603ms on the first request after
+// they expire — and with no `loading.tsx` or `<Suspense>` here, that 603ms is
+// blank screen, because nothing flushes before the three reads resolve.
+// The 12h window was kept from the previous landing page "ready for the first
+// section that does take a Supabase read" — the partner orbit below is that
+// section. See docs/performance.md.
 export const revalidate = 43200;
 
 /**
@@ -265,40 +268,20 @@ async function submitContact(
   return { status: 'ok', message: "Thanks — we'll be in touch shortly." };
 }
 
-export default async function Home() {
+export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {}) {
   const [partnerUniversityIds, team, scholarshipSpotlight] = await Promise.all([
     getPartnerUniversityIds(),
     getTeamMembers(),
     getHomeScholarshipSpotlight(),
   ]);
 
+  const copy = homeCopy[locale];
+  const footer = getLocalizedFooter(locale);
   const homeJsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${SITE_URL}/#organization`,
-        name: 'GlowBal Education',
-        alternateName: 'GlowBal',
-        url: SITE_URL,
-        logo: {
-          '@type': 'ImageObject',
-          url: `${SITE_URL}/glowbal-logo.png`,
-        },
-        description:
-          'Student-first global course and university guidance platform helping students find scholarships and build application strategies.',
-      },
-      {
-        '@type': 'WebSite',
-        '@id': `${SITE_URL}/#website`,
-        url: SITE_URL,
-        name: 'GlowBal',
-        description: 'Find Universities, Scholarships & Study Abroad Support',
-        publisher: {
-          '@id': `${SITE_URL}/#organization`,
-        },
-        inLanguage: ['vi', 'en'],
-      },
+      buildOrganizationJsonLd({ description: copy.metadataDescription }),
+      buildWebSiteJsonLd({ description: copy.metadataDescription, inLanguage: [locale] }),
     ],
   };
 
@@ -312,37 +295,49 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd) }}
       />
-      <SiteNavigation tone="dark" />
+      <SiteNavigation tone="dark" locale={locale} />
       {/* TopNav is desktop-only (hidden below md). Without this the landing
           page has NO navigation on a phone at all: "/" is in OWN_CHROME_ROUTES,
           so the legacy mobile nav is suppressed too. `gb-has-mobile-header` on
           the wrapper is what offsets the content past the fixed 64px bar. */}
       <main>
-        <HomeHero />
-        <HomePartners universityIds={partnerUniversityIds} />
-        <HomeMetrics />
+        <HomeHero locale={locale} />
+        {/* The same six records HomeScholarships shows further down, reused for
+            the library preview the partner CTA opens — one read, two places. */}
+        <HomePartners
+          universityIds={partnerUniversityIds}
+          locale={locale}
+          scholarships={scholarshipSpotlight.entries}
+          scholarshipTotal={scholarshipSpotlight.total}
+        />
+        <HomeMetrics locale={locale} />
         <HomeScholarships
           entries={scholarshipSpotlight.entries}
           total={scholarshipSpotlight.total}
+          locale={locale}
         />
-        <HomePainPoints />
-        <HomeHowItWorks />
-        <HomeFeatures />
+        <HomePainPoints locale={locale} />
+        <HomeHowItWorks locale={locale} />
+        <HomeFeatures locale={locale} />
         {/* Testimonials tạm ẩn khỏi "/" theo yêu cầu của chủ dự án (15/08).
             Component `HomeTestimonials` vẫn còn nguyên và vẫn render ở
             `/dev/home` — bật lại chỉ cần import và đặt lại đúng chỗ này. */}
-        <HomeTeam members={team} />
-        <HomeContact action={submitContact} />
-        <HomeFaq />
+        <HomeTeam members={team} locale={locale} />
+        <HomeContact action={submitContact} locale={locale} />
+        <HomeFaq locale={locale} />
       </main>
       <Footer
         logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
+        tagline={footer.tagline}
+        columns={footer.columns}
+        social={footer.social}
+        copyright={footer.copyright}
+        ratings={footer.ratings}
       />
     </div>
   );
+}
+
+export default async function Home() {
+  return <MarketingHome locale="en" />;
 }

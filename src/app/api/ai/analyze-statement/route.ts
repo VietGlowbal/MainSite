@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 import { z } from 'zod';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import {
@@ -160,7 +161,6 @@ export async function POST(request: Request) {
     sop_analyses_used?: number | null;
     profile_summary?: string | null;
     bio?: string | null;
-    achievements?: unknown;
     skills?: unknown;
     goals?: string | null;
     grades_summary?: unknown;
@@ -178,7 +178,7 @@ export async function POST(request: Request) {
     const result = await supabase
       .from('student_profiles')
       .select(
-        'plus_status, plus_expires_at, sop_analyses_used, profile_summary, bio, achievements, skills, goals, grades_summary, career_interests',
+        'plus_status, plus_expires_at, sop_analyses_used, profile_summary, bio, skills, goals, grades_summary, career_interests',
       )
       .eq('user_id', user.id)
       .maybeSingle();
@@ -208,21 +208,34 @@ export async function POST(request: Request) {
   // Build an optional "Student background" block (Plus only) from CV + profile.
   let backgroundBlock = '';
   if (isPlus && !isLor) {
-    const { data: cv } = await supabase
-      .from('uploaded_documents')
-      .select('parsed_summary')
-      .eq('user_id', user.id)
-      .eq('type', 'cv')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const [{ data: cv }, { data: achievements }, { data: activities }] = await Promise.all([
+      supabase
+        .from('uploaded_documents')
+        .select('parsed_summary')
+        .eq('user_id', user.id)
+        .eq('type', 'cv')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('student_achievements')
+        .select('title, detail, competition, organisation, level, year')
+        .eq('user_id', user.id),
+      supabase
+        .from('student_activities')
+        .select('title, description, organisation, level, period')
+        .eq('user_id', user.id),
+    ]);
 
     const parts: string[] = [];
     if (cv?.parsed_summary) parts.push(`CV summary: ${cv.parsed_summary}`);
     if (profile?.profile_summary) parts.push(`Profile: ${profile.profile_summary}`);
     if (profile?.bio) parts.push(`Bio: ${profile.bio}`);
-    if (Array.isArray(profile?.achievements) && profile!.achievements.length > 0) {
-      parts.push(`Achievements: ${JSON.stringify(profile!.achievements)}`);
+    if (achievements && achievements.length > 0) {
+      parts.push(`Achievements: ${JSON.stringify(achievements)}`);
+    }
+    if (activities && activities.length > 0) {
+      parts.push(`Activities: ${JSON.stringify(activities)}`);
     }
     if (Array.isArray(profile?.skills) && profile!.skills.length > 0) {
       parts.push(`Skills: ${(profile!.skills as string[]).join(', ')}`);
@@ -391,8 +404,7 @@ Respond with JSON only.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: isLor ? 0.2 : 0.7,
-        max_tokens: maxTokens,
+        ...openAiCompletionParameters({ model, temperature: isLor ? 0.2 : 0.7, maxTokens }),
         response_format: { type: 'json_object' },
       }),
     });

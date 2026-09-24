@@ -17,7 +17,7 @@ import {
   PRIORITY_VARIANT,
   categoryLabel,
 } from './planner-presentation';
-import { Badge, KitIcon, type KitIconArt } from '@/shared/ui';
+import { Badge, GlowbalIcon, type GlowbalIconName } from '@/shared/ui';
 
 /**
  * The Application Planner's shared React components — the task card, the
@@ -32,12 +32,17 @@ import { Badge, KitIcon, type KitIconArt } from '@/shared/ui';
  */
 
 /**
- * A colour-toned circle around a `KitIcon` — the Planner hero's Next
+ * A colour-toned circle around a product icon — the Planner hero's Next
  * Priority/Final Deadline stats and the category board's per-category icon.
  * Three tones only, matching the token pairs `Badge`'s chip variants already
  * use (`brand-subtle`/`fg-brand`, `info-subtle`/`fg-info`,
  * `tier-safe`/`on-tier-safe`) — no new colour is introduced at this layer,
  * matching the rule `Panel`'s header comment sets for this feature slice.
+ *
+ * The icon takes the circle's text colour (`tone="current"`): the circle's tone
+ * IS the category signal, and a rose accent inside the green or blue circle
+ * would contradict it. 48px, the only size any caller ever used — the old
+ * `size` prop scaled the icon to sizes the icon set does not draw.
  */
 const ICON_CIRCLE_TONE = {
   brand: 'bg-brand-subtle text-fg-brand',
@@ -48,18 +53,15 @@ const ICON_CIRCLE_TONE = {
 export function IconCircle({
   icon,
   tone,
-  size = 48,
 }: {
-  icon: KitIconArt;
+  icon: GlowbalIconName;
   tone: keyof typeof ICON_CIRCLE_TONE;
-  size?: number;
 }) {
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-gb-full ${ICON_CIRCLE_TONE[tone]}`}
-      style={{ width: size, height: size }}
+      className={`flex size-gb-6xl shrink-0 items-center justify-center rounded-gb-full ${ICON_CIRCLE_TONE[tone]}`}
     >
-      <KitIcon art={icon} frame={Math.round(size * 0.42)} />
+      <GlowbalIcon name={icon} size={20} tone="current" />
     </div>
   );
 }

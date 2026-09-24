@@ -14,6 +14,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { openAiCompletionParameters } from '@/lib/ai/openai-client';
 import {
   streamOpenAIText,
   streamVinUniEvaluation,
@@ -29,7 +30,10 @@ import {
 } from '@/lib/ai/vinuni-evaluation-v2';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { createClient } from '@/lib/supabase/server';
-import { VINUNI_DEMO_APPLICATION_ID } from '@/lib/ai/vinuni-evaluation-shared';
+import {
+  VINUNI_DEMO_APPLICATION_ID,
+  VINUNI_DEFAULT_ESSAY_PROMPT,
+} from '@/lib/ai/vinuni-evaluation-shared';
 
 const MIN_LENGTH = 200;
 const MAX_LENGTH = 15_000;
@@ -50,12 +54,19 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const applicationId =
     typeof body?.applicationId === 'string' ? body.applicationId.trim() : '';
-  const useV2 = Boolean(applicationId);
+  const isPublicContext = body?.contextMode === 'vinuni_public';
+  const useV2 = Boolean(applicationId || isPublicContext);
   const isDemoId = applicationId === VINUNI_DEMO_APPLICATION_ID;
   const isLocalDemo = useV2 && isDemoId && process.env.NODE_ENV === 'development';
 
   if (isDemoId && !isLocalDemo) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  if (isPublicContext && applicationId) {
+    return NextResponse.json(
+      { error: 'vinuni_public context must not include an application ID.' },
+      { status: 400 },
+    );
   }
 
   const supabase = isLocalDemo ? null : await createClient();
@@ -89,7 +100,11 @@ export async function POST(request: Request) {
     | undefined;
   if (useV2) {
     const essayPrompt =
-      typeof body?.essayPrompt === 'string' ? body.essayPrompt.trim() : '';
+      typeof body?.essayPrompt === 'string' && body.essayPrompt.trim()
+        ? body.essayPrompt.trim()
+        : isPublicContext
+          ? VINUNI_DEFAULT_ESSAY_PROMPT
+          : '';
     const requestedSections = Array.isArray(body?.requestedSections)
       ? body.requestedSections.filter(
           (section: unknown): section is VinUniRequestedSection =>
@@ -97,7 +112,7 @@ export async function POST(request: Request) {
             V2_SECTION_KEYS.has(section as VinUniRequestedSection),
         )
       : undefined;
-    if (!applicationId) {
+    if (!applicationId && !isPublicContext) {
       return NextResponse.json({ error: 'Application ID is required.' }, { status: 400 });
     }
     if (!essayPrompt || essayPrompt.length > MAX_PROMPT_LENGTH) {
@@ -118,7 +133,17 @@ export async function POST(request: Request) {
       );
     }
 
-    if (isLocalDemo) {
+    if (isPublicContext) {
+      v2Input = {
+        essayPrompt,
+        ...(requestedSections ? { requestedSections } : {}),
+        context: buildVinUniEvaluationContext({
+          application: { id: null, universityName: 'VinUniversity', courseName: null },
+          course: null,
+          profile: null,
+        }),
+      };
+    } else if (isLocalDemo) {
       v2Input = {
         essayPrompt,
         ...(requestedSections ? { requestedSections } : {}),
@@ -141,18 +166,33 @@ export async function POST(request: Request) {
       if (!workspace) {
         return NextResponse.json({ error: 'Application not found' }, { status: 404 });
       }
-      const profile =
+      const [{ data: profileRow }, { data: achievements }, { data: activities }] =
         process.env.VINUNI_PROFILE_CONTEXT_ENABLED === 'true'
-          ? (
-              await supabase!
+          ? await Promise.all([
+              supabase!
                 .from('student_profiles')
                 .select(
-                  'academic_background, grades_summary, goals, career_interests, achievements, skills, profile_summary, bio',
+                  'academic_background, grades_summary, goals, career_interests, skills, profile_summary, bio',
                 )
                 .eq('user_id', user!.id)
-                .maybeSingle()
-            ).data
-          : null;
+                .maybeSingle(),
+              supabase!
+                .from('student_achievements')
+                .select('title, detail, competition, organisation, level, year')
+                .eq('user_id', user!.id),
+              supabase!
+                .from('student_activities')
+                .select('title, description, organisation, level, period')
+                .eq('user_id', user!.id),
+            ])
+          : [{ data: null }, { data: null }, { data: null }];
+      const profile = profileRow
+        ? {
+            ...profileRow,
+            ...(achievements && achievements.length > 0 ? { achievements } : {}),
+            ...(activities && activities.length > 0 ? { activities } : {}),
+          }
+        : null;
       v2Input = {
         essayPrompt,
         ...(requestedSections ? { requestedSections } : {}),
@@ -339,8 +379,7 @@ Respond with JSON only.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.4,
-        max_tokens: 2200,
+        ...openAiCompletionParameters({ model, temperature: 0.4, maxTokens: 2200 }),
         response_format: { type: 'json_object' },
       }),
     });

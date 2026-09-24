@@ -19,7 +19,6 @@ describe('navigation visibility', () => {
     '/universities/42/',
     '/apply',
     '/apply/application-1',
-    '/apply/application-1/lor-feedback',
     '/ai-strategy',
     '/ai-strategy/application-1',
     '/about',
@@ -40,6 +39,7 @@ describe('navigation visibility', () => {
     '/advisors/apply',
     '/apply/application-1/cv',
     '/apply/application-1/statement',
+    '/apply/application-1/lor-feedback',
   ])('keeps the root header on %s', (pathname) => {
     expect(suppressesGlobalNavigation(pathname)).toBe(false);
   });

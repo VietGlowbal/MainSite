@@ -3,10 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { StrategyRecommendationRecord, StrategyReportV2 } from '../domain';
+import type { StrategyReportV3 } from '@/lib/ai/strategy-v3/domain';
 import { StrategyRecommendationReport } from './strategy-recommendation-report';
 import { StrategyReportV2View } from './strategy-report-v2-view';
+import { StrategyReportV3View } from './strategy-report-v3-view';
 import { Button, usePrefersReducedMotion } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
+import type { PlannerMode } from '../api/planner-mode';
 
 /** Cycled while the strategy is generating. */
 const LOADING_MESSAGES = [
@@ -15,6 +18,7 @@ const LOADING_MESSAGES = [
   'Evaluating your portfolio...',
   'Building your roadmap...',
 ] as const;
+const STRATEGY_GENERATION_ATTEMPTS = 1;
 
 type LoadState = 'checking' | 'generating' | 'ready' | 'error';
 
@@ -41,17 +45,25 @@ type LoadState = 'checking' | 'generating' | 'ready' | 'error';
  */
 export function StrategyRecommendationWorkspace({
   applicationId,
+  plannerMode = 'canonical',
+  personalReportVersionId,
 }: {
   applicationId: string;
+  plannerMode?: PlannerMode;
+  personalReportVersionId?: string;
 }) {
   const { t } = useLanguage();
   const router = useRouter();
   const [state, setState] = useState<LoadState>('checking');
   const [recommendation, setRecommendation] = useState<StrategyRecommendationRecord | null>(null);
   const [reportV2, setReportV2] = useState<StrategyReportV2 | null>(null);
+  const [reportV3, setReportV3] = useState<StrategyReportV3 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
   const ran = useRef(false);
+  const reportEndpoint = personalReportVersionId
+    ? `/api/applications/${applicationId}/strategy/recommendation?personalReportVersionId=${encodeURIComponent(personalReportVersionId)}`
+    : `/api/applications/${applicationId}/strategy/recommendation`;
 
   useEffect(() => {
     if (state !== 'generating') return;
@@ -72,39 +84,71 @@ export function StrategyRecommendationWorkspace({
 
     async function run() {
       try {
-        const existingRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`);
+        const existingRes = await fetch(reportEndpoint);
         const existing = (await existingRes.json()) as {
           recommendation?: StrategyRecommendationRecord | null;
           reportV2?: StrategyReportV2 | null;
+          reportV3?: StrategyReportV3 | null;
         };
-        if (existing.reportV2) {
-          setReportV2(existing.reportV2);
-          setState('ready');
-          return;
-        }
-        if (existing.recommendation) {
-          setRecommendation(existing.recommendation);
+        // A stored V3 report is the completed page state. Do not POST on
+        // reload: POST can legitimately miss its recomputed hash when an
+        // upstream row changed shape, which would regenerate the report.
+        if (existingRes.ok && existing.reportV3) {
+          setReportV3(existing.reportV3);
           setState('ready');
           return;
         }
 
+        // Legacy rows still go through POST once so they can be upgraded to
+        // the canonical V3 report.
         setState('generating');
-        const generatedRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`, {
-          method: 'POST',
-        });
-        const generated = (await generatedRes.json()) as {
+        let generatedRes: Response | null = null;
+        let generated: {
           recommendation?: StrategyRecommendationRecord | null;
           reportV2?: StrategyReportV2 | null;
+          reportV3?: StrategyReportV3 | null;
           error?: string;
           needsInputs?: boolean;
-        };
+        } = {};
+        let requestError: unknown = null;
+
+        for (let attempt = 0; attempt < STRATEGY_GENERATION_ATTEMPTS; attempt += 1) {
+          try {
+            generatedRes = await fetch(reportEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(
+                personalReportVersionId ? { personalReportVersionId } : {},
+              ),
+            });
+            generated = (await generatedRes.json()) as typeof generated;
+            requestError = null;
+            if (generated.needsInputs || (generatedRes.ok && (generated.recommendation || generated.reportV2 || generated.reportV3))) {
+              break;
+            }
+          } catch (caught) {
+            requestError = caught;
+          }
+        }
+
+        if (!generatedRes && requestError) throw requestError;
 
         if (generated.needsInputs) {
           router.replace(`/ai-strategy/${applicationId}/strategy/analysis`);
           return;
         }
 
-        if (!generatedRes.ok || (!generated.recommendation && !generated.reportV2)) {
+        if (!generatedRes || !generatedRes.ok || (!generated.recommendation && !generated.reportV2 && !generated.reportV3)) {
+          if (!existing.reportV3 && existing.reportV2) {
+            setReportV2(existing.reportV2);
+            setState('ready');
+            return;
+          }
+          if (!existing.reportV3 && existing.recommendation) {
+            setRecommendation(existing.recommendation);
+            setState('ready');
+            return;
+          }
           setError(generated.error || t('Something went wrong. Please try again.'));
           setState('error');
           return;
@@ -112,13 +156,18 @@ export function StrategyRecommendationWorkspace({
 
         setRecommendation(generated.recommendation ?? null);
         setReportV2(generated.reportV2 ?? null);
+        setReportV3(generated.reportV3 ?? null);
         setState('ready');
       } catch {
         setError(t('Something went wrong. Please try again.'));
         setState('error');
       }
     }
-  }, [applicationId, router, t]);
+  }, [applicationId, personalReportVersionId, reportEndpoint, router, t]);
+
+  if (state === 'ready' && reportV3) {
+    return <StrategyReportV3View applicationId={applicationId} plannerMode={plannerMode} report={reportV3} />;
+  }
 
   if (state === 'ready' && reportV2) {
     return <StrategyReportV2View applicationId={applicationId} report={reportV2} />;

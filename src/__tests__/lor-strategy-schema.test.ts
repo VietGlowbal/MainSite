@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('LOR strategy Supabase migration', () => {
   it('creates an owner-scoped, Data API-accessible strategy table', () => {
-    const migrationPath = resolve(process.cwd(), 'supabase-lor-strategy.sql');
+    const migrationPath = resolve(process.cwd(), 'sql/supabase-lor-strategy.sql');
     expect(existsSync(migrationPath)).toBe(true);
     if (!existsSync(migrationPath)) return;
 
@@ -39,7 +39,7 @@ describe('LOR strategy Supabase migration', () => {
   });
 
   it('atomically consumes a free review without accepting a caller-supplied user id', () => {
-    const sql = readFileSync(resolve(process.cwd(), 'supabase-lor-strategy.sql'), 'utf8').toLowerCase();
+    const sql = readFileSync(resolve(process.cwd(), 'sql/supabase-lor-strategy.sql'), 'utf8').toLowerCase();
 
     expect(sql).toContain(
       'create or replace function public.consume_statement_review(review_limit integer)',

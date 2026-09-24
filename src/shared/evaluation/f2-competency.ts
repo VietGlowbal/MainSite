@@ -121,6 +121,13 @@ function scoreGroundedness(claim: CompetencyClaim): number {
   const situation = claim.situation.trim();
   const concrete = situation.length >= MIN_SITUATION_LENGTH && hasConcreteDetail(situation);
   if (!concrete) return 45;
+  const independentlyCorroborated = claim.evidenceRefs.some(
+    (ref) => ref.kind !== 'profile_reflection',
+  );
+  // A Personal Reflection capability answer is self-reported evidence. It
+  // may be useful context, but cannot score as strongly grounded until an
+  // activity/achievement/document independently backs it.
+  if (claim.evidenceRefs.length > 0 && !independentlyCorroborated) return 45;
   return claim.evidenceRefs.length > 0 ? 90 : 70;
 }
 
@@ -142,7 +149,14 @@ export function scoreCompetencyClaim(claim: CompetencyClaim): CompetencyScore {
     status: groundedness >= 70 ? 'grounded' : groundedness >= 45 ? 'partially_grounded' : 'ungrounded',
     score: groundedness,
     groundedness,
-    confidence: claim.evidenceRefs.length > 0 ? 'high' : claim.situation ? 'medium' : 'low',
+    confidence:
+      claim.evidenceRefs.some((ref) => ref.kind !== 'profile_reflection')
+        ? 'high'
+        : claim.evidenceRefs.length > 0
+          ? 'medium'
+          : claim.situation
+            ? 'medium'
+            : 'low',
     kind: claim.evidenceRefs.length > 0 ? 'observation' : 'inference',
     evidenceRefs: claim.evidenceRefs,
     limitations,

@@ -28,4 +28,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 300;
 
-export default NewsPage;
+export default async function VietnameseNewsPage() {
+  return <NewsPage locale="vi" />;
+}

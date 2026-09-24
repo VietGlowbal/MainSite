@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import ReactDOM from 'react-dom';
 import { Bricolage_Grotesque, Geist_Mono, Inter } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
+import { ConsentBoundary } from '@/components/privacy/consent-boundary';
 import { NavigationRolesProvider } from '@/components/navigation-roles';
 import { NavigationSessionProvider } from '@/components/navigation-session';
 import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
+import { headers } from 'next/headers';
+import { NONCE_HEADER } from '@/shared/lib';
 import { DomTranslator } from '@/lib/dom-translate';
 import { StrategyHelpButton } from '@/features/marketing/strategy-help';
 import { GlobalLoadingOverlay } from '@/shared/ui/loading-overlay';
@@ -72,8 +73,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'vi_VN',
-    alternateLocale: ['en_US'],
+    locale: 'en_US',
+    alternateLocale: ['vi_VN'],
     url: SITE_URL,
     siteName: 'GlowBal',
     title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
@@ -111,11 +112,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const requestHeaders = await headers();
+  const locale = requestHeaders.get('x-glowbal-locale') === 'vi' ? 'vi' : 'en';
+  // Set by src/proxy.ts alongside the page's CSP. Next stamps it on its own
+  // scripts; only scripts mounted through next/script need it passed by hand.
+  const nonce = requestHeaders.get(NONCE_HEADER) ?? undefined;
+
   // Warm up connections to the CDNs that serve LCP imagery, so image-heavy
   // routes don't pay full DNS + TLS latency on first paint. React hoists
   // these hints into <head>.
@@ -158,7 +165,7 @@ export default function RootLayout({
      * sticky still works.
      */
     <html
-      lang="en"
+      lang={locale}
       className={`${inter.variable} ${bricolage.variable} ${geistMono.variable} h-full overflow-x-clip antialiased`}
     >
       {/* No `bg-white` here: `body {}` now lives in @layer base (globals.css),
@@ -167,33 +174,33 @@ export default function RootLayout({
       <body className="min-h-full flow-root overflow-x-clip text-slate-800 glowbal-site-shell">
         <NavigationSessionProvider>
           <NavigationRolesProvider>
-            <LanguageProvider>
-              <NavReveal />
-          {/* Puts the globe loader up during client-side navigation. Renders
-              nothing itself — it only drives the loading store. */}
-            <RouteLoading />
-            <main className="glowbal-main-content">{children}</main>
-          {/* The floating "?" — opens the product walkthrough over whatever
-              page the student is on, at the step matching that page. Mounted
-              here so it is genuinely everywhere: universities, scholarships,
-              My Portal, the subject picker and every Strategy screen. It
-              suppresses itself on the routes that are not the student journey
-              (auth, admin, coordinator, onboarding, dev) and on /ai-strategy
-              exactly, which IS the walkthrough — its child routes keep it. */}
-            <StrategyHelpButton />
-          {/* Inside LanguageProvider: the loader's rotating line is bilingual.
-              Mounted once here so every page gets it — see loading-overlay.tsx
-              for why callers do not need a provider of their own. */}
-            <GlobalLoadingOverlay />
-          {/* Whole-page translation for any text not covered by the static
-              dictionary or t()/AutoTranslate. Only calls /api/translate when
-              Vietnamese is active; English stays the zero-cost default. */}
-              <DomTranslator />
+            <LanguageProvider defaultLang={locale}>
+              <ConsentBoundary nonce={nonce}>
+                <NavReveal />
+                {/* Puts the globe loader up during client-side navigation. Renders
+                    nothing itself — it only drives the loading store. */}
+                <RouteLoading />
+                <main className="glowbal-main-content">{children}</main>
+                {/* The floating "?" — opens the product walkthrough over whatever
+                    page the student is on, at the step matching that page. Mounted
+                    here so it is genuinely everywhere: universities, scholarships,
+                    My Portal, the subject picker and every Strategy screen. It
+                    suppresses itself on the routes that are not the student journey
+                    (auth, admin, coordinator, onboarding, dev) and on /ai-strategy
+                    exactly, which IS the walkthrough — its child routes keep it. */}
+                <StrategyHelpButton />
+                {/* Inside LanguageProvider: the loader's rotating line is bilingual.
+                    Mounted once here so every page gets it — see loading-overlay.tsx
+                    for why callers do not need a provider of their own. */}
+                <GlobalLoadingOverlay />
+                {/* Whole-page translation for any text not covered by the static
+                    dictionary or t()/AutoTranslate. Only calls /api/translate when
+                    Vietnamese is active; English stays the zero-cost default. */}
+                <DomTranslator />
+              </ConsentBoundary>
             </LanguageProvider>
           </NavigationRolesProvider>
         </NavigationSessionProvider>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );

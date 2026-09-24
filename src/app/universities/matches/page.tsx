@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { loadUniversityRecommendations } from '@/features/universities/api';
 import { UniversityMatchResults } from '@/features/universities/ui';
 import { GlowbalLogo } from '@/components/glowbal-logo';
@@ -15,8 +15,7 @@ import { Footer } from '@/shared/ui/footer';
 
 /** Authenticated university-only matching flow. */
 export default async function UniversityMatchesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth?redirect=/universities/matches');
 
   const recommendation = await loadUniversityRecommendations(supabase, user.id);

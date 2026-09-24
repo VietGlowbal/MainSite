@@ -4,25 +4,24 @@ import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * Shell for the `/apply/[applicationId]` feature pages — CV builder, CV review,
- * the CV hub and the statement workspace.
+ * the CV hub, the statement workspace, and the LOR workspace.
  *
  * ─── WHY A ROUTE GROUP ───────────────────────────────────────────────────────
  *
- * The context bar has to be on all six of an application's destinations or it
- * is not navigation, it is decoration on four of them: two of the six sat under
- * `/apply` with no bar at all, so a student who opened the CV builder had one
- * way out of it (the browser's Back button) and nothing on screen saying the
- * Statement or the reports existed.
+ * The context bar has to be on all of an application's destinations or it
+ * is not navigation, it is decoration on some of them: pages under `/apply`
+ * need the shared context bar so a student always has access to the full
+ * application journey and reports.
  *
  * It cannot go in `src/app/apply/[applicationId]/layout.tsx`, because that also
  * wraps the Overview page — and Overview ships its own TopNav *inside* the page
  * (it is the one `/apply` route suppressed in nav-reveal.tsx), so a bar mounted
  * above it would land above that header rather than below it. A route group
- * covers exactly the four children that take the shared app header, changes no
+ * covers the children that take the shared app header, changes no
  * URL, and leaves Overview to keep passing the bar into its own chrome.
  *
- * `lor-feedback` is deliberately outside the group: it is not one of the six
- * entries, so a bar with nothing highlighted would say less than no bar.
+ * `lor-feedback` is included in the group and highlighted in `ApplicationNav`
+ * as the LOR Support destination.
  *
  * ─── WHAT IT DOES AND DOES NOT CHECK ─────────────────────────────────────────
  *

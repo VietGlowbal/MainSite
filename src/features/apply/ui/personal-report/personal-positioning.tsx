@@ -1,7 +1,7 @@
 'use client';
 
 import { useT } from '@/lib/i18n';
-import type { PersonalPositioningSection, PersonalReportAnalytics, PositioningDimensionKey } from '../../domain';
+import type { PersonalPositioningSection, PersonalReportAnalytics, PersonalReportV2, PositioningDimensionKey } from '../../domain';
 import { Badge, RadarChart } from '@/shared/ui';
 import { InsufficientDataCard, SectionShell } from './shared';
 
@@ -25,64 +25,97 @@ function PositioningTrait({ label, value }: { label: string; value: boolean }) {
 
 export function PersonalPositioningView({
   section,
+  report,
   positioningDimensions,
   returnTo,
 }: {
   section: PersonalPositioningSection;
+  report?: PersonalReportV2;
   /** Undefined for a report version generated before analytics existed — see `PersonalReportV2.analytics`. */
   positioningDimensions: PersonalReportAnalytics['positioningDimensions'] | undefined;
   returnTo: string | undefined;
-}) {
+  }) {
   const t = useT();
+  const narrative = report?.narrativeDetails?.profilePositioning;
+  const hasPositioningNarrative = Boolean(narrative?.profileNarrative?.trim() || section.statement?.trim());
   return (
     <SectionShell
       eyebrow={t('Personal Positioning')}
       title={t('An evidence-grounded positioning statement')}
       confidence={section.confidence}
     >
-      {section.available ? (
-        <div className="flex flex-col gap-gb-xl">
-          <p className="text-gb-md leading-relaxed text-fg" data-no-auto-translate>
-            {section.statement}
-          </p>
+      {section.available || hasPositioningNarrative ? (
+        <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
+          <div className="rounded-gb-xl border border-line bg-surface p-6 sm:p-7 shadow-xs">
+            <div className="flex flex-wrap items-center gap-gb-sm">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Profile narrative')}</p>
+              {!section.available ? <Badge variant="neutral-chip">{t('Emerging')} · {section.confidence}</Badge> : null}
+            </div>
+            <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative?.profileNarrative ?? section.statement}</p>
+            {narrative?.positioningOptions.length ? (
+              <div className="mt-gb-lg flex flex-col gap-gb-sm border-t border-line/60 pt-gb-md">
+                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-muted">{t('Positioning options')}</p>
+                {narrative.positioningOptions.map((option) => (
+                  <div key={option.title} className="rounded-gb-lg border border-line/50 bg-surface-muted/60 p-gb-md text-gb-sm leading-relaxed text-fg-secondary">
+                    <span className="font-bold text-fg">{option.title}:</span> {option.statement}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <p className="mt-gb-md text-gb-xs font-medium text-fg-muted">
+              {t('{count} linked evidence references · {confidenceLabel}: {confidence}', {
+                count: section.evidenceRefs.length,
+                confidenceLabel: t('confidence'),
+                confidence: section.confidence,
+              })}
+            </p>
+          </div>
           {positioningDimensions ? (
-            <div className="flex flex-col gap-gb-md">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+            <div className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-6 sm:p-7 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
                 {t('Motivation and direction profile')}
               </p>
-              <RadarChart
-                ariaLabel={t('Motivation and direction profile')}
-                data={positioningDimensions.map((dimension) => ({
-                  key: dimension.key,
-                  label: t(DIMENSION_LABEL[dimension.key]),
-                  value: dimension.score,
-                }))}
-              />
+              <div className="flex justify-center py-gb-sm">
+                <RadarChart
+                  ariaLabel={t('Motivation and direction profile')}
+                  data={positioningDimensions.map((dimension) => ({
+                    key: dimension.key,
+                    label: t(DIMENSION_LABEL[dimension.key]),
+                    value: dimension.score,
+                  }))}
+                />
+              </div>
             </div>
           ) : null}
-          <div className="grid gap-gb-sm sm:grid-cols-2">
+          <div className="grid gap-gb-md sm:grid-cols-2 lg:grid-cols-3">
             <PositioningTrait label={t('Authentic')} value={section.authentic} />
             <PositioningTrait label={t('Differentiated')} value={section.differentiated} />
             <PositioningTrait label={t('Coherent')} value={section.coherent} />
             <PositioningTrait label={t('Direction aligned')} value={section.directionAligned} />
             <PositioningTrait label={t('Credible')} value={section.credible} />
           </div>
-          {section.whyThisFits.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Why this fits')}</p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary" data-no-auto-translate>
-                {section.whyThisFits.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
+          {section.whyThisFits.length > 0 || narrative?.experienceConnection ? (
+            <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Experience connection')}</p>
+              {narrative?.experienceConnection ? (
+                <div className="rounded-gb-lg border border-line/60 bg-surface-muted/60 p-gb-lg">
+                  <p className="text-gb-base font-bold text-fg">{narrative.experienceConnection.strongestProfileThread}</p>
+                  <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.experienceConnection.connectionExplanation}</p>
+                  <p className="mt-gb-sm text-gb-xs font-medium text-fg-muted">{t('{count} supporting experiences', { count: narrative.experienceConnection.supportingExperienceCount })}</p>
+                </div>
+              ) : (
+                <ul className="flex list-disc flex-col gap-gb-sm pl-gb-xl text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                  {section.whyThisFits.map((reason) => <li key={reason}>{reason}</li>)}
+                </ul>
+              )}
             </div>
           ) : null}
           {section.whatPreventsStrongerPositioning.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+            <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
                 {t('What prevents stronger positioning')}
               </p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary" data-no-auto-translate>
+              <ul className="flex list-disc flex-col gap-gb-sm pl-gb-xl text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
                 {section.whatPreventsStrongerPositioning.map((limitation) => (
                   <li key={limitation}>{limitation}</li>
                 ))}
@@ -91,7 +124,29 @@ export function PersonalPositioningView({
           ) : null}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
+        <div className="flex flex-col gap-gb-lg" data-no-auto-translate>
+          <div className="rounded-gb-xl border border-dashed border-line bg-surface-muted/50 p-6 sm:p-7">
+            <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Profile narrative')}</p>
+            <p className="mt-gb-sm text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+              {t('A complete positioning narrative is not supported by the current evidence yet.')}
+            </p>
+          </div>
+          <div className="grid gap-gb-lg sm:grid-cols-2">
+            <div className="rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Experience connection')}</p>
+              <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                {section.whatPreventsStrongerPositioning[0] ?? t('The available experiences do not yet form a defensible connection.')}
+              </p>
+            </div>
+            <div className="rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+              <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Positioning options')}</p>
+              <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                {t('No evidence-backed positioning option is available yet.')}
+              </p>
+            </div>
+          </div>
+          {section.insufficientData ? <InsufficientDataCard data={section.insufficientData} returnTo={returnTo} /> : null}
+        </div>
       )}
     </SectionShell>
   );

@@ -5,7 +5,9 @@ import { LanguageProvider, useLanguage } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import { StrategyHome } from '@/features/ai-strategy-dashboard/ui/strategy-home';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/about' }));
+const pathnameState = vi.hoisted(() => ({ value: '/about' }));
+
+vi.mock('next/navigation', () => ({ usePathname: () => pathnameState.value }));
 
 function LanguageControls() {
   const { setLang } = useLanguage();
@@ -20,6 +22,7 @@ function LanguageControls() {
 describe('DomTranslator', () => {
   beforeEach(() => {
     localStorage.clear();
+    pathnameState.value = '/about';
     document.documentElement.lang = 'en';
     vi.restoreAllMocks();
   });
@@ -110,5 +113,38 @@ describe('DomTranslator', () => {
       expect(screen.getByRole('heading', { name: 'Build your personalised roadmap into university.' })).toBeInTheDocument();
     });
     expect(container.querySelector('[data-no-auto-translate]')).toBeInTheDocument();
+  });
+
+  it('translates an opted-in report root on a private route', async () => {
+    pathnameState.value = '/ai-strategy/personal-report';
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ translations: ['Phân tích báo cáo cá nhân'] }),
+    })));
+
+    render(
+      <LanguageProvider>
+        <LanguageControls />
+        <main className="glowbal-main-content">
+          <div data-no-auto-translate>Private profile copy</div>
+        </main>
+        <DomTranslator />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'VI' }));
+    await act(async () => {
+      const portal = document.createElement('div');
+      portal.setAttribute('data-no-auto-translate', 'true');
+      portal.setAttribute('data-report-auto-translate', 'true');
+      portal.textContent = 'Personal report analysis';
+      document.body.appendChild(portal);
+    });
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.getByText('Phân tích báo cáo cá nhân')).toBeInTheDocument());
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body)).texts).toEqual([
+      'Personal report analysis',
+    ]);
+    expect(screen.getByText('Private profile copy')).toBeInTheDocument();
   });
 });

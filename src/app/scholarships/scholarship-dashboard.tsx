@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
+import { GlowbalIcon } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -219,7 +220,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                   </>
                 ) : (
                   <>
-                    <SparklesIcon />
+                    <GlowbalIcon name="aiInsight" size={16} tone="current" />
                     {t(searched ? 'Search again' : 'Find scholarships')}
                   </>
                 )}
@@ -275,7 +276,10 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
             <section className="space-y-4">
               {/* Filters bar */}
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
-                <span className="text-xs font-semibold text-slate-500">{t('Filter:')}</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                  <GlowbalIcon name="filter" size={16} tone="current" />
+                  {t('Filter:')}
+                </span>
                 <button
                   type="button"
                   onClick={() => setFilterType('all')}
@@ -302,7 +306,10 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                   );
                 })}
 
-                <span className="ml-auto text-xs text-slate-400">{t('Sort:')}</span>
+                <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-slate-400">
+                  <GlowbalIcon name="sort" size={16} tone="current" />
+                  {t('Sort:')}
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
@@ -445,10 +452,7 @@ function EmptyState() {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pink-50">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-pink-500">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
+        <GlowbalIcon name="emptyState" size={24} />
       </div>
       <h2 className="text-lg font-semibold text-slate-800">{t('No courses imported yet')}</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
@@ -461,21 +465,5 @@ function EmptyState() {
         {t('Go to Apply')}
       </Link>
     </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   ICONS
-───────────────────────────────────────────────────────────────────────── */
-
-function SparklesIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      <path d="M5 3v4" />
-      <path d="M19 17v4" />
-      <path d="M3 5h4" />
-      <path d="M17 19h4" />
-    </svg>
   );
 }

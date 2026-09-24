@@ -6,12 +6,16 @@ const mocks = vi.hoisted(() => ({
   write: vi.fn(),
   update: vi.fn(),
   rpc: vi.fn(),
+  recoveryRead: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: mocks.admin }));
 
 import {
+  claimApplicationPersonalReportGenerations,
+  consumeApplicationPersonalReportGenerationForce,
   enqueueApplicationPersonalReportGeneration,
+  MAX_AUTOMATIC_RETRIES,
   markApplicationPersonalReportGenerationComplete,
   retryApplicationPersonalReportGeneration,
 } from './personal-report-generation-job-queue';
@@ -28,7 +32,15 @@ const JOB = {
 function client() {
   return {
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: mocks.read })) })) })),
+      select: vi.fn(() => ({
+        eq: vi.fn((firstColumn: string) => ({
+          eq: vi.fn((secondColumn: string) => (
+            firstColumn === 'locked_by' && secondColumn === 'status'
+              ? mocks.recoveryRead()
+              : { maybeSingle: mocks.read }
+          )),
+        })),
+      })),
       insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mocks.write })) })),
       update: mocks.update,
     })),
@@ -39,6 +51,7 @@ describe('personal-report-generation-job-queue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.read.mockResolvedValue({ data: null, error: null });
+    mocks.recoveryRead.mockResolvedValue({ data: [], error: null });
     mocks.write.mockResolvedValue({ data: JOB, error: null });
     mocks.update.mockImplementation(() => {
       const chain: Record<string, unknown> = {
@@ -76,8 +89,22 @@ describe('personal-report-generation-job-queue', () => {
     expect(mocks.write).toHaveBeenCalledOnce();
   });
 
+  it('runs a forced retry immediately instead of preserving its backoff', async () => {
+    const retry = { ...JOB, status: 'retry', next_attempt_at: '2099-01-01T00:00:00.000Z' };
+    mocks.read.mockResolvedValue({ data: retry, error: null });
+    const result = await enqueueApplicationPersonalReportGeneration(client() as never, {
+      userId: 'user-1', applicationId: 'app-1', trigger: 'manual', force: true,
+    });
+
+    expect(result.job).toEqual(JOB);
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'pending', force_requested: false, next_attempt_at: expect.any(String),
+      error_code: null, error_message: null,
+    }));
+  });
+
   it('clears the lease and schedules retry after an AI failure', async () => {
-    await retryApplicationPersonalReportGeneration('job-1', 2, 'AI_FAILED', 'Model response was invalid.');
+    await expect(retryApplicationPersonalReportGeneration('job-1', 2, 'AI_FAILED', 'Model response was invalid.')).resolves.toBe('retry');
 
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
       status: 'retry', locked_at: null, locked_by: null, error_code: 'AI_FAILED',
@@ -125,4 +152,44 @@ describe('personal-report-generation-job-queue', () => {
     expect(mocks.update).toHaveBeenCalledTimes(2);
     expect(mocks.update.mock.calls[1]![0]).toMatchObject({ status: 'pending', completed_at: null });
   });
+
+  it('blocks after five automatic retries', async () => {
+    await expect(retryApplicationPersonalReportGeneration(
+      'job-1',
+      MAX_AUTOMATIC_RETRIES + 1,
+      'AI_FAILED',
+      'Model response was invalid.',
+    )).resolves.toBe('blocked');
+
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'blocked',
+      force_requested: false,
+      error_code: 'MAX_RETRIES_EXCEEDED',
+      completed_at: expect.any(String),
+    }));
+  });
+
+  it('consumes a forced run marker before generation', async () => {
+    await consumeApplicationPersonalReportGenerationForce({
+      ...JOB,
+      status: 'processing',
+      force_requested: true,
+      locked_by: 'worker-1',
+    });
+
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      force_requested: false,
+      updated_at: expect.any(String),
+    }));
+  });
+
+  it('recovers jobs already claimed when the gateway loses the RPC response', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'Gateway Timeout' } });
+    mocks.recoveryRead.mockResolvedValue({ data: [JOB], error: null });
+
+    await expect(claimApplicationPersonalReportGenerations('worker-1', 2)).resolves.toEqual([JOB]);
+    expect(mocks.rpc).toHaveBeenCalledOnce();
+    expect(mocks.recoveryRead).toHaveBeenCalledOnce();
+  });
+
 });

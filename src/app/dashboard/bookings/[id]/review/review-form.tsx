@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { GlowbalIcon } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Props = {
@@ -54,7 +55,10 @@ export function ReviewFormClient({ bookingId, achieverId, userId }: Props) {
     <form onSubmit={handleSubmit} className="glow-card space-y-6">
       {/* Star rating */}
       <div className="text-center">
-        <p className="text-sm font-medium text-slate-700 mb-3">Rating</p>
+        <p className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+          <GlowbalIcon name="ratingReview" size={16} />
+          Rating
+        </p>
         <div className="inline-flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
             <button

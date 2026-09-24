@@ -26,6 +26,45 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['framer-motion', 'gsap', '@gsap/react'],
   },
+  /**
+   * Security response headers.
+   *
+   * Production served ONLY `Strict-Transport-Security` (Vercel's own) until
+   * 2026-09-04 — verified with a live request, not assumed. The 21/08 Beta
+   * Product Review flagged the gap; this closes the four that carry no risk of
+   * breaking a page.
+   *
+   * ⚠️ THE CONTENT SECURITY POLICY IS NOT HERE, AND MUST NOT BE ADDED BACK.
+   * Since 2026-09-14 `src/proxy.ts` sets it per request with a fresh nonce
+   * (`src/shared/lib/content-security-policy.ts`). A static CSP header here
+   * would be enforced alongside that one, and having no nonce it would block
+   * every inline script Next emits — the site would stop hydrating.
+   */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Stops cross-origin framing. The CSP's `frame-ancestors` says the
+          // same thing for modern browsers; this is the header older ones honour.
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          // Stops a browser second-guessing a declared Content-Type. Relevant
+          // here because student uploads are served back from Storage.
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Send the full URL same-origin, origin only cross-origin, nothing
+          // when downgrading to http. Keeps application URLs (which carry
+          // application ids) out of third-party referer logs.
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Nothing here needs these. Denying them means an injected script
+          // cannot silently ask for them either.
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+          },        ],
+      },
+    ];
+  },
+
   async redirects() {
     return [
       // Force the canonical custom domain. Anyone landing on the raw
@@ -42,10 +81,12 @@ const nextConfig: NextConfig = {
        *
        * The two routes rendered the same listGeoGuides() data through two
        * designs; they were merged on 31/07 and /news is the surviving URL.
-       * These entries are not tidiness — every article published so far has
-       * shipped a /guides/<slug> canonical URL in content/geo/metadata/*.json
-       * and in the sitemap, so those addresses are indexed and are what any
-       * inbound link points at. A 308 is what carries that ranking over.
+       * These entries are not tidiness — every article published before the
+       * merge shipped a /guides/<slug> canonical URL, so those addresses are
+       * indexed and are what any inbound link points at. A 308 is what carries
+       * that ranking over. The metadata files that declared those canonicals
+       * were removed with the GEO generator on 2026-09-20; the indexed URLs
+       * were not, so these rules must outlive them.
        *
        * Order matters: the :slug rule is listed first because Next matches
        * top-down and the bare /guides rule would otherwise be unreachable for
@@ -141,8 +182,16 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'source.unsplash.com' },
       // Campus photography currently referenced by a curated university row.
       { protocol: 'https', hostname: 'wp.technologyreview.com' },
-      // Google favicons — used as a no-key logo fallback for universities
-      // whose Wikidata logo claims are missing.
+      // Google favicons — the no-key logo fallback for universities whose
+      // Wikidata logo claims are missing.
+      //
+      // NOW LEGACY. `wiki-images.ts` emits `/api/university-logo?domain=…`
+      // instead, so the browser calls us and we call Google server-side — the
+      // fix for a third-party request that fired before the cookie banner was
+      // answered. This entry (and `www.google.com` in the CSP's `img-src`)
+      // still covers rows written before that change; both can go once
+      // `sql/supabase-university-logo-first-party.sql` has been run against
+      // production and no `logo_url` starts with the google.com URL any more.
       { protocol: 'https', hostname: 'www.google.com' },
       // Google Drive thumbnails — team photos stored as Drive links are
       // rewritten to drive.google.com/thumbnail (see normalizeDriveImageUrl);

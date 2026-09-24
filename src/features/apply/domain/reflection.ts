@@ -382,6 +382,8 @@ export const aspirationsSchema = z.object({
    * request cannot store an unbounded array.
    */
   majors: z.array(z.string().trim().min(1)).max(30).default([]),
+  /** Existing profile-level career interests, frozen for report/matching context. */
+  career_interests: z.array(z.string().trim().min(1)).max(30).optional(),
   countries: z.array(z.string().trim().min(1)).max(30).default([]),
   /** A subject the catalogue does not list, kept beside the ids. */
   customSubject: optionalText(120),
@@ -612,6 +614,7 @@ export type ReflectionProfileRow = {
    * about a student's plans.
    */
   goals?: string | null;
+  career_interests?: string[] | null;
   study_motivation?: string | null;
   /**
    * `{ "<subjectId>": "<why>", ... }`, plus a `__primary` key naming the
@@ -624,7 +627,7 @@ export type ReflectionProfileRow = {
    */
   subject_motivations?: Record<string, unknown> | null;
   target_intake?: string | null;
-  /** See `personal-reflection.ts` — `{ q1: "...", ..., q5: "..." }`. */
+  /** See `personal-reflection.ts` — `{ q1: "...", ..., q7: "..." }`. */
   personal_reflection_answers?: Record<string, unknown> | null;
 };
 
@@ -771,6 +774,9 @@ export function reflectionFromProfile(
     // and simply does not tick an unrecognised one, which is the same
     // outcome as dropping it but without destroying the value on next save.
     majors: profile?.target_subjects ?? [],
+    ...(Array.isArray(profile?.career_interests)
+      ? { career_interests: profile?.career_interests.filter((value): value is string => typeof value === 'string') }
+      : {}),
     // Countries are normalised to ISO codes, because the grid keys on them.
     countries: destinationIdsFromStored(profile?.preferred_countries),
     /*

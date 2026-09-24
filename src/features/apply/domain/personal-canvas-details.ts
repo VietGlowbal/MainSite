@@ -8,6 +8,7 @@ import type {
   ProofOfMeSection,
   ReportConfidence,
 } from './personal-report';
+import type { EvidenceRef } from '@/shared/evaluation';
 
 export type EvidenceBand = 'very_strong' | 'strong' | 'consistent' | 'emerging' | 'limited';
 
@@ -20,6 +21,10 @@ export type CapabilityRating = {
   evidenceCount: number;
   strongEvidenceCount: number;
   verifiedEvidenceCount: number;
+  supportingActivities?: string[];
+  howDemonstrated?: string;
+  whyItMatters?: string;
+  applicationRelevance?: string;
   why: string;
   supportingEvidence: Array<{
     activityId: string;
@@ -38,10 +43,29 @@ export type MotivationSignal = {
 };
 
 export type SocialProofMetric = {
-  key: 'activities' | 'strongEvidence' | 'verifiedEvidence' | 'outcomes' | 'quantifiedOutcomes' | 'capabilityClaims';
+  key:
+    | 'activities'
+    | 'strongEvidence'
+    | 'verifiedEvidence'
+    | 'recordedOutcomes'
+    | 'outcomes'
+    | 'quantifiedOutcomes'
+    | 'capabilityClaims'
+    | 'metadataCoverage'
+    | 'teamMembersLed'
+    | 'communityReach'
+    | 'yearsOfCommitment';
   label: string;
   value: number;
   caption: string;
+  evidenceIds: string[];
+  sourceActivityIds?: string[];
+};
+
+export type SelfReportedCapability = {
+  name: string;
+  evidenceIds: string[];
+  statement: string;
 };
 
 export type GrowthPriority = {
@@ -66,6 +90,8 @@ export type FuturePathway = {
 
 export type PersonalCanvasDetails = {
   capabilities: CapabilityRating[];
+  /** Explicit profile claims are shown separately and never scored as proven capabilities. */
+  selfReportedCapabilities?: SelfReportedCapability[];
   motivations: MotivationSignal[];
   socialProof: SocialProofMetric[];
   growthPriorities: GrowthPriority[];
@@ -115,6 +141,136 @@ function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
+  hundred: 100,
+};
+
+const NUMBER_TOKEN = '(?:\\d[\\d,]*(?:\\.\\d+)?|' + Object.keys(NUMBER_WORDS).join('|') + ')';
+
+function parseNumberToken(value: string): number | null {
+  const normalised = value.toLowerCase().replace(/,/g, '').trim();
+  const numeric = Number(normalised);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  return NUMBER_WORDS[normalised] ?? null;
+}
+
+function activityProofText(card: ProofCard): string {
+  return [card.role, card.personalContribution, card.outcome].filter(Boolean).join(' ');
+}
+
+function metricEvidence(cards: readonly ProofCard[]) {
+  return {
+    evidenceIds: [...new Set(cards.flatMap((card) => card.evidenceRefs.map((ref) => ref.id)))],
+    sourceActivityIds: [...new Set(cards.map((card) => card.activityId))],
+  };
+}
+
+function maxExplicitMatch(cards: readonly ProofCard[], patterns: readonly RegExp[]): { value: number; cards: ProofCard[] } | null {
+  let maximum: { value: number; cards: ProofCard[] } | null = null;
+  for (const card of cards) {
+    for (const pattern of patterns) {
+      const match = activityProofText(card).match(pattern);
+      const value = match?.[1] ? parseNumberToken(match[1]) : null;
+      if (value === null) continue;
+      if (!maximum || value > maximum.value) maximum = { value, cards: [card] };
+      else if (value === maximum.value && !maximum.cards.includes(card)) maximum.cards.push(card);
+    }
+  }
+  return maximum;
+}
+
+function yearsFromPeriod(period: string | null | undefined): number | null {
+  if (!period) return null;
+  const duration = period.match(new RegExp(`\\b(${NUMBER_TOKEN})\\s*(?:years?|yrs?)\\b`, 'i'));
+  if (duration?.[1]) return parseNumberToken(duration[1]);
+  const range = period.match(/\b((?:19|20)\d{2})\s*(?:[-–—]|to|through)\s*((?:19|20)\d{2})\b/i);
+  if (!range?.[1] || !range[2]) return null;
+  const start = Number(range[1]);
+  const end = Number(range[2]);
+  return end >= start ? end - start + 1 : null;
+}
+
+/**
+ * Explicit social-proof numbers only. A missing number is omitted rather than
+ * rendered as zero; the underlying Proof of Me cards remain the source.
+ */
+export function derivedSocialProofMetrics(cards: readonly ProofCard[]): SocialProofMetric[] {
+  const teamMembersLed = maxExplicitMatch(
+    cards,
+    [
+      new RegExp(`\\b(?:led|managed|coordinated|organised|organized|recruited|supervised)\\b[^.!?]{0,80}\\b(${NUMBER_TOKEN})[- ]?(?:person|member|volunteer)s?\\b`, 'i'),
+    ],
+  );
+
+  let communityReach: number | null = null;
+  let communityCards: ProofCard[] = [];
+  const reachPattern = new RegExp(`\\b(?:over|more than|around|nearly)?\\s*(${NUMBER_TOKEN})\\s+(?:students?|people|famil(?:y|ies)|participants?|learners?|children|residents?|households?)\\b`, 'gi');
+  for (const card of cards) {
+    const text = activityProofText(card);
+    for (const match of text.matchAll(reachPattern)) {
+      const prefix = text.slice(Math.max(0, (match.index ?? 0) - 80), match.index ?? 0);
+      if (!/\b(?:reach(?:ed)?|serve(?:d)?|support(?:ed)?|impact(?:ed)?|benefit(?:ed)?|teach(?:ing|taught)?|train(?:ed|ing)?|deliver(?:ed)?|provide(?:d)?|engag(?:ed)?|help(?:ed)?|mentor(?:ed)?|grow|grew|recruit(?:ed)?|enrol(?:led)?|use(?:d)?|test(?:ed)?)\b/i.test(prefix)) continue;
+      const value = parseNumberToken(match[1] ?? '');
+      if (value === null) continue;
+      if (communityReach === null || value > communityReach) {
+        communityReach = value;
+        communityCards = [card];
+      } else if (value === communityReach && !communityCards.includes(card)) communityCards.push(card);
+    }
+  }
+
+  let yearsOfCommitment: number | null = null;
+  let yearsCards: ProofCard[] = [];
+  for (const card of cards) {
+    const value = yearsFromPeriod(card.period);
+    if (value === null) continue;
+    if (yearsOfCommitment === null || value > yearsOfCommitment) {
+      yearsOfCommitment = value;
+      yearsCards = [card];
+    } else if (value === yearsOfCommitment && !yearsCards.includes(card)) yearsCards.push(card);
+  }
+
+  const metrics: Array<SocialProofMetric | null> = [
+    teamMembersLed === null
+      ? null
+      : { key: 'teamMembersLed' as const, label: 'Team members led', value: teamMembersLed.value, caption: 'Largest explicitly quantified team or group', ...metricEvidence(teamMembersLed.cards) },
+    communityReach === null
+      ? null
+      : { key: 'communityReach' as const, label: 'Community reach', value: communityReach, caption: 'Largest explicitly quantified audience or beneficiary group', ...metricEvidence(communityCards) },
+    yearsOfCommitment === null
+      ? null
+      : { key: 'yearsOfCommitment' as const, label: 'Years of commitment', value: yearsOfCommitment, caption: 'Longest explicit activity period recorded', ...metricEvidence(yearsCards) },
+  ];
+  return metrics.filter((metric): metric is SocialProofMetric => metric !== null);
+}
+
 /**
  * Named capability scores are evidence-strength scores, not psychological or
  * admissions scores. They reward recurrence, evidence quality, verification
@@ -122,8 +278,6 @@ function average(values: number[]): number {
  * range so one impressive anecdote cannot become a five-star capability.
  */
 function buildCapabilities(proofOfMe: ProofOfMeSection): CapabilityRating[] {
-  if (!proofOfMe.available) return [];
-
   const byCapability = new Map<string, { label: string; cards: ProofCard[] }>();
   for (const card of proofOfMe.cards) {
     for (const competency of card.competenciesDemonstrated) {
@@ -135,7 +289,7 @@ function buildCapabilities(proofOfMe: ProofOfMeSection): CapabilityRating[] {
     }
   }
 
-  return [...byCapability.values()]
+  const built = [...byCapability.values()]
     .map(({ label, cards }): CapabilityRating => {
       const count = cards.length;
       const recurrence = Math.min(40, count * 15);
@@ -158,6 +312,15 @@ function buildCapabilities(proofOfMe: ProofOfMeSection): CapabilityRating[] {
         evidenceCount: count,
         strongEvidenceCount,
         verifiedEvidenceCount,
+        supportingActivities: cards.slice(0, 4).map((card) => card.title),
+        howDemonstrated:
+          count >= 3
+            ? `Demonstrated across ${count} separate experiences through the recorded roles, actions and outcomes.`
+            : count === 2
+              ? 'Demonstrated through roles, actions and outcomes recorded in two separate experiences.'
+              : 'Demonstrated in one recorded experience; this remains an emerging capability rather than a recurring pattern.',
+        whyItMatters: `The record shows how ${label} can contribute to a concrete applicant profile when the supporting evidence is presented clearly.`,
+        applicationRelevance: `In an application, ${label} can support a demonstrated capability claim when linked to the activities and outcomes listed below.`,
         why:
           count >= 3
             ? `Demonstrated across ${count} separate experiences, with ${strongEvidenceCount} strongly supported evidence item${strongEvidenceCount === 1 ? '' : 's'}.`
@@ -174,11 +337,36 @@ function buildCapabilities(proofOfMe: ProofOfMeSection): CapabilityRating[] {
       };
     })
     .sort((a, b) => b.score - a.score || b.evidenceCount - a.evidenceCount || a.name.localeCompare(b.name))
+    .slice(0, 4);
+
+  return built.sort(
+    (a, b) => b.score - a.score || b.evidenceCount - a.evidenceCount || a.name.localeCompare(b.name),
+  ).slice(0, 4);
+}
+
+function buildSelfReportedCapabilities(
+  proofOfMe: ProofOfMeSection,
+  claims: readonly { label: string; evidenceRefs: EvidenceRef[] }[] = [],
+): SelfReportedCapability[] {
+  const demonstrated = new Set(proofOfMe.cards.flatMap((card) => card.competenciesDemonstrated.map(normalise)));
+  return claims
+    .filter((claim) => claim.label.trim() && !demonstrated.has(normalise(claim.label)))
+    .map((claim) => ({
+      name: claim.label.trim(),
+      evidenceIds: [...new Set(claim.evidenceRefs.map((ref) => ref.id))],
+      statement: 'Self-reported in Personal Reflection Q4; an activity or achievement is still needed to demonstrate this capability.',
+    }))
     .slice(0, 6);
 }
 
-function buildMotivations(activities: readonly NarrativeActivity[]): MotivationSignal[] {
-  const grounded = activities.filter((activity) => Boolean(activity.statedMotivation?.trim()));
+function buildMotivations(
+  activities: readonly NarrativeActivity[],
+  repeatedProfileMotivations: readonly string[] = [],
+): MotivationSignal[] {
+  const grounded = [
+    ...repeatedProfileMotivations.map((value) => ({ statedMotivation: value })),
+    ...activities,
+  ].filter((activity) => Boolean(activity.statedMotivation?.trim()));
   if (grounded.length === 0) return [];
 
   const grouped = new Map<string, { label: string; count: number }>();
@@ -204,22 +392,25 @@ function buildMotivations(activities: readonly NarrativeActivity[]): MotivationS
 
 function buildSocialProof(proofOfMe: ProofOfMeSection): SocialProofMetric[] {
   const cards = proofOfMe.available ? proofOfMe.cards : [];
-  const strongEvidence = cards.filter((card) => card.evidenceStrength === 'strong').length;
-  const verifiedEvidence = cards.filter(
-    (card) => card.verificationStatus === 'verified' || card.verificationStatus === 'attributable',
-  ).length;
   const outcomes = cards.filter((card) => Boolean(card.outcome?.trim())).length;
   const quantifiedOutcomes = cards.filter((card) => /\d/.test(card.outcome ?? '')).length;
-  const capabilityClaims = new Set(cards.flatMap((card) => card.competenciesDemonstrated.map(normalise))).size;
+  const metric = (key: SocialProofMetric['key'], label: string, value: number, caption: string, sourceCards = cards) => ({
+    key,
+    label,
+    value,
+    caption,
+    ...metricEvidence(sourceCards),
+  });
 
   return [
-    { key: 'activities', label: 'Experiences analysed', value: cards.length, caption: 'Activities contributing evidence to this report' },
-    { key: 'strongEvidence', label: 'Strong evidence items', value: strongEvidence, caption: 'Experiences with evidence, outcomes and demonstrated capability' },
-    { key: 'verifiedEvidence', label: 'Checkable evidence', value: verifiedEvidence, caption: 'Verified or attributable evidence sources' },
-    { key: 'outcomes', label: 'Recorded outcomes', value: outcomes, caption: 'Experiences with a stated result or change' },
-    { key: 'quantifiedOutcomes', label: 'Quantified outcomes', value: quantifiedOutcomes, caption: 'Outcomes containing a measurable result' },
-    { key: 'capabilityClaims', label: 'Capabilities evidenced', value: capabilityClaims, caption: 'Distinct grounded capability labels across experiences' },
-  ];
+    outcomes > 0
+      ? metric('recordedOutcomes', 'Recorded outcomes', outcomes, 'Experiences with a stated result or change', cards.filter((card) => Boolean(card.outcome?.trim())))
+      : null,
+    quantifiedOutcomes > 0
+      ? metric('quantifiedOutcomes', 'Quantified outcomes', quantifiedOutcomes, 'Outcomes containing a measurable result', cards.filter((card) => /\d/.test(card.outcome ?? '')))
+      : null,
+    ...derivedSocialProofMetrics(cards),
+  ].filter((item): item is SocialProofMetric => item !== null && item.value > 0);
 }
 
 function effortForGap(gap: string): GrowthPriority['effort'] {
@@ -328,10 +519,12 @@ export function buildPersonalCanvasDetails(args: {
   personalPositioning: PersonalPositioningSection;
   proofOfMe: ProofOfMeSection;
   intendedDirection: string | null;
+  profileCapabilityClaims?: readonly { label: string; evidenceRefs: EvidenceRef[] }[];
 }): PersonalCanvasDetails {
   return {
     capabilities: buildCapabilities(args.proofOfMe),
-    motivations: buildMotivations(args.activities),
+    selfReportedCapabilities: buildSelfReportedCapabilities(args.proofOfMe, args.profileCapabilityClaims),
+    motivations: buildMotivations(args.activities, args.drivingForce.repeatedMotivations),
     socialProof: buildSocialProof(args.proofOfMe),
     growthPriorities: buildGrowthPriorities(args),
     futurePathways: buildFuturePathways(args),

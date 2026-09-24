@@ -8,21 +8,20 @@ import {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
+} from '@/features/marketing/navigation';
 import {
   FREE_FEATURES,
   GLOWBAL_FB_CHAT_URL,
   getPlusPackage,
 } from '@/lib/plus';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import {
   Badge,
   Button,
   Container,
   Footer,
-  ICONS,
-  KitIcon,
+  GlowbalIcon,
 } from '@/shared/ui';
 import { PlusPricing } from './plus-pricing';
 
@@ -62,10 +61,7 @@ export default async function PlusPage({
   const isCancelled = status === 'cancelled';
   const applicationId = application ?? null;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   let isPlus = false;
   let planLabel: string | null = null;
@@ -116,7 +112,10 @@ export default async function PlusPage({
 
             {isPlus ? (
               <TopAlert emphasis>
-                <p className="font-bold text-[#141118]">You’re on GlowBal Plus</p>
+                <p className="inline-flex items-center gap-2 font-bold text-[#141118]">
+                  <GlowbalIcon name="subscription" size={20} />
+                  You’re on GlowBal Plus
+                </p>
                 <p className="text-xs text-[#6B6570]">
                   Thanks for your support — you can extend or upgrade your plan below.
                 </p>
@@ -178,7 +177,7 @@ export default async function PlusPage({
             {/* Talk to a person */}
             <div className="flex flex-col items-center gap-4 rounded-3xl border border-[#EDE9EE] bg-[#E11D48]/5 p-8 text-center">
               <span className="flex size-12 items-center justify-center rounded-full bg-[#E11D48] text-white shadow-md">
-                <KitIcon art={ICONS.messageSmileCircle} frame={24} />
+                <GlowbalIcon name="contact" size={24} tone="current" />
               </span>
               <h2 className="text-xl font-bold text-[#141118]">
                 Not sure which plan fits you?
@@ -197,20 +196,7 @@ export default async function PlusPage({
 
             <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center text-xs text-[#6B6570]">
               <p className="inline-flex items-center gap-1.5 font-medium">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
+                <GlowbalIcon name="paymentMethod" size={16} tone="current" />
                 Payments are processed securely via VNPay and Bank Transfer (VietQR).
               </p>
               <p>

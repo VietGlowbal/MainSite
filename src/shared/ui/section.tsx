@@ -29,7 +29,11 @@ export function Section({
     tone === 'dark' ? 'bg-surface-inverse-strong text-white' : 'bg-surface text-fg';
 
   return (
-    <section className={`${band}${padded ? ' py-gb-9xl' : ''}${className ? ` ${className}` : ''}`}>
+    <section
+      // Product icons inside take their tones from this (tokens.css, "Surfaces").
+      data-surface={tone}
+      className={`${band}${padded ? ' py-gb-9xl' : ''}${className ? ` ${className}` : ''}`}
+    >
       <Container className={containerClassName}>{children}</Container>
     </section>
   );

@@ -29,4 +29,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 43200;
 
-export default ScholarshipsPage;
+export default async function VietnameseScholarshipsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  return <ScholarshipsPage searchParams={searchParams} locale="vi" />;
+}

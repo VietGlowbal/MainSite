@@ -4,7 +4,7 @@ import { z } from 'zod';
 /**
  * Target Profile — the reusable, PROGRAMME-level picture of what a programme
  * and its university look for (Task 4). Built ONLY from already-ingested
- * catalogue data (`courses`, `course_admission_requirements`,
+ * catalogue data (`courses`, `universities`, `course_admission_requirements`,
  * `course_field_values`, `crawl_sources`); never crawled on demand.
  *
  * EVERY requirement carries source references back to the ingested rows it
@@ -17,7 +17,52 @@ import { z } from 'zod';
  * Matching, never to a reusable profile artifact.
  */
 
-export const TARGET_PROFILE_SCHEMA_VERSION = 'tp-v1';
+export const TARGET_PROFILE_SCHEMA_VERSION = 'tp-v2';
+
+const targetFactSchema = z
+  .object({
+    value: z.string().min(1).max(2_000),
+    sourceRefs: z.array(z.string().min(1)).max(20),
+  })
+  .strict();
+
+const targetFactListSchema = z.array(targetFactSchema).max(30);
+
+const targetLearningEnvironmentSchema = z
+  .object({
+    teachingModel: targetFactSchema.nullable(),
+    experientialLearning: targetFactListSchema,
+    classStructure: targetFactSchema.nullable(),
+    interdisciplinary: targetFactSchema.nullable(),
+    research: targetFactSchema.nullable(),
+    entrepreneurship: targetFactSchema.nullable(),
+    mentorship: targetFactSchema.nullable(),
+    communityProgrammes: targetFactListSchema,
+  })
+  .strict();
+
+const universityProfileSchema = z
+  .object({
+    mission: targetFactSchema.nullable(),
+    values: targetFactListSchema,
+    educationalPhilosophy: targetFactSchema.nullable(),
+    studentProfile: targetFactSchema.nullable(),
+    learningEnvironment: targetLearningEnvironmentSchema,
+    distinctiveOpportunities: targetFactListSchema,
+  })
+  .strict();
+
+const programmeProfileSchema = z
+  .object({
+    description: targetFactSchema.nullable(),
+    curriculum: targetFactListSchema,
+    outcomes: targetFactListSchema,
+    preferredCompetencies: targetFactListSchema,
+    teachingStyle: targetFactSchema.nullable(),
+    careerPathways: targetFactListSchema,
+    opportunities: targetFactListSchema,
+  })
+  .strict();
 
 export type TargetRequirementCategory =
   | 'academic'
@@ -75,10 +120,14 @@ export const targetProfileSchema = z.object({
       }),
     )
     .max(50),
+  universityProfile: universityProfileSchema.optional(),
+  programmeProfile: programmeProfileSchema.optional(),
+  scholarshipProfile: programmeProfileSchema.nullable().optional(),
 });
 
 export type TargetRequirement = z.infer<typeof targetRequirementSchema>;
 export type TargetProfile = z.infer<typeof targetProfileSchema>;
+export type TargetFact = z.infer<typeof targetFactSchema>;
 
 /** Minimal projection of the ingested catalogue rows the fingerprint covers. */
 export type CatalogueProjection = {

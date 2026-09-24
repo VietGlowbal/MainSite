@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = resolve(process.cwd(), 'supabase-plus-promo-redemption.sql');
-const promoV2MigrationPath = resolve(process.cwd(), 'supabase-plus-promo-v2.sql');
+const migrationPath = resolve(process.cwd(), 'sql/supabase-plus-promo-redemption.sql');
+const promoV2MigrationPath = resolve(process.cwd(), 'sql/supabase-plus-promo-v2.sql');
 const routePath = resolve(process.cwd(), 'src/app/api/plus/redeem/route.ts');
 
 describe('Plus promo redemption contracts', () => {

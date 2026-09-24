@@ -92,6 +92,7 @@ describe('sitemap', () => {
     expect(aboutEntry?.alternates?.languages).toEqual({
       en: `${SITE_URL}/about`,
       vi: `${SITE_URL}/vi/about`,
+      'x-default': `${SITE_URL}/about`,
     });
   });
 

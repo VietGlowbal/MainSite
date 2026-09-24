@@ -46,9 +46,7 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
   const [topicFilter, setTopicFilter] = useState('all');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  useLoadingIndicator(busy !== null || importing, t('Updating the article'));
+  useLoadingIndicator(busy !== null, t('Updating the article'));
 
   const topics = useMemo(() => [...new Set(items.map((article) => article.topic).filter(Boolean))].sort(), [items]);
   const filtered = useMemo(() => {
@@ -60,21 +58,6 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
       return matchesQuery && matchesStatus && matchesTopic;
     });
   }, [items, query, statusFilter, topicFilter]);
-
-  async function importFromFiles() {
-    setImporting(true);
-    setError(null);
-    setNotice(null);
-    const res = await fetch('/api/admin/news/import', { method: 'POST' });
-    const data = await res.json().catch(() => null);
-    setImporting(false);
-    if (!res.ok || !data) {
-      setError(data?.error ?? t('Import failed'));
-      return;
-    }
-    setNotice(t('Imported {total} file article(s): {created} created, {updated} updated, {skipped} skipped.', data));
-    router.refresh();
-  }
 
   async function patchStatus(id: string, status: GeoArticleStatus) {
     setBusy(id);
@@ -115,9 +98,6 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
       <div className="flex flex-wrap items-center justify-between gap-gb-xl">
         <p className="text-gb-sm text-fg-tertiary">{t('{count} article(s)', { count: filtered.length })}</p>
         <div className="flex flex-wrap items-center gap-gb-md">
-          <Button variant="secondary" size="lg" disabled={importing} onClick={() => void importFromFiles()} title={t('Import legacy articles')}>
-            {importing ? t('Importing…') : t('Import from files')}
-          </Button>
           <Button href="/admin/news/new" size="lg">
             <KitIcon art={ICONS.plus} frame={20} />
             {t('New article')}
@@ -140,7 +120,6 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
       </Panel>
 
       {error ? <Alert tone="error">{error}</Alert> : null}
-      {notice ? <Alert tone="success">{notice}</Alert> : null}
 
       {filtered.length === 0 ? (
         <Panel className="text-center text-gb-sm text-fg-muted">

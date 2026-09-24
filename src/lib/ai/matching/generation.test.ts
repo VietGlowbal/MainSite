@@ -68,7 +68,15 @@ function setup() {
     profile: { requirements: [], universityValues: [], programmeThemes: { themes: [], description: null } },
   });
   mocks.compose.mockResolvedValue(report);
-  mocks.state.mockResolvedValue({ academicProfile: { records: [] } });
+  mocks.state.mockResolvedValue({
+    academicProfile: { records: [] },
+    directionSignals: {
+      intendedDirection: 'Study computer science',
+      academicDirection: 'Human-computer interaction',
+      careerDirection: 'Build accessible tools',
+      preferredEnvironment: 'Collaborative residential campus',
+    },
+  });
   return { filters, supabase: supabaseMock(filters) };
 }
 
@@ -109,6 +117,8 @@ describe('generateApplicationMatchingReport', () => {
     expect(result.status).toBe('regenerated');
     expect(mocks.target).toHaveBeenCalledWith(expect.objectContaining({ programmeId: 'course-1' }));
     expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
+      targetProfileSchemaVersion: expect.any(String),
+      personalReportInputHash: 'personal-input-1',
       programmeFitInput: expect.objectContaining({
         academicBand: 'unknown',
         dimensions: expect.objectContaining({
@@ -137,10 +147,18 @@ describe('generateApplicationMatchingReport', () => {
 
   it('8. passes the previous complete V2 report for selective reuse', async () => {
     const { supabase } = setup();
-    const previous = { id: 'previous', reportV2: { metadata: { reusedCriterionIds: [] } } };
+    const previous = { id: 'previous', sourcePersonalReportVersionId: 'personal-1', reportV2: { metadata: { reusedCriterionIds: [] } } };
     mocks.getLatest.mockResolvedValue({ record: previous, migrationMissing: false });
     await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
     expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({ previousReport: previous.reportV2 }));
+  });
+
+  it('8b. does not reuse a previous report composed from a different Personal Report version', async () => {
+    const { supabase } = setup();
+    const previous = { id: 'previous', sourcePersonalReportVersionId: 'personal-0', reportV2: { metadata: { reusedCriterionIds: [] } } };
+    mocks.getLatest.mockResolvedValue({ record: previous, migrationMissing: false });
+    await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+    expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({ previousReport: null, previousV3Report: null }));
   });
 
   it('9. does not insert when criterion validation fails', async () => {
@@ -243,7 +261,7 @@ describe('generateApplicationMatchingReport', () => {
     expect(mocks.save).not.toHaveBeenCalled();
   });
 
-  it('19. derives the academic band from a persisted canonical F5 score', async () => {
+  it('19. keeps persisted F5 scores out of first-generation V3 scoring', async () => {
     const { supabase } = setup();
     const dimension = { status: 'assessed', score: 4.5, summary: 'Canonical result', strengths: [], gaps: [], evidence: [] };
     const previous = {
@@ -269,7 +287,24 @@ describe('generateApplicationMatchingReport', () => {
     await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
 
     expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
-      programmeFitInput: expect.objectContaining({ academicBand: 'above_range' }),
+      version: 'v3',
+      programmeFitInput: expect.objectContaining({ academicBand: 'unknown' }),
+    }));
+  });
+
+  it('20. forwards Q7 preferred environment and canonical direction into later Matching context', async () => {
+    const { supabase } = setup();
+    await generateApplicationMatchingReport({ supabase, userId: 'user-1', applicationId: 'app-1' });
+
+    expect(mocks.compose).toHaveBeenCalledWith(expect.objectContaining({
+      personalContext: expect.objectContaining({
+        direction: expect.arrayContaining([
+          'Study computer science',
+          'Human-computer interaction',
+          'Build accessible tools',
+          'Collaborative residential campus',
+        ]),
+      }),
     }));
   });
 });

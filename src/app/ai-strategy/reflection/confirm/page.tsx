@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
-import { candidateReadiness } from '@/features/apply/domain';
+import { getServerIdentity } from '@/server/auth/server-identity';
+import {
+  countApplicationReportGenerations,
+  loadCandidateReflection,
+  verifiedApplicationId,
+} from '@/features/apply/api';
+import { APPLICATION_REPORT_GENERATION_LIMIT, candidateReadiness } from '@/features/apply/domain';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { candidateInformationStepperSteps, confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
 import { applicationIdFromPath } from '@/shared/lib';
@@ -32,10 +36,7 @@ export default async function ReviewConfirmPage({
 }: {
   searchParams: Promise<{ return?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect('/auth');
 
@@ -44,9 +45,12 @@ export default async function ReviewConfirmPage({
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const [{ reflection, documents, confirmedAt }, onboardingState] = await Promise.all([
+  const [{ reflection, documents, confirmedAt }, onboardingState, reportQuota] = await Promise.all([
     loadCandidateReflection(supabase, user.id, applicationId),
     applicationId ? fetchOnboardingState(supabase, user.id, applicationId) : Promise.resolve(undefined),
+    applicationId
+      ? countApplicationReportGenerations(supabase, { userId: user.id, applicationId })
+      : Promise.resolve(null),
   ]);
 
   const readiness = candidateReadiness(reflection);
@@ -66,7 +70,7 @@ export default async function ReviewConfirmPage({
     ) : undefined;
 
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
+    <ReflectionChrome nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
       <ReviewConfirmView
         reflection={reflection}
         documents={documents}
@@ -76,6 +80,8 @@ export default async function ReviewConfirmPage({
         readOnly={Boolean(confirmedAt)}
         confirmedAt={confirmedAt ?? undefined}
         continueHref={continueHref}
+        reportCount={reportQuota?.count}
+        reportLimit={APPLICATION_REPORT_GENERATION_LIMIT}
       />
     </ReflectionChrome>
   );

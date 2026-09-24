@@ -8,6 +8,10 @@ import {
   MotivationProfileView,
   SocialProofSummaryView,
 } from './personal-report-insights';
+import { KeyTakeawaysView } from './key-takeaways';
+import { CoreIdentityView } from './core-identity';
+import { PersonalReportPrintView } from './personal-report-print';
+import { ProofOfMeView } from './proof-of-me';
 
 const NO_DATA = { reason: 'More evidence needed.', actions: [] };
 
@@ -108,7 +112,9 @@ function report(): PersonalReportV2 {
         proof({
           activityId: 'a1',
           title: 'Tutor platform',
+          personalContribution: 'Led a five-person team',
           outcome: 'Used by 120 students',
+          period: '2023–2025',
           competenciesDemonstrated: ['Leadership', 'Product Design'],
           evidenceStrength: 'strong',
           verificationStatus: 'verified',
@@ -143,6 +149,76 @@ describe('Personal Report Pass 2 insights', () => {
     expect(screen.getAllByLabelText(/out of 5 evidence stars/i).length).toBeGreaterThan(0);
   });
 
+  it('keeps capability evidence details expandable in the printable report contract', () => {
+    const current = report();
+    current.canvasDetails = {
+      capabilities: [{
+        name: 'Leadership',
+        score: 70,
+        stars: 4,
+        band: 'strong',
+        confidence: 'medium',
+        evidenceCount: 2,
+        strongEvidenceCount: 1,
+        verifiedEvidenceCount: 1,
+        why: 'It shows ownership in an application context.',
+        supportingEvidence: [{ activityId: 'a1', title: 'Tutor platform', outcome: 'Used by 120 students', evidenceStrength: 'strong', verificationStatus: 'verified' }],
+        howDemonstrated: 'Led a team to deliver the tutor platform.',
+        whyItMatters: 'It shows ownership in an application context.',
+        applicationRelevance: 'It supports collaborative delivery in a demanding programme.',
+      }],
+      motivations: [],
+      socialProof: [],
+      growthPriorities: [],
+      futurePathways: [],
+    };
+
+    render(<PersonalReportPrintView report={current} returnTo={undefined} mode="screen" />);
+    expect(screen.getByText('Application relevance')).toBeInTheDocument();
+    expect(document.querySelectorAll('details').length).toBeGreaterThan(0);
+    for (const title of ['Applicant Snapshot', 'Core Identity', 'Driving Forces', 'Proven Capabilities', 'Profile Positioning', 'Social Proof', 'Areas for Growth', 'Long-Term Vision', 'Key Takeaways']) {
+      expect(screen.getAllByText(title, { exact: true }).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('renders an emerging identity statement and defining trait when recurrence is unavailable', () => {
+    const current = report();
+    current.coreIdentity = {
+      ...current.coreIdentity,
+      available: false,
+      headline: null,
+      interpretation: null,
+      observations: [],
+      recurringBehaviours: [],
+      observedBehaviours: [],
+      insufficientData: NO_DATA,
+    };
+    current.narrativeDetails = {
+      coreIdentity: {
+        identityStatement: 'The applicant notices engagement problems and takes practical steps to adapt learning experiences.',
+        evidenceIds: ['a1'],
+        definingTraits: [{
+          characteristic: 'Problem solving and initiative',
+          insight: 'The workshop redesign is a concrete emerging signal.',
+          whyItMatters: 'It shows how the applicant creates value through action.',
+          evidenceIds: ['a1'],
+          scope: 'emerging',
+          confidence: 'low',
+          evidenceStrength: 'limited',
+          maturity: 'emerging',
+          supportingExperienceTitles: ['Tutor platform'],
+        }],
+      },
+    } as never;
+
+    render(<CoreIdentityView section={current.coreIdentity} report={current} returnTo={undefined} />);
+
+    expect(screen.getByText(/notices engagement problems/i)).toBeInTheDocument();
+    expect(screen.getByText('Problem solving and initiative')).toBeInTheDocument();
+    expect(screen.getByText(/Emerging · limited · low/i)).toBeInTheDocument();
+    expect(screen.getByText('Tutor platform')).toBeInTheDocument();
+  });
+
   it('shows motivation recurrence without presenting it as a personality score', () => {
     render(<MotivationProfileView report={report()} />);
     expect(screen.getByRole('list', { name: 'Repeated stated motivations' })).toBeInTheDocument();
@@ -151,9 +227,121 @@ describe('Personal Report Pass 2 insights', () => {
 
   it('summarises social proof with grounded counts', () => {
     render(<SocialProofSummaryView report={report()} />);
-    expect(screen.getByText('Experiences analysed')).toBeInTheDocument();
-    expect(screen.getByText('Strong evidence')).toBeInTheDocument();
+    expect(screen.getByText('Recorded outcomes')).toBeInTheDocument();
     expect(screen.getByText('Quantified outcomes')).toBeInTheDocument();
+    expect(screen.queryByText('Experiences analysed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Strong evidence')).not.toBeInTheDocument();
+    expect(screen.getByText('Quantified outcomes')).toBeInTheDocument();
+    expect(screen.getByText('Team members led')).toBeInTheDocument();
+    expect(screen.getByText('Community reach')).toBeInTheDocument();
+    expect(screen.getByText('Years of commitment')).toBeInTheDocument();
+  });
+
+  it('renders the stored key-takeaway reasoning graph instead of hiding its grounding', () => {
+    const current = report();
+    current.keyTakeaways = {
+      whatMakesYouStandOut: {
+        kind: 'takeaway',
+        statement: 'Grounded standout',
+        scope: 'repeated',
+        strength: 'strong',
+        confidence: 'high',
+        evidenceIds: ['e1', 'e2'],
+        limitations: [],
+        importance: 'This matters because it is repeated across activities.',
+      },
+      competitiveAdvantage: {
+        kind: 'competitive_advantage',
+        statement: 'Grounded advantage',
+        scope: 'repeated',
+        strength: 'moderate',
+        confidence: 'medium',
+        evidenceIds: ['e1'],
+        limitations: [],
+      },
+      growthOpportunity: {
+        kind: 'growth_area',
+        statement: 'Grounded growth',
+        scope: 'insufficient',
+        strength: 'weak',
+        confidence: 'low',
+        evidenceIds: [],
+        limitations: ['Needs more evidence.'],
+        currentGap: 'Needs more evidence.',
+        direction: 'Add one specific outcome.',
+      },
+    };
+    render(<KeyTakeawaysView report={current} />);
+    expect(screen.getByText('Grounded standout')).toBeInTheDocument();
+    expect(screen.getAllByText('Evidence basis:').length).toBe(3);
+    expect(screen.getByText('This matters because it is repeated across activities.')).toBeInTheDocument();
+    expect(screen.getByText('Add one specific outcome.')).toBeInTheDocument();
+  });
+
+  it('renders every structured AI takeaway field without mixing in legacy prose', () => {
+    const current = report();
+    current.narrativeDetails = {
+      keyTakeaways: {
+        whatMakesYouStandOut: {
+          title: 'Structured standout title',
+          insight: 'Structured standout insight',
+          evidencePattern: 'Structured standout evidence pattern',
+          whyItMatters: 'Structured standout importance',
+          evidenceIds: ['e1'],
+        },
+        competitiveAdvantage: {
+          title: 'Structured advantage title',
+          advantageStatement: 'Structured advantage statement',
+          supportingEvidence: 'Structured advantage evidence',
+          applicationRelevance: 'Structured advantage relevance',
+          evidenceIds: ['e1'],
+        },
+        growthOpportunity: {
+          title: 'Structured growth title',
+          growthArea: 'Structured growth area',
+          currentGap: 'Structured current gap',
+          recommendedDirection: 'Structured recommendation',
+          whyItMatters: 'Structured growth importance',
+          evidenceIds: ['e1'],
+        },
+      },
+    };
+
+    render(<KeyTakeawaysView report={current} />);
+    for (const text of [
+      'Structured standout insight', 'Structured standout evidence pattern', 'Structured standout importance',
+      'Structured advantage statement', 'Structured advantage evidence', 'Structured advantage relevance',
+      'Structured growth area', 'Structured current gap', 'Structured recommendation', 'Structured growth importance',
+    ]) expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByText('Grounded standout')).not.toBeInTheDocument();
+  });
+
+  it('surfaces social-proof metadata on each evidence card', () => {
+    const current = report();
+    current.proofOfMe.cards[0] = proof({
+      activityId: 'a1',
+      title: 'Tutor platform',
+      organisation: 'Example Org',
+      level: 'National',
+      year: 2024,
+      period: '2023–2024',
+      competition: 'Education Challenge',
+      sources: [{ id: 'doc-1' }],
+    });
+    render(
+      <ProofOfMeView
+        section={current.proofOfMe}
+        evidenceSummary={undefined}
+        overallSummary={null}
+        returnTo={undefined}
+      />,
+    );
+    expect(screen.getByText('Example Org')).toBeInTheDocument();
+    expect(screen.getByText('National')).toBeInTheDocument();
+    expect(screen.getByText('2024')).toBeInTheDocument();
+    expect(screen.getByText('2023–2024')).toBeInTheDocument();
+    expect(screen.getByText('Education Challenge')).toBeInTheDocument();
+    expect(screen.getByText(/Supporting documents:/)).toBeInTheDocument();
   });
 
   it('places existing limitations into an estimated impact-effort growth matrix', () => {

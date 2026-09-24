@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { analyzeApplicant } from '@/lib/ai/strategy-dashboard/applicant-analysis';
+import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
 
@@ -73,6 +74,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+
+  const limited = applyRateLimit(strategyAiLimiter, user.id, 'applicant analysis');
+  if (limited) return limited;
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {

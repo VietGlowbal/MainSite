@@ -1,9 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   recommendationsFromRoadmap,
+  recommendationsFromStrategyReportV3,
   recommendationsFromStrategyReportV2,
   reconcileSeeds,
+  strategyRecommendationFromRow,
   strategyReportV2FromRow,
+  strategyReportV3FromRow,
   type ExistingRecommendation,
 } from '../domain';
 import { seedToRow } from './generate-recommendations';
@@ -24,15 +27,26 @@ export type GenerateRoadmapTasksResult = {
 
 const ROADMAP_CATEGORY = 'strategy-roadmap';
 
+function isSchemaGap(error: { code?: string; message?: string } | null): boolean {
+  return Boolean(error && ['42P01', 'PGRST204', 'PGRST205'].includes(error.code ?? ''));
+}
+
+function seedToUpdateRow(seed: Parameters<typeof seedToRow>[0]) {
+  const row: Record<string, unknown> = { ...seedToRow(seed, 'next_action') };
+  delete row.status;
+  delete row.deadline;
+  return row;
+}
+
 /**
  * Turns the latest Strategy Report's Execution Roadmap into
  * `application_recommendations` rows — the "generate Planner tasks from this
  * strategy report" button.
  *
- * Two source shapes, latest-wins:
- * - `report_v2` (F8 five-section payload): one seed per roadmap DELIVERABLE,
- *   keyed by the deterministic `source_key` so regenerations update in place
- *   (`recommendationsFromStrategyReportV2`).
+ * Source precedence, latest-valid-wins:
+ * - Strategy V3's four-section `report_v2`: one seed per roadmap DELIVERABLE,
+ *   keyed by the deterministic `source_key` so regenerations update in place.
+ * - historical F8 `report_v2`, using its existing adapter.
  * - legacy F7 `roadmap` column (prioritize/avoid prose): reconciled on
  *   (pillar, title) exactly as before — rows written by this path keep
  *   working unchanged.
@@ -45,43 +59,52 @@ export async function generateRoadmapTasks(
   supabase: SupabaseClient,
   applicationId: string,
 ): Promise<GenerateRoadmapTasksResult> {
-  const { data: latestStrategy } = await supabase
+  const strategyQuery = supabase
     .from('application_strategy_recommendations')
-    .select('roadmap,report_v2')
+    .select(
+      'id,application_id,source_analysis_id,source_match_analysis_id,' +
+      'direction_options,chosen_direction,chosen_direction_why,narrative,' +
+      'positioning_before,positioning_after,positioning_rationale,' +
+      'portfolio_evaluations,differentiation_insight,differentiation_proposal,' +
+      'roadmap,report_v2,input_hash,model_name,prompt_version,created_at,pdf_storage_path',
+    )
     .eq('application_id', applicationId)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
+  const strategyResult = await strategyQuery;
+  const legacyColumnFallback = Boolean(strategyResult.error && isSchemaGap(strategyResult.error));
+  const strategyRows = legacyColumnFallback
+    ? (await supabase
+        .from('application_strategy_recommendations')
+        .select('roadmap')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false })
+        .limit(20)).data
+    : strategyResult.data;
+
+  const rows = (Array.isArray(strategyRows) ? strategyRows : strategyRows ? [strategyRows] : []) as Array<Record<string, unknown>>;
+  const reportV3 = rows.map(strategyReportV3FromRow).find(Boolean) ?? null;
+  const reportV2 = rows.map(strategyReportV2FromRow).find(Boolean) ?? null;
+  const legacyRoadmap = rows
+    .map((row) => strategyRecommendationFromRow(row)?.roadmap ?? null)
+    .find(Boolean)
+    // Before the report_v2 migration, the fallback query only returns the
+    // legacy roadmap column, so retain that compatibility path.
+    ?? (legacyColumnFallback ? rows.find((row) => row.roadmap)?.roadmap : null)
+    ?? null;
 
   // The report_v2 column ships in supabase-strategy-report-v2.sql; before it
   // runs, the combined select would fail outright — fall back to the legacy
   // column only.
-  let roadmapJson = (latestStrategy?.roadmap ?? null) as {
-    why: string;
-    prioritize: string[];
-    avoid: string[];
-  } | null;
-  let reportV2 = latestStrategy ? strategyReportV2FromRow(latestStrategy) : null;
-
-  if (latestStrategy && !reportV2 && roadmapJson === null) {
-    const retry = await supabase
-      .from('application_strategy_recommendations')
-      .select('roadmap')
-      .eq('application_id', applicationId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    roadmapJson = (retry.data?.roadmap ?? null) as typeof roadmapJson;
-    reportV2 = null;
-  }
-
-  if (!reportV2 && !roadmapJson) {
+  if (!reportV3 && !reportV2 && !legacyRoadmap) {
     return { ok: false, error: 'no_strategy_recommendation', inserted: 0, updated: 0, archived: 0 };
   }
 
-  const seeds = reportV2
-    ? recommendationsFromStrategyReportV2(applicationId, reportV2)
-    : recommendationsFromRoadmap(applicationId, roadmapJson!);
+  const seeds = reportV3
+    ? recommendationsFromStrategyReportV3(applicationId, reportV3)
+    : reportV2
+      ? recommendationsFromStrategyReportV2(applicationId, reportV2)
+      : recommendationsFromRoadmap(applicationId, legacyRoadmap as { why: string; prioritize: string[]; avoid: string[] });
 
   const existingSelect = supabase
     .from('application_recommendations')
@@ -117,7 +140,7 @@ export async function generateRoadmapTasks(
   }
 
   for (const update of plan.toUpdate) {
-    const row = seedToRow({ applicationId, ...update.fields }, 'next_action');
+    const row = seedToUpdateRow({ applicationId, ...update.fields });
     const { error } = await supabase
       .from('application_recommendations')
       .update(row)

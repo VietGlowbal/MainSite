@@ -15,8 +15,12 @@ are regression records for fixed bugs, not open work:
 | §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
 | §0, §0c database migrations | ✅ Confirmed resolved 2026-08-12 via the production schema dump — `student_profiles.curriculum` is an array type, `applicant_analyses.emerging_themes` exists. |
 | §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
+| §0g anon-callable SECURITY DEFINER RPCs | ✅ **RESOLVED 2026-09-05.** `sql/supabase-rpc-privilege-hardening.sql` has been applied: `pg_proc.proacl` now reads `{postgres=X,service_role=X}` for all 26 mutating definer functions, `anon` and `authenticated` hold no EXECUTE. Verified from the live catalog, not from the file. The six definer functions `anon` can still execute are the five TRIGGER functions the migration deliberately left alone (PostgREST does not expose a function returning `trigger`) plus `confirm_application_candidate_snapshot`, which raises `42501` when `auth.uid()` is NULL. Evidence: `sql/introspect.sql` run 2026-09-05T16:26Z, `docs/audit-2026-09-05-database.md` §2. Historical detail below. ~~🔴 OPEN, most urgent item in this file.~~ Three definer RPCs with no auth check are anon-callable in production — cross-user entitlement disclosure and a billing-window reset that uncaps free usage. `supabase-rpc-privilege-hardening.sql` written, **NOT YET RUN** — re-confirmed still live 2026-09-04 by calling all five as `anon` (200/204, real `plan` disclosed for a real `user_id`) and by catalog (`has_function_privilege('anon', …)` true for all 11 definer functions). The migration is **verified correct and complete** against the live catalog — run it as-is. RLS does not cover this: audit `pg_proc` grants, not only `pg_policies`. **Partial update 2026-09-05:** `get_user_entitlement` now returns `42501 permission denied` to `anon` when called with the anon key, so that one disclosure is closed. The other definer functions were **not** re-verified — they mutate, so they cannot be probed read-only. Confirm the rest from `pg_proc.proacl` (run `sql/introspect.sql` §3) before closing this row. |
+| §0h anon `DELETE`/`PATCH` returning 204 | ✅ **Not a vulnerability — false positive, do not re-open.** PostgREST answers a write that matched *zero* rows with `204`, and an RLS `USING` clause filters rows rather than raising. A probe against a non-existent id therefore cannot tell "blocked" from "no such row". Verified 2026-09-04 against a real row: anon `DELETE`/`PATCH` returned `[]` under `return=representation` and the row survived. See §0h. |
+| §0k session cookies + CSP | `Secure` shipped 2026-09-14 via one shared `cookieOptions` object. **Do not switch to `SameSite=Strict` or `HttpOnly`** — each breaks sign-in (Google OAuth return; 27 browser-side Supabase callers). CSP **enforced** 2026-09-14 (nonce + `strict-dynamic`, set per request in `src/proxy.ts`) — **never add a static CSP to next.config.ts**. See §0k. |
 | §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
+| §1d duplicate universities | ✅ Merged 2026-09-03, confirmed live (99 rows, 0 collisions). **Read before deleting any `universities` row** — 13 tables FK to it and 4 cascade. Scholarship *coverage* (374 of 2,877 linked) is a separate, still-open problem. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
 | §5–§5m | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. §5m records that reflection never asked for the career direction the matching and strategy reports score against, and that `goals` is a SHARED column — do not add a second career-goal column beside it. |
@@ -81,7 +85,9 @@ losing one stale field.
 ## 0. `ADD COLUMN IF NOT EXISTS` never changes a column's TYPE — and it cost the owner four re-runs
 
 **The single most expensive mistake in this pack so far.** Read it before
-editing any `supabase-*.sql` file that has already been applied.
+editing any `sql/supabase-*.sql` file that has already been applied.
+(These lived at the repo root until 2026-09-05; they are now under `sql/`.
+The PreToolUse guard matches on the filename, so it still fires.)
 
 `supabase-academic-intake.sql` originally declared:
 
@@ -352,6 +358,495 @@ enough on a database where §0e is also still pending.
 SQL editor. It is additive (`CREATE TABLE IF NOT EXISTS`), so safe to run
 even if parts of it somehow already exist.
 
+## 0g. ✅ RESOLVED 2026-09-05 — three `SECURITY DEFINER` RPCs were callable by `anon` with no auth check
+
+Found 2026-09-04 auditing the system after the 21/08 Beta Product Review.
+**Closed 2026-09-05: the migration has been applied and the live catalog
+confirms it.** `sql/introspect.sql` returns `{postgres=X/postgres,service_role=X/postgres}`
+for every function listed below — `anon` and `authenticated` hold no EXECUTE on
+any of them. The account that follows is kept because the *reasoning* still
+applies to the next definer function anyone writes.
+
+Two things worth carrying forward:
+
+1. **`REVOKE ... FROM PUBLIC` does not remove `anon`.** Supabase grants EXECUTE
+   to `anon` and `authenticated` explicitly at CREATE time via default
+   privileges, so revoking PUBLIC leaves those two entries in place. The
+   hardening file gets this right by revoking the roles by name; a migration
+   that only revokes PUBLIC will silently leave the function anon-callable.
+   `confirm_application_candidate_snapshot` is the live proof: its own `.sql`
+   file ends with `REVOKE ALL ... FROM PUBLIC` plus `GRANT ... TO
+   authenticated`, and `anon` still holds EXECUTE in `pg_proc.proacl` today.
+   It is safe only because its body raises `42501` when `auth.uid()` is NULL.
+2. **The check is `pg_proc.proacl`, not the `.sql` file.** This row sat at
+   "written, NOT YET RUN" after it had in fact been run, because the file was
+   the only thing being read.
+
+**Why the beta review missed it, and why RLS does not save you here.** The
+review's section 5.2 probed table reads and writes and correctly concluded RLS
+was holding. It never enumerated RPCs. A `SECURITY DEFINER` function executes as
+its *owner* and does not consult RLS at all — so an anon-executable one bypasses
+every policy the review verified. Table-level testing cannot find this class of
+bug. **Check `pg_proc` grants, not just `pg_policies`.**
+
+Three functions are `SECURITY DEFINER`, `EXECUTE`-able by `anon`, and contain no
+authorization check — not one reference to `auth.uid()`:
+
+| Function | Effect when called with the public anon key |
+|---|---|
+| `get_user_entitlement(target_user_id uuid)` | Returns any named user's plan, `course_search_limit`, `course_add_limit` and billing window. Cross-user disclosure. |
+| `reset_billing_period(target_user_id uuid)` | Resets any named user's billing window to the current month. |
+| `reset_all_billing_periods()` | Same, for every user whose period has expired, in one call. |
+
+The last two are a **monetization bypass**, not only a data problem: the billing
+window is what makes a usage limit expire, so anyone able to reset it on demand
+has uncapped `course_search_limit`/`course_add_limit` for free — and can reset
+other people's too.
+
+⚠️ **Do not assume the uuid is secret.** The review recorded that the public
+`avatars` bucket lists 8 UUID-named objects to an unauthenticated caller. Treat
+user-id enumeration as available.
+
+Two lower-impact maintenance functions are also anon-callable and both DELETE
+rows: `cleanup_expired_idempotency_keys()`, `cleanup_stale_search_sessions()`.
+
+**What is NOT wrong here** — the Supabase linter flags eleven functions as
+anon-executable, but five of them return `trigger`. PostgREST does not expose a
+trigger function, so those grants are inert: `create_user_entitlements`,
+`sync_entitlements_from_profile`, `sync_billing_period_from_profile`,
+`consume_activity_follow_up_question`, `update_achiever_stats`. Do not spend
+time on them beyond the `search_path` fix.
+
+**`confirm_application_candidate_snapshot` is the model to copy.** Same
+`SECURITY DEFINER` shape, but it reads `auth.uid()`, raises `42501` when NULL,
+scopes every statement to `user_id = auth.uid()`, and pins `search_path`. Any
+new definer function should look like that one.
+
+The migration revokes `anon`/`authenticated`/`PUBLIC` EXECUTE on all five
+callable RPCs and pins `search_path` on the eight definer functions that lacked
+it. **No application code calls any of the five** — verified across the repo;
+the only callers are `scripts/check-migrations.mjs` and
+`scripts/verify-phase1-checkpoint.mjs`, both on `SUPABASE_SERVICE_ROLE_KEY`,
+which the revokes do not touch.
+
+If a signed-in user ever needs their own entitlement from the client, do **not**
+re-grant the function — add the missing `target_user_id <> auth.uid()` check and
+grant `authenticated` only.
+
+---
+
+## 0h. ✅ NOT A BUG — anon `DELETE`/`PATCH` answering `204` is RLS working, not RLS missing
+
+Raised 2026-09-04 from a `curl` probe against `universities`, and it will be
+raised again, because the evidence looks alarming and is entirely normal:
+
+```
+DELETE /rest/v1/universities?id=eq.999999999   ->  204     "row deleted?!"
+PATCH  /rest/v1/universities?id=eq.999999999   ->  400
+POST   /rest/v1/universities                   ->  401     RLS clearly working here
+```
+
+The conclusion drawn — *"SELECT and POST are covered by RLS but DELETE/PATCH are
+not, so if the id existed the whole table could be dropped by anyone"* — is
+wrong on both halves.
+
+**Why `204` proves nothing.** PostgREST returns `204 No Content` for a `DELETE`
+that succeeded *and affected zero rows*; that is the same response as a delete
+that was filtered away. An RLS policy's `USING` clause does not raise on
+violation — it removes non-matching rows from the statement's scope, exactly
+like an extra `WHERE`. A row blocked by policy and a row that does not exist are
+therefore **indistinguishable from outside**, and `id=eq.999999999` picks a row
+that does not exist, so the probe cannot separate the two cases even in
+principle.
+
+**Why `POST` differs, which is the detail that misleads.** `INSERT` is checked
+by `WITH CHECK`, and a `WITH CHECK` failure *does* raise — `42501`, surfaced as
+`401`/`403`. So `SELECT`/`UPDATE`/`DELETE` fail **silently** while `INSERT`
+fails **loudly**. That asymmetry is a property of Postgres RLS, not evidence
+that three of the four verbs are unprotected.
+
+**How to test it properly** — force the row count into the response with
+`Prefer: return=representation`, and use an id that really exists:
+
+```
+anon DELETE ?id=eq.<real id>  -H 'Prefer: return=representation'  ->  200  []
+anon PATCH  ?id=eq.<real id>  -H 'Prefer: return=representation'  ->  200  []
+service_role DELETE, same row                                     ->  200  [{...}]
+```
+
+`[]` is zero rows touched. Verified 2026-09-04 on a throwaway `universities` row
+(`country='ZZ-TEST'`, created and dropped with the service key, never a real
+row): the row survived both anon writes unchanged. Consistent with anon
+`GET /universities` returning `[]` while the service key sees the full table.
+
+Confirmed at catalog level too, which is the evidence to cite if it comes up
+again:
+
+```
+universities   rls_on = true
+  policies:  "Authenticated users can read universities"  [r] to authenticated
+             "Service role full access to universities"   [*] to service_role
+  anon SELECT/UPDATE/DELETE grant = true, true, true
+```
+
+**Read that last line carefully, because it is the part that looks damning and
+is not.** `anon` genuinely *does* hold table-level `SELECT`/`UPDATE`/`DELETE`
+grants — that is Supabase's default blanket grant on `public`, and it is true of
+almost every table here. The grant is not what protects the row; **RLS is**, and
+`universities` has no `anon` policy for any verb. Under RLS, *no policy* already
+means *deny* — which is why adding `USING (false)` for `anon` would be pure
+redundancy, not a fix. Do not "harden" tables this way; it adds policies to
+audit without changing behaviour.
+
+The `400` on `PATCH` was not a policy result and not a "primary key format"
+problem either — `universities.id` is `bigserial`, so `eq.999999999` parses
+fine. A well-formed anon `PATCH` returns `200 []`, as above; the `400` came from
+the request body.
+
+**The generalisable rule:** never conclude a write is permitted from a `2xx`
+alone. Confirm with `return=representation`, or re-read the row afterwards.
+
+**A full-surface sweep was run at the same time and is the useful result.** All
+113 REST-exposed tables, anon key vs service key, row counts compared:
+
+| Outcome | Count | Reading |
+|---|---|---|
+| anon reaches table, sees **0** rows | 92 | RLS enforcing |
+| anon denied at **GRANT** level (`401`) | 16 | all `crawl_*`, `payment_notification_jobs`, `manual_payment_reviews` |
+| anon reads rows | 5 | `courses` / `catalog_programmes` (593, public catalogue), `team_members` (12), `team_achievements` (24), `geo_articles` (**2 of 5** — published-only policy filtering correctly) |
+
+No table leaked anything it should not. **The table surface is not where the
+exposure is — §0g is.** Do not spend more time re-probing tables while five
+definer RPCs remain anon-callable.
+
+**Tooling trap, cost one wrong conclusion on 2026-09-04.** The Supabase MCP's
+`list_projects` returns only `fbtbxcgadyrdfhzsvwom` ("AIMS", INACTIVE). That is
+**not this app's database** and running `get_advisors` against it returns an
+empty lint list that looks like a clean bill of health. This project is:
+
+```
+project ref  uooshbumyilwvbgmbixx     (= the NEXT_PUBLIC_SUPABASE_URL subdomain)
+```
+
+Access works fine — **pass that ref explicitly**; it is simply absent from
+`list_projects` because the project belongs to another owner's organisation and
+the listing only enumerates your own. Nothing needs re-authorising. The MCP
+connects as `supabase_read_only_user`, so it can read `pg_policies`, `pg_proc`
+and run the verification queries, but **cannot apply migrations** — DDL still
+has to go through the Supabase SQL Editor. Against the right ref the linter does
+report the §0g problem, as `anon_security_definer_function_executable` (11).
+
+---
+
+## 0i. Leaked-password protection is OFF and we cannot turn it on — the check lives in code instead
+
+The Supabase linter reports `auth_leaked_password_protection` (WARN): Auth is
+not checking new passwords against the HaveIBeenPwned corpus. Enabling it is one
+toggle in **Dashboard → Authentication → Policies** — but it is an
+**organisation-owner setting, and this team are members of another owner's
+organisation**, so nobody here can flip it. Treat it as blocked, not as ignored.
+
+It was not a theoretical gap. The sign-up route's only password rule was
+`z.string().min(6)`, so `123456` — the most common breached password there is —
+was accepted.
+
+**Implemented 2026-09-04 as a compensating control, in code we do own:**
+
+| Where | What |
+|---|---|
+| `features/auth/domain/password.ts` | Pure rules. Floor raised 6 → **8** (NIST SP 800-63B minimum), ceiling 200 kept. Plus the k-anonymity helpers, which are pure so they can be tested without network. |
+| `features/auth/api/pwned-passwords.ts` | The HIBP range-API adapter. |
+| `app/api/auth/signup/route.ts` | Runs both, before the account is created. |
+
+Three decisions that will look wrong without the reasoning:
+
+* **No composition rules** (no "must contain a symbol"). NIST withdrew that
+  advice — such rules produce predictable mutations, and `Password1!` clears
+  every box while sitting near the top of the breach corpus. Length plus the
+  breach check is the policy.
+* **The password never leaves the process.** It is SHA-1'd locally and only the
+  first **5 hex characters** go to HIBP, which answers with every breached
+  suffix sharing that prefix; the match happens locally against ~1M sibling
+  hashes. SHA-1 here is a lookup key into HIBP's index, *not* credential
+  storage — Supabase still bcrypts the real password. Do not "simplify" this by
+  sending the full hash. A unit test asserts the request shape for exactly this
+  reason.
+* **It fails OPEN.** If HIBP is down, rate-limiting or slow (2.5s timeout),
+  sign-up proceeds and a warning is logged. Blocking registration on a
+  third-party outage would trade defence-in-depth for an availability incident,
+  and an outage only restores the risk we already carried. `unavailable` is a
+  distinct state from `clean` so the two can never be confused.
+
+Raising the floor affects **new passwords only** — nothing here runs on the
+sign-in path, so existing accounts still authenticate normally.
+
+**If an owner later enables the toggle, keep this code.** The two overlap
+harmlessly, and this layer is what holds when the platform setting is off.
+
+### Password reset — added 2026-09-04, no Figma frame exists
+
+Until this date there was **no password-reset flow at all**. "Forgot password"
+was a no-op control in the old markup and the Figma rebuild dropped it rather
+than implementing it, so a user whose password leaked could not rotate it. That
+was a larger practical gap than the toggle above, and it is why the breach check
+alone was not enough.
+
+| Piece | File |
+|---|---|
+| Request a link (3rd mode on the auth card) | `app/auth/auth-form.tsx` |
+| Request route | `app/api/auth/reset-password/route.ts` |
+| Email | `lib/emails/password-reset.ts` |
+| Set the new password | `app/auth/reset-password/` |
+| Confirm route | `app/api/auth/reset-password/confirm/route.ts` |
+| Token redemption (repository) | `features/auth/api/password-reset.ts` |
+
+**The UI was invented, not derived** — Figma has no frame for any of it. It
+reuses the existing auth card so it does not read as a different product. If a
+frame appears later, re-derive the presentation from it; the flow below is the
+part that should not change casually.
+
+**`/auth/reset-password` is exempt from the signed-in `/auth` redirect**
+(`src/proxy.ts`). Missing that exemption is not a cosmetic bounce: the redirect
+clears the query string, so a recovery token opened in a signed-in browser is
+destroyed rather than deferred, and the single-use link has to be requested
+again. It is reachable in ordinary use — the "set a password" card on
+/profile/security mails the link to a user who is signed in by definition, and
+anyone who requests a reset on one device may open the mail on another where
+they are still signed in. Pinned by `src/__tests__/proxy-auth-redirect.test.ts`.
+
+Four decisions worth keeping:
+
+* **The request route always answers `200`,** for a registered address, an
+  unregistered one, or a Supabase failure. Any other behaviour turns it into an
+  account-existence oracle — submit an address, read the status code, learn
+  whether it holds an account. The inbox message is worded to match ("if an
+  account exists for…"), because a confident "we sent it" would leak the same
+  fact through the UI that the status code no longer leaks.
+* **The recovery token is redeemed at the moment the password is submitted,**
+  not at an earlier redirect. `verifyOtp` + `updateUser` happen together in the
+  repository. Letting the emailed link establish a session first and then
+  trusting whoever holds that session cannot distinguish "arrived from the reset
+  email" from "was already signed in on this shared machine" — which would let
+  anyone at an unlocked laptop change the password without knowing the current
+  one.
+* **Both password checks run BEFORE the token is spent.** A recovery token is
+  single-use; validating after redeeming would burn the user's link because they
+  picked something seven characters long, and force another email.
+* **Rate limited on IP *and* target email** (3 per 15 min). The endpoint sends
+  mail to an address the caller chooses, so it is a spam relay otherwise. One
+  bucket alone does not cover both "one host, many addresses" and "many hosts,
+  one victim".
+
+### Change password while signed in — added 2026-09-04, completes the flow
+
+The third case, and the one a student reaches most often: they are signed in,
+they suspect the password has leaked, and they want a different one. Also no
+Figma frame; the page borrows the profile editors' shell and the auth card's
+field styling.
+
+| Piece | File |
+|---|---|
+| Page (auth gate + which form to show) | `app/profile/security/page.tsx` |
+| Both forms | `app/profile/security/change-password-form.tsx` |
+| Route | `app/api/account/password/route.ts` |
+| Verify + update + revoke (repository) | `features/auth/api/password-change.ts` |
+| Notification email | `lib/emails/password-changed.ts` |
+| Entry point | the account card in `app/profile/profile-client.tsx` |
+
+Five decisions worth keeping:
+
+* **The current password is required, and verified.** `updateUser({ password })`
+  needs nothing but a session, and Supabase's "secure password change" setting —
+  which would require re-authentication — is the same organisation-owner toggle
+  we cannot reach. Without the prompt, anyone at an unlocked browser or replaying
+  a stolen session cookie can set a password of their choosing and convert
+  temporary access into permanent ownership of the account.
+* **Verification runs on a throwaway client** (`persistSession: false`), because
+  `signInWithPassword` is the only way Supabase will check a password and running
+  it on the request's cookie-bound client would rewrite the caller's session
+  cookies as a side effect of a read-only check. The throwaway session it mints
+  is revoked immediately (`scope: 'local'` is a server call, not a local wipe).
+* **Every other session is revoked on success** (`scope: 'others'`, which spares
+  the caller's own). Refresh tokens outlive the password that created them, so a
+  change that leaves existing sessions working has protected nothing — which is
+  the entire reason someone reaches this page.
+* **A "your password was changed" email goes out afterwards.** This is the
+  control that catches the case the prompt did not: someone who held both a
+  session *and* the password. It is deliberately NOT sent by the reset flow,
+  where the user just received a link at that same address and an attacker who
+  completed the reset already owns the mailbox. No undo link — a link that
+  reverses a password change is itself a credential.
+* **A Google-only account gets a different screen.** It has no password hash, so
+  there is no current password to verify. It could be given one straight from the
+  session in a single click; that is exactly the escalation above, so it is
+  routed through the emailed link instead. Detected with `hasPasswordIdentity`
+  (`features/auth/domain/password.ts`), which assumes a password when the
+  identity list is missing — failing the other way would tell an ordinary user
+  their account has no password.
+
+  ⚠️ **Untested against the live project:** this branch assumes
+  `admin.auth.admin.generateLink({ type: 'recovery' })` issues a token for a user
+  who has no password yet. It is the documented way an OAuth user adds one, but
+  verifying it needs a real Google account and a delivered email, and the MCP
+  connection is read-only. If it turns out GoTrue refuses, the request route
+  swallows the error and answers `200` (by design — see above), so the symptom
+  is a link that never arrives, not an error.
+
+Rate limited at 10 per 15 min **per user id**, not per IP: the endpoint reports
+whether the current password was right, which is an online guessing oracle for
+whoever holds a stolen session, and that account's budget should bound them
+however many addresses they come from. The limiter sits *after* local validation
+(so a typo does not spend an attempt) and *before* the HIBP lookup (so a wordlist
+cannot pump outbound requests). `route.test.ts` pins that ordering — it is
+invisible in the types and a silent regression if it moves.
+
+Unlike the reset routes, this one is **not** enumeration-sensitive: the caller
+has already proved who they are, so "that is not your current password" names the
+real problem instead of sending a user who merely mistyped off to the reset flow.
+
+Still missing: nothing in the password story. What this page does *not* do is
+list active sessions or offer 2FA — neither has been asked for.
+
+## 0j. ✅ NOT A BUG — "CORS reflects any origin / `Access-Control-Allow-Origin: *`" is Supabase's gateway, not us; the real exposure was `avatars` listing
+
+Reported by the 21/08 Beta Product Review (CORS wildcard, rated Low) and again
+on 2026-09-14 as "reflects https://evil.example.com". Measured 2026-09-14 with
+`Origin: https://evil.example.com`:
+
+| Host | What comes back |
+|---|---|
+| `glowbal-education.com` (pages, `/api/*`, OPTIONS preflight) | **No** `Access-Control-*` header at all. Browsers refuse cross-origin reads of our responses. |
+| `<ref>.supabase.co/rest/v1/*` | `Access-Control-Allow-Origin` echoes the origin; preflight answers `*` |
+| `<ref>.supabase.co/auth/v1/*` | echoes the origin **and** `Access-Control-Allow-Credentials: true` |
+
+**Why this is not a vulnerability, and why there is nothing to change:**
+
+* **Not configurable.** Supabase documents the permissive gateway CORS as
+  platform behaviour: "the auth boundary for Supabase APIs is the `apikey`
+  header rather than the request origin". There is no dashboard setting for
+  REST/Auth/Storage. Only Edge Functions set their own CORS, and we have none.
+* **CORS only limits browsers.** The anon key ships in our JS bundle by design;
+  `curl` ignores CORS entirely. Restricting the origin would stop nothing an
+  attacker cannot already do from a script.
+* **`Allow-Credentials: true` has nothing to carry.** The session lives on
+  *our* domain (`@supabase/ssr` cookies, `SameSite=Lax`) and reaches Supabase
+  as an explicit `Authorization: Bearer` header our own JS attaches. The only
+  cookie `*.supabase.co` sets is Cloudflare's `__cf_bm` bot token. A page on
+  evil.example.com has no way to make the browser send a student's JWT.
+
+**What actually matters is what the anon key can reach**, so check that
+instead of the header. Status 2026-09-14:
+
+* `GET /rest/v1/` (OpenAPI dump) → `401`, service role only. Closed.
+* Anon-executable `SECURITY DEFINER` RPCs → closed (§0g).
+* `POST /storage/v1/object/list/avatars` → **still returns 8 entries, 6 of
+  them user-id folders.** Caused by the `to public` SELECT policy in
+  `sql/supabase-missing-tables.sql`, which a public bucket never needed for
+  reading. Fix written: `sql/supabase-avatars-no-anon-listing.sql` (replaces
+  it with an owner-scoped SELECT so mentor `upsert` uploads keep working).
+  **NOT YET RUN** — confirm with the verify block at the top of that file.
+* No shared rate limit in front of the Supabase API — Supabase's own Auth rate
+  limits apply; REST relies on RLS. Same gap as audit H7 for our routes.
+
+---
+
+## 0k. Session cookies: `Secure` added 2026-09-14 — do NOT switch them to `SameSite=Strict` or `HttpOnly`
+
+Reported 2026-09-14: the `sb-*` cookies are `HttpOnly: false`, `Secure: false`,
+`SameSite: Lax`, so the tokens are readable from `document.cookie` and an XSS
+could take them. Proposed: `HttpOnly` + `Secure` + `Strict`, force HTTPS, rotate.
+The observation was **correct** — they are `@supabase/ssr` defaults
+(`DEFAULT_COOKIE_OPTIONS`) and no client overrode them.
+
+| Proposal | Outcome | Why |
+|---|---|---|
+| `Secure` | ✅ **Shipped** | `SUPABASE_AUTH_COOKIE_OPTIONS` in `src/shared/lib/supabase-auth-cookie.ts`, passed by all three clients. Production only — Safari will not store a `Secure` cookie on http://localhost. |
+| Force HTTPS | ✅ Already true | Live 2026-09-14: http → `308` to https; `Strict-Transport-Security: max-age=63072000`. |
+| `SameSite=Strict` | ❌ Declined | Cookie is withheld on any navigation arriving from another site. Google sign-in returns via `supabase.co` → `/auth/callback`, so the PKCE code-verifier cookie is missing and `exchangeCodeForSession` fails; Gmail links and Stripe/VNPay returns land signed out. `Lax` already withholds it on cross-site POST/fetch/iframe, which is the CSRF case. |
+| `HttpOnly` | ❌ Declined — needs a refactor first | `createBrowserClient` reads and writes the session through `document.cookie`. 27 client files call Supabase from the browser (profile/onboarding forms, `use-document-upload.ts` Storage uploads, `navigation-session.tsx`, `auth-form.tsx` sign-in). With `HttpOnly` they all go out anonymous and RLS returns nothing; JS also cannot overwrite an HttpOnly cookie, so refreshed tokens are dropped. |
+| Rotation | ⚠️ Supabase-side | Access tokens are short-lived JWTs; refresh tokens are single-use. Not yet confirmed in the dashboard (Auth → Sessions: reuse detection, JWT expiry, time-box/inactivity if the plan has them). Cookie `maxAge` is not the lever — the library pins it to 400 days, and clearing a cookie does not revoke its refresh token. |
+
+**Why `HttpOnly` is worth less than it sounds.** Script injected into the page
+can already act as the student — `fetch('/api/…')` carries the cookies and the
+in-page Supabase client carries the token. What `HttpOnly` would add is stopping
+the refresh token being carried off for use after the tab closes. **The lever
+that actually reduces XSS is the CSP, enforced since 2026-09-14 — see below.**
+Current raw-HTML surface is small: 5 `dangerouslySetInnerHTML`, four JSON-LD
+through `serializeJsonLd`, one static keyframes string.
+
+**If `HttpOnly` is wanted later:** move every browser-side Supabase call behind
+route handlers or server actions, issue signed upload URLs from the server,
+start OAuth from a route handler so the verifier cookie is server-set, hydrate
+the nav session from the server, *then* add `httpOnly: true` to the shared
+options and delete `createBrowserClient`. Flipping the flag first signs
+everyone out of every client-side feature.
+
+The three clients must pass the same object — each rewrites the cookie on token
+refresh, so one left on library defaults strips `Secure` again. Do not add a
+`name`: it renames the cookie and signs every user out.
+
+### Content Security Policy — enforced 2026-09-14
+
+Review finding (extends B1PR 3.1 / 5.1.2): "only `Content-Security-Policy-Report-Only`,
+no enforced CSP on any route; `unsafe-inline` and `unsafe-eval` active;
+`upgrade-insecure-requests` ignored". All three were true of production — the
+last because browsers ignore that directive inside a report-only policy.
+
+| Header (set per page request by `src/proxy.ts`) | Directives |
+|---|---|
+| `Content-Security-Policy` — **enforced** | `script-src 'nonce-…' 'strict-dynamic' 'self'` (`'unsafe-eval'` only when `NODE_ENV=development`), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests` |
+| `Content-Security-Policy-Report-Only` | the same three script directives, plus `default-src`, `style-src`, `img-src`, `font-src`, `connect-src`, `frame-src`, `form-action` |
+
+Built by `src/shared/lib/content-security-policy.ts`. Next reads the nonce off
+the forwarded request's CSP header and stamps its own scripts; `next/script`
+does not, so the nonce goes `x-nonce` → root layout → `ConsentBoundary` →
+`<GoogleAnalytics nonce>`.
+
+Decisions that will look wrong without the reasoning:
+
+* **⚠️ No CSP in `next.config.ts`, ever.** Browsers enforce every CSP header
+  they receive; a static one has no nonce and blocks all of Next's inline
+  scripts — the site stops hydrating.
+* **No caching was lost.** The root layout reads `headers()`, so every page was
+  already dynamic (`private, no-store`, `X-Vercel-Cache: MISS` on `/`, `/vi`,
+  `/about`, `/universities`, `/scholarships`, `/news`, `/auth`). The proxy's
+  `Vercel-CDN-Cache-Control` on `/universities` was removed: 3 × MISS, and a
+  cached page would carry a stale nonce under a fresh policy.
+* **No `'unsafe-inline'` / `https:` fallback.** Every browser that can run the
+  ES2022 bundle supports nonces. `'self'` stays for Safari 10–15.3 (nonces, but
+  no `'strict-dynamic'`); CSP3 browsers ignore it.
+* **Allowlists stay report-only** until checked: the old report-only header had
+  no reporting endpoint, so it never collected anything. Local crawl evidence
+  so far: 0 report-only violations on guest routes, 1 signed-in (below).
+  `style-src` must keep `'unsafe-inline'` even when enforced — a nonce cannot
+  cover `style=""` attributes.
+* **`'strict-dynamic'` lets running code insert an inline script** via
+  `document.createElement('script')`. By design (it is how Next loads chunks);
+  it needs script execution first, so it is not an injection vector.
+* **Zod 4 probes `Function("")`** when an object schema is created.
+  `src/instrumentation-client.ts` sets `jitless`, which short-circuits the probe
+  before any schema module loads.
+
+**Remaining known violation — essay pages ship Node's `crypto` polyfill.**
+`StatementWriter` → `@/lib/ai/vinuni-evaluation-v2` value-imports
+`calculateFinalScore`/`segmentEssay`/`VINUNI_EVALUATION_CONFIG` from
+`vinuni-grounded-evaluation.ts`, which imports `createHash` from `node:crypto`.
+Turbopack substitutes `crypto-browserify` — a ~620 KB chunk on
+`/apply/[id]/statement-feedback`, `/apply/[id]/lor-feedback`,
+`/ai-strategy/[id]/statement`, `/my-universities/[id]/writer`. Its asn1.js calls
+`vm.runInThisContext` inside try/catch, so the CSP refusal is harmless;
+`tests/e2e/csp.spec.ts` tolerates `eval` on exactly those routes. The fix is a
+bundle task, not a CSP one: keep `node:crypto` out of what those client
+components import.
+
+Measured 2026-09-14 on a local production build, Chromium: 22 of 23 `<script>`
+tags carry the header's nonce (the 23rd is JSON-LD). With the served CSP a
+parser-inserted `<script>`, an inline handler in HTML, an `innerHTML` handler,
+`eval` and `new Function` are all blocked; with the CSP stripped all of them
+ran. Not yet measured: the headers on a deployment.
+
+---
+
 ## 0d. `application_recommendations` genUI columns — the detail-page content block
 
 ✅ **CONFIRMED RESOLVED 2026-08-12.** The owner's production schema dump
@@ -512,6 +1007,70 @@ message Could not find the 'program' column of 'user_universities' in the schema
 Note the word "column" comes **after** the column name. The obvious pattern
 `/column .*program/i` does not match it — that was the first version, and it fell
 through to the generic message in the browser.
+
+---
+
+## 1d. FIXED 2026-09-03 — nine duplicate `universities` rows merged
+
+`supabase-university-duplicate-merge.sql`, **CONFIRMED RUN** by the owner on
+2026-09-03 19:04 UTC. Verified live after the fact: 0 duplicate rows, 99
+universities, 0 normalized-name collisions, 0 orphaned courses.
+
+Found while checking the 21/08 Beta Product Review, which reported that saving
+UC Berkeley or MIT returned zero scholarships and read it as thin scholarship
+coverage. It was not. `universities` held **108 rows for 99 institutions**, with
+nine duplicated across one contiguous id block (98-106) — a later bulk import
+that landed beside the existing curated rows and was indistinguishable from
+them (`source = 'curated'` on both halves; there is no import discriminator).
+
+**The two halves held different data, which is why this looked like missing
+scholarships:**
+
+| | canonical (low id) | duplicate (98-106) |
+|---|---|---|
+| `specific_insight`, `strengths` | all nine | none |
+| scholarship links | all 25 | 0 |
+| `courses` | some pairs 0 | 180 of 593 (30%) |
+| `academic_units` | some pairs 0 | 39 of 196 (20%) |
+| `university_profiles` | 0 | 7 of 17 |
+
+So the duplicate carried the plainer, more searchable name AND no scholarships.
+A student searching "Massachusetts Institute of Technology" saved the empty
+twin; one who picked "…(MIT)" saw four. **This was never a coverage problem** —
+do not reopen it as one. The real coverage problem is separate and still open:
+only 374 of 2,877 scholarships are linked to any university at all.
+
+**⚠️ THIRTEEN tables FK to `universities`, four of them `ON DELETE CASCADE`**
+(`academic_units`, `scholarship_universities`, `university_profiles`,
+`user_universities`); the other nine `SET NULL`. A plain
+`DELETE FROM universities WHERE id BETWEEN 98 AND 106` would have destroyed 39
+academic units and 7 profiles and silently stripped the university off 180
+courses, with no error raised. Anything that removes a university row must
+repoint every child first. Enumerate the FKs from `pg_constraint` — an
+`information_schema` join over `constraint_column_usage` returned a false empty
+while this was being investigated and nearly hid all thirteen.
+
+Merge direction was canonical-wins, because editorial content cannot be
+regenerated and crawler payload can. Merging was additive, not deduplicating:
+across the five pairs holding 20 courses on each side there was **not one shared
+`course_url`**, so the two crawls had captured different programmes. MIT
+correctly went to 40 courses and 11 academic units.
+
+Net effect: 232 rows repointed, 10 deleted (9 shells + one user's redundant NYU
+save — they had saved both twins and keep the canonical one).
+
+**The undo log is still there.** `public.university_merge_archive` holds every
+deleted row verbatim as jsonb, RLS enabled with no policies (verified: the anon
+role reads back `[]`). Restore recipe is in the migration header. Drop the table
+once you are satisfied; nothing reads it.
+
+**The root cause is now constrained.** `universities_normalized_name_key` is a
+unique index on the name with case, punctuation and any parenthetical suffix
+normalised out — so "MIT" and "Massachusetts Institute of Technology (MIT)"
+collide. The FKs were always correct; what was missing was any enforcement of
+institutional identity, which is why the import doubled the catalogue silently.
+**A bulk university import will now fail loudly instead.** That is intended —
+fix the import, do not drop the index.
 
 ---
 
@@ -676,6 +1235,26 @@ decide first whether a reviewer's name should be public at all.
 | `src/components/onboarding/onboarding-globe-quiz.tsx` | 663 | Orphan. |
 | `src/components/onboarding/onboarding-single-page.tsx` | 564 | Orphan — only referenced from comments in `i18n-dictionary.ts` and `selection-cache.ts`. |
 | `src/components/landing/home/` — `home-landing.tsx`, `hero-globe.tsx`, `reveal.tsx`, `site-header.tsx`, `university-search.tsx` | 1,510 | **Orphaned 2026-07-28** when `/` was promoted to the Figma build. Nothing imports any of them; the only remaining reference is a source citation in a comment in `src/shared/ui/icons.tsx`. `globals.css` still carries two `.home-landing-root` rules (≈4952, ≈5316) that now match nothing. |
+
+### `admissionUnlocked` — a prop threaded to nobody
+
+Traced 2026-09-08. `ExplorerContext` declares `admissionUnlocked` ("whether
+Reach/Recommended/Safe grouping is unlocked"), threads it through the provider
+and publishes it on the context value — and **no component reads it to render
+anything**. The only caller passes a literal `false`
+(`src/app/universities/university-list-client.tsx:726`).
+
+So the reach/recommend/safe grouping that `CLAUDE.md` describes as "the main
+navigation axis of the universities page (3 selectors at the top + a badge on
+each card)" **does not exist in code**. It is not switched off; it was never
+built, or was dropped in the Figma rebuild alongside the three missing filter
+chips. `src/lib/admission-fit.ts` still computes the tiers and
+`src/shared/ui/badge.tsx` still has the variants, so the pieces are there.
+
+This matters beyond tidiness: it is why `tier_list_viewed` is only wired to
+`/universities/matches` (which groups by `top_pick`/`good_fit`/
+`worth_exploring`, a different axis). Instrumenting the reach/recommend/safe
+screen would have produced zero events forever. See §8.
 
 That is ~2,530 lines of orphaned onboarding plus the 1,510-line landing tree —
 **~4,000 lines**, and most of `src/app/onboarding/`'s 43 legacy classes.
@@ -1788,3 +2367,156 @@ modifier keys. Consequences on the Personal Report:
 **Rule for any new global key handler**: bare keys are only yours when no
 modifier is held, and never while the user is typing — `input`, `textarea`,
 `select` and `contentEditable`.
+
+---
+
+## 7. `.env.example` is NOT tracked by git — anything documented there is invisible to everyone else
+
+Found 2026-09-08 while adding `NEXT_PUBLIC_GA_ID`.
+
+`.gitignore:36` is a blanket `.env*`, and `.env.example` was never force-added.
+Confirm in one command:
+
+```bash
+git check-ignore -v .env.example      # -> .gitignore:36:.env*  .env.example
+git ls-files --error-unmatch .env.example   # -> error: did not match any file
+```
+
+So the file exists on your disk and on the disk of whoever created it, and
+**nowhere else**. Every variable documented in it since the ignore rule landed
+has reached no teammate, no CI runner, and no new checkout. `SETUP.md` is the
+only environment documentation that actually ships — put new variables there.
+
+⚠️ **Do NOT "fix" this by running `git add -f .env.example` without reading it
+first.** The working copy carries what look like real shared secrets, including
+`SITE_GATE_PASSWORD` and `SITE_GATE_SECRET` (the pre-launch site lock, see
+`src/lib/site-gate.ts`). Force-adding writes them into git history, where
+removing them means a history rewrite, not a delete commit. The sequence is:
+rotate those values first, replace them in the file with placeholders, then
+decide whether the file should be tracked at all.
+
+---
+
+## 8. GA4 event coverage has three deliberate gaps — do not "fix" them by guessing
+
+Added 2026-09-08 with the GA4 integration. All three come from the same root
+fact: **`sendGAEvent` is browser-only.** It pushes onto `window.dataLayer`, so a
+webhook, cron job, API route or Server Component cannot emit a GA event. If an
+event must exist for something the server knows, either a page the student
+actually loads has to observe the state change, or it does not reach GA at all.
+
+**1. `mentor_payment_completed` is only recorded if the student has the tab
+open.** The live payment method is manual VND bank transfer — an admin confirms
+it. The server learns first, but has no `dataLayer`. The only browser-visible
+moment is `manual-status-panel.tsx` polling its status to `fulfilled`. A payment
+confirmed while the student's tab is closed is genuinely not counted. **The
+first-party `payment_transactions` table remains the source of truth for
+revenue; the GA event measures the funnel, not the books.** Do not reconcile
+GA against finance and conclude one is broken.
+
+The event is gated on `product_type === 'mentorship'` because the same manual
+transfer flow also sells Plus. `product_type` was already returned by
+`/api/payments/manual/status` (the route spreads the whole row); only the
+client-side `Status` type had to declare it — no API change was needed.
+
+**Stripe and VNPay are not wired and should not be.** Both still have routes,
+but nothing in the booking UI calls them: `PaymentMethodSelector` offers exactly
+one option and its prop type is the single literal `'manual_bank_transfer'`.
+`/api/mentorship/checkout` still has its route file, but every other mention of
+it in `src/` is a prose comment (`mentor-booking.tsx`, `mentors.ts`,
+`i18n-dictionary.ts`) — no code path calls it.
+
+**2. `tier_list_viewed` only fires on `/universities/matches`.** The
+reach/recommend/safe screen does not exist — see §3. The event carries a
+`surface` parameter (`'match_results'` today, `'admission_fit'` declared but
+unused) so that turning that screen on is a one-line call rather than a schema
+change that splits the metric into two incomparable halves.
+
+**3. Nothing is recorded for a visitor who declined analytics**, or who sends
+GPC/DNT. That is the design, not a gap to close. GA totals are therefore a
+lower bound on real traffic and must never be used as the denominator for a
+conversion rate whose numerator comes from the database.
+
+### Testing GA locally, and the trap
+
+GA renders inside `ConsentBoundary`, so on a fresh profile **nothing loads until
+you press "Accept" or "Accept Essential Cookies"** on the cookie banner (both
+accept everything — see §9). A browser sending Do
+Not Track or Global Privacy Control (Brave, several extensions) has consent
+forced to `false`, never shows the banner, and will never load GA — so "GA is
+broken locally" is usually one of those two, plus an adblocker. Check for a
+request to `googletagmanager.com/gtag/js` before debugging anything else.
+
+`NEXT_PUBLIC_GA_ID` is inlined at build time. Adding it to Vercel's environment
+variables does nothing until the project is **redeployed**.
+
+---
+
+## 9. The cookie banner's second button accepts everything — by decision, not by bug
+
+**Owner decision, 2026-09-08.** The banner's three buttons are:
+
+| Button | Calls | Effect |
+|---|---|---|
+| Accept | `saveConsent(true)` | analytics on |
+| Accept Essential Cookies | `saveConsent(true)` | analytics on |
+| Configure | opens the settings modal | the only refusal on the banner |
+
+The second button's label names essential cookies and its handler consents to
+non-essential analytics. This was raised with the owner as a GDPR problem —
+consent has to be informed, and a label that misdescribes what the button does
+makes the consent it collects invalid — and the owner chose it anyway with that
+stated. Recorded here so it is not "fixed" as a typo: **do not change that
+`true` to `false` without asking the owner.**
+
+`consent-boundary.test.tsx` has a test named *accepts from the second banner
+button too, by owner decision* which fails loudly if someone does, and the JSX
+carries the same note beside the button.
+
+What did not change, and must not:
+
+- **GPC / DNT still win.** `saveConsent` ands its argument with
+  `!privacySignal`, so a browser sending Global Privacy Control or Do Not Track
+  is refused whichever button is pressed. That path is unaffected by this
+  decision.
+- **Configure is now load-bearing.** It is the only way to refuse from the
+  banner, so it cannot be dropped or hidden behind an overflow.
+- **Inside Configure, refusing is one click and comes first** (owner's pick,
+  2026-09-13, of "categories + reject all" over per-service switches). The
+  dialog opens with *Reject all optional cookies* and *Accept all cookies* side
+  by side at equal weight; Reject is the first focusable element, so it holds
+  focus on open. Below them: a locked *Necessary — Always on* card and an
+  *Analytics* card with one `Toggle` (`src/shared/ui/toggle.tsx`) and a visible
+  On/Off word. Each card's "What's included" lists the real cookies/services
+  behind it (`NECESSARY_ITEMS` / `ANALYTICS_ITEMS` in `consent-boundary.tsx`) —
+  **adding a tracker means adding its row there.** No marketing/functional
+  card: the site sets none, and a switch that controls nothing misinforms.
+  Asserted by *refuses everything optional in one click from Configure*. The
+  consent record and cookie format are unchanged, so nobody is re-prompted.
+- The previous labels were "Accept non-essential" / "Reject non-essential" /
+  "Configure". `'Reject non-essential'` has been removed from
+  `i18n-dictionary.ts`; `'Accept Essential Cookies'` replaces it, and `Accept`
+  was already in the dictionary.
+
+### Room left for Google Ads (added in the same change)
+
+Nothing about advertising is implemented. What was added is the seam, so that
+adding it later is a known list of edits rather than a hunt:
+
+- **`ConsentCategory`** in `src/components/privacy/consent-boundary.tsx` — a
+  union of field names, one member (`'analytics'`) today.
+- **`consentAllows(record, category)`** — the single read path, used by the
+  three JSX gates and by `lib/analytics/ga.ts`. It indexes the record by the
+  category name, so an absent field reads as a refusal and a record written by
+  today's version stays valid when a category is added.
+- **The mirror cookie tolerates extra segments.** The format is documented as
+  `<version>.<analytics>[.<further flags>]` and
+  `analyticsConsentedFromCookie` now matches by position instead of comparing
+  the whole string. Constraint that buys: **a policy version must never contain
+  a `.`**. Covered by *ignores flags a later version appends*.
+- **The eight-step checklist** for adding a category lives in the doc comment
+  above `consentAllows` — including the two non-obvious ones: bumping
+  `CONSENT_POLICY_VERSION` (adding ads widens the scope, so every visitor is
+  asked again — that is intended), and Google Consent Mode. GA4 is mounted bare
+  today because *not mounting* is the gate; ad tags cannot work that way, they
+  must load denied-by-default and receive a `gtag('consent', 'update', …)`.

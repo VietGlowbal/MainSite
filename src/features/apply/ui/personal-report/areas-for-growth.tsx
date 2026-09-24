@@ -27,18 +27,18 @@ export function AreasForGrowthView({ report }: { report: PersonalReportV2 }) {
       {gaps.length > 0 ? (
         <div className="grid gap-gb-lg md:grid-cols-3">
           {gaps.map((gap, index) => (
-            <article key={gap} className="flex flex-col gap-gb-md rounded-gb-xl border border-line p-gb-lg">
+            <article key={gap} className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
               <div className="flex items-center justify-between gap-gb-md">
                 <Badge variant="neutral-chip">Priority {index + 1}</Badge>
-                <span className="text-gb-xs text-fg-muted">Evidence gap</span>
+                <span className="text-gb-xs font-semibold text-fg-muted">Evidence gap</span>
               </div>
-              <h3 className="text-gb-md font-semibold text-fg">Growth opportunity</h3>
-              <p className="text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
+              <h3 className="text-gb-base sm:text-gb-md font-bold text-fg">Growth opportunity</h3>
+              <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary" data-no-auto-translate>
                 {gap}
               </p>
-              <div className="mt-auto border-t border-line pt-gb-md">
-                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Suggested direction</p>
-                <p className="mt-gb-xs text-gb-sm text-fg-tertiary">
+              <div className="mt-auto border-t border-line/60 pt-gb-md">
+                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">Suggested direction</p>
+                <p className="mt-1 text-gb-sm leading-relaxed text-fg-secondary">
                   Build more specific, verifiable evidence in this area so GlowBal can distinguish an emerging capability from a genuine development gap.
                 </p>
               </div>
@@ -46,9 +46,9 @@ export function AreasForGrowthView({ report }: { report: PersonalReportV2 }) {
           ))}
         </div>
       ) : (
-        <div className="rounded-gb-xl bg-surface-muted p-gb-xl">
-          <p className="text-gb-sm font-semibold text-fg">No high-confidence growth gaps identified yet.</p>
-          <p className="mt-gb-xs text-gb-sm text-fg-tertiary">
+        <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:p-8">
+          <p className="text-gb-base font-bold text-fg">No high-confidence growth gaps identified yet.</p>
+          <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
             As you add more reflected experiences, GlowBal can distinguish genuine development opportunities from simple missing data.
           </p>
         </div>

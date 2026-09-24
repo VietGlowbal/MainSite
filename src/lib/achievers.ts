@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type {
   AchieverWithUniversity,
   AchieverAvailability,
@@ -6,23 +7,24 @@ import type {
   ReviewWithReviewer,
 } from '@/types/achievers';
 
+const PUBLIC_ACHIEVER_SELECT = `
+  id, display_name, avatar_url, university_id, degree_level, subject,
+  graduation_year, currently_enrolled, bio, help_topics, languages,
+  session_price_vnd, session_duration_mins, status, verified_at,
+  total_sessions, avg_rating, created_at,
+  university:universities!achiever_profiles_university_id_fkey ( id, name, country )
+`;
+
 // ── Browse: get approved achievers with university info ─────────────────────
 
 export async function getApprovedAchievers(
   filters?: AchieverFilters,
 ): Promise<AchieverWithUniversity[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('achiever_profiles')
-    .select(`
-      *,
-      university:universities!achiever_profiles_university_id_fkey (
-        id,
-        name,
-        country
-      )
-    `)
+    .select(PUBLIC_ACHIEVER_SELECT)
     .eq('status', 'approved');
 
   if (error) {
@@ -30,7 +32,7 @@ export async function getApprovedAchievers(
     return [];
   }
 
-  let results = (data ?? []) as AchieverWithUniversity[];
+  let results = (data ?? []) as unknown as AchieverWithUniversity[];
 
   // Client-side filtering (spec says filters are client-side, but we can also
   // apply server-side for the initial university filter from URL params)
@@ -81,23 +83,17 @@ export async function getApprovedAchievers(
 // ── Single achiever by ID ───────────────────────────────────────────────────
 
 export async function getAchieverById(id: string): Promise<AchieverWithUniversity | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('achiever_profiles')
-    .select(`
-      *,
-      university:universities!achiever_profiles_university_id_fkey (
-        id,
-        name,
-        country
-      )
-    `)
+    .select(PUBLIC_ACHIEVER_SELECT)
     .eq('id', id)
+    .eq('status', 'approved')
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as AchieverWithUniversity;
+  return data as unknown as AchieverWithUniversity;
 }
 
 // ── Availability slots for an achiever ──────────────────────────────────────
@@ -155,18 +151,11 @@ export async function getAchieversByUniversity(
   universityId: number,
   limit = 3,
 ): Promise<AchieverWithUniversity[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('achiever_profiles')
-    .select(`
-      *,
-      university:universities!achiever_profiles_university_id_fkey (
-        id,
-        name,
-        country
-      )
-    `)
+    .select(PUBLIC_ACHIEVER_SELECT)
     .eq('status', 'approved')
     .eq('university_id', universityId)
     .order('avg_rating', { ascending: false })
@@ -177,5 +166,5 @@ export async function getAchieversByUniversity(
     return [];
   }
 
-  return (data ?? []) as AchieverWithUniversity[];
+  return (data ?? []) as unknown as AchieverWithUniversity[];
 }

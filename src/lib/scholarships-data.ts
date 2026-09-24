@@ -1,7 +1,7 @@
 /**
  * Scholarships directory — server-side data fetch + transforms.
  *
- * Mirrors the universities directory pattern (src/app/universities/page.tsx):
+ * Mirrors the universities directory pattern (src/app/universities/(directory)/page.tsx):
  * the published scholarship list is identical for every visitor, so it's held
  * in Next's Data Cache (unstable_cache) and read with the service-role admin
  * client. Per-user personalization (matching saved universities/countries) is

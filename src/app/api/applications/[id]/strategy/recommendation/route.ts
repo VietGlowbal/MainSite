@@ -1,27 +1,38 @@
 import { NextResponse } from 'next/server';
-import { strategyRecommendationFromRow, strategyReportV2FromRow } from '@/features/ai-strategy-dashboard/domain';
-import { getLatestApplicationPersonalReportV2, stableHash } from '@/features/apply/api';
-import { enforceFitClassification, programmeFitSchema, type ProgrammeFit } from '@/features/apply/domain';
+import { z } from 'zod';
 import {
-  generateStrategyRecommendation,
-  generateStrategyReportV2,
-  STRATEGY_RECOMMENDATION_PROMPT_VERSION,
-  STRATEGY_REPORT_V2_PROMPT_VERSION,
-} from '@/lib/ai/strategy-recommendation';
+  strategyRecommendationFromRow,
+  strategyReportV2FromRow,
+} from '@/features/ai-strategy-dashboard/domain';
+import {
+  getApplicationProfileAnalysisVersion,
+  getApplicationPersonalReportV2Version,
+  getLatestApplicationPersonalReportV2,
+  stableHash,
+} from '@/features/apply/api';
+import { buildApplicantStateFromSnapshot } from '@/lib/ai/applicant-state/context-builder';
+import { matchingReportV3Schema } from '@/lib/ai/matching/domain';
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
+import { getReportPrompt } from '@/lib/ai/runtime/prompt-registry';
+import { getTargetProfileVersion } from '@/lib/ai/target-profile/repository';
+import { buildStrategyInputContext, withStrategyLineage } from '@/lib/ai/strategy-v3/context';
+import {
+  STRATEGY_ENGINE_V3_VERSION,
+  STRATEGY_PRIORITY_FORMULA_VERSION,
+  STRATEGY_REPORT_V3_CONTRACT_VERSION,
+  strategyReportV3FromRow,
+} from '@/lib/ai/strategy-v3/domain';
+import { generateStrategyReportV3, StrategyGenerationError } from '@/lib/ai/strategy-v3/engine';
+import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
-import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
 
-/**
- * GET  /api/applications/[id]/strategy/recommendation — latest F8 report, or null.
- * POST /api/applications/[id]/strategy/recommendation — generate a fresh one.
- *
- * F8 synthesises the structured Personal Report V2 and the Matching Report (F5)
- * into an actionable Strategic Recommendation.
- */
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300;
+const bodySchema = z.object({
+  force: z.boolean().optional(),
+  personalReportVersionId: z.string().uuid().optional(),
+});
 
 async function loadApplication(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -30,70 +41,236 @@ async function loadApplication(
 ) {
   const { data } = await supabase
     .from('course_applications')
-    .select('id, university_name, course_name, subject, degree_level, university_id, courses(subject, degree_level)')
+    .select(
+      'id,user_id,university_name,course_name,subject,degree_level,university_id,course_id,country,intake,status,deadline,courses(*)',
+    )
     .eq('id', applicationId)
     .eq('user_id', userId)
     .maybeSingle();
-  return data;
+  return data as Record<string, unknown> | null;
 }
 
-function fitFromRow(row: Record<string, unknown> | null): { fit: ProgrammeFit; id: string } | null {
-  if (!row?.fit_dimensions || !row.fit_eligibility || !row.fit_classification) return null;
-  const parsed = programmeFitSchema.safeParse({
-    classification: row.fit_classification,
-    confidence: row.fit_confidence ?? 0,
-    limitations: row.fit_limitations ?? [],
-    eligibility: row.fit_eligibility,
-    dimensions: row.fit_dimensions,
-  });
-  if (!parsed.success) return null;
-  return { fit: enforceFitClassification(parsed.data), id: String(row.id) };
+function rows(value: unknown): Record<string, unknown>[] {
+  return (Array.isArray(value) ? value : value ? [value] : []) as Record<string, unknown>[];
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id: applicationId } = await context.params;
-  const supabase = await createClient();
+async function loadCurrentMatching(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  applicationId: string,
+  userId: string,
+  personalReportVersionId: string,
+  confirmedSnapshotId: string,
+) {
+  const result = await supabase
+    .from('application_match_analyses')
+    .select('id,application_id,user_id,analysis_status,input_hash,report_v2,created_at')
+    .eq('application_id', applicationId)
+    .eq('user_id', userId)
+    .eq('analysis_status', 'complete')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (result.error) return null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  for (const row of rows(result.data)) {
+    const parsed = matchingReportV3Schema.safeParse(row.report_v2);
+    if (!parsed.success) continue;
+    if (parsed.data.metadata.personalReportVersionId !== personalReportVersionId) continue;
+    if (parsed.data.metadata.confirmedSnapshotId !== confirmedSnapshotId) continue;
+    return { row, report: parsed.data };
+  }
+  return null;
+}
 
-  const application = await loadApplication(supabase, applicationId, user.id);
-  if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
-
-  const { data: latest } = await supabase
+async function loadStrategyRows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  applicationId: string,
+  personalReportVersionId?: string,
+) {
+  const result = await supabase
     .from('application_strategy_recommendations')
     .select('*')
     .eq('application_id', applicationId)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const recommendation = latest ? strategyRecommendationFromRow(latest) : null;
-  const reportV2 = latest ? strategyReportV2FromRow(latest) : null;
-  return NextResponse.json({ recommendation, reportV2 });
+    .limit(20);
+  if (result.error) return [];
+  const strategyRows = rows(result.data);
+  if (!personalReportVersionId) return strategyRows;
+  return strategyRows.filter((row) => {
+    if (row.source_personal_report_version_id === personalReportVersionId) return true;
+    const report = strategyReportV3FromRow(row) ?? strategyReportV2FromRow(row);
+    const metadata = report && typeof report === 'object' && 'metadata' in report
+      ? (report.metadata as { personalReportVersionId?: unknown })
+      : null;
+    return metadata?.personalReportVersionId === personalReportVersionId;
+  });
 }
 
-export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
-  const getElapsed = startTimer();
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id: applicationId } = await context.params;
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await loadApplication(supabase, applicationId, user.id))) {
+    return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+  }
 
-  logger.info('strategy_recommendation_generate', {
-    userId: user.id,
+  const requestedVersionId = z.string().uuid().safeParse(
+    new URL(request.url).searchParams.get('personalReportVersionId'),
+  );
+  const strategyRows = await loadStrategyRows(
+    supabase,
     applicationId,
-    stage: 'started',
-    outcome: 'started',
-  });
+    requestedVersionId.success ? requestedVersionId.data : undefined,
+  );
+  const reportV3 = strategyRows.map(strategyReportV3FromRow).find(Boolean) ?? null;
+  const reportV2 = strategyRows.map(strategyReportV2FromRow).find(Boolean) ?? null;
+  const recommendation = strategyRows.map(strategyRecommendationFromRow).find(Boolean) ?? null;
+  return NextResponse.json({ reportV3, reportV2, recommendation });
+}
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const getElapsed = startTimer();
+  const { id: applicationId } = await context.params;
+  const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+
+  const personalRecordResult = parsed.data.personalReportVersionId
+    ? await getApplicationPersonalReportV2Version(
+        supabase,
+        { userId: user.id, applicationId },
+        parsed.data.personalReportVersionId,
+      )
+    : await getLatestApplicationPersonalReportV2(supabase, {
+        userId: user.id,
+        applicationId,
+      });
+  const personalRecord = personalRecordResult.record;
+  if (!personalRecord?.confirmedSnapshotId) return missingInputs(applicationId, user.id, getElapsed());
+
+  const matching = await loadCurrentMatching(
+    supabase,
+    applicationId,
+    user.id,
+    personalRecord.id,
+    personalRecord.confirmedSnapshotId,
+  );
+  if (!matching) return missingInputs(applicationId, user.id, getElapsed());
+
+  let snapshotState;
+  try {
+    snapshotState = await buildApplicantStateFromSnapshot({
+      supabase,
+      userId: user.id,
+      applicationId,
+      snapshotId: personalRecord.confirmedSnapshotId,
+    });
+  } catch {
+    return missingInputs(applicationId, user.id, getElapsed());
+  }
+
+  const sourceAnalysisVersionId = matching.report.metadata.sourceAnalysisVersionId || personalRecord.sourceAnalysisVersionId;
+  const sourceAnalysis = sourceAnalysisVersionId
+    ? (await getApplicationProfileAnalysisVersion(
+        supabase,
+        { userId: user.id, applicationId },
+        sourceAnalysisVersionId,
+      )).analysis
+    : null;
+  if (
+    sourceAnalysisVersionId &&
+    (!sourceAnalysis || sourceAnalysis.confirmedSnapshotId !== personalRecord.confirmedSnapshotId)
+  ) {
+    return missingInputs(applicationId, user.id, getElapsed());
+  }
+  const programmeId = stringValue(application.course_id) ?? stringValue(record(application.courses).id);
+  const targetProfileVersionId = stringValue(matching.report.metadata.targetProfileVersionId);
+  if (targetProfileVersionId && !programmeId) {
+    return staleInputs(applicationId, user.id, getElapsed(), 'Matching declares a target profile but the application has no programme.');
+  }
+  const targetProfile = targetProfileVersionId
+    ? await getTargetProfileVersion(supabase, { programmeId: programmeId!, versionId: targetProfileVersionId })
+    : null;
+  if (targetProfileVersionId && (!targetProfile || targetProfile.id !== targetProfileVersionId)) {
+    return staleInputs(applicationId, user.id, getElapsed(), 'The target profile version referenced by Matching is unavailable.');
+  }
+
+  const baseContext = buildStrategyInputContext({
+    applicationId,
+    application,
+    personalReport: personalRecord.reportV2,
+    matching: matching.report,
+    snapshotState,
+    sourceAnalysis,
+    targetProfile: targetProfile ? { id: targetProfile.id, profile: targetProfile.profile } : null,
+  });
+  const contextWithLineage = withStrategyLineage(baseContext, {
+    personalReportVersionId: personalRecord.id,
+    personalReportInputHash: personalRecord.inputHash ?? null,
+    sourceAnalysisVersionId,
+    confirmedSnapshotId: personalRecord.confirmedSnapshotId,
+    matchingReportId: String(matching.row.id),
+    matchingInputHash: stringValue(matching.row.input_hash),
+    matchingContractVersion: matching.report.contractVersion,
+    matchingEngineVersion: matching.report.metadata.matchingEngineVersion,
+    targetProfileVersionId: targetProfile?.id ?? null,
+    selectedScholarshipVersionId: matching.report.metadata.selectedScholarshipVersionId ?? null,
+  });
+  const modelName = process.env.OPENAI_MODEL || defaultOpenAIModel();
+  const promptVersions = [
+    getReportPrompt('strategy_profile_diagnosis').version,
+    getReportPrompt('strategy_activity_analysis').version,
+    getReportPrompt('strategy_report_synthesis').version,
+  ];
+  const inputHash = stableHash({
+    context: contextWithLineage,
+    model: modelName,
+    promptVersions,
+    strategyEngineVersion: STRATEGY_ENGINE_V3_VERSION,
+    reportContractVersion: STRATEGY_REPORT_V3_CONTRACT_VERSION,
+    priorityFormulaVersion: STRATEGY_PRIORITY_FORMULA_VERSION,
+  });
+
+  // Exact V3 cache resolution deliberately happens before API-key validation.
+  const strategyRows = await loadStrategyRows(supabase, applicationId, personalRecord.id);
+  const cached = strategyRows.find((row) => {
+    const report = strategyReportV3FromRow(row);
+    const lineage = contextWithLineage.lineage;
+    return Boolean(
+      report &&
+        row.input_hash === inputHash &&
+        report.metadata.personalReportVersionId === personalRecord.id &&
+        report.metadata.personalReportInputHash === lineage.personalReportInputHash &&
+        report.metadata.sourceAnalysisVersionId === lineage.sourceAnalysisVersionId &&
+        report.metadata.confirmedSnapshotId === lineage.confirmedSnapshotId &&
+        report.metadata.matchingReportId === lineage.matchingReportId &&
+        report.metadata.matchingInputHash === lineage.matchingInputHash &&
+        report.metadata.matchingContractVersion === lineage.matchingContractVersion &&
+        report.metadata.matchingEngineVersion === lineage.matchingEngineVersion &&
+        report.metadata.targetProfileVersionId === lineage.targetProfileVersionId &&
+        report.metadata.selectedScholarshipVersionId === lineage.selectedScholarshipVersionId,
+    );
+  });
+  if (cached && !parsed.data.force) {
+    logger.info('strategy_recommendation_generate', {
+      userId: user.id,
+      applicationId,
+      stage: 'cache_hit',
+      outcome: 'cached',
+      cached: true,
+      inputHash,
+      durationMs: getElapsed(),
+    });
+    return NextResponse.json({ reportV3: strategyReportV3FromRow(cached), reportV2: null, recommendation: null, cached: true });
+  }
+
+  const limited = applyRateLimit(strategyAiLimiter, user.id, 'Strategy Report generation');
+  if (limited) return limited;
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -104,312 +281,58 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       outcome: 'not_configured',
       durationMs: getElapsed(),
     });
-    return NextResponse.json({ error: 'AI service not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'AI service not configured', code: 'strategy_v3_not_configured' }, { status: 500 });
   }
 
-  const [
-    personalReportResult,
-    { data: matchRow },
-    { data: achievements },
-    { data: activities },
-    universityResult,
-  ] = await Promise.all([
-    getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
-    supabase
-      .from('application_match_analyses')
-      .select('*')
-      .eq('application_id', applicationId)
-      .eq('user_id', user.id)
-      .eq('analysis_status', 'complete')
-      .eq('f5_engine_version', F5_ENGINE_VERSION)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase.from('student_achievements').select('category, title, detail').eq('user_id', user.id),
-    supabase.from('student_activities').select('category, title, description').eq('user_id', user.id),
-    application.university_id == null
-      ? Promise.resolve({ data: null })
-      : supabase
-          .from('universities')
-          .select('employability, industry_connections, internship_coop')
-          .eq('id', application.university_id)
-          .maybeSingle(),
-  ]);
-
-  const personalRecord = personalReportResult.record;
-  const fitResult = matchRow ? fitFromRow(matchRow) : null;
-
-  if (!personalRecord || !fitResult) {
-    logger.warn('strategy_recommendation_generate', {
-      userId: user.id,
-      applicationId,
-      stage: 'validated',
-      outcome: 'missing_inputs',
-      durationMs: getElapsed(),
-    });
-    return NextResponse.json(
-      {
-        error: 'Generate your Personal Report and Matching Report first — the Strategic Recommendation Report builds on both.',
-        needsInputs: true,
-      },
-      { status: 422 },
-    );
-  }
-
-  const university = universityResult.data as Record<string, unknown> | null;
-  const courses = application.courses as { subject?: string | null; degree_level?: string | null } | null;
-  const modelName = process.env.OPENAI_MODEL || defaultOpenAIModel();
-  // Both shapes count as "current" for cache identity — which one lands is an
-  // implementation detail of this request, not a change of inputs.
-  const PROMPT_VERSIONS = [STRATEGY_REPORT_V2_PROMPT_VERSION, STRATEGY_RECOMMENDATION_PROMPT_VERSION];
-
-  const careerOutcomes = university
-    ? [university.employability, university.industry_connections, university.internship_coop]
-        .filter(Boolean)
-        .join(' ') || null
-    : null;
-
-  const programmeInput = {
-    universityName: application.university_name ?? 'Not specified',
-    courseName: application.course_name ?? 'Not specified',
-    subject: application.subject ?? courses?.subject ?? null,
-    degreeLevel: application.degree_level ?? courses?.degree_level ?? null,
-    careerOutcomes,
-  };
-
-  const inputHash = stableHash({
-    personalReportVersionId: personalRecord.id,
-    personalReportInputHash: personalRecord.inputHash ?? null,
-    personalReportPromptVersion: personalRecord.promptVersion ?? null,
-    matchAnalysisId: fitResult.id,
-    matchAnalysisInputHash: matchRow?.input_hash ?? null,
-    matchAnalysisPromptVersion: matchRow?.prompt_version ?? null,
-    matchAnalysisF5EngineVersion: matchRow?.f5_engine_version ?? null,
-    programme: programmeInput,
-    achievements: achievements ?? [],
-    activities: activities ?? [],
-    model: modelName,
-    promptVersions: PROMPT_VERSIONS,
+  logger.info('strategy_recommendation_generate', {
+    userId: user.id,
+    applicationId,
+    stage: 'started',
+    outcome: 'started',
   });
-
-  // Idempotency / cache check
-  const { data: latestStrategy } = await supabase
-    .from('application_strategy_recommendations')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  // Primary signal: content hash over ALL canonical inputs (requires
-  // supabase-strategy-recommendation-lineage.sql). Fallback: exact source
-  // lineage — BOTH ids and the prompt version must match a non-null value, so
-  // a legacy row without lineage can only miss the cache, never stale-hit it.
-  const latestHashMatches =
-    typeof latestStrategy?.input_hash === 'string' &&
-    latestStrategy.input_hash.length > 0 &&
-    latestStrategy.input_hash === inputHash;
-  const latestLineageMatches =
-    !!latestStrategy &&
-    latestStrategy.source_match_analysis_id === fitResult.id &&
-    latestStrategy.source_personal_report_version_id === personalRecord.id &&
-    PROMPT_VERSIONS.includes(String(latestStrategy.prompt_version));
-
-  if (latestStrategy && (latestHashMatches || latestLineageMatches)) {
-    logger.info('strategy_recommendation_generate', {
-      userId: user.id,
-      applicationId,
-      stage: 'cache_hit',
-      outcome: 'cached',
-      cached: true,
-      inputHash,
-      durationMs: getElapsed(),
-    });
-    return NextResponse.json({
-      recommendation: strategyRecommendationFromRow(latestStrategy),
-      reportV2: strategyReportV2FromRow(latestStrategy),
-      cached: true,
-    });
-  }
-
-  // ─── Generation: five-section F8 (v3) first, legacy F7 as degraded fallback.
-  let result;
-  let usedPromptVersion = STRATEGY_REPORT_V2_PROMPT_VERSION;
+  let report;
   try {
-    result = await generateStrategyReportV2({
-      personalReport: personalRecord.reportV2,
-      fit: fitResult.fit,
-      programme: programmeInput,
-      achievements: achievements ?? [],
-      activities: activities ?? [],
-      apiKey,
-      model: modelName,
-    });
-  } catch (v2Err) {
-    logger.error('strategy_recommendation_generate', v2Err, {
+    report = await generateStrategyReportV3({ context: contextWithLineage, apiKey, model: modelName });
+  } catch (error) {
+    const code = error instanceof StrategyGenerationError ? error.code : 'invalid_output';
+    logger.error('strategy_recommendation_generate', error, {
       userId: user.id,
       applicationId,
       stage: 'generated',
-      metadata: { detail: 'f8-v3 generation failed — falling back to legacy prompt' },
+      metadata: { code },
       durationMs: getElapsed(),
     });
-
-    try {
-      result = await generateStrategyRecommendation({
-        personalReport: personalRecord.reportV2,
-        fit: fitResult.fit,
-        programme: programmeInput,
-        achievements: achievements ?? [],
-        activities: activities ?? [],
-        apiKey,
-        model: modelName,
-      });
-      usedPromptVersion = STRATEGY_RECOMMENDATION_PROMPT_VERSION;
-    } catch (legacyErr) {
-      logger.error('strategy_recommendation_generate', legacyErr, {
-        userId: user.id,
-        applicationId,
-        stage: 'generated',
-        durationMs: getElapsed(),
-      });
-      return NextResponse.json({ error: 'Strategy generation failed. Please try again.' }, { status: 502 });
-    }
+    return NextResponse.json(
+      { error: 'Strategy generation failed. No partial report was saved.', code: `strategy_v3_${code}` },
+      { status: 502 },
+    );
   }
 
-  const isV2 = usedPromptVersion === STRATEGY_REPORT_V2_PROMPT_VERSION;
-
-  const payload: Record<string, unknown> = {
+  const payload = {
     application_id: applicationId,
     user_id: user.id,
-    // Legacy column keeps its original applicant_analyses semantics — a
-    // personal-report-version id written here violates its FK (23503) on
-    // every insert. Personal-report lineage goes in its own typed column.
-    source_match_analysis_id: fitResult.id,
-    model_name: modelName,
-    prompt_version: usedPromptVersion,
-    input_hash: inputHash,
+    source_match_analysis_id: matching.row.id,
     source_personal_report_version_id: personalRecord.id,
+    model_name: modelName,
+    prompt_version: getReportPrompt('strategy_report_synthesis').version,
+    input_hash: inputHash,
+    report_v2: report,
   };
-  if (isV2) {
-    payload.report_v2 = result;
-  } else {
-    const legacy = result as Awaited<ReturnType<typeof generateStrategyRecommendation>>;
-    Object.assign(payload, {
-      direction_options: legacy.directionOptions,
-      chosen_direction: legacy.chosenDirection,
-      chosen_direction_why: legacy.chosenDirectionWhy,
-      narrative: legacy.narrative,
-      positioning_before: legacy.positioningBefore,
-      positioning_after: legacy.positioningAfter,
-      positioning_rationale: legacy.positioningRationale,
-      portfolio_evaluations: legacy.portfolioEvaluations,
-      differentiation_insight: legacy.differentiationInsight,
-      differentiation_proposal: legacy.differentiationProposal,
-      roadmap: legacy.roadmap,
-    });
-  }
-
-  let { data: inserted, error: insErr } = await supabase
+  const insertedResult = await supabase
     .from('application_strategy_recommendations')
     .insert(payload)
     .select()
     .single();
-
-  // Degraded mode A: the report_v2 column hasn't been applied yet — regenerate
-  // with the legacy prompt and save the pre-F8 shape so generation never dies
-  // on a pending migration.
-  if (
-    isV2 &&
-    insErr &&
-    ['42P01', '42703', 'PGRST204'].includes(insErr.code ?? '') &&
-    /report_v2/i.test(insErr.message ?? '')
-  ) {
-    logger.error('strategy_recommendation_generate', insErr, {
+  if (insertedResult.error || !insertedResult.data) {
+    logger.error('strategy_recommendation_generate', insertedResult.error ?? new Error('No inserted row'), {
       userId: user.id,
       applicationId,
       stage: 'persisted',
-      metadata: { detail: 'report_v2 column unavailable — falling back to legacy shape' },
-      durationMs: getElapsed(),
-    });
-    try {
-      const legacy = await generateStrategyRecommendation({
-        personalReport: personalRecord.reportV2,
-        fit: fitResult.fit,
-        programme: programmeInput,
-        achievements: achievements ?? [],
-        activities: activities ?? [],
-        apiKey,
-        model: modelName,
-      });
-      usedPromptVersion = STRATEGY_RECOMMENDATION_PROMPT_VERSION;
-      delete payload.report_v2;
-      Object.assign(payload, {
-        direction_options: legacy.directionOptions,
-        chosen_direction: legacy.chosenDirection,
-        chosen_direction_why: legacy.chosenDirectionWhy,
-        narrative: legacy.narrative,
-        positioning_before: legacy.positioningBefore,
-        positioning_after: legacy.positioningAfter,
-        positioning_rationale: legacy.positioningRationale,
-        portfolio_evaluations: legacy.portfolioEvaluations,
-        differentiation_insight: legacy.differentiationInsight,
-        differentiation_proposal: legacy.differentiationProposal,
-        roadmap: legacy.roadmap,
-      });
-      ({ data: inserted, error: insErr } = await supabase
-        .from('application_strategy_recommendations')
-        .insert(payload)
-        .select()
-        .single());
-    } catch (fallbackErr) {
-      logger.error('strategy_recommendation_generate', fallbackErr, {
-        userId: user.id,
-        applicationId,
-        stage: 'generated',
-        durationMs: getElapsed(),
-      });
-      return NextResponse.json({ error: 'Strategy generation failed. Please try again.' }, { status: 502 });
-    }
-  }
-
-  // Degraded mode B: lineage columns unavailable or a constraint rejected one.
-  // Retry once without them; cache lookups then simply miss until the lineage
-  // migration runs — the same cost as pre-cache behaviour, never a false hit.
-  if (insErr && ['42P01', '42703', 'PGRST204', '23503'].includes(insErr.code ?? '')) {
-    const degradeReason = insErr.code ?? 'unknown';
-    const legacyPayload = { ...payload } as Record<string, unknown>;
-    delete legacyPayload.input_hash;
-    delete legacyPayload.source_personal_report_version_id;
-    const retry = await supabase
-      .from('application_strategy_recommendations')
-      .insert(legacyPayload)
-      .select()
-      .single();
-    if (!retry.error) {
-      inserted = retry.data;
-      insErr = null;
-      logger.warn('strategy_recommendation_generate', {
-        userId: user.id,
-        applicationId,
-        stage: 'persisted',
-        outcome: 'migration_missing',
-        metadata: {
-          detail: `lineage columns unavailable (${degradeReason}) — saved without idempotency key`,
-        },
-        durationMs: getElapsed(),
-      });
-    }
-  }
-
-  if (insErr) {
-    logger.error('strategy_recommendation_generate', insErr, {
-      userId: user.id,
-      applicationId,
-      stage: 'persisted',
+      metadata: { contractVersion: STRATEGY_REPORT_V3_CONTRACT_VERSION, engineVersion: STRATEGY_ENGINE_V3_VERSION },
       durationMs: getElapsed(),
     });
     return NextResponse.json(
-      { error: 'Could not save your strategy. If this persists, the database migration may be missing.' },
+      { error: 'Could not save the Strategy Report. No fallback report was generated.', code: 'strategy_v3_persist_failed' },
       { status: 500 },
     );
   }
@@ -419,15 +342,51 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     applicationId,
     stage: 'completed',
     outcome: 'success',
-    durationMs: getElapsed(),
     modelName,
-    promptVersion: usedPromptVersion,
     inputHash,
+    aiCallCount: report.metadata.aiCallCount,
+    durationMs: getElapsed(),
   });
-
-  return NextResponse.json({
-    recommendation: strategyRecommendationFromRow(inserted),
-    reportV2: strategyReportV2FromRow(inserted),
-  });
+  return NextResponse.json({ reportV3: report, reportV2: null, recommendation: null });
 }
 
+function missingInputs(applicationId: string, userId: string, durationMs: number) {
+  logger.warn('strategy_recommendation_generate', {
+    userId,
+    applicationId,
+    stage: 'validated',
+    outcome: 'missing_inputs',
+    durationMs,
+  });
+  return NextResponse.json(
+    {
+      error: 'Generate the current Personal Report and Matching Report first — Strategy V3 requires the same confirmed inputs.',
+      needsInputs: true,
+      code: 'strategy_v3_missing_inputs',
+    },
+    { status: 422 },
+  );
+}
+
+function staleInputs(applicationId: string, userId: string, durationMs: number, message: string) {
+  logger.warn('strategy_recommendation_generate', {
+    userId,
+    applicationId,
+    stage: 'validated',
+    outcome: 'validation_failed',
+    metadata: { message },
+    durationMs,
+  });
+  return NextResponse.json(
+    { error: message, code: 'strategy_v3_stale_inputs' },
+    { status: 409 },
+  );
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}

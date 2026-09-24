@@ -1,13 +1,22 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 import { generateVietQrUrl } from '@/lib/payments/vietqr';
+import { trackMentorPaymentCompleted } from '@/lib/analytics/ga';
+import { GlowbalIcon } from '@/shared/ui';
 
 type Status = {
   status: string;
   status_label: string;
+  /**
+   * 'mentorship' | 'plus'. Already returned by /api/payments/manual/status —
+   * the route spreads the whole `payment_transactions` row — it just was not
+   * declared here. It is what separates a mentorship booking from a Plus
+   * subscription, which share this screen.
+   */
+  product_type?: string;
   reference: string;
   transfer_description: string;
   amount_vnd: number;
@@ -93,6 +102,31 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
     };
   }, [load]);
 
+  /*
+   * "The mentorship was paid for." This screen polls every 15 seconds, so the
+   * ref is not defensive tidying — without it every subsequent poll while the
+   * student sits on a fulfilled payment would emit the event again and the
+   * revenue number would climb on its own.
+   *
+   * Gated on `product_type` because the same transfer flow also sells Plus;
+   * counting those as mentorship revenue would be wrong, not merely noisy.
+   *
+   * This is the only place the browser ever learns a payment completed. The
+   * server knows sooner — an admin confirms the transfer — but a webhook or an
+   * API route has no `window.dataLayer` to push to, so a payment confirmed
+   * while the student has the tab closed is genuinely not counted here. The
+   * first-party record in `payment_transactions` remains the source of truth
+   * for revenue; this event measures the funnel, not the books.
+   */
+  const paymentTracked = useRef(false);
+  useEffect(() => {
+    if (paymentTracked.current) return;
+    if (status?.status !== 'fulfilled') return;
+    if (status.product_type !== 'mentorship') return;
+    paymentTracked.current = true;
+    trackMentorPaymentCompleted(status.amount_vnd);
+  }, [status]);
+
   async function claim() {
     setClaiming(true);
     const response = await fetch('/api/payments/manual/claim', {
@@ -113,9 +147,7 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
     return (
       <section className="mx-auto w-full max-w-lg rounded-3xl border border-red-200 bg-surface p-8 text-center shadow-lg">
         <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-red-100 text-red-600">
-          <svg className="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+          <GlowbalIcon name="error" size={32} tone="current" />
         </div>
         <h2 className="mt-4 text-xl font-bold text-fg">{t('Error')}</h2>
         <p role="alert" className="mt-2 text-sm text-fg-error">{error}</p>
@@ -163,22 +195,23 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
       {/* Status Badge */}
       <div className="flex flex-col items-center text-center">
         {isFulfilled ? (
+          /* `current` on all three: each disc's colour is the state (green
+             paid, blue waiting, red expired), and the icon rides on it. */
           <div className="flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-sm">
-            <svg className="size-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <GlowbalIcon name="success" size={32} tone="current" />
           </div>
         ) : isClaimed ? (
           <div className="flex size-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm">
-            <svg className="size-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <GlowbalIcon
+              name="loading"
+              size={32}
+              tone="current"
+              className="animate-pulse motion-reduce:animate-none"
+            />
           </div>
         ) : isExpired ? (
           <div className="flex size-16 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-sm">
-            <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <GlowbalIcon name="error" size={32} tone="current" />
           </div>
         ) : (
           <div className="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/10 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-brand">
@@ -251,7 +284,8 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
         {/* Nội dung chuyển khoản */}
         <div className="flex flex-col gap-1.5 p-3.5 bg-brand/5 sm:px-4">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-fg-brand text-xs sm:text-sm">
+            <span className="flex items-center gap-1.5 font-medium text-fg-brand text-xs sm:text-sm">
+              <GlowbalIcon name="invoice" size={16} />
               {t('Transfer reference (Mandatory)')}
             </span>
             <CopyButton text={status.transfer_description || status.reference} label={t('Copy reference')} />
@@ -268,7 +302,10 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
 
         {/* Ngân hàng */}
         <div className="flex items-center justify-between p-3.5 sm:px-4">
-          <span className="text-fg-muted">{t('Bank')}</span>
+          <span className="flex items-center gap-1.5 text-fg-muted">
+            <GlowbalIcon name="paymentMethod" size={16} />
+            {t('Bank')}
+          </span>
           <span className="font-semibold text-fg">{status.bank_label}</span>
         </div>
 

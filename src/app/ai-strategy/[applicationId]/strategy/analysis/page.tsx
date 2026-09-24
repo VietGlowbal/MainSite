@@ -3,6 +3,7 @@ import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { AnalysisWorkspace } from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * `/ai-strategy/[applicationId]/strategy/analysis` — Stage 3, AI Analysis
@@ -58,15 +59,15 @@ async function loadApplication(
 
 export default async function StrategyAnalysisPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
+  searchParams: Promise<{ regenerate?: string }>;
 }) {
   const { applicationId } = await params;
+  const { regenerate } = await searchParams;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect('/auth');
 
@@ -90,14 +91,15 @@ export default async function StrategyAnalysisPage({
   const matchingSubtitle =
     universityName && courseName ? `${universityName} — ${courseName}` : undefined;
 
-  // Generates whichever of the two analyses is missing, then hands off to
-  // `analysis/portrait`. The reports themselves are server-rendered pages —
-  // see analysis-workspace.tsx on why generation stays in one place.
+  // Generates Personal + Matching, then starts Strategy once both inputs are
+  // complete. The reports themselves are server-rendered pages — see
+  // analysis-workspace.tsx on why generation stays in one place.
   return (
     <AnalysisWorkspace
       applicationId={applicationId}
       confirmedAt={confirmedAt}
       matchingSubtitle={matchingSubtitle}
+      regenerateOnLoad={regenerate === '1'}
     />
   );
 }

@@ -15,6 +15,7 @@ import { MentorsClient } from './mentors-client';
 
 import { SITE_URL } from '@/lib/site-url';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
+import type { Locale } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
   title: 'Connect with Student Advisors & Mentors | GlowBal',
@@ -44,8 +45,8 @@ const getCachedApprovedMentors = unstable_cache(
   { revalidate: 300 },
 );
 
-export default async function MentorsBrowsePage() {
+export default async function MentorsBrowsePage({ locale = 'en' }: { locale?: Locale } = {}) {
   const mentors = await getCachedApprovedMentors({});
 
-  return <MentorsClient mentors={mentors} />;
+  return <MentorsClient mentors={mentors} locale={locale} />;
 }

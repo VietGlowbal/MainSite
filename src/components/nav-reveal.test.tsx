@@ -40,12 +40,20 @@ describe('NavReveal', () => {
     '/',
     '/universities',
     '/universities/',
-    '/apply/application-1/lor-feedback',
+    '/apply',
   ])('does not mount a second global navigation on %s', (pathname) => {
     mocks.pathname = pathname;
     render(<NavReveal />);
 
     expect(screen.queryByTestId('site-top-nav')).not.toBeInTheDocument();
     expect(screen.queryByTestId('site-mobile-nav')).not.toBeInTheDocument();
+  });
+
+  it('renders site navigation on lor-feedback workspace route', () => {
+    mocks.pathname = '/apply/application-1/lor-feedback';
+    render(<NavReveal />);
+
+    expect(screen.getByTestId('site-top-nav')).toBeVisible();
+    expect(screen.getByTestId('site-mobile-nav')).toBeVisible();
   });
 });

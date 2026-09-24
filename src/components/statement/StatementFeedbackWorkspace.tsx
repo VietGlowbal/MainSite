@@ -1,10 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { SiteNavigation } from '@/components/site-navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useT } from '@/lib/i18n';
 import type { LorReview } from '@/lib/ai/lor';
 import type { AIAnalysis } from '@/lib/types';
 import { Container } from '@/shared/ui';
@@ -50,7 +47,6 @@ export function StatementFeedbackWorkspace({
   userName = null,
   evaluationMode: requestedEvaluationMode,
 }: Props) {
-  const t = useT();
   const isLor = reviewType === 'lor';
   const supabase = useMemo(() => (demo ? null : createClient()), [demo]);
   const [draft, setDraft] = useState<DraftState | null>(
@@ -111,45 +107,25 @@ export function StatementFeedbackWorkspace({
   }, [applicationId, initialLorStrategy, isLor, supabase]);
 
   return (
-    <div className={isLor ? 'gb-page-full-bleed gb-has-mobile-header bg-surface' : undefined}>
-      {isLor ? <SiteNavigation tone="light" /> : null}
-
-      <main className={isLor ? 'min-h-screen bg-surface py-gb-md text-fg sm:py-gb-xl lg:py-gb-2xl' : 'min-h-screen bg-[#FAFAFA] pb-24 pt-6 text-neutral-900'}>
-      <Container className={`flex min-h-[calc(100dvh-1.5rem)] flex-col sm:min-h-[calc(100dvh-2.5rem)] lg:min-h-[calc(100dvh-3.5rem)] ${isLor ? '' : '!max-w-[1600px]'}`}>
-        <header className={isLor ? 'flex shrink-0 items-start justify-between gap-gb-xl bg-surface px-gb-xl py-gb-xl sm:px-gb-2xl' : 'flex shrink-0 items-start justify-between gap-8 py-8'}>
+    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+      <main className="min-h-screen bg-surface py-gb-md text-fg sm:py-gb-xl lg:py-gb-2xl">
+      <Container className="flex min-h-[calc(100dvh-1.5rem)] flex-col sm:min-h-[calc(100dvh-2.5rem)] lg:min-h-[calc(100dvh-3.5rem)]">
+        <header className="flex shrink-0 items-start justify-between gap-gb-xl bg-surface py-gb-md">
           <div className="min-w-0">
-            {/*
-             * LOR only. The statement route is one of the six application
-             * destinations and now sits under `ApplicationNav`'s band, whose
-             * breadcrumb already links `/apply/<id>` and also names the course —
-             * two back links stacked a few pixels apart is a choice the student
-             * should not have to read twice. `/apply/<id>/lor-feedback` is NOT
-             * one of the six, gets no band, and so keeps the link as its only
-             * way out.
-             */}
-            {isLor ? (
-              <Link
-                href={`/apply/${applicationId}`}
-                className="mb-gb-sm inline-flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                <span aria-hidden="true">←</span>
-                {t('Back to Apply')}
-              </Link>
-            ) : null}
             <p className="text-gb-xs font-bold uppercase tracking-[0.18em] text-fg-brand">
               {isLor ? 'AI LOR feedback' : 'AI statement feedback'}
             </p>
-            <h1 className={isLor ? 'mt-gb-xs font-display text-gb-xl font-semibold tracking-gb-display-tight text-fg sm:text-gb-display-xs' : 'mt-1 font-display text-4xl font-semibold leading-[44px] tracking-[-0.02em] text-neutral-900'}>
+            <h1 className="mt-gb-xs font-display text-gb-xl font-semibold tracking-gb-display-tight text-fg sm:text-gb-display-xs">
               {isLor ? 'Strengthen your recommendation letter' : 'Strengthen your statement'}
             </h1>
             <p className="mt-gb-xs truncate text-gb-sm text-fg-tertiary">for {targetName}</p>
           </div>
-          <div className={isLor ? 'hidden rounded-gb-full bg-brand-subtle px-gb-lg py-gb-sm text-gb-xs font-semibold text-fg-brand sm:block' : 'hidden rounded-full bg-rose-50 px-4 py-1 text-sm font-medium text-rose-600 sm:block'}>
+          <div className="hidden rounded-gb-full bg-brand-subtle px-gb-lg py-gb-sm text-gb-xs font-semibold text-fg-brand sm:block">
             {isLor ? 'Programme-grounded AI feedback' : 'Phân tích AI có dẫn chứng'}
           </div>
         </header>
 
-        <div className={isLor ? 'flex min-h-[640px] flex-1 flex-col bg-surface' : 'flex min-h-[680px] flex-1 flex-col overflow-hidden bg-[#FAFAFA]'}>
+        <div className="flex min-h-[680px] flex-1 flex-col bg-surface">
           {!draft ? (
             <div className="flex flex-1 flex-col items-center justify-center p-10">
               <div className="mb-gb-lg h-8 w-8 animate-spin rounded-gb-full border-[3px] border-brand-subtle border-t-brand" />

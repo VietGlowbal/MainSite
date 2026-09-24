@@ -30,8 +30,9 @@ const EXACT_ROUTES_WITHOUT_GLOBAL_NAV = new Set([
 
 /** Remove a non-root trailing slash so deployment URL policy cannot duplicate chrome. */
 export function normalizeNavigationPathname(pathname: string): string {
-  if (pathname === '/') return pathname;
-  return pathname.replace(/\/+$/, '') || '/';
+  const withoutLocale = pathname === '/vi' ? '/' : pathname.startsWith('/vi/') ? pathname.slice(3) : pathname;
+  if (withoutLocale === '/') return withoutLocale;
+  return withoutLocale.replace(/\/+$/, '') || '/';
 }
 
 export function suppressesGlobalNavigation(rawPathname: string): boolean {
@@ -43,14 +44,13 @@ export function suppressesGlobalNavigation(rawPathname: string): boolean {
   if (pathname.startsWith('/ai-strategy/')) return true;
 
   // The application overview owns full page chrome. Feature children use the
-  // root header, except LOR feedback which renders its own review chrome.
+  // root header.
   if (/^\/apply\/[^/]+$/.test(pathname)) return true;
-  if (/^\/apply\/[^/]+\/lor-feedback$/.test(pathname)) return true;
 
   // The AI statement writer is a full-height editor with its own top bar (back
   // link, university, match score). With the root header above it a student got
   // two stacked bars and lost the editor's height to chrome it did not need.
-  // Same call as lor-feedback: a write surface keeps its own frame.
+  // A write surface keeps its own frame.
   if (/^\/my-universities\/[^/]+\/writer$/.test(pathname)) return true;
 
   // Numeric university details and UUID mentor profiles are rebuilt pages.

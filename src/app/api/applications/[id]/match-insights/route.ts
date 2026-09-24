@@ -1,20 +1,28 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
 import { getLatestApplicationMatchingAnalysis } from '@/features/apply/api';
 import { generateApplicationMatchingReport } from '@/lib/ai/matching/generation';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
+import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const bodySchema = z.object({
+  force: z.boolean().optional(),
+  personalReportVersionId: z.string().uuid().optional(),
+});
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const getElapsed = startTimer();
   const { id: applicationId } = await context.params;
+  const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
   const supabase = await createClient();
   const {
     data: { user },
@@ -54,11 +62,16 @@ export async function POST(
       ? new Date(latestCreatedAt + COOLDOWN_MS).toISOString()
       : undefined;
 
+  const limited = applyRateLimit(strategyAiLimiter, userId, 'Matching Report generation');
+  if (limited) return limited;
+
   try {
     const result = await generateApplicationMatchingReport({
       supabase,
       userId,
       applicationId,
+      force: parsed.data.force,
+      personalReportVersionId: parsed.data.personalReportVersionId,
       cooldownUntil: nextRegenerationAt,
     });
 
@@ -93,13 +106,14 @@ export async function POST(
     }
 
     if (result.status === 'cached') {
-      return NextResponse.json({ ok: true, cached: true, analysis: result.record, reportV2: result.record.reportV2 });
+      return NextResponse.json({ ok: true, cached: true, analysis: result.record, reportV3: result.record.reportV3, reportV2: result.record.reportV2 });
     }
 
     return NextResponse.json({
       ok: true,
       cached: false,
       analysis: result.record,
+      reportV3: result.record.reportV3,
       reportV2: result.record.reportV2,
       reusedCriterionIds: result.reusedCriterionIds,
     });

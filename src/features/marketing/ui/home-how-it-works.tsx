@@ -3,7 +3,8 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { useT } from '@/lib/i18n';
+import { useLanguage } from '@/lib/i18n';
+import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 import { ICONS, KitIcon, Section } from '@/shared/ui';
 
 const AUTOPLAY_MS = 5_500;
@@ -50,8 +51,10 @@ const panelVariants = {
 };
 
 /** Five-step journey — selectable, auto-advancing and reduced-motion safe. */
-export function HomeHowItWorks() {
-  const t = useT();
+export function HomeHowItWorks({ locale }: { locale?: Locale } = {}) {
+  const { lang } = useLanguage();
+  const activeLocale = locale ?? lang;
+  const t = (value: string) => getLocaleText(activeLocale, value);
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
@@ -92,12 +95,14 @@ export function HomeHowItWorks() {
       <div className="mx-auto flex max-w-[900px] flex-col items-center text-center">
         <GlowbalLogo height={32} />
         <h2 className="mt-gb-3xl font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
-          GlowBal is here to help you achieve your dream. From your first choice to a complete
-          application strategy.
+          {t(
+            'GlowBal is here to help you achieve your dream. From your first choice to a complete application strategy.',
+          )}
         </h2>
         <p className="mt-gb-2xl max-w-[780px] text-gb-md leading-relaxed text-fg-tertiary md:text-gb-xl">
-          GlowBal combines technology, data and team expertise to support you from discovering
-          opportunities to completing your application strategy.
+          {t(
+            'GlowBal combines technology, data and team expertise to support you from discovering opportunities to completing your application strategy.',
+          )}
         </p>
       </div>
 
@@ -204,7 +209,7 @@ export function HomeHowItWorks() {
 
                 <div className="rounded-gb-xl border border-white/10 bg-white/[0.07] p-gb-3xl backdrop-blur-sm">
                   <p className="text-gb-xs font-semibold uppercase tracking-[0.16em] text-brand">
-                    Journey outcome
+                    {t('Journey outcome')}
                   </p>
                   <p className="mt-gb-md text-gb-lg font-semibold text-white">{t(activeStep.outcome)}</p>
                 </div>
@@ -214,12 +219,12 @@ export function HomeHowItWorks() {
         </div>
 
         <div className="mt-gb-2xl flex items-center justify-between gap-gb-xl">
-          <p className="text-gb-sm text-fg-muted">Select a step or let the journey play.</p>
+          <p className="text-gb-sm text-fg-muted">{t('Select a step or let the journey play.')}</p>
           <div className="flex items-center gap-gb-md">
             <button
               type="button"
               onClick={previousStep}
-              aria-label="Previous step"
+              aria-label={t('Previous step')}
               className="flex size-gb-5xl items-center justify-center rounded-gb-full border border-line bg-surface text-fg-secondary transition-colors hover:border-brand hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <KitIcon art={ICONS.arrowLeft} frame={20} />
@@ -227,7 +232,7 @@ export function HomeHowItWorks() {
             <button
               type="button"
               onClick={nextStep}
-              aria-label="Next step"
+              aria-label={t('Next step')}
               className="flex size-gb-5xl items-center justify-center rounded-gb-full bg-brand text-white transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <KitIcon art={ICONS.arrowRight} frame={20} />

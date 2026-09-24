@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { getStrategyOverview } from '@/features/application-strategy/api';
 import { StrategyOverviewView } from '@/features/application-strategy/ui';
 import { getUniversityQueries } from '@/features/universities/api';
@@ -30,10 +30,7 @@ export default async function ApplicationStrategyPage({
 }) {
   const { applicationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
   const { data: application } = await supabase

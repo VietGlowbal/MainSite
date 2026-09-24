@@ -1,0 +1,411 @@
+import { describe, expect, it, vi } from 'vitest';
+import type { StrategyInputContext } from './context';
+import { strategyReportV3FromRow, strategyReportV3Schema, type ActivityStrategyAnalysis } from './domain';
+import {
+  calculateStrategyPriorityFactors,
+  generateStrategyReportV3,
+  selectTopPriorities,
+  type StrategyInterventionCandidate,
+} from './engine';
+
+const mocks = vi.hoisted(() => ({ openAiJsonCompletion: vi.fn() }));
+vi.mock('@/lib/ai/openai-client', () => ({ openAiJsonCompletion: mocks.openAiJsonCompletion }));
+
+function context(overrides: Partial<StrategyInputContext> = {}): StrategyInputContext {
+  return {
+    lineage: {
+      applicationId: 'app-1', personalReportVersionId: 'pr-1', personalReportInputHash: 'pr-hash',
+      sourceAnalysisVersionId: 'analysis-1', confirmedSnapshotId: 'snap-1', matchingReportId: 'match-1',
+      matchingInputHash: 'match-hash', matchingContractVersion: 'matching-report-v3', matchingEngineVersion: 'matching-v3',
+      targetProfileVersionId: 'tp-1', selectedScholarshipVersionId: null,
+    },
+    applicant: { personalReport: {}, sourceAnalysis: null, directionSignals: {} },
+    activities: [],
+    matching: { hardRequirements: [], gaps: [] } as unknown as StrategyInputContext['matching'],
+    target: { university: {}, programme: {}, requirements: [], opportunities: [], scholarship: null, sources: [] },
+    application: { status: 'draft', deadline: '2027-01-01', daysUntilDeadline: 120, intake: '2027' },
+    evidenceIndex: [{ id: 'evidence-1', label: 'Snapshot evidence', statement: 'Verified.', kind: 'applicant', status: 'verified', sourceRefs: [], direct: true }],
+    targetSourceIndex: [],
+    ...overrides,
+  };
+}
+
+function area(category: 'academic' | 'experience' | 'differentiation' | 'evidence', status: 'maintain' | 'develop' | 'consolidate' | 'build' = 'maintain') {
+  return { key: category, category, label: category, status, diagnosis: 'Diagnosis.', whyItMatters: 'Why.', suggestedDirection: 'Direction.', evidenceIds: [] as string[], metricIds: [] as string[], requirementIds: [] as string[], targetSourceRefs: [] as string[] };
+}
+
+function developmentPlan() {
+  return {
+    gap: 'The profile needs stronger evidence of applied work.',
+    possibleRoutes: [
+      { title: 'Deepen an existing activity', rationale: 'Add measurable ownership and reflection.' },
+      { title: 'Consolidate related evidence', rationale: 'Connect existing work around one target theme.' },
+    ],
+    recommendedRoute: { title: 'Deepen an existing activity', rationale: 'It is feasible without inventing a new commitment.' },
+    evidenceExpected: ['A measurable outcome', 'A short reflection on what changed'],
+  };
+}
+
+function synthesis(deliverables: unknown[] = [], narrativeOptions: unknown[] = []) {
+  return {
+    strategicOverview: {
+      currentPosition: { summary: 'Current.', profileStrength: { statement: 'Strength.', evidenceIds: [], metricIds: [] }, keyChallenge: { statement: 'Challenge.', gapIds: [], requirementIds: [] }, unclearArea: null, differentiatedPotential: null },
+      strategicOpportunity: { statement: 'Opportunity.', priorityKeys: [] },
+      strategicGoal: { directionOfImprovement: 'Improve.', communicationGoal: 'Communicate.' },
+      expectedOutcome: 'Outcome.',
+    },
+    narrativeStrategy: { coreNarrativeDirection: { originTrigger: null, recurringMotivation: null, actions: [], capabilitiesDeveloped: [], emergingDirection: null, insight: 'No pattern.', evidenceIds: ['evidence-1'] }, supportingThemes: [], narrativeTension: null, narrativeOptions },
+    strategicRoadmap: ['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise'].map((phaseKey, index) => ({ phaseKey, name: phaseKey, goal: 'Goal.', keyActions: [], deliverables: index === 0 ? deliverables : [], successCriteria: [], estimatedTimeline: 'As needed.', linkedPriorityKeys: [] })),
+  };
+}
+
+function activityAnalysis(activityId: string): ActivityStrategyAnalysis {
+  const dimension = (status: ActivityStrategyAnalysis['dimensions']['relevance']['status']): ActivityStrategyAnalysis['dimensions']['relevance'] => ({
+    status,
+    statement: 'Not established beyond the supplied activity record.',
+    evidenceIds: [],
+    targetSourceRefs: [],
+  });
+  return {
+    activityId,
+    title: 'Activity',
+    dimensions: {
+      relevance: dimension('limited'),
+      responsibility: dimension('not_established'),
+      depth: dimension('limited'),
+      progression: dimension('not_established'),
+      impact: dimension('limited'),
+      evidence: dimension('limited'),
+      reflection: dimension('limited'),
+      futurePotential: dimension('not_established'),
+    },
+    classification: 'maintain',
+    diagnosis: 'The activity is recorded but has limited strategy evidence.',
+    recommendedMove: 'Keep the activity concise and evidence-led.',
+    evidenceIds: [],
+    targetSourceRefs: [],
+  };
+}
+
+describe('Strategy V3 engine', () => {
+  it('makes exactly one profile and one synthesis call when there are no activities', async () => {
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+    expect(mocks.openAiJsonCompletion).toHaveBeenCalledTimes(2);
+    expect(report.metadata.aiCallCount).toBe(2);
+    expect(report.strategicRoadmap.map((phase) => phase.phaseKey)).toEqual(['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise']);
+  });
+
+  it('requires a development plan for BUILD areas and preserves its routes', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    const buildArea = { ...area('academic', 'build'), developmentPlan: developmentPlan() };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: [buildArea, area('experience'), area('differentiation'), area('evidence')] }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+
+    expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'academic')?.developmentPlan).toEqual(developmentPlan());
+  });
+
+  it('fails closed when a BUILD area omits its development plan', async () => {
+    mocks.openAiJsonCompletion.mockReset().mockResolvedValueOnce(JSON.stringify({
+      areas: [area('academic', 'build'), area('experience'), area('differentiation'), area('evidence')],
+    }));
+
+    await expect(generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') }))
+      .rejects.toThrow('BUILD');
+  });
+
+  it('does not persist a single narrative option', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    const activities = [1, 2, 3, 4].map((index) => ({
+      activityId: `activity:${index}`,
+      title: `Activity ${index}`,
+      category: null,
+      organisation: null,
+      level: null,
+      period: null,
+      description: `Description ${index}`,
+      reflection: null,
+      evidenceIds: [],
+    }));
+    const generatedSynthesis = synthesis([], [{
+      key: 'narrative:one',
+      title: 'One option',
+      centralIdea: 'Central idea.',
+      whyItEmerges: 'Why it emerges.',
+      supportingExperienceIds: ['activity:1', 'activity:2'],
+      targetSourceRefs: ['source:1'],
+      whatCouldStrengthenIt: 'Strengthen it.',
+      evaluation: {
+        evidenceStrength: 'high',
+        personalAuthenticity: 'high',
+        programmeRelevance: 'high',
+        differentiation: 'medium',
+        developmentPotential: 'high',
+      },
+      strategicFit: 'high',
+    }]);
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: activities.map(({ activityId }) => activityAnalysis(activityId)) }))
+      .mockResolvedValueOnce(JSON.stringify(generatedSynthesis));
+
+    const report = await generateStrategyReportV3({
+      context: context({
+        activities,
+        targetSourceIndex: [{ ref: 'source:1', label: 'Programme', title: null, url: null, kind: 'programme' }],
+        target: { ...context().target, sources: [{ ref: 'source:1', label: 'Programme', title: null, url: null, kind: 'programme' }] },
+      }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    expect(report.narrativeStrategy.narrativeOptions).toEqual([]);
+    const narrativeOption = (key: string, supportingExperienceIds = ['activity:1', 'activity:2']) => ({
+      key,
+      title: key,
+      centralIdea: 'Central idea.',
+      whyItEmerges: 'Why it emerges.',
+      supportingExperienceIds,
+      targetSourceRefs: ['source:1'],
+      whatCouldStrengthenIt: 'Strengthen it.',
+      evaluation: {
+        evidenceStrength: 'high' as const,
+        personalAuthenticity: 'high' as const,
+        programmeRelevance: 'high' as const,
+        differentiation: 'medium' as const,
+        developmentPotential: 'high' as const,
+      },
+      strategicFit: 'high' as const,
+    });
+    const withOptions = (narrativeOptions: unknown[]) => ({
+      ...report,
+      narrativeStrategy: { ...report.narrativeStrategy, narrativeOptions },
+    });
+    expect(strategyReportV3Schema.safeParse(withOptions([])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1'), narrativeOption('narrative:2')])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1'), narrativeOption('narrative:2'), narrativeOption('narrative:3')])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1', ['activity:1', 'activity:2', 'activity:3', 'activity:4']), narrativeOption('narrative:2')])).success).toBe(true);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1')])).success).toBe(false);
+    expect(strategyReportV3Schema.safeParse(withOptions([narrativeOption('narrative:1', ['activity:1', 'activity:2', 'activity:missing'])])).success).toBe(false);
+    expect(strategyReportV3FromRow({ report_v2: withOptions([narrativeOption('narrative:legacy', ['activity:1'])]) })?.narrativeStrategy.narrativeOptions).toHaveLength(1);
+  });
+
+  it('accepts target-profile requirement IDs in profile provenance', async () => {
+    const requirementId = 'adm:academic_entry_requirement';
+    const areas = ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never));
+    areas[0] = { ...areas[0], requirementIds: [requirementId] };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({
+      context: context({
+        target: { university: {}, programme: {}, requirements: [{ id: requirementId }], opportunities: [], scholarship: null, sources: [] },
+      }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'academic')?.requirementIds).toEqual([requirementId]);
+  });
+
+  it('removes unknown model evidence references instead of failing generation', async () => {
+    const invalidEvidenceId = 'experience:2b18eff6-d87c-4c59-b661-c0ad501f1839';
+    const areas = ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never));
+    areas[1] = { ...areas[1], evidenceIds: ['evidence-1', invalidEvidenceId] };
+    const generatedSynthesis = synthesis();
+    generatedSynthesis.narrativeStrategy.coreNarrativeDirection.evidenceIds = ['evidence-1', invalidEvidenceId];
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas }))
+      .mockResolvedValueOnce(JSON.stringify(generatedSynthesis));
+
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+
+    expect(report.profileDevelopmentStrategy.areas.find((item) => item.category === 'experience')?.evidenceIds).toEqual(['evidence-1']);
+    expect(report.narrativeStrategy.coreNarrativeDirection.evidenceIds).toEqual(['evidence-1']);
+  });
+
+  it('downgrades unsupported activity claims after removing unknown model references', async () => {
+    const invalidEvidenceId = 'experience:2b18eff6-d87c-4c59-b661-c0ad501f1839';
+    const activity = activityAnalysis('activity:1');
+    activity.evidenceIds = [invalidEvidenceId];
+    activity.dimensions.responsibility = { ...activity.dimensions.responsibility, status: 'strong', evidenceIds: [invalidEvidenceId] };
+    activity.dimensions.relevance = { ...activity.dimensions.relevance, status: 'strong', targetSourceRefs: ['source:unknown'] };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: [activity] }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({
+      context: context({ activities: [{ activityId: 'activity:1', title: 'Activity', category: null, organisation: null, level: null, period: null, description: null, reflection: null, evidenceIds: [] }] }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    const analysis = report.profileDevelopmentStrategy.activityAnalyses[0]!;
+    expect(analysis.evidenceIds).toEqual([]);
+    expect(analysis.dimensions.responsibility).toMatchObject({ status: 'not_established', evidenceIds: [] });
+    expect(analysis.dimensions.relevance).toMatchObject({ status: 'limited', targetSourceRefs: [] });
+  });
+
+  it('returns a valid report when synthesis responds with the legacy strategy shape', async () => {
+    const legacySynthesis = {
+      strategicOverview: {
+        summary: 'Legacy summary.',
+        strengths: ['Legacy strength.'],
+        strategicPriorities: ['Legacy priority.'],
+        centralConstraint: 'Legacy constraint.',
+        overallLimitations: ['Legacy limitation.'],
+      },
+      narrativeStrategy: {
+        coreNarrative: 'Legacy narrative.',
+        narrativeOptions: [{ status: 'strong', direction: 'Legacy direction.', causalShape: 'Legacy shape.', caution: 'Legacy caution.' }],
+      },
+      strategicRoadmap: [{}, {}, {}, {}],
+    };
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(legacySynthesis));
+
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+
+    expect(report.strategicOverview.currentPosition.summary).toBeTruthy();
+    expect(report.strategicRoadmap).toHaveLength(4);
+  });
+
+  it('constrains synthesis to the canonical V3 schema at the provider boundary', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-5.6-luna', now: new Date('2026-08-30T00:00:00Z') });
+
+    const synthesisRequest = mocks.openAiJsonCompletion.mock.calls[1]?.[0] as { responseFormat?: Record<string, unknown> };
+    expect(synthesisRequest.responseFormat).toMatchObject({
+      type: 'json_schema',
+      json_schema: { name: 'strategy_report_synthesis_v3', strict: true },
+    });
+    const schema = (synthesisRequest.responseFormat?.json_schema as { schema?: { properties?: Record<string, unknown> } }).schema;
+    expect(Object.keys(schema?.properties ?? {})).toEqual(['strategicOverview', 'narrativeStrategy', 'strategicRoadmap']);
+  });
+
+  it('sends each activity batch as the only canonical activity scope', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    const activities = Array.from({ length: 7 }, (_, index) => ({
+      activityId: `activity:${index + 1}`,
+      title: `Activity ${index + 1}`,
+      category: null,
+      organisation: null,
+      level: null,
+      period: null,
+      description: `Description ${index + 1}`,
+      reflection: null,
+      evidenceIds: [],
+    }));
+    const areas = ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never));
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: activities.slice(0, 6).map(({ activityId }) => activityAnalysis(activityId)) }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: [activityAnalysis(activities[6].activityId)] }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+
+    const report = await generateStrategyReportV3({
+      context: context({ activities }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    });
+
+    const batchInputs = mocks.openAiJsonCompletion.mock.calls
+      .map(([request]) => ({
+        ...JSON.parse(request.messages[1].content) as {
+          activities?: unknown[];
+          context?: { activities?: unknown[]; applicant?: unknown; lineage?: unknown; personalReport?: unknown; sourceAnalysis?: unknown };
+          requiredActivityIds?: string[];
+        },
+        maxTokens: request.maxTokens,
+      }))
+      .filter((input) => input.requiredActivityIds);
+    expect(batchInputs).toHaveLength(2);
+    for (const input of batchInputs) {
+      expect(input.requiredActivityIds).toEqual(input.activities?.map((activity) => (activity as { activityId: string }).activityId));
+      expect(input.context?.activities?.map((activity) => (activity as { activityId: string }).activityId)).toEqual(input.requiredActivityIds);
+      expect(input.context?.applicant).toEqual({ directionSignals: {} });
+      expect(input.context).not.toHaveProperty('lineage');
+      expect(input.context).not.toHaveProperty('personalReport');
+      expect(input.context).not.toHaveProperty('sourceAnalysis');
+      expect(input.maxTokens).toBe(6_000);
+    }
+    expect(report.profileDevelopmentStrategy.activityAnalyses).toHaveLength(7);
+  });
+
+  it('ranks hard requirements and caps the deterministic result at three', () => {
+    const hardRequirement = { id: 'req-1', kind: 'language' as const, label: 'English test', status: 'unknown' as const, applicantValue: null, requiredValue: 'IELTS 6.5', explanation: 'Required.', evidenceIds: [], targetSourceRefs: [] };
+    const ranked = selectTopPriorities(context({ matching: { hardRequirements: [hardRequirement], gaps: [] } as unknown as StrategyInputContext['matching'] }), [area('academic', 'develop'), area('experience', 'consolidate'), area('differentiation', 'build'), area('evidence', 'develop')], []);
+    expect(ranked).toHaveLength(3);
+    expect(ranked[0]?.requirementIds).toEqual(['req-1']);
+    expect(ranked.every((priority, index) => priority.rank === index + 1)).toBe(true);
+    expect(ranked.every((priority) => priority.factors.rawPriority === Object.values(priority.factors).slice(0, 5).reduce((total, factor) => total * factor, 1))).toBe(true);
+  });
+
+  it('caps a new missing dimension when the deadline is close', () => {
+    const candidate: StrategyInterventionCandidate = { candidateId: 'profile:academic', title: 'Academic', why: 'Why.', suggestedDirection: 'Build.', kind: 'build_missing_dimension', evidenceIds: [], gapIds: [], requirementIds: [], targetSourceRefs: ['source-1'] };
+    expect(calculateStrategyPriorityFactors(candidate, context({ application: { status: 'draft', deadline: '2026-09-05', daysUntilDeadline: 6, intake: null } })).feasibility).toBe(1);
+  });
+
+  it('consolidates profile candidates that share a canonical metric', () => {
+    const ranked = selectTopPriorities(
+      context(),
+      [
+        { ...area('academic', 'develop'), metricIds: ['metric-1'] },
+        { ...area('experience', 'consolidate'), metricIds: ['metric-1'] },
+        area('differentiation'),
+        area('evidence'),
+      ],
+      [],
+    );
+
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]?.basisRefs).toContain('metric-1');
+  });
+
+  it('uses semantic deliverable identity instead of array position and enforces duration feasibility', async () => {
+    const deliverables = [
+      { key: 'research-evidence', label: 'Collect research evidence', kind: 'evidence', linkedPriorityKeys: [], tool: null, basisRefs: [], estimatedDurationDays: 5 },
+      { key: 'test-booking', label: 'Book language test', kind: 'requirement', linkedPriorityKeys: [], tool: null, basisRefs: [], estimatedDurationDays: 4 },
+    ];
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis(deliverables)));
+    const first = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+    const firstKeys = first.strategicRoadmap[0]!.deliverables.map((deliverable) => deliverable.key);
+
+    mocks.openAiJsonCompletion.mockReset();
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis([...deliverables].reverse())));
+    const reordered = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-4o', now: new Date('2026-08-30T00:00:00Z') });
+    expect(reordered.strategicRoadmap[0]!.deliverables.map((deliverable) => deliverable.key).sort()).toEqual([...firstKeys].sort());
+    expect(reordered.strategicRoadmap[0]!.deliverables.find((deliverable) => deliverable.label === 'Collect research evidence')?.estimatedDurationDays).toBe(5);
+
+    mocks.openAiJsonCompletion.mockReset();
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis([{ ...deliverables[0], estimatedDurationDays: 15 }])));
+    await expect(generateStrategyReportV3({
+      context: context({ application: { status: 'draft', deadline: '2026-09-09', daysUntilDeadline: 10, intake: null } }),
+      apiKey: 'key',
+      model: 'gpt-4o',
+      now: new Date('2026-08-30T00:00:00Z'),
+    })).rejects.toMatchObject({ code: 'deadline_infeasible' });
+  });
+});

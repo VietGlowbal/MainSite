@@ -30,6 +30,8 @@ export interface RawSource {
   id: string;
   type: EvidenceSourceType;
   label: string;
+  /** Snapshot provenance retained without changing claim semantics. */
+  metadata?: Record<string, unknown>;
   capturedAt?: string;
 }
 
