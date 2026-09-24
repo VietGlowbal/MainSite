@@ -23,6 +23,12 @@ export function setScholarshipQueries(impl: ScholarshipQueries | null): void {
 
 export { SupabaseScholarshipRepository };
 export {
+  FILE_COST_REFERENCE_DATASET,
+  FILE_FX_REFERENCE_DATASET,
+  getFileCostReferenceProvider,
+  getFileFxReferenceProvider,
+} from './file-reference-providers';
+export {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
 } from './scholarship-queries';

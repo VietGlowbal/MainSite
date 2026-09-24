@@ -9,6 +9,12 @@ export { scholarshipSaveDestination } from './save-destination';
 export { normalizeScholarshipBenefits } from './benefit-normalization';
 export { calculateScholarshipValue } from './valuation';
 export { durationInMonths, periodMultiplier, resolveScholarshipDuration } from './duration';
+export {
+  COST_REFERENCE_LEVELS,
+  createCostReferenceProvider,
+  parseCostReferenceDataset,
+} from './cost-reference';
+export { createFxReferenceProvider, parseFxReferenceDataset } from './fx-reference';
 export { BENEFIT_PERIODS, BENEFIT_TYPES } from './benefit-types';
 export type {
   BenefitAmount,
@@ -56,3 +62,25 @@ export type {
   DurationValue,
   ResolvedDuration,
 } from './duration';
+export type {
+  CostReferenceAttempt,
+  CostReferenceContext,
+  CostReferenceCoverage,
+  CostReferenceDataset,
+  CostReferenceDiagnostic,
+  CostReferenceDiagnosticCode,
+  CostReferenceLevel,
+  CostReferenceLookup,
+  CostReferenceProvider,
+  CostReferenceRecord,
+  CostReferenceResolution,
+} from './cost-reference';
+export type {
+  FxRateRecord,
+  FxRateResolution,
+  FxReferenceCoverage,
+  FxReferenceDataset,
+  FxReferenceDiagnostic,
+  FxReferenceDiagnosticCode,
+  FxReferenceProvider,
+} from './fx-reference';

@@ -71,6 +71,19 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-24 (Scholarship Personalization T2B): corrected the T1
+unknown-currency test assertion only; the normalizer already preserved `RMB`
+as `currencyStatus: 'unknown'`, and the old assertion incorrectly rejected the
+literal `USD` in its warning text. Added runtime-validated, versioned
+CostReference and FX contracts/providers with deterministic
+programme→university→city→country→global fallback, freshness diagnostics,
+range/currency/provenance preservation, and bundled-category metadata for
+double-count prevention. Added empty file-backed cost/FX datasets marked
+`incomplete` because the repository contains no authoritative versioned
+programme, university, city, country, global cost references, or FX table. No
+production values were fabricated, and T2A remains file-free. Focused
+normalization/T2A/T2B tests passed (6 files, 43 tests); direct strict
+compilation of the new T2B domain and file-loader sources passed.
 
 Working tree 2026-09-24 (Scholarship Personalization T2A): added the pure
 duration-aware valuation domain. It resolves explicit scholarship/component

@@ -167,7 +167,11 @@ describe('normalizeScholarshipBenefits', () => {
       confidence: 'low',
     });
     expect(result.warnings.map((warning) => warning.code)).toContain('unknown-currency');
-    expect(JSON.stringify(result)).not.toContain('USD');
+    expect(result.components[0]!.amount).toMatchObject({
+      currency: 'RMB',
+      currencyStatus: 'unknown',
+    });
+    expect(result.components[0]!.amount?.currency).not.toBe('USD');
   });
 
   it('uses existing numeric fields conservatively and preserves raw evidence', () => {

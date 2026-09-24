@@ -38,6 +38,15 @@ export {
   resolveScholarshipDuration,
 } from './domain/duration';
 export {
+  COST_REFERENCE_LEVELS,
+  createCostReferenceProvider,
+  parseCostReferenceDataset,
+} from './domain/cost-reference';
+export {
+  createFxReferenceProvider,
+  parseFxReferenceDataset,
+} from './domain/fx-reference';
+export {
   BENEFIT_PERIODS,
   BENEFIT_TYPES,
 } from './domain/benefit-types';
@@ -86,3 +95,25 @@ export type {
   DurationValue,
   ResolvedDuration,
 } from './domain/duration';
+export type {
+  CostReferenceAttempt,
+  CostReferenceContext,
+  CostReferenceCoverage,
+  CostReferenceDataset,
+  CostReferenceDiagnostic,
+  CostReferenceDiagnosticCode,
+  CostReferenceLevel,
+  CostReferenceLookup,
+  CostReferenceProvider,
+  CostReferenceRecord,
+  CostReferenceResolution,
+} from './domain/cost-reference';
+export type {
+  FxRateRecord,
+  FxRateResolution,
+  FxReferenceCoverage,
+  FxReferenceDataset,
+  FxReferenceDiagnostic,
+  FxReferenceDiagnosticCode,
+  FxReferenceProvider,
+} from './domain/fx-reference';
