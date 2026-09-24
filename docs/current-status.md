@@ -1,5 +1,26 @@
 # Current project status
 
+Latest measured Data Platform ultra-max replay: `stage1-package-schema-fix-20260924T093711Z-drive`
+completed on 2026-09-24 from the frozen 230-programme population and raw run
+`stage1-coverage-20260922T135149Z-drive`. It generated 230 rows across 42
+canonical fields with 9,204/9,660 populated cells; the remaining 456 cells are
+the intentionally unknown `graduation_certificate` and
+`academic_transcript` values without verified evidence. The admission package
+view remains `COMPLETE=0`, `PARTIAL=2`, `UNKNOWN=228`; advisory values are not
+eligible for product decisions. The replay made 0 network calls, 0 paid LLM
+calls and 0 Supabase writes. Drive/Mongo lineage contains 13 artifact records,
+all 13 mounted readbacks are `VERIFIED`, and cloud sync remains `UNKNOWN` by
+design. The manifest is
+[`stage1-drive-run-stage1-package-schema-fix-20260924T093711Z-drive-manifest.json`](architecture/data/external-field-stage1-20260915/stage1-drive-run-stage1-package-schema-fix-20260924T093711Z-drive-manifest.json).
+
+The latest successful raw acquisition persisted 332 responses (75,145,268
+bytes) with 347 network calls and 71 cache hits to Mongo/Drive, with 0 paid LLM
+calls and 0 Supabase writes. The compatibility projection contains 230 package
+rows, 920 requirement rows and 920 normalized requirement rows; source lineage
+is present for all 920 normalized rows, while `course_id` remains empty until a
+trusted catalogue mapping exists. The active heavy-write path is Drive + Mongo;
+Supabase is reserved for later table-only projection.
+
 Working tree 2026-09-21 (personal report post-review completeness): implemented the evidence-aware report contract v8. The
 report now keeps required framework sections structurally present, distinguishes supported/emerging/
 needs-more-evidence/unavailable coverage, preserves evidence IDs, and records separate structural/content/evidence/

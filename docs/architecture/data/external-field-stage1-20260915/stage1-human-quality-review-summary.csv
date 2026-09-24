@@ -1,0 +1,42 @@
+﻿dimension,value,review_rows
+country,Finland,14
+country,France,39
+country,Netherlands,10
+country,Sweden,10
+country,Switzerland,6
+country,United Kingdom,103
+country,United States,21
+provider,College Scorecard,21
+provider,DUO RIO,10
+provider,Discover Uni,103
+provider,Onisep Idéo,39
+provider,Studyinfo / Opintopolku,14
+provider,Susa-navet,10
+provider,swissuniversities,6
+field,additional_fees,2
+field,career_outcomes,14
+field,credential,29
+field,curriculum_overview,6
+field,delivery_mode,18
+field,duration,25
+field,employment_outcomes,4
+field,external_source_status,3
+field,final_deadline,1
+field,ielts_overall,1
+field,intakes,3
+field,learning_outcomes,2
+field,location,17
+field,minimum_degree,2
+field,programme_focus,7
+field,programme_identity,32
+field,programme_language,1
+field,required_documents,2
+field,scholarships,1
+field,standardized_tests,2
+field,subject_prerequisites,2
+field,toefl,1
+field,tuition,27
+field,work_experience,1
+status,ACCEPTED,177
+status,REVIEW,23
+status,SOURCE_ABSENCE,3

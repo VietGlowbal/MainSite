@@ -64,6 +64,11 @@ PROGRAMME_WORD_RE = re.compile(
 PROGRAMME_ACRONYM_RE = re.compile(
     r"\b(BSc|BA|BS|SB|BEng|MSc|MA|MS|SM|MEng|MBA|MPH|PhD|DPhil)\b"
 )
+MULTILINGUAL_PROGRAMME_RE = re.compile(
+    r"(?:课程|学位|招生|大学院|学费|入学|プログラム|学位|入試|"
+    r"학위|입학|전공|học\s*phí|tuyển\s*sinh|chương\s*trình)",
+    re.IGNORECASE,
+)
 GENERIC_DETAIL_RE = re.compile(
     r"^(?:19|20)\d{2}$|^(?:program(?:me)?s?|degrees?|courses?|catalog(?:ue)?|"
     r"bachelors?|masters?|undergraduate|graduate|postgraduate|"
@@ -119,6 +124,11 @@ def programme_url_score(url: str, anchor_text: str = "") -> int:
         PROGRAMME_WORD_RE.search(anchor_text)
         or PROGRAMME_ACRONYM_RE.search(anchor_text)
     ):
+        score += 3
+    # Preserve the existing English URL/anchor hints, while allowing a
+    # catalogue title in a non-English language to be a discovery signal. This
+    # affects ranking only; it does not bypass domain, robots or policy checks.
+    if MULTILINGUAL_PROGRAMME_RE.search(anchor_text):
         score += 3
     if len([part for part in path.split("/") if part]) >= 2:
         score += 1
@@ -348,7 +358,19 @@ class CatalogueDiscovery:
                 errors.append(f"{canonical}: MANUAL_URL_OUTSIDE_OFFICIAL_DOMAIN")
                 continue
             if not policy.allows(canonical, self.fetcher.limits.user_agent):
+                # A frozen/user-supplied target is still an admissible routing
+                # candidate when robots policy blocks retrieval.  Keep the
+                # candidate so the pipeline can emit a terminal
+                # BLOCKED_BY_ROBOTS result instead of silently dropping the
+                # programme from the run.  This does not bypass policy or
+                # fetch the URL.
                 errors.append(f"{canonical}: BLOCKED_BY_ROBOTS")
+                candidates[canonical] = ProgrammeCandidate(
+                    url=canonical,
+                    name_hint=None,
+                    catalogue_source="user_supplied",
+                    score=95,
+                )
                 continue
             candidates[canonical] = ProgrammeCandidate(
                 url=canonical,

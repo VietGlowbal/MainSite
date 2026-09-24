@@ -81,6 +81,7 @@ from glowbal_ingestion.inheritance import (
 )
 from glowbal_ingestion.models import (
     DEEP_FIELDS,
+    EpistemicState,
     FieldAssertion,
     FetchResult,
     NullReason,
@@ -89,6 +90,8 @@ from glowbal_ingestion.models import (
     PolicyStatus,
     ProgrammeRecord,
     SCHOOL_PROFILE_FIELDS,
+    SourceAuthority,
+    SourceRelationship,
     VerificationStatus,
     has_semantic_value,
     utc_now_iso,
@@ -140,6 +143,7 @@ from glowbal_ingestion.supabase_seeds import (
     load_approved_supabase_seeds,
 )
 from glowbal_ingestion.supabase_import import (
+    SupabaseImportError,
     import_supabase_run,
     preflight_supabase_run,
 )
@@ -1030,6 +1034,222 @@ class SupabaseImportTests(unittest.TestCase):
         )
         self.assertTrue(result.applied)
         self.assertEqual(client.updates[-1][1]["status"], "completed")
+
+    @staticmethod
+    def _write_acquisition_artifacts(run_dir: Path) -> None:
+        """Write a complete, FK-linked v3 source graph without raw payloads."""
+        intent_id = "10000000-0000-0000-0000-000000000011"
+        candidate_id = "10000000-0000-0000-0000-000000000012"
+        discovery_id = "10000000-0000-0000-0000-000000000013"
+        decision_id = "10000000-0000-0000-0000-000000000014"
+        attempt_id = "10000000-0000-0000-0000-000000000015"
+        raw_document_id = "10000000-0000-0000-0000-000000000016"
+
+        def write_jsonl(name: str, records: list[dict[str, object]]) -> None:
+            (run_dir / name).write_text(
+                "".join(json.dumps(record) + "\n" for record in records),
+                encoding="utf-8",
+            )
+
+        write_jsonl(
+            "acquisition_intents.jsonl",
+            [{
+                "intent_id": intent_id,
+                "entity": {"entity_type": "PROGRAMME", "entity_id": "programme-1"},
+                "field_groups": ["tuition"],
+                "reason": "fixture contract",
+                "preferred_source_classes": ["government_dataset"],
+                "priority": 10,
+                "policy_version": "acquisition-intent/v1",
+                "created_at": "2026-08-29T00:00:00+00:00",
+            }],
+        )
+        write_jsonl(
+            "source_candidates.jsonl",
+            [{
+                "candidate_id": candidate_id,
+                "intent_id": intent_id,
+                "canonical_locator": "provider://ipeds/unitid/123",
+                "locator_type": "provider_resource",
+                "source_class": "government_dataset",
+                "declared_authority": "GOVERNMENT",
+                "relationship": "GOVERNMENT",
+                "relationship_evidence": ["unitid"],
+                "expected_field_groups": ["tuition"],
+                "discovery_method": "fixture",
+                "adapter_id": "ipeds",
+                "provider_id": "IPEDS",
+                "dataset_id": "HD2025",
+                "temporal_state": "CURRENT",
+                # This is deliberately not a UUID: source identities include
+                # provider/resource keys as well as URL-derived identities.
+                "source_identity": "IPEDS:HD2025:UNITID:123",
+                "raw_document_id": raw_document_id,
+            }],
+        )
+        write_jsonl(
+            "source_discovery_evidence.jsonl",
+            [{
+                "discovery_evidence_id": discovery_id,
+                "source_candidate_id": candidate_id,
+                "discovery_method": "fixture",
+                "evidence_summary": "provider resource listed for target",
+                "source_locator": "provider://ipeds/unitid/123",
+            }],
+        )
+        write_jsonl(
+            "source_admission_decisions.jsonl",
+            [{
+                "admission_decision_id": decision_id,
+                "acquisition_intent_id": intent_id,
+                "source_candidate_id": candidate_id,
+                "admitted": True,
+                "reason": "ADMITTED",
+                "factor_scores": {
+                    "authority": 50,
+                    "relationship": 20,
+                    "temporal": 10,
+                    "relevance": 10,
+                    "applicability": 10,
+                },
+                "total_score": 100,
+                "allowed_domain": "ipeds.ed.gov",
+            }],
+        )
+        write_jsonl(
+            "acquisition_attempts.jsonl",
+            [{
+                "attempt_id": attempt_id,
+                "intent_id": intent_id,
+                "candidate_id": candidate_id,
+                "raw_document_id": raw_document_id,
+                "status": "RAW_PERSISTED",
+                "retryable": False,
+                "started_at": "2026-08-29T00:00:01+00:00",
+                "finished_at": "2026-08-29T00:00:02+00:00",
+            }],
+        )
+
+    def test_unmapped_source_graph_artifacts_stay_local(self) -> None:
+        class Client:
+            def __init__(self) -> None:
+                self.inserts: list[tuple[str, list[dict[str, object]], str | None]] = []
+
+            def select(self, table, _params):
+                if table == "universities":
+                    return [{"id": 1, "name": "MIT", "primary_domain": "mit.edu"}]
+                return []
+
+            def insert(self, table, rows, *, return_rows=False, on_conflict=None):
+                self.inserts.append((table, list(rows), on_conflict))
+                if table == "crawl_runs":
+                    return [{"id": "10000000-0000-0000-0000-000000000001"}]
+                return []
+
+            def update(self, _table, _values, _params):
+                return None
+
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir = Path(temporary) / "test-import-run"
+            run_dir.mkdir()
+            self._write_run(run_dir)
+            self._write_acquisition_artifacts(run_dir)
+            client = Client()
+            result = import_supabase_run(run_dir, apply=True, client=client)
+
+        imported_tables = {table for table, _rows, _conflict in client.inserts}
+        self.assertTrue(result.applied)
+        self.assertNotIn("crawl_acquisition_v3_available", result.counts)
+        self.assertNotIn("crawl_source_candidates", imported_tables)
+        self.assertNotIn("crawl_source_discovery_evidence_v3", imported_tables)
+        self.assertNotIn("crawl_source_admission_decisions_v3", imported_tables)
+        self.assertNotIn("crawl_acquisition_attempts", imported_tables)
+        self.assertIn("crawl_programmes", imported_tables)
+
+    def test_source_graph_artifacts_do_not_block_v2_import(self) -> None:
+        class Client:
+            def __init__(self) -> None:
+                self.inserts: list[tuple[str, list[dict[str, object]], str | None]] = []
+
+            def select(self, table, _params):
+                if table == "universities":
+                    return [{"id": 1, "name": "MIT", "primary_domain": "mit.edu"}]
+                return []
+
+            def insert(self, table, rows, *, return_rows=False, on_conflict=None):
+                self.inserts.append((table, list(rows), on_conflict))
+                if table == "crawl_runs":
+                    return [{"id": "10000000-0000-0000-0000-000000000001"}]
+                return []
+
+            def update(self, _table, _values, _params):
+                return None
+
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir = Path(temporary) / "test-import-run"
+            run_dir.mkdir()
+            self._write_run(run_dir)
+            self._write_acquisition_artifacts(run_dir)
+            client = Client()
+            result = import_supabase_run(run_dir, apply=True, client=client)
+
+        imported_tables = {table for table, _rows, _conflict in client.inserts}
+        self.assertTrue(result.applied)
+        self.assertIn("crawl_programmes", imported_tables)
+        self.assertFalse(
+            imported_tables & {
+                "crawl_acquisition_intents",
+                "crawl_source_candidates",
+                "crawl_source_discovery_evidence_v3",
+                "crawl_source_admission_decisions_v3",
+                "crawl_acquisition_attempts",
+            },
+        )
+
+    def test_external_rows_require_the_verified_staging_table(self) -> None:
+        class Client:
+            def __init__(self) -> None:
+                self.inserts: list[tuple[str, list[dict[str, object]], str | None]] = []
+
+            def select(self, table, _params):
+                if table == "universities":
+                    return [{"id": 1, "name": "MIT", "primary_domain": "mit.edu"}]
+                if table == "crawl_external_structured_rows":
+                    raise SupabaseImportError(
+                        "Supabase GET crawl_external_structured_rows failed with HTTP 404"
+                    )
+                return []
+
+            def insert(self, table, rows, *, return_rows=False, on_conflict=None):
+                self.inserts.append((table, list(rows), on_conflict))
+                if table == "crawl_runs":
+                    return [{"id": "10000000-0000-0000-0000-000000000001"}]
+                return []
+
+            def update(self, _table, _values, _params):
+                return None
+
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir = Path(temporary) / "test-import-run"
+            run_dir.mkdir()
+            self._write_run(run_dir)
+            (run_dir / "structured_archive_members.jsonl").write_text(
+                json.dumps({
+                    "derived_resource_id": "derived-1",
+                    "provider_id": "scorecard",
+                    "dataset_id": "scorecard-bulk",
+                    "source_class": "government_dataset",
+                    "source_authority": "GOVERNMENT",
+                    "source_relationship": "GOVERNMENT",
+                    "rows": [{"UNITID": "1"}],
+                }) + "\n",
+                encoding="utf-8",
+            )
+            client = Client()
+            with self.assertRaisesRegex(SupabaseImportError, "staging table is unavailable"):
+                import_supabase_run(run_dir, apply=True, client=client)
+
+        self.assertEqual(client.inserts, [])
 
     def test_failed_import_resumes_same_run_idempotently(self) -> None:
         run_id = "10000000-0000-0000-0000-000000000001"
@@ -3810,6 +4030,29 @@ class ValidationTests(unittest.TestCase):
             [],
         )
 
+    def test_source_excerpt_fallback_ignores_external_mapping_guidance(
+        self,
+    ) -> None:
+        source = ExtractionSource(
+            url="https://opintopolku.fi/konfo-backend/valintaperuste/criteria-1",
+            page_type="programme_overview",
+            title="Studyinfo selection criteria",
+            text=(
+                "External structured record; values below are literal source columns.\n"
+                "Source mapping context: Emit scholarships only for an explicit policy."
+            ),
+            content_hash="fixture-external-mapping-guidance",
+        )
+        self.assertEqual(
+            extract_source_excerpt_assertions(
+                entity_id="programme-1",
+                sources=[source],
+                field_names=("scholarships", "toefl"),
+                extractor_version="test",
+            ),
+            [],
+        )
+
     def test_source_excerpt_fallback_rejects_deadline_without_date(
         self,
     ) -> None:
@@ -4208,6 +4451,71 @@ class ValidationTests(unittest.TestCase):
         paused = extract_deterministic_facts([paused_source])[0]
         self.assertEqual(paused["value"], "paused")
         self.assertEqual(paused["academic_cycle"], "2025-26")
+
+    def test_discover_uni_employment_cards_are_extracted_with_source_context(
+        self,
+    ) -> None:
+        source = ExtractionSource(
+            url=(
+                "https://discoveruni.gov.uk/course-details/10007154/"
+                "G407/Full-time/"
+            ),
+            page_type="programme_overview",
+            title="Discover Uni course",
+            text=(
+                "BSc (Hons) Computer Science with Year in Industry at The "
+                "University of Nottingham Employment 80% go on to work "
+                "and/or study 15 months after the course for BSc (Hons) "
+                "Computer Science with Year in Industry graduates at The "
+                "University of Nottingham 80% of the students go on to work "
+                "and / or study Data for students graduating 2022-23 Source: "
+                "Graduate Outcomes survey Occupation types 15 months after "
+                "the course Data for students graduating 2021-23 Source: "
+                "Graduate Outcomes survey 95% In highly skilled work 90% "
+                "Information Technology Professionals 5% Business and public "
+                "service associate professionals 0% In other work 5% In "
+                "unknown work Employed after finishing the course but "
+                "employment type is not known Chart labels explained"
+            ),
+            content_hash="discover-employment-fixture",
+            raw_document_id="raw-discover-employment",
+            parser_id="html-visible-text",
+            parser_version="1",
+            source_authority=SourceAuthority.GOVERNMENT,
+            source_relationship=SourceRelationship.GOVERNMENT,
+            provider_id="discover_uni_hesa",
+            dataset_id="discover-uni-course-details",
+            acquisition_run_id="run-discover-employment",
+        )
+
+        facts = [
+            fact
+            for fact in extract_deterministic_facts([source])
+            if fact["field_name"] == "employment_outcomes"
+        ]
+
+        self.assertEqual(len(facts), 7)
+        self.assertEqual(
+            [fact["value"]["metric"] for fact in facts],
+            [
+                "work_and_or_study",
+                "go_on_to_work_and_or_study",
+                "in_highly_skilled_work",
+                "occupation",
+                "occupation",
+                "in_other_work",
+                "in_unknown_work",
+            ],
+        )
+        self.assertEqual(facts[1]["value"]["population"], "students graduating 2022-23")
+        self.assertEqual(facts[2]["value"]["population"], "students graduating 2021-23")
+        self.assertEqual(
+            facts[3]["value"]["occupation"],
+            "Information Technology Professionals",
+        )
+        self.assertEqual(facts[0]["academic_cycle"], None)
+        self.assertEqual(facts[0]["_provider_id"], "discover_uni_hesa")
+        self.assertEqual(facts[0]["_raw_document_id"], "raw-discover-employment")
 
     def test_programme_status_requires_explicit_matching_variant(self) -> None:
         source = ExtractionSource(
@@ -5272,6 +5580,152 @@ class BestAssertionTests(unittest.TestCase):
             model_name="deepseek-v4-flash",
             validation_errors=[],
             extraction_group="finance",
+        )
+
+    @staticmethod
+    def _bound_observed(
+        assertion: FieldAssertion,
+        raw_document_id: str,
+    ) -> FieldAssertion:
+        return replace(
+            assertion,
+            epistemic_state=EpistemicState.OBSERVED,
+            raw_document_id=raw_document_id,
+            source_content_hash=f"hash-{raw_document_id}",
+            acquisition_run_id=f"run-{raw_document_id}",
+            source_authority=SourceAuthority.GOVERNMENT,
+            source_relationship=SourceRelationship.GOVERNMENT,
+        )
+
+    def test_unbound_cached_observation_cannot_hide_bound_current_bundle(
+        self,
+    ) -> None:
+        stale = self._bound_observed(
+            self._tuition(
+                "stale-cache",
+                amount=62226,
+                cycle="2027-2028",
+                retrieved_at="2026-07-28T00:00:00+00:00",
+            ),
+            "raw-stale",
+        )
+        current = self._bound_observed(
+            replace(stale, assertion_id="current-bound"),
+            "raw-current",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            state = StateStore(Path(temporary) / "state.sqlite")
+            try:
+                state.put_best_assertion_bundle(
+                    self.entity_id,
+                    "tuition",
+                    [stale.to_dict()],
+                    {},
+                )
+                effective, decisions = merge_best_assertions(
+                    state=state,
+                    entity_id=self.entity_id,
+                    current_assertions=[current],
+                    field_names=("tuition",),
+                    bound_raw_document_ids=frozenset({"raw-current"}),
+                )
+            finally:
+                state.close()
+
+        self.assertEqual(effective, [current])
+        self.assertEqual(decisions[0]["selected"], "current")
+        self.assertEqual(
+            decisions[0]["reason"],
+            "cached_bundle_missing_usable_provenance",
+        )
+        self.assertFalse(decisions[0]["cached_provenance_usable"])
+
+    def test_valid_older_bound_bundle_keeps_existing_quality_preference(
+        self,
+    ) -> None:
+        older = self._bound_observed(
+            self._tuition(
+                "older-bound",
+                amount=62226,
+                cycle="2027-2028",
+                retrieved_at="2026-07-28T00:00:00+00:00",
+            ),
+            "raw-older",
+        )
+        current = self._bound_observed(
+            self._tuition(
+                "current-bound",
+                amount=62226,
+                cycle="2026-2027",
+                retrieved_at="2026-07-29T00:00:00+00:00",
+            ),
+            "raw-current",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            state = StateStore(Path(temporary) / "state.sqlite")
+            try:
+                state.put_best_assertion_bundle(
+                    self.entity_id,
+                    "tuition",
+                    [older.to_dict()],
+                    {},
+                )
+                effective, decisions = merge_best_assertions(
+                    state=state,
+                    entity_id=self.entity_id,
+                    current_assertions=[current],
+                    field_names=("tuition",),
+                    bound_raw_document_ids=frozenset(
+                        {"raw-older", "raw-current"}
+                    ),
+                )
+            finally:
+                state.close()
+
+        self.assertEqual(effective, [older])
+        self.assertEqual(decisions[0]["selected"], "cached")
+        self.assertTrue(decisions[0]["cached_provenance_usable"])
+
+    def test_conflicting_current_facts_remain_distinct_for_conflict_handling(
+        self,
+    ) -> None:
+        domestic = self._bound_observed(
+            self._tuition(
+                "domestic",
+                amount=60000,
+                cycle="2026-2027",
+                retrieved_at="2026-07-28T00:00:00+00:00",
+            ),
+            "raw-domestic",
+        )
+        international = self._bound_observed(
+            replace(
+                domestic,
+                assertion_id="international",
+                value_json={**domestic.value_json, "amount": 61000},
+                evidence="Undergraduate tuition $61,000",
+            ),
+            "raw-international",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            state = StateStore(Path(temporary) / "state.sqlite")
+            try:
+                effective, decisions = merge_best_assertions(
+                    state=state,
+                    entity_id=self.entity_id,
+                    current_assertions=[domestic, international],
+                    field_names=("tuition",),
+                    bound_raw_document_ids=frozenset(
+                        {"raw-domestic", "raw-international"}
+                    ),
+                )
+            finally:
+                state.close()
+
+        self.assertEqual(effective, [domestic, international])
+        self.assertEqual(
+            decisions[0]["selected_assertion_ids"],
+            ["domestic", "international"],
         )
 
     def test_missing_current_bundle_keeps_cached_validated_result(self) -> None:
@@ -6889,6 +7343,10 @@ class PipelineIntegrationTests(unittest.TestCase):
                 "and research."
             ),
             content_hash="career-source",
+            raw_document_id="career-raw",
+            acquisition_run_id="career-run",
+            source_authority=SourceAuthority.OFFICIAL,
+            source_relationship=SourceRelationship.DIRECT_OFFICIAL,
         )
         career_fact = {
             "field_name": "career_outcomes",

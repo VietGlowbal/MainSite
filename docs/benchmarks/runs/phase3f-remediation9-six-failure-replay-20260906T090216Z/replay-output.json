@@ -1,0 +1,925 @@
+{
+  "schema_version": "phase3f-remediation9-replay/v1",
+  "run_type": "OFFLINE_SIX_FAILURE_REPLAY",
+  "source_run_id": "phase3f-v2-run-20260905T161914Z",
+  "provider_calls": 0,
+  "refetches": 0,
+  "new_urls_discovered": 0,
+  "target_cases": [
+    {
+      "case_id": "GT-V2-19-programme_identity",
+      "field": "programme_identity",
+      "programme": "Public Affairs Major Curriculum",
+      "institution": "UCLA",
+      "before_state": "FOUND",
+      "before_value": "B.A. in Public Affairs",
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "source_native_value": "B.A. in Public Affairs",
+      "candidates": [
+        {
+          "assertion_id": "d1c42410-08c8-5f29-9f65-b2dcde62a09a",
+          "value": "B.A. in Public Affairs",
+          "source_url": "https://luskin.ucla.edu/undergraduate-program/academic-programs/public-affairs-major-curriculum/",
+          "evidence": "Overview of the B.A. in Public Affairs",
+          "reasons": [
+            "IDENTITY_STAGE_UNRESOLVED"
+          ],
+          "accepted": false
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "NO_CONCRETE_UNSUPPORTED_VALUE"
+    },
+    {
+      "case_id": "GT-V2-25-programme_identity",
+      "field": "programme_identity",
+      "programme": "Admission E.Shtml",
+      "institution": "University of Tokyo",
+      "before_state": "FOUND",
+      "before_value": "Computer Science",
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "source_native_value": "Computer Science",
+      "candidates": [
+        {
+          "assertion_id": "cb426cd7-4fe9-5b34-961e-823b1ec724b2",
+          "value": "Computer Science",
+          "source_url": "https://www.i.u-tokyo.ac.jp/edu/course/cs/admission_e.shtml",
+          "evidence": "Computer Science",
+          "reasons": [
+            "IDENTITY_UNIT_SCOPE_UNPROVEN"
+          ],
+          "accepted": false
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "NO_CONCRETE_UNSUPPORTED_VALUE"
+    },
+    {
+      "case_id": "GT-V2-32-programme_identity",
+      "field": "programme_identity",
+      "programme": "Master Informatique",
+      "institution": "Sorbonne Université",
+      "before_state": "FOUND",
+      "before_value": "Master Informatique",
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "source_native_value": "Master Informatique",
+      "candidates": [
+        {
+          "assertion_id": "45fbe03d-c909-51a7-97f5-4372d53445f6",
+          "value": "Master Informatique",
+          "source_url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+          "evidence": "Master Informatique",
+          "reasons": [
+            "IDENTITY_CHILD_SCOPE_UNRESOLVED"
+          ],
+          "accepted": false
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "NO_CONCRETE_UNSUPPORTED_VALUE"
+    },
+    {
+      "case_id": "GT-V2-01-tuition",
+      "field": "tuition",
+      "programme": "Artifical Intelligence Decision Making Course 6 4",
+      "institution": "MIT",
+      "before_state": "FOUND",
+      "before_value": {
+        "credential": "Undergraduate",
+        "amount": 33360,
+        "currency": "USD",
+        "fee_period": "per term",
+        "audience": "all",
+        "academic_cycle": "2026-2027"
+      },
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "source_native_value": {
+        "credential": "Undergraduate",
+        "amount": 33360,
+        "currency": "USD",
+        "fee_period": "per term",
+        "audience": "all",
+        "academic_cycle": "2026-2027"
+      },
+      "candidates": [
+        {
+          "assertion_id": "aace6e7c-3a07-5c4a-8e61-7e2b3b3a08eb",
+          "value": {
+            "credential": "Undergraduate",
+            "amount": 33360,
+            "currency": "USD",
+            "fee_period": "per term",
+            "audience": "all",
+            "academic_cycle": "2026-2027"
+          },
+          "source_url": "https://catalog.mit.edu/mit/undergraduate-education/costs/",
+          "evidence": "ndergraduate tuition rates for the 2026–2027 academic year. Amounts are per term, unless noted. Undergraduate tuition, per term, fall and spring, 2026–2027 Fees Fee Cost Full regular tuition, per term, fall and spring* $33,360 Light-load tuition, per unit $1,030 Light-load tuition, minimum $6,180 SB thesis-only tuition, per unit $1,030 SB thesi",
+          "reasons": [
+            "TUITION_INSTITUTION_TERM_SCOPE_UNRESOLVED"
+          ],
+          "accepted": false
+        }
+      ],
+      "first_incorrect_stage": "APPLICABILITY",
+      "fix_class": "TUITION_SCOPE_AND_BILLING_GUARD",
+      "correct_after": true,
+      "safety_result": "NO_CONCRETE_UNSUPPORTED_VALUE"
+    },
+    {
+      "case_id": "GT-V2-03-tuition",
+      "field": "tuition",
+      "programme": "Chemical Engineering Course 10",
+      "institution": "MIT",
+      "before_state": "FOUND",
+      "before_value": {
+        "credential": "Undergraduate",
+        "amount": 33360,
+        "currency": "USD",
+        "fee_period": "per term",
+        "audience": "all",
+        "academic_cycle": "2026-2027"
+      },
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "source_native_value": {
+        "credential": "Undergraduate",
+        "amount": 33360,
+        "currency": "USD",
+        "fee_period": "per term",
+        "audience": "all",
+        "academic_cycle": "2026-2027"
+      },
+      "candidates": [
+        {
+          "assertion_id": "25e2cbe7-2c49-5a43-8c1b-1d21bed5db47",
+          "value": {
+            "credential": "Undergraduate",
+            "amount": 33360,
+            "currency": "USD",
+            "fee_period": "per term",
+            "audience": "all",
+            "academic_cycle": "2026-2027"
+          },
+          "source_url": "https://catalog.mit.edu/mit/undergraduate-education/costs/",
+          "evidence": "ndergraduate tuition rates for the 2026–2027 academic year. Amounts are per term, unless noted. Undergraduate tuition, per term, fall and spring, 2026–2027 Fees Fee Cost Full regular tuition, per term, fall and spring* $33,360 Light-load tuition, per unit $1,030 Light-load tuition, minimum $6,180 SB thesis-only tuition, per unit $1,030 SB thesi",
+          "reasons": [
+            "TUITION_INSTITUTION_TERM_SCOPE_UNRESOLVED"
+          ],
+          "accepted": false
+        }
+      ],
+      "first_incorrect_stage": "APPLICABILITY",
+      "fix_class": "TUITION_SCOPE_AND_BILLING_GUARD",
+      "correct_after": true,
+      "safety_result": "NO_CONCRETE_UNSUPPORTED_VALUE"
+    },
+    {
+      "case_id": "GT-V2-28-major_admissions_requirement",
+      "field": "major_admissions_requirement",
+      "programme": "Data Science",
+      "institution": "ETH Zurich",
+      "before_state": "FOUND",
+      "before_value": {
+        "subject_prerequisites": "Qualifying disciplines listed alphabetically: Computer Science Electrical Engineering Mechanical Engineering Mathematics Physics"
+      },
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "source_native_value": "Bachelor's degree",
+      "candidates": [
+        {
+          "assertion_id": "1a82da6e-6ba9-52f4-b7ad-a557afc92def",
+          "value": "Bachelor's degree",
+          "source_url": "https://ethz.ch/en/studies/master/application/dates.html",
+          "evidence": "Bachelor's degree",
+          "reasons": [
+            "APPLICABILITY_EVIDENCE_FIELD_MISMATCH",
+            "TEMPORAL_SCOPE_UNPROVEN",
+            "PROGRAMME_ADMISSION_SCOPE_UNPROVEN"
+          ],
+          "accepted": false
+        },
+        {
+          "assertion_id": "b2327059-0015-50c4-8e53-ef8459aeca71",
+          "value": "Qualifying disciplines listed alphabetically: Computer Science Electrical Engineering Mechanical Engineering Mathematics Physics",
+          "source_url": "https://ethz.ch/en/studies/master/degree-programmes/engineering-sciences/data-science.html",
+          "evidence": "Qualifying disciplines listed alphabetically: Computer Science Electrical Engineering Mechanical Engineering Mathematics Physics",
+          "reasons": [
+            "PROGRAMME_ADMISSION_SCOPE_UNPROVEN"
+          ],
+          "accepted": false
+        },
+        {
+          "assertion_id": "be31a6ce-c4c3-5d61-a474-80c7b8f0113c",
+          "value": "GRE may be required if required.",
+          "source_url": "https://ethz.ch/en/studies/master/application/profile-requirements.html",
+          "evidence": "the scores in standardized tests (like GRE, if required)",
+          "reasons": [
+            "APPLICABILITY_EVIDENCE_FIELD_MISMATCH",
+            "TEMPORAL_SCOPE_UNPROVEN",
+            "PROGRAMME_ADMISSION_SCOPE_UNPROVEN"
+          ],
+          "accepted": false
+        },
+        {
+          "assertion_id": "cf6403c5-7527-507b-aa72-92aebc92c7fa",
+          "value": {
+            "document_type": "other",
+            "requirement_status": "required",
+            "required_count": null,
+            "application_stage": "initial_application",
+            "accepted_alternatives": [],
+            "components": [],
+            "details": "The application includes a letter of motivation and letters of recommendation."
+          },
+          "source_url": "https://ethz.ch/en/studies/master/application/profile-requirements.html",
+          "evidence": "the letter of motivation and the letters of recommendation",
+          "reasons": [
+            "APPLICABILITY_EVIDENCE_FIELD_MISMATCH",
+            "TEMPORAL_SCOPE_UNPROVEN",
+            "PROGRAMME_ADMISSION_SCOPE_UNPROVEN"
+          ],
+          "accepted": false
+        },
+        {
+          "assertion_id": "02250e8c-37c2-50ad-a271-9ba02a276863",
+          "value": {
+            "document_type": "recommendation_letter",
+            "requirement_status": "required",
+            "required_count": null,
+            "application_stage": "initial_application",
+            "accepted_alternatives": [],
+            "components": [
+              {
+                "component_type": "academic_recommendation",
+                "requirement_status": "required",
+                "required_count": null,
+                "application_stage": "initial_application",
+                "details": "Letters of recommendation are part of the application."
+              }
+            ],
+            "details": "Letters of recommendation are required as part of the application."
+          },
+          "source_url": "https://ethz.ch/en/studies/master/application/profile-requirements.html",
+          "evidence": "the letters of recommendation",
+          "reasons": [
+            "APPLICABILITY_EVIDENCE_FIELD_MISMATCH",
+            "TEMPORAL_SCOPE_UNPROVEN",
+            "PROGRAMME_ADMISSION_SCOPE_UNPROVEN"
+          ],
+          "accepted": false
+        }
+      ],
+      "first_incorrect_stage": "APPLICABILITY",
+      "fix_class": "ADMISSIONS_SEMANTIC_GUARD",
+      "correct_after": true,
+      "safety_result": "NO_CONCRETE_UNSUPPORTED_VALUE"
+    }
+  ],
+  "identity_regression_controls": [
+    {
+      "case_id": "GT-V2-01-programme_identity",
+      "field": "programme_identity",
+      "programme": "Artifical Intelligence Decision Making Course 6 4",
+      "institution": "MIT",
+      "before_state": "FOUND",
+      "before_value": "Artificial Intelligence and Decision Making (Course 6-4)",
+      "after_state": "FOUND",
+      "after_value": "Artificial Intelligence and Decision Making (Course 6-4)",
+      "source_native_value": "Artificial Intelligence and Decision Making (Course 6-4)",
+      "candidates": [
+        {
+          "assertion_id": "b84e30ff-3fa4-5ebc-836e-2bd076ea3f53",
+          "value": "Artificial Intelligence and Decision Making (Course 6-4)",
+          "source_url": "https://catalog.mit.edu/degree-charts/artifical-intelligence-decision-making-course-6-4/",
+          "evidence": "Artificial Intelligence and Decision Making (Course 6-4)",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-02-programme_identity",
+      "field": "programme_identity",
+      "programme": "Master Computational Science Engineering",
+      "institution": "MIT",
+      "before_state": "FOUND",
+      "before_value": "Master of Science in Computational Science and Engineering",
+      "after_state": "FOUND",
+      "after_value": "Master of Science in Computational Science and Engineering",
+      "source_native_value": "Master of Science in Computational Science and Engineering",
+      "candidates": [
+        {
+          "assertion_id": "ff93fc5f-8d34-556b-99cc-8df53e734364",
+          "value": "Master of Science in Computational Science and Engineering",
+          "source_url": "https://catalog.mit.edu/degree-charts/master-computational-science-engineering/",
+          "evidence": "Master of Science in Computational Science and Engineering",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-03-programme_identity",
+      "field": "programme_identity",
+      "programme": "Chemical Engineering Course 10",
+      "institution": "MIT",
+      "before_state": "FOUND",
+      "before_value": "Chemical Engineering (Course 10)",
+      "after_state": "FOUND",
+      "after_value": "Chemical Engineering (Course 10)",
+      "source_native_value": "Chemical Engineering (Course 10)",
+      "candidates": [
+        {
+          "assertion_id": "402bb865-ae46-5e8d-b954-1d05b8c62fa2",
+          "value": "Chemical Engineering (Course 10)",
+          "source_url": "https://catalog.mit.edu/degree-charts/chemical-engineering-course-10/",
+          "evidence": "Chemical Engineering (Course 10)",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-05-programme_identity",
+      "field": "programme_identity",
+      "programme": "Data Science",
+      "institution": "Harvard",
+      "before_state": "FOUND",
+      "before_value": "Data Science",
+      "after_state": "FOUND",
+      "after_value": "Data Science",
+      "source_native_value": "Data Science",
+      "candidates": [
+        {
+          "assertion_id": "fc389486-37d4-58ad-a2ac-8c2e8e427cc0",
+          "value": "Data Science",
+          "source_url": "https://gsas.harvard.edu/program/data-science",
+          "evidence": "Data Science",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-10-programme_identity",
+      "field": "programme_identity",
+      "programme": "Accelerated Daytime Mba",
+      "institution": "Duke",
+      "before_state": "FOUND",
+      "before_value": "Accelerated Daytime MBA",
+      "after_state": "FOUND",
+      "after_value": "Accelerated Daytime MBA",
+      "source_native_value": "Accelerated Daytime MBA",
+      "candidates": [
+        {
+          "assertion_id": "938929a2-8cf0-5890-843c-1c5cf2c48292",
+          "value": "Accelerated Daytime MBA",
+          "source_url": "https://www.fuqua.duke.edu/programs/accelerated-daytime-mba",
+          "evidence": "Accelerated Daytime MBA",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-11-programme_identity",
+      "field": "programme_identity",
+      "programme": "Meng Ai Materials",
+      "institution": "Duke",
+      "before_state": "FOUND",
+      "before_value": "AI + Materials Master of Engineering",
+      "after_state": "FOUND",
+      "after_value": "AI + Materials Master of Engineering",
+      "source_native_value": "AI + Materials Master of Engineering",
+      "candidates": [
+        {
+          "assertion_id": "03336c69-c3c8-5eba-abf9-f908ef34ca45",
+          "value": "AI + Materials Master of Engineering",
+          "source_url": "https://mems.duke.edu/academics/masters/ai-materials-science-meng/",
+          "evidence": "AI + Materials Master of Engineering",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-12-programme_identity",
+      "field": "programme_identity",
+      "programme": "Meng Bme",
+      "institution": "Duke",
+      "before_state": "FOUND",
+      "before_value": "Master of Engineering in BME",
+      "after_state": "FOUND",
+      "after_value": "Master of Engineering in BME",
+      "source_native_value": "Master of Engineering in BME",
+      "candidates": [
+        {
+          "assertion_id": "71eecb2a-428b-5b64-99aa-de2cc6eb93a4",
+          "value": "Master of Engineering in BME",
+          "source_url": "https://bme.duke.edu/academics/masters/meng-bme/",
+          "evidence": "Master of Engineering in BME",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-13-programme_identity",
+      "field": "programme_identity",
+      "programme": "Liberal Arts Music",
+      "institution": "Northwestern",
+      "before_state": "FOUND",
+      "before_value": "BA/BMus in Liberal Arts and Music",
+      "after_state": "FOUND",
+      "after_value": "BA/BMus in Liberal Arts and Music",
+      "source_native_value": "BA/BMus in Liberal Arts and Music",
+      "candidates": [
+        {
+          "assertion_id": "3afd5fc5-6ba2-584e-b990-87a9b638961e",
+          "value": "BA/BMus in Liberal Arts and Music",
+          "source_url": "https://catalogs.northwestern.edu/undergraduate/dual-bachelors-degrees/liberal-arts-music/",
+          "evidence": "BA/BMus in Liberal Arts and Music",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-14-programme_identity",
+      "field": "programme_identity",
+      "programme": "Information Systems Ms Data Science Specialization",
+      "institution": "Northwestern",
+      "before_state": "FOUND",
+      "before_value": "Information Systems, MS Data Science Specialization",
+      "after_state": "FOUND",
+      "after_value": "Information Systems, MS Data Science Specialization",
+      "source_native_value": "Information Systems, MS Data Science Specialization",
+      "candidates": [
+        {
+          "assertion_id": "649378f4-6673-5b5e-b2a0-ee5e808b1b88",
+          "value": "Information Systems, MS Data Science Specialization",
+          "source_url": "https://catalogs.northwestern.edu/sps/graduate/information-systems/information-systems-ms-data-science-specialization/",
+          "evidence": "Information Systems, MS Data Science Specialization",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-15-programme_identity",
+      "field": "programme_identity",
+      "programme": "Communication Music",
+      "institution": "Northwestern",
+      "before_state": "FOUND",
+      "before_value": "BA/BMus, BS/BMus, BA/BAMus, or BS/BAMus in Communication and Music",
+      "after_state": "FOUND",
+      "after_value": "BA/BMus, BS/BMus, BA/BAMus, or BS/BAMus in Communication and Music",
+      "source_native_value": "BA/BMus, BS/BMus, BA/BAMus, or BS/BAMus in Communication and Music",
+      "candidates": [
+        {
+          "assertion_id": "fe38ef95-9d20-510f-9363-35b2b60153cd",
+          "value": "BA/BMus, BS/BMus, BA/BAMus, or BS/BAMus in Communication and Music",
+          "source_url": "https://catalogs.northwestern.edu/undergraduate/dual-bachelors-degrees/communication-music/",
+          "evidence": "BA/BMus, BS/BMus, BA/BAMus, or BS/BAMus in Communication and Music",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-16-programme_identity",
+      "field": "programme_identity",
+      "programme": "Applied Economics Management Mps",
+      "institution": "Cornell",
+      "before_state": "FOUND",
+      "before_value": "Applied Economics and Management (MPS)",
+      "after_state": "FOUND",
+      "after_value": "Applied Economics and Management (MPS)",
+      "source_native_value": "Applied Economics and Management (MPS)",
+      "candidates": [
+        {
+          "assertion_id": "6b026c95-dddf-5669-851e-7b2118567b14",
+          "value": "Applied Economics and Management (MPS)",
+          "source_url": "https://catalog.cornell.edu/programs/applied-economics-management-mps/",
+          "evidence": "Applied Economics and Management (MPS) | Cornell University",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-17-programme_identity",
+      "field": "programme_identity",
+      "programme": "Computer Science",
+      "institution": "Cornell",
+      "before_state": "FOUND",
+      "before_value": "Computer Science (BS)",
+      "after_state": "FOUND",
+      "after_value": "Computer Science (BS)",
+      "source_native_value": "Computer Science (BS)",
+      "candidates": [
+        {
+          "assertion_id": "5b3f0460-66f1-5649-ab7e-70862bc29fbd",
+          "value": "Computer Science (BS)",
+          "source_url": "https://catalog.cornell.edu/programs/computer-science-bs/",
+          "evidence": "Computer Science (BS) | Cornell University",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-18-programme_identity",
+      "field": "programme_identity",
+      "programme": "Information Science",
+      "institution": "Cornell",
+      "before_state": "FOUND",
+      "before_value": "Information Science (BS)",
+      "after_state": "FOUND",
+      "after_value": "Information Science (BS)",
+      "source_native_value": "Information Science (BS)",
+      "candidates": [
+        {
+          "assertion_id": "0f1661f7-b40b-51af-99a2-9c8248d8393d",
+          "value": "Information Science (BS)",
+          "source_url": "https://catalog.cornell.edu/programs/information-science-bs/",
+          "evidence": "Information Science (BS)",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-20-programme_identity",
+      "field": "programme_identity",
+      "programme": "Biostatistics Mph",
+      "institution": "UCLA",
+      "before_state": "FOUND",
+      "before_value": "Biostatistics MPH",
+      "after_state": "FOUND",
+      "after_value": "Biostatistics MPH",
+      "source_native_value": "Biostatistics MPH",
+      "candidates": [
+        {
+          "assertion_id": "7bb97a25-a841-52d7-8e0d-bfd7cfcfa085",
+          "value": "Biostatistics MPH",
+          "source_url": "https://grad.ucla.edu/programs/school-of-public-health/biostatistics-department/biostatistics-mph/",
+          "evidence": "Biostatistics MPH",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-21-programme_identity",
+      "field": "programme_identity",
+      "programme": "Graduate Admissions",
+      "institution": "UCLA",
+      "before_state": "FOUND",
+      "before_value": "Computer Science PhD or MS program",
+      "after_state": "NEEDS_REVIEW",
+      "after_value": null,
+      "source_native_value": "Computer Science PhD or MS program",
+      "candidates": [
+        {
+          "assertion_id": "3a110889-37e4-5979-895c-9d6f8bab5348",
+          "value": "Computer Science PhD or MS program",
+          "source_url": "https://www.cs.ucla.edu/graduate-admissions/",
+          "evidence": "To apply for the Computer Science PhD or MS program, submit the UCLA application for graduate admission by December 15th.",
+          "reasons": [
+            "IDENTITY_DEGREE_VARIANT_SCOPE_UNRESOLVED"
+          ],
+          "accepted": false
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "NO_CONCRETE_UNSUPPORTED_VALUE"
+    },
+    {
+      "case_id": "GT-V2-22-programme_identity",
+      "field": "programme_identity",
+      "programme": "Baccalaureat En Informatique",
+      "institution": "Université de Montréal",
+      "before_state": "FOUND",
+      "before_value": "Baccalauréat en informatique",
+      "after_state": "FOUND",
+      "after_value": "Baccalauréat en informatique",
+      "source_native_value": "Baccalauréat en informatique",
+      "candidates": [
+        {
+          "assertion_id": "399ece72-0777-5ea8-9b7e-0988c361ccff",
+          "value": "Baccalauréat en informatique",
+          "source_url": "https://admission.umontreal.ca/programmes/baccalaureat-en-informatique/",
+          "evidence": "Baccalauréat en informatique",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-23-programme_identity",
+      "field": "programme_identity",
+      "programme": "Admission And Regulations",
+      "institution": "Université de Montréal",
+      "before_state": "FOUND",
+      "before_value": "Maîtrise en informatique",
+      "after_state": "FOUND",
+      "after_value": "Maîtrise en informatique",
+      "source_native_value": "Maîtrise en informatique",
+      "candidates": [
+        {
+          "assertion_id": "cda91dc3-a34e-500e-9ced-b0da6b2ad1d2",
+          "value": "Maîtrise en informatique",
+          "source_url": "https://admission.umontreal.ca/programmes/maitrise-en-informatique/admission-and-regulations/",
+          "evidence": "Maîtrise en informatique",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-24-programme_identity",
+      "field": "programme_identity",
+      "programme": "Dess En Apprentissage Automatique",
+      "institution": "Université de Montréal",
+      "before_state": "FOUND",
+      "before_value": "DESS en apprentissage automatique",
+      "after_state": "FOUND",
+      "after_value": "DESS en apprentissage automatique",
+      "source_native_value": "DESS en apprentissage automatique",
+      "candidates": [
+        {
+          "assertion_id": "6dad1d4b-774b-5614-96ae-2d2c75de7cd0",
+          "value": "DESS en apprentissage automatique",
+          "source_url": "https://admission.umontreal.ca/programmes/dess-en-apprentissage-automatique/",
+          "evidence": "DESS en apprentissage automatique",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-27-programme_identity",
+      "field": "programme_identity",
+      "programme": "Admissions Soon",
+      "institution": "University of Tokyo",
+      "before_state": "FOUND",
+      "before_value": "International Master’s/Doctoral Degree Program: Information, Technology, and Society in Asia (ITASIA)",
+      "after_state": "FOUND",
+      "after_value": "International Master’s/Doctoral Degree Program: Information, Technology, and Society in Asia (ITASIA)",
+      "source_native_value": "International Master’s/Doctoral Degree Program: Information, Technology, and Society in Asia (ITASIA)",
+      "candidates": [
+        {
+          "assertion_id": "582bc782-2f15-5df2-ab6e-f380926f4d0e",
+          "value": "International Master’s/Doctoral Degree Program: Information, Technology, and Society in Asia (ITASIA)",
+          "source_url": "https://itasia.iii.u-tokyo.ac.jp/admissions-soon",
+          "evidence": "International Master’s/Doctoral Degree Program: Information, Technology, and Society in Asia (ITASIA)",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-28-programme_identity",
+      "field": "programme_identity",
+      "programme": "Data Science",
+      "institution": "ETH Zurich",
+      "before_state": "FOUND",
+      "before_value": "Master Data Science",
+      "after_state": "FOUND",
+      "after_value": "Master Data Science",
+      "source_native_value": "Master Data Science",
+      "candidates": [
+        {
+          "assertion_id": "22c6eb70-be74-558f-9336-c78eb6f9b8dd",
+          "value": "Master Data Science",
+          "source_url": "https://ethz.ch/en/studies/master/degree-programmes/engineering-sciences/data-science.html",
+          "evidence": "Master Data Science",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-29-programme_identity",
+      "field": "programme_identity",
+      "programme": "Cyber Security",
+      "institution": "ETH Zurich",
+      "before_state": "FOUND",
+      "before_value": "Master Cyber Security",
+      "after_state": "FOUND",
+      "after_value": "Master Cyber Security",
+      "source_native_value": "Master Cyber Security",
+      "candidates": [
+        {
+          "assertion_id": "afee663b-e6c1-5497-835f-b63e35a6bf84",
+          "value": "Master Cyber Security",
+          "source_url": "https://ethz.ch/en/studies/master/degree-programmes/engineering-sciences/cyber-security.html",
+          "evidence": "Master Cyber Security",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-30-programme_identity",
+      "field": "programme_identity",
+      "programme": "Robotics Systems And Control",
+      "institution": "ETH Zurich",
+      "before_state": "FOUND",
+      "before_value": "Master Robotics, Systems and Control",
+      "after_state": "FOUND",
+      "after_value": "Master Robotics, Systems and Control",
+      "source_native_value": "Master Robotics, Systems and Control",
+      "candidates": [
+        {
+          "assertion_id": "a2408c46-020f-5655-872b-d8b7f8fed4f2",
+          "value": "Master Robotics, Systems and Control",
+          "source_url": "https://ethz.ch/en/studies/master/degree-programmes/engineering-sciences/robotics-systems-and-control.html",
+          "evidence": "Master Robotics, Systems and Control",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-31-programme_identity",
+      "field": "programme_identity",
+      "programme": "Licence Dinformatique Parcours Monodisciplinaire",
+      "institution": "Sorbonne Université",
+      "before_state": "FOUND",
+      "before_value": "LICENCE D’INFORMATIQUE PARCOURS MONODISCIPLINAIRE",
+      "after_state": "FOUND",
+      "after_value": "LICENCE D’INFORMATIQUE PARCOURS MONODISCIPLINAIRE",
+      "source_native_value": "LICENCE D’INFORMATIQUE PARCOURS MONODISCIPLINAIRE",
+      "candidates": [
+        {
+          "assertion_id": "c9fb9094-3f35-58fd-b015-fe148f532e6a",
+          "value": "LICENCE D’INFORMATIQUE PARCOURS MONODISCIPLINAIRE",
+          "source_url": "https://fc.sorbonne-universite.fr/nos-offres/licence-dinformatique-parcours-monodisciplinaire/",
+          "evidence": "LICENCE D’INFORMATIQUE PARCOURS MONODISCIPLINAIRE",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-33-programme_identity",
+      "field": "programme_identity",
+      "programme": "Parcours Sar",
+      "institution": "Sorbonne Université",
+      "before_state": "FOUND",
+      "before_value": "Parcours Systèmes et Applications Répartis (SAR)",
+      "after_state": "FOUND",
+      "after_value": "Parcours Systèmes et Applications Répartis (SAR)",
+      "source_native_value": "Parcours Systèmes et Applications Répartis (SAR)",
+      "candidates": [
+        {
+          "assertion_id": "7088e070-9ac4-53ba-951d-5b6ba5f53f06",
+          "value": "Parcours Systèmes et Applications Répartis (SAR)",
+          "source_url": "https://sciences.sorbonne-universite.fr/formation-sciences/masters/master-informatique/parcours-sar",
+          "evidence": "Parcours Systèmes et Applications Répartis (SAR)",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    },
+    {
+      "case_id": "GT-V2-34-programme_identity",
+      "field": "programme_identity",
+      "programme": "Mads.Si.Umich.Edu",
+      "institution": "University of Michigan",
+      "before_state": "FOUND",
+      "before_value": "Master of Applied Data Science",
+      "after_state": "FOUND",
+      "after_value": "Master of Applied Data Science",
+      "source_native_value": "Master of Applied Data Science",
+      "candidates": [
+        {
+          "assertion_id": "9dc6bf44-ce7b-5cb3-bc25-324445f70ef8",
+          "value": "Master of Applied Data Science",
+          "source_url": "https://mads.si.umich.edu/",
+          "evidence": "Master of Applied Data Science",
+          "reasons": [],
+          "accepted": true
+        }
+      ],
+      "first_incorrect_stage": "GRANULARITY",
+      "fix_class": "IDENTITY_GRANULARITY_GUARD",
+      "correct_after": true,
+      "safety_result": "AUDIT_REQUIRED"
+    }
+  ],
+  "counts": {
+    "target_cases": 6,
+    "before_incorrect_found": 6,
+    "after_concrete_found": 0,
+    "after_needs_review": 6,
+    "identity_controls": 25,
+    "identity_control_found": 24
+  }
+}

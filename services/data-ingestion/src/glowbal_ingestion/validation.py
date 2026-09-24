@@ -2,18 +2,28 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import date
 from typing import Any
 from urllib.parse import urlparse
 
-from .deepseek import ExtractionSource
+from .extraction_provider import ExtractionSource
+from .identity_granularity import identity_granularity_reasons
 from .models import (
+    ApplicabilityState,
+    EpistemicState,
     FUNDING_TYPES,
     HIGH_RISK_FIELDS,
     FieldAssertion,
+    INVALID_PROGRAMME_IDENTITY_LABELS,
     NullReason,
     PageType,
+    ProgrammePopulationClassification,
+    ProgrammeRecord,
+    SourceAuthority,
+    SourceRelationship,
+    TemporalState,
     VerificationStatus,
     has_semantic_value,
     normalize_placeholder_values,
@@ -150,6 +160,17 @@ ACTIVE_APPLICATION_FIELDS = frozenset(
         "rolling_admission",
     }
 )
+
+
+def _enum_value(value: Any, enum_type: type[Any], default: Any = None) -> Any:
+    """Restore enum dimensions when an assertion crosses a JSON boundary."""
+
+    if value is None or isinstance(value, enum_type):
+        return value if value is not None else default
+    try:
+        return enum_type(str(value))
+    except (TypeError, ValueError):
+        return default
 LANGUAGE_REQUIREMENT_FIELDS = frozenset(
     {"ielts_overall", "ielts_subscores", "toefl", "duolingo"}
 )
@@ -294,6 +315,80 @@ def programme_identity_supported(
     return overlap >= 0.7
 
 
+def programme_identity_label_is_invalid(value: object) -> bool:
+    """Return whether a transport/search label cannot identify a programme."""
+    normalized = normalize_text(str(value or "")).casefold().strip()
+    return normalized in INVALID_PROGRAMME_IDENTITY_LABELS
+
+
+def has_provider_programme_binding(
+    provider_programme_identifiers: Mapping[str, Mapping[str, object]] | None,
+) -> bool:
+    """Return whether at least one configured source-native id is present."""
+    if not isinstance(provider_programme_identifiers, Mapping):
+        return False
+    for identifiers in provider_programme_identifiers.values():
+        if not isinstance(identifiers, Mapping):
+            continue
+        if any(
+            value is not None and str(value).strip()
+            for value in identifiers.values()
+        ):
+            return True
+    return False
+
+
+def classify_programme_population(
+    programme: ProgrammeRecord,
+    *,
+    provider_programme_identifiers: Mapping[str, Mapping[str, object]] | None = None,
+    verified_programme_identity: bool = False,
+    deterministic_binding: bool = False,
+    institution_only_source: bool = False,
+) -> ProgrammePopulationClassification:
+    """Classify a target before it enters a production programme denominator.
+
+    The gate is intentionally about identity and binding only.  Missing
+    tuition, language, or admissions fields never make a real programme
+    invalid.  ``institution_only_source`` is supplied by the caller when a
+    source (for example an institution tariff table) has no programme record;
+    such targets remain useful canary seeds but are not production programmes.
+    """
+    if programme_identity_label_is_invalid(programme.programme_name):
+        return ProgrammePopulationClassification.INVALID_PROVIDER_MAPPING
+    has_binding = has_provider_programme_binding(provider_programme_identifiers)
+    # A source explicitly known to be institution-only cannot prove that a
+    # named programme exists.  The human-readable seed name is intentionally
+    # ignored here; institution tuition remains reusable only after a separate
+    # verified programme target is available.
+    if institution_only_source and not has_binding:
+        return ProgrammePopulationClassification.SYNTHETIC_SEED
+    if verified_programme_identity and deterministic_binding and has_binding:
+        return ProgrammePopulationClassification.VERIFIED_PROGRAMME
+    return ProgrammePopulationClassification.UNRESOLVED_CANDIDATE
+
+
+def programme_is_production_programme(
+    programme: ProgrammeRecord,
+    *,
+    provider_programme_identifiers: Mapping[str, Mapping[str, object]] | None = None,
+    verified_programme_identity: bool = False,
+    deterministic_binding: bool = False,
+    institution_only_source: bool = False,
+) -> bool:
+    """Return true only for a verified identity with an exact/strong binding."""
+    return (
+        classify_programme_population(
+            programme,
+            provider_programme_identifiers=provider_programme_identifiers,
+            verified_programme_identity=verified_programme_identity,
+            deterministic_binding=deterministic_binding,
+            institution_only_source=institution_only_source,
+        )
+        == ProgrammePopulationClassification.VERIFIED_PROGRAMME
+    )
+
+
 def evidence_supported(evidence: str, source_text: str) -> bool:
     normalized_evidence = re.sub(
         r"([\(\[])\s+",
@@ -412,7 +507,14 @@ def normalize_programme_status(value: Any) -> str:
         return "discontinued"
     if re.search(r"\bwithdrawn\b", normalized):
         return "withdrawn"
-    if re.search(r"\b(?:open|active|accepting\s+applications?)\b", normalized):
+    if re.search(
+        r"\b(?:accepting\s+applications?|"
+        r"applications?\s+(?:are\s+)?(?:now\s+|currently\s+)?open|"
+        r"apply\s+now)\b",
+        normalized,
+    ):
+        return "accepting_applications"
+    if re.search(r"\b(?:open|active)\b", normalized):
         return "active"
     return normalized.replace(" ", "_")
 
@@ -592,6 +694,7 @@ def _programme_source_errors(
     *,
     fact: dict[str, Any],
     source: ExtractionSource | None,
+    entity_id: str | None = None,
     programme_name: str | None,
     programme_url: str | None,
 ) -> list[str]:
@@ -602,6 +705,18 @@ def _programme_source_errors(
         or not programme_name
         or not programme_url
         or str(fact.get("scope") or "") != "programme"
+    ):
+        return []
+    # A structured external record selected by an exact source-native
+    # programme identifier is already bound to this target.  Its endpoint
+    # path/title need not repeat the human-readable programme name (for
+    # example Studyinfo's valintaperuste record is titled by an application
+    # route).  Treating that exact binding as a name-mismatch would discard
+    # otherwise source-supported admissions facts.
+    if (
+        entity_id
+        and source.linked_programme_id
+        and str(source.linked_programme_id) == str(entity_id)
     ):
         return []
     source_url = str(fact.get("source_url") or "").rstrip("/")
@@ -742,6 +857,11 @@ def _status_evidence_errors(
         ),
         "discontinued": r"\bdiscontinu(?:ed|ation)\b",
         "withdrawn": r"\bwithdrawn\b",
+        "accepting_applications": (
+            r"\b(?:(?:currently|now)\s+)?accepting\s+applications?|"
+            r"\bapplications?\s+(?:are\s+)?(?:currently|now)\s+open\b|"
+            r"\bopen\s+for\s+applications?\b|\bapply\s+now\b"
+        ),
         "active": (
             r"\b(?:applications?\s+(?:are\s+)?open|"
             r"accepting\s+applications?|apply\s+now)\b"
@@ -1031,6 +1151,18 @@ def _locate_tuition_evidence(
             amount_index = source_text.find(amount_pattern, search_start)
             if amount_index < 0:
                 break
+            # Structured external materialisers place the fee credential and
+            # amount on one labelled source line.  Prefer that complete line
+            # over a character window so a model-truncated quote cannot carry
+            # an artificial suffix/prefix into evidence resolution.
+            line_start = source_text.rfind("\n", 0, amount_index) + 1
+            line_end = source_text.find("\n", amount_index)
+            if line_end < 0:
+                line_end = len(source_text)
+            line = source_text[line_start:line_end]
+            line_compact = re.sub(r"[^a-z0-9]", "", line.casefold())
+            if credential_compact in line_compact:
+                return normalize_text(line)
             window_start = max(0, amount_index - 220)
             window_end = min(
                 len(source_text),
@@ -1091,7 +1223,15 @@ def fact_to_assertion(
     source = source_map.get(source_url)
     if not source:
         errors.append("SOURCE_NOT_IN_FETCH_SET")
-    elif not evidence_supported(evidence, source.text):
+    elif field_name == "tuition" and source.external_entity_match:
+        # External structured rows already carry a deterministic entity match.
+        # Re-anchor fee evidence to the complete source line (when the fee
+        # credential and amount co-occur) before the generic substring check;
+        # this repairs model-truncated quotes without broadening acceptance.
+        located = _locate_tuition_evidence(fact.get("value"), source.text)
+        if located:
+            evidence = located
+    if source and not evidence_supported(evidence, source.text):
         if field_name == "tuition":
             located = _locate_tuition_evidence(
                 fact.get("value"),
@@ -1126,6 +1266,7 @@ def fact_to_assertion(
         _programme_source_errors(
             fact=fact,
             source=source,
+            entity_id=entity_id,
             programme_name=programme_name,
             programme_url=programme_url,
         )
@@ -1187,6 +1328,16 @@ def fact_to_assertion(
             programme_degree,
         )
     )
+    if field_name == "programme_identity" and source:
+        errors.extend(
+            identity_granularity_reasons(
+                value=value,
+                evidence=evidence,
+                source_text=source.text,
+                scope=fact.get("scope"),
+                source_url=source_url,
+            )
+        )
     if field_name == "scholarships":
         errors.extend(_scholarship_applicability_errors(evidence))
     if (
@@ -1260,7 +1411,11 @@ def fact_to_assertion(
         confidence=float(fact.get("confidence", 0)),
         verification_status=status,
         extractor_version=extractor_version,
-        model_name=model_name,
+        model_name=(
+            str(fact.get("_model_name"))
+            if fact.get("_model_name")
+            else model_name
+        ),
         validation_errors=errors,
         extraction_group=fact.get("_group"),
         applicability_source_url=(
@@ -1274,6 +1429,62 @@ def fact_to_assertion(
             else None
         ),
         source_content_hash=source.content_hash if source else None,
+        raw_document_id=(
+            str(fact.get("_raw_document_id"))
+            if fact.get("_raw_document_id")
+            else (source.raw_document_id if source else None)
+        ),
+        parser_id=(
+            str(fact.get("_parser_id"))
+            if fact.get("_parser_id")
+            else (source.parser_id if source else None)
+        ),
+        parser_version=(
+            str(fact.get("_parser_version"))
+            if fact.get("_parser_version")
+            else (source.parser_version if source else None)
+        ),
+        provider_id=(
+            str(fact.get("_provider_id"))
+            if fact.get("_provider_id")
+            else None
+        ),
+        dataset_id=(
+            str(fact.get("_dataset_id"))
+            if fact.get("_dataset_id")
+            else (source.dataset_id if source else None)
+        ),
+        acquisition_run_id=(
+            str(fact.get("_acquisition_run_id"))
+            if fact.get("_acquisition_run_id")
+            else (source.acquisition_run_id if source else None)
+        ),
+        prompt_version=(
+            str(fact.get("_prompt_version"))
+            if fact.get("_prompt_version")
+            else None
+        ),
+        schema_version=(
+            str(fact.get("_schema_version"))
+            if fact.get("_schema_version")
+            else None
+        ),
+        source_authority=(
+            _enum_value(fact.get("_source_authority"), SourceAuthority)
+            or (source.source_authority if source else None)
+        ),
+        source_relationship=(
+            _enum_value(fact.get("_source_relationship"), SourceRelationship)
+            or (source.source_relationship if source else None)
+        ),
+        temporal_state=(
+            _enum_value(fact.get("_temporal_state"), TemporalState)
+            or (source.temporal_state if source else TemporalState.UNKNOWN)
+        ),
+        applicability_state=(
+            _enum_value(fact.get("_applicability_state"), ApplicabilityState)
+            or ApplicabilityState.UNKNOWN
+        ),
     )
 
 

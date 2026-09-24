@@ -1,0 +1,29 @@
+{
+  "records": [
+    {
+      "case_id": "GT-V2-01-programme_identity",
+      "state": "FOUND",
+      "value": "Artificial Intelligence and Decision Making (Course 6-4), Bachelor of Science",
+      "product_state": "PRODUCT_SAFE",
+      "identity": {
+        "resolved": true,
+        "institution": "MIT",
+        "programme": "Artificial Intelligence and Decision Making"
+      },
+      "provenance": {
+        "durable": false,
+        "raw_document_id": "",
+        "assertion_id": "fixture-assertion",
+        "source_authority": "OFFICIAL",
+        "supports_claim": true
+      },
+      "quality": {
+        "raw_persistence_code": "RAW_PERSIST_FAILED",
+        "temporal_state": "CURRENT",
+        "applicability_state": "APPLICABLE",
+        "conflict_state": "NONE",
+        "verification": "HUMAN_VERIFIED"
+      }
+    }
+  ]
+}

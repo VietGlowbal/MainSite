@@ -64,6 +64,22 @@ next-env.d.ts
 /services/data-ingestion/build/
 /services/data-ingestion/src/*.egg-info/
 
+# Data-platform local acquisition and benchmark artifacts. Keep the Markdown
+# reports and Python analysis sources; raw payloads, run state, and generated
+# data stay local.
+/docs/architecture/data/**/*
+!/docs/architecture/data/**/
+!/docs/architecture/data/**/*.md
+!/docs/architecture/data/**/*.py
+/docs/benchmarks/**/*
+!/docs/benchmarks/**/
+!/docs/benchmarks/**/*.md
+/stage1-hierarchy-probe.tmp.json
+/stage1_hierarchy_probe.tmp.py
+/swiss.html
+/sitemap-content.xml
+/sitemap-general.xml
+
 /output
 /.playwright-cli
 /.codex-tmp

@@ -69,7 +69,19 @@ class RobotsPolicy:
     parsers: dict[str, urllib.robotparser.RobotFileParser | None]
     _lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
-    def allows(self, url: str, user_agent: str) -> bool:
+    def allows(
+        self,
+        url: str,
+        user_agent: str,
+        *,
+        allowed_domains: tuple[str, ...] | None = None,
+    ) -> bool:
+        """Check robots using an explicit admitted-domain set when supplied.
+
+        Source resolution must authorize a related-party domain first.  This
+        method does not broaden that policy: it only lets the existing robots
+        loader fetch the robots file under the already admitted domain set.
+        """
         canonical = canonicalize_url(url)
         hostname = urlsplit(canonical).hostname
         if not hostname:
@@ -77,7 +89,7 @@ class RobotsPolicy:
         with self._lock:
             if hostname not in self.parsers:
                 parser, _, notes, sitemaps = _load_robots(
-                    self.fetcher, canonical, self.allowed_domains
+                    self.fetcher, canonical, allowed_domains or self.allowed_domains
                 )
                 self.parsers[hostname] = parser
                 self.check.notes.extend(notes)

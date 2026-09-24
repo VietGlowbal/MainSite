@@ -24,6 +24,18 @@ PLACEHOLDER_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Values emitted by a search operation or dataset endpoint are transport
+# labels, not programme identities.  Keep the guard central so discovery,
+# population admission, and exports agree on what must never be canonical.
+INVALID_PROGRAMME_IDENTITY_LABELS = frozenset(
+    {
+        "datastore search",
+        "search results",
+        "search result",
+        "dataset search",
+    }
+)
+
 
 class NullReason(str, enum.Enum):
     NOT_PUBLISHED = "NOT_PUBLISHED"
@@ -32,8 +44,39 @@ class NullReason(str, enum.Enum):
     BLOCKED_BY_POLICY = "BLOCKED_BY_POLICY"
     FETCH_FAILED = "FETCH_FAILED"
     PARSE_FAILED = "PARSE_FAILED"
+    EXTRACTION_FAILED = "EXTRACTION_FAILED"
     AMBIGUOUS = "AMBIGUOUS"
     CONFLICTED = "CONFLICTED"
+
+
+class AvailabilityState(str, enum.Enum):
+    NOT_EVALUATED = "NOT_EVALUATED"
+    FOUND = "FOUND"
+    NOT_PUBLISHED = "NOT_PUBLISHED"
+    NOT_REQUIRED = "NOT_REQUIRED"
+    SOURCE_NOT_FOUND = "SOURCE_NOT_FOUND"
+    ACCESS_BLOCKED = "ACCESS_BLOCKED"
+    FETCH_FAILED = "FETCH_FAILED"
+    PARSE_FAILED = "PARSE_FAILED"
+    EXTRACTION_FAILED = "EXTRACTION_FAILED"
+    STALE_ONLY = "STALE_ONLY"
+    CONFLICTING_SOURCES = "CONFLICTING_SOURCES"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+
+
+class ApplicabilityState(str, enum.Enum):
+    APPLICABLE = "APPLICABLE"
+    UNIVERSAL = "UNIVERSAL"
+    CONDITIONAL = "CONDITIONAL"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    UNKNOWN = "UNKNOWN"
+
+
+class ConflictState(str, enum.Enum):
+    NO_CONFLICT = "NO_CONFLICT"
+    RESOLVED_AUTOMATICALLY = "RESOLVED_AUTOMATICALLY"
+    REQUIRES_REVIEW = "REQUIRES_REVIEW"
+    UNRESOLVABLE = "UNRESOLVABLE"
 
 
 class VerificationStatus(str, enum.Enum):
@@ -44,6 +87,63 @@ class VerificationStatus(str, enum.Enum):
     NEEDS_REVIEW = "NEEDS_REVIEW"
     HUMAN_VERIFIED = "HUMAN_VERIFIED"
     REJECTED = "REJECTED"
+
+
+class ProgrammePopulationClassification(str, enum.Enum):
+    """Admission state for a programme target in a production population.
+
+    This is deliberately separate from ``VerificationStatus``.  The latter
+    describes an assertion or crawl record, while this enum answers the
+    population question: does this target represent a verified programme,
+    or is it only a seed/candidate that must stay outside the denominator?
+    """
+
+    VERIFIED_PROGRAMME = "VERIFIED_PROGRAMME"
+    UNRESOLVED_CANDIDATE = "UNRESOLVED_CANDIDATE"
+    SYNTHETIC_SEED = "SYNTHETIC_SEED"
+    INVALID_PROVIDER_MAPPING = "INVALID_PROVIDER_MAPPING"
+
+
+class EpistemicState(str, enum.Enum):
+    OBSERVED = "OBSERVED"
+    DERIVED = "DERIVED"
+    INFERRED = "INFERRED"
+
+
+class TemporalState(str, enum.Enum):
+    CURRENT = "CURRENT"
+    HISTORICAL = "HISTORICAL"
+    FUTURE = "FUTURE"
+    TARGET_CYCLE_ESTIMATE = "TARGET_CYCLE_ESTIMATE"
+    UNKNOWN = "UNKNOWN"
+
+
+class SourceAuthority(str, enum.Enum):
+    OFFICIAL = "OFFICIAL"
+    GOVERNMENT = "GOVERNMENT"
+    OFFICIAL_PARTNER = "OFFICIAL_PARTNER"
+    ACCREDITED_PROVIDER = "ACCREDITED_PROVIDER"
+    TRUSTED_AGGREGATOR = "TRUSTED_AGGREGATOR"
+    ARCHIVE = "ARCHIVE"
+    OTHER = "OTHER"
+
+
+class SourceRelationship(str, enum.Enum):
+    DIRECT_OFFICIAL = "DIRECT_OFFICIAL"
+    PARENT_INSTITUTION = "PARENT_INSTITUTION"
+    DEPARTMENT = "DEPARTMENT"
+    CENTRAL_ADMISSIONS = "CENTRAL_ADMISSIONS"
+    INTERNATIONAL_ADMISSIONS = "INTERNATIONAL_ADMISSIONS"
+    FINANCE_OFFICE = "FINANCE_OFFICE"
+    GOVERNMENT = "GOVERNMENT"
+    SCHOLARSHIP_PROVIDER = "SCHOLARSHIP_PROVIDER"
+    PARTNER_INSTITUTION = "PARTNER_INSTITUTION"
+    CONSORTIUM = "CONSORTIUM"
+    CATALOGUE_PROVIDER = "CATALOGUE_PROVIDER"
+    ACCREDITATION_BODY = "ACCREDITATION_BODY"
+    ARCHIVE = "ARCHIVE"
+    AGGREGATOR = "AGGREGATOR"
+    OTHER_RELATED = "OTHER_RELATED"
 
 
 class PolicyStatus(str, enum.Enum):
@@ -112,6 +212,10 @@ def normalize_placeholder_values(value: Any) -> Any:
 
 
 DEEP_FIELDS: tuple[str, ...] = (
+    # Factual identity fields are routed through extraction.  Routing
+    # metadata remains separate from these source-backed assertions.
+    "programme_identity",
+    "credential",
     "programme_status",
     "programme_focus",
     "curriculum_overview",
@@ -160,6 +264,8 @@ SCHOOL_PROFILE_FIELDS: tuple[str, ...] = (
 
 EXTRACTION_FIELD_GROUPS: dict[str, tuple[str, ...]] = {
     "identity_offering": (
+        "programme_identity",
+        "credential",
         "programme_status",
         "academic_cycle",
         "intakes",
@@ -393,6 +499,29 @@ class SourceDocument(JsonRecord):
     text_length: int = 0
     fetch_method: str = "http"
     rendered: bool = False
+    raw_document_id: str | None = None
+    parser_id: str | None = None
+    parser_version: str | None = None
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    academic_cycle: str | None = None
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
+    published_at: str | None = None
+    valid_from: str | None = None
+    valid_to: str | None = None
+    linked_programme_id: str | None = None
+    linked_programme_url: str | None = None
+    discovered_from: str | None = None
+    anchor_text: str | None = None
 
 
 @dataclass
@@ -493,6 +622,55 @@ class FieldAssertion(JsonRecord):
     inherited_from_assertion_id: str | None = None
     inherited_from_entity_id: str | None = None
     inheritance_key: str | None = None
+    epistemic_state: EpistemicState = EpistemicState.OBSERVED
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    raw_document_id: str | None = None
+    parser_id: str | None = None
+    parser_version: str | None = None
+    provider_id: str | None = None
+    prompt_version: str | None = None
+    schema_version: str | None = None
+    degree_level: str | None = None
+    country: str | None = None
+    applicability_state: ApplicabilityState = ApplicabilityState.UNKNOWN
+    published_at: str | None = None
+    valid_from: str | None = None
+    valid_to: str | None = None
+    # Additive metadata used only by advisory hierarchical estimates. Native
+    # observed assertions keep these fields empty.
+    inference_id: str | None = None
+    inference_level: str | None = None
+    donor_assertion_ids: tuple[str, ...] = ()
+    donor_entity_ids: tuple[str, ...] = ()
+    hierarchy_distance: int | None = None
+    donor_similarity_signals: dict[str, float] = field(default_factory=dict)
+    support_count: int = 0
+    donor_dispersion: float | None = None
+    uncertainty_components: dict[str, float] = field(default_factory=dict)
+    uncertainty_category: str | None = None
+    inference_conflict_state: str | None = None
+    donor_policy_lineage_ids: tuple[str, ...] = ()
+    donor_source_urls: tuple[str, ...] = ()
+    cycle_compatibility: str = "UNKNOWN"
+    applicability_compatibility: str = "UNKNOWN"
+    # Source lineage additions.  These are optional so older run artifacts and
+    # local test fixtures remain readable while new semantic assertions can
+    # point directly to the acquisition run and external dataset.
+    dataset_id: str | None = None
+    acquisition_run_id: str | None = None
+
+    def __post_init__(self) -> None:
+        # JSON round-trips represent tuple lineage fields as arrays. Keep the
+        # in-memory contract stable so persisted observed assertions compare
+        # equal to their original records.
+        self.donor_assertion_ids = tuple(self.donor_assertion_ids or ())
+        self.donor_entity_ids = tuple(self.donor_entity_ids or ())
+        self.donor_policy_lineage_ids = tuple(self.donor_policy_lineage_ids or ())
+        self.donor_source_urls = tuple(self.donor_source_urls or ())
+        self.donor_similarity_signals = dict(self.donor_similarity_signals or {})
+        self.uncertainty_components = dict(self.uncertainty_components or {})
 
 
 @dataclass
@@ -527,3 +705,59 @@ class ParsedPage:
     text: str
     links: list[tuple[str, str]]
     language: str | None = None
+
+
+@dataclass(frozen=True)
+class RawDocument(JsonRecord):
+    """Immutable metadata for one source observation; payload lives elsewhere."""
+
+    raw_document_id: str
+    source_identity: str
+    canonical_url: str
+    content_hash: str
+    content_type: str | None
+    retrieved_at: str
+    payload_location: str
+    payload_reference: str | None
+    http_status: int | None = None
+    safe_response_headers: dict[str, str] = field(default_factory=dict)
+    published_at: str | None = None
+    academic_cycle: str | None = None
+    language: str | None = None
+    fetch_method: str | None = None
+    rendered: bool = False
+    acquisition_run_id: str | None = None
+    source_authority: SourceAuthority | None = None
+    source_relationship: SourceRelationship | None = None
+    temporal_state: TemporalState = TemporalState.UNKNOWN
+    source_class: str | None = None
+    adapter_id: str | None = None
+    provider_id: str | None = None
+    dataset_id: str | None = None
+    source_resolution: str | None = None
+    original_url: str | None = None
+    capture_url: str | None = None
+    captured_at: str | None = None
+    archive_provider: str | None = None
+    schema_version: str = "raw-document/v1"
+    # Optional additive metadata.  Keep this after the existing fields so
+    # callers that still construct RawDocument positionally retain the legacy
+    # argument order.
+    content_length: int | None = None
+    storage_backend: str | None = None
+    archive_local_state: str | None = None
+    archive_readback_state: str | None = None
+    archive_cloud_sync_state: str | None = None
+
+
+@dataclass(frozen=True)
+class ParsedDocument(JsonRecord):
+    raw_document_id: str
+    parser_id: str
+    parser_version: str
+    text: str
+    structured_payload: Any | None = None
+    links: tuple[tuple[str, str], ...] = ()
+    language: str | None = None
+    title: str | None = None
+    sections: tuple[str, ...] = ()

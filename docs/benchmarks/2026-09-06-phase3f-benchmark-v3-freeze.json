@@ -1,0 +1,65 @@
+{
+  "schema_version": "phase3f-benchmark-freeze/v3",
+  "status": "FROZEN",
+  "benchmark_version": "phase3f-v3",
+  "frozen_at": "2026-09-06T08:14:44.618374Z",
+  "lineage": {
+    "v2_manifest": "docs/benchmarks/2026-09-01-phase-3f-ground-truth-freeze-v2.json",
+    "v2_manifest_sha256": "b63aac2da88e0eb5068cf2f37cb44427107c8b5f1f7c399f1ff695400d849ddd",
+    "factual_gt_corrections": 0,
+    "identity_contract_version": "phase3f-programme-identity-contract-v2"
+  },
+  "population": {
+    "truth_records": 252,
+    "unique_case_ids": 252,
+    "programme_identity_cases": 36,
+    "reviewed_confirmed": 246,
+    "reviewed_ambiguous": 6,
+    "unreviewed": 0
+  },
+  "ambiguity_policy": "identity AMBIGUOUS is excluded from concrete identity precision numerator/denominator, reported separately, and counted as unresolved coverage; the six REVIEWED_AMBIGUOUS truth records retain V2 primary-denominator exclusion.",
+  "artifacts": {
+    "ground_truth_v3": {
+      "path": "docs/benchmarks/2026-09-06-phase3f-ground-truth-v3-frozen.jsonl",
+      "sha256": "af91cf8d7df798edff98fa15588e4399800d06e6b9eed59a0b751590491dbafc"
+    },
+    "roster_v2": {
+      "path": "docs/benchmarks/2026-08-30-phase-3f-roster-v2.md",
+      "sha256": "7518c63696e7a29ef3d4f3584b2338995d86e5d06d478d192d28562926394139"
+    },
+    "identity_contract_v2": {
+      "path": "docs/benchmarks/2026-09-06-phase3f-programme-identity-contract-v2.md",
+      "sha256": "634dac0462ae3ccd5825114030e14b20ce49d9fa15625ad0078bba59c584b0a0"
+    },
+    "scorer_contract_v2_markdown": {
+      "path": "docs/benchmarks/2026-09-06-phase3f-scorer-contract-v2.md",
+      "sha256": "71b93dc291e33dccb065e9629db24546236df0f2fd18f57160c8651ee671070f"
+    },
+    "scorer_contract_v2_json": {
+      "path": "docs/benchmarks/2026-09-06-phase3f-scorer-contract-v2.json",
+      "sha256": "86d651860b25e3a3bef1ffe3b6e172b21a1f930febdb31c886b43930981579c8"
+    },
+    "machine_scorer": {
+      "path": "scripts/score_phase3f_benchmark_v3_offline.py",
+      "sha256": "68e9a7412c4fd3dd8d933e549ef343dcd63f4ee2685cdf2316051b765128bad7"
+    },
+    "adjudication_matrix": {
+      "path": "docs/benchmarks/audits/2026-09-06-phase3f-programme-identity-36case-v2-contract-adjudication-final.jsonl",
+      "sha256": "985268067e143e20e0888eee5fc5f7a925fc6e1a0dc456dc27e65d1c6c2ca948"
+    },
+    "human_review_log": {
+      "path": "docs/benchmarks/audits/2026-09-06-phase3f-programme-identity-contract-v2-human-review-log.jsonl",
+      "sha256": "4c687cfaff97728b42bd1caebe97838b78000dcb17c40a4d009e4c6103d869de"
+    }
+  },
+  "immutable_v2_hashes": {
+    "docs/benchmarks/2026-09-01-phase-3f-ground-truth-v2-frozen.jsonl": "97308474e88eecc8165a94aae4a9bcfe104ec8da6807efdd0a2ad8de74e8e0d4",
+    "docs/benchmarks/2026-08-30-phase-3f-roster-v2.md": "7518c63696e7a29ef3d4f3584b2338995d86e5d06d478d192d28562926394139",
+    "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md": "47c2b2446dbd0ba2e9ebdd955ba972999ed76de4c7e8f188edea9f43ba837e91",
+    "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.json": "720bc47dde66fce4ceb740cf766e28433bc5553b1882ca87da06e861ae890d99"
+  },
+  "official_run4_output_sha256": "8dc5d04d36d1fd8cdaadcf9a44fdb34263091bc56c0db2ad088634ea9b904b9d",
+  "pipeline_changed": false,
+  "provider_calls": 0,
+  "post_freeze_policy_changes_allowed": false
+}

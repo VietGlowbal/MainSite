@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .deepseek import ExtractionSource
+from .extraction_provider import ExtractionSource
 from .models import (
     FieldAssertion,
     VerificationStatus,
@@ -82,6 +82,43 @@ PROGRAMME_CAREER_PATH_RE = re.compile(
     r"\b(?:the|this)\s+(?:undergraduate\s+|graduate\s+)?"
     r"(?:program|programme|degree)\s+prepares\s+students\s+for\s+"
     r"careers?\s+in\s+[^.!?]{5,500}[.!?]",
+    re.IGNORECASE,
+)
+
+# Discover Uni exposes the employment cards as labelled text rather than a
+# machine-readable table in the static course route.  Keep the parser scoped
+# to that provider and retain the source's own wording/periods; these regexes
+# do not derive a programme cycle or turn an unlabeled percentage into a fact.
+DISCOVER_UNI_EMPLOYMENT_CARD_RE = re.compile(
+    r"(?P<percentage>\d{1,3})%\s+"
+    r"go\s+on\s+to\s+work\s+and\s*/?\s*or\s+study\s+"
+    r"(?P<period>\d+\s+months?\s+after\s+the\s+course)\s+for\s+"
+    r"(?P<population>.+?graduates?\s+at\s+.+?)"
+    r"(?=\s+(?:Graduate views|Student views|What graduates are doing|"
+    r"Data for students graduating|Occupation types|$))",
+    re.IGNORECASE,
+)
+DISCOVER_UNI_EMPLOYMENT_PERCENT_CARD_RE = re.compile(
+    r"(?P<percentage>\d{1,3})%\s+of\s+the\s+students\s+"
+    r"go\s+on\s+to\s+work\s+and\s*/?\s*or\s+study",
+    re.IGNORECASE,
+)
+DISCOVER_UNI_OCCUPATION_SECTION_RE = re.compile(
+    r"\bOccupation types\s+"
+    r"(?P<period>\d+\s+months?\s+after\s+the\s+course)\b"
+    r"(?P<section>.*?)(?=\bChart labels explained\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+DISCOVER_UNI_OCCUPATION_ROW_RE = re.compile(
+    r"(?P<percentage>\d{1,3})%\s+"
+    r"(?P<label>(?!of\b|those\b|data\b|source\b)"
+    r"[A-Z][^%]*?)"
+    r"(?=\s+\d{1,3}%|\s+Employed after finishing\b|\s*$)",
+    re.IGNORECASE | re.DOTALL,
+)
+DISCOVER_UNI_OUTCOME_COHORT_RE = re.compile(
+    r"\bData for\s+(?P<population>students graduating\s+20\d{2}-\d{2})\b"
+    r"(?:\s+Source:\s+(?P<data_source>Graduate Outcomes survey))?",
     re.IGNORECASE,
 )
 
@@ -323,7 +360,17 @@ def extract_source_excerpt_assertions(
         for source_index, source in ordered_sources:
             if not source.url.startswith("https://"):
                 continue
-            evidence = _source_excerpt(source.text, *rule)
+            # Structured external materializers append declarative mapping
+            # guidance for the semantic extractor.  It is not source data and
+            # must never become a review quote when the mapped field is empty.
+            # Keep all other source text unchanged for the existing bounded
+            # excerpt rules.
+            excerpt_text = "\n".join(
+                line
+                for line in (source.text or "").splitlines()
+                if not line.lstrip().startswith("Source mapping context:")
+            )
+            evidence = _source_excerpt(excerpt_text, *rule)
             if not evidence:
                 continue
             if not source_excerpt_is_safe(
@@ -375,6 +422,9 @@ def extract_source_excerpt_assertions(
                     applicability_source_url=None,
                     applicability_evidence=None,
                     source_content_hash=source.content_hash,
+                    raw_document_id=source.raw_document_id,
+                    parser_id=source.parser_id,
+                    parser_version=source.parser_version,
                     review_fingerprint=None,
                     inherited_from_assertion_id=None,
                     inherited_from_entity_id=None,
@@ -383,6 +433,238 @@ def extract_source_excerpt_assertions(
             )
             break
     return assertions
+
+
+def _source_fact_provenance(source: ExtractionSource) -> dict[str, Any]:
+    """Copy the exact raw/source lineage onto deterministic external facts."""
+    provenance: dict[str, Any] = {
+        "_raw_document_id": source.raw_document_id,
+        "_parser_id": source.parser_id,
+        "_parser_version": source.parser_version,
+        "_dataset_id": source.dataset_id,
+        "_acquisition_run_id": source.acquisition_run_id,
+        "_source_authority": source.source_authority,
+        "_source_relationship": source.source_relationship,
+        "_temporal_state": source.temporal_state,
+    }
+    if source.provider_id:
+        provenance["_provider_id"] = source.provider_id
+    return provenance
+
+
+def _discover_uni_outcome_context(
+    text: str,
+    *,
+    start: int,
+    end: int,
+) -> tuple[str | None, str | None]:
+    """Find source-labelled cohort metadata adjacent to an outcome card."""
+    context = text[max(0, start - 500) : min(len(text), end + 1800)]
+    matches = list(DISCOVER_UNI_OUTCOME_COHORT_RE.finditer(context))
+    if not matches:
+        return None, None
+    # Prefer the first labelled cohort after the card.  Discover Uni repeats
+    # the same card metadata elsewhere on the page, so nearest-after is more
+    # precise than a document-wide search.
+    relative_end = end - max(0, start - 500)
+    after = [match for match in matches if match.start() >= relative_end]
+    match = after[0] if after else matches[-1]
+    population = normalize_text(match.group("population"))
+    data_source = (
+        normalize_text(match.group("data_source"))
+        if match.group("data_source")
+        else None
+    )
+    return population or None, data_source or None
+
+
+def _discover_uni_outcome_period(
+    text: str,
+    *,
+    start: int,
+    end: int,
+    explicit: str | None = None,
+) -> str | None:
+    if explicit:
+        return normalize_text(explicit)
+    context = text[max(0, start - 500) : min(len(text), end + 1800)]
+    match = re.search(
+        r"\b\d+\s+months?\s+after\s+the\s+course\b",
+        context,
+        re.IGNORECASE,
+    )
+    return normalize_text(match.group(0)) if match else None
+
+
+def _discover_uni_employment_fact(
+    *,
+    source: ExtractionSource,
+    evidence: str,
+    percentage: str,
+    period: str | None,
+    population: str | None,
+    data_source: str | None,
+    metric: str,
+    occupation: str | None = None,
+) -> dict[str, Any]:
+    value: dict[str, Any] = {
+        "metric": metric,
+        "percentage": int(percentage),
+    }
+    if period:
+        value["period"] = period
+    if population:
+        value["population"] = population
+    if data_source:
+        value["data_source"] = data_source
+    if occupation:
+        value["occupation"] = occupation
+    return {
+        **_source_fact_provenance(source),
+        "field_name": "employment_outcomes",
+        "value": value,
+        "source_url": source.url,
+        "source_type": source.page_type,
+        "evidence": evidence,
+        "scope": "programme",
+        "audience": "all",
+        # Discover Uni labels survey cohorts/outcome periods, not a
+        # programme academic cycle.  Leave this explicitly unknown.
+        "academic_cycle": None,
+        "confidence": 1.0,
+        "_group": "deterministic_employment",
+    }
+
+
+def _extract_discover_uni_employment_facts(
+    source: ExtractionSource,
+) -> list[dict[str, Any]]:
+    """Extract the literal employment cards from one Discover Uni snapshot."""
+    if source.provider_id != "discover_uni_hesa" or source.page_type != "programme_overview":
+        return []
+    text = normalize_text(source.text or "")
+    if not text:
+        return []
+    facts: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    for match in DISCOVER_UNI_EMPLOYMENT_CARD_RE.finditer(text):
+        evidence = normalize_text(match.group(0))
+        # The course-summary card is followed by unrelated NSS cards before
+        # the Graduate Outcomes metadata appears.  Its programme-qualified
+        # population is explicit in the card itself, so do not attach the
+        # nearest (and potentially unrelated) cohort to it.
+        cohort, data_source = None, None
+        period = _discover_uni_outcome_period(
+            text,
+            start=match.start(),
+            end=match.end(),
+            explicit=match.group("period"),
+        )
+        population = normalize_text(match.group("population"))
+        if cohort:
+            # Keep the source-qualified programme population as the claim and
+            # the survey cohort in a separate, source-native context key.
+            value_fact = _discover_uni_employment_fact(
+                source=source,
+                evidence=evidence,
+                percentage=match.group("percentage"),
+                period=period,
+                population=population,
+                data_source=data_source,
+                metric="work_and_or_study",
+            )
+            value_fact["value"]["cohort"] = cohort
+        else:
+            value_fact = _discover_uni_employment_fact(
+                source=source,
+                evidence=evidence,
+                percentage=match.group("percentage"),
+                period=period,
+                population=population,
+                data_source=data_source,
+                metric="work_and_or_study",
+            )
+        key = (source.url, "summary", evidence)
+        if key not in seen:
+            seen.add(key)
+            facts.append(value_fact)
+
+    for match in DISCOVER_UNI_EMPLOYMENT_PERCENT_CARD_RE.finditer(text):
+        evidence = normalize_text(match.group(0))
+        cohort, data_source = _discover_uni_outcome_context(
+            text,
+            start=match.start(),
+            end=match.end(),
+        )
+        period = _discover_uni_outcome_period(
+            text,
+            start=match.start(),
+            end=match.end(),
+        )
+        # The card's own nearby ``Data for`` line is the only population
+        # representation available when the programme-qualified sentence is
+        # not repeated in that card.
+        key = (source.url, "summary", evidence)
+        if key in seen:
+            continue
+        seen.add(key)
+        facts.append(
+            _discover_uni_employment_fact(
+                source=source,
+                evidence=evidence,
+                percentage=match.group("percentage"),
+                period=period,
+                population=cohort,
+                data_source=data_source,
+                metric="go_on_to_work_and_or_study",
+            )
+        )
+
+    occupation_section = DISCOVER_UNI_OCCUPATION_SECTION_RE.search(text)
+    if occupation_section:
+        section = occupation_section.group("section")
+        period = normalize_text(occupation_section.group("period"))
+        cohort, data_source = _discover_uni_outcome_context(
+            text,
+            start=occupation_section.start(),
+            end=occupation_section.end(),
+        )
+        for match in DISCOVER_UNI_OCCUPATION_ROW_RE.finditer(section):
+            evidence = normalize_text(match.group(0))
+            label = normalize_text(match.group("label")).strip(" -:;,.|")
+            if not label:
+                continue
+            lowered = label.casefold()
+            if lowered == "in highly skilled work":
+                metric = "in_highly_skilled_work"
+                occupation = None
+            elif lowered == "in other work":
+                metric = "in_other_work"
+                occupation = None
+            elif lowered == "in unknown work":
+                metric = "in_unknown_work"
+                occupation = None
+            else:
+                metric = "occupation"
+                occupation = label
+            key = (source.url, "occupation", evidence)
+            if key in seen:
+                continue
+            seen.add(key)
+            facts.append(
+                _discover_uni_employment_fact(
+                    source=source,
+                    evidence=evidence,
+                    percentage=match.group("percentage"),
+                    period=period,
+                    population=cohort,
+                    data_source=data_source,
+                    metric=metric,
+                    occupation=occupation,
+                )
+            )
+    return facts
 
 
 def extract_deterministic_facts(
@@ -421,6 +703,7 @@ def extract_deterministic_facts(
                         "_group": "deterministic_status",
                     }
                 )
+        facts.extend(_extract_discover_uni_employment_facts(source))
         if source.page_type == "programme_overview":
             for match in PROGRAMME_CAREER_PATH_RE.finditer(source.text):
                 evidence = normalize_text(match.group(0))

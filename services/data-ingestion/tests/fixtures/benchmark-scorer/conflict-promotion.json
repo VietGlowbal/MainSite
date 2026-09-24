@@ -1,0 +1,23 @@
+{
+  "records": [
+    {
+      "case_id": "GT-V2-01-programme_status",
+      "state": "CONFLICTING_SOURCES",
+      "value": "ACTIVE",
+      "product_state": "PRODUCT_SAFE",
+      "provenance": {
+        "durable": true,
+        "raw_document_id": "fixture-raw",
+        "assertion_id": "fixture-assertion",
+        "source_authority": "OFFICIAL",
+        "supports_claim": true
+      },
+      "quality": {
+        "temporal_state": "CURRENT",
+        "applicability_state": "APPLICABLE",
+        "conflict_state": "NEEDS_REVIEW",
+        "verification": "HUMAN_VERIFIED"
+      }
+    }
+  ]
+}

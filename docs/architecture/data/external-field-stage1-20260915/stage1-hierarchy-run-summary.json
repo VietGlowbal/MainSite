@@ -1,0 +1,31 @@
+{
+  "population": {
+    "programmes": 418,
+    "institutions": 209
+  },
+  "before": {
+    "direct": 849,
+    "H1": 0,
+    "H2": 0,
+    "H3": 82,
+    "H4": 0,
+    "final": 931,
+    "review": 151,
+    "abstain": 7278,
+    "missing": 7524
+  },
+  "after": {
+    "direct": 849,
+    "H1": 0,
+    "H2": 103,
+    "H3": 82,
+    "H4": 0,
+    "final": 1034,
+    "review": 151,
+    "abstain": 7175,
+    "missing": 7524
+  },
+  "rows": 15884,
+  "donor_rows": 185,
+  "formula_sanitizations": 0
+}

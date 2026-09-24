@@ -1,0 +1,14 @@
+{
+  "audit": "phase3f-programme-identity-ground-truth-adjudication",
+  "pass": 1,
+  "protocol": "blind evidence-first",
+  "population": 28,
+  "artifact": "2026-09-06-phase3f-programme-identity-blind-pass1.jsonl",
+  "artifact_sha256": "7c6f58d56add1fbefa8dade85fa7cca35cab71c2467ea797430065b8b3452251",
+  "sealed_at": "2026-09-06T06:46:56.6335339Z",
+  "runtime_values_included": false,
+  "ground_truth_values_included": false,
+  "scorer_verdicts_included": false,
+  "fresh_evidence_used": false,
+  "evidence_basis": "sealed Official Run #4 source metadata and persisted evidence only"
+}

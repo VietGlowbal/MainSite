@@ -1,0 +1,466 @@
+{
+  "builder": "build_stage1_population.py",
+  "base_manifest": "external-field-canary-20260914",
+  "base_manifest_sha256": "337be94f344025abff75ba6de9ce9653dcc062b714e6aa89451af9a99d689b9f",
+  "sources": {
+    "college_scorecard": {
+      "resource": "https://api.data.gov/ed/collegescorecard/v1/schools.json",
+      "runtime_resource": "https://ed-public-download.scorecard.network/downloads/Most-Recent-Cohorts-Institution.zip",
+      "archive_bytes_read": 22911842,
+      "selection": "70 four-year public/nonprofit main campuses, round-robin by state, UGDS>0",
+      "records_selected": 70,
+      "rows": [
+        {
+          "unitid": "102553",
+          "name": "University of Alaska Anchorage",
+          "state": "AK"
+        },
+        {
+          "unitid": "102614",
+          "name": "University of Alaska Fairbanks",
+          "state": "AK"
+        },
+        {
+          "unitid": "100858",
+          "name": "Auburn University",
+          "state": "AL"
+        },
+        {
+          "unitid": "100751",
+          "name": "The University of Alabama",
+          "state": "AL"
+        },
+        {
+          "unitid": "106397",
+          "name": "University of Arkansas",
+          "state": "AR"
+        },
+        {
+          "unitid": "106704",
+          "name": "University of Central Arkansas",
+          "state": "AR"
+        },
+        {
+          "unitid": "104151",
+          "name": "Arizona State University Campus Immersion",
+          "state": "AZ"
+        },
+        {
+          "unitid": "104179",
+          "name": "University of Arizona",
+          "state": "AZ"
+        },
+        {
+          "unitid": "110565",
+          "name": "California State University-Fullerton",
+          "state": "CA"
+        },
+        {
+          "unitid": "110608",
+          "name": "California State University-Northridge",
+          "state": "CA"
+        },
+        {
+          "unitid": "126818",
+          "name": "Colorado State University-Fort Collins",
+          "state": "CO"
+        },
+        {
+          "unitid": "126614",
+          "name": "University of Colorado Boulder",
+          "state": "CO"
+        },
+        {
+          "unitid": "128771",
+          "name": "Central Connecticut State University",
+          "state": "CT"
+        },
+        {
+          "unitid": "129020",
+          "name": "University of Connecticut",
+          "state": "CT"
+        },
+        {
+          "unitid": "131469",
+          "name": "George Washington University",
+          "state": "DC"
+        },
+        {
+          "unitid": "131520",
+          "name": "Howard University",
+          "state": "DC"
+        },
+        {
+          "unitid": "130943",
+          "name": "University of Delaware",
+          "state": "DE"
+        },
+        {
+          "unitid": "131113",
+          "name": "Wilmington University",
+          "state": "DE"
+        },
+        {
+          "unitid": "133951",
+          "name": "Florida International University",
+          "state": "FL"
+        },
+        {
+          "unitid": "132903",
+          "name": "University of Central Florida",
+          "state": "FL"
+        },
+        {
+          "unitid": "486840",
+          "name": "Kennesaw State University",
+          "state": "GA"
+        },
+        {
+          "unitid": "139959",
+          "name": "University of Georgia",
+          "state": "GA"
+        },
+        {
+          "unitid": "439862",
+          "name": "Pacific Islands University",
+          "state": "GU"
+        },
+        {
+          "unitid": "240754",
+          "name": "University of Guam",
+          "state": "GU"
+        },
+        {
+          "unitid": "230047",
+          "name": "Brigham Young University-Hawaii",
+          "state": "HI"
+        },
+        {
+          "unitid": "141574",
+          "name": "University of Hawaii at Manoa",
+          "state": "HI"
+        },
+        {
+          "unitid": "153603",
+          "name": "Iowa State University",
+          "state": "IA"
+        },
+        {
+          "unitid": "153658",
+          "name": "University of Iowa",
+          "state": "IA"
+        },
+        {
+          "unitid": "142115",
+          "name": "Boise State University",
+          "state": "ID"
+        },
+        {
+          "unitid": "142522",
+          "name": "Brigham Young University-Idaho",
+          "state": "ID"
+        },
+        {
+          "unitid": "145600",
+          "name": "University of Illinois Chicago",
+          "state": "IL"
+        },
+        {
+          "unitid": "145637",
+          "name": "University of Illinois Urbana-Champaign",
+          "state": "IL"
+        },
+        {
+          "unitid": "151351",
+          "name": "Indiana University-Bloomington",
+          "state": "IN"
+        },
+        {
+          "unitid": "155317",
+          "name": "University of Kansas",
+          "state": "KS"
+        },
+        {
+          "unitid": "157085",
+          "name": "University of Kentucky",
+          "state": "KY"
+        },
+        {
+          "unitid": "159391",
+          "name": "Louisiana State University and Agricultural & Mechanical College",
+          "state": "LA"
+        },
+        {
+          "unitid": "166629",
+          "name": "University of Massachusetts-Amherst",
+          "state": "MA"
+        },
+        {
+          "unitid": "163204",
+          "name": "University of Maryland Global Campus",
+          "state": "MD"
+        },
+        {
+          "unitid": "161253",
+          "name": "University of Maine",
+          "state": "ME"
+        },
+        {
+          "unitid": "171100",
+          "name": "Michigan State University",
+          "state": "MI"
+        },
+        {
+          "unitid": "174066",
+          "name": "University of Minnesota-Twin Cities",
+          "state": "MN"
+        },
+        {
+          "unitid": "178396",
+          "name": "University of Missouri-Columbia",
+          "state": "MO"
+        },
+        {
+          "unitid": "176080",
+          "name": "Mississippi State University",
+          "state": "MS"
+        },
+        {
+          "unitid": "180461",
+          "name": "Montana State University",
+          "state": "MT"
+        },
+        {
+          "unitid": "199193",
+          "name": "North Carolina State University at Raleigh",
+          "state": "NC"
+        },
+        {
+          "unitid": "200332",
+          "name": "North Dakota State University-Main Campus",
+          "state": "ND"
+        },
+        {
+          "unitid": "181464",
+          "name": "University of Nebraska-Lincoln",
+          "state": "NE"
+        },
+        {
+          "unitid": "183026",
+          "name": "Southern New Hampshire University",
+          "state": "NH"
+        },
+        {
+          "unitid": "186380",
+          "name": "Rutgers University-New Brunswick",
+          "state": "NJ"
+        },
+        {
+          "unitid": "187985",
+          "name": "University of New Mexico-Main Campus",
+          "state": "NM"
+        },
+        {
+          "unitid": "182281",
+          "name": "University of Nevada-Las Vegas",
+          "state": "NV"
+        },
+        {
+          "unitid": "196088",
+          "name": "University at Buffalo",
+          "state": "NY"
+        },
+        {
+          "unitid": "204796",
+          "name": "Ohio State University-Main Campus",
+          "state": "OH"
+        },
+        {
+          "unitid": "207500",
+          "name": "University of Oklahoma-Norman Campus",
+          "state": "OK"
+        },
+        {
+          "unitid": "209542",
+          "name": "Oregon State University",
+          "state": "OR"
+        },
+        {
+          "unitid": "495767",
+          "name": "The Pennsylvania State University",
+          "state": "PA"
+        },
+        {
+          "unitid": "243197",
+          "name": "University of Puerto Rico-Mayaguez",
+          "state": "PR"
+        },
+        {
+          "unitid": "217484",
+          "name": "University of Rhode Island",
+          "state": "RI"
+        },
+        {
+          "unitid": "218663",
+          "name": "University of South Carolina-Columbia",
+          "state": "SC"
+        },
+        {
+          "unitid": "219356",
+          "name": "South Dakota State University",
+          "state": "SD"
+        },
+        {
+          "unitid": "221759",
+          "name": "The University of Tennessee-Knoxville",
+          "state": "TN"
+        },
+        {
+          "unitid": "228723",
+          "name": "Texas A & M University-College Station",
+          "state": "TX"
+        },
+        {
+          "unitid": "433387",
+          "name": "Western Governors University",
+          "state": "UT"
+        },
+        {
+          "unitid": "232557",
+          "name": "Liberty University",
+          "state": "VA"
+        },
+        {
+          "unitid": "243665",
+          "name": "University of the Virgin Islands",
+          "state": "VI"
+        },
+        {
+          "unitid": "231174",
+          "name": "University of Vermont",
+          "state": "VT"
+        },
+        {
+          "unitid": "236948",
+          "name": "University of Washington-Seattle Campus",
+          "state": "WA"
+        },
+        {
+          "unitid": "240444",
+          "name": "University of Wisconsin-Madison",
+          "state": "WI"
+        },
+        {
+          "unitid": "238032",
+          "name": "West Virginia University",
+          "state": "WV"
+        },
+        {
+          "unitid": "240727",
+          "name": "University of Wyoming",
+          "state": "WY"
+        }
+      ]
+    },
+    "onisep": {
+      "resource": "https://api.opendata.onisep.fr/downloads/605344579a7d7/605344579a7d7.csv",
+      "records_selected": 80,
+      "institutions_selected": 40,
+      "sample_uai": [
+        "0011277H",
+        "0011310U",
+        "0011312W",
+        "0020087J",
+        "0021952L"
+      ]
+    },
+    "duo": {
+      "resource": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "records_inspected": 6886,
+      "institutions_selected": 20,
+      "programme_records_selected": 40,
+      "sample_board_ids": [
+        "107B482",
+        "107B471",
+        "107B497",
+        "107B461",
+        "107B448"
+      ]
+    },
+    "discover_uni": {
+      "resource": "https://discoveruni.gov.uk/sitemaps/content.xml",
+      "sitemap_bytes": 11636035,
+      "institutions_selected": 25,
+      "programme_routes_selected": 50,
+      "sample_prns": [
+        "10000055",
+        "10000163",
+        "10000216",
+        "10000291",
+        "10000381"
+      ]
+    },
+    "swissuniversities": {
+      "resource": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities",
+      "source_rows_inspected": 12,
+      "additional_rows_selected": [
+        "University of Fribourg",
+        "University of Lucerne",
+        "University of Neuchâtel",
+        "Università della Svizzera Italiana"
+      ],
+      "cycle": "2026-27",
+      "scope": "institution"
+    }
+  },
+  "manifest": "stage1-population-manifest.json",
+  "manifest_sha256": "2607bb4ae5218770f903a657443734751d93a53acb572edadc6542f0b8006277",
+  "config": "stage1-config.json",
+  "counts": {
+    "institutions": 209,
+    "programmes": 418,
+    "countries": 7,
+    "institutions_by_country": {
+      "CH": 12,
+      "FI": 3,
+      "FR": 48,
+      "NL": 28,
+      "SE": 3,
+      "UK": 33,
+      "US": 82
+    },
+    "programmes_by_country": {
+      "CH": 24,
+      "FI": 6,
+      "FR": 96,
+      "NL": 56,
+      "SE": 6,
+      "UK": 66,
+      "US": 164
+    },
+    "degree_levels": {
+      "bachelor": 251,
+      "master": 167
+    },
+    "disciplines": {
+      "business": 27,
+      "computer science": 131,
+      "data science": 17,
+      "engineering": 103,
+      "other": 140
+    }
+  },
+  "provider_stack": [
+    "college_scorecard_bulk",
+    "swissuniversities_tuition",
+    "onisep_higher_ed",
+    "discover_uni_hesa",
+    "duo_rio_ho",
+    "susa_navet_event",
+    "susa_navet_info",
+    "studyinfo_hakukohde",
+    "studyinfo_toteutus",
+    "studyinfo_valintaperuste"
+  ],
+  "promotion": "disabled"
+}

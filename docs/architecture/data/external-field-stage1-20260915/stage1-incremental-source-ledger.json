@@ -1,0 +1,3281 @@
+{
+  "acquisition_run_id": "stage1-coverage-20260922T135149Z-drive",
+  "added_assertions": 8,
+  "added_by_provider": {
+    "discover_uni": 66,
+    "duo_rio": 37,
+    "official_admission_page": 8,
+    "official_university_page": 123,
+    "onisep_higher_ed": 76,
+    "studyinfo_hakukohde": 12,
+    "studyinfo_valintaperuste": 5
+  },
+  "cache_hits": 71,
+  "network_calls": 347,
+  "new_domains": [],
+  "paid_llm_calls": 0,
+  "persisted_assertions": 327,
+  "skipped": {
+    "existing_direct_or_review": 322
+  },
+  "source_count": 362,
+  "sources": [
+    {
+      "bytes": 529211,
+      "cache": false,
+      "content_hash": "668150df5cc353c8c159c6d787fcd3198ba531f3f00e3ce748d8ec28d22a7400",
+      "final_url": "https://aub.ac.uk/ba-hons-acting",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "http://aub.ac.uk/courses/ba/ba-acting"
+    },
+    {
+      "bytes": 0,
+      "cache": false,
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_url": "http://nantes.uco.fr/fr/formations/humanites/licence-information-communication-nantes",
+      "provider_id": "official_admission_page",
+      "status": 0,
+      "url": "http://nantes.uco.fr/fr/formations/humanites/licence-information-communication-nantes"
+    },
+    {
+      "bytes": 164831,
+      "cache": false,
+      "content_hash": "fef2028c424cfe7190a12ee5e401096f908da85a8d9ab0062b2e3b91892ca749",
+      "final_url": "https://www.uva.nl/programmas/bachelors/informatica/informatica.html?origin=JwXVf7XuSXqGCBqyzYCU0w",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "http://uva.nl/bsc-informatica"
+    },
+    {
+      "bytes": 126224,
+      "cache": false,
+      "content_hash": "4c1fa81437667415ea748e5b804eb5d37d9916ef0ccc7e97df13054290356794",
+      "final_url": "https://www.bathspa.ac.uk:443/courses/ug-acting/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "http://www.bathspa.ac.uk/courses/ug-acting/"
+    },
+    {
+      "bytes": 238231,
+      "cache": false,
+      "content_hash": "a83669233ae759fc4b5ae20f96e1a5847eacc8710c2e16696ed9032cd337a68f",
+      "final_url": "https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-BSc-Hons.html",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "http://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-BSc-Hons.html"
+    },
+    {
+      "bytes": 276505,
+      "cache": false,
+      "content_hash": "c9bd14b41b1484d7320f6c5093b37a8a1d00e5b74f948096814f303b1f83f116",
+      "final_url": "https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-MSci-Hons.html",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "http://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-MSci-Hons.html"
+    },
+    {
+      "bytes": 5728,
+      "cache": false,
+      "content_hash": "b65281f35ffd9520f7ef49d0c39c543edbe2011df15745c8296cf3f77dff472b",
+      "final_url": "http://www.ox.ac.uk/admissions/undergraduate/courses-listing/mathematics-and-computer-science",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "http://www.ox.ac.uk/admissions/undergraduate/courses-listing/mathematics-and-computer-science"
+    },
+    {
+      "bytes": 287612,
+      "cache": false,
+      "content_hash": "5eee65a5b57335cc2589f18f177fd7babd6770e026cfe81cb8e6a150c2ec0e24",
+      "final_url": "https://www.wur.nl/nl/onderwijs/bachelor/bachelor-bedrijfs-en-consumentenwetenschappen",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "http://www.wur.nl/bbc"
+    },
+    {
+      "bytes": 27039419,
+      "cache": false,
+      "content_hash": "8be533eb71b00ee31e273af61145b83b7be38c84297bfb39269c2730fab0425f",
+      "final_url": "https://api.opendata.onisep.fr/downloads/605344579a7d7/605344579a7d7.csv",
+      "provider_id": "onisep_higher_ed",
+      "status": 200,
+      "url": "https://api.opendata.onisep.fr/downloads/605344579a7d7/605344579a7d7.csv"
+    },
+    {
+      "bytes": 1433,
+      "cache": false,
+      "content_hash": "bacb16e9a5e0f16825f28fc69dc92e6919964e14557cddd39634acee866fec52",
+      "final_url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.kth.ad236v.11359.20262",
+      "provider_id": "susa_navet",
+      "status": 200,
+      "url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.kth.ad236v.11359.20262"
+    },
+    {
+      "bytes": 1586,
+      "cache": false,
+      "content_hash": "d0efcf19f7d4ae7a8dc6bffdd7c565f3b79e779b282fa745037f88251150b875",
+      "final_url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.kth.ad237v.12708.20271",
+      "provider_id": "susa_navet",
+      "status": 200,
+      "url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.kth.ad237v.12708.20271"
+    },
+    {
+      "bytes": 2427,
+      "cache": false,
+      "content_hash": "0b9db1ec5cf1d3dd9a570667ac6de07a76aa11f12c829f31b0d3b7b085c4fb5e",
+      "final_url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.lu.abma21.31300.20262",
+      "provider_id": "susa_navet",
+      "status": 200,
+      "url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.lu.abma21.31300.20262"
+    },
+    {
+      "bytes": 2687,
+      "cache": false,
+      "content_hash": "c103d5fb405cdf867188bcdb2378a3dc6db3a7a402607af61015a60f6caa9518",
+      "final_url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.lu.abmm07.31350.20262",
+      "provider_id": "susa_navet",
+      "status": 200,
+      "url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.lu.abmm07.31350.20262"
+    },
+    {
+      "bytes": 1374,
+      "cache": false,
+      "content_hash": "9896658a9c9d7644f0dc23e5ab53fa606e6c57c5aa94b904fa280c36147e33d2",
+      "final_url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.uu.1bg024.17443.20262",
+      "provider_id": "susa_navet",
+      "status": 200,
+      "url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.uu.1bg024.17443.20262"
+    },
+    {
+      "bytes": 936,
+      "cache": false,
+      "content_hash": "5b7f202bf196510207604b7714a02e675b555dd37ba780d75ae9b8b8c4084936",
+      "final_url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.uu.1bg025.67407.20261",
+      "provider_id": "susa_navet",
+      "status": 200,
+      "url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/i.uoh.uu.1bg025.67407.20261"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "cb46f1978a3428100833bb273c2a68960d137297cfcd5b1bc5e5b575c0613235",
+      "final_url": "https://artsed.co.uk/course/undergraduate-acting/?course-guide",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://artsed.co.uk/course/undergraduate-acting/?course-guide"
+    },
+    {
+      "bytes": 78947,
+      "cache": false,
+      "content_hash": "9614d7a21a11f962257904e94a9cfb601a593683c66193ee572056af23b482ba",
+      "final_url": "https://artsed.co.uk/course/undergraduate-acting/?course-guide",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://artsed.co.uk/course/undergraduate/undergraduate-acting/?course-guide"
+    },
+    {
+      "bytes": 64886,
+      "cache": false,
+      "content_hash": "1413bca8c8f9e1d18a182445ff6fcb837b8e0aae5434bf3ba94f0849315eebf1",
+      "final_url": "https://artsed.co.uk/course/undergraduate-musical-theatre/?course-guide",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://artsed.co.uk/course/undergraduate/undergraduate-musical-theatre/?course-guide"
+    },
+    {
+      "bytes": 222366,
+      "cache": false,
+      "content_hash": "b36e56ab99c1c39c742030d3de283af1c345f5195665a154ad6467e3f2512ab3",
+      "final_url": "https://artsed.co.uk/day-school-and-sixth-form/day-school-application-form/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://artsed.co.uk/day-school-and-sixth-form/day-school-application-form/"
+    },
+    {
+      "bytes": 58789,
+      "cache": false,
+      "content_hash": "756a32c0ea247b466d556425ddcff45a14d7c4e4ba67bee885d8ec784236252f",
+      "final_url": "https://artsed.co.uk/day-school-and-sixth-form/day-school/admissions/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://artsed.co.uk/day-school-and-sixth-form/day-school/admissions/"
+    },
+    {
+      "bytes": 61631,
+      "cache": false,
+      "content_hash": "c59b3085c246eb8264d67d91b4fce60ca8a3b8195dcc1c25ff2f0455ad97a46a",
+      "final_url": "https://artsed.co.uk/day-school-and-sixth-form/sixth-form/admissions/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://artsed.co.uk/day-school-and-sixth-form/sixth-form/admissions/"
+    },
+    {
+      "bytes": 587329,
+      "cache": false,
+      "content_hash": "56d7e5477a2456725b9be1c168a7eeb1cd4712d50d8d79abbc37ef71d3576a89",
+      "final_url": "https://aub.ac.uk/apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://aub.ac.uk/apply"
+    },
+    {
+      "bytes": 488230,
+      "cache": false,
+      "content_hash": "2f5f2b77ac08fd2851c008eb5ec8a61c1a4cca9e32a920c0161c48beb24aecc1",
+      "final_url": "https://aub.ac.uk/apply/foundation",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://aub.ac.uk/apply/foundation"
+    },
+    {
+      "bytes": 638666,
+      "cache": false,
+      "content_hash": "4e84f9184642136c7da72f0f1156cbeaf88b1958b92d7ea465e3a8490f12bc73",
+      "final_url": "https://aub.ac.uk/apply/undergraduate",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://aub.ac.uk/apply/undergraduate"
+    },
+    {
+      "bytes": 447928,
+      "cache": false,
+      "content_hash": "fe96b03da53699c28370ac5900c37f6aca31696f9bcfef23c89f8ea7b3c01b60",
+      "final_url": "https://aub.ac.uk/partner-institutions#tab-5048274-bournemouth-and-poole-college",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://aub.ac.uk/partner-institutions#tab-5048274-bournemouth-and-poole-college"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "ee53c877a3458d014b9c03e9c319d1dc9eb6f05243eebcf14070cbc4ef04e737",
+      "final_url": "https://bacoll.ac.uk/course/hnd-fine-art/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://bacoll.ac.uk/course/hnd-fine-art/"
+    },
+    {
+      "bytes": 101827,
+      "cache": false,
+      "content_hash": "dc1153e173c8bcb114f63a28eff4017cc79861d1e63bd14f3f11d5879bd25ecb",
+      "final_url": "https://bacoll.ac.uk/course/hnd-photography/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://bacoll.ac.uk/course/hnd-in-art-and-design-l5-photography/"
+    },
+    {
+      "bytes": 102058,
+      "cache": false,
+      "content_hash": "6942cb894c94281948ccfa07ad576d4da99a66f061355dd9104a1b400955ffb6",
+      "final_url": "https://bacoll.ac.uk/course/hnd-fine-art/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://bacoll.ac.uk/course/hnd-in-art-and-design-l5/"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "fb2e023e7ecb0cf76242a4795d0115176b7e6b07ece4c2c8ef5fc0fdf94ec962",
+      "final_url": "https://bacoll.ac.uk/course/hnd-photography/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://bacoll.ac.uk/course/hnd-photography/"
+    },
+    {
+      "bytes": 97079,
+      "cache": false,
+      "content_hash": "6c3f22b364e354a4f300e2e919827a31aaf54b85408318f90c8b0e4c5a6ddb99",
+      "final_url": "https://bacoll.ac.uk/courses/how-to-apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://bacoll.ac.uk/courses/how-to-apply/"
+    },
+    {
+      "bytes": 88043,
+      "cache": false,
+      "content_hash": "c82ce2bba86dad98333446a72b8e4c5d6b62677dbf27bc475d6ee259af73fcb2",
+      "final_url": "https://blackburn.ac.uk/about-us/how-to-find-us",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://blackburn.ac.uk/about-us/how-to-find-us"
+    },
+    {
+      "bytes": 104218,
+      "cache": false,
+      "content_hash": "f80a78eee8141220dc78015115d3878fbaf8cbefde0130a7bfa7617a81c50c9f",
+      "final_url": "https://blackburn.ac.uk/apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://blackburn.ac.uk/apply"
+    },
+    {
+      "bytes": 114601,
+      "cache": false,
+      "content_hash": "eef10549129ed4dd3e6a912611f8befa7cc1db85eb8ad063c5eb5eb5f6185678",
+      "final_url": "https://blackburn.ac.uk/find-a-course/business/accounting/accounting-and-finance-fdsc",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://blackburn.ac.uk/find-a-course/business/accounting/accounting-and-finance-fdsc"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "6c2996a22898ca712322c0c6a7db07a0b0e8af094d1019a39144ab643058d8f9",
+      "final_url": "https://blackburn.ac.uk/find-a-course/business/business/ba-hons-business-with-management",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://blackburn.ac.uk/find-a-course/business/business/ba-hons-business-with-management"
+    },
+    {
+      "bytes": 118139,
+      "cache": false,
+      "content_hash": "02bead11a5e871fa1092f8923d84e9790a566497092c85a2a1fb6296adb28dba",
+      "final_url": "https://blackburn.ac.uk/find-a-course/business/business/ba-hons-business-with-management",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://blackburn.ac.uk/find-a-course/business/business/business-with-management-ba-hons"
+    },
+    {
+      "bytes": 96077,
+      "cache": false,
+      "content_hash": "98d4bbb0671a8ef4ae085165852678b530107455a0a77e233d478ced95045bcf",
+      "final_url": "https://blackburn.ac.uk/study/higher-education-at-blackburn-college/important-documents-for-higher-education-students",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://blackburn.ac.uk/study/higher-education-at-blackburn-college/important-documents-for-higher-education-students"
+    },
+    {
+      "bytes": 143375,
+      "cache": false,
+      "content_hash": "3f0ac5da3840d0e22552d2410a4238cbedfde05070b947446012519e8f118677",
+      "final_url": "https://bourgenbresse.univ-lyon3.fr/licence-de-gestion-management-bourg-en-bresse-3",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://bourgenbresse.univ-lyon3.fr/licence-de-gestion-management-bourg-en-bresse-3"
+    },
+    {
+      "bytes": 128805,
+      "cache": false,
+      "content_hash": "f7d0f25311e163730c316af03940e8531850ae767b9d26582b0598e978a5e20d",
+      "final_url": "https://bourgenbresse.univ-lyon3.fr/licence-histoire-bourg-en-bresse-1",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://bourgenbresse.univ-lyon3.fr/licence-histoire-bourg-en-bresse-1"
+    },
+    {
+      "bytes": 255386,
+      "cache": false,
+      "content_hash": "e9ab234b61316ab419937069b9443741e69149d6f9821f7894aced336857bbfb",
+      "final_url": "https://businessdatascience.nl/home",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://businessdatascience.nl"
+    },
+    {
+      "bytes": 200756,
+      "cache": false,
+      "content_hash": "50269ebf596930a45180190992be3c0218ef12640b4bc537cb83d0ff3a3987f3",
+      "final_url": "https://businessdatascience.nl/admission-requirements",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://businessdatascience.nl/admission-requirements"
+    },
+    {
+      "bytes": 206341,
+      "cache": false,
+      "content_hash": "dd8576401947893a8d72b1a4f776c1cdfefa2b104d54df3a3d3345a53080492b",
+      "final_url": "https://businessdatascience.nl/admissions",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://businessdatascience.nl/admissions"
+    },
+    {
+      "bytes": 205041,
+      "cache": false,
+      "content_hash": "12c405cca058418c702d0e8054a8737acf6b1c92ff51eddf04df47e6a5ce155e",
+      "final_url": "https://businessdatascience.nl/application-procedure",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://businessdatascience.nl/application-procedure"
+    },
+    {
+      "bytes": 195097,
+      "cache": false,
+      "content_hash": "4ef277c889f5b6357b24df433fcc205252fccd2f806787f01c933ab1ef0efa91",
+      "final_url": "https://centralelille.fr/formation/masters/fiche-master-data-science/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://centralelille.fr/formation/masters/fiche-master-data-science/"
+    },
+    {
+      "bytes": 180482,
+      "cache": false,
+      "content_hash": "a0ad66ec8b0d1b7848f98aa63594aa86c67242069b51f94a24811002e18db021",
+      "final_url": "https://creates.univ-cotedazur.fr/formations/master-1",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://creates.univ-cotedazur.fr/formations/master-1"
+    },
+    {
+      "bytes": 306917,
+      "cache": false,
+      "content_hash": "1ef0259781e0697d880d4c0bfeb3037eeb86b52be67eb51da1522e00091a1e39",
+      "final_url": "https://discoveruni.gov.uk/course-details/10003270/GG14/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10003270/GG14/Full-time/"
+    },
+    {
+      "bytes": 230080,
+      "cache": false,
+      "content_hash": "b2817f39115442a37f70663e643edb49d893c4e8ec5d1007e04ab79050b609a4",
+      "final_url": "https://discoveruni.gov.uk/course-details/10003270/GG41/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10003270/GG41/Full-time/"
+    },
+    {
+      "bytes": 219546,
+      "cache": false,
+      "content_hash": "406ced49d02399787956f54dd17d61ff3fe9d1375f7a4783c5771618ed3ff384",
+      "final_url": "https://discoveruni.gov.uk/course-details/10003645/UBSH3CSCS/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10003645/UBSH3CSCS/Full-time/"
+    },
+    {
+      "bytes": 217261,
+      "cache": false,
+      "content_hash": "a2af23ff45bae194c9106344daecd12797900c377ab2da26afa8b0ec0acf9a40",
+      "final_url": "https://discoveruni.gov.uk/course-details/10003645/UMSH4CSCS/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10003645/UMSH4CSCS/Full-time/"
+    },
+    {
+      "bytes": 219813,
+      "cache": false,
+      "content_hash": "86dea2a4a87ea8e76769247fb8634f04e7b0a83fd0798aea32f33cabe45a11d1",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007154/G400/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007154/G400/Full-time/"
+    },
+    {
+      "bytes": 217052,
+      "cache": false,
+      "content_hash": "4d3565273e6288bb47386391a312457451801cff3fe8e4a920f137d7b727ed21",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007154/G404/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007154/G404/Full-time/"
+    },
+    {
+      "bytes": 230606,
+      "cache": false,
+      "content_hash": "420c418a3215c62513f335b009b5695d5d24b388b994fa83d53f5835c990d9eb",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007774/G400/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007774/G400/Full-time/"
+    },
+    {
+      "bytes": 276701,
+      "cache": false,
+      "content_hash": "9eafbf11b681b7616f6421232e66c8561c96d0653f6a589cd37e82ecad4ac292",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007774/GG14/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007774/GG14/Full-time/"
+    },
+    {
+      "bytes": 217898,
+      "cache": false,
+      "content_hash": "373399569135ad8004b44471ac8b91be41c2756a86dbbbfab3efdf94dfcef306",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007786/4COSC006UU-202425/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007786/4COSC006UU-202425/Full-time/"
+    },
+    {
+      "bytes": 218490,
+      "cache": false,
+      "content_hash": "61c77571a96e3dec7e21aba2a2ab38909ae15bd727e5c261fed3280d2927fda6",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007786/4COSC008UU-202425/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007786/4COSC008UU-202425/Full-time/"
+    },
+    {
+      "bytes": 214558,
+      "cache": false,
+      "content_hash": "768b1c3e8224508b4f7367c0f7e895119616b4ae402d7247c626c78efb140312",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007788/UG_CSTX/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007788/UG_CSTX/Full-time/"
+    },
+    {
+      "bytes": 281166,
+      "cache": false,
+      "content_hash": "6c898ecaff2c44b4a5b091d4c671c3c28b8f64caa6ed2ab02136e1698d01a20d",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007788/UG_NSTX/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007788/UG_NSTX/Full-time/"
+    },
+    {
+      "bytes": 221803,
+      "cache": false,
+      "content_hash": "bfa3c80ec961af0ab04e11c4e5118d92dabde7338bd101430a93403448657389",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007790/UTCMPSIBENGH/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007790/UTCMPSIBENGH/Full-time/"
+    },
+    {
+      "bytes": 220566,
+      "cache": false,
+      "content_hash": "bd304a226d196bb1934f47d3b62d7274c4b174d32ee13ee644a39e04082d9317",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007790/UTCMPSIBSCH/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007790/UTCMPSIBSCH/Full-time/"
+    },
+    {
+      "bytes": 219439,
+      "cache": false,
+      "content_hash": "e3ac95e570adea94286802f7bc269490ea642eb32dba492360e44389e1156022",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007798/2571195/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007798/2571195/Full-time/"
+    },
+    {
+      "bytes": 217576,
+      "cache": false,
+      "content_hash": "ef4938eaade8554ada5f5f5b499d332da53c112e09c12f5912f26dfeddf650ed",
+      "final_url": "https://discoveruni.gov.uk/course-details/10007798/28/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/course-details/10007798/28/Full-time/"
+    },
+    {
+      "bytes": 78913,
+      "cache": false,
+      "content_hash": "3427853ca0390ff56adbc2f4aaf77e81c5c2e29b18a601463a8e0b2f849fa1f7",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000055/FDA-BMP/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000055/FDA-BMP/Full-time/"
+    },
+    {
+      "bytes": 77973,
+      "cache": false,
+      "content_hash": "cef4146adfb892bbc8dc8c5bd2943771198f6d0059caa12136b05d793c8ab7ea",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000055/FDA-BMP/Part-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000055/FDA-BMP/Part-time/"
+    },
+    {
+      "bytes": 219676,
+      "cache": false,
+      "content_hash": "d3c1c0c0bfcacafdb7d9dbee992b0a048c554e31e962edc267329997ddd5e130",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000163/BSRDIF-B821/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000163/BSRDIF-B821/Full-time/"
+    },
+    {
+      "bytes": 220397,
+      "cache": false,
+      "content_hash": "ad60276e013b36e148d9c1c31d976c8c34fb8fcb4db3528e35c34d330200cba1",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000163/BSRROF-B822/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000163/BSRROF-B822/Full-time/"
+    },
+    {
+      "bytes": 102004,
+      "cache": false,
+      "content_hash": "84aa40927ff1524759c2d33809f83702da17515428da0a3df38b5642b700f0f9",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000216/177650/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000216/177650/Full-time/"
+    },
+    {
+      "bytes": 113711,
+      "cache": false,
+      "content_hash": "ccefdfd79e91a3f4a312e53fd9483029a1a08b8666199542dea15c57d3ea0530",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000216/532986/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000216/532986/Full-time/"
+    },
+    {
+      "bytes": 219127,
+      "cache": false,
+      "content_hash": "4aff6306ba0d20522aaf117464df33332c5366a3fd5ab5d2138308cf6e2831aa",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000291/K00001/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000291/K00001/Full-time/"
+    },
+    {
+      "bytes": 219918,
+      "cache": false,
+      "content_hash": "668882b59e4b87649750c0bea51fa0c60a2ebf9abd15230bc75571ea7f72075d",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000291/K00004/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000291/K00004/Full-time/"
+    },
+    {
+      "bytes": 195704,
+      "cache": false,
+      "content_hash": "80071a97d24de58871bac43bc7b862deef37351891970c86bfa87029d0e3bc4f",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000381/BAAct/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000381/BAAct/Full-time/"
+    },
+    {
+      "bytes": 175287,
+      "cache": false,
+      "content_hash": "264c1253fc072242ae3fcf1d4ab0a537224316924c2f66708f3e60d99f769c4b",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000381/BAMT/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000381/BAMT/Full-time/"
+    },
+    {
+      "bytes": 218664,
+      "cache": false,
+      "content_hash": "0c2ad90411bf3cef9db47a3db61b55a292a6f35f8dd0b017b0de915a1691d750",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000385/BAACT/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000385/BAACT/Full-time/"
+    },
+    {
+      "bytes": 218756,
+      "cache": false,
+      "content_hash": "377e2c849db861b5395b104bfcb4fd8a45c5daf4be91b46041c056d7f57f7e96",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000385/BAACTF/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000385/BAACTF/Full-time/"
+    },
+    {
+      "bytes": 195112,
+      "cache": false,
+      "content_hash": "0311fd5d9aac0c3838f36a177dd5e579b38c21d9c9c16f4af8536a036c90ea47",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000415/L58T22/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000415/L58T22/Full-time/"
+    },
+    {
+      "bytes": 195724,
+      "cache": false,
+      "content_hash": "049ffa542363e38e23420f3f801de524c5117f3f21945c4bafd4959dc40455e9",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000415/L58T23/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000415/L58T23/Full-time/"
+    },
+    {
+      "bytes": 79376,
+      "cache": false,
+      "content_hash": "856b01aba83c777b73efe03075f2053350f12efd0a0cb49695e0b1a738a0f1d4",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000528/K0677/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000528/K0677/Full-time/"
+    },
+    {
+      "bytes": 79439,
+      "cache": false,
+      "content_hash": "facdd0499ab20c52fb29fe06f3875c8f9f7b42ebfee6b9ada646fd595a59640d",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000528/K0678/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000528/K0678/Full-time/"
+    },
+    {
+      "bytes": 147829,
+      "cache": false,
+      "content_hash": "e294ca8bb5e40913e47d554b8c01720c3e79004d4e94528315d7b6048012b11f",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000536/AT49AMFDFT/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000536/AT49AMFDFT/Full-time/"
+    },
+    {
+      "bytes": 193145,
+      "cache": false,
+      "content_hash": "b01012aa010a2e9d7d0b4846186e2bd0ca2f4a0e61d8897618b439a8002350a1",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000536/PS29EYLEFT/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000536/PS29EYLEFT/Full-time/"
+    },
+    {
+      "bytes": 218759,
+      "cache": false,
+      "content_hash": "cfdc9d4230628325807a0402c8a17d37a0db8e2d4bea5ef22bbf20893cff0c63",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000571/BAACTACTSPS/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000571/BAACTACTSPS/Full-time/"
+    },
+    {
+      "bytes": 220110,
+      "cache": false,
+      "content_hash": "32a93e6cbad1e53bd3831c782381b4b4ebd8ccdbd62485d3ef1ab5f5be6a2c47",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000571/BAACTFYBMACTFYBM/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000571/BAACTFYBMACTFYBM/Full-time/"
+    },
+    {
+      "bytes": 175469,
+      "cache": false,
+      "content_hash": "b36328c71c7b9a5ddc13d89d681b073df730cd31998e750d210e15afb86319c7",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000712/BA_AAM/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000712/BA_AAM/Full-time/"
+    },
+    {
+      "bytes": 214469,
+      "cache": false,
+      "content_hash": "f726f3bfbe37dacabe88b4dbc51171921edd8be6f232ce0b9c863c3c97482ebb",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000712/BA_ABP/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000712/BA_ABP/Full-time/"
+    },
+    {
+      "bytes": 144758,
+      "cache": false,
+      "content_hash": "1b7342ed15effb10354b0c09262928f4b458863e9c701fb844e714b9d7439aeb",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000720/BAC10/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000720/BAC10/Full-time/"
+    },
+    {
+      "bytes": 144806,
+      "cache": false,
+      "content_hash": "404e6ca4e90290d278a1c42e883371bcf13ecc29b7f317b5e970a269d806a6cb",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000720/BAC12/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000720/BAC12/Full-time/"
+    },
+    {
+      "bytes": 184729,
+      "cache": false,
+      "content_hash": "91e2f7f14bf114435db9a7a2e4356f8ee7b861a5296e6b1602d0b4ba8027cbe3",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000721/BScAABT/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000721/BScAABT/Full-time/"
+    },
+    {
+      "bytes": 185231,
+      "cache": false,
+      "content_hash": "dfd2e5dc469a6aa9e38243a14fc7cfaa85f7de1d351b2e83518f5215b013a677",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000721/BScABWC/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000721/BScABWC/Full-time/"
+    },
+    {
+      "bytes": 236814,
+      "cache": false,
+      "content_hash": "db93c5a59642efb16796752d97a2a20a76ccbf6920836ed05d8f9a6d354026eb",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000747/BS2530A25/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000747/BS2530A25/Full-time/"
+    },
+    {
+      "bytes": 185553,
+      "cache": false,
+      "content_hash": "6498d89137e7efa35f5a66653d08e316f75411339414f374260077b2d3927264",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000747/BS3026A26/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000747/BS3026A26/Full-time/"
+    },
+    {
+      "bytes": 170572,
+      "cache": false,
+      "content_hash": "4a1701902498cc5406fa571b29975e1faff9615e4c586b39cbdd6fa315ee7c3d",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000754/ET1HE0001/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000754/ET1HE0001/Full-time/"
+    },
+    {
+      "bytes": 170479,
+      "cache": false,
+      "content_hash": "a13d01b4d95353eae5f19048ddfd1cc05c0127d16552c4a3eb7688fbf37adf7a",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000754/ET1HE601/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000754/ET1HE601/Full-time/"
+    },
+    {
+      "bytes": 182366,
+      "cache": false,
+      "content_hash": "45dfa5c54cbe81a3129ce65b5d7ac73bae3fb38edbf11d36a2f8430d05bb0942",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000812/1007595/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000812/1007595/Full-time/"
+    },
+    {
+      "bytes": 99073,
+      "cache": false,
+      "content_hash": "b51d540e134704af2ae1ac44df98b9c78cae96557a2cf416c0698578ae856f3f",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000812/113985/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000812/113985/Full-time/"
+    },
+    {
+      "bytes": 95870,
+      "cache": false,
+      "content_hash": "68112a31bd20fd42ff4b6b3446623d25702621cf978a97b7c83f87435da9f36f",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000820/FDDAP/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000820/FDDAP/Full-time/"
+    },
+    {
+      "bytes": 79176,
+      "cache": false,
+      "content_hash": "5fa49642d639e572228944bd7b725e5ae25b718c6289ea68716cfccb73ae3144",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000820/FDEPB/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000820/FDEPB/Full-time/"
+    },
+    {
+      "bytes": 310043,
+      "cache": false,
+      "content_hash": "907d95d150bc420d3ba2ce3e6d6f53998cf57d8d2c60f582f491ea362706f4ce",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000824/BAACS_N423/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000824/BAACS_N423/Full-time/"
+    },
+    {
+      "bytes": 241741,
+      "cache": false,
+      "content_hash": "d3a17862f38f7c636efc8e1c77e9737dbca74022770503e958bd9c86bd66ec08",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000824/BAAFS_N420/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000824/BAAFS_N420/Full-time/"
+    },
+    {
+      "bytes": 103207,
+      "cache": false,
+      "content_hash": "880dc6bcb35d3b9a00724060a57433614d2a70fa11ddac606014e039d6c8e403",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000840/BABRCPEEYQ_A/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000840/BABRCPEEYQ_A/Full-time/"
+    },
+    {
+      "bytes": 103216,
+      "cache": false,
+      "content_hash": "7503ccfcf688f88de41f1582619e36cc7a903ad052d7591d7162a8cc29ac14d1",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000840/BABRCPELYQ_A/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000840/BABRCPELYQ_A/Full-time/"
+    },
+    {
+      "bytes": 170815,
+      "cache": false,
+      "content_hash": "6def333fc818c0fec56faecafe3ec83f74d1c6680a3bf058609ecd71536cebdc",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000878/00245990-fdeg-media-make-FT/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000878/00245990-fdeg-media-make-FT/Full-time/"
+    },
+    {
+      "bytes": 190042,
+      "cache": false,
+      "content_hash": "f5f5a0aa2f466fa36b912a8bb27fcb0f6a057b73d307c69a6b00befa55d9fa9a",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000878/00245991-ba-media-make-FT/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000878/00245991-ba-media-make-FT/Full-time/"
+    },
+    {
+      "bytes": 221655,
+      "cache": false,
+      "content_hash": "bd08bcba2b390af23305d7b1e900ec605d2b64a1b7656b3155cd38e375ae81d6",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000886/APCB001MUU/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000886/APCB001MUU/Full-time/"
+    },
+    {
+      "bytes": 221443,
+      "cache": false,
+      "content_hash": "da6aade5a6c6b974ddd31d9ce72899f1842114eb1d4e9151d4985c9abdc9b249",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000886/BUEG001MUU/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000886/BUEG001MUU/Full-time/"
+    },
+    {
+      "bytes": 77523,
+      "cache": false,
+      "content_hash": "4b825e2b9998c1c91e3b21ccbd98e20147a61220ecabbe57a4ae9a9d776e9857",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000894/BATMM/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000894/BATMM/Full-time/"
+    },
+    {
+      "bytes": 77515,
+      "cache": false,
+      "content_hash": "c9e402503861d237d38e1639639b408046f048cf4366c03a076ccc7b8df53f76",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000894/DIPTMM/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000894/DIPTMM/Full-time/"
+    },
+    {
+      "bytes": 168264,
+      "cache": false,
+      "content_hash": "1230943e0dfe7866bf65019a00d109ef0a062148bb2f33284b3a2fd0a34af2d1",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000948/HNDCMCS/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000948/HNDCMCS/Full-time/"
+    },
+    {
+      "bytes": 189924,
+      "cache": false,
+      "content_hash": "6a58e0b3663abb703e7bb46f32a55c779ecd4abe36e8641876797bd54eca3e67",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000948/HNDEYPL/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000948/HNDEYPL/Full-time/"
+    },
+    {
+      "bytes": 220026,
+      "cache": false,
+      "content_hash": "316e7e075638521ce60c31403e25c49d9d5861ab18b1aa08a58489a639a30561",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000961/1FDJUTHEATRE-FT-BA/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000961/1FDJUTHEATRE-FT-BA/Full-time/"
+    },
+    {
+      "bytes": 220181,
+      "cache": false,
+      "content_hash": "e72ad9fd4f04d93a6f1e48f5b105e7919a292c526ddcc0e997450fdfcb90f150",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000961/1FDJUTHEATRE-KW-BA/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000961/1FDJUTHEATRE-KW-BA/Full-time/"
+    },
+    {
+      "bytes": 220873,
+      "cache": false,
+      "content_hash": "4c53919ff01396380e69a310f497fa1f1049aca6c10491a14fd4e7b73f7a099b",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000975/KBAACSSFTACT1/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000975/KBAACSSFTACT1/Full-time/"
+    },
+    {
+      "bytes": 220937,
+      "cache": false,
+      "content_hash": "f16f36170e6ab5265634d2f3e3c8e302ea588ad9549c65315fea4c5b165164ba",
+      "final_url": "https://discoveruni.gov.uk/en/course-details/10000975/KBAANIMDFCMSD/Full-time/",
+      "provider_id": "discover_uni",
+      "status": 200,
+      "url": "https://discoveruni.gov.uk/en/course-details/10000975/KBAANIMDFCMSD/Full-time/"
+    },
+    {
+      "bytes": 192207,
+      "cache": false,
+      "content_hash": "48309eda8210d9a45bcb1d029d317043ac9b7b81ad0d3f47c3b0aadc73af9277",
+      "final_url": "https://ensimag.grenoble-inp.fr/fr/formation/masters",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://ensimag.grenoble-inp.fr/fr/formation/masters"
+    },
+    {
+      "bytes": 62980,
+      "cache": false,
+      "content_hash": "1685f20669c82b3c366e69ffd6c7fe34d5f01e1b42ddc0ee44caa0cf9ae1f9e7",
+      "final_url": "https://inspe.u-picardie.fr/formations-linspe",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://inspe.u-picardie.fr/formations-linspe"
+    },
+    {
+      "bytes": 260,
+      "cache": false,
+      "content_hash": "09c5dcd7581d8a2e61de71917dfd4673801d7ed9ff587d5983899d5f92bf3092",
+      "final_url": "https://inspe.uca.fr/formation/licences/licence-professorat-des-ecoles",
+      "provider_id": "official_admission_page",
+      "status": 401,
+      "url": "https://inspe.uca.fr/formation/licences/licence-professorat-des-ecoles"
+    },
+    {
+      "bytes": 278,
+      "cache": false,
+      "content_hash": "b34932fea026f23804520f87a259fd802b0ad00b44773e9836b9ee8a99127a66",
+      "final_url": "https://inspe.uca.fr/formation/master/master-ens-et-education-prof-des-ecoles-1ere-annee",
+      "provider_id": "official_admission_page",
+      "status": 401,
+      "url": "https://inspe.uca.fr/formation/master/master-ens-et-education-prof-des-ecoles-1ere-annee"
+    },
+    {
+      "bytes": 205002,
+      "cache": false,
+      "content_hash": "a5a6ae984f737847cc91e63e6bcb5665e7f6453bbf5c5b12b8051e414232355e",
+      "final_url": "https://inspe.univ-cotedazur.fr/a-propos-de-linspe/presentation",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://inspe.univ-cotedazur.fr/a-propos-de-linspe/presentation"
+    },
+    {
+      "bytes": 69208,
+      "cache": false,
+      "content_hash": "f60a51bdfc921821eaf75fb31e01f2f094394a45f853e2207f8d9653ca1aa935",
+      "final_url": "https://inspe.univ-lyon1.fr/formation/offre-de-formation/master-enseignement-et-education",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://inspe.univ-lyon1.fr/formation/offre-de-formation/master-enseignement-et-education"
+    },
+    {
+      "bytes": 106508,
+      "cache": false,
+      "content_hash": "e7c3c2dcad0dd3e2ed2e92e856abc1d4084944a6523b64b70b8df0f1c3209f52",
+      "final_url": "https://iut.univ-amu.fr/fr/formations/bachelor-universitaire-de-technologie/but-genie-biologique",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://iut.univ-amu.fr/fr/formations/bachelor-universitaire-de-technologie/but-genie-biologique"
+    },
+    {
+      "bytes": 87888,
+      "cache": false,
+      "content_hash": "dac2e511eb55aa1ed6b7d10bf1e522c125fc4e514a2081276a99907e370aacf4",
+      "final_url": "https://iut.univ-amu.fr/fr/formations/bachelor-universitaire-de-technologie/but-gestion-administrative-commerciale-organisations",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://iut.univ-amu.fr/fr/formations/bachelor-universitaire-de-technologie/but-gestion-administrative-commerciale-organisations"
+    },
+    {
+      "bytes": 95729,
+      "cache": false,
+      "content_hash": "bd18049cd51b8c5478396fae252eb38b913c266673e16256f2434cfe0f66113f",
+      "final_url": "https://iut.univ-amu.fr/fr/formations/bachelor-universitaire-de-technologie/but-gestion-entreprises-administrations/but-gea-gap",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://iut.univ-amu.fr/fr/formations/bachelor-universitaire-de-technologie/but-gestion-entreprises-administrations/but-gea-gap"
+    },
+    {
+      "bytes": 287412,
+      "cache": false,
+      "content_hash": "f129833ed69cf6ea76a82d73f03fe6af790efaf07c4a1d205542b9e40652e0d1",
+      "final_url": "https://iut.univ-cotedazur.fr/departements-et-formations/reseaux-et-telecommunications/bachelor-universitaire-de-technologie",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://iut.univ-cotedazur.fr/departements-et-formations/reseaux-et-telecommunications/bachelor-universitaire-de-technologie"
+    },
+    {
+      "bytes": 256562,
+      "cache": false,
+      "content_hash": "d53d29566a86d4cd136924244f595b1291424132b316027424b9202bb1295569",
+      "final_url": "https://iut.univ-cotedazur.fr/etudiant-a-liut/scolarite/changement-de-prenom-sur-les-documents-de-scolarite",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://iut.univ-cotedazur.fr/etudiant-a-liut/scolarite/changement-de-prenom-sur-les-documents-de-scolarite"
+    },
+    {
+      "bytes": 113653,
+      "cache": false,
+      "content_hash": "d34aa38eb99d501d74dad56795e34b4fd50e1715a37c2791b4217504a6e2ce46",
+      "final_url": "https://iut.univ-lyon1.fr/formation/but/gea/but-gestion-des-entreprises-et-des-administrations",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://iut.univ-lyon1.fr/formation/but/gea/but-gestion-des-entreprises-et-des-administrations"
+    },
+    {
+      "bytes": 489043,
+      "cache": false,
+      "content_hash": "5dfa7be227f2ee1dadf1a0e6583c3909ed3b342df559a02225fc86449acbb1ce",
+      "final_url": "https://masterste.wixsite.com/accueil/parcours-3g",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://masterste.wixsite.com/accueil/parcours-3g"
+    },
+    {
+      "bytes": 0,
+      "cache": false,
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_url": "https://nantes.uco.fr/fr/formations/droit-economie-gestion/licence-science-politique-nantes",
+      "provider_id": "official_admission_page",
+      "status": 0,
+      "url": "https://nantes.uco.fr/fr/formations/droit-economie-gestion/licence-science-politique-nantes"
+    },
+    {
+      "bytes": 54989,
+      "cache": false,
+      "content_hash": "7257eac14a3f4248864c661c8086f944aa50fc1057ef9fe366802da43a573a3e",
+      "final_url": "https://offre-de-formations.univ-lyon1.fr/parcours-348/genie-des-procedes-alimentaires.html",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://offre-de-formations.univ-lyon1.fr/parcours-348/genie-des-procedes-alimentaires.html"
+    },
+    {
+      "bytes": 5576,
+      "cache": false,
+      "content_hash": "d8fb12a7ff07a155cc0e1013f38389ab68bc75ce8b37e6d9e837a8e15cabb447",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B449%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6096%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B449%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6096%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5569,
+      "cache": false,
+      "content_hash": "ecb4c4710539bd60cfec3b392756f37eb2c5435b7df3e8ba69e834a84c4d07e9",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B449%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6171%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B449%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6171%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5885,
+      "cache": false,
+      "content_hash": "226deda3a58065d48a4e4fd6c8e723d991083912ada061e6ca603cc9a738bec2",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B450%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6650%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B450%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6650%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5937,
+      "cache": false,
+      "content_hash": "36b81f3c8dc933eca00546ae90da46eee44447626a65f26443e59069e33d4c12",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B450%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6777%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B450%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6777%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 7050,
+      "cache": false,
+      "content_hash": "f8a1d2040197fb5bba0f7e430230c27c4f13db21c80da683f56afa310fe98f09",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B451%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6086%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B451%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6086%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5583,
+      "cache": false,
+      "content_hash": "b5ed0118e3175fa5b4b377fe3fb5149790a79f2fb6469264ad58dfd71372b017",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B451%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7489%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B451%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7489%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5977,
+      "cache": false,
+      "content_hash": "3fe2b678375b3481b49118d2814ffd4169369e3b52706e490d0ae3bd7f074efb",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B473%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5623%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B473%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5623%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5899,
+      "cache": false,
+      "content_hash": "51a528c2b23c680f025ae69f8da04729f0b4407daafbc7dd229ff3b32994a2d0",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B473%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6172%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B473%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6172%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5623,
+      "cache": false,
+      "content_hash": "9237665b0b252837308ed482393790f63a8f2437e169ad5bd94e1c034fc61f95",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B484%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6694%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B484%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6694%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5634,
+      "cache": false,
+      "content_hash": "6f905a69c1edffcc8d7ffd90cbc6d54d32bd1ab0d9a719914b7d965e61ee8115",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B484%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6879%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B484%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6879%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5597,
+      "cache": false,
+      "content_hash": "2fa3ef89c952499c72ee58f3925779e33c626cc341c857d32c6b70f5248ab09e",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B576%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5712%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B576%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5712%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 6059,
+      "cache": false,
+      "content_hash": "68964eb0cb41ac4d6193ea76e67406c7b251ab20b42bb1bdba43260544375a89",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B576%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7206%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B576%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7206%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 7696,
+      "cache": false,
+      "content_hash": "6fe3d74b63b9d44c762619e45fbd999b7ff915e9b14f5a2e0e1dd0b54f6c9ba4",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B578%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5903%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B578%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5903%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 8553,
+      "cache": false,
+      "content_hash": "621d45c321f44ae801a7ce2e8b2c49e80c8da61843620f5b3c146ee2a6cc4992",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B578%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7137%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B578%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7137%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5576,
+      "cache": false,
+      "content_hash": "9a0ce7cff7250e2a52b65c0f3ffec88d6cc1878615fda86d5e011e15d6a27e01",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B605%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6612%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B605%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6612%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 6035,
+      "cache": false,
+      "content_hash": "b4e87fde215af73b5cf9a5d81d998f8ec50a054728f4190af74fde01f56e637f",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B605%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8897%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B605%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8897%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555"
+    },
+    {
+      "bytes": 5613,
+      "cache": false,
+      "content_hash": "f6e8071858d34c0ea44955376b3d061095d7b6f883315ac771d238cfa4d257ee",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B490%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2671%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B490%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2671%22%7D"
+    },
+    {
+      "bytes": 5616,
+      "cache": false,
+      "content_hash": "976a0c76570e9910a9d01171688c0d6af3f90ccafb109d2b06ffa20bcfa17e2d",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B490%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2697%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B490%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2697%22%7D"
+    },
+    {
+      "bytes": 5906,
+      "cache": false,
+      "content_hash": "e58b79c5ac3ded588ef962be88fbd61e250899f02f4ef7f9f081ede5de3469d5",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B561%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2646%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B561%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2646%22%7D"
+    },
+    {
+      "bytes": 5624,
+      "cache": false,
+      "content_hash": "deb977225695b71cb9c93baf539dea87678f1504143c464b3a6a669651042e3a",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B561%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O6899%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B561%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O6899%22%7D"
+    },
+    {
+      "bytes": 5633,
+      "cache": false,
+      "content_hash": "254ae37b40602011be8d4547bdd1e8c4ed62dd532794e34f84ac0f5fa86442e5",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22105B769%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4372%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22105B769%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4372%22%7D"
+    },
+    {
+      "bytes": 5586,
+      "cache": false,
+      "content_hash": "ba283e222405c728dc422a67b76c5534619c08d011c7f13786a09f78b6fd0a62",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22105B769%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4574%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22105B769%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4574%22%7D"
+    },
+    {
+      "bytes": 5564,
+      "cache": false,
+      "content_hash": "d8c4d8263f50fea00faf62486bfeef8cfc999409532b3fad9e0c864fcc411185",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22106B216%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2643%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22106B216%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2643%22%7D"
+    },
+    {
+      "bytes": 5622,
+      "cache": false,
+      "content_hash": "0c53037f3a3f041a36340223843474613163c66a0012d1fb6a8e877c198903a7",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22106B216%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2651%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22106B216%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2651%22%7D"
+    },
+    {
+      "bytes": 5614,
+      "cache": false,
+      "content_hash": "aa71fe2d6c8cf63ae6b94b5ee398cf1de2b24ce97963424e405f89512018f41b",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B446%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2947%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B446%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2947%22%7D"
+    },
+    {
+      "bytes": 5604,
+      "cache": false,
+      "content_hash": "23b3d02799d698765e52b58d4f0044e3318bcf6b71ad91ae3771c7a0d97b8386",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B446%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4328%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B446%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4328%22%7D"
+    },
+    {
+      "bytes": 5586,
+      "cache": false,
+      "content_hash": "3cf334de05e298577fc29680b86f8eb3750d60072dcbc14dc9ca401d5761694e",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B448%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5999%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B448%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5999%22%7D"
+    },
+    {
+      "bytes": 5634,
+      "cache": false,
+      "content_hash": "879deee51ff6489b1775632838f17046d3b2d6e5841c7b51ef57023f3600f448",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B448%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6215%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B448%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6215%22%7D"
+    },
+    {
+      "bytes": 6005,
+      "cache": false,
+      "content_hash": "cd5a6eb43599a61d2a8bb0e86cbb4c33a7009c1a3a11a8185a4fb486860ee3de",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B454%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5090%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B454%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5090%22%7D"
+    },
+    {
+      "bytes": 5926,
+      "cache": false,
+      "content_hash": "18d0da9ab144ad43e0752d0bb469a21f3e881bd2ade91beaaa58e127870178f2",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B454%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5500%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B454%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5500%22%7D"
+    },
+    {
+      "bytes": 5989,
+      "cache": false,
+      "content_hash": "ce3a58911909af410c1fc3b5094880b6e5275f886c31b08711d34e983ef66692",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B460%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4361%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B460%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4361%22%7D"
+    },
+    {
+      "bytes": 5679,
+      "cache": false,
+      "content_hash": "5d5dd33b347e34d96cda0affd3176db268a2c4bc9c1d5d318723f1ceed32455a",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B460%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8088%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B460%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8088%22%7D"
+    },
+    {
+      "bytes": 5848,
+      "cache": false,
+      "content_hash": "a99d3ca94ff612210cbf20d5eb578c0bbe38b3dab9c72abece35a29f81934569",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B461%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5786%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B461%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5786%22%7D"
+    },
+    {
+      "bytes": 5768,
+      "cache": false,
+      "content_hash": "6c755875f75c5722abc4e2d1e2587dfeb1936728397585fa388bee4c40aae425",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B461%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6573%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B461%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6573%22%7D"
+    },
+    {
+      "bytes": 5632,
+      "cache": false,
+      "content_hash": "49a2b1b091f6d9ed975dec44d7243003a140d44c2871a84043087196a70b9e25",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B471%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O8102%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B471%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O8102%22%7D"
+    },
+    {
+      "bytes": 5649,
+      "cache": false,
+      "content_hash": "a0a45b94434b2fd5ead5c17913034a292a622c38a0a1c4e2658d3e6091e69f55",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B471%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O1544%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B471%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O1544%22%7D"
+    },
+    {
+      "bytes": 5576,
+      "cache": false,
+      "content_hash": "a1bc922408b618c57f11915471e631ffc18dff3dfb9c1b45ea6fcd2bad83e57c",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B477%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O7435%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B477%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O7435%22%7D"
+    },
+    {
+      "bytes": 5857,
+      "cache": false,
+      "content_hash": "c5c5035384481b36974ac191dbace8aaf3400c392cbf956eef4f2b53b27bbfe2",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B477%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O4303%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B477%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O4303%22%7D"
+    },
+    {
+      "bytes": 5626,
+      "cache": false,
+      "content_hash": "ac7127f216a68c96a11456ad29df8e719760bcdb51084418bcbc8d3a8e733477",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B482%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8144%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B482%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8144%22%7D"
+    },
+    {
+      "bytes": 5594,
+      "cache": false,
+      "content_hash": "d2fa619b3d75f24cc7075143d3189b6a698eaf5aad593d183698d8bebc60fcc4",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B482%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8239%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B482%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8239%22%7D"
+    },
+    {
+      "bytes": 5628,
+      "cache": false,
+      "content_hash": "b9d3090a2bfa0c978a4f521ca50304ab66ff3c1ffb05576ee9ae24cfa4c969e5",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B483%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4324%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B483%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4324%22%7D"
+    },
+    {
+      "bytes": 5604,
+      "cache": false,
+      "content_hash": "5d66f8c1a3661ca42aa81bd238b74d0a58a95cddedb7f9e2b8d193d4edd725c4",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B483%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4329%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B483%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4329%22%7D"
+    },
+    {
+      "bytes": 5579,
+      "cache": false,
+      "content_hash": "66b294162b985b03673ea8f61b6105adff2353540896e98cd7099ccec3ca7304",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B497%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5180%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B497%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5180%22%7D"
+    },
+    {
+      "bytes": 5555,
+      "cache": false,
+      "content_hash": "1be37a25cf06103c5cea08aefdb28e0e12a021e9ccba6e69244b5f865c567c92",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B497%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7353%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B497%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7353%22%7D"
+    },
+    {
+      "bytes": 5792,
+      "cache": false,
+      "content_hash": "fca11b49c037470e3ec0266d1bf049e86538b0ae3161f03283903bfa0823d9d1",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B525%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5102%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B525%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5102%22%7D"
+    },
+    {
+      "bytes": 5608,
+      "cache": false,
+      "content_hash": "fc517f342541893e7ae325aae1db59be3c3c64f31b8f3bf40affbe82ff6c18ed",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B525%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5501%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B525%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5501%22%7D"
+    },
+    {
+      "bytes": 5671,
+      "cache": false,
+      "content_hash": "397224a7482a1b35998552a191906adfeeae36982052d4dcd33ef2ab2e1592a9",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B531%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2670%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B531%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2670%22%7D"
+    },
+    {
+      "bytes": 5665,
+      "cache": false,
+      "content_hash": "00c7ba48b7a14600d6b893870dd7f5ce7f771366dfca65fec060cdf1508ab164",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B531%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2793%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B531%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2793%22%7D"
+    },
+    {
+      "bytes": 5665,
+      "cache": false,
+      "content_hash": "cb9c976011da1b90abe60a95b4190d5f094ed4480eba969f2b7e876e732379e0",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B542%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2714%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B542%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2714%22%7D"
+    },
+    {
+      "bytes": 5636,
+      "cache": false,
+      "content_hash": "24ea2a71a471ffd2d1f7b3bef21d207162784d57a2d9872c5dc98d0e0ecd0d77",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B542%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O3313%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B542%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O3313%22%7D"
+    },
+    {
+      "bytes": 5622,
+      "cache": false,
+      "content_hash": "897d69c7adc561b3cf6c5832b33f71d010a30496c0add9fbfa9cca29dcc10d0a",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B555%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4366%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B555%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4366%22%7D"
+    },
+    {
+      "bytes": 5996,
+      "cache": false,
+      "content_hash": "65b21fa03e0fc201212033a030ff1f73c425cb790c04ab597b08c18f81134b81",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B555%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O6755%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B555%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O6755%22%7D"
+    },
+    {
+      "bytes": 5960,
+      "cache": false,
+      "content_hash": "53508bc9045ea777f55ef412b8a0c39a183ef717954d41d11e5d222d7c6751e9",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B580%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5087%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B580%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5087%22%7D"
+    },
+    {
+      "bytes": 5548,
+      "cache": false,
+      "content_hash": "085d97d6cb004d5b1e98d42d7ee4aa54bb6f86b68fa3f7307bf128cc3ab75630",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B580%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221007O7895%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B580%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221007O7895%22%7D"
+    },
+    {
+      "bytes": 5626,
+      "cache": false,
+      "content_hash": "e3661dffb66576f5ebb04b4c2aad444a1a2849ad8509303928998a07029201d9",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B585%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2665%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B585%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2665%22%7D"
+    },
+    {
+      "bytes": 5696,
+      "cache": false,
+      "content_hash": "a1843546431527d00670746fbe54589036e9e843c24a699cd75e8d5dafaec398",
+      "final_url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B585%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O1804%22%7D",
+      "provider_id": "duo_rio",
+      "status": 200,
+      "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B585%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O1804%22%7D"
+    },
+    {
+      "bytes": 7180,
+      "cache": false,
+      "content_hash": "c972eb441c0a30718be923b0a70cc273fe4507116a960abb39ceaa9049412166",
+      "final_url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000072536?lang=en",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000072536?lang=en"
+    },
+    {
+      "bytes": 7180,
+      "cache": false,
+      "content_hash": "97fa9c6d3cd70e388a17ec2afd306cceb7ec388da7e9cbbe361072743c8f4454",
+      "final_url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000076731?lang=en",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000076731?lang=en"
+    },
+    {
+      "bytes": 7180,
+      "cache": false,
+      "content_hash": "97fa9c6d3cd70e388a17ec2afd306cceb7ec388da7e9cbbe361072743c8f4454",
+      "final_url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000076744?lang=en",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000076744?lang=en"
+    },
+    {
+      "bytes": 7180,
+      "cache": false,
+      "content_hash": "c972eb441c0a30718be923b0a70cc273fe4507116a960abb39ceaa9049412166",
+      "final_url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000088243?lang=en",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000088243?lang=en"
+    },
+    {
+      "bytes": 7180,
+      "cache": false,
+      "content_hash": "fffb017705ae62595019909c2a28cfea70fe68728bca62eca43d9df340f14715",
+      "final_url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000091188?lang=en",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000091188?lang=en"
+    },
+    {
+      "bytes": 7180,
+      "cache": false,
+      "content_hash": "c972eb441c0a30718be923b0a70cc273fe4507116a960abb39ceaa9049412166",
+      "final_url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000091904?lang=en",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://opintopolku.fi/hakemus/hakukohde/1.2.246.562.20.00000000000000091904?lang=en"
+    },
+    {
+      "bytes": 7340,
+      "cache": false,
+      "content_hash": "56460132e4ab668af335630e5ef74a00b8da3e46f200d8a5311467cc51eeca27",
+      "final_url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000072536",
+      "provider_id": "studyinfo_hakukohde",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000072536"
+    },
+    {
+      "bytes": 9,
+      "cache": false,
+      "content_hash": "e3ebaa16dd9d9b9fc107c42183fb6cf9d22927e1af03dbbdfa0ccc38e4e4ac31",
+      "final_url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000076731",
+      "provider_id": "studyinfo_hakukohde",
+      "status": 404,
+      "url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000076731"
+    },
+    {
+      "bytes": 9,
+      "cache": false,
+      "content_hash": "e3ebaa16dd9d9b9fc107c42183fb6cf9d22927e1af03dbbdfa0ccc38e4e4ac31",
+      "final_url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000076744",
+      "provider_id": "studyinfo_hakukohde",
+      "status": 404,
+      "url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000076744"
+    },
+    {
+      "bytes": 28250,
+      "cache": false,
+      "content_hash": "4b2a22eb5551f07b03c3e02004a37c379299e37de1891a946d1d81bef74bf08a",
+      "final_url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000088243",
+      "provider_id": "studyinfo_hakukohde",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000088243"
+    },
+    {
+      "bytes": 6387,
+      "cache": false,
+      "content_hash": "2ae0a785ec9d0caa099b322fd02cd6dbf030c73a724507e0c4cccf7a421fba92",
+      "final_url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000091188",
+      "provider_id": "studyinfo_hakukohde",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000091188"
+    },
+    {
+      "bytes": 15590,
+      "cache": false,
+      "content_hash": "25dab4927a06fafa8de907033a7176ef0e0b781e174a27a55f4543fb1305e8ce",
+      "final_url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000091904",
+      "provider_id": "studyinfo_hakukohde",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/hakukohde/1.2.246.562.20.00000000000000091904"
+    },
+    {
+      "bytes": 10889,
+      "cache": false,
+      "content_hash": "026b9f47dbb674696b7269bca9d0eed536ff96c36a6bb97eb55d21d4d6654591",
+      "final_url": "https://opintopolku.fi/konfo-backend/valintaperuste/31970760-4bba-42da-8124-103121d44ec3",
+      "provider_id": "studyinfo_valintaperuste",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/valintaperuste/31970760-4bba-42da-8124-103121d44ec3"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "1fc6ded2f3f5e90c854184f3feac1f5b4a7739f77f4aad499f366d7396680f32",
+      "final_url": "https://opintopolku.fi/konfo-backend/valintaperuste/33012799-b01f-435e-8083-851d47fb4b6d",
+      "provider_id": "studyinfo_valintaperuste",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/valintaperuste/33012799-b01f-435e-8083-851d47fb4b6d"
+    },
+    {
+      "bytes": 3183,
+      "cache": false,
+      "content_hash": "35442d51d642d74cfdbcb80be1767ac6e8438c96727a2a5db8a00629cda1e23f",
+      "final_url": "https://opintopolku.fi/konfo-backend/valintaperuste/34db13a9-3733-434c-a323-67c130ae0f1f",
+      "provider_id": "studyinfo_valintaperuste",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/valintaperuste/34db13a9-3733-434c-a323-67c130ae0f1f"
+    },
+    {
+      "bytes": 26582,
+      "cache": false,
+      "content_hash": "883e0011df146abaf47a99901b3fa58298f402d3937192f0bc4d5441fb180243",
+      "final_url": "https://opintopolku.fi/konfo-backend/valintaperuste/60a36d5e-bdd3-4509-8125-85c36f8df222",
+      "provider_id": "studyinfo_valintaperuste",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/valintaperuste/60a36d5e-bdd3-4509-8125-85c36f8df222"
+    },
+    {
+      "bytes": 14467,
+      "cache": false,
+      "content_hash": "ae33ef1355037be951d7ab890b61d7c18702132bf67683e3f708f3b97f73460f",
+      "final_url": "https://opintopolku.fi/konfo-backend/valintaperuste/88fc8a7e-9804-478d-bf45-18af037bf8e7",
+      "provider_id": "studyinfo_valintaperuste",
+      "status": 200,
+      "url": "https://opintopolku.fi/konfo-backend/valintaperuste/88fc8a7e-9804-478d-bf45-18af037bf8e7"
+    },
+    {
+      "bytes": 123112,
+      "cache": false,
+      "content_hash": "5ff92f29e32f3a86e7bc8f4481069d916fa1e981ea6d96ffb43a3191092319f4",
+      "final_url": "https://polytech.univ-cotedazur.fr/admission-scolarite",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://polytech.univ-cotedazur.fr/admission-scolarite"
+    },
+    {
+      "bytes": 123992,
+      "cache": false,
+      "content_hash": "b105446d66b57b2d49f0d9eaf0ba11502323e1bd9338743d66f988a7cc46dd2a",
+      "final_url": "https://polytech.univ-cotedazur.fr/admission-scolarite/admission",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://polytech.univ-cotedazur.fr/admission-scolarite/admission"
+    },
+    {
+      "bytes": 126829,
+      "cache": false,
+      "content_hash": "000532a243ac4c4273a86f7209beae820f97553c8881bba61b3bf6e323b58f50",
+      "final_url": "https://polytech.univ-cotedazur.fr/admission-scolarite/inscription",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://polytech.univ-cotedazur.fr/admission-scolarite/inscription"
+    },
+    {
+      "bytes": 153570,
+      "cache": false,
+      "content_hash": "59857f82cd01bd12d35536f6ecde31a723a24c438bec7cb754ef8c8b0ffab755",
+      "final_url": "https://polytech.univ-cotedazur.fr/formations/formations-ingenieurs/ingenieur-informatique",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://polytech.univ-cotedazur.fr/formations/formations-ingenieurs/ingenieur-informatique"
+    },
+    {
+      "bytes": 266227,
+      "cache": false,
+      "content_hash": "0cdccbfe0bd2724d892e1290810ff78a2de9a88981ecf040169606faabdfe97d",
+      "final_url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/licences/les-l2-l3-nos-huit-disciplines-de-licence/licence-4",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://sciences.sorbonne-universite.fr/formation-sciences/licences/licences-generales-l2-l3/licence-dinformatique"
+    },
+    {
+      "bytes": 193130,
+      "cache": false,
+      "content_hash": "2d659402c8b90eddfc913fcd816abd257c794f3b872a657c81f522fed8091c59",
+      "final_url": "https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/masters/master-informatique",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://sciences.sorbonne-universite.fr/formation-sciences/masters/master-informatique"
+    },
+    {
+      "bytes": 450306,
+      "cache": false,
+      "content_hash": "2cd08a7d2374e22007ac5b71defbd1720db3e9d7eb71884e1986798550fec4a4",
+      "final_url": "https://study.ed.ac.uk/programmes/undergraduate-a-z",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://study.ed.ac.uk/programmes/undergraduate-a-z"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "eb6d761196fce7920832f314f674a153671f3220fa080770fbeb7e5153c1fd63",
+      "final_url": "https://study.ed.ac.uk/programmes/undergraduate/57-computer-science",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://study.ed.ac.uk/programmes/undergraduate/57-computer-science"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "44a81bd562dff2fc31bd7d060b7b2da478c3a82392833498b4de6319af0ea117",
+      "final_url": "https://study.ed.ac.uk/programmes/undergraduate/58-computer-science",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://study.ed.ac.uk/programmes/undergraduate/58-computer-science"
+    },
+    {
+      "bytes": 136323,
+      "cache": false,
+      "content_hash": "09a3bec40f2839dc8c81768d805e07eb7a48ef4ed0abe98cacb15833d5964e8d",
+      "final_url": "https://study.ed.ac.uk/undergraduate/applying/making-application/apply-through-ucas",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://study.ed.ac.uk/undergraduate/applying/making-application/apply-through-ucas"
+    },
+    {
+      "bytes": 134894,
+      "cache": false,
+      "content_hash": "6e60c3ba25cbd094ba41bd7d23782d320a8de00744ff775bc48a5122512be563",
+      "final_url": "https://study.ed.ac.uk/undergraduate/applying/selection/how-select",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://study.ed.ac.uk/undergraduate/applying/selection/how-select"
+    },
+    {
+      "bytes": 360731,
+      "cache": false,
+      "content_hash": "879d5943236baee2cc35d950c62122d61168c8de28badb26decf6afc6490f051",
+      "final_url": "https://univ-cotedazur.fr/formation/candidater-et-s-inscrire/documents-a-telecharger",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/candidater-et-s-inscrire/documents-a-telecharger"
+    },
+    {
+      "bytes": 358324,
+      "cache": false,
+      "content_hash": "fb867241d844f00a3876b7d250080c84b5d41a700212f7a47407f900ad847370",
+      "final_url": "https://univ-cotedazur.fr/formation/candidater-et-s-inscrire/documents-officiels",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/candidater-et-s-inscrire/documents-officiels"
+    },
+    {
+      "bytes": 348328,
+      "cache": false,
+      "content_hash": "32c3e7b49a63379fe2bf612167b606b7e8b3fc017dc39c2cfc47e0a3e6141c0e",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/licence-histoire",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/licence-histoire"
+    },
+    {
+      "bytes": 334413,
+      "cache": false,
+      "content_hash": "cbc48c8603d6877f777481ac9d055e5c7b0bf66b44a342b5d1a5b6eb05e5e0d2",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/licence-humanites",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/licence-humanites"
+    },
+    {
+      "bytes": 339602,
+      "cache": false,
+      "content_hash": "530efed165218c65f223ac0c9fe76bd43325055a67090aa2e9cf591f0e1d5a3f",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/licence-langues-litteratures-et-civilisations-etrangeres-et-regionales",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/licence-langues-litteratures-et-civilisations-etrangeres-et-regionales"
+    },
+    {
+      "bytes": 315546,
+      "cache": false,
+      "content_hash": "597241789217197b0e06c85f0985fb538a19f76bdd1226b2783fd24241f3b1b2",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-activite-physique-adaptee-et-sante",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-activite-physique-adaptee-et-sante"
+    },
+    {
+      "bytes": 366758,
+      "cache": false,
+      "content_hash": "bcb739e834d7d6e63e454b7bd8188f04f313d1c6d770da1d077b45814f19b6e8",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-chimie-moleculaire",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-chimie-moleculaire"
+    },
+    {
+      "bytes": 353729,
+      "cache": false,
+      "content_hash": "de2b9a2496f6d75591e7555dcdffcfc3d17db1c710e25e007b2f41f8e565f70d",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-gestion-de-lenvironnement",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-gestion-de-lenvironnement"
+    },
+    {
+      "bytes": 343203,
+      "cache": false,
+      "content_hash": "919e5ecc9a1738120591ce70690ad5a37b7cb1585a055c38c102dc6f170940ab",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-gestion-des-ressources-humaines-2#parcours",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-gestion-des-ressources-humaines-2#parcours"
+    },
+    {
+      "bytes": 375920,
+      "cache": false,
+      "content_hash": "3dcdf62d53c75f8dd374b6cef186647445436dc7bbcae046c67f519badb8963d",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-informatique-1",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-informatique-1"
+    },
+    {
+      "bytes": 362217,
+      "cache": false,
+      "content_hash": "10d8b57695051861dcd0016566fc05514f037b5c429906406536e8a8753edae3",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-methodes-informatiques-appliquees-a-la-gestion-des-entreprises",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-methodes-informatiques-appliquees-a-la-gestion-des-entreprises"
+    },
+    {
+      "bytes": 411611,
+      "cache": false,
+      "content_hash": "746c8782cb2fee62374d38f0d9f8e8d5e25b5e2441f0dc61ab67c7a0b22c4e48",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-monnaie-banque-finance-assurance-2",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-monnaie-banque-finance-assurance"
+    },
+    {
+      "bytes": 368349,
+      "cache": false,
+      "content_hash": "4933f5d04162a3727396fa72e456609e3086bb2a2465a727e3b2e00fac8dd8ff",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-physique-fondamentale-et-applications",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-physique-fondamentale-et-applications"
+    },
+    {
+      "bytes": 314510,
+      "cache": false,
+      "content_hash": "87935ff687fed31ad03e8305167128971162621a67e5e18e60fbcb032872262a",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-staps-management-du-sport-master-mention-staps-management-du-sport",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-staps-management-du-sport-master-mention-staps-management-du-sport"
+    },
+    {
+      "bytes": 327820,
+      "cache": false,
+      "content_hash": "aa67f9b693adc17da7e8d10ae3f211371b57ac2b443dc3bc5d31f37d56db93f6",
+      "final_url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-villes-et-environnements-urbains",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/formation/offre-de-formation/master-villes-et-environnements-urbains"
+    },
+    {
+      "bytes": 1671961,
+      "cache": false,
+      "content_hash": "11e5276a0cf09530c536015f4e0f489f31395866c226c47fbdd0733ed2b32f42",
+      "final_url": "https://univ-cotedazur.fr/medias/fichier/ccs-sciences-historiques_1610304274580-pdf",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/medias/fichier/ccs-sciences-historiques_1610304274580-pdf"
+    },
+    {
+      "bytes": 403524,
+      "cache": false,
+      "content_hash": "f62f3c66b4798b798501fd461baeafe52bbf2f3ee8bc6a9e7e080b1cc13a04d7",
+      "final_url": "https://univ-cotedazur.fr/recherche-innovation/doctorat-phd/informations-utiles-et-documentation",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/recherche-innovation/doctorat-phd/informations-utiles-et-documentation"
+    },
+    {
+      "bytes": 357045,
+      "cache": false,
+      "content_hash": "807d6c6e0cd1297b4bf447afeea7be1a2b16872442282803a1859954e128c673",
+      "final_url": "https://univ-cotedazur.fr/servlet/com.jsbsoft.jtf.core.SG?%23ECRAN_LOGIQUE%23=RECHERCHE&PROC=RECHERCHE&ACTION=VALIDER&RH=1595659207794&OBJET=FORMATION&LANGUE=0&FORMATION_INITIALE=&REPRISE_ETUDES=&PARTIELLEMENT_DISTANCE=&TOTALEMENT_DISTANCE=&ALTERNANCE=&LIBELLE=&GRADE=0000&TYPE_DIPLOME=MASTER&FORMATION=0000&MODALITE=ALTERNANCE&DOMAINE_LMD=0000",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://univ-cotedazur.fr/servlet/com.jsbsoft.jtf.core.SG?%23ECRAN_LOGIQUE%23=RECHERCHE&PROC=RECHERCHE&ACTION=VALIDER&RH=1595659207794&OBJET=FORMATION&LANGUE=0&FORMATION_INITIALE=&REPRISE_ETUDES=&PARTIELLEMENT_DISTANCE=&TOTALEMENT_DISTANCE=&ALTERNANCE=&LIBELLE=&GRADE=0000&TYPE_DIPLOME=MASTER&FORMATION=0000&MODALITE=ALTERNANCE&DOMAINE_LMD=0000"
+    },
+    {
+      "bytes": 260070,
+      "cache": false,
+      "content_hash": "7e80b8be12f1d6e91ad800a8a454afef1fd706fa01d91b54b42739612c5207eb",
+      "final_url": "https://www.allnations.ac.uk/apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.allnations.ac.uk/apply"
+    },
+    {
+      "bytes": 299459,
+      "cache": false,
+      "content_hash": "2566539a5e17eb6a0616e42fc1607e182eeb7210cbb5be2c23891ee70a633995",
+      "final_url": "https://www.allnations.ac.uk/apply/how-to-apply/fees-finance",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.allnations.ac.uk/apply/how-to-apply/fees-finance"
+    },
+    {
+      "bytes": 798912,
+      "cache": false,
+      "content_hash": "0664512e5633953564567e7cf0310a0a8ea0cf5b6e1357b9ce1527e13a0e8e0c",
+      "final_url": "https://www.allnations.ac.uk/assets/documents-and-pdfs/safeguarding-policy.pdf",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.allnations.ac.uk/assets/documents-and-pdfs/safeguarding-policy.pdf"
+    },
+    {
+      "bytes": 307094,
+      "cache": false,
+      "content_hash": "42c5e85d864f26ae6f1dc00307f6f29e9ab614f3bd175c36c40347689f06b9f2",
+      "final_url": "https://www.allnations.ac.uk/courses/diploma-in-biblical-studies",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.allnations.ac.uk/courses/diploma-in-biblical-studies"
+    },
+    {
+      "bytes": 308674,
+      "cache": false,
+      "content_hash": "30e9ca474e6e89b193444971fe96a8a2fdac9b468d12303088a5cf9fbcfb0f74",
+      "final_url": "https://www.allnations.ac.uk/courses/mission-ministry-degree",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.allnations.ac.uk/courses/mission-ministry-degree"
+    },
+    {
+      "bytes": 373841,
+      "cache": false,
+      "content_hash": "3b1abf738e4be3ac0873e1e3cabc982fba97c4336460b703aa525f3bd098205f",
+      "final_url": "https://www.artez.nl/opleidingen/bachelor/docent-beeldende-kunst-en-vormgeving-deeltijd-arnhem",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.artez.nl/opleidingen/bachelor/docent-beeldende-kunst-en-vormgeving-deeltijd-arnhem"
+    },
+    {
+      "bytes": 105263,
+      "cache": false,
+      "content_hash": "88ac8ca495bb47d119f4bd3ce21652ce13e3815ea89a2efc2256fe63f472ffa7",
+      "final_url": "https://www.aru.ac.uk/study/college-courses/how-to-apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.aru.ac.uk/study/college-courses/how-to-apply"
+    },
+    {
+      "bytes": 109301,
+      "cache": false,
+      "content_hash": "2633fc2afa2f9b43ebaafa31f69c1165b54ec3ce8ee2371638e37b27e207ba17",
+      "final_url": "https://www.aru.ac.uk/study/postgraduate/how-to-apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.aru.ac.uk/study/postgraduate/how-to-apply"
+    },
+    {
+      "bytes": 306430,
+      "cache": false,
+      "content_hash": "831ee70ac2ad15697487ad9480a8d76d3e899b455f35db5dff102ab9267ce4f3",
+      "final_url": "https://www.aru.ac.uk/study/undergraduate/fine-art",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.aru.ac.uk/study/undergraduate/fine-art"
+    },
+    {
+      "bytes": 106060,
+      "cache": false,
+      "content_hash": "e543bedfb2cfa48f5aecc82dca3695c8e31905e68fbf80aca0b66a8bd37e93ad",
+      "final_url": "https://www.aru.ac.uk/study/undergraduate/how-to-apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.aru.ac.uk/study/undergraduate/how-to-apply"
+    },
+    {
+      "bytes": 216165,
+      "cache": false,
+      "content_hash": "b9329b44a5debbe7819296e9be2a8bf16c9c85c82bb3a3f7e26f1d738aef13b0",
+      "final_url": "https://www.aru.ac.uk/study/undergraduate/law",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.aru.ac.uk/study/undergraduate/law"
+    },
+    {
+      "bytes": 125245,
+      "cache": false,
+      "content_hash": "6eed281954bd3b56af0a810e75bd6e94cab0e43361bb889571a62f4452a377b3",
+      "final_url": "https://www.askham-bryan.ac.uk/apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.askham-bryan.ac.uk/apply/"
+    },
+    {
+      "bytes": 182590,
+      "cache": false,
+      "content_hash": "e232b5221e8e1d7c3b567202273df6b501127c96833f937baa2e402e1bd67c0c",
+      "final_url": "https://www.askham-bryan.ac.uk/courses/extended-fdsc-equine-science-and-management/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.askham-bryan.ac.uk/courses/extended-fdsc-equine-science-and-management/"
+    },
+    {
+      "bytes": 184952,
+      "cache": false,
+      "content_hash": "53c83defeb2e4193cf41b158eaf6032af785dcdb332d3194b76341d14f85b6cb",
+      "final_url": "https://www.askham-bryan.ac.uk/courses/fdsc-equine-science-and-management/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.askham-bryan.ac.uk/courses/fdsc-equine-science-and-management/"
+    },
+    {
+      "bytes": 172470,
+      "cache": false,
+      "content_hash": "862f8f84f5136beae2b0ab4bf14e1c11f67aa31151983ea82360a9332a51af39",
+      "final_url": "https://www.askham-bryan.ac.uk/how-to-apply-ucab/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.askham-bryan.ac.uk/how-to-apply-ucab/"
+    },
+    {
+      "bytes": 123065,
+      "cache": false,
+      "content_hash": "eeaf8247b625969bc731e35196394ed3ae0b8e76ca7b2ffec31aa9770dd9cfbb",
+      "final_url": "https://www.askham-bryan.ac.uk/schools-engagement/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.askham-bryan.ac.uk/schools-engagement/"
+    },
+    {
+      "bytes": 61223,
+      "cache": false,
+      "content_hash": "61045de5f3a3f17dad4d8ffc261aedc6498d671d5d7e6730f3e6bbb7d43e8705",
+      "final_url": "https://www.barnsley.ac.uk/apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.barnsley.ac.uk/apply"
+    },
+    {
+      "bytes": 97617,
+      "cache": false,
+      "content_hash": "2c44f5f24f3586ebbe9180d2b156a8a922ba2f94212f66b055f6ec2f393fc611",
+      "final_url": "https://www.barnsley.ac.uk/course/animal-management-foundation-degree-fdsc-full-time",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.barnsley.ac.uk/course/animal-management-foundation-degree-fdsc-full-time"
+    },
+    {
+      "bytes": 181,
+      "cache": false,
+      "content_hash": "300d1583c8ca6df476b6106355528ccf7cc237a61aa13afed3cf608e0af860c2",
+      "final_url": "https://www.barnsley.ac.uk/course/early-years-leadership-foundation-degree-leeds-full-time",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.barnsley.ac.uk/course/early-years-leadership-foundation-degree-htq-full-time"
+    },
+    {
+      "bytes": 76130,
+      "cache": false,
+      "content_hash": "4f3967ac35f425a8f3038def095219c6265e498b3ae4ab1d54712c5ce506d614",
+      "final_url": "https://www.barnsley.ac.uk/important-policies-and-documents",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.barnsley.ac.uk/important-policies-and-documents"
+    },
+    {
+      "bytes": 64747,
+      "cache": false,
+      "content_hash": "747a86bd7b5cd06f8ee488bc914de911f1f407d94be7061ab8d75c395c646dfb",
+      "final_url": "https://www.barnsley.ac.uk/statutory-documents",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.barnsley.ac.uk/statutory-documents"
+    },
+    {
+      "bytes": 84091,
+      "cache": false,
+      "content_hash": "c48a3346335b3efb7eecb070c3eff265c2a8d2cc158196e437a079116055ffe8",
+      "final_url": "https://www.bathspa.ac.uk:443/courses/course-documents/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.bathspa.ac.uk:443/courses/course-documents/"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "8ab2a166886cc577673ec06beb5e3453367b519831a94afecd63fa89e7db505b",
+      "final_url": "https://www.bathspa.ac.uk:443/courses/ug-acting/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.bathspa.ac.uk:443/courses/ug-acting/"
+    },
+    {
+      "bytes": 93000,
+      "cache": false,
+      "content_hash": "f6303cb9d4cec51dc7e2c9e1f19bb22d083cf2dedb7d08b7906d73d0644047da",
+      "final_url": "https://www.bathspa.ac.uk:443/how-to-apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.bathspa.ac.uk:443/how-to-apply/"
+    },
+    {
+      "bytes": 117647,
+      "cache": false,
+      "content_hash": "f12dbf6fde8be4adfae6e835625eab5f1468c37c5253c1618a23593a4da6c164",
+      "final_url": "https://www.bathspa.ac.uk:443/student-life/accommodation/applying-for-accommodation/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.bathspa.ac.uk:443/student-life/accommodation/applying-for-accommodation/"
+    },
+    {
+      "bytes": 70,
+      "cache": false,
+      "content_hash": "5dc5a34269c0be23d554f587f68ba8cc6e080b2827478944b626c7f26c9ea497",
+      "final_url": "https://www.bishopburton.ac.uk/university-centre/study/view-all-courses/bsc-hons-animal-behaviour-and-wildlife-conservation",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.bishopburton.ac.uk/university-centre/study/view-all-courses/bsc-hons-animal-behaviour-and-wildlife-conservation"
+    },
+    {
+      "bytes": 70,
+      "cache": false,
+      "content_hash": "5dc5a34269c0be23d554f587f68ba8cc6e080b2827478944b626c7f26c9ea497",
+      "final_url": "https://www.bishopburton.ac.uk/university-centre/study/view-all-courses/bsc-hons-applied-animal-behaviour-and-training",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.bishopburton.ac.uk/university-centre/study/view-all-courses/bsc-hons-applied-animal-behaviour-and-training"
+    },
+    {
+      "bytes": 104788,
+      "cache": false,
+      "content_hash": "4a561e3c6e2660eed054e302722cfa53b0f4c6e83bb2a51dbed4c0be00689adb",
+      "final_url": "https://www.blackpool.ac.uk/admissions/further-education",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.blackpool.ac.uk/admissions/further-education"
+    },
+    {
+      "bytes": 122464,
+      "cache": false,
+      "content_hash": "7a8bf2ec9dcbab7abff8859048f88899fa93f3dd17807c60f2e310c708f2f4df",
+      "final_url": "https://www.blackpool.ac.uk/course/ET1HE0001",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.blackpool.ac.uk/course/ET1HE0001"
+    },
+    {
+      "bytes": 141545,
+      "cache": false,
+      "content_hash": "9a8b48286c863a8326178a5ecaaa148131f004347d6c039374ca40aad00c3078",
+      "final_url": "https://www.blackpool.ac.uk/course/ET1HE601",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.blackpool.ac.uk/course/ET1HE601"
+    },
+    {
+      "bytes": 109854,
+      "cache": false,
+      "content_hash": "3b338475a57653043041e7c353efdc2b9df0663edcffc1483de074cacc535b49",
+      "final_url": "https://www.blackpool.ac.uk/getting-here",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.blackpool.ac.uk/getting-here"
+    },
+    {
+      "bytes": 100684,
+      "cache": false,
+      "content_hash": "ed95ef7a7481e60c9b52e3cb7c9c864ea682f0eb266f131ff0fb98f880d7ad7c",
+      "final_url": "https://www.blackpool.ac.uk/how-school-leavers",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.blackpool.ac.uk/how-school-leavers"
+    },
+    {
+      "bytes": 2567,
+      "cache": false,
+      "content_hash": "817466cb92b489cd8e2603fcf31ddce431b5d80544c750d917406156ae69363b",
+      "final_url": "https://www.bucks.ac.uk/courses/undergraduate/ba-hons-acting-stage-and-screen",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.bnu.ac.uk/courses/undergraduate/ba-hons-acting-stage-and-screen"
+    },
+    {
+      "bytes": 3700,
+      "cache": false,
+      "content_hash": "b3f1ac611aaf46d5868bd387013c4a020cf866724ac534e49b5682b9812e9cc7",
+      "final_url": "https://www.bucks.ac.uk/courses/undergraduate/ba-hons-animation-online",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.bnu.ac.uk/courses/undergraduate/ba-hons-animation-online"
+    },
+    {
+      "bytes": 165263,
+      "cache": false,
+      "content_hash": "b403255767737d7b20157aaf84c16d2327fd042e824f11d587fbb586e0170a6f",
+      "final_url": "https://www.boston.ac.uk/about-us/work-with-us/application-guidelines",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.boston.ac.uk/about-us/work-with-us/application-guidelines"
+    },
+    {
+      "bytes": 173628,
+      "cache": false,
+      "content_hash": "18c90f7cb5454b451f67c6f8555b1e08dca88f7c53bad8a759a4677721b7e2a0",
+      "final_url": "https://www.boston.ac.uk/find-a-course/view-all-courses/leadership-and-management-hnd-level-5",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.boston.ac.uk/courses/find-a-course/area/business/leadership-and-management-hnd-level-5/"
+    },
+    {
+      "bytes": 173238,
+      "cache": false,
+      "content_hash": "c780a1fe03beb44bdb20d3c80a30c359f95043109172c512e7f73ad7bd72002e",
+      "final_url": "https://www.boston.ac.uk/find-a-course/view-all-courses/film-and-television-hnd-level-5",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.boston.ac.uk/courses/find-a-course/area/media/film-and-television-hnd-level-5/"
+    },
+    {
+      "bytes": 196044,
+      "cache": false,
+      "content_hash": "d340f0f5e45fe7a0cf3aea94cc80db61a21fb8ba7bc71fe396ab3c7eeaf8c7ce",
+      "final_url": "https://www.boston.ac.uk/find-a-course/by-department/academic-health-care/foundation-entry-send",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.boston.ac.uk/find-a-course/by-student-type/foundation-learning"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "bc049d80cf90369244d734ef8a5e02945d4f9d65a96b99a8b14af86b24864b17",
+      "final_url": "https://www.boston.ac.uk/find-a-course/view-all-courses/film-and-television-hnd-level-5",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.boston.ac.uk/find-a-course/view-all-courses/film-and-television-hnd-level-5"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "77b6b6a3e2491d6cc36c2e8c184026bf60f485ba6baba9dcf15d95e95273394e",
+      "final_url": "https://www.boston.ac.uk/find-a-course/view-all-courses/leadership-and-management-hnd-level-5",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.boston.ac.uk/find-a-course/view-all-courses/leadership-and-management-hnd-level-5"
+    },
+    {
+      "bytes": 169959,
+      "cache": false,
+      "content_hash": "9f1c2d2e8927704d7c170f18bb89990617d71190ab93f29bbea333d0fdce638e",
+      "final_url": "https://www.boston.ac.uk/students/how-to-apply-enrol",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.boston.ac.uk/students/how-to-apply-enrol"
+    },
+    {
+      "bytes": 5700,
+      "cache": false,
+      "content_hash": "d3cbe245a2e2115d8e03a5c12c02db9aa503a6383cb501df566033bad17508fa",
+      "final_url": "https://www.bournemouth.ac.uk/study/courses/ba-hons-accounting",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.bournemouth.ac.uk/study/courses/ba-hons-accounting"
+    },
+    {
+      "bytes": 5751,
+      "cache": false,
+      "content_hash": "e0ab888841dd69a94f6897fa8962cce628041e6fd825fa43fcf6ff7920ff3313",
+      "final_url": "https://www.bournemouth.ac.uk/study/courses/ba-hons-accounting-finance-2",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.bournemouth.ac.uk/study/courses/ba-hons-accounting-finance-2"
+    },
+    {
+      "bytes": 5749,
+      "cache": false,
+      "content_hash": "c466c7f6922b2e9b12f37c28fd13075a063bc8016143ffef2c026d2a55a9bf0e",
+      "final_url": "https://www.bradfordcollege.ac.uk/courses/level-6-ba-hons-primary-education-early-years-3-7-with-qts/",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.bradfordcollege.ac.uk/courses/level-6-ba-hons-primary-education-early-years-3-7-with-qts/"
+    },
+    {
+      "bytes": 5752,
+      "cache": false,
+      "content_hash": "17cc1c902c30f37c94e77df0c9b579af57f179330aba6daa5174db7048ba32a0",
+      "final_url": "https://www.bradfordcollege.ac.uk/courses/level-6-ba-hons-primary-education-later-years-5-11-with-qts/",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.bradfordcollege.ac.uk/courses/level-6-ba-hons-primary-education-later-years-5-11-with-qts/"
+    },
+    {
+      "bytes": 61003,
+      "cache": false,
+      "content_hash": "482cac356d307688242e1911988c85a7d8fa82e4212c8eb2fa6bac3ef284b51f",
+      "final_url": "https://www.brighton.ac.uk/clearing/index.aspx",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brighton.ac.uk/clearing/index.aspx"
+    },
+    {
+      "bytes": 176970,
+      "cache": false,
+      "content_hash": "946e1f666521bbdb519a81e09d021ab76b9bb7b98195c0e1f537a63e57212d0f",
+      "final_url": "https://www.brighton.ac.uk/courses/study/business-management-with-entrepreneurship-bsc-hons.aspx",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.brighton.ac.uk/courses/study/business-management-with-entrepreneurship-bsc-hons.aspx"
+    },
+    {
+      "bytes": 167834,
+      "cache": false,
+      "content_hash": "24fc87ac2057f7ed2c5f83079a0c89e8ce40b9d85e6235959b4b0a521c5a4141",
+      "final_url": "https://www.brighton.ac.uk/courses/study/pharmacy-mpharm-with-preparatory-year.aspx",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.brighton.ac.uk/courses/study/pharmacy-mpharm-with-preparatory-year.aspx"
+    },
+    {
+      "bytes": 50005,
+      "cache": false,
+      "content_hash": "93f6d82140c17376c480e0183c55ebd94bdfde1cdc5c21d37fd7092f35d9ec66",
+      "final_url": "https://www.brighton.ac.uk/studying-here/applying-to-brighton/ask-a-question/index.aspx",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brighton.ac.uk/studying-here/applying-to-brighton/ask-a-question/index.aspx"
+    },
+    {
+      "bytes": 59055,
+      "cache": false,
+      "content_hash": "d7ae96c4785de8fabb0ac5cc37b96b1c4ba52a5f7013efc3248350d1e2adae66",
+      "final_url": "https://www.brighton.ac.uk/studying-here/applying-to-brighton/undergraduate/index.aspx",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brighton.ac.uk/studying-here/applying-to-brighton/undergraduate/index.aspx"
+    },
+    {
+      "bytes": 172482,
+      "cache": false,
+      "content_hash": "9b5bd6cd9c3553a3b79370bc6c8787bfb478c6695b09de8eda8a3888f65585af",
+      "final_url": "https://www.bristol-baptist.ac.uk/undergraduate/",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.bristol-baptist.ac.uk/undergraduate/"
+    },
+    {
+      "bytes": 108898,
+      "cache": false,
+      "content_hash": "f2d5e25a77d7aef16d0076b6e90e3415d9a12fe60b3f7344b7ffd581caad2326",
+      "final_url": "https://www.bristol.ac.uk/study/undergraduate/2026/computer-science/bsc-computer-science/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.bristol.ac.uk/study/undergraduate/2026/computer-science/bsc-computer-science/"
+    },
+    {
+      "bytes": 109962,
+      "cache": false,
+      "content_hash": "aea80e62c18d0e1e5663be85a3a582ef905f6d9f9cdcb882955c31712f9439d4",
+      "final_url": "https://www.bristol.ac.uk/study/undergraduate/2026/computer-science/meng-computer-science/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.bristol.ac.uk/study/undergraduate/2026/computer-science/meng-computer-science/"
+    },
+    {
+      "bytes": 73833,
+      "cache": false,
+      "content_hash": "6f2f1c1946f8067533e2751645795d3436b55b7d2d047ad7f407779deb73844d",
+      "final_url": "https://www.bristol.ac.uk/study/undergraduate/apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.bristol.ac.uk/study/undergraduate/apply/"
+    },
+    {
+      "bytes": 71847,
+      "cache": false,
+      "content_hash": "0b3fb52ef774a6f8094c2f2da4a5afcc889370ffae3a7a400fb968ad6b60d16e",
+      "final_url": "https://www.bristol.ac.uk/study/undergraduate/search/?attr-UCASCode=G400&filterStudyYear=2027",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.bristol.ac.uk/study/undergraduate/search/?attr-UCASCode=G400&filterStudyYear=2027"
+    },
+    {
+      "bytes": 71847,
+      "cache": false,
+      "content_hash": "0b3fb52ef774a6f8094c2f2da4a5afcc889370ffae3a7a400fb968ad6b60d16e",
+      "final_url": "https://www.bristol.ac.uk/study/undergraduate/search/?attr-UCASCode=G403&filterStudyYear=2027",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.bristol.ac.uk/study/undergraduate/search/?attr-UCASCode=G403&filterStudyYear=2027"
+    },
+    {
+      "bytes": 72920,
+      "cache": false,
+      "content_hash": "1ef6425117440c6b849a83e7ab52a893dc3a0d5a0e295da99f894924e219a0f9",
+      "final_url": "https://www.brookes.ac.uk/courses/undergraduate/business-and-management-practice-fda",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.brookes.ac.uk/courses/undergraduate/business-and-management-practice-fda"
+    },
+    {
+      "bytes": 75388,
+      "cache": false,
+      "content_hash": "4bccffdaa1e142a898fe6b5a04f72395b4ee14f971226f38a2ae1a26eff06f9e",
+      "final_url": "https://www.brookes.ac.uk/study/how-to-apply",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brookes.ac.uk/study/how-to-apply"
+    },
+    {
+      "bytes": 59826,
+      "cache": false,
+      "content_hash": "0d95f791f0d800bb0a3cf9da89e35f55e1597b4a7b986a39034c51028819296a",
+      "final_url": "https://www.brookes.ac.uk/study/how-to-apply/entry-requirements",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brookes.ac.uk/study/how-to-apply/entry-requirements"
+    },
+    {
+      "bytes": 86342,
+      "cache": false,
+      "content_hash": "4a7514e90772284cac3d3d98c948b7d055db2836eb48738d0e7848718ae39a61",
+      "final_url": "https://www.brookes.ac.uk/study/international-students/applying-to-arriving/how-to-apply/english-language-requirements",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brookes.ac.uk/study/international-students/applying-to-arriving/how-to-apply/english-language-requirements"
+    },
+    {
+      "bytes": 68769,
+      "cache": false,
+      "content_hash": "77f2f19b3020a57a2b9380d82d50a7adabf682cdf27c6ae0f3b6d979baa9f0eb",
+      "final_url": "https://www.brunel.ac.uk/IamBrunel/profile?entryid=47468305-068c-1546-8ba2-3943fe646f16",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brunel.ac.uk/IamBrunel/profile?entryid=47468305-068c-1546-8ba2-3943fe646f16"
+    },
+    {
+      "bytes": 70809,
+      "cache": false,
+      "content_hash": "83a6666952e0a82182b17a7a89ce10a5911724fc1dd08206936a272d75239330",
+      "final_url": "https://www.brunel.ac.uk/IamBrunel/profile?entryid=84dedf1f-68a3-67b3-3c94-860051818be6",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brunel.ac.uk/IamBrunel/profile?entryid=84dedf1f-68a3-67b3-3c94-860051818be6"
+    },
+    {
+      "bytes": 1255409,
+      "cache": true,
+      "content_hash": "eea554c32d7ef542082071005d8f3ffc6d889dd332b114a5ef8e3986331a7a2c",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.brunel.ac.uk/study/courses/theatre-ba"
+    },
+    {
+      "bytes": 1255409,
+      "cache": false,
+      "content_hash": "eea554c32d7ef542082071005d8f3ffc6d889dd332b114a5ef8e3986331a7a2c",
+      "final_url": "https://www.brunel.ac.uk/study/courses/theatre-ba",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.brunel.ac.uk/study/undergraduate/theatre-ba"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "c1a288cc918565127667017512efac4b465cb760ef82b8fbeda1b8aff8cbe03e",
+      "final_url": "https://www.bucks.ac.uk/courses/undergraduate/ba-hons-animation-online",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.bucks.ac.uk/courses/undergraduate/ba-hons-animation-online"
+    },
+    {
+      "bytes": 182093,
+      "cache": false,
+      "content_hash": "0862f6e665d467b69f20278496d53b063dc7ec628df63cdf17b35a5398593aef",
+      "final_url": "https://www.ec-lyon.fr/formation/master-2-chimie-et-sciences-des-materiaux",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.ec-lyon.fr/formation/master-2-chimie-et-sciences-des-materiaux"
+    },
+    {
+      "bytes": 184054,
+      "cache": false,
+      "content_hash": "5b88f4bcdd837fbae31a3d35147793481284ad8e18dc457c7addc4978fc69124",
+      "final_url": "https://www.ec-lyon.fr/formation/master-2-informatique",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.ec-lyon.fr/formation/master-2-informatique"
+    },
+    {
+      "bytes": 131917,
+      "cache": false,
+      "content_hash": "d0e934649ecbcea6863424c5d48c99b94c56745cb491b4619eed2fdc6be88e9d",
+      "final_url": "https://study.ed.ac.uk/programmes/undergraduate/57-computer-science",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.ed.ac.uk/ug/G400"
+    },
+    {
+      "bytes": 133038,
+      "cache": false,
+      "content_hash": "56ff0c66d757ef20ba1b13d43d8216045b67bd664884b842eed6f6b718f3e1c6",
+      "final_url": "https://study.ed.ac.uk/programmes/undergraduate/58-computer-science",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.ed.ac.uk/ug/G401"
+    },
+    {
+      "bytes": 93088,
+      "cache": false,
+      "content_hash": "81568d1a9a3a741da8f8750706ccaed280a65ff6230985b1b36de12c4ef41700",
+      "final_url": "https://www.eurecom.fr/fr/les-formations/admission",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.eurecom.fr/fr/les-formations/admission"
+    },
+    {
+      "bytes": 96726,
+      "cache": false,
+      "content_hash": "2e002a144d7927bc9ae3d5f17ad0cdccdcf4ba8ed34c76561e116598428291ed",
+      "final_url": "https://www.eurecom.fr/fr/les-formations/admission/comment-candidater",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.eurecom.fr/fr/les-formations/admission/comment-candidater"
+    },
+    {
+      "bytes": 96630,
+      "cache": false,
+      "content_hash": "fe39b7f3abc54dbae6d15dea911edcfd03d6acec9f63e1c970d50f0dbd978d7a",
+      "final_url": "https://www.eurecom.fr/fr/les-formations/admission/documents-fournir",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.eurecom.fr/fr/les-formations/admission/documents-fournir"
+    },
+    {
+      "bytes": 101843,
+      "cache": false,
+      "content_hash": "0a0bbe1ed20b466393ab7470d5079c5f157d2248912faff9238e4fda9079949b",
+      "final_url": "https://www.eurecom.fr/fr/les-formations/master-en-informatique",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.eurecom.fr/fr/les-formations/master-en-informatique"
+    },
+    {
+      "bytes": 102248,
+      "cache": false,
+      "content_hash": "5245790bc47d6253125ea93dddc6d69d5cfd17551f8fe083c0a0ce2f24188c99",
+      "final_url": "https://www.eurecom.fr/fr/les-formations/master-en-reseaux-et-telecommunication",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.eurecom.fr/fr/les-formations/master-en-reseaux-et-telecommunication"
+    },
+    {
+      "bytes": 71689,
+      "cache": false,
+      "content_hash": "78665c5167d9777a49fcca8c0c8af2233dd0e93b101d384127f31ef35c5fa172",
+      "final_url": "https://www.gre.ac.uk/undergraduate-courses/engsci/computing-for-england-cyber-security-hnd-barking-and-dagenham-college",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.gre.ac.uk/foundation-degrees/engsci/computing-for-england-cyber-security-hnd-barking-and-dagenham-college"
+    },
+    {
+      "bytes": 71682,
+      "cache": false,
+      "content_hash": "40d8859a1117ba08254475de93d7e62ab1de8a1150efd1ab155701d85d10f0c6",
+      "final_url": "https://www.gre.ac.uk/undergraduate-courses/engsci/computing-for-england-general-hnd-barking-and-dagenham-college",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.gre.ac.uk/foundation-degrees/engsci/computing-for-england-general-hnd-barking-and-dagenham-college"
+    },
+    {
+      "bytes": 381386,
+      "cache": false,
+      "content_hash": "16d7d86bfa15a9604e323fc61d21cddccd58a0779abc9067c78fff189c708a3e",
+      "final_url": "https://www.hsu.ac.uk/course/bsc-hons-radiography-diagnostic-imaging/#overview",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.hsu.ac.uk/course/bsc-hons-radiography-diagnostic-imaging/#overview"
+    },
+    {
+      "bytes": 379479,
+      "cache": false,
+      "content_hash": "faa8bf3b4ebb07e4b00917e846fd8ed5bc39331b31d36a14fe4e0384edf4a9ef",
+      "final_url": "https://www.hsu.ac.uk/course/bsc-hons-radiography-radiotherapy-and-oncology/#overview",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.hsu.ac.uk/course/bsc-hons-radiography-radiotherapy-and-oncology/#overview"
+    },
+    {
+      "bytes": 316084,
+      "cache": false,
+      "content_hash": "db37bc7d7b892c5086f51f1ec816f6e445aa3bfd001e82b0d7292cbfdcb20ab7",
+      "final_url": "https://www.hsu.ac.uk/study/apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.hsu.ac.uk/study/apply/"
+    },
+    {
+      "bytes": 324482,
+      "cache": false,
+      "content_hash": "94931f8553d463201ef3b55892519891823dcbbf4d5b79217f6c83ded79c06fa",
+      "final_url": "https://www.hsu.ac.uk/study/apply/how-to-apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.hsu.ac.uk/study/apply/how-to-apply/"
+    },
+    {
+      "bytes": 334785,
+      "cache": false,
+      "content_hash": "bef1da397f5f8ea34e7be76dca8793ff65facbe16cd3c770b54de3e06097fc01",
+      "final_url": "https://www.hsu.ac.uk/study/apply/how-to-apply/international-applicants/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.hsu.ac.uk/study/apply/how-to-apply/international-applicants/"
+    },
+    {
+      "bytes": 105174,
+      "cache": false,
+      "content_hash": "8e62a2c6ba2aa31294ae5874c51aabc7eae2c62b87389405d7133cf8fbe1222a",
+      "final_url": "https://www.imperial.ac.uk/study/apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.imperial.ac.uk/study/apply/"
+    },
+    {
+      "bytes": 104132,
+      "cache": false,
+      "content_hash": "dbc042fa47cb1b294016dbf3548a99527843918fcb5a89241bef4c0ace4b11ed",
+      "final_url": "https://www.imperial.ac.uk/study/apply/undergraduate/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.imperial.ac.uk/study/apply/undergraduate/"
+    },
+    {
+      "bytes": 79418,
+      "cache": false,
+      "content_hash": "e8cc0d45d610df41ae2671c9df1ef2084911f6d7a86c3f76755fb11df686da7e",
+      "final_url": "https://www.imperial.ac.uk/study/apply/undergraduate/process/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.imperial.ac.uk/study/apply/undergraduate/process/"
+    },
+    {
+      "bytes": 178447,
+      "cache": false,
+      "content_hash": "24389a960e7703c91597ee925c0b8fb35988772e588886a037c50c1b53714cd5",
+      "final_url": "https://www.imperial.ac.uk/study/courses/undergraduate/mathematics-computer-science-beng/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.imperial.ac.uk/study/courses/undergraduate/mathematics-computer-science-beng/"
+    },
+    {
+      "bytes": 188074,
+      "cache": false,
+      "content_hash": "00c3402ae6feea2a6ae99abcd64c216c66b69867e708ad7bcd5c67ace9834258",
+      "final_url": "https://www.imperial.ac.uk/study/courses/undergraduate/mathematics-computer-science-meng/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.imperial.ac.uk/study/courses/undergraduate/mathematics-computer-science-meng/"
+    },
+    {
+      "bytes": 36695,
+      "cache": false,
+      "content_hash": "b81481666eb8dfdb88eabc3d5a6b3a9c19bc567b6132d61f54f9650a3486d5c0",
+      "final_url": "https://www.insa-lyon.fr/fr/formation-documentaire",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.insa-lyon.fr/fr/formation-documentaire"
+    },
+    {
+      "bytes": 45274,
+      "cache": false,
+      "content_hash": "ec5efe1a4953e61b24a712cebe1db9850201c7881ac1de66dceddb1d7c062e50",
+      "final_url": "https://www.insa-lyon.fr/fr/formation/bachelor-specialite-infrastructures-reseaux-electriques",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.insa-lyon.fr/fr/formation/bachelor-specialite-infrastructures-reseaux-electriques"
+    },
+    {
+      "bytes": 0,
+      "cache": false,
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_url": "https://www.iut-rcc.fr/media-files/30672/but-gaco.pdf",
+      "provider_id": "official_admission_page",
+      "status": 0,
+      "url": "https://www.iut-rcc.fr/media-files/30672/but-gaco.pdf"
+    },
+    {
+      "bytes": 0,
+      "cache": false,
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_url": "https://www.iut-rcc.fr/media-files/30682/but-tc08.pdf",
+      "provider_id": "official_admission_page",
+      "status": 0,
+      "url": "https://www.iut-rcc.fr/media-files/30682/but-tc08.pdf"
+    },
+    {
+      "bytes": 490979,
+      "cache": false,
+      "content_hash": "d5bc3dc7a318600fb6880f9c3faa07a4b8ce22ea52d1c9ef25db05012e6e5d37",
+      "final_url": "https://www.kcl.ac.uk/study/undergraduate/courses/computer-science-bsc",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.kcl.ac.uk/study/undergraduate/courses/computer-science-bsc"
+    },
+    {
+      "bytes": 494306,
+      "cache": false,
+      "content_hash": "f82afc8e5fadee27f954ba043542c47e6b78fcd5d958a0efa7df64d262f3b447",
+      "final_url": "https://www.kcl.ac.uk/study/undergraduate/courses/computer-science-msci",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.kcl.ac.uk/study/undergraduate/courses/computer-science-msci"
+    },
+    {
+      "bytes": 89301,
+      "cache": false,
+      "content_hash": "d62c79f357062faf0238fb6671480d8764b870eb6cb78ad8d541600dd5310c63",
+      "final_url": "https://www.lsec.ac.uk/courses/higher-education/children-and-young-peoples-education/btec-hnd-in-early-years-professional-leadership-htq",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.lsec.ac.uk/courses/higher-education/children-and-young-peoples-education/btec-hnd-in-early-years-professional-leadership-htq"
+    },
+    {
+      "bytes": 81988,
+      "cache": false,
+      "content_hash": "d9be1fca8930ff372da10a5d98d3e0913145bd64ad189f0703e6186f279bce5e",
+      "final_url": "https://www.lsec.ac.uk/courses/higher-education/computing-and-it/btec-hnd-in-computing-cyber-security-htq",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.lsec.ac.uk/courses/higher-education/computing-and-it/btec-hnd-in-computing-cyber-security-htq"
+    },
+    {
+      "bytes": 2163,
+      "cache": false,
+      "content_hash": "d70137852fbb3a816c6fb1421f90198744e7aae9564b4a33cc99b7b577a3653f",
+      "final_url": "https://www.lsec.ac.uk/documents/data-protection-freedom-of-information/50-london-south-east-colleges-subject-access-request-form/file",
+      "provider_id": "official_admission_page",
+      "status": 403,
+      "url": "https://www.lsec.ac.uk/documents/data-protection-freedom-of-information/50-london-south-east-colleges-subject-access-request-form/file"
+    },
+    {
+      "bytes": 2163,
+      "cache": false,
+      "content_hash": "d70137852fbb3a816c6fb1421f90198744e7aae9564b4a33cc99b7b577a3653f",
+      "final_url": "https://www.lsec.ac.uk/information/how-to-apply",
+      "provider_id": "official_admission_page",
+      "status": 403,
+      "url": "https://www.lsec.ac.uk/information/how-to-apply"
+    },
+    {
+      "bytes": 65902,
+      "cache": false,
+      "content_hash": "3f5224d5bc3229a9aa9e91fa2ea50184202bcefde63bed250f76f9a5392d1990",
+      "final_url": "https://www.manchester.ac.uk/study/undergraduate/applying/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.manchester.ac.uk/study/undergraduate/applying/"
+    },
+    {
+      "bytes": 107315,
+      "cache": false,
+      "content_hash": "44c08602c049aeecdd5d7f718aabb05f1cf47e8c7b46bab8097ce569516df9b5",
+      "final_url": "https://www.manchester.ac.uk/study/undergraduate/applying/after-you-apply/offer-holders/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.manchester.ac.uk/study/undergraduate/applying/after-you-apply/offer-holders/"
+    },
+    {
+      "bytes": 114979,
+      "cache": false,
+      "content_hash": "31c4e348355b87afaf5321747a08c56ee0f17049c6752e837c4044c3c27df4b1",
+      "final_url": "https://www.manchester.ac.uk/study/undergraduate/applying/contact/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.manchester.ac.uk/study/undergraduate/applying/contact/"
+    },
+    {
+      "bytes": 138858,
+      "cache": false,
+      "content_hash": "fc868287bff2f27d73be0640a577711dec08e3e7dc9f2b279f49fa49ddb55ac4",
+      "final_url": "https://www.manchester.ac.uk/study/undergraduate/courses/2026/00559/bsc-computer-science-with-industrial-experience/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.manchester.ac.uk/study/undergraduate/courses/2026/00559/bsc-computer-science-with-industrial-experience/"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "a03ef8078f86d20105b50a5670876b09891ede32baced1c3a5abb04e7b89b509",
+      "final_url": "https://www.manchester.ac.uk/study/undergraduate/courses/2026/12952/bsc-computer-science-with-an-integrated-foundation-year/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.manchester.ac.uk/study/undergraduate/courses/2026/12952/bsc-computer-science-with-an-integrated-foundation-year/"
+    },
+    {
+      "bytes": 115464,
+      "cache": false,
+      "content_hash": "360b6c2b119f199ef48bd018d1200c1688bea51b3940a75eb70db6fc3a6e7000",
+      "final_url": "https://www.manchester.ac.uk/study/undergraduate/courses/2026/12952/bsc-computer-science-with-an-integrated-foundation-year/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.manchester.ac.uk/study/undergraduate/courses/2026/12952/bsc-meng-computer-science-with-an-integrated-foundation-year/"
+    },
+    {
+      "bytes": 28718,
+      "cache": false,
+      "content_hash": "80a2fde48bf90804e30fa79b9c1fb67d288ec76804bcc0b30161ec62e097df83",
+      "final_url": "https://www.nottingham.ac.uk/jobs/howtoapply/index.aspx",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.nottingham.ac.uk/jobs/howtoapply/index.aspx"
+    },
+    {
+      "bytes": 115224,
+      "cache": false,
+      "content_hash": "971af55a98d335eada9a394306f36a2d9ceb28430a37877a23ab0b2eaf82fe8f",
+      "final_url": "https://www.nottingham.ac.uk/studywithus/ugstudy/applying/entry-requirements.html",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.nottingham.ac.uk/studywithus/ugstudy/applying/entry-requirements.html"
+    },
+    {
+      "bytes": 115224,
+      "cache": false,
+      "content_hash": "971af55a98d335eada9a394306f36a2d9ceb28430a37877a23ab0b2eaf82fe8f",
+      "final_url": "https://www.nottingham.ac.uk/studywithus/ugstudy/applying/entry-requirements.html",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.nottingham.ac.uk/studywithus/ugstudy/articles/applying/entry-requirements.html"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "2480b70f4c200ca950cdc5da258e33cd8946ecb66b76b35fb783b23c2863a4e5",
+      "final_url": "https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-BSc-Hons.html",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-BSc-Hons.html"
+    },
+    {
+      "bytes": 0,
+      "cache": true,
+      "content_hash": "cddd3c4e76f96b643a9d66a9930cc6ce99886c8d39e7f851dbf988e6713d9f7f",
+      "final_url": "https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-MSci-Hons.html",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-MSci-Hons.html"
+    },
+    {
+      "bytes": 89407,
+      "cache": false,
+      "content_hash": "e71e6453b5df87b066e9baa9e2149bb1c288fe5ce7e6a1fcfe0734de9ea83a7a",
+      "final_url": "https://www.nottingham.ac.uk/studywithus/ugstudy/applying.html",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.nottingham.ac.uk/support-services/home/applying.html"
+    },
+    {
+      "bytes": 5744,
+      "cache": false,
+      "content_hash": "e765b2854f13b526ebd3dc56a4b534ba229178f79bf94a25e658b61b4eb394b3",
+      "final_url": "https://www.ox.ac.uk/admissions/undergraduate/courses/course-listing/computer-science",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.ox.ac.uk/admissions/undergraduate/courses/course-listing/computer-science"
+    },
+    {
+      "bytes": 343814,
+      "cache": false,
+      "content_hash": "a59432351656cc6dbb539e0151b1ed3e2e020976d92a26eb8b4e28e467b87e7d",
+      "final_url": "https://www.somerset.ac.uk/courses/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.somerset.ac.uk/courses/"
+    },
+    {
+      "bytes": 292860,
+      "cache": false,
+      "content_hash": "ee3bcaa3dfd5a17c616e6e3ab2530645523970425af3b78fa17cfbed3b3833d7",
+      "final_url": "https://www.somerset.ac.uk/study/subject-areas/media-make-up/",
+      "provider_id": "official_university_page",
+      "status": 200,
+      "url": "https://www.somerset.ac.uk/courses/media-make-up-ba-hons.html"
+    },
+    {
+      "bytes": 260804,
+      "cache": false,
+      "content_hash": "5395d27f7cdfd5069776d7891d48974d2103912b0c9d86740b9085b77ffc3cb0",
+      "final_url": "https://www.somerset.ac.uk/courses/media-make-up-foundation-degree.html",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.somerset.ac.uk/courses/media-make-up-foundation-degree.html"
+    },
+    {
+      "bytes": 297726,
+      "cache": false,
+      "content_hash": "cf96a2e4b557a4af10706e57fb1ef7fa7445d1c7903910dfb7cbd5942731a244",
+      "final_url": "https://www.somerset.ac.uk/study/apply/",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.somerset.ac.uk/study/apply/"
+    },
+    {
+      "bytes": 124273,
+      "cache": false,
+      "content_hash": "0ef5622fd38229e6b58963378bdde7b9dcc8cfc0cec43a9f501d9de37fea17f5",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/but-carrieres-juridiques",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/but-carrieres-juridiques-laon-soissons"
+    },
+    {
+      "bytes": 117974,
+      "cache": false,
+      "content_hash": "5f9c664a4c20e4584e0788bbc8e0b57ebd2d919812c8630a7d105f78bf13dce5",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/but-genie-chimique-genie-procedes",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/but-genie-chimique-genie-procedes-saint-quentin"
+    },
+    {
+      "bytes": 115407,
+      "cache": false,
+      "content_hash": "dae0d68417b524f10257438f6ddb3981d288e0a3db036d1d7afab6decad1d0aa",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/but-genie-electrique-informatique-industrielle",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/but-genie-electrique-informatique-industrielle-soissons"
+    },
+    {
+      "bytes": 195612,
+      "cache": false,
+      "content_hash": "92c79984a352df41083b658c1071443783c6eaa70225f68e3cbd7776347d9c1f",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/but-genie-mecanique-productique-saint-quentin",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/but-genie-mecanique-productique-saint-quentin"
+    },
+    {
+      "bytes": 126310,
+      "cache": false,
+      "content_hash": "9877dfc6863e9b9c8b97ee9fb53eb2198914a6f9ab51d5d4f8944412b5ff715f",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/but-techniques-commercialisation-laon",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/but-techniques-commercialisation-laon"
+    },
+    {
+      "bytes": 172747,
+      "cache": false,
+      "content_hash": "8ba7e891ae44b17e8e24d5d80670ca6a25b362d38dd87845ad66729010cc10a3",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/codes_rome/3115",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/codes_rome/3115"
+    },
+    {
+      "bytes": 169541,
+      "cache": false,
+      "content_hash": "70fba79e5e8261a370d8a7da2be393372165c09fbcfba476df4239755f2993a0",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/codes_rome/3140",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/codes_rome/3140"
+    },
+    {
+      "bytes": 100273,
+      "cache": false,
+      "content_hash": "994cff87ee4f010db653ae18f652a7c3839baa0523bea27dbdcdf3c900ab0336",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/master-genie-industriel",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/master-genie-industriel"
+    },
+    {
+      "bytes": 99641,
+      "cache": false,
+      "content_hash": "fedb4b9fc14a201bc8d8dd54eb8db7295c31ec5f11fd7511b6e406d0094bd0b8",
+      "final_url": "https://www.u-picardie.fr/formation/catalogue/master-informatique",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.u-picardie.fr/formation/catalogue/master-informatique"
+    },
+    {
+      "bytes": 406,
+      "cache": false,
+      "content_hash": "7f3482b8c376f8e1669846a3b4ed8ffbaed0bcb535a98bfd0ad95adf4e1fde55",
+      "final_url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/institut-lettres-langues-sciences-humaines-et-sociales/ufr-sciences-et-techniques-des-activites-physiques-et-sportives/licence/portail-licence-staps",
+      "provider_id": "official_admission_page",
+      "status": 401,
+      "url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/institut-lettres-langues-sciences-humaines-et-sociales/ufr-sciences-et-techniques-des-activites-physiques-et-sportives/licence/portail-licence-staps"
+    },
+    {
+      "bytes": 333,
+      "cache": false,
+      "content_hash": "962181a85fc8d1ff536e19c90915d4c712524bdc3bddf8c0b4de580847d27a3d",
+      "final_url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-genie-electrique-et-informatique-industrielle#presentation",
+      "provider_id": "official_admission_page",
+      "status": 401,
+      "url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-genie-electrique-et-informatique-industrielle#presentation"
+    },
+    {
+      "bytes": 303,
+      "cache": false,
+      "content_hash": "94ad9765fe66d83f59f3cc3150ce718e4eb1820a46e1c3fa1170c325201dc97b",
+      "final_url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-genie-thermique",
+      "provider_id": "official_admission_page",
+      "status": 401,
+      "url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-genie-thermique"
+    },
+    {
+      "bytes": 331,
+      "cache": false,
+      "content_hash": "48ce060e603f0567f5673fb4bd76d27a1dbde0f19ff464221d7429b87cb2ccca",
+      "final_url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-metiers-du-multimedia-et-de-linternet-vichy#presentation",
+      "provider_id": "official_admission_page",
+      "status": 401,
+      "url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-metiers-du-multimedia-et-de-linternet-vichy#presentation"
+    },
+    {
+      "bytes": 329,
+      "cache": false,
+      "content_hash": "0209eb49b2ed956e9d24b9a59cbbcad4ec03e80e75e83bdfb8a2c9264adc36d9",
+      "final_url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-techniques-de-commercialisation-moulins-1#inscriptions",
+      "provider_id": "official_admission_page",
+      "status": 401,
+      "url": "https://www.uca.fr/formation/nos-formations/par-ufr-ecoles-et-iut/iut-clermont-auvergne/but/but-techniques-de-commercialisation-moulins-1#inscriptions"
+    },
+    {
+      "bytes": 81735,
+      "cache": false,
+      "content_hash": "99d1f7691f305eda2335e81039b9db25be77ec9370793ddb753b99b676e899c4",
+      "final_url": "https://www.ucb.ac.uk/study/courses/undergraduate/aesthetic-practitioner-ba-hons-fda/",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.ucb.ac.uk/study/courses/undergraduate/aesthetic-practitioner-ba-hons-fda/"
+    },
+    {
+      "bytes": 81735,
+      "cache": false,
+      "content_hash": "5f92b701d7e4bca25d91610fee90936afbf46fd8f8a150aad48b24293113977a",
+      "final_url": "https://www.ucb.ac.uk/study/courses/undergraduate/aviation-and-airport-management-ba-hons-fda/",
+      "provider_id": "official_university_page",
+      "status": 404,
+      "url": "https://www.ucb.ac.uk/study/courses/undergraduate/aviation-and-airport-management-ba-hons-fda/"
+    },
+    {
+      "bytes": 425,
+      "cache": false,
+      "content_hash": "9e5dda6054a9a7ee201b82b34593bdf09d915f5a4501cf6654b1d3af244769f9",
+      "final_url": "https://www.undergraduate.study.cam.ac.uk/courses/computer-science-ba-hons-meng",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.undergraduate.study.cam.ac.uk/courses/computer-science-ba-hons-meng"
+    },
+    {
+      "bytes": 425,
+      "cache": false,
+      "content_hash": "e5cbc815c86a99ba9dc64ec0a4ca43d2ca66b068dc3d709d5b0b2e1a2f5cc7dd",
+      "final_url": "https://www.undergraduate.study.cam.ac.uk/courses/natural-sciences-ba-hons-msci",
+      "provider_id": "official_university_page",
+      "status": 403,
+      "url": "https://www.undergraduate.study.cam.ac.uk/courses/natural-sciences-ba-hons-msci"
+    },
+    {
+      "bytes": 0,
+      "cache": false,
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_url": "https://www.univ-reims.fr/eisine/formations/licences/licences,22847,39625.html",
+      "provider_id": "official_admission_page",
+      "status": 0,
+      "url": "https://www.univ-reims.fr/eisine/formations/licences/licences,22847,39625.html"
+    },
+    {
+      "bytes": 0,
+      "cache": false,
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_url": "https://www.univ-reims.fr/eisine/formations/masters/masters,22849,39624.html",
+      "provider_id": "official_admission_page",
+      "status": 0,
+      "url": "https://www.univ-reims.fr/eisine/formations/masters/masters,22849,39624.html"
+    },
+    {
+      "bytes": 0,
+      "cache": false,
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_url": "https://www.univ-reims.fr/li-lpe-charleville",
+      "provider_id": "official_admission_page",
+      "status": 0,
+      "url": "https://www.univ-reims.fr/li-lpe-charleville"
+    },
+    {
+      "bytes": 167195,
+      "cache": false,
+      "content_hash": "95553d42962479d3d65ae2733c52234ca703cceefbd156f51cf4c659770bbe9b",
+      "final_url": "https://www.uva.nl/shared-content/programmas/en/bachelors/human-geography-and-planning/human-geography-and-planning.html",
+      "provider_id": "official_admission_page",
+      "status": 200,
+      "url": "https://www.uva.nl/shared-content/programmas/en/bachelors/human-geography-and-planning/human-geography-and-planning.html"
+    }
+  ]
+}

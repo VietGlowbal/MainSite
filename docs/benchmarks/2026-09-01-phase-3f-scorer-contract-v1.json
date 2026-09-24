@@ -1,0 +1,119 @@
+{
+  "version": "phase-3f-scorer-contract/v1",
+  "benchmark_version": "phase3f-v2",
+  "truth_version": "phase-3f-ground-truth-v2-frozen",
+  "truth_sha256": "97308474e88eecc8165a94aae4a9bcfe104ec8da6807efdd0a2ad8de74e8e0d4",
+  "contract_markdown": "docs/benchmarks/2026-09-01-phase-3f-scorer-contract-v1.md",
+  "output_schema_version": "phase3f-v3-benchmark-output/v1",
+  "scoreability": {
+    "all_reviewed_cases": 252,
+    "primary_scoreable_status": "REVIEWED_CONFIRMED",
+    "primary_scoreable_cases": 246,
+    "ambiguous_cases": 6,
+    "ambiguous_case_ids": [
+      "GT-V2-05-major_admissions_requirement",
+      "GT-V2-05-tuition",
+      "GT-V2-06-tuition",
+      "GT-V2-11-major_admissions_requirement",
+      "GT-V2-12-tuition",
+      "GT-V2-13-major_admissions_requirement"
+    ],
+    "ambiguous_primary_denominator": false
+  },
+  "truth_state_policy": {
+    "FOUND": "runtime FOUND with exact conservative field-aware value match",
+    "NEEDS_REVIEW": "runtime NEEDS_REVIEW with null value and no PRODUCT_SAFE promotion",
+    "NEEDS_REVIEW_concrete_value": "never accepted; count as false-current/promotion when emitted outside runtime NEEDS_REVIEW",
+    "NOT_REQUIRED": "runtime NOT_REQUIRED with null value",
+    "NOT_PUBLISHED": "runtime NOT_PUBLISHED with null value",
+    "runtime_failures": "coverage or operational loss, never an automatic truth pass"
+  },
+  "runtime_states": [
+    "NOT_EVALUATED",
+    "FOUND",
+    "NOT_PUBLISHED",
+    "NOT_REQUIRED",
+    "SOURCE_NOT_FOUND",
+    "ACCESS_BLOCKED",
+    "FETCH_FAILED",
+    "PARSE_FAILED",
+    "EXTRACTION_FAILED",
+    "STALE_ONLY",
+    "CONFLICTING_SOURCES",
+    "NEEDS_REVIEW"
+  ],
+  "critical_fields": [
+    "programme_identity",
+    "credential",
+    "programme_status",
+    "tuition",
+    "application_deadline",
+    "english_requirement",
+    "major_admissions_requirement"
+  ],
+  "denominators": {
+    "programme_discovery_recall": "36 frozen roster programme rows",
+    "required_source_discovery_recall": "36 frozen roster primary-source rows",
+    "critical_field_precision": "resolved output records in FOUND/NOT_REQUIRED/NOT_PUBLISHED states",
+    "critical_field_recall_resolved_coverage": "primary truth records with resolved FOUND/NOT_REQUIRED/NOT_PUBLISHED states",
+    "safe_unresolved_correctness": "all 124 confirmed NEEDS_REVIEW/null records",
+    "product_safe_evidence_entailment": "primary output records marked PRODUCT_SAFE"
+  },
+  "thresholds": {
+    "programme_discovery_recall": 0.9,
+    "programme_discovery_recall_per_institution": 0.8,
+    "required_source_discovery_recall": 0.9,
+    "critical_field_precision": 0.98,
+    "reviewed_product_safe_evidence_entailment": 1.0,
+    "false_current_critical": 0,
+    "fuzzy_only_auto_merge": 0,
+    "critical_unresolved_conflict_promoted": 0,
+    "critical_source_not_found_promoted": 0,
+    "critical_stale_only_promoted": 0,
+    "prohibited_high_volatility_inferred_critical_promoted": 0,
+    "product_safe_without_durable_provenance": 0
+  },
+  "error_taxonomy": [
+    "DISCOVERY",
+    "SOURCE_SELECTION",
+    "FETCH",
+    "PARSING",
+    "EXTRACTION",
+    "APPLICABILITY",
+    "TEMPORAL",
+    "CONFLICT",
+    "RECOVERY",
+    "IDENTITY",
+    "QUALITY_POLICY",
+    "PROMOTION",
+    "GROUND_TRUTH_AMBIGUOUS"
+  ],
+  "product_safety": {
+    "canonical_module": "glowbal_ingestion.product_safety",
+    "lifecycle_product_safe": "PRODUCT_SAFE",
+    "required_blockers": [
+      "MISSING_CRITICAL_FIELD",
+      "STALE_CRITICAL_FIELD",
+      "UNRESOLVED_CONFLICT",
+      "IDENTITY_UNRESOLVED",
+      "INFERRED_HIGH_VOLATILITY_CRITICAL",
+      "INSUFFICIENT_AUTHORITY",
+      "RAW_LINEAGE_MISSING",
+      "REVIEW_REQUIRED",
+      "RETIRED_ENTITY"
+    ],
+    "required_identity": "resolved=true or resolution_state RESOLVED/CREATED",
+    "raw_persistence_failure_maps_to": "RAW_LINEAGE_MISSING",
+    "evidence_entailment": "durable lineage, assertion linkage, authority, applicability, temporal state, and blocker checks are deterministic; unresolved semantic entailment is REVIEW_REQUIRED"
+  },
+  "integrity": {
+    "verify_truth_roster_and_contract_checksums_before_scoring": true,
+    "fail_closed_on_mismatch": true
+  },
+  "isolation": {
+    "pipeline_access_to_truth": false,
+    "scorer_invokes_pipeline": false,
+    "scorer_writes_truth_or_product": false,
+    "future_run_id_format": "phase3f-v2-run-<timestamp-or-id>"
+  }
+}

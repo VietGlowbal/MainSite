@@ -9,8 +9,7 @@
 // Usage:
 //   1. .env.local must have NEXT_PUBLIC_SUPABASE_URL and
 //      SUPABASE_SERVICE_ROLE_KEY (service role bypasses RLS).
-//   2. Run:   node --env-file=.env.local scripts/seed-scholarships.mjs
-//      Or:    npm run seed:scholarships
+//   2. Run:   npm run seed:scholarships
 //
 // Flags:
 //   --cleanup, -c          delete all seeded rows (matched by source_key)
@@ -33,11 +32,18 @@ import { createClient } from '@supabase/supabase-js';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import {
+  DirectWriteGuard,
+  ScholarshipSourceAdapter,
+  classifyScholarshipMapping,
+} from '../src/lib/ingestion/convergence.ts';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = path.join(ROOT, 'data', 'scholarships.json');
 const ALIASES = path.join(ROOT, 'data', 'university-aliases.json');
 const UNMATCHED_OUT = path.join(ROOT, 'data', 'scholarships.unmatched.json');
+let loadedRecordsFileHash = null;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -78,6 +84,7 @@ async function loadRecords() {
   const raw = await readFile(DATA, 'utf8').catch(() => {
     throw new Error(`Could not read ${path.relative(ROOT, DATA)} — run \`npm run clean:scholarships\` first.`);
   });
+  loadedRecordsFileHash = createHash('sha256').update(raw).digest('hex');
   const records = JSON.parse(raw);
   return Number.isFinite(LIMIT) ? records.slice(0, LIMIT) : records;
 }
@@ -154,15 +161,42 @@ function resolveUniversity(candidate, { all, byNorm }, aliases) {
 }
 
 // ── Upsert one scholarship + its join rows ───────────────────────────────────
-async function upsertScholarship(rec, lookups, aliases, unmatched) {
+async function upsertScholarship(rec, lookups, aliases, unmatched, rowNumber) {
   const { applies_to_candidates = [], ...row } = rec;
+  const convergenceShadow = ScholarshipSourceAdapter.adaptRecord({
+    record: rec,
+    fileId: 'data/scholarships.json',
+    fileHash: loadedRecordsFileHash,
+    rowNumber,
+    sourceOwner: 'scholarship_csv_etl',
+  });
 
   // Resolve candidate universities (only meaningful for scope='university').
   const matches = [];
+  const convergenceMappings = [];
   for (const cand of applies_to_candidates) {
     const m = resolveUniversity(cand, lookups, aliases);
-    if (m) matches.push({ university_id: m.id, match_score: m.score, match_method: m.method });
-    else unmatched.push({ scholarship: rec.name, source_key: rec.source_key, candidate: cand });
+    if (m) {
+      matches.push({ university_id: m.id, match_score: m.score, match_method: m.method });
+      convergenceMappings.push(classifyScholarshipMapping({
+        scholarshipId: rec.source_key,
+        universityId: m.id,
+        explicitRelationship: false,
+        curated: false,
+        candidateMethod: m.method === 'exact' || m.method === 'alias' ? 'exact' : 'fuzzy',
+        evidence: `candidate university name: ${cand}`,
+      }));
+    } else {
+      unmatched.push({ scholarship: rec.name, source_key: rec.source_key, candidate: cand });
+      convergenceMappings.push(classifyScholarshipMapping({
+        scholarshipId: rec.source_key,
+        universityId: null,
+        explicitRelationship: false,
+        curated: false,
+        candidateMethod: 'none',
+        evidence: null,
+      }));
+    }
   }
 
   if (DRY) return { matched: matches.length, unmatched: applies_to_candidates.length - matches.length };
@@ -170,7 +204,15 @@ async function upsertScholarship(rec, lookups, aliases, unmatched) {
   // 1. Upsert the scholarship by source_key.
   const { data, error } = await supabase
     .from('scholarships')
-    .upsert({ ...row, status: STATUS }, { onConflict: 'source_key' })
+    .upsert({
+      ...row,
+      raw: {
+        ...(row.raw && typeof row.raw === 'object' ? row.raw : {}),
+        ingestion_convergence: convergenceShadow,
+        convergence_mappings: convergenceMappings,
+      },
+      status: STATUS,
+    }, { onConflict: 'source_key' })
     .select('id')
     .single();
   if (error) throw new Error(`${rec.name}: ${error.message}`);
@@ -222,12 +264,25 @@ async function seed() {
       `${lookups.all.length} universities in DB, ${aliases.size} aliases.`,
   );
 
+  if (!DRY) {
+    // Existing scholarship tables remain the compatibility read/write path in
+    // Slice E. The write is explicit, compatibility-only, and the converged
+    // envelope is stored in raw metadata for later promotion parity.
+    DirectWriteGuard.assertAllowed({
+      purpose: 'scholarship_etl',
+      sourcePath: 'scripts/seed-scholarships.mjs',
+      actor: 'scholarship_csv_etl',
+      explicitCompatibility: true,
+      reason: 'legacy scholarship tables remain available during shadow rollout',
+    });
+  }
+
   const unmatched = [];
   let ok = 0;
   let totalMatched = 0;
-  for (const rec of records) {
+  for (const [index, rec] of records.entries()) {
     try {
-      const { matched } = await upsertScholarship(rec, lookups, aliases, unmatched);
+      const { matched } = await upsertScholarship(rec, lookups, aliases, unmatched, index + 2);
       totalMatched += matched;
       ok += 1;
     } catch (err) {

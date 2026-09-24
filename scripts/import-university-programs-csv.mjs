@@ -3,6 +3,7 @@ import { basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
+import { DirectWriteGuard, ProgrammeCsvAdapter } from '../src/lib/ingestion/convergence.ts';
 
 const BATCH_SIZE = 100;
 const VERIFICATION_STATUS = 'NEEDS_REVIEW';
@@ -353,6 +354,13 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
       'glowbal-csv-programme',
       `${university.id}|${normalizeProgrammeName(row['Program Name'])}|${normalizeProgrammeName(row.Degree)}|${normalizeUrl(row['Program Link'])}`,
     );
+    const convergenceShadow = ProgrammeCsvAdapter.adaptRow({
+      row,
+      fileId: fileName,
+      fileHash,
+      rowNumber: index + 2,
+      importedAt: retrievedAt,
+    });
     const primaryUnitId = schoolId ?? departmentId;
     programmes.push({
       programme_id: programmeId,
@@ -378,6 +386,7 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
         source_file: fileName,
         source_file_sha256: fileHash,
         source_official_url: normalizeUrl(row['Program Link']),
+        convergence_shadow: convergenceShadow,
         location: row.Location,
         raw_fields: row,
       },
@@ -710,7 +719,7 @@ async function applyPlan(supabase, plan, metadata) {
       .from('crawl_runs')
       .insert({
         run_key: plan.runKey,
-        pipeline_version: 'manual-csv-v1',
+      pipeline_version: 'manual-csv-v1-convergence-shadow',
         config_name: 'user-provided-us-university-programmes',
         status: 'importing',
         started_at: metadata.retrievedAt,
@@ -850,6 +859,12 @@ async function main() {
       `Write blocked. After explicit owner approval, pass --confirm-run-key=${plan.runKey} with --apply.`,
     );
   }
+  DirectWriteGuard.assertAllowed({
+    purpose: 'migration',
+    sourcePath: 'scripts/import-university-programs-csv.mjs',
+    actor: 'explicit_owner_confirmation',
+    reason: 'CSV importer is an additive migration compatibility path',
+  });
 
   const byUniversity = Object.fromEntries(
     [...plan.resolvedUniversities.entries()].map(([sourceName, university]) => [

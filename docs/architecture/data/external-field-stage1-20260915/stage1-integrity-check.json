@@ -1,0 +1,40 @@
+{
+  "schema": "GlowBalStage1IntegrityCheck/v1",
+  "run": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform\\docs\\architecture\\data\\external-field-stage1-20260915\\runs\\stage1-20260915-main",
+  "manifest_institutions_match_run_manifest": true,
+  "accepted_rows": 1187,
+  "effective_assertion_unique_keys": 1187,
+  "duplicate_effective_key_groups": 0,
+  "duplicate_effective_key_extras": 0,
+  "missing_provenance_by_field": {
+    "provider_id": 0,
+    "source_content_hash": 0,
+    "raw_document_id": 0,
+    "source_url": 0,
+    "source_authority": 0,
+    "source_relationship": 0
+  },
+  "source_rows": 246,
+  "missing_source_provenance_by_field": {
+    "provider_id": 0,
+    "raw_document_id": 0,
+    "content_hash": 0,
+    "url": 0,
+    "source_authority": 0,
+    "source_relationship": 0
+  },
+  "persisted_raw_objects": 342,
+  "persisted_raw_storage": {
+    "object_store": 260,
+    "mongo_inline": 82
+  },
+  "persisted_raw_missing_document_ids": 0,
+  "persisted_raw_missing_hashes": 0,
+  "invalid_provider_ids": 0,
+  "invalid_scope_rows": 0,
+  "invalid_direct_entity_bindings": [],
+  "cycle_mismatches": [],
+  "local_raw_bytes": 0,
+  "heavy_local_copy_violation": false,
+  "fabricated_scope_cycle_currency_observed": false
+}

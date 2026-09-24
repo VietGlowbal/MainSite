@@ -37,17 +37,81 @@ class RunPaths:
 
 
 class JsonlStore:
+    # Streams below represent current/effective state or stable source/entity
+    # records.  A resumed institution may reach the same append site twice;
+    # suppressing an identical stable key keeps replay idempotent without
+    # erasing the append-only audit streams where repeated attempts are useful.
+    _DEDUP_KEYS: dict[str, tuple[str, ...]] = {
+        "institutions": ("institution_id",),
+        "programmes": ("programme_id",),
+        "programme_offerings": ("programme_offering_id",),
+        "sources": ("source_id",),
+        "field_assertions": ("assertion_id",),
+        "effective_field_assertions": ("assertion_id",),
+    }
+
     def __init__(self, paths: RunPaths) -> None:
         self.paths = paths
         self._lock = threading.RLock()
+        self._seen_keys: dict[str, set[tuple[str, ...]]] = {}
+
+    def _dedupe_key(
+        self,
+        stream: str,
+        payload: dict[str, Any],
+    ) -> tuple[str, ...] | None:
+        fields = self._DEDUP_KEYS.get(stream)
+        if not fields:
+            return None
+        values: list[str] = []
+        for field in fields:
+            value = payload.get(field)
+            if value is None or not str(value).strip():
+                # Records without a stable identity remain append-only.  This
+                # avoids collapsing legacy rows that predate deterministic IDs.
+                return None
+            values.append(str(value))
+        return tuple(values)
+
+    def _load_seen_keys(self, stream: str) -> set[tuple[str, ...]]:
+        cached = self._seen_keys.get(stream)
+        if cached is not None:
+            return cached
+        seen: set[tuple[str, ...]] = set()
+        fields = self._DEDUP_KEYS.get(stream)
+        path = self.paths.jsonl_path(stream)
+        if fields and path.exists():
+            try:
+                for line in path.read_text(encoding="utf-8").splitlines():
+                    if not line.strip():
+                        continue
+                    row = json.loads(line)
+                    if isinstance(row, dict):
+                        key = self._dedupe_key(stream, row)
+                        if key is not None:
+                            seen.add(key)
+            except (OSError, json.JSONDecodeError):
+                # The append path remains the source of truth.  A malformed
+                # historical audit stream must not make a fresh run fail while
+                # attempting to initialise an optional replay index.
+                seen = set()
+        self._seen_keys[stream] = seen
+        return seen
 
     def append(self, stream: str, record: JsonRecord | dict[str, Any]) -> None:
         payload = record.to_dict() if isinstance(record, JsonRecord) else record
         line = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         with self._lock:
+            key = self._dedupe_key(stream, payload)
+            if key is not None:
+                seen = self._load_seen_keys(stream)
+                if key in seen:
+                    return
             with self.paths.jsonl_path(stream).open("a", encoding="utf-8") as handle:
                 handle.write(line)
                 handle.write("\n")
+            if key is not None:
+                self._seen_keys.setdefault(stream, set()).add(key)
 
     def write_json(self, name: str, payload: dict[str, Any]) -> Path:
         destination = self.paths.root / name
@@ -75,6 +139,7 @@ class JsonlStore:
         with self._lock:
             temporary.write_text(content, encoding="utf-8")
             os.replace(temporary, destination)
+            self._seen_keys.pop(stream, None)
         return destination
 
     def save_raw(
@@ -95,6 +160,33 @@ class JsonlStore:
                 handle.write(content)
         else:
             destination = self.paths.raw_html / f"{digest}.html.gz"
+            with gzip.open(destination, "wb", compresslevel=6) as handle:
+                handle.write(content)
+        return str(destination.relative_to(self.paths.root)).replace("\\", "/")
+
+    def save_raw_snapshot(
+        self,
+        *,
+        content: bytes,
+        content_type: str | None,
+        raw_document_id: str,
+    ) -> str:
+        """Optional dual-mode local mirror with immutable snapshot naming.
+
+        ``save_raw`` remains the legacy local compatibility path.  This helper
+        is only a temporary mirror after remote retention succeeds, so its
+        contents are never treated as the durable source of truth.
+        """
+        content_type_lower = (content_type or "").lower()
+        if "pdf" in content_type_lower or content.startswith(b"%PDF"):
+            destination = self.paths.raw_pdf / f"{raw_document_id}.pdf"
+            destination.write_bytes(content)
+        elif "json" in content_type_lower:
+            destination = self.paths.raw_json / f"{raw_document_id}.json.gz"
+            with gzip.open(destination, "wb", compresslevel=6) as handle:
+                handle.write(content)
+        else:
+            destination = self.paths.raw_html / f"{raw_document_id}.html.gz"
             with gzip.open(destination, "wb", compresslevel=6) as handle:
                 handle.write(content)
         return str(destination.relative_to(self.paths.root)).replace("\\", "/")
@@ -200,6 +292,25 @@ class StateStore:
                 "SELECT value_json FROM kv WHERE key=?", (key,)
             ).fetchone()
         return json.loads(row[0]) if row else default
+
+    def values_with_prefix(self, prefix: str) -> dict[str, Any]:
+        """Return checkpoint values whose keys share ``prefix``.
+
+        Checkpoint state is intentionally kept in the existing SQLite ``kv``
+        table so resume does not introduce a second orchestration database.
+        """
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT key, value_json FROM kv WHERE key LIKE ?",
+                (f"{prefix}%",),
+            ).fetchall()
+        values: dict[str, Any] = {}
+        for key, encoded in rows:
+            try:
+                values[str(key)] = json.loads(encoded)
+            except json.JSONDecodeError:
+                continue
+        return values
 
     def get_llm(self, cache_key: str) -> tuple[str, dict[str, Any]] | None:
         with self._lock:

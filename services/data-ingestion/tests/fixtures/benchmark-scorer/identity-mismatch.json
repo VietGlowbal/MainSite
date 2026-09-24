@@ -1,0 +1,14 @@
+{
+  "records": [
+    {
+      "case_id": "GT-V2-01-programme_identity",
+      "state": "FOUND",
+      "value": "Computer Science",
+      "identity": {
+        "institution": "MIT",
+        "programme": "Computer Science",
+        "merge_basis": "FUZZY_ONLY"
+      }
+    }
+  ]
+}

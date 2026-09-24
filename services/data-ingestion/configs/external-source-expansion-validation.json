@@ -1,0 +1,110 @@
+{
+  "schema_version": "GlowBalExternalSourceExpansion/v1",
+  "run_name": "external-source-expansion-validation",
+  "acquisition_backend": "platform_shadow",
+  "raw_evidence_mode": "local",
+  "source_ecosystem": {
+    "enabled": true,
+    "runtime_acquisition_enabled": true,
+    "acquisition_mode": "external_source_expansion",
+    "field_groups": [
+      "tuition"
+    ],
+    "target_cycle": "2024-25",
+    "max_fetches_per_institution": 4,
+    "external_provider_catalogue": "external-providers.json",
+    "official_web": {
+      "enabled": false
+    },
+    "official_catalogue": {
+      "enabled": false
+    },
+    "pdf": {
+      "enabled": false
+    },
+    "structured_apis": {
+      "enabled": false
+    },
+    "government_datasets": {
+      "enabled": true,
+      "providers": [
+        "ipeds",
+        "college_scorecard"
+      ],
+      "ipeds_target_config": "ipeds-us-21.json"
+    },
+    "archives": {
+      "enabled": true
+    },
+    "search_discovery": {
+      "enabled": false,
+      "status": "no_provider_configured"
+    },
+    "external_authoritative": {
+      "enabled": true
+    },
+    "required_source_classes": [
+      "government_dataset",
+      "official_registry",
+      "external_authoritative",
+      "archive"
+    ],
+    "external_provider_ids": [
+      "ipeds",
+      "college_scorecard",
+      "openalex",
+      "internet_archive"
+    ]
+  },
+  "institutions": [
+    {
+      "institution_id": "mit-us",
+      "name": "Massachusetts Institute of Technology",
+      "country_code": "US",
+      "official_domain": "mit.edu",
+      "homepage_url": "https://www.mit.edu/",
+      "external_source_rules": [
+        {
+          "domain": "nces.ed.gov",
+          "adapter_id": "ipeds",
+          "provider_id": "ipeds",
+          "reason": "US Department of Education IPEDS public dataset",
+          "relationship": "GOVERNMENT",
+          "authority": "GOVERNMENT"
+        },
+        {
+          "domain": "api.data.gov",
+          "adapter_id": "college_scorecard",
+          "provider_id": "college_scorecard",
+          "reason": "US Department of Education College Scorecard API",
+          "relationship": "GOVERNMENT",
+          "authority": "GOVERNMENT"
+        },
+        {
+          "domain": "eqar.eu",
+          "adapter_id": "official_registry",
+          "provider_id": "eqar",
+          "reason": "European Quality Assurance Register configured registry",
+          "relationship": "ACCREDITATION_BODY",
+          "authority": "ACCREDITED_PROVIDER"
+        },
+        {
+          "domain": "api.openalex.org",
+          "adapter_id": "external_authoritative",
+          "provider_id": "openalex",
+          "reason": "OpenAlex public institution index for external validation",
+          "relationship": "CATALOGUE_PROVIDER",
+          "authority": "TRUSTED_AGGREGATOR"
+        },
+        {
+          "domain": "web.archive.org",
+          "adapter_id": "archive_http",
+          "provider_id": "internet_archive",
+          "reason": "Internet Archive CDX capture metadata; historical only",
+          "relationship": "ARCHIVE",
+          "authority": "ARCHIVE"
+        }
+      ]
+    }
+  ]
+}

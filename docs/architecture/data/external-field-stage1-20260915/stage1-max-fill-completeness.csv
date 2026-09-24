@@ -1,0 +1,231 @@
+﻿programme_id,institution_id,institution_name,programme_name,country,degree_level,discipline,total_priority_fields,direct_field_count,hierarchical_added_field_count,effective_field_count,review_field_count,missing_field_count,completion_before_hierarchy_pct,completion_after_hierarchy_pct
+00164ee0-24b0-5e69-8c8b-979d08113044,oxford-uk-canary,Oxford University,Mathematics and Computer Science,UK,bachelor,computer science,40,8,2,8,0,32,20.0,20.0
+030cb98c-43d9-5905-bb2e-cbfd4a298e66,duo-nl-stage1-005,Rijksuniversiteit Groningen,Philosophy of a Specific Discipline,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+04bc0f72-add9-5031-9f73-893f3015f64e,onisep-fr-stage1-007,Institut universitaire de technologie de l'Aisne - Campus de Laon,BUT techniques de commercialisation parcours business développement et management de la relation client,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+0519d8a7-2197-557d-a0b0-44f3a4fbab06,duo-nl-stage1-009,Stiching Breda University of Applied Sciences,Logistics Engineering,NL,bachelor,engineering,40,0,2,2,0,38,0.0,5.0
+056c787b-cb1e-526e-bb3d-9a731e339a19,manchester-uk-canary,The University of Manchester,Data Science,UK,bachelor,data science,40,15,11,15,0,25,37.5,37.5
+064e4c8c-3273-5475-acc2-a785d2dc169d,discover-uk-stage1-005,Arts Educational Schools,Acting,UK,bachelor,other,40,8,3,11,0,29,20.0,27.5
+067b77ac-c8fa-5719-9f3e-3cd6d2318b38,onisep-fr-stage1-017,Institut d'administration des entreprises - Campus Saint-Jean d'Angely,master mention management,FR,master,other,40,6,0,6,0,34,15.0,15.0
+08ea5a7f-063b-5254-9e20-af26223b6208,onisep-fr-stage1-024,EURECOM,master mention réseaux et télécommunication,FR,master,other,40,6,5,11,0,29,15.0,27.5
+0bb5ca11-6ce1-540d-9263-824cd8341723,duo-nl-stage1-015,"Stichting Codarts, Hogeschool voor de Kunsten",Circus Arts,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+0bdcd270-f39d-573a-9d65-19d757eefc98,onisep-fr-stage1-016,IUT d'Aix-Marseille - site de Gap,BUT gestion des entreprises et des administrations parcours gestion entrepreneuriat et management d'activités,FR,bachelor,business,40,6,0,6,0,34,15.0,15.0
+0c35c3a5-02ff-5de8-820a-f2ee8108e32e,discover-uk-stage1-016,Boston College,Film & Television,UK,bachelor,other,40,11,4,14,0,26,27.5,35.0
+0cebda89-86b8-5e41-88f9-480c86db3248,onisep-fr-stage1-023,École polytechnique universitaire de l'Université Côte d'Azur,diplôme d'ingénieur de l'École polytechnique universitaire de l'université Côte d'Azur spécialité robotique,FR,master,engineering,40,6,1,7,0,33,15.0,17.5
+0f512584-17ba-595f-8723-74993b8cfbe0,duo-nl-stage1-012,Stichting ArtEZ,Fine Art and Design in Education,NL,bachelor,other,40,4,3,7,0,33,10.0,17.5
+0f970faf-fdf2-58c6-814b-8cf1fb584379,onisep-fr-stage1-006,Institut universitaire de technologie de l'Aisne - Campus de Soissons,BUT génie électrique et informatique industrielle parcours automatisme et informatique industrielle,FR,bachelor,computer science,40,6,0,6,0,34,15.0,15.0
+10ca8bac-cfc7-5cb3-87ae-5f1041983e86,ip-paris-fr-canary,Institut polytechnique de Paris,Master mention biologie-sante,FR,master,other,40,5,0,5,0,35,12.5,12.5
+1157b236-a40b-5e2d-ad9a-197ad246a2e8,discover-uk-stage1-009,Barnsley College,Animal Management,UK,bachelor,business,40,7,4,11,0,29,17.5,27.5
+11ff1bd2-c5f3-5999-b0c4-5f010956c67b,centrale-lyon-fr-canary,Ecole centrale de Lyon,Master mention informatique,FR,master,computer science,40,6,2,8,0,32,15.0,20.0
+133eac2d-937c-54fc-9f7f-1fcdb2937732,discover-uk-stage1-002,Health Sciences University,Radiography (Radiotherapy and Oncology),UK,bachelor,other,40,11,2,13,0,27,27.5,32.5
+1370d5b6-1a85-52bd-ab33-535fe62aeee9,discover-uk-stage1-001,Abingdon and Witney College,Business and Management Practice,UK,bachelor,business,40,11,6,12,0,28,27.5,30.0
+1494bc65-9315-5198-a797-81202c1520c0,discover-uk-stage1-006,The Arts University Bournemouth,Acting for Screen,UK,bachelor,other,40,7,2,8,0,32,17.5,20.0
+150cc360-0583-5ca4-b727-85c3655122d8,uco-nantes-fr-canary,Facultes libres de l'Ouest - UCO Nantes,Licence mention information-communication,FR,bachelor,computer science,40,7,0,7,0,33,17.5,17.5
+16a79eae-ec22-54ba-8eac-c70cc0f84632,duo-nl-stage1-002,Maastricht University,"Master European Studies on Society, Science and Technology",NL,master,engineering,40,0,2,2,0,38,0.0,5.0
+16aed716-240d-5ae8-854a-52d1ecc51b49,discover-uk-stage1-006,The Arts University Bournemouth,Acting,UK,bachelor,other,40,7,1,8,0,32,17.5,20.0
+19238524-9803-53d5-ba61-dcbe17c6c55a,centrale-lyon-fr-canary,Ecole centrale de Lyon,Master mention chimie et sciences des materiaux,FR,master,other,40,6,2,8,0,32,15.0,20.0
+19a197b7-663f-5c92-b071-d5ea6888f842,duo-nl-stage1-017,Stichting Design Academy Eindhoven,Master of Arts in Fine Art and Design,NL,master,other,40,0,2,2,0,38,0.0,5.0
+19e02a28-bc70-55c1-9b7d-cac9d5fb648e,onisep-fr-stage1-022,"Campus Carlone Lettres, Arts et Sciences humaines","licence mention langues, littératures et civilisations étrangères et régionales",FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+1b39fb3f-57bd-530e-b3a8-e5eb492dffd9,duo-nl-stage1-007,Stg. Gerrit. Rietveld Academ. Hogesch. Kunst en Vormg.,Master of Arts in Fine Art and Design,NL,master,other,40,2,2,4,0,36,5.0,10.0
+1d0f054d-8868-5c6e-bc0c-5286c035f206,onisep-fr-stage1-030,École universitaire de recherche en systèmes numériques pour l'humain - Campus Sophia Tech,master mention méthodes informatiques appliquées à la gestion des entreprises,FR,master,computer science,40,6,0,6,0,34,15.0,15.0
+1d747e1b-2087-5845-b0b1-9a73afb9fed1,sorbonne-fr-canary,Sorbonne Universite,Master mention informatique,FR,master,computer science,40,6,0,6,0,34,15.0,15.0
+203e027d-3bf3-57ca-9bf7-6bcaf82a909a,nottingham-uk-canary,University of Nottingham,Computer Science,UK,bachelor,computer science,40,13,10,16,0,24,32.5,40.0
+20fb556f-e752-5d5d-b1fb-b7aa65c58ea4,onisep-fr-stage1-009,Institut national supérieur du professorat et de l'éducation Clermont-Auvergne - site de Moulins,master mention enseignement et éducation - professorat des écoles,FR,master,other,40,6,1,7,0,33,15.0,17.5
+21d727d7-7df7-5f09-b896-e62da24e9238,onisep-fr-stage1-035,École universitaire de recherche en sciences fondamentales et Ingénierie - Campus Valrose,master mention chimie moléculaire,FR,master,other,40,6,0,6,0,34,15.0,15.0
+222ba9b3-65ca-53ac-bc73-7957fd61353f,onisep-fr-stage1-002,Campus de Lyon 3 à Bourg-en-Bresse,licence mention gestion,FR,bachelor,business,40,6,0,6,0,34,15.0,15.0
+228d9843-a888-597d-aa24-e964922f0c34,lund-se-canary,Lund University,ALM: Work Experience,SE,bachelor,other,40,6,2,8,0,32,15.0,20.0
+238d15b9-57e1-528e-be9e-cc49a0b2f186,duo-nl-stage1-012,Stichting ArtEZ,B Music Jazz & Pop,NL,bachelor,other,40,4,7,7,0,33,10.0,17.5
+23a1be45-6364-5f9d-aaaf-2dfa117a3fc9,onisep-fr-stage1-025,CESI école d'ingénieurs - campus de Nice,diplôme d'ingénieur du CESI spécialité informatique,FR,master,computer science,40,6,1,7,0,33,15.0,17.5
+244409cd-c35a-5eb3-8a63-58b1faf6518c,onisep-fr-stage1-028,École universitaire de recherche arts et humanités - Campus Carlone,"master mention civilisations, cultures et sociétés",FR,master,other,40,6,0,6,0,34,15.0,15.0
+26771848-8ad9-59b3-9f88-86811be85572,onisep-fr-stage1-001,Institut national supérieur du professorat et de l'éducation - site de l'Ain,licence mention professorat des écoles,FR,bachelor,other,40,5,0,5,0,35,12.5,12.5
+26d3736c-53d6-5adb-827f-b3995a88d3a9,duo-nl-stage1-020,Stichting Hanzehogeschool Groningen,International Business,NL,bachelor,business,40,0,2,2,0,38,0.0,5.0
+271f2b25-6d27-59ee-9488-5a932948ecc1,duo-nl-stage1-017,Stichting Design Academy Eindhoven,Design,NL,bachelor,other,40,2,2,4,0,36,5.0,10.0
+28ee7709-d09b-5231-8e41-461663619e85,discover-uk-stage1-021,University of Brighton,Business Management with Entrepreneurship,UK,bachelor,business,40,10,4,14,0,26,25.0,35.0
+2936099d-411e-5963-8c62-27be8bb17202,onisep-fr-stage1-017,Institut d'administration des entreprises - Campus Saint-Jean d'Angely,master mention management et commerce international,FR,master,business,40,6,0,6,0,34,15.0,15.0
+2a4fb7c5-f257-555a-84c5-2a23d72e611b,discover-uk-stage1-015,BLACKPOOL AND THE FYLDE COLLEGE,Engineering (Automotive Engineering),UK,bachelor,engineering,40,8,4,12,0,28,20.0,30.0
+2a72840d-c750-5afa-8adf-d8b51e4abe33,erasmus-nl-canary,Erasmus Universiteit Rotterdam,Business Administration,NL,bachelor,other,40,2,0,2,0,38,5.0,5.0
+2b10d957-eb9b-5583-b2bb-fc1c741a300b,discover-uk-stage1-018,Bournemouth University,Accounting,UK,bachelor,other,40,8,2,8,0,32,20.0,20.0
+2bd8d0f8-2222-53ab-96c6-cdf12dfdca2d,onisep-fr-stage1-018,IUT Nice Côte d'Azur - site de Nice,BUT gestion des entreprises et des administrations parcours gestion et pilotage des ressources humaines,FR,bachelor,business,40,5,0,5,0,35,12.5,12.5
+2c43e758-e2c2-51e2-9e80-0c3581520de9,duo-nl-stage1-003,Open Universiteit Nederland,HBO - Rechten,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+2c644259-28c5-5925-847b-588891b7f7bf,duo-nl-stage1-018,Stichting Driestar educatief,Educational Theory,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+2d63a989-f592-52d3-9a35-1cab15b8fafe,uva-nl-canary,Universiteit van Amsterdam,Informatica,NL,bachelor,computer science,40,6,2,8,0,32,15.0,20.0
+2eaaaaff-8813-58c6-870f-7eb32c37f6a6,onisep-fr-stage1-029,École universitaire de recherche arts et humanités - Campus Georges Méliès,licence mention humanités,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+2f22ab26-e9a8-53fb-a260-26252a231af8,onisep-fr-stage1-004,Institut supérieur des sciences et techniques,master mention informatique,FR,master,computer science,40,6,0,6,0,34,15.0,15.0
+31096360-54d5-509d-82d0-8e262fdbe4eb,onisep-fr-stage1-032,École universitaire de recherche en écosystèmes des sciences de la santé - Campus STAPS,master mention sciences et techniques des activités physiques et sportives : management du sport,FR,master,other,40,6,0,6,0,34,15.0,15.0
+339349f1-ea76-5178-8eb9-8401fbcf9143,discover-uk-stage1-015,BLACKPOOL AND THE FYLDE COLLEGE,Engineering (Robotics and Automation Engineering),UK,bachelor,engineering,40,8,5,12,0,28,20.0,30.0
+363052cb-99e3-5cb4-bfc4-512e4dc078a2,cambridge-uk-canary,University of Cambridge,Natural Sciences,UK,bachelor,computer science,40,7,2,8,0,32,17.5,20.0
+36d5084e-2c73-5fb5-b94e-abfed22c61eb,onisep-fr-stage1-038,Institut national supérieur du professorat et de l'éducation - site de Charleville-Mézières,licence mention professorat des écoles,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+394c7037-53ca-5124-b1cb-c347f2f3c5a9,onisep-fr-stage1-009,Institut national supérieur du professorat et de l'éducation Clermont-Auvergne - site de Moulins,licence mention professorat des écoles,FR,bachelor,other,40,6,1,7,0,33,15.0,17.5
+3a574afc-69e2-5f98-8d89-a358555d61bb,discover-uk-stage1-022,Bristol Baptist College,"Theology, Ministry and Mission",UK,bachelor,other,40,6,5,6,0,34,15.0,15.0
+3de52a35-3c2d-58bb-9e06-01d688b47671,discover-uk-stage1-016,Boston College,Leadership & Management,UK,bachelor,business,40,11,5,14,0,26,27.5,35.0
+3e73f74a-32b2-5791-bced-eab789f0add1,onisep-fr-stage1-025,CESI école d'ingénieurs - campus de Nice,diplôme d'ingénieur du CESI,FR,master,engineering,40,6,1,7,0,33,15.0,17.5
+3fc9f03e-164a-5b94-a37c-d9730e54d91d,duo-nl-stage1-016,Stichting 'De Kempel',Education in Primary Schools (age 4 - 12),NL,bachelor,other,40,3,5,5,0,35,7.5,12.5
+409ba547-8457-53c7-8e77-3dbe46e84b34,duo-nl-stage1-003,Open Universiteit Nederland,Psychology,NL,master,other,40,0,2,2,0,38,0.0,5.0
+415292e8-d52b-5e24-be5c-5c56f6284005,duo-nl-stage1-013,Stichting Avans,Master Materials & Energy Transition,NL,master,other,40,3,5,5,0,35,7.5,12.5
+4312df08-cb0e-538a-b9ed-4e0d7e864ff9,discover-uk-stage1-019,Bradford College,Primary Education Early Years 5-11 (QTS),UK,bachelor,other,40,6,0,6,0,34,15.0,15.0
+43850490-0520-5cca-b9a2-0b1b84156049,discover-uk-stage1-011,University College Birmingham,Airport And Aviation Management,UK,bachelor,business,40,8,2,8,0,32,20.0,20.0
+45389133-b30b-5620-a1f1-132881ea6575,bristol-uk-canary,University of Bristol,Data Science,UK,bachelor,data science,40,12,5,13,0,27,30.0,32.5
+45d0488c-fd77-5761-bf4b-e68dc9328b6f,oxford-uk-canary,Oxford University,Computer Science (3 or 4 years),UK,bachelor,computer science,40,6,1,7,0,33,15.0,17.5
+45df12ed-0f4c-5ef7-a071-4092b34a4e20,duo-nl-stage1-005,Rijksuniversiteit Groningen,Dutch Language and Culture,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+462f1e03-d780-59e6-beb8-c14fa8fe5279,duo-nl-stage1-008,Stg. Kaht. Opleiding Leraren in het Basisonderwijs,Master Leiderschap en Innovatie Kind en Educatie,NL,master,other,40,0,2,2,0,38,0.0,5.0
+465d4536-96e4-5b55-8c3e-80a1e8013b76,discover-uk-stage1-007,Askham Bryan College,Equine Science and Management (including Foundation year),UK,bachelor,business,40,8,1,9,0,31,20.0,22.5
+49412a9b-8bd2-5754-979e-aacdc24e93ad,ens-paris-saclay-fr-canary,Ecole normale superieure Paris-Saclay,Master mention biologie-sante,FR,master,other,40,5,0,5,0,35,12.5,12.5
+49ca4019-1bf2-5b5c-983d-1c96b71efea6,onisep-fr-stage1-026,"Institut national supérieur du professorat et de l'éducation Célestin Freinet - site de Nice, George V","master mention métiers de l'enseignement, de l'éducation et de la formation - pratiques et ingénierie de la formation",FR,master,other,40,6,0,6,0,34,15.0,15.0
+4a6dc990-011c-5b1c-8192-72159ff410fc,onisep-fr-stage1-002,Campus de Lyon 3 à Bourg-en-Bresse,licence mention histoire,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+4bc4287b-b630-55b7-bebb-1505a023ea61,onisep-fr-stage1-010,IUT Clermont Auvergne - site de Moulins,"BUT techniques de commercialisation parcours marketing digital, e-business et entrepreneuriat",FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+4c35dae7-87c2-5354-824b-be18661a1765,onisep-fr-stage1-013,IUT Clermont Auvergne - site de Montluçon,BUT génie électrique et informatique industrielle parcours électricité et maîtrise de l'énergie,FR,bachelor,computer science,40,6,0,6,0,34,15.0,15.0
+4cedbd6a-eda3-5e11-ad37-9bdcf3746650,onisep-fr-stage1-027,IUT Nice Côte d'Azur - Site de Cannes,BUT information-communication parcours journalisme,FR,bachelor,computer science,40,5,0,5,0,35,12.5,12.5
+4da6f840-9e62-5e39-a2b7-ebc0aea392ef,onisep-fr-stage1-026,"Institut national supérieur du professorat et de l'éducation Célestin Freinet - site de Nice, George V",master mention enseignement et éducation - professorat du second degré,FR,master,other,40,6,1,6,0,34,15.0,15.0
+4e617a0f-c536-5347-956b-ba2cf24bc507,onisep-fr-stage1-012,UFR Sciences et techniques des activités physiques et sportives - Antenne de Vichy,licence mention sciences et techniques des activités physiques et sportives activité physique adaptée et santé,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+4ec2cb38-ac8f-597c-857d-18eabf99649b,cambridge-uk-canary,University of Cambridge,Computer Science,UK,bachelor,computer science,40,6,1,7,0,33,15.0,17.5
+4f08a8ee-9519-5882-b92e-3c373e740e6f,duo-nl-stage1-014,Stichting Christel. Hogesch. Windesheim,Teacher Education in Social Skills,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+51008e77-c0f0-545f-aa70-38f531ed5337,centrale-lille-fr-canary,Centrale Lille Institut,Master mecanique,FR,master,other,40,6,1,6,0,34,15.0,15.0
+52ed182b-e33d-5595-9e88-fe534b52acb9,tue-nl-canary,Technische Universiteit Eindhoven,Sustainable Energy Technology,NL,master,other,40,5,0,5,0,35,12.5,12.5
+546f63d0-1d09-592f-baec-3c564b05a6a3,onisep-fr-stage1-033,École universitaire de recherche en droit et science politique - Faculté de droit et science politique - Campus Trotabas,master mention droit des affaires,FR,master,other,40,6,0,6,0,34,15.0,15.0
+57418cd2-9e28-5de8-9bc6-055f88d3b8bb,kings-uk-canary,King's College London,Computer Science,UK,bachelor,computer science,40,9,7,9,0,31,22.5,22.5
+58644168-c523-558b-b4e2-52647103bbd0,onisep-fr-stage1-039,IUT de Charleville,BUT gestion administrative et commerciale des organisations parcours management responsable de projet et entrepreneuriat,FR,bachelor,business,40,6,0,6,0,34,15.0,15.0
+5899253a-cf94-5a60-ae1a-dd8d5638d45c,discover-uk-stage1-022,Bristol Baptist College,"Theology, Ministry and Mission",UK,bachelor,other,40,6,0,6,0,34,15.0,15.0
+59c87f4f-e9fb-59a9-9c0c-ef57d23132d5,onisep-fr-stage1-037,École universitaire de recherche en sciences fondamentales et Ingénierie - Campus Plaine du Var - Écovallée,master mention physique fondamentale et applications,FR,master,other,40,6,0,6,0,34,15.0,15.0
+5d6d82c7-4eae-5e59-850c-4fdc44bc1b9e,onisep-fr-stage1-022,"Campus Carlone Lettres, Arts et Sciences humaines",licence mention histoire,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+5dcb3d22-21b0-523b-b1aa-27093fb8036a,discover-uk-stage1-011,University College Birmingham,Aesthetics,UK,bachelor,other,40,8,0,8,0,32,20.0,20.0
+5dea6883-31fe-5808-9ee8-0775b57792ae,onisep-fr-stage1-004,Institut supérieur des sciences et techniques,master mention génie industriel,FR,master,other,40,6,0,6,0,34,15.0,15.0
+5ea7c52c-13d6-5946-aee3-0eeaa2cc3104,duo-nl-stage1-010,Sticht. A'damse Hogeschool voor de Kunsten,Film and Television,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+5f7e4503-b034-5260-913a-5110ed0982b6,discover-uk-stage1-025,Buckinghamshire New University,Acting for Stage and Screen,UK,bachelor,other,40,6,4,8,0,32,15.0,20.0
+5f95f3f8-7afc-52a6-ba5b-e4f49c98267b,discover-uk-stage1-020,University Centre Somerset College Group,"Makeup Artistry, Prosthetic FX and Wig Making",UK,bachelor,other,40,6,1,7,0,33,15.0,17.5
+5fb6c708-c086-5214-9871-88a376d13fda,onisep-fr-stage1-016,IUT d'Aix-Marseille - site de Gap,"BUT gestion des entreprises et des administrations parcours gestion comptable, fiscale et financière",FR,bachelor,business,40,6,0,6,0,34,15.0,15.0
+60e2e546-beec-559f-8803-ff7d234c1959,discover-uk-stage1-003,All Nations Christian College,Biblical and Intercultural Studies,UK,bachelor,other,40,7,0,7,0,33,17.5,17.5
+626e1529-04bc-5ccd-be3e-78268b0a4e35,wageningen-nl-canary,Wageningen University,Business and Consumer Studies,NL,bachelor,other,40,6,0,6,0,34,15.0,15.0
+62a162a9-a6a1-57f4-a3b1-eb0e91c275e4,onisep-fr-stage1-033,École universitaire de recherche en droit et science politique - Faculté de droit et science politique - Campus Trotabas,master mention droit public,FR,master,other,40,6,0,6,0,34,15.0,15.0
+62a663d6-de90-5325-922d-27656a7c3d3c,ens-paris-saclay-fr-canary,Ecole normale superieure Paris-Saclay,Master mention physique fondamentale et applications,FR,master,other,40,5,0,5,0,35,12.5,12.5
+63412a30-b38b-5b03-b7ff-4ddfa92300cf,discover-uk-stage1-008,Barking and Dagenham College,Computing for England (Cyber Security) (Barking and Dagenham),UK,bachelor,computer science,40,6,0,6,0,34,15.0,15.0
+6344d41a-fdd0-5644-86ac-209f83326370,onisep-fr-stage1-028,École universitaire de recherche arts et humanités - Campus Carlone,master mention langues étrangères appliquées,FR,master,other,40,6,0,6,0,34,15.0,15.0
+64e762bd-c437-5b9a-bfbf-40671329cc90,onisep-fr-stage1-027,IUT Nice Côte d'Azur - Site de Cannes,BUT information-communication parcours communication des organisations,FR,bachelor,computer science,40,5,0,5,0,35,12.5,12.5
+67d4335b-a04e-580e-9e0e-cdefa450480a,onisep-fr-stage1-036,École universitaire de recherche en sciences fondamentales et Ingénierie - Campus Sophia Tech,master mention gestion de l'environnement,FR,master,business,40,6,0,6,0,34,15.0,15.0
+67ef7389-04ec-5e55-94cc-49456ef74cb3,uef-fi-canary,University of Eastern Finland,Data Engineering,FI,bachelor,computer science,40,8,6,14,0,26,20.0,35.0
+68e2924c-c07f-5ac2-8ea9-6bb6e0d21351,discover-uk-stage1-013,Bishop Burton College,Animal Behaviour & Wildlife Conservation,UK,bachelor,other,40,7,2,8,0,32,17.5,20.0
+69dddfc8-ee52-57d9-8887-28139c2275d6,kings-uk-canary,King's College London,Computer Science,UK,bachelor,computer science,40,7,1,8,0,32,17.5,20.0
+6a7210f2-06be-539a-8480-cf8386a4f915,discover-uk-stage1-023,London South East Colleges,Early Years Professional Leadership,UK,bachelor,other,40,8,3,8,0,32,20.0,20.0
+6bd2a8b8-9767-5c0b-9580-2c8fbda3c98b,onisep-fr-stage1-011,IUT Clermont Auvergne - site de Vichy,BUT métiers du multimédia et de l'internet parcours création numérique,FR,bachelor,computer science,40,6,0,6,0,34,15.0,15.0
+6ed310cc-38b0-5e8f-992a-1d7ebe481f14,duo-nl-stage1-013,Stichting Avans,Sustainability Transitions (joint degree),NL,master,computer science,40,3,2,5,0,35,7.5,12.5
+6fb2e41e-4389-5d23-936f-113aef58afc1,onisep-fr-stage1-005,Institut national supérieur du professorat et de l'éducation - antenne de Laon,master mention enseignement et éducation - professorat des écoles,FR,master,other,40,6,0,6,0,34,15.0,15.0
+6fe23143-7fdb-57ea-a7e6-1656c7c6ffa5,onisep-fr-stage1-034,École universitaire de recherche en sciences de la société et de l'environnement - Campus Carlone,master mention ville et environnements urbains,FR,master,other,40,6,0,6,0,34,15.0,15.0
+705ee35e-ee7c-5f92-9b2f-326464160035,leiden-nl-canary,Universiteit Leiden,Geneeskunde,NL,bachelor,other,40,5,0,5,0,35,12.5,12.5
+73db1816-bfbf-5cec-b4ea-619146b93fdb,leiden-nl-canary,Universiteit Leiden,Statistics and Data Science,NL,master,computer science,40,5,0,5,0,35,12.5,12.5
+7415a39b-2f5f-5571-bfc7-43976f8d48d7,discover-uk-stage1-007,Askham Bryan College,Equine Science and Management,UK,bachelor,business,40,8,1,9,0,31,20.0,22.5
+7523ae19-3e89-5a97-843b-147b847e4c45,duo-nl-stage1-001,Het College van Bestuur van de Vrije Universiteit,Change Management,NL,master,business,40,0,2,2,0,38,0.0,5.0
+7670144e-e4f8-58af-be95-830fb3831ee2,uppsala-se-canary,Uppsala University,Floristics and Faunistics L,SE,bachelor,other,40,5,2,7,0,33,12.5,17.5
+770878eb-c3e4-583c-aeb7-0113b97486cf,discover-uk-stage1-021,University of Brighton,Pharmacy,UK,bachelor,other,40,11,4,14,0,26,27.5,35.0
+770f992a-7c1a-5b5c-82ad-f900668b7f1e,discover-uk-stage1-017,The Bournemouth and Poole College,Digital Animation Design & Production,UK,bachelor,other,40,6,0,6,0,34,15.0,15.0
+776f8c66-f129-5d3a-a7f8-7a91c0a7f9bd,tue-nl-canary,Technische Universiteit Eindhoven,Embedded Systems,NL,master,other,40,5,0,5,0,35,12.5,12.5
+799e0634-fecf-5059-8a0b-3f628d588a9c,onisep-fr-stage1-007,Institut universitaire de technologie de l'Aisne - Campus de Laon,BUT techniques de commercialisation parcours business international : achat et vente,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+7af5cdae-1e38-5d6c-a16b-d92503e58923,onisep-fr-stage1-035,École universitaire de recherche en sciences fondamentales et Ingénierie - Campus Valrose,master mention physique fondamentale et applications,FR,master,other,40,6,0,6,0,34,15.0,15.0
+7b6753ca-2400-51f3-b391-925e7ef33827,onisep-fr-stage1-037,École universitaire de recherche en sciences fondamentales et Ingénierie - Campus Plaine du Var - Écovallée,master mention gestion de l'environnement,FR,master,business,40,6,0,6,0,34,15.0,15.0
+7c7925d8-0ea6-5d8d-8b1c-10af69f024bb,erasmus-nl-canary,Erasmus Universiteit Rotterdam,Research Master Business Data Science,NL,master,computer science,40,6,0,6,0,34,15.0,15.0
+7dca1beb-82e4-515a-a5f8-8dae2a29f84d,discover-uk-stage1-010,Bath Spa University,Acting with Foundation Year at Boomsatsuma,UK,bachelor,other,40,8,4,12,0,28,20.0,30.0
+80d11752-1297-5b81-aecd-cb6ab6bf37d1,utrecht-nl-canary,Universiteit Utrecht,Information Science,NL,bachelor,computer science,40,2,0,2,0,38,5.0,5.0
+814d8802-d69b-59c9-808a-b733ffe17579,edinburgh-uk-canary,The University of Edinburgh,Computer Science,UK,bachelor,computer science,40,12,4,16,0,24,30.0,40.0
+81849649-f1a0-5dba-9010-16cfb9609bf3,onisep-fr-stage1-005,Institut national supérieur du professorat et de l'éducation - antenne de Laon,licence mention professorat des écoles,FR,bachelor,other,40,5,0,5,0,35,12.5,12.5
+81f197ab-e6ea-5bdf-b4c2-eb79ba966142,aalto-fi-canary,Aalto University,"Data Science, Bachelor/MSc",FI,bachelor,computer science,40,3,2,5,0,35,7.5,12.5
+8322e08f-eb1d-50a8-bd91-33371fb57645,imperial-uk-canary,Imperial College London,Mathematics and Computer Science,UK,bachelor,computer science,40,13,4,17,0,23,32.5,42.5
+847d059a-5d7f-567f-adb8-8980d7e567c6,duo-nl-stage1-006,Stg. Chr. Hoger Ber.ond. op Gereformeerde Grondslag,Information & Communication Technology,NL,bachelor,computer science,40,0,2,2,0,38,0.0,5.0
+8606b6c5-bf41-54d1-87f7-95596c5d82cc,haaga-helia-fi-canary,Haaga-Helia University of Applied Sciences,Business Information Technology,FI,bachelor,computer science,40,8,5,11,0,29,20.0,27.5
+87ff2832-35fa-524a-9ae3-c8b7aeabad3b,discover-uk-stage1-001,Abingdon and Witney College,Business and Management Practice,UK,bachelor,business,40,11,1,12,0,28,27.5,30.0
+88803846-33d0-5f69-96cb-474eb2633037,onisep-fr-stage1-031,École universitaire de recherche en économie et Management (ELMI) - Campus Saint-Jean d'Angely,"master mention monnaie, banque, finance, assurance",FR,master,other,40,6,0,6,0,34,15.0,15.0
+8e50c3cc-f732-5c1a-a6d9-5a011949e138,duo-nl-stage1-008,Stg. Kaht. Opleiding Leraren in het Basisonderwijs,Education in Primary Schools (age 4 - 12),NL,bachelor,other,40,2,2,4,0,36,5.0,10.0
+8e8f2126-460d-5840-b1e8-d4144fbd4007,centrale-lille-fr-canary,Centrale Lille Institut,Master sciences des donnees,FR,master,other,40,6,0,6,0,34,15.0,15.0
+8eb42e1e-62a2-5044-987d-01719cd7d204,discover-uk-stage1-004,Anglia Ruskin University,Law,UK,bachelor,other,40,10,5,14,0,26,25.0,35.0
+8fdc5c4f-eace-5dd7-a0a2-85c3d9aeb144,onisep-fr-stage1-010,IUT Clermont Auvergne - site de Moulins,BUT techniques de commercialisation parcours business international : achat et vente,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+9436b038-a11f-554e-bf0b-894432db7716,discover-uk-stage1-004,Anglia Ruskin University,Fine Art,UK,bachelor,other,40,11,3,14,0,26,27.5,35.0
+95d3bbf1-7e5d-5412-96b3-c6022bd8b35a,discover-uk-stage1-008,Barking and Dagenham College,Computing For England (General) (Barking and Dagenham),UK,bachelor,computer science,40,6,1,6,0,34,15.0,15.0
+96c509ad-7afb-5c33-a47f-b49db274ca43,onisep-fr-stage1-029,École universitaire de recherche arts et humanités - Campus Georges Méliès,licence mention sciences et humanités,FR,bachelor,other,40,6,5,6,0,34,15.0,15.0
+97423fc0-45e9-51e2-a731-0ca88961b85f,onisep-fr-stage1-019,"Institut national supérieur du professorat et de l'éducation Célestin Freinet - site de Nice, Stephen Liégeard",licence mention professorat des écoles,FR,bachelor,other,40,5,0,5,0,35,12.5,12.5
+996b9e0a-6692-5ca7-ab52-23f3030c9a37,duo-nl-stage1-004,Protestantse Theologische Universiteit (PThU),Theology (joint degree),NL,bachelor,other,40,2,2,4,0,36,5.0,10.0
+99b99133-5159-5038-b8d9-e413a69b1b20,onisep-fr-stage1-034,École universitaire de recherche en sciences de la société et de l'environnement - Campus Carlone,master mention sciences sociales,FR,master,other,40,6,0,6,0,34,15.0,15.0
+9aa11c3a-96bc-55a3-b8c1-f7ff409776c5,onisep-fr-stage1-032,École universitaire de recherche en écosystèmes des sciences de la santé - Campus STAPS,master mention sciences et techniques des activités physiques et sportives  : activité physique adaptée et santé,FR,master,other,40,6,0,6,0,34,15.0,15.0
+9abbec1d-5f50-59ea-9532-f3ed9e3aff10,insa-lyon-fr-canary,Institut national des sciences appliquees de Lyon,Bachelor en sciences et ingenierie - genie energetique et environnement,FR,bachelor,other,40,5,2,7,0,33,12.5,17.5
+9b5d5d94-9494-5799-9c62-4d5c254f4565,radboud-nl-canary,Radboud Universiteit,Computing Science,NL,master,other,40,2,0,2,0,38,5.0,5.0
+9c7a356e-e589-5c3b-a538-c3b048b27a66,onisep-fr-stage1-040,École d'ingénieurs en sciences industrielles et numérique - site de Charleville-Mézières,master mention ingénierie de conception,FR,master,other,40,6,0,6,0,34,15.0,15.0
+9e56967c-c215-5e0b-ba38-018d61a6a991,edinburgh-uk-canary,The University of Edinburgh,Computer Science,UK,bachelor,computer science,40,13,9,16,0,24,32.5,40.0
+9ef869f3-5229-5b4e-af66-466d31855d30,duo-nl-stage1-010,Sticht. A'damse Hogeschool voor de Kunsten,Music,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+9f97224e-b2bd-5a6f-9b0e-f6a539fd3230,onisep-fr-stage1-023,École polytechnique universitaire de l'Université Côte d'Azur,diplôme d'ingénieur de l'École polytechnique universitaire de l'université Côte d'Azur spécialité informatique,FR,master,computer science,40,7,1,8,0,32,17.5,20.0
+a4e6b163-10f4-513a-9230-fe193026b557,discover-uk-stage1-018,Bournemouth University,Accounting and Finance,UK,bachelor,other,40,7,1,8,0,32,17.5,20.0
+a55ac756-74f2-5665-8ade-50663567365e,duo-nl-stage1-019,Stichting Fontys,Applied Science,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+a7314bac-e141-553c-b6f2-6f6577f85f8f,onisep-fr-stage1-036,École universitaire de recherche en sciences fondamentales et Ingénierie - Campus Sophia Tech,"master mention sciences de la Terre et des planètes, environnement",FR,master,other,40,6,0,6,0,34,15.0,15.0
+a7aeb70e-3922-587d-ba67-1cd77b0ab33f,duo-nl-stage1-007,Stg. Gerrit. Rietveld Academ. Hogesch. Kunst en Vormg.,Art & Design,NL,bachelor,other,40,2,2,4,0,36,5.0,10.0
+aab072ce-4ac6-5c86-a311-170c1ed24c00,discover-uk-stage1-002,Health Sciences University,Radiography (Diagnostic Imaging),UK,bachelor,other,40,11,2,13,0,27,27.5,32.5
+b24a96cd-0e71-58de-91fe-fd509593425f,onisep-fr-stage1-014,Institut national supérieur du professorat et de l'éducation - site de Digne-les-Bains,master mention enseignement et éducation - professorat des écoles,FR,master,other,40,5,0,5,0,35,12.5,12.5
+b2d3ccbf-2726-540d-9f02-a41883121b37,onisep-fr-stage1-012,UFR Sciences et techniques des activités physiques et sportives - Antenne de Vichy,licence mention sciences et techniques des activités physiques et sportives éducation et motricité,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+b2e631c1-b970-54ea-be38-4a8e3378752a,onisep-fr-stage1-020,IUT Nice Côte d'Azur- Site de Sophia-Antipolis,BUT réseaux et télécommunications parcours internet des objets et mobilité,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+b2f723c3-fea3-57c3-b092-2be7825c5a5e,onisep-fr-stage1-040,École d'ingénieurs en sciences industrielles et numérique - site de Charleville-Mézières,licence mention sciences pour l'ingénieur,FR,bachelor,engineering,40,6,0,6,0,34,15.0,15.0
+b40d6dfd-98cd-50c3-94e3-cdc6c928c532,onisep-fr-stage1-038,Institut national supérieur du professorat et de l'éducation - site de Charleville-Mézières,master mention enseignement et éducation - professorat des écoles,FR,master,other,40,5,0,5,0,35,12.5,12.5
+b42b75f5-3004-5009-8bcf-40a2f3438085,onisep-fr-stage1-008,Institut universitaire de technologie de l'Aisne - Campus de Saint-Quentin,BUT génie mécanique et productique parcours innovation pour l'industrie,FR,bachelor,engineering,40,6,0,6,0,34,15.0,15.0
+b71975da-c74a-5d2d-8e60-1ffed647fcee,onisep-fr-stage1-015,IUT d'Aix-Marseille - site de Digne-les-Bains,BUT gestion administrative et commerciale des organisations parcours management responsable de projet et entrepreneuriat,FR,bachelor,business,40,6,0,6,0,34,15.0,15.0
+b9aa04e3-0f33-518f-afbd-7a9e7479bafb,onisep-fr-stage1-008,Institut universitaire de technologie de l'Aisne - Campus de Saint-Quentin,"BUT génie chimique, génie des procédés parcours conception des procédés et innovation technologique",FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+baa1b317-ba51-5fac-af2c-4aa258d131a2,discover-uk-stage1-017,The Bournemouth and Poole College,"Esports Production, Broadcasting and Events",UK,bachelor,other,40,6,0,6,0,34,15.0,15.0
+bacf26e0-b8c6-5e30-9651-453006e84560,duo-nl-stage1-014,Stichting Christel. Hogesch. Windesheim,Information & Communication Technology,NL,bachelor,computer science,40,0,2,2,0,38,0.0,5.0
+bea9cf87-a594-599a-af97-f393a534a5f1,onisep-fr-stage1-030,École universitaire de recherche en systèmes numériques pour l'humain - Campus Sophia Tech,master mention informatique,FR,master,computer science,40,6,0,6,0,34,15.0,15.0
+bf308eef-94f1-5ee2-93f5-29797353ff96,grenoble-inp-fr-canary,Grenoble INP - UGA,Master informatique,FR,master,computer science,40,6,0,6,0,34,15.0,15.0
+bfc45f5d-0a97-5713-983e-d41f43e9de06,uco-nantes-fr-canary,Facultes libres de l'Ouest - UCO Nantes,Licence mention science politique,FR,bachelor,other,40,7,0,7,0,33,17.5,17.5
+c2637d16-4f58-55b5-b925-6cdc8a8590d2,discover-uk-stage1-014,Blackburn College,Business with Management,UK,bachelor,business,40,8,2,10,0,30,20.0,25.0
+c4ca6963-813a-5121-a844-b24e4ffc1097,uef-fi-canary,University of Eastern Finland,Information Technology,FI,bachelor,computer science,40,8,6,14,0,26,20.0,35.0
+c544e49f-37e4-5f5e-9ffb-f89d91caafda,onisep-fr-stage1-018,IUT Nice Côte d'Azur - site de Nice,"BUT informatique parcours réalisation d'applications : conception, développement, validation",FR,bachelor,computer science,40,5,0,5,0,35,12.5,12.5
+c5b5eba6-707a-51a9-b64a-9385389c6bd7,imperial-uk-canary,Imperial College London,Mathematics and Computer Science,UK,bachelor,computer science,40,13,9,17,0,23,32.5,42.5
+c695f7f2-0ce1-5caa-9600-cf5fc759a332,aalto-fi-canary,Aalto University,Computer Science MSc,FI,master,computer science,40,4,2,6,0,34,10.0,15.0
+c6eca011-652e-5337-acaf-ddaeb1183845,grenoble-inp-fr-canary,Grenoble INP - UGA,Master mathematiques et applications,FR,master,other,40,6,0,6,0,34,15.0,15.0
+c71397c3-c640-5a07-9cb8-8f9d7f00b9a8,onisep-fr-stage1-013,IUT Clermont Auvergne - site de Montluçon,BUT métiers de la transition et de l'efficacité énergétiques parcours réalisation des installations énergétiques pour le bâtiment et l'industrie,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+c730c2f4-b8a5-5ef0-9947-7eea1b10b7d9,ip-paris-fr-canary,Institut polytechnique de Paris,Master innovation entreprise societe,FR,master,other,40,5,0,5,0,35,12.5,12.5
+c79f728c-33cc-5030-b778-40a823b3c17d,onisep-fr-stage1-015,IUT d'Aix-Marseille - site de Digne-les-Bains,BUT génie biologique parcours sciences de l'environnement et écotechnologies,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+c870ed45-74ae-5a4a-bfae-45186ef33ff1,duo-nl-stage1-019,Stichting Fontys,Educational Management Childcare,NL,bachelor,business,40,0,2,2,0,38,0.0,5.0
+c88a3280-125f-585b-8a20-aebb08a5836f,discover-uk-stage1-024,Brunel University of London,Theatre,UK,bachelor,other,40,7,5,12,0,28,17.5,30.0
+c8b582cd-d346-5415-8893-e40e62413526,onisep-fr-stage1-011,IUT Clermont Auvergne - site de Vichy,BUT métiers du multimédia et de l'internet parcours stratégie de communication numérique et design d'expérience,FR,bachelor,computer science,40,6,0,6,0,34,15.0,15.0
+cde07505-e47d-5d92-b7f6-d47a954a32f4,duo-nl-stage1-009,Stiching Breda University of Applied Sciences,Creative Media and Game Technologies,NL,bachelor,engineering,40,0,2,2,0,38,0.0,5.0
+ceec9355-9c45-56cb-a776-d302dd78bb57,onisep-fr-stage1-024,EURECOM,master mention informatique,FR,master,computer science,40,6,5,11,0,29,15.0,27.5
+cf355755-f0f7-5b74-9f74-8a6c58e4b12c,duo-nl-stage1-018,Stichting Driestar educatief,Education in Primary Schools (age 4 - 12),NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+cf4a134b-b914-5181-aa12-a43cc0596f74,duo-nl-stage1-011,Stichting Aeres Groep,Bachelor Agricultural Entrepreneurship Animal Husbandry,NL,bachelor,other,40,3,5,5,0,35,7.5,12.5
+d01f556a-86a0-57b3-a068-85efc5a05b24,duo-nl-stage1-001,Het College van Bestuur van de Vrije Universiteit,Geographical Information Sciences,NL,master,computer science,40,0,2,2,0,38,0.0,5.0
+d03f735a-52cb-5656-ad23-d9fa0196ae4f,kth-se-canary,KTH Royal Institute of Technology,Architecture and Gender: Essay,SE,master,other,40,4,2,6,0,34,10.0,15.0
+d09b3b83-7fe8-5626-bb42-6dd7661c0972,tu-delft-nl-canary,Delft University of Technology,Computer Science,NL,master,computer science,40,5,3,5,0,35,12.5,12.5
+d0d192c5-ff75-5fdf-8c6c-80e0cc2608c6,discover-uk-stage1-020,University Centre Somerset College Group,"Makeup Artistry, Prosthetic FX and Wig Making",UK,bachelor,other,40,6,6,7,0,33,15.0,17.5
+d0fa5375-aec0-55a2-ad4b-23ae41795088,discover-uk-stage1-012,Bishop Auckland College,Art and Design,UK,bachelor,other,40,9,0,9,0,31,22.5,22.5
+d115e175-3bb5-5c4f-8d2d-169038e9cdc2,discover-uk-stage1-025,Buckinghamshire New University,Animation (Online),UK,bachelor,other,40,6,3,8,0,32,15.0,20.0
+d16a8da1-2e7e-5f82-ad51-2ad5d35a46b2,discover-uk-stage1-003,All Nations Christian College,Biblical and Intercultural Studies,UK,bachelor,other,40,7,5,7,0,33,17.5,17.5
+d33870ff-b395-5b21-bda9-ce18c8c74b27,discover-uk-stage1-024,Brunel University of London,Theatre with Placement Year,UK,bachelor,other,40,7,5,12,0,28,17.5,30.0
+d3500ac3-9288-5594-91cf-cc8f2dc1c9d3,duo-nl-stage1-011,Stichting Aeres Groep,Applied Biology,NL,bachelor,other,40,3,2,5,0,35,7.5,12.5
+d3eed547-9c02-5f1a-aa92-86592188de66,onisep-fr-stage1-021,IUT Nice Côte d'Azur - Site de Menton,BUT carrières sociales parcours éducation spécialisée,FR,bachelor,other,40,5,0,5,0,35,12.5,12.5
+d50de2d3-1fef-5ea0-8ba0-bd3213a09956,lund-se-canary,Lund University,AI and Digitization in the Archive Sector,SE,master,computer science,40,5,3,8,0,32,12.5,20.0
+d649d1a4-f5d6-55c4-bac1-8db8a9953756,discover-uk-stage1-012,Bishop Auckland College,Photography,UK,bachelor,other,40,9,1,9,0,31,22.5,22.5
+d6cc8d77-c34f-5b12-a8d0-ab09479fe460,onisep-fr-stage1-014,Institut national supérieur du professorat et de l'éducation - site de Digne-les-Bains,licence mention professorat des écoles,FR,bachelor,other,40,5,0,5,0,35,12.5,12.5
+da194efb-4270-5346-a7bb-56cb3d7b47a6,onisep-fr-stage1-031,École universitaire de recherche en économie et Management (ELMI) - Campus Saint-Jean d'Angely,master mention gestion des ressources humaines,FR,master,business,40,6,0,6,0,34,15.0,15.0
+da8fbb39-bb88-5c12-8e38-02ab720afa48,duo-nl-stage1-004,Protestantse Theologische Universiteit (PThU),Theology,NL,master,other,40,1,2,3,0,37,2.5,7.5
+daa9521e-4e07-53a8-b85a-bcd0c566e374,discover-uk-stage1-023,London South East Colleges,Computing: Cyber Security,UK,bachelor,computer science,40,8,0,8,0,32,20.0,20.0
+dad83581-5867-589c-8f07-e4c03f446443,duo-nl-stage1-020,Stichting Hanzehogeschool Groningen,Information & Communication Technology,NL,bachelor,computer science,40,0,2,2,0,38,0.0,5.0
+db815ea7-641e-5c5b-b5fd-46811d987bef,uppsala-se-canary,Uppsala University,Natural Science and Science Education,SE,bachelor,other,40,5,2,7,0,33,12.5,17.5
+dcf7376b-e09f-5a39-a42b-463e84ec8ccc,tu-delft-nl-canary,Delft University of Technology,Data Science and Artificial Intelligence Technology,NL,master,computer science,40,5,0,5,0,35,12.5,12.5
+de38fc20-2235-5c03-b4f0-5d3817f4abcc,manchester-uk-canary,The University of Manchester,Computer Science,UK,bachelor,computer science,40,13,1,14,0,26,32.5,35.0
+df53e148-1899-5eb0-b91b-2abd84256559,bristol-uk-canary,University of Bristol,Computer Science,UK,bachelor,computer science,40,10,2,12,0,28,25.0,30.0
+e01daefe-355a-5f31-a3db-f63d8275d471,discover-uk-stage1-014,Blackburn College,Accounting and Finance,UK,bachelor,other,40,9,4,11,0,29,22.5,27.5
+e0732994-091e-5f76-92ac-3b0830ad9969,onisep-fr-stage1-021,IUT Nice Côte d'Azur - Site de Menton,BUT carrières sociales parcours animation sociale et socio-culturelle,FR,bachelor,other,40,5,0,5,0,35,12.5,12.5
+e13e5765-76c1-5401-bb01-d4156f2afa0e,duo-nl-stage1-015,"Stichting Codarts, Hogeschool voor de Kunsten",Music,NL,bachelor,other,40,0,2,2,0,38,0.0,5.0
+e1c56462-e350-50c0-bd4f-c34671fd3d61,kth-se-canary,KTH Royal Institute of Technology,Architecture and Gender: Introduction,SE,bachelor,other,40,4,2,6,0,34,10.0,15.0
+e1eee6f6-bda2-5cbb-9419-21c682bfc19b,wageningen-nl-canary,Wageningen University,Plant Sciences,NL,master,other,40,2,0,2,0,38,5.0,5.0
+e21a74fb-4986-5481-9095-01428fac91ef,nottingham-uk-canary,University of Nottingham,Computer Science,UK,bachelor,computer science,40,11,4,15,0,25,27.5,37.5
+e67cc4ee-c764-5b6c-b1fb-565dd2ffea47,discover-uk-stage1-010,Bath Spa University,Acting,UK,bachelor,other,40,9,3,12,0,28,22.5,30.0
+e9ed732d-69bc-5121-918a-1da325af79ef,insa-lyon-fr-canary,Institut national des sciences appliquees de Lyon,Master mention IA - intelligence artificielle,FR,master,computer science,40,6,0,6,0,34,15.0,15.0
+eab1fd00-32ca-5cd9-81cb-b1cd97519540,onisep-fr-stage1-020,IUT Nice Côte d'Azur- Site de Sophia-Antipolis,BUT réseaux et télécommunications parcours cybersécurité,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+eb1e73e5-1818-59ab-b3ba-67749a31edd3,radboud-nl-canary,Radboud Universiteit,Business Administration,NL,master,other,40,2,0,2,0,38,5.0,5.0
+ee43edae-4df6-560b-b1fb-fe25f1cc0350,haaga-helia-fi-canary,Haaga-Helia University of Applied Sciences,International Business,FI,bachelor,business,40,8,4,11,0,29,20.0,27.5
+ee721859-3e1a-5f30-bbbc-8738b875a484,onisep-fr-stage1-039,IUT de Charleville,BUT techniques de commercialisation parcours business développement et management de la relation client,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+eeb069c9-ba8c-5b25-bcd4-bf86a72f59cd,discover-uk-stage1-019,Bradford College,Primary Education Early Years 3-7 (QTS),UK,bachelor,other,40,6,0,6,0,34,15.0,15.0
+ef24c577-d5ed-56d2-acc5-0ae85892b671,duo-nl-stage1-002,Maastricht University,International Executive Master of Finance and Control,NL,master,other,40,0,2,2,0,38,0.0,5.0
+f0aaed85-63dd-5540-9212-228b3b131e10,duo-nl-stage1-016,Stichting 'De Kempel',"B Education in Primary Schools (age 4-12), full-time",NL,bachelor,other,40,3,2,5,0,35,7.5,12.5
+f0e956c7-5c0a-57a4-b147-b8bd217d2514,onisep-fr-stage1-006,Institut universitaire de technologie de l'Aisne - Campus de Soissons,BUT carrières juridiques parcours entreprise et association,FR,bachelor,other,40,6,0,6,0,34,15.0,15.0
+f274a2a7-1552-584b-979f-0a0a65b34fc1,discover-uk-stage1-005,Arts Educational Schools,Musical Theatre,UK,bachelor,other,40,9,5,11,0,29,22.5,27.5
+f4f878c2-17b2-5cd3-bf41-335ff38646af,onisep-fr-stage1-019,"Institut national supérieur du professorat et de l'éducation Célestin Freinet - site de Nice, Stephen Liégeard",master mention enseignement et éducation - professorat des écoles,FR,master,other,40,5,0,5,0,35,12.5,12.5
+f7fd244f-c807-5a05-82dc-58c2e0df2804,uva-nl-canary,Universiteit van Amsterdam,Cultuurwetenschappen,NL,bachelor,other,40,6,1,7,0,33,15.0,17.5
+f825d937-ce65-5abf-ba73-588cbbe7d1d4,sorbonne-fr-canary,Sorbonne Universite,Licence mention informatique,FR,bachelor,computer science,40,6,0,6,0,34,15.0,15.0
+f851cbdf-cdd3-513d-9f6f-3a5ed1dda854,onisep-fr-stage1-001,Institut national supérieur du professorat et de l'éducation - site de l'Ain,master mention enseignement et éducation - professorat des écoles,FR,master,other,40,6,0,6,0,34,15.0,15.0
+f93efbac-69e9-53de-a54d-c1768805685c,discover-uk-stage1-013,Bishop Burton College,Applied Animal Behaviour and Training,UK,bachelor,other,40,6,1,7,0,33,15.0,17.5
+f9bd9d5d-8227-5b66-b4a7-9869b90d9d7c,onisep-fr-stage1-003,IUT Lyon 1,master mention génie des procédés et des bio-procédés,FR,master,other,40,6,1,7,0,33,15.0,17.5
+fb370800-2b1e-5844-aaf9-780e2ef70779,duo-nl-stage1-006,Stg. Chr. Hoger Ber.ond. op Gereformeerde Grondslag,Business Administration,NL,bachelor,business,40,0,2,2,0,38,0.0,5.0
+fb4aa516-1b71-50e8-b122-746bb65175cf,onisep-fr-stage1-003,IUT Lyon 1,BUT gestion des entreprises et des administrations parcours gestion entrepreneuriat et management d'activités,FR,bachelor,business,40,6,1,7,0,33,15.0,17.5
+fcce1aa5-1813-5776-991e-107da1916798,discover-uk-stage1-009,Barnsley College,Early Years Leadership,UK,bachelor,other,40,6,3,9,0,31,15.0,22.5
+fe10af71-36d5-5b3a-bf01-0cc5ae35cf66,utrecht-nl-canary,Universiteit Utrecht,Computer Science,NL,bachelor,computer science,40,2,0,2,0,38,5.0,5.0

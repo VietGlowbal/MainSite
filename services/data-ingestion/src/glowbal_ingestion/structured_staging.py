@@ -1,0 +1,350 @@
+"""Durable staging boundary for bounded structured external rows.
+
+The crawler keeps the immutable raw object in the raw-evidence store.  This
+module archives bounded derived rows and their staging manifests on Drive.
+The Postgres adapter is retained only for explicitly selected legacy backends.
+"""
+
+from __future__ import annotations
+
+import os
+import hashlib
+import json
+import tempfile
+from pathlib import Path
+from typing import Any, Iterable, Mapping, Protocol, Sequence, runtime_checkable
+
+from .artifact_store import (
+    ArtifactConfigurationError,
+    ArtifactStore,
+    GOOGLE_DRIVE_DESKTOP_BACKEND,
+    require_verified_google_drive_store,
+    require_configured_artifact_backend,
+)
+from .object_store import ObjectStoreError
+
+
+class StructuredStagingError(RuntimeError):
+    """The derived row could not be durably staged."""
+
+
+@runtime_checkable
+class StructuredStagingStore(Protocol):
+    def put_archive_members(
+        self,
+        records: Iterable[Mapping[str, Any]],
+    ) -> int: ...
+
+
+class InMemoryStructuredStagingStore:
+    """Deterministic sink for unit tests; production uses Supabase below."""
+
+    def __init__(self) -> None:
+        self.records: list[dict[str, Any]] = []
+
+    def put_archive_members(self, records: Iterable[Mapping[str, Any]]) -> int:
+        batch = [dict(record) for record in records]
+        self.records.extend(batch)
+        return len(batch)
+
+
+class _StructuredStagingWriter:
+    """Shared serialization for active Drive and explicit legacy staging."""
+
+    def __init__(
+        self,
+        *,
+        batch_size: int = 100,
+        artifact_store: ArtifactStore | None = None,
+    ) -> None:
+        if batch_size < 1 or batch_size > 500:
+            raise ValueError("Structured staging batch size must be between 1 and 500.")
+        self.artifact_backend = require_configured_artifact_backend(
+            context="Structured staging"
+        )
+        if self.artifact_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
+            require_verified_google_drive_store(
+                artifact_store,
+                context="Drive-selected structured staging",
+            )
+        self.batch_size = batch_size
+        self.artifact_store = artifact_store
+
+    def put_archive_members(self, records: Iterable[Mapping[str, Any]]) -> int:
+        total = 0
+        batch: list[dict[str, Any]] = []
+        for record in records:
+            batch.append(self._row(record))
+            if len(batch) >= self.batch_size:
+                self._insert(batch)
+                total += len(batch)
+                batch = []
+        if batch:
+            self._insert(batch)
+            total += len(batch)
+        return total
+
+    @staticmethod
+    def _row_fieldnames(rows: Sequence[Mapping[str, Any]]) -> list[str]:
+        return sorted({str(key) for row in rows for key in row.keys()})
+
+    def _externalize_rows(
+        self,
+        rows: list[Mapping[str, Any]],
+        lineage: Mapping[str, Any],
+    ) -> tuple[list[Mapping[str, Any]], dict[str, Any]]:
+        if self.artifact_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
+            require_verified_google_drive_store(
+                self.artifact_store,
+                context="Drive-selected structured staging",
+            )
+        if self.artifact_store is None or not rows:
+            return rows, dict(lineage)
+        fieldnames = self._row_fieldnames(rows)
+        if not fieldnames:
+            return [], dict(lineage)
+        try:
+            reference = self.artifact_store.write_csv(fieldnames, rows)
+        except ObjectStoreError as exc:
+            raise StructuredStagingError(
+                "Structured rows could not be archived to the configured artifact store."
+            ) from exc
+        updated_lineage = dict(lineage)
+        updated_lineage["structured_rows_artifact"] = {
+            "storage_backend": getattr(
+                self.artifact_store, "backend_name", "artifact_store"
+            ),
+            "logical_locator": reference.key,
+            "sha256": reference.content_hash,
+            "size_bytes": reference.content_length,
+            "format": "csv",
+            "schema_version": "structured-archive-rows/v1",
+            "row_count": len(rows),
+            "column_order": fieldnames,
+        }
+        return [], updated_lineage
+
+    def _row(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        raw_object_key = record.get("raw_object_key") or record.get("object_key")
+        rows = [dict(row) for row in (record.get("rows") or []) if isinstance(row, Mapping)]
+        rows, lineage = self._externalize_rows(
+            rows,
+            record.get("lineage") if isinstance(record.get("lineage"), Mapping) else {},
+        )
+        return {
+            "run_id": record.get("acquisition_run_id") or record.get("run_id"),
+            "run_key": record.get("acquisition_run_id") or record.get("run_key"),
+            "derived_resource_id": record.get("derived_resource_id"),
+            "raw_document_id": record.get("raw_document_id"),
+            "provider_id": record.get("provider_id"),
+            "dataset_id": record.get("dataset_id"),
+            "source_class": record.get("source_class"),
+            "source_authority": record.get("source_authority"),
+            "source_relationship": record.get("source_relationship"),
+            "raw_object_key": raw_object_key,
+            "raw_content_hash": record.get("raw_content_hash") or record.get("zip_content_hash"),
+            "archive_member": record.get("archive_member") or record.get("member_name"),
+            "member_content_type": record.get("member_content_type") or "text/csv",
+            "institution_id": record.get("institution_id"),
+            "programme_id": record.get("programme_id"),
+            "academic_cycle": record.get("academic_cycle"),
+            "rows": rows,
+            "rows_scanned": record.get("rows_scanned") or 0,
+            "rows_retained": record.get("rows_retained") or 0,
+            "partial": bool(record.get("partial", False)),
+            "bounded_reason": record.get("bounded_reason"),
+            "bytes_scanned": record.get("bytes_scanned"),
+            "lineage": lineage,
+            "retrieved_at": record.get("retrieved_at"),
+        }
+
+    def _insert(self, rows: list[dict[str, Any]]) -> None:
+        raise NotImplementedError
+
+
+class DriveStructuredStagingStore(_StructuredStagingWriter):
+    """CSV bodies + immutable JSON manifests, with a rebuildable Drive index.
+
+    No database client is constructed. Indexes contain only portable artifact
+    references; a fresh reader can recover every staged record from Drive.
+    """
+
+    def __init__(self, *, artifact_store: ArtifactStore, batch_size: int = 100) -> None:
+        super().__init__(artifact_store=artifact_store, batch_size=batch_size)
+        if self.artifact_backend != GOOGLE_DRIVE_DESKTOP_BACKEND:
+            raise ValueError("Drive staging requires google_drive_desktop.")
+        require_verified_google_drive_store(artifact_store, context="Drive staging")
+
+    def _insert(self, rows: list[dict[str, Any]]) -> None:
+        # One immutable manifest per observation: retries deduplicate; changed
+        # observations retain history rather than overwriting a prior record.
+        for row in rows:
+            payload = json.dumps(
+                {"schema_version": "structured-staging-manifest/v1", "record": row},
+                ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+            try:
+                reference = self.artifact_store.put_immutable(
+                    payload, content_hash=hashlib.sha256(payload).hexdigest(),
+                    content_type="application/json",
+                )
+                self._index_manifest(row.get("run_id"), reference)
+            except (ObjectStoreError, OSError) as exc:
+                raise StructuredStagingError("Drive structured staging manifest persistence failed.") from exc
+
+    def _index_manifest(self, run_id: Any, reference: Any) -> None:
+        # Hash the run identity; source-provided IDs never become path segments.
+        run_key = hashlib.sha256(str(run_id or "").encode("utf-8")).hexdigest()
+        directory = Path(self.artifact_store.archive_root) / "structured-staging" / run_key
+        root = Path(self.artifact_store.archive_root).resolve()
+        if not directory.resolve().is_relative_to(root):
+            raise StructuredStagingError("Staging index escapes archive root.")
+        directory.mkdir(parents=True, exist_ok=True)
+        index = json.dumps({
+            "logical_locator": reference.key, "sha256": reference.content_hash,
+            "size_bytes": reference.content_length,
+        }, sort_keys=True).encode("utf-8")
+        destination = directory / (reference.content_hash + ".json")
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(index)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, destination)
+            if destination.read_bytes() != index:
+                raise StructuredStagingError("Staging index readback mismatch.")
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+    def iter_records(self, run_id: str) -> Iterable[dict[str, Any]]:
+        """Read retained observations with manifest hash/size verification."""
+        from .object_store import ObjectReference
+
+        run_key = hashlib.sha256(str(run_id or "").encode("utf-8")).hexdigest()
+        directory = Path(self.artifact_store.archive_root) / "structured-staging" / run_key
+        for path in sorted(directory.glob("*.json")):
+            index = json.loads(path.read_text(encoding="utf-8"))
+            reference = ObjectReference(
+                key=index["logical_locator"], content_hash=index["sha256"],
+                content_length=index["size_bytes"], content_type="application/json",
+            )
+            manifest = json.loads(self.artifact_store.get(reference))
+            if manifest.get("schema_version") != "structured-staging-manifest/v1":
+                raise StructuredStagingError("Unsupported staging manifest schema.")
+            if str(manifest["record"].get("run_id") or "") != str(run_id or ""):
+                raise StructuredStagingError("Staging manifest run mismatch.")
+            yield manifest["record"]
+
+
+class SupabaseStructuredStagingStore(_StructuredStagingWriter):
+    """Explicit legacy-only writer for ``crawl_external_structured_rows``."""
+
+    def __init__(self, client: Any, *, table: str = "crawl_external_structured_rows",
+                 batch_size: int = 100, artifact_store: ArtifactStore | None = None) -> None:
+        if require_configured_artifact_backend(context="Structured staging") == GOOGLE_DRIVE_DESKTOP_BACKEND:
+            raise ValueError("Drive-selected staging cannot write to Supabase.")
+        if not table:
+            raise ValueError("Structured staging table is required.")
+        super().__init__(artifact_store=artifact_store, batch_size=batch_size)
+        self.client = client
+        self.table = table
+
+    def _insert(self, rows: list[dict[str, Any]]) -> None:
+        try:
+            self.client.insert(
+                self.table,
+                rows,
+                on_conflict="run_id,derived_resource_id",
+            )
+        except Exception as exc:
+            raise StructuredStagingError(
+                "Supabase structured-row staging failed."
+            ) from exc
+
+
+def validate_injected_structured_staging_store(
+    store: StructuredStagingStore,
+    *,
+    shared_artifact_store: ArtifactStore | None,
+) -> None:
+    """Reject injected staging sinks that can write to Postgres.
+
+    The known Drive writer is the only implementation that turns row
+    payloads into bounded CSV artifacts.  A caller-supplied protocol object
+    cannot be trusted to honor that contract, so Drive-selected pipelines
+    accept only the exact writer class with a preflighted Drive store.  When a
+    raw evidence store already owns the archive, identity is also required so
+    both paths share deduplication and the run budget.
+    """
+    if type(store) is not DriveStructuredStagingStore:
+        raise ValueError(
+            "DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop "
+            "cannot use an injected non-Drive structured staging store."
+        )
+    artifact_store = getattr(store, "artifact_store", None)
+    require_verified_google_drive_store(
+        artifact_store,
+        context="Drive-selected structured staging",
+    )
+    if shared_artifact_store is not None and artifact_store is not shared_artifact_store:
+        raise ValueError(
+            "Drive-selected structured staging must use the shared artifact store."
+        )
+
+def create_structured_staging_store(
+    *, artifact_store: ArtifactStore | None = None
+) -> StructuredStagingStore | None:
+    """Select Drive independently of Supabase credentials; legacy is explicit."""
+    enabled = os.environ.get("EXTERNAL_STRUCTURED_STAGING_ENABLED", "auto").strip().lower()
+    if enabled in {"0", "false", "no", "off"}:
+        return None
+    if enabled not in {"1", "true", "yes", "on", "auto", ""}:
+        raise StructuredStagingError(
+            "EXTERNAL_STRUCTURED_STAGING_ENABLED must be true, false, or auto."
+        )
+    drive_selected = os.environ.get("DATA_PLATFORM_ARTIFACT_BACKEND", "").strip() == GOOGLE_DRIVE_DESKTOP_BACKEND
+    if enabled == "auto" and not drive_selected and not (
+        os.environ.get("SUPABASE_URL", "").strip()
+        or os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "").strip()
+    ):
+        return None
+    try:
+        backend = require_configured_artifact_backend(context="Structured staging")
+        if backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
+            if artifact_store is None:
+                archive_root = os.environ.get("DATA_PLATFORM_ARCHIVE_ROOT", "").strip()
+                if not archive_root:
+                    raise StructuredStagingError(
+                        "google_drive_desktop requires DATA_PLATFORM_ARCHIVE_ROOT."
+                    )
+                from .artifact_store import GoogleDriveDesktopArtifactStore
+
+                budget_value = os.environ.get(
+                    "DATA_PLATFORM_ARTIFACT_RUN_BUDGET_BYTES", ""
+                ).strip()
+                budget = int(budget_value) if budget_value else None
+                artifact_store = GoogleDriveDesktopArtifactStore(
+                    archive_root,
+                    max_run_bytes=budget,
+                )
+            return DriveStructuredStagingStore(artifact_store=artifact_store)
+        from .supabase_import import SupabaseRestClient
+        from .supabase_seeds import _credentials
+
+        base_url, api_key = _credentials(os.environ)
+        return SupabaseStructuredStagingStore(
+            SupabaseRestClient(base_url, api_key),
+            artifact_store=artifact_store,
+        )
+    except (ArtifactConfigurationError, StructuredStagingError) as exc:
+        if isinstance(exc, ArtifactConfigurationError):
+            raise StructuredStagingError(str(exc)) from exc
+        raise
+    except Exception as exc:
+        raise StructuredStagingError(
+            "Structured staging configuration or archive access is invalid."
+        ) from exc

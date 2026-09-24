@@ -1,0 +1,3682 @@
+{
+  "schema": "GlowBalExternalPreProductionCanary/v1",
+  "run": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform\\docs\\architecture\\data\\external-field-stage1-20260915\\runs\\stage1-20260915-main",
+  "external_only": true,
+  "promotion": "disabled; no product/canonical export invoked",
+  "population": {
+    "manifest": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform\\docs\\architecture\\data\\external-field-stage1-20260915\\population-manifest.json",
+    "manifest_sha256": "2607bb4ae5218770f903a657443734751d93a53acb572edadc6542f0b8006277",
+    "institutions": 209,
+    "programmes": 418,
+    "countries": [
+      "CH",
+      "FI",
+      "FR",
+      "NL",
+      "SE",
+      "UK",
+      "US"
+    ],
+    "institutions_by_country": {
+      "US": 82,
+      "CH": 12,
+      "FR": 48,
+      "UK": 33,
+      "NL": 28,
+      "SE": 3,
+      "FI": 3
+    },
+    "programmes_by_country": {
+      "US": 164,
+      "CH": 24,
+      "FR": 96,
+      "UK": 66,
+      "NL": 56,
+      "SE": 6,
+      "FI": 6
+    },
+    "degree_levels": {
+      "master": 167,
+      "bachelor": 251
+    },
+    "disciplines": {
+      "computer science": 131,
+      "engineering": 103,
+      "data science": 17,
+      "business": 27,
+      "other": 140
+    }
+  },
+  "runtime_configuration": {
+    "config": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform\\docs\\architecture\\data\\external-field-stage1-20260915\\stage1-config.json",
+    "raw_evidence_mode": "remote",
+    "max_local_temp_bytes": 0,
+    "global_concurrency": 2,
+    "institution_concurrency": 2,
+    "programme_concurrency": 1,
+    "per_domain_concurrency": 1,
+    "promotion": "disabled; isolated Stage 1 namespace"
+  },
+  "provider_execution": {
+    "college_scorecard_bulk": {
+      "country": "US",
+      "scope": "institution",
+      "targets_eligible": 82,
+      "targets_attempted": 82,
+      "source_rows": 82,
+      "exact_materialization_matches": 82,
+      "exact_materialization_institutions": [
+        "berkeley-us-canary",
+        "cmu-us-canary",
+        "columbia-us-canary",
+        "cornell-us-canary",
+        "harvard-us-canary",
+        "michigan-us-canary",
+        "mit-us-canary",
+        "nyu-us-canary",
+        "princeton-us-canary",
+        "purdue-us-canary",
+        "scorecard-us-stage1-001",
+        "scorecard-us-stage1-002",
+        "scorecard-us-stage1-003",
+        "scorecard-us-stage1-004",
+        "scorecard-us-stage1-005",
+        "scorecard-us-stage1-006",
+        "scorecard-us-stage1-007",
+        "scorecard-us-stage1-008",
+        "scorecard-us-stage1-009",
+        "scorecard-us-stage1-010",
+        "scorecard-us-stage1-011",
+        "scorecard-us-stage1-012",
+        "scorecard-us-stage1-013",
+        "scorecard-us-stage1-014",
+        "scorecard-us-stage1-015",
+        "scorecard-us-stage1-016",
+        "scorecard-us-stage1-017",
+        "scorecard-us-stage1-018",
+        "scorecard-us-stage1-019",
+        "scorecard-us-stage1-020",
+        "scorecard-us-stage1-021",
+        "scorecard-us-stage1-022",
+        "scorecard-us-stage1-023",
+        "scorecard-us-stage1-024",
+        "scorecard-us-stage1-025",
+        "scorecard-us-stage1-026",
+        "scorecard-us-stage1-027",
+        "scorecard-us-stage1-028",
+        "scorecard-us-stage1-029",
+        "scorecard-us-stage1-030",
+        "scorecard-us-stage1-031",
+        "scorecard-us-stage1-032",
+        "scorecard-us-stage1-033",
+        "scorecard-us-stage1-034",
+        "scorecard-us-stage1-035",
+        "scorecard-us-stage1-036",
+        "scorecard-us-stage1-037",
+        "scorecard-us-stage1-038",
+        "scorecard-us-stage1-039",
+        "scorecard-us-stage1-040",
+        "scorecard-us-stage1-041",
+        "scorecard-us-stage1-042",
+        "scorecard-us-stage1-043",
+        "scorecard-us-stage1-044",
+        "scorecard-us-stage1-045",
+        "scorecard-us-stage1-046",
+        "scorecard-us-stage1-047",
+        "scorecard-us-stage1-048",
+        "scorecard-us-stage1-049",
+        "scorecard-us-stage1-050",
+        "scorecard-us-stage1-051",
+        "scorecard-us-stage1-052",
+        "scorecard-us-stage1-053",
+        "scorecard-us-stage1-054",
+        "scorecard-us-stage1-055",
+        "scorecard-us-stage1-056",
+        "scorecard-us-stage1-057",
+        "scorecard-us-stage1-058",
+        "scorecard-us-stage1-059",
+        "scorecard-us-stage1-060",
+        "scorecard-us-stage1-061",
+        "scorecard-us-stage1-062",
+        "scorecard-us-stage1-063",
+        "scorecard-us-stage1-064",
+        "scorecard-us-stage1-065",
+        "scorecard-us-stage1-066",
+        "scorecard-us-stage1-067",
+        "scorecard-us-stage1-068",
+        "scorecard-us-stage1-069",
+        "scorecard-us-stage1-070",
+        "stanford-us-canary",
+        "yale-us-canary"
+      ],
+      "exact_source_programmes": [],
+      "raw_sources_persisted": 82,
+      "field_materializations": 82,
+      "materialization_rows": 82,
+      "materialization_match_rows": 82,
+      "materialization_reasons": {
+        "structured_record_materialized": 82
+      },
+      "semantic_proposals": 221,
+      "accepted_assertions": 122,
+      "review_assertions": 99,
+      "accepted_targets": 60,
+      "review_targets": 98,
+      "accepted_by_field": {
+        "tuition": 122
+      },
+      "accepted_by_field_scope": {
+        "tuition|institution": 122
+      },
+      "review_by_field": {
+        "tuition": 99
+      },
+      "fetch_status": {
+        "RAW_PERSISTED": 82
+      },
+      "attempt_status": {
+        "ADMITTED": 82,
+        "RAW_PERSISTED": 82,
+        "REJECTED_BY_POLICY": 127
+      },
+      "error_count": 0,
+      "errors": {},
+      "http_requests_successful": 82,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 1878771044,
+      "durable_object_bytes": 1878771044,
+      "mongo_inline_sources": 0,
+      "content_hashes": [
+        "5bafa13a2bfa5b159f75e56ef88b9fbdfaa9bd7ba1ef112baac9ee75c8bf604d"
+      ]
+    },
+    "swissuniversities_tuition": {
+      "country": "CH",
+      "scope": "institution",
+      "targets_eligible": 12,
+      "targets_attempted": 12,
+      "source_rows": 12,
+      "exact_materialization_matches": 12,
+      "exact_materialization_institutions": [
+        "basel-ch-canary",
+        "bern-ch-canary",
+        "epfl-ch-canary",
+        "eth-zurich-ch-canary",
+        "fribourg-ch-stage1",
+        "geneva-ch-canary",
+        "lausanne-ch-canary",
+        "lucerne-ch-stage1",
+        "neuchatel-ch-stage1",
+        "st-gallen-ch-canary",
+        "usi-ch-stage1",
+        "uzh-ch-canary"
+      ],
+      "exact_source_programmes": [],
+      "raw_sources_persisted": 12,
+      "field_materializations": 12,
+      "materialization_rows": 12,
+      "materialization_match_rows": 12,
+      "materialization_reasons": {
+        "text_window_materialized": 12
+      },
+      "semantic_proposals": 26,
+      "accepted_assertions": 24,
+      "review_assertions": 2,
+      "accepted_targets": 8,
+      "review_targets": 1,
+      "accepted_by_field": {
+        "tuition": 15,
+        "additional_fees": 9
+      },
+      "accepted_by_field_scope": {
+        "tuition|institution": 15,
+        "additional_fees|institution": 9
+      },
+      "review_by_field": {
+        "tuition": 2
+      },
+      "fetch_status": {
+        "RAW_PERSISTED": 12
+      },
+      "attempt_status": {
+        "ADMITTED": 12,
+        "RAW_PERSISTED": 12
+      },
+      "error_count": 8,
+      "errors": {
+        "PERMANENT_PROVIDER_ERROR": 8
+      },
+      "http_requests_successful": 12,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 0,
+      "durable_object_bytes": 0,
+      "mongo_inline_sources": 12,
+      "content_hashes": [
+        "885cf12439333cfcc1b0267f8fab2051f718e4f1cd376df1dd518bfa87588176"
+      ]
+    },
+    "onisep_higher_ed": {
+      "country": "FR",
+      "scope": "programme",
+      "targets_eligible": 96,
+      "targets_attempted": 0,
+      "source_rows": 48,
+      "exact_materialization_matches": 0,
+      "exact_materialization_institutions": [
+        "centrale-lille-fr-canary",
+        "centrale-lyon-fr-canary",
+        "ens-paris-saclay-fr-canary",
+        "grenoble-inp-fr-canary",
+        "insa-lyon-fr-canary",
+        "ip-paris-fr-canary",
+        "onisep-fr-stage1-001",
+        "onisep-fr-stage1-002",
+        "onisep-fr-stage1-003",
+        "onisep-fr-stage1-004",
+        "onisep-fr-stage1-005",
+        "onisep-fr-stage1-006",
+        "onisep-fr-stage1-007",
+        "onisep-fr-stage1-008",
+        "onisep-fr-stage1-009",
+        "onisep-fr-stage1-010",
+        "onisep-fr-stage1-011",
+        "onisep-fr-stage1-012",
+        "onisep-fr-stage1-013",
+        "onisep-fr-stage1-014",
+        "onisep-fr-stage1-015",
+        "onisep-fr-stage1-016",
+        "onisep-fr-stage1-017",
+        "onisep-fr-stage1-018",
+        "onisep-fr-stage1-019",
+        "onisep-fr-stage1-020",
+        "onisep-fr-stage1-021",
+        "onisep-fr-stage1-022",
+        "onisep-fr-stage1-023",
+        "onisep-fr-stage1-024",
+        "onisep-fr-stage1-025",
+        "onisep-fr-stage1-026",
+        "onisep-fr-stage1-027",
+        "onisep-fr-stage1-028",
+        "onisep-fr-stage1-029",
+        "onisep-fr-stage1-030",
+        "onisep-fr-stage1-031",
+        "onisep-fr-stage1-032",
+        "onisep-fr-stage1-033",
+        "onisep-fr-stage1-034",
+        "onisep-fr-stage1-035",
+        "onisep-fr-stage1-036",
+        "onisep-fr-stage1-037",
+        "onisep-fr-stage1-038",
+        "onisep-fr-stage1-039",
+        "onisep-fr-stage1-040",
+        "sorbonne-fr-canary",
+        "uco-nantes-fr-canary"
+      ],
+      "exact_source_programmes": [],
+      "raw_sources_persisted": 144,
+      "field_materializations": 95,
+      "materialization_rows": 144,
+      "materialization_match_rows": 95,
+      "materialization_reasons": {
+        "no_matching_structured_record": 49,
+        "structured_record_materialized": 95
+      },
+      "semantic_proposals": 501,
+      "accepted_assertions": 494,
+      "review_assertions": 7,
+      "accepted_targets": 94,
+      "review_targets": 6,
+      "accepted_by_field": {
+        "programme_identity": 94,
+        "credential": 94,
+        "programme_focus": 94,
+        "curriculum_overview": 168,
+        "learning_outcomes": 39,
+        "tuition": 5
+      },
+      "accepted_by_field_scope": {
+        "programme_identity|programme": 94,
+        "credential|programme": 94,
+        "programme_focus|programme": 94,
+        "curriculum_overview|programme": 168,
+        "learning_outcomes|programme": 39,
+        "tuition|programme": 5
+      },
+      "review_by_field": {
+        "minimum_degree": 1,
+        "tuition": 4,
+        "scholarships": 2
+      },
+      "fetch_status": {
+        "RAW_PERSISTED": 144
+      },
+      "attempt_status": {
+        "ADMITTED": 144,
+        "RAW_PERSISTED": 144
+      },
+      "error_count": 1,
+      "errors": {
+        "NO_EXTERNAL_FIELD_SOURCE": 1
+      },
+      "http_requests_successful": 144,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 3891869856,
+      "durable_object_bytes": 3891869856,
+      "mongo_inline_sources": 0,
+      "content_hashes": [
+        "bf0ff9a929fecfe1974dcc64639baec0496be306ce750ce9211f611329408104"
+      ]
+    },
+    "discover_uni_hesa": {
+      "country": "UK",
+      "scope": "programme",
+      "targets_eligible": 66,
+      "targets_attempted": 58,
+      "source_rows": 58,
+      "exact_materialization_matches": 58,
+      "exact_materialization_institutions": [
+        "bristol-uk-canary",
+        "cambridge-uk-canary",
+        "discover-uk-stage1-001",
+        "discover-uk-stage1-002",
+        "discover-uk-stage1-003",
+        "discover-uk-stage1-004",
+        "discover-uk-stage1-005",
+        "discover-uk-stage1-006",
+        "discover-uk-stage1-007",
+        "discover-uk-stage1-008",
+        "discover-uk-stage1-009",
+        "discover-uk-stage1-010",
+        "discover-uk-stage1-011",
+        "discover-uk-stage1-012",
+        "discover-uk-stage1-013",
+        "discover-uk-stage1-014",
+        "discover-uk-stage1-015",
+        "discover-uk-stage1-016",
+        "discover-uk-stage1-017",
+        "discover-uk-stage1-018",
+        "discover-uk-stage1-019",
+        "discover-uk-stage1-020",
+        "discover-uk-stage1-021",
+        "discover-uk-stage1-022",
+        "discover-uk-stage1-023",
+        "discover-uk-stage1-024",
+        "discover-uk-stage1-025",
+        "edinburgh-uk-canary",
+        "imperial-uk-canary",
+        "kings-uk-canary",
+        "manchester-uk-canary",
+        "nottingham-uk-canary",
+        "oxford-uk-canary"
+      ],
+      "exact_source_programmes": [
+        "00164ee0-24b0-5e69-8c8b-979d08113044",
+        "056c787b-cb1e-526e-bb3d-9a731e339a19",
+        "064e4c8c-3273-5475-acc2-a785d2dc169d",
+        "0c35c3a5-02ff-5de8-820a-f2ee8108e32e",
+        "1157b236-a40b-5e2d-ad9a-197ad246a2e8",
+        "133eac2d-937c-54fc-9f7f-1fcdb2937732",
+        "1494bc65-9315-5198-a797-81202c1520c0",
+        "16aed716-240d-5ae8-854a-52d1ecc51b49",
+        "28ee7709-d09b-5231-8e41-461663619e85",
+        "2a4fb7c5-f257-555a-84c5-2a23d72e611b",
+        "2b10d957-eb9b-5583-b2bb-fc1c741a300b",
+        "339349f1-ea76-5178-8eb9-8401fbcf9143",
+        "363052cb-99e3-5cb4-bfc4-512e4dc078a2",
+        "3de52a35-3c2d-58bb-9e06-01d688b47671",
+        "4312df08-cb0e-538a-b9ed-4e0d7e864ff9",
+        "43850490-0520-5cca-b9a2-0b1b84156049",
+        "45389133-b30b-5620-a1f1-132881ea6575",
+        "45d0488c-fd77-5761-bf4b-e68dc9328b6f",
+        "465d4536-96e4-5b55-8c3e-80a1e8013b76",
+        "4ec2cb38-ac8f-597c-857d-18eabf99649b",
+        "5899253a-cf94-5a60-ae1a-dd8d5638d45c",
+        "5dcb3d22-21b0-523b-b1aa-27093fb8036a",
+        "5f7e4503-b034-5260-913a-5110ed0982b6",
+        "5f95f3f8-7afc-52a6-ba5b-e4f49c98267b",
+        "60e2e546-beec-559f-8803-ff7d234c1959",
+        "63412a30-b38b-5b03-b7ff-4ddfa92300cf",
+        "68e2924c-c07f-5ac2-8ea9-6bb6e0d21351",
+        "69dddfc8-ee52-57d9-8887-28139c2275d6",
+        "6a7210f2-06be-539a-8480-cf8386a4f915",
+        "7415a39b-2f5f-5571-bfc7-43976f8d48d7",
+        "770878eb-c3e4-583c-aeb7-0113b97486cf",
+        "770f992a-7c1a-5b5c-82ad-f900668b7f1e",
+        "7dca1beb-82e4-515a-a5f8-8dae2a29f84d",
+        "814d8802-d69b-59c9-808a-b733ffe17579",
+        "8322e08f-eb1d-50a8-bd91-33371fb57645",
+        "87ff2832-35fa-524a-9ae3-c8b7aeabad3b",
+        "8eb42e1e-62a2-5044-987d-01719cd7d204",
+        "9436b038-a11f-554e-bf0b-894432db7716",
+        "95d3bbf1-7e5d-5412-96b3-c6022bd8b35a",
+        "a4e6b163-10f4-513a-9230-fe193026b557",
+        "aab072ce-4ac6-5c86-a311-170c1ed24c00",
+        "baa1b317-ba51-5fac-af2c-4aa258d131a2",
+        "c2637d16-4f58-55b5-b925-6cdc8a8590d2",
+        "c88a3280-125f-585b-8a20-aebb08a5836f",
+        "d0fa5375-aec0-55a2-ad4b-23ae41795088",
+        "d115e175-3bb5-5c4f-8d2d-169038e9cdc2",
+        "d33870ff-b395-5b21-bda9-ce18c8c74b27",
+        "d649d1a4-f5d6-55c4-bac1-8db8a9953756",
+        "daa9521e-4e07-53a8-b85a-bcd0c566e374",
+        "de38fc20-2235-5c03-b4f0-5d3817f4abcc",
+        "df53e148-1899-5eb0-b91b-2abd84256559",
+        "e01daefe-355a-5f31-a3db-f63d8275d471",
+        "e21a74fb-4986-5481-9095-01428fac91ef",
+        "e67cc4ee-c764-5b6c-b1fb-565dd2ffea47",
+        "eeb069c9-ba8c-5b25-bcd4-bf86a72f59cd",
+        "f274a2a7-1552-584b-979f-0a0a65b34fc1",
+        "f93efbac-69e9-53de-a54d-c1768805685c",
+        "fcce1aa5-1813-5776-991e-107da1916798"
+      ],
+      "raw_sources_persisted": 58,
+      "field_materializations": 57,
+      "materialization_rows": 58,
+      "materialization_match_rows": 57,
+      "materialization_reasons": {
+        "text_window_materialized": 57,
+        "identity_not_found_in_document": 1
+      },
+      "semantic_proposals": 490,
+      "accepted_assertions": 448,
+      "review_assertions": 42,
+      "accepted_targets": 54,
+      "review_targets": 22,
+      "accepted_by_field": {
+        "programme_identity": 51,
+        "credential": 48,
+        "career_outcomes": 119,
+        "employment_outcomes": 128,
+        "programme_focus": 43,
+        "curriculum_overview": 39,
+        "learning_outcomes": 20
+      },
+      "accepted_by_field_scope": {
+        "programme_identity|programme": 51,
+        "credential|programme": 48,
+        "career_outcomes|programme": 110,
+        "employment_outcomes|programme": 128,
+        "programme_focus|programme": 43,
+        "curriculum_overview|programme": 39,
+        "learning_outcomes|programme": 20,
+        "career_outcomes|department": 9
+      },
+      "review_by_field": {
+        "employment_outcomes": 39,
+        "admission_difficulty": 3
+      },
+      "fetch_status": {
+        "RAW_PERSISTED": 58
+      },
+      "attempt_status": {
+        "ADMITTED": 58,
+        "RAW_PERSISTED": 58
+      },
+      "error_count": 6,
+      "errors": {
+        "NO_EXTERNAL_FIELD_SOURCE": 1,
+        "PERMANENT_PROVIDER_ERROR": 5
+      },
+      "http_requests_successful": 58,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 0,
+      "durable_object_bytes": 0,
+      "mongo_inline_sources": 58,
+      "content_hashes": [
+        "05b04dba7a3cd0365feb6a305647dbafe886569daa5561337fb143300eb30c40",
+        "060eb30c4082c79290bd9904cf3d8eff443298b16847a5166ac51dbd6952a15c",
+        "0a3546ffd9a9b3daa24fa2da0c1ea2e9a191d9f648ac59f1f99764c86d963e0e",
+        "0fdeedb55af03284d16fc5206ce539b7abff36b4a246f0f179ac7765df5eca5e",
+        "1399adca02d3f97d18e170e30501c0de4e3aa70920ea66f142deb7caa4a687f9",
+        "168a09113ed5bb91685e1058fd9e01abe45ba980fcf0e95c8f42927138cbbad6",
+        "19376609afa482a7c7a53537b9eeabb04111f6902d9ed5b844d126125c9690f1",
+        "199d6fd83a80f349fde143aa6020b84c71cb47f9dbed6896a10d6f70151dfb0d",
+        "1fe35648f710876917deeb6141f6e180e48a0b9559dc69b04c862af66c66b790",
+        "22abc6b0e111f37bbea763fe78fd91a4e414cbd80f63f59b4476789a29dbe493",
+        "2834dda1a88006c5fe13eae9126f4472c088b621a793fb0c3ed9aa50b5086499",
+        "29a78626686a327de49ae6e10430d7441f938db07827945f5870e82fdd3f94af",
+        "2b3a373109cdb9a504d4193cea68615a92c6fc9bf8e1218fb88ae86a3a3022fa",
+        "2d6bed28915e4145eb416121b09ea34af9b8ee50c7252e9a3e4d6c7fd49dba72",
+        "2f090874f88666262854632838507af73554000280d37b59042dc71a1f894fad",
+        "328428604d505dfed1bee93f62959110a6b73719d0705536ba9635dcc6a36d9f",
+        "3ae0b65ff4b1511eba768cef6820ba3efdd3066563b357ca78ba3cfab8434784",
+        "3fcc0ced66727eb41231699d831f4464b6a2ea2d41756837b9654ee325079cb9",
+        "3ff829d6fae1dd2803531d99066340080cb728ff0e04c50a797ad33769685a16",
+        "43e559dd2e9bd3e7f62d8c3fed9a4f8944c502b069e8ced4e58839a53122e908",
+        "4900e1e3e3e1d2ac1ec6281474f68568062e94161a71200c9cb0acc5fd88b0f0",
+        "4df59be7bd8c5d81e20d33ac8e4e0d8e8c9bbbf0e3b0890cd912c82f162f91ca",
+        "5077e3fce7799d1b4abba0a8d9828330577932d5248ba835610c3d2ef2cba616",
+        "53eca23af371b7ebf9caf86a2e3a03b574442d5cfd1349590b29e5b4e1e74634",
+        "57664e7ab8591d4f25fac9951d3b5f15070a6b436abe531dec7bed295689a449",
+        "596e8950ba8782fdbc58f43efa6f12a9ff83454636ab52deeb2c957e0bd09f80",
+        "5e93c8f32860ac949020ccac450bc270e6d128a8f67cbe10d90ec0477fe7cf0c",
+        "5f1b07edf484c5f820b7a39340d7351c475540929f90e58d1595a0583188267e",
+        "707128d6303e7416bc33001f49cd8045fc5d0a8f8d7cb1b18b38a8b0630790f0",
+        "755eaff6ccb3ff972592a2be62c6cf65049220c24b0909947ee85be7b0edc19c",
+        "7c0992c8e6387e2086bc49d4e602ea11c470fa958ca16a8b8baecfad11a470f8",
+        "7d675cf7309145206e512c0ae0c8ea0849324e2735197a31ef61da3a7d7a899a",
+        "816d5248e5905abe4081f780c43018ae8d16e0c91564f6f3161e2a1baaed4a76",
+        "82ea99f8f092d9296777e88f589f6d7a3b3690a3aa626482125046b76fdca941",
+        "87ce9c9923e7a51eeca56b92f8f124effada530e59014f3cfbb4354223e757a9",
+        "908119f653f526f5d437118dae0817087bd9e942a8eb21214522197509c80030",
+        "913a70fa4a543a56350c73b90f110e20046e730c8c3cefa4e568aa74114cc567",
+        "9f9bc10c909395fbe6d27b11e4db7dde5b585ff99662f161126033cbb8e0900b",
+        "a3170de3afc188af0a8460d8a1e4c90e77f86b56488a546d93d1c317058c1e8b",
+        "a516934dc3307f0cb8f3e057d27099fbd8e4aba1629a6ce2248023a366183413",
+        "ab96ff0adb0e18354ad9a1db380187f7ab2dac2ff3e43acc9276e25b1ef6564c",
+        "adab34b04d36d1a45ef5d9c05879d9d527c3ae67290f0bc3e1da88e733c3a199",
+        "ae4bdc2cb2361fb411720b2109062b50cac324e82d020244c80e1eb7d49c85d2",
+        "b8cb7eef6d1a9cf63d615364cee864ff89194a2ca4b986ad53975d16f91a60df",
+        "bb4fc4dace9b5fea5420593f738c728ec969427578a4e7411038d2f8b43721a9",
+        "bd31b97240e758822f3105a3c1cfa5f6eb97733954f2631cf162a71bb2e883e4",
+        "c27bb44df6bdac5f885c3b36cc09ae960801b736292e601aa951c686bc166f51",
+        "c50f54f229bb7363f1fa31b271b595badcf6ab8eff367f777b9449591ff3edbb",
+        "cfd65176f375e36d352aa7fa5cd399e560030334c66ae6be0d234482b5749994",
+        "d0831a6c2e557270defefc5d2cf3d7fed11faf887c129587693e9ded226a4686",
+        "dd6e7e61dfd6a27cff2081806fff2b5fe28a0cd886d3f5c8d91f3e8c26b4c53d",
+        "df71ee67f02d7dd48716d3a50ae95c69f4ce635b4d3057b6d33e3aa834866d49",
+        "e1294d04819b0d700ff1241069d6e4db4951063ee6fa47160c3678e99b958357",
+        "efea742f041f164551f6755a108a3249450e4013cf0196a74634d9fe874b891e",
+        "f3ef3a87f64948e8ad5cf86aaef3239efae228c9861fa032b280653660f90523",
+        "f46e6b4a61b7a0e6466498ea8d456b03c6bfa32ffd1fad7ead45af0a1014aaf8",
+        "fdd9445c9de099c1365056608ac34619cb5361bf11da321f7c352addbf7789eb",
+        "ff0c8668e47fccd768b1d44ed385b28594cd7a36fb0671bb7d013ec54f2449a8"
+      ]
+    },
+    "duo_rio_ho": {
+      "country": "NL",
+      "scope": "programme",
+      "targets_eligible": 56,
+      "targets_attempted": 16,
+      "source_rows": 16,
+      "exact_materialization_matches": 16,
+      "exact_materialization_institutions": [
+        "erasmus-nl-canary",
+        "leiden-nl-canary",
+        "radboud-nl-canary",
+        "tu-delft-nl-canary",
+        "tue-nl-canary",
+        "utrecht-nl-canary",
+        "uva-nl-canary",
+        "wageningen-nl-canary"
+      ],
+      "exact_source_programmes": [
+        "2a72840d-c750-5afa-8adf-d8b51e4abe33",
+        "2d63a989-f592-52d3-9a35-1cab15b8fafe",
+        "52ed182b-e33d-5595-9e88-fe534b52acb9",
+        "626e1529-04bc-5ccd-be3e-78268b0a4e35",
+        "705ee35e-ee7c-5f92-9b2f-326464160035",
+        "73db1816-bfbf-5cec-b4ea-619146b93fdb",
+        "776f8c66-f129-5d3a-a7f8-7a91c0a7f9bd",
+        "7c7925d8-0ea6-5d8d-8b1c-10af69f024bb",
+        "80d11752-1297-5b81-aecd-cb6ab6bf37d1",
+        "9b5d5d94-9494-5799-9c62-4d5c254f4565",
+        "d09b3b83-7fe8-5626-bb42-6dd7661c0972",
+        "dcf7376b-e09f-5a39-a42b-463e84ec8ccc",
+        "e1eee6f6-bda2-5cbb-9419-21c682bfc19b",
+        "eb1e73e5-1818-59ab-b3ba-67749a31edd3",
+        "f7fd244f-c807-5a05-82dc-58c2e0df2804",
+        "fe10af71-36d5-5b3a-bf01-0cc5ae35cf66"
+      ],
+      "raw_sources_persisted": 16,
+      "field_materializations": 16,
+      "materialization_rows": 16,
+      "materialization_match_rows": 16,
+      "materialization_reasons": {
+        "structured_record_materialized": 16
+      },
+      "semantic_proposals": 46,
+      "accepted_assertions": 45,
+      "review_assertions": 1,
+      "accepted_targets": 16,
+      "review_targets": 1,
+      "accepted_by_field": {
+        "programme_identity": 16,
+        "credential": 16,
+        "programme_focus": 13
+      },
+      "accepted_by_field_scope": {
+        "programme_identity|programme": 16,
+        "credential|programme": 16,
+        "programme_focus|programme": 13
+      },
+      "review_by_field": {
+        "minimum_degree": 1
+      },
+      "fetch_status": {
+        "RAW_PERSISTED": 16
+      },
+      "attempt_status": {
+        "ADMITTED": 16,
+        "RAW_PERSISTED": 16
+      },
+      "error_count": 40,
+      "errors": {
+        "NO_EXTERNAL_FIELD_SOURCE": 40
+      },
+      "http_requests_successful": 16,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 98258,
+      "durable_object_bytes": 98258,
+      "mongo_inline_sources": 0,
+      "content_hashes": [
+        "0187d34a67435e946834f092d62f65b596c469edc436a8f3aa167baa05df88aa",
+        "02179858fcd9708fead497c28e0e60a93c554b70fa80e7f4815cd264a1158d41",
+        "0234f8c26d9e8cfe7be606ab0f2c0186676283e0ef1bd72bed56eafa01ccd438",
+        "0e257d75d6361f50a3301fecfbe949fb7739f9659b6dc6b0bc0f561553d2baf0",
+        "19d411f832ef77610ff283829b6b9c5c06a2972e668aeae106992da30545a959",
+        "2a87f7e8bec932d4b1accce860f69750f70f1e296fa4c3e63341c879d893c4b9",
+        "56c02a24e48d72c4173da69387257b0cabfc4231180262dd47807d6f0f06c872",
+        "59ca2028e67b171c176f2a077a360e390ffa876224c354dd92326a87207606ea",
+        "5f139492f100866e5f98781f58f1c6a52d4eebf5517d94b321e06775e316af5a",
+        "613e8ccef86c07aa639ed635242f566f8c2188ff29e9456aa9509329a0d7d38b",
+        "8c1799862b28c148dc0ffd097aacfc7463dbb40b0e8d576129bed4b5909e9578",
+        "9b5e75dc0ae3c0be7a1bcdedd007150925267efec7604dd8967f7c51f488d947",
+        "a4d8c0d65e16ea1f981e6dc1d6c0b84cf7b2e901789e3688a8dca5b1c7a91a30",
+        "b0ea9517da5f4799a191522de0a57947f514d602252bf6ad7576c85429ad92c5",
+        "c03992aad136a663208c49c12275b3459446bc95f24a55621190c67deba93507",
+        "e0e357dd17464ee7c55708d23f745469e8aa591d305666a3067c6d227255ef43"
+      ]
+    },
+    "susa_navet_event": {
+      "country": "SE",
+      "scope": "programme",
+      "targets_eligible": 6,
+      "targets_attempted": 6,
+      "source_rows": 6,
+      "exact_materialization_matches": 6,
+      "exact_materialization_institutions": [
+        "kth-se-canary",
+        "lund-se-canary",
+        "uppsala-se-canary"
+      ],
+      "exact_source_programmes": [
+        "228d9843-a888-597d-aa24-e964922f0c34",
+        "7670144e-e4f8-58af-be95-830fb3831ee2",
+        "d03f735a-52cb-5656-ad23-d9fa0196ae4f",
+        "d50de2d3-1fef-5ea0-8ba0-bd3213a09956",
+        "db815ea7-641e-5c5b-b5fd-46811d987bef",
+        "e1c56462-e350-50c0-bd4f-c34671fd3d61"
+      ],
+      "raw_sources_persisted": 6,
+      "field_materializations": 6,
+      "materialization_rows": 6,
+      "materialization_match_rows": 6,
+      "materialization_reasons": {
+        "structured_record_materialized": 6
+      },
+      "semantic_proposals": 13,
+      "accepted_assertions": 13,
+      "review_assertions": 0,
+      "accepted_targets": 6,
+      "review_targets": 0,
+      "accepted_by_field": {
+        "intakes": 5,
+        "final_deadline": 6,
+        "curriculum_overview": 2
+      },
+      "accepted_by_field_scope": {
+        "intakes|programme": 5,
+        "final_deadline|programme": 6,
+        "curriculum_overview|programme": 2
+      },
+      "review_by_field": {},
+      "fetch_status": {
+        "RAW_PERSISTED": 6
+      },
+      "attempt_status": {
+        "ADMITTED": 6,
+        "RAW_PERSISTED": 6
+      },
+      "error_count": 0,
+      "errors": {},
+      "http_requests_successful": 6,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 0,
+      "durable_object_bytes": 0,
+      "mongo_inline_sources": 6,
+      "content_hashes": [
+        "5d1b04c9c96f4b1559d520b184ea1ee35cf554bbb829b3b3247a5b62170fa073",
+        "786f509e25d3875a25fde64578fdba73ed434eae5adc328b7b741b45afc5a2a3",
+        "961003f450c6c5632b19c0c510afe7517f5eea4d15e6e7ea009a4aeb47050afd",
+        "96f9f9909bfb5b33b223f14930b87bb5e6e9fc957fb503851fdde36d09e124d3",
+        "a8a47b1e9fc2f99b95f92b360769da583014dac7dcfcb7dca451fb878059ca56",
+        "dbd703280698cb65971740da16ae9dcb4c67fca9fc12e018db00da702cfbb791"
+      ]
+    },
+    "susa_navet_info": {
+      "country": "SE",
+      "scope": "programme",
+      "targets_eligible": 6,
+      "targets_attempted": 6,
+      "source_rows": 6,
+      "exact_materialization_matches": 6,
+      "exact_materialization_institutions": [
+        "kth-se-canary",
+        "lund-se-canary",
+        "uppsala-se-canary"
+      ],
+      "exact_source_programmes": [
+        "228d9843-a888-597d-aa24-e964922f0c34",
+        "7670144e-e4f8-58af-be95-830fb3831ee2",
+        "d03f735a-52cb-5656-ad23-d9fa0196ae4f",
+        "d50de2d3-1fef-5ea0-8ba0-bd3213a09956",
+        "db815ea7-641e-5c5b-b5fd-46811d987bef",
+        "e1c56462-e350-50c0-bd4f-c34671fd3d61"
+      ],
+      "raw_sources_persisted": 6,
+      "field_materializations": 6,
+      "materialization_rows": 6,
+      "materialization_match_rows": 6,
+      "materialization_reasons": {
+        "structured_record_materialized": 6
+      },
+      "semantic_proposals": 23,
+      "accepted_assertions": 22,
+      "review_assertions": 1,
+      "accepted_targets": 6,
+      "review_targets": 1,
+      "accepted_by_field": {
+        "programme_identity": 6,
+        "programme_focus": 5,
+        "curriculum_overview": 5,
+        "subject_prerequisites": 4,
+        "work_experience": 2
+      },
+      "accepted_by_field_scope": {
+        "programme_identity|programme": 6,
+        "programme_focus|programme": 5,
+        "curriculum_overview|programme": 5,
+        "subject_prerequisites|programme": 4,
+        "work_experience|programme": 2
+      },
+      "review_by_field": {
+        "minimum_degree": 1
+      },
+      "fetch_status": {
+        "RAW_PERSISTED": 6
+      },
+      "attempt_status": {
+        "ADMITTED": 6,
+        "RAW_PERSISTED": 6
+      },
+      "error_count": 0,
+      "errors": {},
+      "http_requests_successful": 6,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 0,
+      "durable_object_bytes": 0,
+      "mongo_inline_sources": 6,
+      "content_hashes": [
+        "0b9db1ec5cf1d3dd9a570667ac6de07a76aa11f12c829f31b0d3b7b085c4fb5e",
+        "5b7f202bf196510207604b7714a02e675b555dd37ba780d75ae9b8b8c4084936",
+        "9896658a9c9d7644f0dc23e5ab53fa606e6c57c5aa94b904fa280c36147e33d2",
+        "bacb16e9a5e0f16825f28fc69dc92e6919964e14557cddd39634acee866fec52",
+        "c103d5fb405cdf867188bcdb2378a3dc6db3a7a402607af61015a60f6caa9518",
+        "d0efcf19f7d4ae7a8dc6bffdd7c565f3b79e779b282fa745037f88251150b875"
+      ]
+    },
+    "studyinfo_hakukohde": {
+      "country": "FI",
+      "scope": "programme",
+      "targets_eligible": 6,
+      "targets_attempted": 6,
+      "source_rows": 6,
+      "exact_materialization_matches": 6,
+      "exact_materialization_institutions": [
+        "aalto-fi-canary",
+        "haaga-helia-fi-canary",
+        "uef-fi-canary"
+      ],
+      "exact_source_programmes": [
+        "67ef7389-04ec-5e55-94cc-49456ef74cb3",
+        "81f197ab-e6ea-5bdf-b4c2-eb79ba966142",
+        "8606b6c5-bf41-54d1-87f7-95596c5d82cc",
+        "c4ca6963-813a-5121-a844-b24e4ffc1097",
+        "c695f7f2-0ce1-5caa-9600-cf5fc759a332",
+        "ee43edae-4df6-560b-b1fb-fe25f1cc0350"
+      ],
+      "raw_sources_persisted": 6,
+      "field_materializations": 6,
+      "materialization_rows": 6,
+      "materialization_match_rows": 6,
+      "materialization_reasons": {
+        "structured_record_materialized": 6
+      },
+      "semantic_proposals": 8,
+      "accepted_assertions": 8,
+      "review_assertions": 0,
+      "accepted_targets": 4,
+      "review_targets": 0,
+      "accepted_by_field": {
+        "required_documents": 3,
+        "programme_focus": 1,
+        "curriculum_overview": 1,
+        "minimum_degree": 1,
+        "intakes": 2
+      },
+      "accepted_by_field_scope": {
+        "required_documents|programme": 3,
+        "programme_focus|programme": 1,
+        "curriculum_overview|programme": 1,
+        "minimum_degree|programme": 1,
+        "intakes|programme": 2
+      },
+      "review_by_field": {},
+      "fetch_status": {
+        "RAW_PERSISTED": 6
+      },
+      "attempt_status": {
+        "ADMITTED": 6,
+        "RAW_PERSISTED": 6
+      },
+      "error_count": 0,
+      "errors": {},
+      "http_requests_successful": 6,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 74994,
+      "durable_object_bytes": 74994,
+      "mongo_inline_sources": 0,
+      "content_hashes": [
+        "1802991edb8d0076dfee6559bef4ec2d26bbc07057846e82c51915e8c301a6bd",
+        "21821fef9e3a410e83dc8224c07dd1117b4fd427630f0ae8c4d8b1b21aa4b3d8",
+        "7788f42345d1fe320e3611999abdcba725111f03406bfc8d30a75ac3809ba0de",
+        "a66ad4da1bb8e676863c090e5a9a249a33b66814f476e56a59c09aa7a11ee992",
+        "b9f7d586250b5761d575fe484082fc55a93d7f599f833b23519fb0786b0f45af",
+        "eda79880be9e0b9ddaad05d6f7da6768801600e2348472567daecadaed21f1f2"
+      ]
+    },
+    "studyinfo_toteutus": {
+      "country": "FI",
+      "scope": "programme",
+      "targets_eligible": 6,
+      "targets_attempted": 6,
+      "source_rows": 6,
+      "exact_materialization_matches": 6,
+      "exact_materialization_institutions": [
+        "aalto-fi-canary",
+        "haaga-helia-fi-canary",
+        "uef-fi-canary"
+      ],
+      "exact_source_programmes": [
+        "67ef7389-04ec-5e55-94cc-49456ef74cb3",
+        "81f197ab-e6ea-5bdf-b4c2-eb79ba966142",
+        "8606b6c5-bf41-54d1-87f7-95596c5d82cc",
+        "c4ca6963-813a-5121-a844-b24e4ffc1097",
+        "c695f7f2-0ce1-5caa-9600-cf5fc759a332",
+        "ee43edae-4df6-560b-b1fb-fe25f1cc0350"
+      ],
+      "raw_sources_persisted": 6,
+      "field_materializations": 6,
+      "materialization_rows": 6,
+      "materialization_match_rows": 6,
+      "materialization_reasons": {
+        "structured_record_materialized": 6
+      },
+      "semantic_proposals": 0,
+      "accepted_assertions": 0,
+      "review_assertions": 0,
+      "accepted_targets": 0,
+      "review_targets": 0,
+      "accepted_by_field": {},
+      "accepted_by_field_scope": {},
+      "review_by_field": {},
+      "fetch_status": {
+        "RAW_PERSISTED": 6
+      },
+      "attempt_status": {
+        "ADMITTED": 6,
+        "RAW_PERSISTED": 6
+      },
+      "error_count": 0,
+      "errors": {},
+      "http_requests_successful": 6,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 225954,
+      "durable_object_bytes": 225954,
+      "mongo_inline_sources": 0,
+      "content_hashes": [
+        "1d17293eadffb7933af55ebc2c68fd675d6d5c1db2b13b1d071b29a6b5156a64",
+        "1d188b0ffe26294b7ed703f38e6984be5a2728d302baf052fb9a51f6c3caf81f",
+        "36da70c0f8bef41d83210e5b30383a8fc431727620f0243768cccc2a9ab6fcdb",
+        "4f022f63bf4265ec0e6142f001563b92e54829d68546d86115358e3977a8f8f5",
+        "a0fa09d69d27a146189282fd1f62d19408827c652d3723581f7e454739203f2c",
+        "b78cfce867009165c419f852bdd7ce73634f71d3a2c842dfb657d0926712f5cf"
+      ]
+    },
+    "studyinfo_valintaperuste": {
+      "country": "FI",
+      "scope": "programme",
+      "targets_eligible": 6,
+      "targets_attempted": 6,
+      "source_rows": 6,
+      "exact_materialization_matches": 6,
+      "exact_materialization_institutions": [
+        "aalto-fi-canary",
+        "haaga-helia-fi-canary",
+        "uef-fi-canary"
+      ],
+      "exact_source_programmes": [
+        "67ef7389-04ec-5e55-94cc-49456ef74cb3",
+        "81f197ab-e6ea-5bdf-b4c2-eb79ba966142",
+        "8606b6c5-bf41-54d1-87f7-95596c5d82cc",
+        "c4ca6963-813a-5121-a844-b24e4ffc1097",
+        "c695f7f2-0ce1-5caa-9600-cf5fc759a332",
+        "ee43edae-4df6-560b-b1fb-fe25f1cc0350"
+      ],
+      "raw_sources_persisted": 6,
+      "field_materializations": 6,
+      "materialization_rows": 6,
+      "materialization_match_rows": 6,
+      "materialization_reasons": {
+        "structured_record_materialized": 5,
+        "matched_record_without_mapped_values": 1
+      },
+      "semantic_proposals": 18,
+      "accepted_assertions": 11,
+      "review_assertions": 7,
+      "accepted_targets": 2,
+      "review_targets": 3,
+      "accepted_by_field": {
+        "curriculum_overview": 1,
+        "ielts_overall": 2,
+        "toefl": 2,
+        "standardized_tests": 4,
+        "scholarships": 2
+      },
+      "accepted_by_field_scope": {
+        "curriculum_overview|programme": 1,
+        "ielts_overall|programme": 2,
+        "toefl|programme": 2,
+        "standardized_tests|programme": 4,
+        "scholarships|programme": 2
+      },
+      "review_by_field": {
+        "academic_transcript": 1,
+        "subject_prerequisites": 4,
+        "graduation_certificate": 1,
+        "tuition": 1
+      },
+      "fetch_status": {
+        "RAW_PERSISTED": 6
+      },
+      "attempt_status": {
+        "ADMITTED": 6,
+        "RAW_PERSISTED": 6
+      },
+      "error_count": 0,
+      "errors": {},
+      "http_requests_successful": 6,
+      "http_request_failures": 0,
+      "downloaded_bytes_recorded": 86866,
+      "durable_object_bytes": 86866,
+      "mongo_inline_sources": 0,
+      "content_hashes": [
+        "026b9f47dbb674696b7269bca9d0eed536ff96c36a6bb97eb55d21d4d6654591",
+        "1fc6ded2f3f5e90c854184f3feac1f5b4a7739f77f4aad499f366d7396680f32",
+        "35442d51d642d74cfdbcb80be1767ac6e8438c96727a2a5db8a00629cda1e23f",
+        "883e0011df146abaf47a99901b3fa58298f402d3937192f0bc4d5441fb180243",
+        "8f3b20258f4f44bf25a363547d3d435cdaae4ee0ac52de3238e5032a4dab1f3b",
+        "ae33ef1355037be951d7ab890b61d7c18702132bf67683e3f708f3b97f73460f"
+      ]
+    }
+  },
+  "coverage": {
+    "fields": {
+      "programme_identity": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 167,
+          "review": 0,
+          "missing": 251,
+          "coverage_percent": 39.95,
+          "accepted_by_country": {
+            "FR": 94,
+            "UK": 51,
+            "NL": 16,
+            "SE": 6
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "credential": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 158,
+          "review": 0,
+          "missing": 260,
+          "coverage_percent": 37.8,
+          "accepted_by_country": {
+            "FR": 94,
+            "UK": 48,
+            "NL": 16
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "programme_status": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "academic_cycle": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "tuition": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 5,
+          "review": 98,
+          "missing": 315,
+          "coverage_percent": 1.2,
+          "accepted_by_country": {
+            "FR": 5
+          },
+          "review_by_country": {
+            "FR": 4,
+            "US": 93,
+            "FI": 1
+          }
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 68,
+          "review": 0,
+          "missing": 141,
+          "coverage_percent": 32.54,
+          "accepted_by_country": {
+            "US": 60,
+            "CH": 8
+          },
+          "review_by_country": {
+            "US": 5,
+            "CH": 1
+          }
+        }
+      },
+      "additional_fees": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 8,
+          "review": 0,
+          "missing": 201,
+          "coverage_percent": 3.83,
+          "accepted_by_country": {
+            "CH": 8
+          },
+          "review_by_country": {}
+        }
+      },
+      "duration": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 152,
+          "review": 0,
+          "missing": 266,
+          "coverage_percent": 36.36,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "location": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 150,
+          "review": 0,
+          "missing": 268,
+          "coverage_percent": 35.89,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "delivery_mode": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 161,
+          "review": 0,
+          "missing": 257,
+          "coverage_percent": 38.52,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "programme_language": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 15,
+          "review": 0,
+          "missing": 403,
+          "coverage_percent": 3.59,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "career_outcomes": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 27,
+          "review": 0,
+          "missing": 391,
+          "coverage_percent": 6.46,
+          "accepted_by_country": {
+            "UK": 27
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "employment_outcomes": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 21,
+          "review": 8,
+          "missing": 389,
+          "coverage_percent": 5.02,
+          "accepted_by_country": {
+            "UK": 21
+          },
+          "review_by_country": {
+            "UK": 19
+          }
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "intakes": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 7,
+          "review": 0,
+          "missing": 411,
+          "coverage_percent": 1.67,
+          "accepted_by_country": {
+            "SE": 5,
+            "FI": 2
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "final_deadline": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 6,
+          "review": 0,
+          "missing": 412,
+          "coverage_percent": 1.44,
+          "accepted_by_country": {
+            "SE": 6
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "rolling_admission": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "minimum_degree": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 1,
+          "review": 3,
+          "missing": 414,
+          "coverage_percent": 0.24,
+          "accepted_by_country": {
+            "FI": 1
+          },
+          "review_by_country": {
+            "FR": 1,
+            "NL": 1,
+            "SE": 1
+          }
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "subject_prerequisites": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 4,
+          "review": 2,
+          "missing": 412,
+          "coverage_percent": 0.96,
+          "accepted_by_country": {
+            "SE": 4
+          },
+          "review_by_country": {
+            "FI": 2
+          }
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "required_documents": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 3,
+          "review": 0,
+          "missing": 415,
+          "coverage_percent": 0.72,
+          "accepted_by_country": {
+            "FI": 3
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "standardized_tests": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 2,
+          "review": 0,
+          "missing": 416,
+          "coverage_percent": 0.48,
+          "accepted_by_country": {
+            "FI": 2
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "work_experience": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 2,
+          "review": 0,
+          "missing": 416,
+          "coverage_percent": 0.48,
+          "accepted_by_country": {
+            "SE": 2
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "ielts_overall": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 2,
+          "review": 0,
+          "missing": 416,
+          "coverage_percent": 0.48,
+          "accepted_by_country": {
+            "FI": 2
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "ielts_subscores": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "toefl": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 2,
+          "review": 0,
+          "missing": 416,
+          "coverage_percent": 0.48,
+          "accepted_by_country": {
+            "FI": 2
+          },
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "duolingo": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "application_fee": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "priority_deadline": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "international_deadline": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "funding_deadline": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "minimum_gpa": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "gpa_scale": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "recommendation_letters": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "sop_essay_requirements": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "portfolio": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "scholarships": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 2,
+          "review": 2,
+          "missing": 414,
+          "coverage_percent": 0.48,
+          "accepted_by_country": {
+            "FI": 2
+          },
+          "review_by_country": {
+            "FR": 2
+          }
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "funding": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "funding_amount": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "funding_eligibility": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      },
+      "application_url": {
+        "programme": {
+          "denominator": 418,
+          "accepted": 0,
+          "review": 0,
+          "missing": 418,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        },
+        "institution": {
+          "denominator": 209,
+          "accepted": 0,
+          "review": 0,
+          "missing": 209,
+          "coverage_percent": 0.0,
+          "accepted_by_country": {},
+          "review_by_country": {}
+        }
+      }
+    },
+    "accepted_unique_assertions": 1187,
+    "review_unique_assertions": 159,
+    "metadata_promoted_rows": 478,
+    "metadata_by_provider_field": {
+      "onisep_higher_ed|duration": 95,
+      "onisep_higher_ed|delivery_mode": 95,
+      "onisep_higher_ed|location": 95,
+      "discover_uni_hesa|delivery_mode": 57,
+      "discover_uni_hesa|duration": 57,
+      "discover_uni_hesa|location": 55,
+      "duo_rio_ho|programme_language": 9,
+      "duo_rio_ho|delivery_mode": 9,
+      "susa_navet_event|programme_language": 6
+    }
+  },
+  "country_summary": {
+    "CH": {
+      "institutions": 12,
+      "programmes": 24,
+      "accepted_programme_target_count": 0,
+      "review_programme_target_count": 0,
+      "accepted_institution_target_count": 8,
+      "review_institution_target_count": 1,
+      "top_missing_fields": [
+        "academic_cycle",
+        "application_fee",
+        "application_url",
+        "career_outcomes",
+        "credential",
+        "delivery_mode",
+        "duolingo",
+        "duration"
+      ]
+    },
+    "FI": {
+      "institutions": 3,
+      "programmes": 6,
+      "accepted_programme_target_count": 4,
+      "review_programme_target_count": 3,
+      "accepted_institution_target_count": 0,
+      "review_institution_target_count": 0,
+      "top_missing_fields": [
+        "academic_cycle",
+        "additional_fees",
+        "application_fee",
+        "application_url",
+        "career_outcomes",
+        "credential",
+        "delivery_mode",
+        "duolingo"
+      ]
+    },
+    "FR": {
+      "institutions": 48,
+      "programmes": 96,
+      "accepted_programme_target_count": 94,
+      "review_programme_target_count": 6,
+      "accepted_institution_target_count": 0,
+      "review_institution_target_count": 0,
+      "top_missing_fields": [
+        "academic_cycle",
+        "additional_fees",
+        "application_fee",
+        "application_url",
+        "career_outcomes",
+        "delivery_mode",
+        "duolingo",
+        "duration"
+      ]
+    },
+    "NL": {
+      "institutions": 28,
+      "programmes": 56,
+      "accepted_programme_target_count": 16,
+      "review_programme_target_count": 1,
+      "accepted_institution_target_count": 0,
+      "review_institution_target_count": 0,
+      "top_missing_fields": [
+        "academic_cycle",
+        "additional_fees",
+        "application_fee",
+        "application_url",
+        "career_outcomes",
+        "delivery_mode",
+        "duolingo",
+        "duration"
+      ]
+    },
+    "SE": {
+      "institutions": 3,
+      "programmes": 6,
+      "accepted_programme_target_count": 6,
+      "review_programme_target_count": 1,
+      "accepted_institution_target_count": 0,
+      "review_institution_target_count": 0,
+      "top_missing_fields": [
+        "academic_cycle",
+        "additional_fees",
+        "application_fee",
+        "application_url",
+        "career_outcomes",
+        "credential",
+        "delivery_mode",
+        "duolingo"
+      ]
+    },
+    "UK": {
+      "institutions": 33,
+      "programmes": 66,
+      "accepted_programme_target_count": 51,
+      "review_programme_target_count": 21,
+      "accepted_institution_target_count": 0,
+      "review_institution_target_count": 0,
+      "top_missing_fields": [
+        "academic_cycle",
+        "additional_fees",
+        "application_fee",
+        "application_url",
+        "delivery_mode",
+        "duolingo",
+        "duration",
+        "final_deadline"
+      ]
+    },
+    "US": {
+      "institutions": 82,
+      "programmes": 164,
+      "accepted_programme_target_count": 0,
+      "review_programme_target_count": 93,
+      "accepted_institution_target_count": 60,
+      "review_institution_target_count": 5,
+      "top_missing_fields": [
+        "academic_cycle",
+        "additional_fees",
+        "application_fee",
+        "application_url",
+        "career_outcomes",
+        "credential",
+        "delivery_mode",
+        "duolingo"
+      ]
+    }
+  },
+  "accepted_external": {
+    "semantic_assertions": 1187,
+    "accepted_by_provider": {
+      "college_scorecard_bulk": 122,
+      "swissuniversities_tuition": 24,
+      "onisep_higher_ed": 494,
+      "discover_uni_hesa": 448,
+      "duo_rio_ho": 45,
+      "susa_navet_info": 22,
+      "susa_navet_event": 13,
+      "studyinfo_hakukohde": 8,
+      "studyinfo_valintaperuste": 11
+    },
+    "accepted_by_field": {
+      "tuition": 142,
+      "additional_fees": 9,
+      "programme_identity": 167,
+      "credential": 158,
+      "programme_focus": 156,
+      "curriculum_overview": 216,
+      "learning_outcomes": 59,
+      "career_outcomes": 119,
+      "employment_outcomes": 128,
+      "intakes": 7,
+      "final_deadline": 6,
+      "subject_prerequisites": 4,
+      "work_experience": 2,
+      "required_documents": 3,
+      "minimum_degree": 1,
+      "ielts_overall": 2,
+      "toefl": 2,
+      "standardized_tests": 4,
+      "scholarships": 2
+    },
+    "accepted_by_scope": {
+      "institution": 146,
+      "programme": 1032,
+      "department": 9
+    },
+    "promoted_metadata_rows": 478
+  },
+  "hierarchy": {
+    "accepted_external_assertions": 1187,
+    "fields": {
+      "additional_fees": {
+        "target_count": 418,
+        "direct": 0,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {
+          "H2_INSTITUTION": 18
+        },
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 418,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 418
+        }
+      },
+      "career_outcomes": {
+        "target_count": 418,
+        "direct": 4,
+        "H1": 0,
+        "H2": 0,
+        "H3": 15,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 15
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 15
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 15
+        },
+        "abstentions": 403,
+        "abstentions_excluding_direct": 399,
+        "support_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 15,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 376,
+          "DIRECT_TARGET_CONFLICT": 23,
+          "HIERARCHICAL_DONOR_SELECTED": 15,
+          "DIRECT_TARGET_AVAILABLE": 4
+        }
+      },
+      "credential": {
+        "target_count": 418,
+        "direct": 158,
+        "H1": 0,
+        "H2": 0,
+        "H3": 15,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 16
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 15
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 15
+        },
+        "abstentions": 403,
+        "abstentions_excluding_direct": 245,
+        "support_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 15,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 245,
+          "DIRECT_TARGET_AVAILABLE": 158,
+          "HIERARCHICAL_DONOR_SELECTED": 15
+        }
+      },
+      "curriculum_overview": {
+        "target_count": 418,
+        "direct": 78,
+        "H1": 0,
+        "H2": 0,
+        "H3": 19,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 34
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 19
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 19
+        },
+        "abstentions": 399,
+        "abstentions_excluding_direct": 321,
+        "support_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 19,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 276,
+          "DIRECT_TARGET_AVAILABLE": 78,
+          "DIRECT_TARGET_CONFLICT": 44,
+          "HIERARCHICAL_DONOR_SELECTED": 19,
+          "INCOMPATIBLE_NON_NUMERIC_DONOR_CONFLICT": 1
+        }
+      },
+      "employment_outcomes": {
+        "target_count": 418,
+        "direct": 7,
+        "H1": 0,
+        "H2": 0,
+        "H3": 11,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 11
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 11
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 11
+        },
+        "abstentions": 407,
+        "abstentions_excluding_direct": 400,
+        "support_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 11,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 386,
+          "DIRECT_TARGET_CONFLICT": 14,
+          "HIERARCHICAL_DONOR_SELECTED": 11,
+          "DIRECT_TARGET_AVAILABLE": 7
+        }
+      },
+      "final_deadline": {
+        "target_count": 418,
+        "direct": 6,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {},
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 412,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 412,
+          "DIRECT_TARGET_AVAILABLE": 6
+        }
+      },
+      "ielts_overall": {
+        "target_count": 418,
+        "direct": 2,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {},
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 416,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 416,
+          "DIRECT_TARGET_AVAILABLE": 2
+        }
+      },
+      "intakes": {
+        "target_count": 418,
+        "direct": 7,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 1
+        },
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 411,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 411,
+          "DIRECT_TARGET_AVAILABLE": 7
+        }
+      },
+      "learning_outcomes": {
+        "target_count": 418,
+        "direct": 28,
+        "H1": 0,
+        "H2": 0,
+        "H3": 21,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 24
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 21
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 21
+        },
+        "abstentions": 397,
+        "abstentions_excluding_direct": 369,
+        "support_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 21,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 359,
+          "HIERARCHICAL_DONOR_SELECTED": 21,
+          "DIRECT_TARGET_AVAILABLE": 28,
+          "DIRECT_TARGET_CONFLICT": 10
+        }
+      },
+      "minimum_degree": {
+        "target_count": 418,
+        "direct": 1,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 1
+        },
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 417,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 417,
+          "DIRECT_TARGET_AVAILABLE": 1
+        }
+      },
+      "programme_focus": {
+        "target_count": 418,
+        "direct": 156,
+        "H1": 0,
+        "H2": 0,
+        "H3": 16,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 20
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 16
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 16
+        },
+        "abstentions": 402,
+        "abstentions_excluding_direct": 246,
+        "support_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 16,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 246,
+          "DIRECT_TARGET_AVAILABLE": 156,
+          "HIERARCHICAL_DONOR_SELECTED": 16
+        }
+      },
+      "programme_identity": {
+        "target_count": 418,
+        "direct": 167,
+        "H1": 0,
+        "H2": 0,
+        "H3": 12,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 13
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 12
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 12
+        },
+        "abstentions": 406,
+        "abstentions_excluding_direct": 239,
+        "support_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 12,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 239,
+          "DIRECT_TARGET_AVAILABLE": 167,
+          "HIERARCHICAL_DONOR_SELECTED": 12
+        }
+      },
+      "required_documents": {
+        "target_count": 418,
+        "direct": 3,
+        "H1": 0,
+        "H2": 0,
+        "H3": 1,
+        "H4": 0,
+        "candidate_slots": {
+          "H3_SIBLING_PROGRAMME": 1
+        },
+        "usable_by_level": {
+          "H3_SIBLING_PROGRAMME": 1
+        },
+        "applied_by_level": {
+          "H3_SIBLING_PROGRAMME": 1
+        },
+        "abstentions": 417,
+        "abstentions_excluding_direct": 414,
+        "support_counts": [
+          1
+        ],
+        "uncertainty_by_level": {
+          "H3_SIBLING_PROGRAMME": {
+            "count": 1,
+            "mean_combined": 0.367
+          }
+        },
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 414,
+          "DIRECT_TARGET_AVAILABLE": 3,
+          "HIERARCHICAL_DONOR_SELECTED": 1
+        }
+      },
+      "scholarships": {
+        "target_count": 418,
+        "direct": 2,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {},
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 416,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 416,
+          "DIRECT_TARGET_AVAILABLE": 2
+        }
+      },
+      "standardized_tests": {
+        "target_count": 418,
+        "direct": 1,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {},
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 417,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 416,
+          "DIRECT_TARGET_AVAILABLE": 1,
+          "DIRECT_TARGET_CONFLICT": 1
+        }
+      },
+      "subject_prerequisites": {
+        "target_count": 418,
+        "direct": 4,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {},
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 414,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 414,
+          "DIRECT_TARGET_AVAILABLE": 4
+        }
+      },
+      "toefl": {
+        "target_count": 418,
+        "direct": 2,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {},
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 416,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 416,
+          "DIRECT_TARGET_AVAILABLE": 2
+        }
+      },
+      "tuition": {
+        "target_count": 418,
+        "direct": 5,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {
+          "H2_INSTITUTION": 274,
+          "H3_SIBLING_PROGRAMME": 1
+        },
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 413,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 413,
+          "DIRECT_TARGET_AVAILABLE": 5
+        }
+      },
+      "work_experience": {
+        "target_count": 418,
+        "direct": 2,
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "candidate_slots": {},
+        "usable_by_level": {},
+        "applied_by_level": {},
+        "abstentions": 418,
+        "abstentions_excluding_direct": 416,
+        "support_counts": [],
+        "uncertainty_by_level": {},
+        "reasons": {
+          "NO_COMPATIBLE_DONOR": 416,
+          "DIRECT_TARGET_AVAILABLE": 2
+        }
+      }
+    },
+    "aggregate": {
+      "direct": 633,
+      "H1": 0,
+      "H2": 0,
+      "H3": 110,
+      "H4": 0,
+      "abstentions": 7832
+    }
+  },
+  "concentration": {
+    "accepted_evidence_units": 1665,
+    "by_provider": {
+      "onisep_higher_ed": {
+        "count": 779,
+        "share_percent": 46.79
+      },
+      "discover_uni_hesa": {
+        "count": 617,
+        "share_percent": 37.06
+      },
+      "college_scorecard_bulk": {
+        "count": 122,
+        "share_percent": 7.33
+      },
+      "duo_rio_ho": {
+        "count": 63,
+        "share_percent": 3.78
+      },
+      "swissuniversities_tuition": {
+        "count": 24,
+        "share_percent": 1.44
+      },
+      "susa_navet_info": {
+        "count": 22,
+        "share_percent": 1.32
+      },
+      "susa_navet_event": {
+        "count": 19,
+        "share_percent": 1.14
+      },
+      "studyinfo_valintaperuste": {
+        "count": 11,
+        "share_percent": 0.66
+      },
+      "studyinfo_hakukohde": {
+        "count": 8,
+        "share_percent": 0.48
+      }
+    },
+    "by_field": {
+      "curriculum_overview": {
+        "count": 216,
+        "share_percent": 12.97
+      },
+      "programme_identity": {
+        "count": 167,
+        "share_percent": 10.03
+      },
+      "delivery_mode": {
+        "count": 161,
+        "share_percent": 9.67
+      },
+      "credential": {
+        "count": 158,
+        "share_percent": 9.49
+      },
+      "programme_focus": {
+        "count": 156,
+        "share_percent": 9.37
+      },
+      "duration": {
+        "count": 152,
+        "share_percent": 9.13
+      },
+      "location": {
+        "count": 150,
+        "share_percent": 9.01
+      },
+      "tuition": {
+        "count": 142,
+        "share_percent": 8.53
+      },
+      "employment_outcomes": {
+        "count": 128,
+        "share_percent": 7.69
+      },
+      "career_outcomes": {
+        "count": 119,
+        "share_percent": 7.15
+      },
+      "learning_outcomes": {
+        "count": 59,
+        "share_percent": 3.54
+      },
+      "programme_language": {
+        "count": 15,
+        "share_percent": 0.9
+      },
+      "additional_fees": {
+        "count": 9,
+        "share_percent": 0.54
+      },
+      "intakes": {
+        "count": 7,
+        "share_percent": 0.42
+      },
+      "final_deadline": {
+        "count": 6,
+        "share_percent": 0.36
+      },
+      "subject_prerequisites": {
+        "count": 4,
+        "share_percent": 0.24
+      },
+      "standardized_tests": {
+        "count": 4,
+        "share_percent": 0.24
+      },
+      "required_documents": {
+        "count": 3,
+        "share_percent": 0.18
+      },
+      "work_experience": {
+        "count": 2,
+        "share_percent": 0.12
+      },
+      "ielts_overall": {
+        "count": 2,
+        "share_percent": 0.12
+      },
+      "toefl": {
+        "count": 2,
+        "share_percent": 0.12
+      },
+      "scholarships": {
+        "count": 2,
+        "share_percent": 0.12
+      },
+      "minimum_degree": {
+        "count": 1,
+        "share_percent": 0.06
+      }
+    },
+    "by_country": {
+      "FR": {
+        "count": 779,
+        "share_percent": 46.79
+      },
+      "UK": {
+        "count": 617,
+        "share_percent": 37.06
+      },
+      "US": {
+        "count": 122,
+        "share_percent": 7.33
+      },
+      "NL": {
+        "count": 63,
+        "share_percent": 3.78
+      },
+      "SE": {
+        "count": 41,
+        "share_percent": 2.46
+      },
+      "CH": {
+        "count": 24,
+        "share_percent": 1.44
+      },
+      "FI": {
+        "count": 19,
+        "share_percent": 1.14
+      }
+    }
+  },
+  "failure_taxonomy": {
+    "by_type": {
+      "TARGET_LEVEL_SOURCE_ABSENCE": 42,
+      "SEMANTIC": 13
+    },
+    "by_code": {
+      "NO_EXTERNAL_FIELD_SOURCE": 42,
+      "PERMANENT_PROVIDER_ERROR": 13
+    },
+    "raw_errors": [
+      {
+        "error_id": "cb300bc9-144f-5d72-ab7a-281bbcd75485",
+        "institution_id": "manchester-uk-canary",
+        "url": "https://discoveruni.gov.uk/course-details/10007798/2571195/Full-time/",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T08:22:51+00:00"
+      },
+      {
+        "error_id": "29754dd4-b0bb-5dd8-98c0-c649adc2dc35",
+        "institution_id": "onisep-fr-stage1-029",
+        "url": "https://api.opendata.onisep.fr/downloads/605344579a7d7/605344579a7d7.csv?target=0062226M-AF.100098",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T09:55:56+00:00"
+      },
+      {
+        "error_id": "dbed5ea1-e9a9-51ff-9f75-1fbb2547226c",
+        "institution_id": "duo-nl-stage1-001",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B482%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8144%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-001-1001O8144",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:28+00:00"
+      },
+      {
+        "error_id": "415fe8a2-c2b2-5522-a745-dcf1a7430424",
+        "institution_id": "duo-nl-stage1-001",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B482%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8239%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-001-1001O8239",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:28+00:00"
+      },
+      {
+        "error_id": "0eef269d-5b19-5e9c-911b-591648586293",
+        "institution_id": "duo-nl-stage1-002",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B471%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O8102%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-002-1015O8102",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:29+00:00"
+      },
+      {
+        "error_id": "1e7ccce3-840b-52f2-b06d-a5c7c7ede62e",
+        "institution_id": "duo-nl-stage1-002",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B471%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O1544%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-002-1016O1544",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:30+00:00"
+      },
+      {
+        "error_id": "f0c86889-939c-54c8-a3d6-52c3ce633395",
+        "institution_id": "duo-nl-stage1-003",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B497%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5180%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-003-1001O5180",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:31+00:00"
+      },
+      {
+        "error_id": "b4c8406f-0d4b-52b3-b3ce-7b17e858a210",
+        "institution_id": "duo-nl-stage1-003",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B497%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O7353%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-003-1001O7353",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:31+00:00"
+      },
+      {
+        "error_id": "7507bc82-af90-58c8-86ab-1b75eecbbc83",
+        "institution_id": "duo-nl-stage1-004",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B461%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5786%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-004-1001O5786",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:33+00:00"
+      },
+      {
+        "error_id": "06ee0fde-61ff-5faf-b6fd-9e00234ae177",
+        "institution_id": "duo-nl-stage1-004",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B461%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6573%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-004-1001O6573",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:33+00:00"
+      },
+      {
+        "error_id": "e2eee23a-3554-55fc-9fd7-7913fa9e49da",
+        "institution_id": "duo-nl-stage1-005",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B448%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5999%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-005-1001O5999",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:35+00:00"
+      },
+      {
+        "error_id": "b5afd469-0127-5043-aef8-76780bcbb09e",
+        "institution_id": "duo-nl-stage1-005",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B448%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O6215%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-005-1001O6215",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:35+00:00"
+      },
+      {
+        "error_id": "ac0b7d4d-efc5-504f-a3f3-acac0e93a686",
+        "institution_id": "duo-nl-stage1-006",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B531%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2670%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-006-1001O2670",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:36+00:00"
+      },
+      {
+        "error_id": "fe667747-a3cf-5cbe-8789-9741562224a1",
+        "institution_id": "duo-nl-stage1-006",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B531%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2793%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-006-1001O2793",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:36+00:00"
+      },
+      {
+        "error_id": "b77d010e-bd1b-50c9-ba54-6a1c169e7865",
+        "institution_id": "duo-nl-stage1-007",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B454%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5090%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-007-1001O5090",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:38+00:00"
+      },
+      {
+        "error_id": "f4995b19-eead-5f53-ba11-d90199f290bc",
+        "institution_id": "duo-nl-stage1-007",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B454%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5500%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-007-1001O5500",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:38+00:00"
+      },
+      {
+        "error_id": "01ab3ca5-33a5-52bd-83b9-aa5878aab006",
+        "institution_id": "duo-nl-stage1-008",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B460%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4361%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-008-1001O4361",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:40+00:00"
+      },
+      {
+        "error_id": "dd2708b5-1cf6-5e1a-9ae6-3cf0151a1962",
+        "institution_id": "duo-nl-stage1-008",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B460%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O8088%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-008-1001O8088",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:40+00:00"
+      },
+      {
+        "error_id": "9d58b7c1-2ec3-5415-8043-5d02dee3b92f",
+        "institution_id": "duo-nl-stage1-009",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B542%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2714%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-009-1001O2714",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:42+00:00"
+      },
+      {
+        "error_id": "85da017d-641f-5adc-a515-29d40f65076d",
+        "institution_id": "duo-nl-stage1-009",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B542%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O3313%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-009-1001O3313",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:42+00:00"
+      },
+      {
+        "error_id": "2cba5b1b-5e87-599b-bb94-7dfc93b70d27",
+        "institution_id": "duo-nl-stage1-010",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B483%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4324%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-010-1001O4324",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:43+00:00"
+      },
+      {
+        "error_id": "bacee67c-e89c-5f1c-84df-2de27967ddc4",
+        "institution_id": "duo-nl-stage1-010",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B483%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4329%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-010-1001O4329",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:43+00:00"
+      },
+      {
+        "error_id": "04df4fff-830d-57d9-890c-a36d2bc08da7",
+        "institution_id": "duo-nl-stage1-011",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B561%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2646%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-011-1001O2646",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:45+00:00"
+      },
+      {
+        "error_id": "95008102-b5da-5980-8eff-980294bcd7c9",
+        "institution_id": "duo-nl-stage1-011",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B561%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O6899%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-011-1016O6899",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:45+00:00"
+      },
+      {
+        "error_id": "9a4b13be-bf95-5222-8191-2cc258ea6bc6",
+        "institution_id": "duo-nl-stage1-012",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B580%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5087%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-012-1001O5087",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:46+00:00"
+      },
+      {
+        "error_id": "e9e6e625-fe1f-58a5-bc66-d976b93dab3d",
+        "institution_id": "duo-nl-stage1-012",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B580%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221007O7895%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-012-1007O7895",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:47+00:00"
+      },
+      {
+        "error_id": "33e19dfd-53db-5558-8234-ec4be5a73b36",
+        "institution_id": "duo-nl-stage1-013",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B477%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O7435%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-013-1015O7435",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:48+00:00"
+      },
+      {
+        "error_id": "418b92db-d7b1-5a5c-aa6c-f7e2a54f9c55",
+        "institution_id": "duo-nl-stage1-013",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B477%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O4303%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-013-1016O4303",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:48+00:00"
+      },
+      {
+        "error_id": "3ddc613e-efac-5fb6-a015-35e9246355b8",
+        "institution_id": "duo-nl-stage1-014",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B585%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2665%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-014-1001O2665",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:50+00:00"
+      },
+      {
+        "error_id": "b06fd40f-c5ed-5fbd-b7f5-c04b93d0c915",
+        "institution_id": "duo-nl-stage1-014",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B585%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221016O1804%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-014-1016O1804",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:50+00:00"
+      },
+      {
+        "error_id": "da789659-fe22-5251-b295-7e2c7fdb0eae",
+        "institution_id": "duo-nl-stage1-015",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B446%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2947%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-015-1001O2947",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:51+00:00"
+      },
+      {
+        "error_id": "eb3fb25b-922a-5c6a-ac65-6564fadb5a19",
+        "institution_id": "duo-nl-stage1-015",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B446%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4328%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-015-1001O4328",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:52+00:00"
+      },
+      {
+        "error_id": "a44f9ac5-655d-53c6-84d8-03d698f1358d",
+        "institution_id": "duo-nl-stage1-016",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B555%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4366%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-016-1001O4366",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:53+00:00"
+      },
+      {
+        "error_id": "345f561e-b854-567e-8789-b8ab372f50a2",
+        "institution_id": "duo-nl-stage1-016",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B555%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221015O6755%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-016-1015O6755",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:54+00:00"
+      },
+      {
+        "error_id": "e07c595f-9b87-5410-93c4-34d939cb226b",
+        "institution_id": "duo-nl-stage1-017",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B525%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5102%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-017-1001O5102",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:55+00:00"
+      },
+      {
+        "error_id": "12670b22-caa6-5e5d-85c1-dfb8ea779dd4",
+        "institution_id": "duo-nl-stage1-017",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22107B525%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O5501%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-017-1001O5501",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:55+00:00"
+      },
+      {
+        "error_id": "8d597a41-bac2-5573-bf6a-b7de327507ff",
+        "institution_id": "duo-nl-stage1-018",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22105B769%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4372%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-018-1001O4372",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:57+00:00"
+      },
+      {
+        "error_id": "6ef33d84-0ca8-506f-b008-e7a3f77f7833",
+        "institution_id": "duo-nl-stage1-018",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22105B769%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O4574%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-018-1001O4574",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:57+00:00"
+      },
+      {
+        "error_id": "d28047e9-066a-5c16-affe-4abe272a0471",
+        "institution_id": "duo-nl-stage1-019",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22106B216%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2643%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-019-1001O2643",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:58+00:00"
+      },
+      {
+        "error_id": "24056751-e6de-5ac0-bb4e-5b41915ae843",
+        "institution_id": "duo-nl-stage1-019",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22106B216%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2651%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-019-1001O2651",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:02:59+00:00"
+      },
+      {
+        "error_id": "12cdbb98-072b-5dee-bce6-400e19c9af7f",
+        "institution_id": "duo-nl-stage1-020",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B490%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2671%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-020-1001O2671",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:03:00+00:00"
+      },
+      {
+        "error_id": "18a053a0-b268-5a03-8c43-08c2fc35cf94",
+        "institution_id": "duo-nl-stage1-020",
+        "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?filters=%7B%22ONDERWIJSBESTUURID%22%3A%22100B490%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%221001O2697%22%7D&limit=1&resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&target=duo-nl-stage1-020-1001O2697",
+        "stage": "external_provider_anchor",
+        "error_code": "NO_EXTERNAL_FIELD_SOURCE",
+        "message": "No admitted external field-bearing source was retained for this target.",
+        "retryable": false,
+        "created_at": "2026-09-15T10:03:00+00:00"
+      },
+      {
+        "error_id": "b876044b-87e3-559d-afcf-f81b8b9298c7",
+        "institution_id": "discover-uk-stage1-024",
+        "url": "https://discoveruni.gov.uk/en/course-details/10000961/1FDJUTHEATRE-FT-BA/Full-time/",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:10+00:00"
+      },
+      {
+        "error_id": "4a9890e8-134d-5589-a37d-e8b8177a7639",
+        "institution_id": "discover-uk-stage1-023",
+        "url": "https://discoveruni.gov.uk/en/course-details/10000948/HNDEYPL/Full-time/",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:12+00:00"
+      },
+      {
+        "error_id": "901e3ba8-76d9-52ea-b3d2-fd4430ba6ada",
+        "institution_id": "discover-uk-stage1-024",
+        "url": "https://discoveruni.gov.uk/en/course-details/10000961/1FDJUTHEATRE-KW-BA/Full-time/",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:13+00:00"
+      },
+      {
+        "error_id": "ee21b462-ec92-5cd8-885a-7cc4395aad03",
+        "institution_id": "discover-uk-stage1-025",
+        "url": "https://discoveruni.gov.uk/en/course-details/10000975/KBAACSSFTACT1/Full-time/",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:16+00:00"
+      },
+      {
+        "error_id": "49f6817e-7b2b-54e8-a8b3-2e7fd477fd39",
+        "institution_id": "fribourg-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=fribourg-ch-stage1-a",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:17+00:00"
+      },
+      {
+        "error_id": "54cb3f27-334a-5939-b23c-6223efe9d7ed",
+        "institution_id": "fribourg-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=fribourg-ch-stage1-b",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:18+00:00"
+      },
+      {
+        "error_id": "30e391f7-03f3-5211-b8f1-9cbb2f5ce53a",
+        "institution_id": "discover-uk-stage1-025",
+        "url": "https://discoveruni.gov.uk/en/course-details/10000975/KBAANIMDFCMSD/Full-time/",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:19+00:00"
+      },
+      {
+        "error_id": "558bf373-5ae4-52e2-8f10-6467338fa723",
+        "institution_id": "lucerne-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=lucerne-ch-stage1-a",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:23+00:00"
+      },
+      {
+        "error_id": "11bc2155-8b1b-50d6-ba30-a18b90bb072f",
+        "institution_id": "lucerne-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=lucerne-ch-stage1-b",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:24+00:00"
+      },
+      {
+        "error_id": "f3dd20b8-9135-554b-86ba-dadd6371366a",
+        "institution_id": "neuchatel-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=neuchatel-ch-stage1-a",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:24+00:00"
+      },
+      {
+        "error_id": "e86e51d6-ff2b-51d1-911e-599329a57181",
+        "institution_id": "neuchatel-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=neuchatel-ch-stage1-b",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:25+00:00"
+      },
+      {
+        "error_id": "f128f1f4-7ebc-5203-be63-2d77b2f760bf",
+        "institution_id": "usi-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=usi-ch-stage1-a",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:28+00:00"
+      },
+      {
+        "error_id": "fed68a21-14b2-57aa-a43c-2404f4b1ead5",
+        "institution_id": "usi-ch-stage1",
+        "url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities?target=usi-ch-stage1-b",
+        "stage": "extraction_provider",
+        "error_code": "PERMANENT_PROVIDER_ERROR",
+        "message": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+        "retryable": false,
+        "created_at": "2026-09-15T10:11:28+00:00"
+      }
+    ],
+    "frozen_by_type": {
+      "IDENTITY_MATCH": 55
+    },
+    "stage1_notes": {
+      "target_level_source_absence_is_non_fatal": true,
+      "semantic_provider_error_is_non_fatal": true,
+      "systemic_failure_count": 0
+    }
+  },
+  "resource_usage": {
+    "runtime_seconds": 7555.987,
+    "http_requests_successful": 342,
+    "http_request_failures": 0,
+    "downloaded_bytes_recorded": 5771126972,
+    "durable_object_bytes": 5771126972,
+    "mongo_inline_sources": 82,
+    "llm_calls": 2552,
+    "llm_failures": 24,
+    "llm_max_in_flight": 1,
+    "cache_hits": 4,
+    "cache_misses": 2564,
+    "object_store_bytes_written": 5771126972,
+    "raw_sources_persisted": 342,
+    "materialisations": 292,
+    "local_raw_bytes": 0,
+    "provider_stats": {
+      "calls": 2552,
+      "logical_requests": 2568,
+      "request_attempts": 2569,
+      "cache_hits": 4,
+      "flash_calls": 2552,
+      "pro_calls": 0,
+      "prompt_tokens": 7670876,
+      "completion_tokens": 467693,
+      "failures": 24,
+      "group_failures": 19,
+      "rate_limit_responses": 0,
+      "http_429_responses": 0,
+      "http_401_responses": 0,
+      "http_402_responses": 14,
+      "http_5xx_responses": 1,
+      "retry_after_present": 0,
+      "retry_attempts": 1,
+      "rate_limit_retries": 0,
+      "transport_retries": 1,
+      "response_retries": 0,
+      "rate_limit_recoveries": 0,
+      "terminal_rate_limit_failures": 0,
+      "max_in_flight": 1,
+      "partial_fact_recoveries": 0,
+      "group_isolation_recoveries": 0,
+      "failure_details": [
+        {
+          "programme_id": "a3c3b0a9-ef44-5d5c-bff6-0a8632ee6c84",
+          "programme_name": "Harvard Computer Science",
+          "extraction_group": "funding",
+          "error": "Extraction group funding failed: DeepSeek schema_version mismatch."
+        },
+        {
+          "programme_id": "bfc45f5d-0a97-5713-983e-d41f43e9de06",
+          "programme_name": "Licence mention science politique",
+          "extraction_group": "academics_admissions",
+          "error": "Extraction group academics_admissions failed: facts[0].evidence is required."
+        },
+        {
+          "programme_id": "c7a74f0b-af4c-50bf-9e7d-e15d91ddfde5",
+          "programme_name": "University of Arkansas Computer Science",
+          "extraction_group": "career_outcomes",
+          "error": "Extraction group career_outcomes failed: DeepSeek schema_version mismatch."
+        },
+        {
+          "programme_id": "3b444727-4f5f-5aac-b1a3-363c283e8af6",
+          "programme_name": "Howard University Engineering",
+          "extraction_group": "academics_admissions",
+          "error": "Extraction group academics_admissions failed: DeepSeek returned an invalid response envelope."
+        },
+        {
+          "programme_id": "747170ce-7b95-563a-9036-b09b11106b3c",
+          "programme_name": "Iowa State University Computer Science",
+          "extraction_group": "career_outcomes",
+          "error": "Extraction group career_outcomes failed: DeepSeek schema_version mismatch."
+        },
+        {
+          "programme_id": "133eac2d-937c-54fc-9f7f-1fcdb2937732",
+          "programme_name": "Radiography (Radiotherapy and Oncology)",
+          "extraction_group": "finance",
+          "error": "Extraction group finance failed: DeepSeek schema_version mismatch."
+        },
+        {
+          "programme_id": "c88a3280-125f-585b-8a20-aebb08a5836f",
+          "programme_name": "Theatre",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "6a7210f2-06be-539a-8480-cf8386a4f915",
+          "programme_name": "Early Years Professional Leadership",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "d33870ff-b395-5b21-bda9-ce18c8c74b27",
+          "programme_name": "Theatre with Placement Year",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "5f7e4503-b034-5260-913a-5110ed0982b6",
+          "programme_name": "Acting for Stage and Screen",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "7b9ef9c6-d147-5ec7-8195-6bd252202c20",
+          "programme_name": "University of Fribourg Data Science",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "7dda8cbf-bfcf-52c5-afa7-c02beb748294",
+          "programme_name": "University of Fribourg Engineering",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "d115e175-3bb5-5c4f-8d2d-169038e9cdc2",
+          "programme_name": "Animation (Online)",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "476bdac3-3e96-5a15-a3c1-290de30aeb81",
+          "programme_name": "University of Lucerne Data Science",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "feae47a6-8f29-55ce-b7a0-863fc55df2fb",
+          "programme_name": "University of Lucerne Engineering",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "3ad24b46-0354-50fa-9765-4dc486dad33f",
+          "programme_name": "University of Neuchâtel Data Science",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "92cebe0e-1af5-569d-aaeb-20ff04ca716d",
+          "programme_name": "University of Neuchâtel Engineering",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "d1371441-3b4e-545e-b207-e43e3b6b9bac",
+          "programme_name": "Università della Svizzera Italiana Data Science",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        },
+        {
+          "programme_id": "0ccfc7ae-2f5b-5a2b-8355-86759d5758e6",
+          "programme_name": "Università della Svizzera Italiana Engineering",
+          "extraction_group": "identity_offering",
+          "error": "Extraction group identity_offering failed: DeepSeek HTTP 402: {\"error\":{\"message\":\"Insufficient Balance\",\"type\":\"unknown_error\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+        }
+      ],
+      "total_tokens": 8138569
+    }
+  },
+  "integrity": {
+    "accepted_rows_checked": 1187,
+    "missing_provenance_by_field": {
+      "provider_id": 0,
+      "source_content_hash": 0,
+      "raw_document_id": 0,
+      "source_url": 0,
+      "source_authority": 0,
+      "source_relationship": 0
+    },
+    "bad_scope_rows": 0,
+    "unknown_provider_rows": 0,
+    "raw_local_bytes": 0,
+    "max_local_temp_bytes_configured": 0,
+    "heavy_local_copy_violation": false,
+    "accepted_temporal_by_provider": {
+      "college_scorecard_bulk": [
+        null
+      ],
+      "swissuniversities_tuition": [
+        "2026-2027"
+      ],
+      "onisep_higher_ed": [
+        null
+      ],
+      "discover_uni_hesa": [
+        null
+      ],
+      "duo_rio_ho": [
+        null
+      ],
+      "susa_navet_event": [
+        "2026 HT",
+        "2026 VT",
+        "2027 VT period 1",
+        null
+      ],
+      "susa_navet_info": [
+        null
+      ],
+      "studyinfo_hakukohde": [
+        "2026",
+        "2027",
+        null
+      ],
+      "studyinfo_toteutus": [],
+      "studyinfo_valintaperuste": [
+        "2026-2027",
+        null
+      ]
+    }
+  },
+  "stage1": {
+    "manifest": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform\\docs\\architecture\\data\\external-field-stage1-20260915\\stage1-population-manifest.json",
+    "manifest_sha256": "2607bb4ae5218770f903a657443734751d93a53acb572edadc6542f0b8006277",
+    "config": "C:\\Users\\ADMIN\\orca\\workspaces\\MainSite\\data-platform\\docs\\architecture\\data\\external-field-stage1-20260915\\stage1-config.json",
+    "run": "docs\\architecture\\data\\external-field-stage1-20260915\\runs\\stage1-20260915-main",
+    "promotion": "disabled",
+    "provider_slot_totals": {
+      "eligible": 342,
+      "attempted": 198,
+      "exact_materialization_matches": 198,
+      "materialization_match_rows": 292,
+      "provider_materialization_rate_percent": 57.89,
+      "attempted_exact_match_rate_percent": 100.0,
+      "materialization_rows_total": 342,
+      "materialization_rows_match_rate_percent": 85.38
+    },
+    "checkpoint": {
+      "state": "docs\\architecture\\data\\external-field-stage1-20260915\\runs\\stage1-20260915-main\\crawl_state.sqlite",
+      "available": true,
+      "institutions_with_checkpoint": 209,
+      "status_counts": {
+        "COMPLETED": 209
+      },
+      "completed": 209,
+      "partial": 0,
+      "terminal_failures": 0
+    },
+    "quality_sample": [
+      {
+        "provider_id": "college_scorecard_bulk",
+        "field": "tuition",
+        "entity_id": "harvard-us-canary",
+        "scope": "institution",
+        "value_json": {
+          "credential": "in-state students",
+          "amount": 54002,
+          "currency": "USD",
+          "fee_period": "annual",
+          "audience": "domestic",
+          "academic_cycle": null
+        },
+        "source_url": "https://ed-public-download.scorecard.network/downloads/Most-Recent-Cohorts-Institution.zip",
+        "raw_document_id": "8445e0d3-ef6f-4bf3-89d0-1a864ae62a4d",
+        "content_hash": null,
+        "academic_cycle": null,
+        "currency": null,
+        "basis": null
+      },
+      {
+        "provider_id": "college_scorecard_bulk",
+        "field": "tuition",
+        "entity_id": "stanford-us-canary",
+        "scope": "institution",
+        "value_json": {
+          "credential": "in-state students",
+          "amount": 56169,
+          "currency": "USD",
+          "fee_period": "annual",
+          "audience": "domestic",
+          "academic_cycle": null
+        },
+        "source_url": "https://ed-public-download.scorecard.network/downloads/Most-Recent-Cohorts-Institution.zip",
+        "raw_document_id": "262a0afc-c6fd-41ad-99b2-01247c4f0da7",
+        "content_hash": null,
+        "academic_cycle": null,
+        "currency": null,
+        "basis": null
+      },
+      {
+        "provider_id": "college_scorecard_bulk",
+        "field": "tuition",
+        "entity_id": "princeton-us-canary",
+        "scope": "institution",
+        "value_json": {
+          "credential": "in-state students",
+          "amount": 48502,
+          "currency": "USD",
+          "fee_period": "annual",
+          "audience": "domestic",
+          "academic_cycle": null
+        },
+        "source_url": "https://ed-public-download.scorecard.network/downloads/Most-Recent-Cohorts-Institution.zip",
+        "raw_document_id": "af322480-3cb1-4a51-b922-4d2d9eaccb1c",
+        "content_hash": null,
+        "academic_cycle": null,
+        "currency": null,
+        "basis": null
+      }
+    ],
+    "readiness": {
+      "classification": "A2 - STAGE 1 HEALTHY WITH NON-BLOCKING TARGET/PROVIDER GAPS",
+      "institution_completion": 209,
+      "programme_discovery": 418,
+      "fatal_pipeline_failures": 0,
+      "integrity_gate": "PASS",
+      "failure_isolation_gate": "PASS",
+      "provider_error_records": 55,
+      "target_level_source_absence": 42,
+      "semantic_provider_error_records": 13,
+      "llm_failures": 24,
+      "systemic_failure_records": 0
+    }
+  }
+}

@@ -26,6 +26,7 @@ import {
   type CourseParseJob,
   type JobTransitionGuard,
 } from './job-queue';
+import { LegacyCompatibilityAdapter } from '@/lib/ingestion/convergence';
 
 export interface ProcessResult {
   applicationId: string;
@@ -552,6 +553,22 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
       };
     }
 
+    /*
+     * Slice E shadow bridge. The legacy parser still owns the application
+     * snapshot/checklist writes below for compatibility, but its extracted
+     * values also enter the common evidence/assertion contract. This metadata
+     * is staged on the parse job only; the adapter cannot establish canonical
+     * truth and missing historical raw evidence remains explicit.
+     */
+    const convergenceShadow = LegacyCompatibilityAdapter.adapt({
+      legacyJobId: job.id,
+      applicationId: job.application_id,
+      sourceUrl: job.course_url,
+      parserVersion: 'course-parser/extract-course/v1',
+      result: result.data,
+      rawRetained: false,
+    });
+
     if (!(await updateApplication(job.application_id, {
       parse_status: 'processing',
       progress_percentage: 70,
@@ -583,7 +600,10 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     const resolved = await linkUniversity(job.application_id, result.data, job.course_url);
 
     const transitioned = await updateJobStatus(job.id, 'complete', {
-      parsed_data: result.data as unknown as Record<string, unknown>,
+      parsed_data: {
+        ...(result.data as unknown as Record<string, unknown>),
+        convergence_shadow: convergenceShadow,
+      },
       phase: 'ready',
     }, workerGuard);
     if (!transitioned) return stateChangedResult(job);

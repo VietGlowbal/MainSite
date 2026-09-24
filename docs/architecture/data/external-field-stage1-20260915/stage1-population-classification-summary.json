@@ -1,0 +1,60 @@
+{
+  "classifications": {
+    "SYNTHETIC_SEED": 188,
+    "VERIFIED_PROGRAMME": 230
+  },
+  "original_classifications": {
+    "INVALID_PROVIDER_MAPPING": 40,
+    "SYNTHETIC_SEED": 188,
+    "VERIFIED_PROGRAMME": 190
+  },
+  "original_programmes": 418,
+  "original_provider_classifications": {
+    "College Scorecard": {
+      "SYNTHETIC_SEED": 164
+    },
+    "DUO RIO": {
+      "INVALID_PROVIDER_MAPPING": 40,
+      "VERIFIED_PROGRAMME": 16
+    },
+    "Discover Uni": {
+      "VERIFIED_PROGRAMME": 66
+    },
+    "Onisep Idéo": {
+      "VERIFIED_PROGRAMME": 96
+    },
+    "Studyinfo / Opintopolku": {
+      "VERIFIED_PROGRAMME": 6
+    },
+    "Susa-navet": {
+      "VERIFIED_PROGRAMME": 6
+    },
+    "swissuniversities": {
+      "SYNTHETIC_SEED": 24
+    }
+  },
+  "provider_classifications": {
+    "College Scorecard": {
+      "SYNTHETIC_SEED": 164
+    },
+    "DUO RIO": {
+      "VERIFIED_PROGRAMME": 56
+    },
+    "Discover Uni": {
+      "VERIFIED_PROGRAMME": 66
+    },
+    "Onisep Idéo": {
+      "VERIFIED_PROGRAMME": 96
+    },
+    "Studyinfo / Opintopolku": {
+      "VERIFIED_PROGRAMME": 6
+    },
+    "Susa-navet": {
+      "VERIFIED_PROGRAMME": 6
+    },
+    "swissuniversities": {
+      "SYNTHETIC_SEED": 24
+    }
+  },
+  "verified_programme_count": 230
+}

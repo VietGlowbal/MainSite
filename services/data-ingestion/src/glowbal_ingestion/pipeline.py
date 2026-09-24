@@ -1,19 +1,32 @@
 from __future__ import annotations
 
+from .semantic_acceptance import (
+    SourceBinding,
+    reconcile_assertion_metadata,
+    reconsider_assertions,
+)
+
 import json
+import hashlib
+import os
 import re
 import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field, replace
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, field, is_dataclass, replace
+from enum import Enum
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlsplit
 
 from .admission import build_admission_package, evaluate_package
 from .approved_assertions import ApprovedAssertionRepository
 from .best_assertions import merge_best_assertions, prefer_human_verified
+from .acquisition import AcquisitionFailureCode, EntityRef, SourceCandidate
 from .config import InstitutionSeed, SmokeConfig
+from .convergence import ProgrammeAcquisitionAdapter
 from .crawl4ai_adapter import (
     Crawl4AIAdapterError,
     Crawl4AIRenderer,
@@ -21,13 +34,21 @@ from .crawl4ai_adapter import (
     require_crawl4ai,
     should_render_page,
 )
-from .deepseek import DeepSeekClient, DeepSeekError, ExtractionSource
+from .extraction_provider import (
+    ExtractionProvider,
+    ExtractionProviderError,
+    ExtractionRequest,
+    ExtractionResult,
+    ExtractionSource,
+    LegacyTupleExtractionProvider,
+    create_extraction_provider,
+)
 from .deterministic import (
     extract_deterministic_facts,
     extract_source_excerpt_assertions,
 )
 from .discovery import CatalogueDiscovery
-from .fetcher import FetchError, SafeFetcher
+from .fetcher import FetchError, SafeFetcher, StreamFetchResult
 from .inheritance import (
     cache_shared_assertions,
     fields_to_extract,
@@ -46,9 +67,14 @@ from .models import (
     PageType,
     PolicyStatus,
     ProgrammeOffering,
+    ProgrammePopulationClassification,
     ProgrammeRecord,
     SCHOOL_PROFILE_FIELDS,
     SourceDocument,
+    RawDocument,
+    SourceAuthority,
+    SourceRelationship,
+    TemporalState,
     VerificationStatus,
     has_semantic_value,
     stable_id,
@@ -61,11 +87,48 @@ from .normalization import (
     infer_degree_from_source_text,
     programme_is_selection_eligible,
     refine_programme_name_from_title,
+    programme_metadata_entry_for_url,
 )
-from .parsing import classify_page, normalize_text, parse_html, parse_pdf
+from .artifact_store import (
+    GOOGLE_DRIVE_DESKTOP_BACKEND,
+    is_verified_google_drive_store,
+    require_configured_artifact_backend,
+    require_verified_google_drive_store,
+)
+from .parser_registry import ParserError, ParserRegistry
+from .object_store import ObjectStoreError
+from .parsing import classify_page, normalize_text
 from .policy import RobotsPolicy, check_policy
+from .quality import SliceCQuality
 from .scrapy_adapter import ScrapyDiscoveryAdapter, require_scrapy
+from .source_adapters import AcquisitionPlatformBackend, _candidate_fetch_kwargs
+from .external_sources import provider_request_url, sanitize_provider_fetch_result
+from .external_field_evidence import (
+    external_metadata_for_programme,
+    materialize_external_field_evidence,
+)
+from .source_recovery import (
+    SourceCandidateHint,
+    rank_field_source_candidates,
+    rank_source_candidates,
+    select_sources_for_fields,
+    source_scope_compatible,
+)
 from .storage import JsonlStore, RunPaths, StateStore
+from .structured_staging import (
+    StructuredStagingError,
+    StructuredStagingStore,
+    create_structured_staging_store,
+)
+from .raw_evidence import (
+    RawEvidenceDurability,
+    RawEvidenceError,
+    RawEvidenceErrorCode,
+    RawEvidenceStore,
+    RawSnapshotInput,
+    RawSnapshotStreamInput,
+    create_remote_raw_evidence_store,
+)
 from .url_safety import (
     UnsafeUrlError,
     canonicalize_url,
@@ -79,9 +142,24 @@ from .validation import (
     fact_to_assertion,
     normalize_programme_status,
     null_assertion,
+    classify_programme_population,
     programme_identity_supported,
     validate_assertion_set,
 )
+
+
+def _validate_injected_raw_evidence_store(raw_store: object) -> None:
+    """Prevent dependency injection from bypassing the selected artifact backend."""
+    selected_backend = require_configured_artifact_backend(
+        context="Injected remote raw evidence"
+    )
+    if selected_backend != GOOGLE_DRIVE_DESKTOP_BACKEND:
+        return
+    injected_object_store = getattr(raw_store, "object_store", None)
+    require_verified_google_drive_store(
+        injected_object_store,
+        context="DATA_PLATFORM_ARTIFACT_BACKEND=google_drive_desktop raw evidence",
+    )
 
 
 RELATED_LINK_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -167,6 +245,92 @@ RELATED_LINK_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 
+
+class CheckpointError(RuntimeError):
+    """Raised when a run cannot be safely continued from its checkpoint."""
+
+
+def _checkpoint_json_ready(value: object) -> object:
+    """Convert config dataclasses/enums to deterministic, secret-free JSON."""
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Path):
+        return str(value)
+    if is_dataclass(value):
+        return _checkpoint_json_ready(asdict(value))
+    if isinstance(value, Mapping):
+        return {
+            str(key): _checkpoint_json_ready(item)
+            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
+        }
+    if isinstance(value, (list, tuple)):
+        return [_checkpoint_json_ready(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        return sorted(_checkpoint_json_ready(item) for item in value)
+    return value
+
+
+def build_run_identity(
+    config: SmokeConfig,
+    run_id: str,
+    *,
+    allow_unreviewed_terms: bool,
+    discovery_only: bool,
+    discovery_backend: str,
+    render_policy: str,
+    target_fields: tuple[str, ...] | None,
+    skip_school_profile: bool,
+) -> dict[str, object]:
+    """Return the immutable identity used to guard production resume.
+
+    The fingerprint covers the complete parsed configuration and runtime
+    switches that affect target selection.  It deliberately excludes process
+    environment values (including credentials) so a resume cannot leak
+    secrets into the checkpoint while still rejecting a changed population or
+    provider configuration.
+    """
+    config_payload = _checkpoint_json_ready(config)
+    runtime_payload = {
+        "allow_unreviewed_terms": bool(allow_unreviewed_terms),
+        "discovery_only": bool(discovery_only),
+        "discovery_backend": str(discovery_backend),
+        "render_policy": str(render_policy),
+        "target_fields": list(target_fields or ()),
+        "skip_school_profile": bool(skip_school_profile),
+    }
+    canonical = json.dumps(
+        {"config": config_payload, "runtime": runtime_payload},
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return {
+        "schema_version": "GlowBalCheckpoint/v1",
+        "run_id": str(run_id),
+        "config_fingerprint": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "institution_ids": sorted(
+            str(seed.institution_id) for seed in config.institutions
+        ),
+        "runtime": runtime_payload,
+    }
+
+
+def fields_requiring_llm(
+    requested_fields: tuple[str, ...],
+    deterministic_facts: list[dict[str, object]],
+) -> tuple[str, ...]:
+    """Return only unresolved fields eligible for provider extraction."""
+    deterministic_fields = frozenset(
+        str(fact.get("field_name"))
+        for fact in deterministic_facts
+        if has_semantic_value(fact.get("value"))
+    )
+    return tuple(
+        field_name
+        for field_name in requested_fields
+        if field_name not in deterministic_fields
+    )
+
 SOURCE_CATEGORY_BY_PAGE_TYPE: dict[str, str] = {
     PageType.PROGRAMME_ADMISSION.value: "programme_admission",
     PageType.INTERNATIONAL_ADMISSION.value: "programme_admission",
@@ -192,10 +356,34 @@ OFF_SCOPE_RE = re.compile(
 )
 RELATED_LINK_PATTERN_BY_CATEGORY = dict(RELATED_LINK_PATTERNS)
 COVERAGE_RETRY_FIELD_CATEGORIES: dict[str, tuple[str, ...]] = {
+    # These are link categories only. They direct bounded recovery toward
+    # already-discovered official pages; they do not supply facts or roster
+    # labels to extraction.
+    "programme_identity": ("programme_detail", "curriculum"),
+    "credential": ("programme_detail", "curriculum"),
+    "programme_status": ("programme_detail", "curriculum"),
     "programme_focus": ("programme_detail", "curriculum"),
     "curriculum_overview": ("curriculum",),
+    "specialisations": ("curriculum", "programme_detail"),
     "learning_outcomes": ("curriculum", "career_outcome"),
+    "academic_cycle": ("deadline", "programme_admission", "programme_detail"),
+    "intakes": ("deadline", "programme_admission", "international_admission"),
+    "priority_deadline": ("deadline", "programme_admission"),
+    "funding_deadline": ("deadline", "scholarship"),
+    "international_deadline": ("deadline", "international_admission", "programme_admission"),
+    "final_deadline": ("deadline", "programme_admission"),
+    "rolling_admission": ("deadline", "programme_admission"),
+    "application_url": ("programme_admission",),
+    "minimum_degree": ("programme_admission", "curriculum"),
+    "minimum_gpa": ("programme_admission",),
+    "gpa_scale": ("programme_admission",),
+    "subject_prerequisites": ("programme_admission", "curriculum"),
     "admission_difficulty": ("programme_admission",),
+    "major_admissions_requirement": ("programme_admission", "curriculum"),
+    "standardized_tests": ("programme_admission", "international_admission"),
+    "work_experience": ("programme_admission",),
+    "portfolio": ("programme_admission",),
+    "required_documents": ("programme_admission",),
     "recommendation_letters": ("programme_admission",),
     "sop_essay_requirements": ("programme_admission",),
     "graduation_certificate": ("programme_admission",),
@@ -203,6 +391,12 @@ COVERAGE_RETRY_FIELD_CATEGORIES: dict[str, tuple[str, ...]] = {
     "application_fee": ("programme_admission", "tuition"),
     "tuition": ("tuition",),
     "additional_fees": ("tuition",),
+    "application_deadline": ("deadline", "programme_admission", "international_admission"),
+    "english_requirement": ("english_requirement", "international_admission", "programme_admission"),
+    "ielts_overall": ("english_requirement", "international_admission", "programme_admission"),
+    "ielts_subscores": ("english_requirement", "international_admission", "programme_admission"),
+    "toefl": ("english_requirement", "international_admission", "programme_admission"),
+    "duolingo": ("english_requirement", "international_admission", "programme_admission"),
     "scholarships": ("scholarship",),
     "career_outcomes": ("career_outcome",),
     "employment_outcomes": ("career_outcome",),
@@ -285,10 +479,33 @@ def dedupe_equivalent_assertions(
     return [selected[key] for key in order]
 
 
+def _source_metadata_for_url(
+    seed: InstitutionSeed,
+    url: str,
+) -> tuple[SourceAuthority | None, SourceRelationship | None]:
+    """Return declared source metadata without treating it as field evidence.
+
+    The legacy fetch path historically discarded the source-admission metadata
+    that the platform shadow path already computes.  Preserve that metadata at
+    the raw/source boundary so quality policy can distinguish an official
+    source from an unknown one.  This function never supplies programme facts.
+    """
+
+    host = (urlsplit(url).hostname or "").casefold()
+    if host and hostname_matches(host, (seed.official_domain,)):
+        return SourceAuthority.OFFICIAL, SourceRelationship.DIRECT_OFFICIAL
+    for rule in seed.external_source_rules:
+        if host and hostname_matches(host, (rule.domain,)):
+            return rule.authority, rule.relationship
+    return None, None
+
+
 @dataclass
 class RunMetrics:
     institutions_total: int = 0
     institutions_completed: int = 0
+    institutions_resumed_skipped: int = 0
+    institutions_resumed_continued: int = 0
     institutions_blocked: int = 0
     school_profiles_attempted: int = 0
     school_profiles_extracted: int = 0
@@ -303,6 +520,9 @@ class RunMetrics:
     status_preflight_attempted: int = 0
     status_preflight_inactive_candidates: int = 0
     sources_fetched: int = 0
+    source_recovery_attempts: int = 0
+    source_recovery_successes: int = 0
+    source_recovery_failures: int = 0
     scrapy_links_discovered: int = 0
     render_attempts: int = 0
     render_successes: int = 0
@@ -312,6 +532,12 @@ class RunMetrics:
     assertions_non_null: int = 0
     assertions_rejected: int = 0
     assertions_needs_review: int = 0
+    field_candidates_created_total: int = 0
+    runtime_assertions_created_total: int = 0
+    candidate_to_assertion_drop_total: int = 0
+    field_candidates_created_by_field: dict[str, int] = field(default_factory=dict)
+    runtime_assertions_created_by_field: dict[str, int] = field(default_factory=dict)
+    candidate_to_assertion_drop_reason: dict[str, int] = field(default_factory=dict)
     shared_bundles_upserted: int = 0
     inherited_assertions: int = 0
     inherited_field_slots: int = 0
@@ -319,6 +545,14 @@ class RunMetrics:
     extraction_fields_skipped: int = 0
     approved_baseline_programmes: int = 0
     approved_baseline_assertions: int = 0
+    external_metadata_observations: int = 0
+    external_metadata_promoted: int = 0
+    acquisition_intents: int = 0
+    source_candidates_generated: int = 0
+    source_candidates_admitted: int = 0
+    source_candidates_rejected: int = 0
+    acquisition_discovery_failures: int = 0
+    provider_stats: dict[str, object] = field(default_factory=dict)
     errors: int = 0
     started_at: str = field(default_factory=utc_now_iso)
     completed_at: str | None = None
@@ -329,6 +563,24 @@ class RunMetrics:
         with self._lock:
             for key, value in increments.items():
                 setattr(self, key, int(getattr(self, key)) + value)
+
+    def bump_field_metric(self, metric: str, field_name: str) -> None:
+        """Increment a field-level assertion-generation diagnostic."""
+        if not field_name:
+            return
+        with self._lock:
+            values = getattr(self, metric)
+            values[field_name] = int(values.get(field_name, 0)) + 1
+
+    def record_candidate_drop(self, reason: str) -> None:
+        """Record why a candidate did not enter the assertion list."""
+        if not reason:
+            return
+        with self._lock:
+            self.candidate_to_assertion_drop_total += 1
+            self.candidate_to_assertion_drop_reason[reason] = (
+                int(self.candidate_to_assertion_drop_reason.get(reason, 0)) + 1
+            )
 
     def to_dict(self) -> dict[str, object]:
         with self._lock:
@@ -361,6 +613,9 @@ class SmokePipeline:
         render_policy: str = "off",
         target_fields: tuple[str, ...] | None = None,
         skip_school_profile: bool = False,
+        resume: bool = False,
+        raw_evidence_store: RawEvidenceStore | None = None,
+        structured_staging_store: StructuredStagingStore | None = None,
     ) -> None:
         if discovery_backend not in {"native", "scrapy", "hybrid"}:
             raise ValueError(
@@ -372,6 +627,10 @@ class SmokePipeline:
             require_scrapy()
         if render_policy != "off":
             require_crawl4ai()
+        if config.raw_evidence_mode in {"remote", "dual"}:
+            require_configured_artifact_backend(
+                context="RAW_EVIDENCE_MODE remote/dual"
+            )
         if target_fields is not None:
             normalized_target_fields = tuple(
                 dict.fromkeys(str(field).strip() for field in target_fields if str(field).strip())
@@ -386,13 +645,112 @@ class SmokePipeline:
             if not normalized_target_fields:
                 raise ValueError("target_fields must contain at least one field.")
             target_fields = normalized_target_fields
+        run_dir = Path(run_dir)
+        state_path = run_dir / "crawl_state.sqlite"
+        if resume and not state_path.exists():
+            raise CheckpointError(
+                f"Cannot resume run; checkpoint does not exist: {state_path}"
+            )
         self.config = config
         self.paths = RunPaths.create(run_dir)
         self.store = JsonlStore(self.paths)
-        self.state = StateStore(run_dir / "crawl_state.sqlite")
+        self.state = StateStore(state_path)
+        self.resume = bool(resume)
+        self._run_identity = build_run_identity(
+            config,
+            self.paths.root.name,
+            allow_unreviewed_terms=allow_unreviewed_terms,
+            discovery_only=discovery_only,
+            discovery_backend=discovery_backend,
+            render_policy=render_policy,
+            target_fields=target_fields,
+            skip_school_profile=skip_school_profile,
+        )
+        self._resume_skipped: list[str] = []
+        self._resume_continued: list[str] = []
+        self._checkpoint_records: dict[str, dict[str, object]] = {}
+        # A target can finish its control-flow without being retry-safe: the
+        # acquisition path deliberately isolates a provider/write failure and
+        # continues with the remaining providers.  Keep those retryable
+        # failures separate from the terminal checkpoint so resume does not
+        # silently skip an institution whose durable evidence is incomplete.
+        self._retryable_errors_by_institution: dict[str, list[str]] = {}
+        self._retryable_error_lock = threading.RLock()
+        self._run_had_failures = False
+        self._run_interrupted = False
+        self.parser_registry = ParserRegistry.default()
+        self.raw_evidence_mode = config.raw_evidence_mode
+        self.raw_evidence_store = raw_evidence_store
+        if self.raw_evidence_mode in {"remote", "dual"}:
+            self.raw_evidence_store = (
+                raw_evidence_store
+                or create_remote_raw_evidence_store(
+                    inline_payload_max_bytes=config.raw_evidence_inline_max_bytes
+                )
+            )
+            if raw_evidence_store is not None:
+                # Dependency injection is useful for tests and controlled
+                # replays, but it must not become a way to bypass the
+                # production backend policy.  A Drive-selected run accepts
+                # only a raw store whose physical object store is the
+                # fail-closed Drive implementation; legacy Supabase/S3
+                # stores remain read-compatible only through that adapter.
+                try:
+                    _validate_injected_raw_evidence_store(raw_evidence_store)
+                except ValueError:
+                    self.state.close()
+                    raise
+            if (
+                getattr(
+                    self.raw_evidence_store,
+                    "durability",
+                    RawEvidenceDurability.LOCAL_ONLY,
+                )
+                != RawEvidenceDurability.REMOTE_DURABLE
+            ):
+                # Validation occurs after local run state is initialized for
+                # compatibility with existing constructors; release it before
+                # rejecting the run so a failed pre-fetch setup never leaks a
+                # SQLite handle on Windows workers.
+                self.state.close()
+                raise ValueError(
+                    "RAW_EVIDENCE_MODE remote/dual requires a "
+                    "REMOTE_DURABLE RawEvidenceStore."
+                )
+        shared_artifact_store = getattr(self.raw_evidence_store, "object_store", None)
+        if structured_staging_store is not None:
+            try:
+                selected_backend = require_configured_artifact_backend(
+                    context="Injected structured staging"
+                )
+                if selected_backend == GOOGLE_DRIVE_DESKTOP_BACKEND:
+                    from .structured_staging import (
+                        validate_injected_structured_staging_store,
+                    )
+
+                    validate_injected_structured_staging_store(
+                        structured_staging_store,
+                        shared_artifact_store=(
+                            shared_artifact_store
+                            if is_verified_google_drive_store(shared_artifact_store)
+                            else None
+                        ),
+                    )
+            except ValueError:
+                self.state.close()
+                raise
+        self.structured_staging_store = structured_staging_store or create_structured_staging_store(
+            artifact_store=(
+                shared_artifact_store
+                if is_verified_google_drive_store(shared_artifact_store)
+                else None
+            )
+        )
         shared_cache_dir = run_dir.parent / "_cache"
         shared_cache_dir.mkdir(parents=True, exist_ok=True)
         self.llm_state = StateStore(
+            # Retain the existing cache path during the provider migration.
+            # Cache keys are provider-neutral from Slice A onward.
             shared_cache_dir / "deepseek_cache.sqlite"
         )
         self.fetcher = SafeFetcher(config.limits)
@@ -401,6 +759,10 @@ class SmokePipeline:
         self._discovery_graph_lock = threading.RLock()
         self._discovery_graph: dict[
             str, list[dict[str, object]]
+        ] = {}
+        self._configured_source_lock = threading.RLock()
+        self._configured_extraction_sources: dict[
+            str, list[ExtractionSource]
         ] = {}
         self._institutions_finished = 0
         scrapy_adapter = (
@@ -415,17 +777,35 @@ class SmokePipeline:
             if render_policy != "off"
             else None
         )
-        self.discovery = CatalogueDiscovery(
+        legacy_discovery = CatalogueDiscovery(
             self.fetcher,
             self._progress,
             backend=discovery_backend,
             scrapy_adapter=scrapy_adapter,
             graph_sink=self._record_discovery_edge,
         )
-        self.deepseek = DeepSeekClient(
-            config,
-            self.llm_state,
-            self._progress,
+        # The shadow backend preserves the exact legacy discovery algorithm;
+        # it merely emits source-candidate admission telemetry.  It is not an
+        # acquisition planner/crawler replacement.
+        self.discovery = AcquisitionPlatformBackend(
+            legacy_discovery,
+            event_sink=self._record_acquisition_event,
+            artifact_sink=self._record_acquisition_artifact,
+            mode=config.acquisition_backend,
+            fetcher=self.fetcher,
+            raw_evidence_store=self.raw_evidence_store,
+            acquisition_run_id=self.paths.root.name,
+            source_ecosystem=config.source_ecosystem,
+        )
+        self.extractor: ExtractionProvider = create_extraction_provider(
+            config, self.llm_state, self._progress
+        )
+        # Slice C is deliberately shadow-only: it observes the assertion
+        # bundle and records quality/recovery decisions without changing the
+        # programme result or acquiring anything itself.
+        self.shadow_quality = SliceCQuality()
+        self._legacy_extractor = getattr(
+            self.extractor, "legacy_client", None
         )
         self.approved_assertions = (
             ApprovedAssertionRepository.from_environment()
@@ -445,6 +825,483 @@ class SmokePipeline:
         self._start_monotonic = 0.0
         self._optional_phd_lock = threading.Lock()
         self._optional_phd_used = 0
+        self._initialize_checkpoint_state()
+
+    @staticmethod
+    def _seed_fingerprint(seed: InstitutionSeed) -> str:
+        payload = _checkpoint_json_ready(seed)
+        canonical = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _checkpoint_key(seed: InstitutionSeed) -> str:
+        return f"institution:{seed.institution_id}:checkpoint"
+
+    def _initialize_checkpoint_state(self) -> None:
+        """Create or validate the single run identity used by resume."""
+        stored = self.state.get_value("run:identity")
+        if self.resume:
+            if not isinstance(stored, dict):
+                self.state.close()
+                self.llm_state.close()
+                raise CheckpointError(
+                    "Cannot resume run; crawl_state.sqlite has no run identity."
+                )
+            stored_identity = stored.get("identity")
+            if not isinstance(stored_identity, dict):
+                # Accept the first draft shape for forward compatibility while
+                # still requiring an explicit immutable identity.
+                stored_identity = stored
+            comparable = {
+                key: value
+                for key, value in stored_identity.items()
+                if key not in {"status", "started_at", "resumed_at", "completed_at"}
+            }
+            if comparable != self._run_identity:
+                self.state.close()
+                self.llm_state.close()
+                raise CheckpointError(
+                    "Cannot resume run; checkpoint identity does not match "
+                    "the supplied configuration/population."
+                )
+        elif stored is not None:
+            self.state.close()
+            self.llm_state.close()
+            raise CheckpointError(
+                "Run checkpoint already exists; use --resume with the same "
+                "configuration instead of starting a new run in this directory."
+            )
+
+        now = utc_now_iso()
+        envelope = {
+            "schema_version": "GlowBalCheckpoint/v1",
+            "identity": self._run_identity,
+            "status": "RUNNING",
+            "started_at": (
+                stored.get("started_at")
+                if self.resume and isinstance(stored, dict)
+                else now
+            ),
+        }
+        if self.resume:
+            envelope["resumed_at"] = now
+        self.state.set_value("run:identity", envelope)
+
+    def _checkpoint_record(self, seed: InstitutionSeed) -> dict[str, object] | None:
+        key = self._checkpoint_key(seed)
+        cached = self._checkpoint_records.get(key)
+        if cached is not None:
+            return cached
+        value = self.state.get_value(key)
+        if isinstance(value, dict):
+            record = dict(value)
+            self._checkpoint_records[key] = record
+            return record
+        return None
+
+    def _set_checkpoint(
+        self,
+        seed: InstitutionSeed,
+        status: str,
+        *,
+        error: str | None = None,
+    ) -> None:
+        key = self._checkpoint_key(seed)
+        previous = self._checkpoint_record(seed) or {}
+        record: dict[str, object] = {
+            "institution_id": seed.institution_id,
+            "seed_fingerprint": self._seed_fingerprint(seed),
+            "status": str(status),
+            "updated_at": utc_now_iso(),
+        }
+        if previous.get("started_at"):
+            record["started_at"] = previous["started_at"]
+        elif status == "RUNNING":
+            record["started_at"] = record["updated_at"]
+        if error:
+            record["error"] = str(error)[:2000]
+        self._checkpoint_records[key] = record
+        self.state.set_value(key, record)
+
+    def _checkpointed_institution(self, seed: InstitutionSeed) -> None:
+        """Run one institution and persist a terminal checkpoint."""
+        self._set_checkpoint(seed, "RUNNING")
+        try:
+            self._process_institution(seed)
+        except BaseException as exc:
+            self._set_checkpoint(
+                seed,
+                "INTERRUPTED" if isinstance(exc, (KeyboardInterrupt, SystemExit)) else "FAILED",
+                error=str(exc),
+            )
+            raise
+        with self._retryable_error_lock:
+            retryable_errors = tuple(
+                self._retryable_errors_by_institution.get(seed.institution_id, ())
+            )
+        if retryable_errors:
+            # The institution's deterministic/official work may have reached
+            # its normal return path, but a transient fetch, parser, or durable
+            # write failure means the checkpoint is resumable rather than
+            # complete.  Keep the compact error code list in SQLite; full
+            # diagnostics remain in crawl_errors.jsonl.
+            self._run_had_failures = True
+            self._set_checkpoint(
+                seed,
+                "PARTIAL",
+                error="retryable_errors: " + ", ".join(retryable_errors[:8]),
+            )
+        else:
+            self._set_checkpoint(seed, "COMPLETED")
+        self.metrics.add(institutions_completed=1)
+
+    def _prepare_resume_targets(self) -> list[InstitutionSeed]:
+        pending: list[InstitutionSeed] = []
+        for seed in self.config.institutions:
+            record = self._checkpoint_record(seed)
+            if record is not None:
+                expected = self._seed_fingerprint(seed)
+                actual = str(record.get("seed_fingerprint") or "")
+                if actual and actual != expected:
+                    raise CheckpointError(
+                        "Checkpoint seed identity does not match institution "
+                        f"{seed.institution_id}."
+                    )
+            if self.resume and record and record.get("status") == "COMPLETED":
+                self._resume_skipped.append(seed.institution_id)
+                self.metrics.add(
+                    institutions_resumed_skipped=1,
+                    institutions_completed=1,
+                )
+                self._advance_progress(seed)
+                continue
+            if self.resume:
+                self._resume_continued.append(seed.institution_id)
+                self.metrics.add(institutions_resumed_continued=1)
+            pending.append(seed)
+        return pending
+
+    def _write_resume_report(self) -> None:
+        identity = self.state.get_value("run:identity", {})
+        self.store.write_json(
+            "resume-report.json",
+            {
+                "schema_version": "GlowBalResumeReport/v1",
+                "run_id": self.paths.root.name,
+                "resumed": self.resume,
+                "state_path": str(self.state.path),
+                "identity": identity.get("identity") if isinstance(identity, dict) else identity,
+                "identity_status": identity.get("status") if isinstance(identity, dict) else None,
+                "skipped_completed_institutions": list(self._resume_skipped),
+                "continued_institutions": list(self._resume_continued),
+                "checkpoint_records": {
+                    str(seed.institution_id): self._checkpoint_record(seed)
+                    for seed in self.config.institutions
+                },
+            },
+        )
+
+    def _record_acquisition_event(self, event: dict[str, object]) -> None:
+        """Persist source-resolution telemetry without raw content or secrets."""
+        self.store.append("acquisition_events", event)
+        if event.get("event") == "source_candidate_admission":
+            if event.get("admitted"):
+                self.metrics.add(source_candidates_admitted=1)
+            else:
+                self.metrics.add(source_candidates_rejected=1)
+        elif event.get("event") == "acquisition_intent":
+            self.metrics.add(acquisition_intents=1)
+        elif event.get("event") == "source_candidates_generated":
+            self.metrics.add(source_candidates_generated=int(event.get("count") or 0))
+
+    def _record_acquisition_artifact(
+        self,
+        stream: str,
+        record: dict[str, object],
+    ) -> None:
+        """Write run-scoped source lineage without raw response bodies."""
+        self.store.append(stream, record)
+
+    def _ranked_configured_sources(
+        self,
+        *,
+        programme: ProgrammeRecord,
+        configured_sources: tuple[str, ...],
+        field_names: tuple[str, ...],
+    ) -> tuple[object, ...]:
+        """Order the existing source frontier deterministically.
+
+        This is a bounded ordering operation over the frozen/configured source
+        register.  It neither discovers URLs nor treats a fetched source as
+        valid evidence; identity, applicability, and field policy still run
+        after acquisition.
+        """
+        eligible_sources = tuple(
+            url
+            for url in configured_sources
+            if source_scope_compatible(url, programme.official_url)
+        )
+        ranked = rank_source_candidates(
+            eligible_sources,
+            target_url=programme.official_url,
+            field_names=field_names,
+        )
+        if self.target_fields is not None:
+            return ranked
+
+        # Full legacy runs treat explicit source-bundle order as curated.
+        # Targeted delta runs above opt into field-ranked capacity allocation.
+        ranked_by_url = {candidate.url: candidate for candidate in ranked}
+        declared_urls = tuple(canonicalize_url(url) for url in eligible_sources)
+        return tuple(
+            replace(
+                ranked_by_url[url],
+                rank=index,
+                reasons=("declared configuration order", *ranked_by_url[url].reasons),
+            )
+            for index, url in enumerate(declared_urls, start=1)
+            if url in ranked_by_url
+        )
+
+    def _programme_provider_sources(
+        self,
+        institution_id: str,
+        field_names: tuple[str, ...],
+        *,
+        programme_id: str | None = None,
+    ) -> tuple[ExtractionSource, ...]:
+        """Return fetched field-bearing provider sources for extraction.
+
+        Configured provider resources can be programme-specific, faculty/department
+        scoped, or institution scoped.  The old implementation admitted only
+        programme-resolution resources, which meant explicitly acquired central
+        finance/admissions pages disappeared before semantic extraction.  Scope
+        remains attached to the source and the extractor decides whether an
+        explicit fact is applicable; this method only selects field-bearing,
+        non-search/non-archive context.
+        """
+        requested_fields = {
+            str(value).strip().casefold()
+            for value in field_names
+            if str(value).strip()
+        }
+        requested_provider_fields = set(
+            self.discovery.planner.provider_field_groups(field_names)
+        )
+        with self._configured_source_lock:
+            cached = tuple(
+                self._configured_extraction_sources.get(institution_id, ())
+            )
+        selected: list[ExtractionSource] = []
+        for source in cached:
+            resolution = str(source.source_resolution or "").casefold()
+            if resolution not in {
+                "programme",
+                "department",
+                "faculty",
+                "school",
+                "institution",
+            }:
+                continue
+            if source.source_class in {"search_discovery", "search_index", "archive"}:
+                continue
+            linked_programme_id = source.linked_programme_id
+            if (
+                linked_programme_id
+                and programme_id
+                and linked_programme_id != programme_id
+            ):
+                continue
+            expected = {
+                str(value).strip().casefold()
+                for value in source.expected_field_groups
+                if str(value).strip()
+            }
+            # Configured resources may declare either concrete deep fields
+            # (``ielts_overall``, ``final_deadline``) or the provider routing
+            # family (``language``, ``deadline``). Accept both forms while
+            # keeping the source's original declaration and scope intact.
+            if expected and not (
+                expected.intersection(requested_fields)
+                or expected.intersection(requested_provider_fields)
+            ):
+                continue
+            selected.append(source)
+        return tuple(selected)
+
+    def _cache_configured_extraction_source(
+        self,
+        institution_id: str,
+        source: ExtractionSource,
+    ) -> None:
+        """Retain the best materialized view for each provider record key.
+
+        A national export is commonly fetched once at institution scope and
+        again after a programme identifier is known.  Both fetches can share
+        one URL while producing different bounded extraction views.  Keying
+        only by URL would retain the first, unmatched view and hide the
+        programme-linked row.  Keep distinct programme links and replace a
+        same-key stale view when the newer source proves an exact entity
+        match.
+        """
+        # A configured external provider source without a deterministic entity
+        # match is not usable OBSERVED evidence.  Do not let that initial
+        # institution-scope fetch occupy the cache slot needed by the later
+        # programme-linked materialization.
+        if source.provider_id and not source.external_entity_match:
+            return
+        source_url = canonicalize_url(source.url)
+        source_link = str(source.linked_programme_id or "").strip()
+        with self._configured_source_lock:
+            cached = self._configured_extraction_sources.setdefault(
+                institution_id, []
+            )
+            for index, existing in enumerate(cached):
+                if (
+                    canonicalize_url(existing.url) != source_url
+                    or str(existing.linked_programme_id or "").strip()
+                    != source_link
+                ):
+                    continue
+                if (
+                    source.external_entity_match
+                    and not existing.external_entity_match
+                ):
+                    cached[index] = source
+                return
+            cached.append(source)
+
+    @staticmethod
+    def _eligible_configured_sources(
+        *,
+        programme: ProgrammeRecord,
+        configured_sources: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Keep explicit programme-scope alternates from cross-contaminating evidence."""
+
+        return tuple(
+            url
+            for url in configured_sources
+            if source_scope_compatible(url, programme.official_url)
+        )
+
+    def _record_source_recovery_event(
+        self,
+        *,
+        seed: InstitutionSeed,
+        programme: ProgrammeRecord,
+        primary_url: str,
+        candidate: object,
+        outcome: str,
+        error_code: str | None = None,
+        error_message: str | None = None,
+        source_page_type: str | None = None,
+    ) -> None:
+        """Persist bounded fallback telemetry without response bodies/secrets."""
+        candidate_url = str(getattr(candidate, "url", ""))
+        self.store.append(
+            "source_recovery_events",
+            {
+                "institution_id": seed.institution_id,
+                "programme_id": programme.programme_id,
+                "programme_url": programme.official_url,
+                "primary_url": primary_url,
+                "candidate_url": candidate_url,
+                "candidate_rank": int(getattr(candidate, "rank", 0) or 0),
+                "candidate_score": list(getattr(candidate, "score", ()) or ()),
+                "candidate_reasons": list(getattr(candidate, "reasons", ()) or ()),
+                "outcome": outcome,
+                "error_code": error_code,
+                "error_message": (error_message or "")[:500] or None,
+                "source_page_type": source_page_type,
+                "retrieved_at": utc_now_iso(),
+            },
+        )
+
+    # Temporary compatibility alias for existing callers/tests.  Pipeline code
+    # uses ``extractor`` and no longer imports provider-specific classes.
+    @property
+    def deepseek(self) -> object:
+        if self._legacy_extractor is None:
+            # Compatibility surface for legacy tests/callers that replace the
+            # old tuple-style client. Production orchestration stays on the
+            # generic provider contract.
+            self._legacy_extractor = SimpleNamespace()
+            self.extractor = LegacyTupleExtractionProvider(
+                self._legacy_extractor
+            )
+        return self._legacy_extractor
+
+    @deepseek.setter
+    def deepseek(self, value: ExtractionProvider) -> None:
+        self._legacy_extractor = value
+        self.extractor = LegacyTupleExtractionProvider(value)
+
+    def _extraction_request(
+        self,
+        *,
+        entity_id: str,
+        field_names: tuple[str, ...],
+        sources: list[ExtractionSource],
+        operation: str,
+        context: dict[str, object],
+        prefer_pro: bool = False,
+    ) -> ExtractionRequest:
+        legacy = getattr(self.extractor, "legacy_client", None)
+        return ExtractionRequest(
+            entity_id=entity_id,
+            field_names=field_names,
+            sources=tuple(sources),
+            prompt_version=str(
+                getattr(legacy, "PROMPT_VERSION", "provider-managed/v1")
+            ),
+            schema_version=str(
+                getattr(legacy, "SCHEMA_VERSION", "provider-managed/v1")
+            ),
+            operation=operation,
+            context=context,
+            capabilities={"prefer_pro": prefer_pro},
+        )
+
+    @staticmethod
+    def _facts_with_extraction_provenance(
+        result: ExtractionResult,
+        sources: list[ExtractionSource],
+    ) -> list[dict[str, object]]:
+        """Attach the exact observed snapshot, never a hash-based surrogate."""
+        sources_by_url = {source.url: source for source in sources}
+        facts: list[dict[str, object]] = []
+        for fact in result.facts:
+            enriched = dict(fact)
+            source = sources_by_url.get(str(enriched.get("source_url") or ""))
+            if source is not None:
+                enriched["_raw_document_id"] = source.raw_document_id
+                enriched["_parser_id"] = source.parser_id
+                enriched["_parser_version"] = source.parser_version
+                enriched["_dataset_id"] = source.dataset_id
+                enriched["_acquisition_run_id"] = source.acquisition_run_id
+                enriched["_source_authority"] = source.source_authority
+                enriched["_source_relationship"] = source.source_relationship
+                enriched["_temporal_state"] = source.temporal_state
+                if source.provider_id:
+                    enriched["_provider_id"] = source.provider_id
+                if source.academic_cycle:
+                    enriched.setdefault("academic_cycle", source.academic_cycle)
+                if source.source_resolution:
+                    enriched.setdefault("scope", source.source_resolution)
+                if source.audience:
+                    enriched.setdefault("audience", source.audience)
+            enriched.setdefault("_provider_id", result.provider_id)
+            enriched["_model_name"] = result.model_id
+            enriched["_prompt_version"] = result.prompt_version
+            enriched["_schema_version"] = result.schema_version
+            facts.append(enriched)
+        return facts
 
     @staticmethod
     def _elapsed_label(seconds: float) -> str:
@@ -510,6 +1367,13 @@ class SmokePipeline:
         )
         self.store.append("crawl_errors", error)
         self.metrics.add(errors=1)
+        if institution_id and retryable:
+            with self._retryable_error_lock:
+                errors = self._retryable_errors_by_institution.setdefault(
+                    str(institution_id), []
+                )
+                if len(errors) < 32:
+                    errors.append(str(code))
 
     def _record_discovery_edge(self, record: dict[str, object]) -> None:
         institution_id = str(record.get("institution_id") or "")
@@ -526,7 +1390,15 @@ class SmokePipeline:
 
     def _record_assertion(self, assertion: FieldAssertion) -> None:
         self.store.append("field_assertions", assertion)
-        updates = {"assertions_total": 1}
+        self.metrics.add(
+            assertions_total=1,
+            runtime_assertions_created_total=1,
+        )
+        self.metrics.bump_field_metric(
+            "runtime_assertions_created_by_field",
+            assertion.field_name,
+        )
+        updates = {}
         if assertion.verification_status != VerificationStatus.REJECTED:
             slot = (assertion.entity_id, assertion.field_name)
             with self._coverage_lock:
@@ -545,6 +1417,40 @@ class SmokePipeline:
         if assertion.verification_status == VerificationStatus.NEEDS_REVIEW:
             updates["assertions_needs_review"] = 1
         self.metrics.add(**updates)
+
+    def _record_extraction_trace(
+        self,
+        *,
+        programme: ProgrammeRecord,
+        phase: str,
+        sources: list[ExtractionSource],
+        deterministic_candidate_count: int,
+        llm_called: bool,
+        llm_success: bool,
+        extracted_value_present: bool,
+        llm_field_names: tuple[str, ...] = (),
+        assertion_created: int = 0,
+        assertion_value_present: bool = False,
+    ) -> None:
+        """Persist value-plumbing diagnostics without source bodies or secrets."""
+        self.store.append(
+            "extraction_trace",
+            {
+                "programme_id": programme.programme_id,
+                "programme_url": programme.official_url,
+                "phase": phase,
+                "retrieved_at": utc_now_iso(),
+                "source_count": len(sources),
+                "parser_success": bool(sources and any(source.text for source in sources)),
+                "deterministic_candidate_count": deterministic_candidate_count,
+                "llm_called": llm_called,
+                "llm_success": llm_success,
+                "llm_field_names": list(llm_field_names),
+                "extracted_value_present": extracted_value_present,
+                "assertion_created": assertion_created,
+                "assertion_value_present": assertion_value_present,
+            },
+        )
 
     @staticmethod
     def _prepare_assertion(
@@ -572,19 +1478,644 @@ class SmokePipeline:
             for group_name in failed_groups
             if group_name in EXTRACTION_FIELD_GROUPS
         ):
-            return NullReason.PARSE_FAILED
+            # The parser already produced a usable SourceDocument.  A failed
+            # provider/extraction group is an extraction failure, not a parser
+            # failure; keeping this distinction prevents the coverage state
+            # machine from misreporting valid parsed evidence.
+            return NullReason.EXTRACTION_FAILED
         if programme.degree_level == "bachelor" and field_name == "minimum_degree":
             return NullReason.NOT_APPLICABLE
         return NullReason.NOT_PUBLISHED
+
+    def _parse_document(
+        self,
+        raw_document: RawDocument,
+        payload: bytes,
+        *,
+        parser_options: dict[str, object] | None = None,
+    ) -> Any:
+        """Translate a genuine parser failure into an explicit fetch state."""
+        try:
+            # Keep the legacy two-argument parser seam usable for injected
+            # test/custom parsers.  The built-in registry accepts the optional
+            # keyword, but a compatibility parser may intentionally expose
+            # only ``parse(raw_document, payload)``.
+            if parser_options is None:
+                return self.parser_registry.parse(raw_document, payload)
+            return self.parser_registry.parse(
+                raw_document,
+                payload,
+                parser_options=parser_options,
+            )
+        except ParserError as exc:
+            raise FetchError(
+                "Parser could not produce usable document content.",
+                code="PARSE_FAILED",
+                url=raw_document.canonical_url,
+                retryable=False,
+            ) from exc
+
+    def _persist_structured_archive_members(
+        self,
+        raw_document: RawDocument,
+        parsed: Any,
+        *,
+        require_durable: bool = False,
+        institution_id: str | None = None,
+        programme_id: str | None = None,
+    ) -> None:
+        """Persist bounded derived archive rows with immutable ZIP lineage.
+
+        The ZIP snapshot remains the raw source of truth.  This additive run
+        artifact makes streamed member rows available to later staging/import
+        work without turning them into assertions or replacing the raw ZIP.
+        Legacy ZIP members without the explicit bounded-lineage metadata are
+        left on their existing parser path.
+        """
+        payload = getattr(parsed, "structured_payload", None)
+        if not isinstance(payload, dict):
+            return
+        members = payload.get("members")
+        if not isinstance(members, list):
+            return
+        records: list[dict[str, object]] = []
+        for member in members:
+            if not isinstance(member, dict) or not isinstance(member.get("lineage"), dict):
+                continue
+            lineage = dict(member["lineage"])
+            member_name = str(
+                member.get("member_name") or member.get("name") or ""
+            ).strip()
+            if not member_name:
+                continue
+            record = {
+                "derived_resource_id": stable_id(
+                    "structured-archive-member",
+                    raw_document.raw_document_id,
+                    member_name,
+                ),
+                "raw_document_id": raw_document.raw_document_id,
+                "provider_id": raw_document.provider_id,
+                "dataset_id": raw_document.dataset_id,
+                "source_class": raw_document.source_class,
+                "source_authority": (
+                    raw_document.source_authority.value
+                    if raw_document.source_authority
+                    else None
+                ),
+                "source_relationship": (
+                    raw_document.source_relationship.value
+                    if raw_document.source_relationship
+                    else None
+                ),
+                "raw_object_key": raw_document.payload_reference,
+                "raw_content_hash": raw_document.content_hash,
+                "zip_locator": raw_document.canonical_url,
+                "zip_content_hash": raw_document.content_hash,
+                "member_name": member_name,
+                "archive_member": member_name,
+                "member_content_type": "text/tsv"
+                if member_name.casefold().endswith(".tsv")
+                else "text/csv",
+                "institution_id": institution_id,
+                "programme_id": programme_id,
+                "member_size": member.get("size"),
+                "compressed_size": member.get("compressed_size"),
+                "rows": member.get("structured") or [],
+                "rows_scanned": member.get("rows_scanned", 0),
+                "rows_retained": member.get("rows_retained", 0),
+                "partial": bool(member.get("partial", False)),
+                "bounded_reason": member.get("bounded_reason"),
+                "bytes_scanned": member.get("bytes_scanned"),
+                "academic_cycle": raw_document.academic_cycle,
+                "acquisition_run_id": raw_document.acquisition_run_id,
+                "retrieved_at": raw_document.retrieved_at,
+                "lineage": lineage,
+                "parser_id": parsed.parser_id,
+                "parser_version": parsed.parser_version,
+            }
+            records.append(record)
+            self.store.append("structured_archive_members", record)
+        if records and self.structured_staging_store is None and require_durable:
+            raise StructuredStagingError(
+                "Heavy structured rows require configured durable staging."
+            )
+        if records and self.structured_staging_store is not None:
+            try:
+                persisted = self.structured_staging_store.put_archive_members(records)
+            except StructuredStagingError:
+                raise
+            except Exception as exc:
+                raise StructuredStagingError(
+                    "Structured archive rows could not be durably staged."
+                ) from exc
+            if persisted != len(records):
+                raise StructuredStagingError(
+                    "Structured staging acknowledged fewer rows than supplied."
+                )
+
+    @staticmethod
+    def _streaming_candidate_requires_large_raw(
+        source_candidate: SourceCandidate | None,
+        url: str,
+        threshold: int,
+    ) -> bool:
+        """Identify resources that must bypass the byte-oriented fetch path."""
+        if source_candidate is None:
+            return False
+        metadata = source_candidate.adapter_metadata
+        if bool(metadata.get("streaming_required") or metadata.get("large_object")):
+            return True
+        try:
+            configured_max = int(metadata.get("max_bytes") or 0)
+        except (TypeError, ValueError):
+            configured_max = 0
+        if configured_max >= threshold:
+            return True
+        retrieval_type = str(
+            metadata.get("retrieval_type") or metadata.get("resource_type") or ""
+        ).casefold()
+        suffix = urlsplit(url).path.casefold()
+        heavy_type = retrieval_type in {
+            "zip",
+            "bulk",
+            "large_csv",
+            "large_json",
+            "large_xml",
+        }
+        heavy_suffix = suffix.endswith((".zip", ".csv", ".tsv", ".xml", ".jsonl"))
+        return (heavy_type or heavy_suffix) and configured_max >= threshold
+
+    def _append_stream_source_document(
+        self,
+        *,
+        seed: InstitutionSeed,
+        requested_url: str,
+        final_url: str,
+        status: int,
+        content_type: str | None,
+        retrieved_at: str,
+        content_hash: str,
+        raw_document: RawDocument,
+        parsed: Any,
+        fetch_method: str,
+        source_candidate: SourceCandidate | None,
+        raw_path: str | None,
+    ) -> tuple[SourceDocument, ExtractionSource, list[tuple[str, str]]]:
+        if source_candidate is not None:
+            source_authority = source_candidate.declared_authority
+            source_relationship = source_candidate.relationship
+            source_class = source_candidate.source_class
+            adapter_id = source_candidate.adapter_id
+            provider_id = source_candidate.provider_id
+            dataset_id = source_candidate.dataset_id
+            temporal_state = source_candidate.temporal_state
+            source_resolution = source_candidate.source_resolution or str(
+                source_candidate.adapter_metadata.get("source_resolution") or ""
+            ) or None
+            original_url = source_candidate.original_url or source_candidate.adapter_metadata.get("original_url")
+            capture_url = source_candidate.capture_url or source_candidate.adapter_metadata.get("capture_url")
+            captured_at = source_candidate.captured_at or source_candidate.adapter_metadata.get("captured_at")
+            archive_provider = source_candidate.archive_provider or source_candidate.adapter_metadata.get("archive_provider")
+            linked_programme_id = source_candidate.adapter_metadata.get("programme_id")
+            linked_programme_url = source_candidate.adapter_metadata.get("programme_url")
+            discovered_from = source_candidate.adapter_metadata.get("discovered_from")
+            anchor_text = source_candidate.adapter_metadata.get("anchor_text")
+            candidate_audience = source_candidate.adapter_metadata.get("audience")
+        else:
+            source_authority, source_relationship = _source_metadata_for_url(seed, final_url)
+            source_class = adapter_id = provider_id = dataset_id = None
+            temporal_state = TemporalState.UNKNOWN
+            source_resolution = original_url = capture_url = captured_at = archive_provider = None
+            linked_programme_id = linked_programme_url = discovered_from = anchor_text = None
+            candidate_audience = None
+        parser_content_type = content_type or "application/octet-stream"
+        if parsed.parser_id == "pdf-text":
+            page_type = PageType.PDF
+        else:
+            page_type = classify_page(final_url, parsed.title, parsed.text)
+        source_id = stable_id("source", seed.institution_id, final_url, content_hash)
+        document = SourceDocument(
+            source_id=source_id,
+            institution_id=seed.institution_id,
+            url=requested_url,
+            canonical_url=final_url,
+            page_type=page_type,
+            content_type=parser_content_type,
+            http_status=status,
+            retrieved_at=retrieved_at,
+            content_hash=content_hash,
+            raw_object_path=raw_path,
+            title=parsed.title,
+            language=parsed.language,
+            text_length=len(parsed.text),
+            fetch_method=fetch_method,
+            rendered=False,
+            raw_document_id=raw_document.raw_document_id,
+            parser_id=parsed.parser_id,
+            parser_version=parsed.parser_version,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            temporal_state=temporal_state,
+            source_class=source_class,
+            adapter_id=adapter_id,
+            provider_id=provider_id,
+            dataset_id=dataset_id,
+            academic_cycle=raw_document.academic_cycle,
+            source_resolution=source_resolution,
+            original_url=str(original_url) if original_url else None,
+            capture_url=str(capture_url) if capture_url else None,
+            captured_at=str(captured_at) if captured_at else None,
+            archive_provider=str(archive_provider) if archive_provider else None,
+            linked_programme_id=str(linked_programme_id) if linked_programme_id else None,
+            linked_programme_url=str(linked_programme_url) if linked_programme_url else None,
+            discovered_from=str(discovered_from) if discovered_from else None,
+            anchor_text=str(anchor_text) if anchor_text else None,
+        )
+        self.store.append("sources", document)
+        self.metrics.add(sources_fetched=1)
+        extraction_source = ExtractionSource(
+            url=final_url,
+            page_type=page_type.value,
+            title=parsed.title,
+            text=parsed.text,
+            content_hash=content_hash,
+            raw_document_id=raw_document.raw_document_id,
+            parser_id=parsed.parser_id,
+            parser_version=parsed.parser_version,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            temporal_state=temporal_state,
+            source_class=source_class,
+            adapter_id=adapter_id,
+            provider_id=provider_id,
+            dataset_id=dataset_id,
+            academic_cycle=raw_document.academic_cycle,
+            retrieved_at=raw_document.retrieved_at,
+            acquisition_run_id=raw_document.acquisition_run_id,
+            linked_programme_id=str(linked_programme_id) if linked_programme_id else None,
+            linked_programme_url=str(linked_programme_url) if linked_programme_url else None,
+            discovered_from=str(discovered_from) if discovered_from else None,
+            anchor_text=str(anchor_text) if anchor_text else None,
+            source_resolution=source_resolution,
+            expected_field_groups=(
+                source_candidate.expected_field_groups
+                if source_candidate is not None
+                else ()
+            ),
+            audience=(
+                str(candidate_audience).strip()
+                if candidate_audience is not None
+                and str(candidate_audience).strip()
+                else None
+            ),
+        )
+        extraction_source = self._materialize_external_field_source(
+            seed=seed,
+            parsed=parsed,
+            source=extraction_source,
+            source_candidate=source_candidate,
+        )
+        return document, extraction_source, list(parsed.links)
+
+    def _materialize_external_field_source(
+        self,
+        *,
+        seed: InstitutionSeed,
+        parsed: Any,
+        source: ExtractionSource,
+        source_candidate: SourceCandidate | None,
+    ) -> ExtractionSource:
+        """Select bounded, target-matched records from configured providers.
+
+        This remains before semantic extraction: it records neither a fact nor
+        an assertion.  The original raw snapshot and provider provenance stay
+        on the returned source; only its extraction context is narrowed to a
+        source-native record when a configured deterministic identity match is
+        present.
+        """
+        if source_candidate is None or not source.provider_id:
+            return source
+        materialized, decision = materialize_external_field_evidence(
+            parsed=parsed,
+            source=source,
+            candidate_metadata=source_candidate.adapter_metadata,
+            seed=seed,
+        )
+        if decision.reason != "not_configured":
+            self.store.append(
+                "external_field_materializations",
+                {
+                    "institution_id": seed.institution_id,
+                    "provider_id": source.provider_id,
+                    "dataset_id": source.dataset_id,
+                    "source_url": source.url,
+                    "raw_document_id": source.raw_document_id,
+                    "acquisition_run_id": source.acquisition_run_id,
+                    "source_class": source.source_class,
+                    "source_authority": (
+                        source.source_authority.value
+                        if source.source_authority else None
+                    ),
+                    "source_relationship": (
+                        source.source_relationship.value
+                        if source.source_relationship else None
+                    ),
+                    "entity_match": decision.entity_match,
+                    "matching_signals": list(decision.matching_signals),
+                    "record_count": decision.record_count,
+                    "reason": decision.reason,
+                    "retrieved_at": utc_now_iso(),
+                },
+            )
+        return materialized
+
+    def _fetch_and_parse_source_stream(
+        self,
+        seed: InstitutionSeed,
+        policy: RobotsPolicy,
+        canonical: str,
+        request_url: str,
+        allowed_domains: tuple[str, ...],
+        source_candidate: SourceCandidate | None,
+        fetch_kwargs: dict[str, object],
+    ) -> tuple[SourceDocument, ExtractionSource, list[tuple[str, str]]]:
+        """Acquire, durably retain, and parse a heavy resource without local bytes."""
+        if self.raw_evidence_store is None:
+            raise FetchError(
+                "Large raw evidence requires a configured durable object store.",
+                code="HEAVY_RAW_DURABLE_STORE_REQUIRED",
+                url=canonical,
+                retryable=False,
+            )
+        if getattr(self.raw_evidence_store, "durability", RawEvidenceDurability.LOCAL_ONLY) != RawEvidenceDurability.REMOTE_DURABLE:
+            raise FetchError(
+                "Large raw evidence cannot fall back to local-only storage.",
+                code="HEAVY_RAW_DURABLE_STORE_REQUIRED",
+                url=canonical,
+                retryable=False,
+            )
+        fetch_stream = getattr(self.fetcher, "fetch_stream", None)
+        if not callable(fetch_stream):
+            raise FetchError(
+                "Configured fetcher does not support streaming responses.",
+                code="STREAMING_FETCH_UNAVAILABLE",
+                url=canonical,
+                retryable=False,
+            )
+        stream_result: StreamFetchResult | None = None
+        try:
+            stream_result = fetch_stream(
+                request_url,
+                allowed_domains=allowed_domains,
+                **fetch_kwargs,
+            )
+            if source_candidate is not None:
+                # The sanitizer only touches locator metadata; it never reads
+                # the response body and is safe for the stream result shape.
+                sanitize_provider_fetch_result(source_candidate.adapter_metadata, stream_result)  # type: ignore[arg-type]
+            if not hostname_matches(
+                urlsplit(stream_result.final_url).hostname or "", allowed_domains
+            ):
+                raise FetchError(
+                    "Final URL is outside the admitted source domains.",
+                    code="FINAL_URL_OUTSIDE_ADMITTED_DOMAINS",
+                    url=stream_result.final_url,
+                    retryable=False,
+                )
+            content_type = stream_result.content_type or "application/octet-stream"
+            if source_candidate is not None:
+                source_authority = source_candidate.declared_authority
+                source_relationship = source_candidate.relationship
+                source_class = source_candidate.source_class
+                adapter_id = source_candidate.adapter_id
+                provider_id = source_candidate.provider_id
+                dataset_id = source_candidate.dataset_id
+                temporal_state = source_candidate.temporal_state
+                academic_cycle = source_candidate.academic_cycle
+                source_resolution = source_candidate.source_resolution or str(
+                    source_candidate.adapter_metadata.get("source_resolution") or ""
+                ) or None
+                original_url = source_candidate.original_url or source_candidate.adapter_metadata.get("original_url")
+                capture_url = source_candidate.capture_url or source_candidate.adapter_metadata.get("capture_url")
+                captured_at = source_candidate.captured_at or source_candidate.adapter_metadata.get("captured_at")
+                archive_provider = source_candidate.archive_provider or source_candidate.adapter_metadata.get("archive_provider")
+            else:
+                source_authority, source_relationship = _source_metadata_for_url(seed, stream_result.final_url)
+                source_class = adapter_id = provider_id = dataset_id = None
+                temporal_state = TemporalState.UNKNOWN
+                academic_cycle = source_resolution = original_url = capture_url = captured_at = archive_provider = None
+            snapshot = RawSnapshotStreamInput(
+                canonical_url=stream_result.final_url,
+                chunks=stream_result.iter_bytes(),
+                content_type=content_type,
+                retrieved_at=stream_result.retrieved_at,
+                http_status=stream_result.status,
+                safe_response_headers={
+                    key.lower(): value
+                    for key, value in stream_result.headers.items()
+                    if key.lower() in {"content-type", "etag", "last-modified", "content-language", "cache-control"}
+                },
+                fetch_method="http-stream",
+                rendered=False,
+                acquisition_run_id=self.paths.root.name,
+                source_authority=source_authority,
+                source_relationship=source_relationship,
+                source_class=source_class,
+                adapter_id=adapter_id,
+                provider_id=provider_id,
+                dataset_id=dataset_id,
+                temporal_state=temporal_state,
+                academic_cycle=academic_cycle,
+                source_resolution=source_resolution,
+                original_url=str(original_url) if original_url else None,
+                capture_url=str(capture_url) if capture_url else None,
+                captured_at=str(captured_at) if captured_at else None,
+                archive_provider=str(archive_provider) if archive_provider else None,
+                max_bytes=(
+                    int(fetch_kwargs["max_bytes"])
+                    if fetch_kwargs.get("max_bytes") is not None
+                    else None
+                ),
+            )
+            put_stream = getattr(self.raw_evidence_store, "put_snapshot_stream", None)
+            if not callable(put_stream):
+                raise FetchError(
+                    "Configured raw store does not support streaming persistence.",
+                    code="HEAVY_RAW_DURABLE_STORE_REQUIRED",
+                    url=stream_result.final_url,
+                    retryable=False,
+                )
+            self.store.append(
+                "raw_persistence_events",
+                {
+                    "raw_document_id": snapshot.raw_document_id,
+                    "institution_id": seed.institution_id,
+                    "url": stream_result.final_url,
+                    "status": "retrieved",
+                    "execution_state": "RETRIEVED",
+                    "retrieved_at": stream_result.retrieved_at,
+                    "source_class": source_class,
+                    "provider_id": provider_id,
+                    "dataset_id": dataset_id,
+                },
+            )
+            raw_document = put_stream(snapshot)
+            self.store.append(
+                "raw_persistence_events",
+                {
+                    "raw_document_id": raw_document.raw_document_id,
+                    "institution_id": seed.institution_id,
+                    "url": raw_document.canonical_url,
+                    "status": "persisted",
+                    "execution_state": "RAW_OBJECT_PERSISTED",
+                    "storage": raw_document.payload_location,
+                    "object_key": raw_document.payload_reference,
+                    "content_hash": raw_document.content_hash,
+                    "content_length": getattr(raw_document, "content_length", None),
+                    "storage_backend": getattr(raw_document, "storage_backend", None),
+                    "archive_local_state": getattr(raw_document, "archive_local_state", None),
+                    "archive_readback_state": getattr(raw_document, "archive_readback_state", None),
+                    "archive_cloud_sync_state": getattr(raw_document, "archive_cloud_sync_state", None),
+                    "provenance_persisted": True,
+                    "retrieved_at": raw_document.retrieved_at,
+                    "source_class": source_class,
+                    "provider_id": provider_id,
+                    "dataset_id": dataset_id,
+                    "source_authority": source_authority.value if source_authority else None,
+                    "source_relationship": source_relationship.value if source_relationship else None,
+                    "temporal_state": temporal_state.value,
+                },
+            )
+            opener = getattr(self.raw_evidence_store, "open_payload_seekable", None)
+            if not callable(opener):
+                raise FetchError(
+                    "Durable raw store cannot provide bounded parser reads.",
+                    code="STREAMING_PARSER_UNAVAILABLE",
+                    url=raw_document.canonical_url,
+                    retryable=False,
+                )
+            payload_stream = opener(raw_document.raw_document_id)
+            try:
+                try:
+                    parsed = self.parser_registry.parse_stream(
+                        raw_document,
+                        payload_stream,
+                        parser_options=(
+                            source_candidate.adapter_metadata
+                            if source_candidate is not None
+                            else None
+                        ),
+                    )
+                except ParserError as exc:
+                    raise FetchError(
+                        "Streaming parser could not produce usable document content.",
+                        code="STREAMING_PARSE_FAILED",
+                        url=raw_document.canonical_url,
+                        retryable=False,
+                    ) from exc
+                except ObjectStoreError as exc:
+                    raise FetchError(
+                        "Durable raw stream could not be read for parsing.",
+                        code="RAW_STREAM_READ_FAILED",
+                        url=raw_document.canonical_url,
+                        retryable=exc.retryable,
+                    ) from exc
+            finally:
+                close = getattr(payload_stream, "close", None)
+                if callable(close):
+                    close()
+            self._persist_structured_archive_members(
+                raw_document,
+                parsed,
+                require_durable=True,
+                institution_id=seed.institution_id,
+            )
+            self.store.append(
+                "raw_persistence_events",
+                {
+                    "raw_document_id": raw_document.raw_document_id,
+                    "institution_id": seed.institution_id,
+                    "url": raw_document.canonical_url,
+                    "status": "structured_rows_ready",
+                    "execution_state": "STRUCTURED_ROWS_PERSISTED",
+                    "structured_rows_persisted": True,
+                    "retrieved_at": raw_document.retrieved_at,
+                    "source_class": source_class,
+                    "provider_id": provider_id,
+                    "dataset_id": dataset_id,
+                },
+            )
+            return self._append_stream_source_document(
+                seed=seed,
+                requested_url=canonical,
+                final_url=raw_document.canonical_url,
+                status=stream_result.status,
+                content_type=content_type,
+                retrieved_at=raw_document.retrieved_at,
+                content_hash=raw_document.content_hash,
+                raw_document=raw_document,
+                parsed=parsed,
+                fetch_method="http-stream",
+                source_candidate=source_candidate,
+                raw_path=(
+                    raw_document.payload_reference
+                    if raw_document.payload_location == "object_store"
+                    else None
+                ),
+            )
+        except StructuredStagingError as exc:
+            raise FetchError(
+                "Durable structured-row staging failed.",
+                code="STRUCTURED_STAGING_PERSIST_FAILED",
+                url=canonical,
+                retryable=True,
+            ) from exc
+        except RawEvidenceError as exc:
+            raise FetchError(
+                "Durable raw evidence persistence failed.",
+                code=RawEvidenceErrorCode.RAW_PERSIST_FAILED.value,
+                url=canonical,
+                retryable=exc.retryable,
+            ) from exc
+        finally:
+            if stream_result is not None:
+                stream_result.close()
 
     def _fetch_and_parse_source(
         self,
         seed: InstitutionSeed,
         policy: RobotsPolicy,
         url: str,
+        *,
+        source_candidate: SourceCandidate | None = None,
+        source_allowed_domains: tuple[str, ...] | None = None,
     ) -> tuple[SourceDocument, ExtractionSource, list[tuple[str, str]]]:
         canonical = canonicalize_url(url)
-        if not policy.allows(canonical, self.config.limits.user_agent):
+        allowed_domains = tuple(
+            source_allowed_domains
+            or (
+                seed.allowed_domains_for_adapter(source_candidate.adapter_id)
+                if source_candidate is not None
+                else seed.all_allowed_domains
+            )
+        )
+        if source_candidate is not None and not allowed_domains:
+            allowed_domains = seed.all_allowed_domains
+        try:
+            policy_allowed = policy.allows(
+                canonical,
+                self.config.limits.user_agent,
+                allowed_domains=allowed_domains,
+            )
+        except TypeError as exc:
+            # A few legacy test-only policy doubles predate the admitted-domain
+            # keyword. Production RobotsPolicy accepts it; retain compatibility
+            # for those doubles without hiding unrelated policy failures.
+            if "allowed_domains" not in str(exc):
+                raise
+            policy_allowed = policy.allows(canonical, self.config.limits.user_agent)
+        if not policy_allowed:
             raise FetchError(
                 "Path is disallowed by robots policy.",
                 code="BLOCKED_BY_ROBOTS",
@@ -592,19 +2123,57 @@ class SmokePipeline:
             )
         fetch_method = "http"
         rendered = False
+        fetch_kwargs: dict[str, object] = {}
+        if source_candidate is not None:
+            fetch_kwargs.update(_candidate_fetch_kwargs(source_candidate))
+        request_url = (
+            provider_request_url(source_candidate.adapter_metadata, canonical)
+            if source_candidate is not None
+            else canonical
+        )
+        if self._streaming_candidate_requires_large_raw(
+            source_candidate,
+            request_url,
+            self.config.limits.large_raw_object_threshold_bytes,
+        ):
+            return self._fetch_and_parse_source_stream(
+                seed,
+                policy,
+                canonical,
+                request_url,
+                allowed_domains,
+                source_candidate,
+                fetch_kwargs,
+            )
         try:
             result = self.fetcher.fetch(
-                canonical,
-                allowed_domains=seed.all_allowed_domains,
+                request_url,
+                allowed_domains=allowed_domains,
+                **fetch_kwargs,
             )
+            if source_candidate is not None:
+                sanitize_provider_fetch_result(source_candidate.adapter_metadata, result)
         except FetchError as http_error:
+            if (
+                http_error.code == "RESPONSE_REQUIRES_STREAMING"
+                and source_candidate is not None
+            ):
+                return self._fetch_and_parse_source_stream(
+                    seed,
+                    policy,
+                    canonical,
+                    request_url,
+                    allowed_domains,
+                    source_candidate,
+                    fetch_kwargs,
+                )
             if self.renderer is None or http_error.status != 403:
                 raise
             self.metrics.add(render_attempts=1)
             try:
                 rendered_result = self.renderer.render(
                     canonical,
-                    allowed_domains=seed.all_allowed_domains,
+                    allowed_domains=allowed_domains,
                 )
             except (Crawl4AIAdapterError, RuntimeError) as render_error:
                 self.store.append(
@@ -642,19 +2211,23 @@ class SmokePipeline:
                 },
             )
         content_type = (result.content_type or "").lower()
-        if "pdf" in content_type or result.body.startswith(b"%PDF"):
-            page = parse_pdf(result.body, result.final_url)
-            page_type = PageType.PDF
-        elif (
-            "html" in content_type
-            or "xml" in content_type
-            or not content_type
-        ):
-            page = parse_html(
-                result.body,
-                result.final_url,
-                result.headers.get("content-type"),
+        parser_content_type = result.content_type or "text/html; charset=utf-8"
+        if "html" in content_type or "xml" in content_type or not content_type:
+            # This provisional parse only decides whether rendering is useful.
+            # Accepted parsing/extraction occurs after remote persistence below.
+            provisional = RawDocument(
+                raw_document_id=stable_id(
+                    "provisional-render", result.final_url, result.content_hash
+                ),
+                source_identity=stable_id("source-identity", result.final_url),
+                canonical_url=result.final_url,
+                content_hash=result.content_hash,
+                content_type=parser_content_type,
+                retrieved_at=result.retrieved_at,
+                payload_location="transient",
+                payload_reference=None,
             )
+            page = self._parse_document(provisional, result.body)
             if (
                 self.renderer is not None
                 and not rendered
@@ -671,12 +2244,26 @@ class SmokePipeline:
                 try:
                     rendered_result = self.renderer.render(
                         result.final_url,
-                        allowed_domains=seed.all_allowed_domains,
+                        allowed_domains=allowed_domains,
                     )
-                    rendered_page = parse_html(
+                    rendered_page = self._parse_document(
+                        RawDocument(
+                            raw_document_id=stable_id(
+                                "provisional-render",
+                                rendered_result.final_url,
+                                rendered_result.content_hash,
+                            ),
+                            source_identity=stable_id(
+                                "source-identity", rendered_result.final_url
+                            ),
+                            canonical_url=rendered_result.final_url,
+                            content_hash=rendered_result.content_hash,
+                            content_type="text/html; charset=utf-8",
+                            retrieved_at=rendered_result.retrieved_at,
+                            payload_location="transient",
+                            payload_reference=None,
+                        ),
                         rendered_result.body,
-                        rendered_result.final_url,
-                        "text/html; charset=utf-8",
                     )
                 except (Crawl4AIAdapterError, RuntimeError) as exc:
                     self.store.append(
@@ -730,20 +2317,260 @@ class SmokePipeline:
                         fetch_method = "crawl4ai"
                         rendered = True
                         self.metrics.add(render_successes=1)
-            page_type = classify_page(result.final_url, page.title, page.text)
-        else:
+        elif (
+            "pdf" not in content_type
+            and not result.body.startswith(b"%PDF")
+            and not (
+                source_candidate is not None
+                and (
+                    source_candidate.locator_type in {"json_api", "provider_resource"}
+                    # A search result is still only a candidate until this
+                    # fetch succeeds.  Once admitted, a catalogue may point
+                    # to an authoritative JSON metadata resource (for
+                    # example, a CKAN package_show response), which must pass
+                    # through the same parser/raw boundary as configured JSON
+                    # resources.  Discovery snippets remain non-factual.
+                    or source_candidate.source_class == "search_discovery"
+                )
+            )
+        ):
             raise FetchError(
                 f"Unsupported content type: {result.content_type}",
                 code="UNSUPPORTED_CONTENT_TYPE",
                 url=result.final_url,
             )
-        raw_path = self.store.save_raw(
-            content=result.body,
-            content_type=result.content_type,
+
+        if not hostname_matches(
+            urlsplit(result.final_url).hostname or "", allowed_domains
+        ):
+            raise FetchError(
+                "Final URL is outside the admitted source domains.",
+                code="FINAL_URL_OUTSIDE_ADMITTED_DOMAINS",
+                url=result.final_url,
+                retryable=False,
+            )
+        if source_candidate is not None:
+            source_authority = source_candidate.declared_authority
+            source_relationship = source_candidate.relationship
+            source_class = source_candidate.source_class
+            adapter_id = source_candidate.adapter_id
+            provider_id = source_candidate.provider_id
+            dataset_id = source_candidate.dataset_id
+            temporal_state = source_candidate.temporal_state
+            academic_cycle = source_candidate.academic_cycle
+            source_resolution = source_candidate.source_resolution or str(
+                source_candidate.adapter_metadata.get("source_resolution") or ""
+            ) or None
+            original_url = source_candidate.original_url or source_candidate.adapter_metadata.get("original_url")
+            capture_url = source_candidate.capture_url or source_candidate.adapter_metadata.get("capture_url")
+            captured_at = source_candidate.captured_at or source_candidate.adapter_metadata.get("captured_at")
+            archive_provider = source_candidate.archive_provider or source_candidate.adapter_metadata.get("archive_provider")
+            linked_programme_id = source_candidate.adapter_metadata.get("programme_id")
+            linked_programme_url = source_candidate.adapter_metadata.get("programme_url")
+            discovered_from = source_candidate.adapter_metadata.get("discovered_from")
+            anchor_text = source_candidate.adapter_metadata.get("anchor_text")
+            candidate_audience = source_candidate.adapter_metadata.get("audience")
+        else:
+            source_authority, source_relationship = _source_metadata_for_url(
+                seed, result.final_url
+            )
+            legacy_official_web = (
+                source_authority == SourceAuthority.OFFICIAL
+                and source_relationship == SourceRelationship.DIRECT_OFFICIAL
+            )
+            source_class = "official_web" if legacy_official_web else None
+            adapter_id = "manual_source" if legacy_official_web else None
+            provider_id = None
+            dataset_id = None
+            temporal_state = TemporalState.UNKNOWN
+            academic_cycle = None
+            source_resolution = None
+            original_url = None
+            capture_url = None
+            captured_at = None
+            archive_provider = None
+            linked_programme_id = None
+            linked_programme_url = None
+            discovered_from = None
+            anchor_text = None
+            candidate_audience = None
+        snapshot = RawSnapshotInput(
             canonical_url=result.final_url,
+            payload=result.body,
+            content_type=parser_content_type,
+            retrieved_at=result.retrieved_at,
+            http_status=result.status,
+            safe_response_headers={
+                key.lower(): value
+                for key, value in result.headers.items()
+                if key.lower()
+                in {"content-type", "etag", "last-modified", "content-language", "cache-control"}
+            },
+            fetch_method=fetch_method,
+            rendered=rendered,
+            acquisition_run_id=self.paths.root.name,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            source_class=source_class,
+            adapter_id=adapter_id,
+            provider_id=provider_id,
+            dataset_id=dataset_id,
+            temporal_state=temporal_state,
+            academic_cycle=academic_cycle,
+            source_resolution=source_resolution,
+            original_url=str(original_url) if original_url else None,
+            capture_url=str(capture_url) if capture_url else None,
+            captured_at=str(captured_at) if captured_at else None,
+            archive_provider=str(archive_provider) if archive_provider else None,
         )
+        raw_document: RawDocument
+        raw_path: str | None = None
+        if self.raw_evidence_mode in {"remote", "dual"}:
+            if self.raw_evidence_store is None:
+                raise RuntimeError("Remote raw evidence store was not initialized.")
+            try:
+                raw_document = self.raw_evidence_store.put_snapshot(snapshot)
+            except RawEvidenceError as exc:
+                self.store.append(
+                    "raw_persistence_events",
+                    {
+                        "raw_document_id": snapshot.raw_document_id,
+                        "institution_id": seed.institution_id,
+                        "url": result.final_url,
+                        "status": "failed",
+                        # A remote-mode write must never be represented as a
+                        # successful retention event. Adapters retain the
+                        # diagnostic cause internally, while orchestration has
+                        # one stable write-boundary failure code.
+                        "code": RawEvidenceErrorCode.RAW_PERSIST_FAILED.value,
+                        "cause_code": (
+                            exc.cause_code.value if exc.cause_code else exc.code.value
+                        ),
+                        "retryable": exc.retryable,
+                        "retrieved_at": result.retrieved_at,
+                        "source_class": source_class,
+                        "adapter_id": adapter_id,
+                        "provider_id": provider_id,
+                        "dataset_id": dataset_id,
+                        "source_authority": (
+                            source_authority.value if source_authority else None
+                        ),
+                        "source_relationship": (
+                            source_relationship.value if source_relationship else None
+                        ),
+                        "temporal_state": temporal_state.value,
+                    },
+                )
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=result.final_url,
+                    stage="raw_persistence",
+                    code=RawEvidenceErrorCode.RAW_PERSIST_FAILED.value,
+                    message=str(exc),
+                    retryable=exc.retryable,
+                )
+                raise FetchError(
+                    "Durable raw evidence persistence failed.",
+                    code=RawEvidenceErrorCode.RAW_PERSIST_FAILED.value,
+                    url=result.final_url,
+                    retryable=exc.retryable,
+                ) from exc
+            self.store.append(
+                "raw_persistence_events",
+                {
+                    "raw_document_id": raw_document.raw_document_id,
+                    "institution_id": seed.institution_id,
+                    "url": result.final_url,
+                    "status": "persisted",
+                    "storage": raw_document.payload_location,
+                    "object_key": raw_document.payload_reference,
+                    "content_hash": raw_document.content_hash,
+                    "content_length": getattr(raw_document, "content_length", None),
+                    "storage_backend": getattr(raw_document, "storage_backend", None),
+                    "archive_local_state": getattr(raw_document, "archive_local_state", None),
+                    "archive_readback_state": getattr(raw_document, "archive_readback_state", None),
+                    "archive_cloud_sync_state": getattr(raw_document, "archive_cloud_sync_state", None),
+                    "retrieved_at": result.retrieved_at,
+                    "source_class": source_class,
+                    "adapter_id": adapter_id,
+                    "provider_id": provider_id,
+                    "dataset_id": dataset_id,
+                    "source_authority": (
+                        source_authority.value if source_authority else None
+                    ),
+                    "source_relationship": (
+                        source_relationship.value if source_relationship else None
+                    ),
+                    "temporal_state": temporal_state.value,
+                },
+            )
+        else:
+            raw_document = RawDocument(
+                raw_document_id=snapshot.raw_document_id,
+                source_identity=snapshot.source_identity or "",
+                canonical_url=snapshot.canonical_url,
+                content_hash=snapshot.payload_hash,
+                content_type=snapshot.content_type,
+                retrieved_at=snapshot.retrieved_at,
+                payload_location="local",
+                payload_reference=None,
+                http_status=snapshot.http_status,
+                safe_response_headers=snapshot.safe_response_headers,
+                fetch_method=snapshot.fetch_method,
+                rendered=snapshot.rendered,
+                acquisition_run_id=snapshot.acquisition_run_id,
+                source_authority=snapshot.source_authority,
+                source_relationship=snapshot.source_relationship,
+                temporal_state=snapshot.temporal_state,
+                source_class=snapshot.source_class,
+                adapter_id=snapshot.adapter_id,
+                provider_id=snapshot.provider_id,
+                dataset_id=snapshot.dataset_id,
+                academic_cycle=snapshot.academic_cycle,
+                source_resolution=snapshot.source_resolution,
+                original_url=snapshot.original_url,
+                capture_url=snapshot.capture_url,
+                captured_at=snapshot.captured_at,
+                archive_provider=snapshot.archive_provider,
+            )
+        if self.raw_evidence_mode in {"local", "dual"}:
+            if self.raw_evidence_mode == "dual":
+                raw_path = self.store.save_raw_snapshot(
+                    content=result.body,
+                    content_type=result.content_type,
+                    raw_document_id=raw_document.raw_document_id,
+                )
+            else:
+                raw_path = self.store.save_raw(
+                    content=result.body,
+                    content_type=result.content_type,
+                    canonical_url=result.final_url,
+                )
+
+        # This is the accepted parse.  It always follows remote persistence in
+        # remote/dual modes, allowing a later parser version to reprocess the
+        # same retained snapshot without a network request.
+        parsed = self._parse_document(
+            raw_document,
+            result.body,
+            parser_options=(
+                source_candidate.adapter_metadata
+                if source_candidate is not None
+                else None
+            ),
+        )
+        self._persist_structured_archive_members(raw_document, parsed)
+        if parsed.parser_id == "pdf-text":
+            page_type = PageType.PDF
+        else:
+            page_type = classify_page(
+                result.final_url, parsed.title, parsed.text
+            )
         source_id = stable_id(
-            "source", seed.institution_id, result.final_url, result.content_hash
+            "source",
+            seed.institution_id,
+            result.final_url,
+            raw_document.content_hash,
         )
         document = SourceDocument(
             source_id=source_id,
@@ -756,22 +2583,77 @@ class SmokePipeline:
             retrieved_at=result.retrieved_at,
             content_hash=result.content_hash,
             raw_object_path=raw_path,
-            title=page.title,
-            language=page.language,
-            text_length=len(page.text),
+            title=parsed.title,
+            language=parsed.language,
+            text_length=len(parsed.text),
             fetch_method=fetch_method,
             rendered=rendered,
+            raw_document_id=raw_document.raw_document_id,
+            parser_id=parsed.parser_id,
+            parser_version=parsed.parser_version,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            temporal_state=temporal_state,
+            source_class=source_class,
+            adapter_id=adapter_id,
+            provider_id=provider_id,
+            dataset_id=dataset_id,
+            academic_cycle=academic_cycle,
+            source_resolution=source_resolution,
+            original_url=str(original_url) if original_url else None,
+            capture_url=str(capture_url) if capture_url else None,
+            captured_at=str(captured_at) if captured_at else None,
+            archive_provider=str(archive_provider) if archive_provider else None,
+            linked_programme_id=str(linked_programme_id) if linked_programme_id else None,
+            linked_programme_url=str(linked_programme_url) if linked_programme_url else None,
+            discovered_from=str(discovered_from) if discovered_from else None,
+            anchor_text=str(anchor_text) if anchor_text else None,
         )
         self.store.append("sources", document)
         self.metrics.add(sources_fetched=1)
         extraction_source = ExtractionSource(
             url=result.final_url,
             page_type=page_type.value,
-            title=page.title,
-            text=page.text,
+            title=parsed.title,
+            text=parsed.text,
             content_hash=result.content_hash,
+            raw_document_id=raw_document.raw_document_id,
+            parser_id=parsed.parser_id,
+            parser_version=parsed.parser_version,
+            source_authority=source_authority,
+            source_relationship=source_relationship,
+            temporal_state=temporal_state,
+            source_class=source_class,
+            adapter_id=adapter_id,
+            provider_id=provider_id,
+            dataset_id=dataset_id,
+            academic_cycle=academic_cycle,
+            retrieved_at=raw_document.retrieved_at,
+            acquisition_run_id=raw_document.acquisition_run_id,
+            linked_programme_id=str(linked_programme_id) if linked_programme_id else None,
+            linked_programme_url=str(linked_programme_url) if linked_programme_url else None,
+            discovered_from=str(discovered_from) if discovered_from else None,
+            anchor_text=str(anchor_text) if anchor_text else None,
+            source_resolution=source_resolution,
+            expected_field_groups=(
+                source_candidate.expected_field_groups
+                if source_candidate is not None
+                else ()
+            ),
+            audience=(
+                str(candidate_audience).strip()
+                if candidate_audience is not None
+                and str(candidate_audience).strip()
+                else None
+            ),
         )
-        return document, extraction_source, page.links
+        extraction_source = self._materialize_external_field_source(
+            seed=seed,
+            parsed=parsed,
+            source=extraction_source,
+            source_candidate=source_candidate,
+        )
+        return document, extraction_source, list(parsed.links)
 
     def _process_school_profile(
         self,
@@ -821,13 +2703,23 @@ class SmokePipeline:
         model_name: str | None = None
         facts: list[dict[str, object]] = []
         try:
-            model_name, payload = self.deepseek.extract_school_profile(
-                institution_id=seed.institution_id,
-                institution_name=seed.name,
-                sources=sources,
+            extraction_result = self.extractor.extract(
+                self._extraction_request(
+                    entity_id=seed.institution_id,
+                    field_names=SCHOOL_PROFILE_FIELDS,
+                    sources=sources,
+                    operation="school_profile",
+                    context={
+                        "institution_id": seed.institution_id,
+                        "institution_name": seed.name,
+                    },
+                )
             )
-            if payload.get("programme_identity_match"):
-                facts = list(payload.get("facts", []))
+            model_name = extraction_result.model_id
+            if extraction_result.identity_match:
+                facts = self._facts_with_extraction_provenance(
+                    extraction_result, sources
+                )
             else:
                 self._emit_error(
                     institution_id=seed.institution_id,
@@ -837,15 +2729,15 @@ class SmokePipeline:
                     message="School profile sources did not describe the target institution.",
                     retryable=False,
                 )
-        except DeepSeekError as exc:
-            self._emit_error(
-                institution_id=seed.institution_id,
-                url=seed.homepage_url,
-                stage="school_profile_extraction",
-                code="DEEPSEEK_FAILED",
-                message=str(exc),
-                retryable=True,
-            )
+        except ExtractionProviderError as exc:
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=seed.homepage_url,
+                    stage="school_profile_extraction",
+                    code=exc.code.value,
+                    message=str(exc),
+                    retryable=exc.retryable,
+                )
 
         assertions: list[FieldAssertion] = []
         found: set[str] = set()
@@ -902,6 +2794,36 @@ class SmokePipeline:
                 source_content_hash=(
                     source.content_hash if source else None
                 ),
+                raw_document_id=(
+                    str(fact.get("_raw_document_id"))
+                    if fact.get("_raw_document_id")
+                    else (source.raw_document_id if source else None)
+                ),
+                parser_id=(
+                    str(fact.get("_parser_id"))
+                    if fact.get("_parser_id")
+                    else (source.parser_id if source else None)
+                ),
+                parser_version=(
+                    str(fact.get("_parser_version"))
+                    if fact.get("_parser_version")
+                    else (source.parser_version if source else None)
+                ),
+                provider_id=(
+                    str(fact.get("_provider_id"))
+                    if fact.get("_provider_id")
+                    else None
+                ),
+                prompt_version=(
+                    str(fact.get("_prompt_version"))
+                    if fact.get("_prompt_version")
+                    else None
+                ),
+                schema_version=(
+                    str(fact.get("_schema_version"))
+                    if fact.get("_schema_version")
+                    else None
+                ),
             )
             assertion = self._prepare_assertion(
                 assertion,
@@ -919,7 +2841,7 @@ class SmokePipeline:
                         entity_type="institution",
                         field_name=field_name,
                         null_reason=(
-                            NullReason.PARSE_FAILED
+                            NullReason.EXTRACTION_FAILED
                             if model_name is None
                             else NullReason.NOT_PUBLISHED
                         ),
@@ -964,8 +2886,9 @@ class SmokePipeline:
         programme_url: str,
         degree_level: str | None = None,
         covered_categories: frozenset[str] = frozenset(),
+        field_names: tuple[str, ...] = (),
     ) -> list[str]:
-        candidates: dict[str, tuple[int, frozenset[str]]] = {}
+        candidates: dict[str, tuple[int, frozenset[str], str]] = {}
         programme_path = urlsplit(programme_url).path.rstrip("/")
         for url, text in links:
             try:
@@ -1006,7 +2929,7 @@ class SmokePipeline:
                 score += 20
             previous = candidates.get(canonical)
             if not previous or score > previous[0]:
-                candidates[canonical] = (score, categories)
+                candidates[canonical] = (score, categories, text)
 
         ranked = sorted(
             candidates.items(),
@@ -1019,7 +2942,7 @@ class SmokePipeline:
             match = next(
                 (
                     url
-                    for url, (_, categories) in ranked
+                    for url, (_, categories, _) in ranked
                     if category in categories and url not in selected
                 ),
                 None,
@@ -1028,10 +2951,34 @@ class SmokePipeline:
                 selected.append(match)
         selected.extend(
             url
-            for url, (_, categories) in ranked
+            for url, (_, categories, _) in ranked
             if url not in selected
             and not categories.issubset(covered_categories)
         )
+        if field_names:
+            ranked_for_fields = rank_field_source_candidates(
+                [
+                    SourceCandidateHint(
+                        url=url,
+                        anchor_text=candidates[url][2],
+                        expected_fields=tuple(
+                            field_name
+                            for field_name in field_names
+                            if any(
+                                category
+                                in COVERAGE_RETRY_FIELD_CATEGORIES.get(
+                                    field_name, ()
+                                )
+                                for category in candidates[url][1]
+                            )
+                        ),
+                    )
+                    for url in selected
+                ],
+                target_url=programme_url,
+                field_names=field_names,
+            )
+            selected = [item.url for item in ranked_for_fields]
         return selected
 
     @staticmethod
@@ -1064,6 +3011,7 @@ class SmokePipeline:
         seed: InstitutionSeed,
         programme: ProgrammeRecord,
         covered_categories: frozenset[str] = frozenset(),
+        field_names: tuple[str, ...] = (),
     ) -> list[tuple[str, str]]:
         with self._discovery_graph_lock:
             edges = tuple(
@@ -1115,6 +3063,7 @@ class SmokePipeline:
             programme_url,
             programme.degree_level,
             covered_categories,
+            field_names,
         )
         return [
             (origins[url][1], url)
@@ -1183,7 +3132,7 @@ class SmokePipeline:
     ) -> list[tuple[str, str, tuple[str, ...]]]:
         """Rank links that explicitly match currently missing product fields."""
         candidates: dict[
-            str, tuple[int, str, tuple[str, ...]]
+            str, tuple[int, str, tuple[str, ...], str]
         ] = {}
         for discovered_from, links in link_contexts:
             for url, anchor_text in links:
@@ -1250,20 +3199,31 @@ class SmokePipeline:
                     score,
                     discovered_from,
                     matched_fields,
+                    anchor_text,
                 )
                 if not previous or score > previous[0]:
                     candidates[canonical] = candidate
 
+        ranked = rank_field_source_candidates(
+            [
+                SourceCandidateHint(
+                    url=url,
+                    anchor_text=value[3],
+                    discovered_from=value[1],
+                    expected_fields=value[2],
+                )
+                for url, value in candidates.items()
+            ],
+            target_url=programme.official_url,
+            field_names=missing_fields,
+        )
         return [
-            (discovered_from, url, matched_fields)
-            for url, (
-                _,
-                discovered_from,
-                matched_fields,
-            ) in sorted(
-                candidates.items(),
-                key=lambda item: (-item[1][0], item[0]),
+            (
+                candidates[item.url][1],
+                item.url,
+                candidates[item.url][2],
             )
+            for item in ranked
         ]
 
     def _record_url_edge(
@@ -1316,6 +3276,16 @@ class SmokePipeline:
             ExtractionSource, list[tuple[str, str]]
         ] | None = None,
     ) -> ProgrammeRecord:
+        # Programme-resolution external providers (for example an official
+        # registry record addressed by a configured course code) cannot be
+        # acquired at institution discovery time.  They are intentionally
+        # fetched here after the target programme identity is frozen.  The
+        # registry filters this call to programme-resolution providers only.
+        self._acquire_configured_source_ecosystem(
+            seed,
+            policy,
+            entity=EntityRef("PROGRAMME", programme.programme_id),
+        )
         self.metrics.add(deep_programmes_attempted=1)
         inherited_assertions, inheritance_events = (
             inherited_assertions_for_programme(
@@ -1430,46 +3400,6 @@ class SmokePipeline:
                 selective_extraction_programmes=1,
                 extraction_fields_skipped=skipped_field_count,
             )
-        if inherited_assertions or approved_baseline:
-            self._progress(
-                f"[{seed.name}] {programme.programme_name}: inherited "
-                f"{len(inherited_fields)} shared and loaded "
-                f"{len(approved_baseline)} approved assertion(s); extracting "
-                f"{len(requested_fields)}/{len(DEEP_FIELDS)} field(s)"
-            )
-        self._progress(f"[{seed.name}] fetching {programme.programme_name}")
-        if preloaded_main:
-            main_source, links = preloaded_main
-        else:
-            try:
-                _, main_source, links = self._fetch_and_parse_source(
-                    seed, policy, programme.official_url
-                )
-            except (FetchError, RuntimeError, UnsafeUrlError) as exc:
-                code = getattr(exc, "code", "SOURCE_FETCH_FAILED")
-                self._emit_error(
-                    institution_id=seed.institution_id,
-                    url=programme.official_url,
-                    stage="deep_fetch",
-                    code=code,
-                    message=str(exc),
-                    retryable=bool(getattr(exc, "retryable", False)),
-                )
-                self._write_null_set(
-                    programme,
-                    NullReason.FETCH_FAILED,
-                    source_url=programme.official_url,
-                    model_name=None,
-                    field_names=self.target_fields,
-                )
-                return programme
-
-        sources = [main_source]
-        fetched_urls = {canonicalize_url(main_source.url)}
-        retry_link_pairs: list[tuple[str, str]] = []
-        related_link_contexts: list[
-            tuple[str, list[tuple[str, str]]]
-        ] = [(main_source.url, links)]
         programme_sources = seed.programme_source_bundles.get(
             programme.official_url, ()
         )
@@ -1490,11 +3420,197 @@ class SmokePipeline:
                 )
             )
         )
+        eligible_configured_sources = self._eligible_configured_sources(
+            programme=programme,
+            configured_sources=configured_sources,
+        )
+        requested_source_fields = tuple(
+            requested_fields or self.target_fields or DEEP_FIELDS
+        )
+        field_rank_fields = (
+            requested_source_fields if self.target_fields is not None else ()
+        )
+        ranked_configured_sources = self._ranked_configured_sources(
+            programme=programme,
+            configured_sources=eligible_configured_sources,
+            field_names=requested_source_fields,
+        )
+        external_only = self.config.source_ecosystem.external_only
+        if external_only:
+            # This is an explicit experiment mode, not a fallback: manually
+            # configured university pages remain target identifiers only.
+            ranked_configured_sources = ()
+        if inherited_assertions or approved_baseline:
+            self._progress(
+                f"[{seed.name}] {programme.programme_name}: inherited "
+                f"{len(inherited_fields)} shared and loaded "
+                f"{len(approved_baseline)} approved assertion(s); extracting "
+                f"{len(requested_fields)}/{len(DEEP_FIELDS)} field(s)"
+            )
+        self._progress(f"[{seed.name}] fetching {programme.programme_name}")
+        if external_only:
+            provider_sources = self._programme_provider_sources(
+                seed.institution_id,
+                requested_source_fields,
+                programme_id=programme.programme_id,
+            )
+            if not provider_sources:
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=programme.official_url,
+                    stage="external_provider_anchor",
+                    code="NO_EXTERNAL_FIELD_SOURCE",
+                    message="No admitted external field-bearing source was retained for this target.",
+                    retryable=False,
+                )
+                self._write_null_set(
+                    programme,
+                    NullReason.FETCH_FAILED,
+                    source_url=None,
+                    model_name=None,
+                    field_names=self.target_fields,
+                )
+                return programme
+            main_source, links = provider_sources[0], []
+        elif preloaded_main:
+            main_source, links = preloaded_main
+        else:
+            try:
+                _, main_source, links = self._fetch_and_parse_source(
+                    seed, policy, programme.official_url
+                )
+            except (FetchError, RuntimeError, UnsafeUrlError) as exc:
+                code = getattr(exc, "code", "SOURCE_FETCH_FAILED")
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=programme.official_url,
+                    stage="deep_fetch",
+                    code=code,
+                    message=str(exc),
+                    retryable=bool(getattr(exc, "retryable", False)),
+                )
+                fallback_source: tuple[
+                    ExtractionSource, list[tuple[str, str]]
+                ] | None = None
+                self._record_source_recovery_event(
+                    seed=seed,
+                    programme=programme,
+                    primary_url=programme.official_url,
+                    candidate=SimpleNamespace(
+                        url=programme.official_url,
+                        rank=0,
+                        score=(),
+                        reasons=("primary source failed",),
+                    ),
+                    outcome="primary_failed",
+                    error_code=str(code),
+                    error_message=str(exc),
+                )
+                fallback_candidates = ranked_configured_sources[
+                    : self.config.limits.max_source_recovery_candidates
+                ]
+                for fallback_candidate in fallback_candidates:
+                    fallback_url = fallback_candidate.url
+                    if canonicalize_url(fallback_url) == canonicalize_url(
+                        programme.official_url
+                    ):
+                        continue
+                    self.metrics.add(source_recovery_attempts=1)
+                    try:
+                        _, fallback, fallback_links = (
+                            self._fetch_and_parse_source(
+                                seed, policy, fallback_url
+                            )
+                        )
+                    except (FetchError, RuntimeError, UnsafeUrlError) as fallback_exc:
+                        self._emit_error(
+                            institution_id=seed.institution_id,
+                            url=fallback_url,
+                            stage="configured_primary_fallback_fetch",
+                            code=getattr(
+                                fallback_exc,
+                                "code",
+                                "CONFIGURED_PRIMARY_FALLBACK_FAILED",
+                            ),
+                            message=str(fallback_exc),
+                            retryable=bool(
+                                getattr(fallback_exc, "retryable", False)
+                            ),
+                        )
+                        self.metrics.add(source_recovery_failures=1)
+                        self._record_source_recovery_event(
+                            seed=seed,
+                            programme=programme,
+                            primary_url=programme.official_url,
+                            candidate=fallback_candidate,
+                            outcome="failed",
+                            error_code=getattr(
+                                fallback_exc,
+                                "code",
+                                "CONFIGURED_PRIMARY_FALLBACK_FAILED",
+                            ),
+                            error_message=str(fallback_exc),
+                        )
+                        continue
+                    fallback_source = (fallback, fallback_links)
+                    self.metrics.add(source_recovery_successes=1)
+                    self._record_source_recovery_event(
+                        seed=seed,
+                        programme=programme,
+                        primary_url=programme.official_url,
+                        candidate=fallback_candidate,
+                        outcome="success",
+                        source_page_type=fallback.page_type,
+                    )
+                    self._record_url_edge(
+                        programme,
+                        discovered_from=programme.official_url,
+                        target_url=fallback.url,
+                        relation="configured_primary_fallback",
+                    )
+                    self._progress(
+                        f"[{seed.name}] {programme.programme_name}: using "
+                        "an admitted configured source after primary fetch failure"
+                    )
+                    break
+                if fallback_source is None:
+                    reason = (
+                        NullReason.BLOCKED_BY_POLICY
+                        if str(code).upper()
+                        in {"BLOCKED_BY_ROBOTS", "ACCESS_BLOCKED"}
+                        else NullReason.FETCH_FAILED
+                    )
+                    self._write_null_set(
+                        programme,
+                        reason,
+                        source_url=programme.official_url,
+                        model_name=None,
+                        field_names=self.target_fields,
+                    )
+                    return programme
+                main_source, links = fallback_source
+
+        sources = [main_source]
+        fetched_urls = {canonicalize_url(main_source.url)}
+        configured_programme_urls = {
+            canonicalize_url(url) for url in programme_sources
+        }
+        programme_linked_urls = {
+            canonicalize_url(main_source.url)
+        } if (
+            canonicalize_url(main_source.url) == canonicalize_url(programme.official_url)
+            or main_source.linked_programme_id == programme.programme_id
+        ) else set()
+        retry_link_pairs: list[tuple[str, str]] = []
+        related_link_contexts: list[
+            tuple[str, list[tuple[str, str]]]
+        ] = [] if external_only else [(main_source.url, links)]
         configured_capacity = max(
             0,
             self.config.limits.max_deep_sources_per_programme - len(sources),
         )
-        for url in configured_sources[:configured_capacity]:
+        for configured_candidate in ranked_configured_sources[:configured_capacity]:
+            url = str(configured_candidate.url)
             try:
                 canonical = canonicalize_url(url)
                 if canonical in fetched_urls:
@@ -1502,6 +3618,14 @@ class SmokePipeline:
                 _, source, source_links = self._fetch_and_parse_source(
                     seed, policy, canonical
                 )
+                if canonical in configured_programme_urls:
+                    source = replace(
+                        source,
+                        linked_programme_id=programme.programme_id,
+                        linked_programme_url=programme.official_url,
+                        discovered_from=main_source.url,
+                    )
+                    programme_linked_urls.add(canonicalize_url(source.url))
                 sources.append(source)
                 fetched_urls.add(canonicalize_url(source.url))
                 related_link_contexts.append((source.url, source_links))
@@ -1556,12 +3680,14 @@ class SmokePipeline:
                     programme_url,
                     programme.degree_level,
                     covered_categories,
+                    field_rank_fields,
                 )
             )
         graph_related = self._graph_related_link_pairs(
             seed,
             programme,
             covered_categories,
+            field_rank_fields,
         )
         related_pairs: list[tuple[str, str, str]] = []
         seen_related: set[str] = set()
@@ -1623,6 +3749,23 @@ class SmokePipeline:
                 _, source, source_links = self._fetch_and_parse_source(
                     seed, policy, url
                 )
+                source_origin = canonicalize_url(discovered_from)
+                source = replace(
+                    source,
+                    discovered_from=discovered_from,
+                    linked_programme_id=(
+                        programme.programme_id
+                        if source_origin in programme_linked_urls
+                        else source.linked_programme_id
+                    ),
+                    linked_programme_url=(
+                        programme.official_url
+                        if source_origin in programme_linked_urls
+                        else source.linked_programme_url
+                    ),
+                )
+                if source_origin in programme_linked_urls:
+                    programme_linked_urls.add(canonicalize_url(source.url))
                 sources.append(source)
                 fetched_urls.add(canonicalize_url(source.url))
                 primary_related_fetched += 1
@@ -1660,6 +3803,7 @@ class SmokePipeline:
                     programme_url,
                     programme.degree_level,
                     updated_covered_categories,
+                    field_rank_fields,
                 ):
                     canonical_nested = canonicalize_url(nested_url)
                     if (
@@ -1684,66 +3828,205 @@ class SmokePipeline:
                     message=str(exc),
                     retryable=bool(getattr(exc, "retryable", False)),
                 )
+        for provider_source in self._programme_provider_sources(
+            seed.institution_id,
+            requested_source_fields,
+            programme_id=programme.programme_id,
+        ):
+            canonical_provider = canonicalize_url(provider_source.url)
+            if canonical_provider in fetched_urls:
+                continue
+            sources.append(provider_source)
+            fetched_urls.add(canonical_provider)
+
         self._progress(
             f"[{seed.name}] {programme.programme_name}: "
             f"{len(sources)} source(s) ready"
         )
 
+        acquisition_source_slots_used = len(sources)
+        source_selection = select_sources_for_fields(
+            sources,
+            requested_source_fields,
+            target_url=programme.official_url,
+            target_cycle=main_source.academic_cycle,
+            programme_id=programme.programme_id,
+            max_sources=self.config.limits.max_deep_sources_per_programme,
+        )
+        sources = list(source_selection.sources)
+        for decision in source_selection.diagnostics():
+            self.store.append(
+                "source_selection_events",
+                {
+                    "institution_id": seed.institution_id,
+                    "programme_id": programme.programme_id,
+                    "programme_url": programme.official_url,
+                    "requested_fields": list(requested_source_fields),
+                    **decision,
+                    "retrieved_at": utc_now_iso(),
+                },
+            )
+
         deterministic_facts = extract_deterministic_facts(sources)
-        facts = list(deterministic_facts)
-        model_name: str | None = None
-        payload: dict[str, object] = {
-            "programme_identity_match": True,
-            "facts": [],
-            "warnings": [],
+        # External registry pages/tables may expose a small set of catalogue
+        # attributes that are not deep semantic assertion fields.  Promote
+        # only explicit, source-native values into the programme/offering
+        # record; all other observations (for example RIO dates or study
+        # load) remain provenance-bearing context in their own stream.
+        external_metadata = external_metadata_for_programme(sources)
+        promoted_metadata_fields = {
+            "language",
+            "campus",
+            "delivery_mode",
+            "duration",
         }
+        metadata_by_field: dict[str, list[dict[str, object]]] = {}
+        for item in external_metadata:
+            field_name = str(item.get("field_name") or "").strip()
+            if not field_name:
+                continue
+            metadata_by_field.setdefault(field_name, []).append(item)
+            self.store.append(
+                "external_programme_metadata",
+                {
+                    "programme_id": programme.programme_id,
+                    "institution_id": seed.institution_id,
+                    "scope": item.get("scope") or "programme",
+                    "field_name": field_name,
+                    "value": item.get("value"),
+                    "label": item.get("label"),
+                    "evidence": item.get("evidence"),
+                    "source_column": item.get("source_column"),
+                    "source_url": item.get("source_url"),
+                    "source_content_hash": item.get("source_content_hash"),
+                    "raw_document_id": item.get("raw_document_id"),
+                    "provider_id": item.get("provider_id"),
+                    "dataset_id": item.get("dataset_id"),
+                    "acquisition_run_id": item.get("acquisition_run_id"),
+                    "verification_status": "RULE_VALIDATED",
+                    "promotion": (
+                        "catalogue_attribute"
+                        if field_name in promoted_metadata_fields
+                        else "context_only"
+                    ),
+                    "retrieved_at": utc_now_iso(),
+                },
+            )
+        metadata_updates: dict[str, str] = {}
+        for field_name in promoted_metadata_fields:
+            observations = metadata_by_field.get(field_name, [])
+            values = {
+                str(item.get("value") or "").strip()
+                for item in observations
+                if str(item.get("value") or "").strip()
+            }
+            # A disagreement is retained in the metadata stream but is not
+            # projected into the catalogue record.
+            if len(values) == 1:
+                metadata_updates[field_name] = next(iter(values))
+        if metadata_updates:
+            programme = replace(programme, **metadata_updates)
+            self.metrics.add(
+                external_metadata_promoted=len(metadata_updates),
+            )
+        if external_metadata:
+            self.metrics.add(
+                external_metadata_observations=len(external_metadata),
+            )
+        facts = list(deterministic_facts)
+        llm_field_names = fields_requiring_llm(
+            requested_fields,
+            deterministic_facts,
+        )
+        model_name: str | None = None
+        identity_match = True
+        group_diagnostics: list[dict[str, object]] = []
+        llm_called = False
+        llm_success = False
         if not self.discovery_only:
-            # The client promotes only extraction groups that actually include
-            # a PDF. A PDF elsewhere in the bundle must not force every group
-            # onto the slower reasoning model.
+            # Keep the remediation smoke on the configured Flash model. The
+            # provider supports an explicit Pro capability for future work,
+            # but the pipeline does not auto-escalate by source type.
             prefer_pro = False
             try:
-                if not requested_fields:
+                if not llm_field_names:
                     self._progress(
                         f"[{seed.name}] {programme.programme_name}: "
-                        "all requested fields already reusable; skipping LLM"
+                        "all requested fields resolved deterministically; skipping LLM"
                     )
                 elif skipped_field_count:
-                    model_name, payload = self.deepseek.extract_fields(
-                        programme,
-                        sources,
-                        field_names=requested_fields,
-                        prefer_pro=prefer_pro,
+                    llm_called = True
+                    extraction_result = self.extractor.extract(
+                        self._extraction_request(
+                            entity_id=programme.programme_id,
+                            field_names=llm_field_names,
+                            sources=sources,
+                            operation="fields",
+                            context={"programme": programme},
+                            prefer_pro=prefer_pro,
+                        )
                     )
                 else:
-                    model_name, payload = self.deepseek.extract(
-                        programme, sources, prefer_pro=prefer_pro
+                    llm_called = True
+                    extraction_result = self.extractor.extract(
+                        self._extraction_request(
+                            entity_id=programme.programme_id,
+                            field_names=DEEP_FIELDS,
+                            sources=sources,
+                            operation="programme",
+                            context={"programme": programme},
+                            prefer_pro=prefer_pro,
+                        )
                     )
-                facts.extend(payload.get("facts", []))
-                for diagnostic in payload.get("group_diagnostics", []):
-                    self.store.append(
-                        "extraction_events",
-                        {
-                            "programme_id": programme.programme_id,
-                            "institution_id": seed.institution_id,
-                            "programme_url": programme.official_url,
-                            "retrieved_at": utc_now_iso(),
-                            **diagnostic,
-                        },
+                if llm_field_names:
+                    llm_success = True
+                    model_name = extraction_result.model_id
+                    identity_match = extraction_result.identity_match is not False
+                    facts.extend(
+                        self._facts_with_extraction_provenance(
+                            extraction_result, sources
+                        )
                     )
-            except DeepSeekError as exc:
+                    group_diagnostics.extend(
+                        extraction_result.group_diagnostics
+                    )
+                    for diagnostic in extraction_result.group_diagnostics:
+                        self.store.append(
+                            "extraction_events",
+                            {
+                                "programme_id": programme.programme_id,
+                                "institution_id": seed.institution_id,
+                                "programme_url": programme.official_url,
+                                "retrieved_at": utc_now_iso(),
+                                **diagnostic,
+                            },
+                        )
+            except ExtractionProviderError as exc:
                 self._emit_error(
                     institution_id=seed.institution_id,
                     url=programme.official_url,
-                    stage="deepseek_extraction",
-                    code="DEEPSEEK_FAILED",
+                    stage="extraction_provider",
+                    code=exc.code.value,
                     message=str(exc),
-                    retryable=True,
+                    retryable=exc.retryable,
                 )
                 if not facts:
+                    self._record_extraction_trace(
+                        programme=programme,
+                        phase="provider_failure",
+                        sources=sources,
+                        deterministic_candidate_count=len(deterministic_facts),
+                        llm_called=llm_called,
+                        llm_success=False,
+                        llm_field_names=llm_field_names,
+                        extracted_value_present=any(
+                            has_semantic_value(fact.get("value"))
+                            for fact in facts
+                        ),
+                    )
                     self._write_null_set(
                         programme,
-                        NullReason.PARSE_FAILED,
+                        NullReason.EXTRACTION_FAILED,
                         source_url=main_source.url,
                         model_name=None,
                         field_names=self.target_fields,
@@ -1751,7 +4034,7 @@ class SmokePipeline:
                     return programme
 
         identity_override = (
-            not payload.get("programme_identity_match")
+            not identity_match
             and programme_identity_supported(
                 programme.programme_name,
                 main_source,
@@ -1763,15 +4046,16 @@ class SmokePipeline:
                 "model identity mismatch overridden by exact source identity"
             )
         if (
-            not payload.get("programme_identity_match")
+            not identity_match
             and not identity_override
+            and not any(source.external_entity_match for source in sources)
         ):
             self._emit_error(
                 institution_id=seed.institution_id,
                 url=programme.official_url,
                 stage="identity_validation",
                 code="PROGRAMME_IDENTITY_MISMATCH",
-                message="DeepSeek reported that sources do not match the target programme.",
+                message="Extraction provider reported that sources do not match the target programme.",
                 retryable=False,
             )
             if not deterministic_facts:
@@ -1785,6 +4069,18 @@ class SmokePipeline:
                 return programme
             facts = deterministic_facts
 
+        self._record_extraction_trace(
+            programme=programme,
+            phase="pre_assertion",
+            sources=sources,
+            deterministic_candidate_count=len(deterministic_facts),
+            llm_called=llm_called,
+            llm_success=llm_success,
+            llm_field_names=llm_field_names,
+            extracted_value_present=any(
+                has_semantic_value(fact.get("value")) for fact in facts
+            ),
+        )
         found_admission_fields: set[str] = {
             assertion.field_name
             for assertion in reusable_assertions
@@ -1846,7 +4142,8 @@ class SmokePipeline:
         retry_seen: set[str] = set()
         remaining_source_capacity = max(
             0,
-            self.config.limits.max_deep_sources_per_programme - len(sources),
+            self.config.limits.max_deep_sources_per_programme
+            - acquisition_source_slots_used,
         )
         retry_limit = min(
             remaining_source_capacity,
@@ -1887,6 +4184,7 @@ class SmokePipeline:
                     continue
                 retry_sources.append(retry_source)
                 sources.append(retry_source)
+                acquisition_source_slots_used += 1
                 fetched_urls.add(canonicalize_url(retry_source.url))
                 related_link_contexts.append(
                     (retry_source.url, retry_source_links)
@@ -1923,16 +4221,22 @@ class SmokePipeline:
                 admission_retry_sources=len(retry_sources),
             )
             try:
-                retry_model, retry_payload = (
-                    self.deepseek.extract_admission_package(
-                        programme,
-                        retry_context,
-                        missing_fields=missing_admission_fields,
+                retry_result = self.extractor.extract(
+                    self._extraction_request(
+                        entity_id=programme.programme_id,
+                        field_names=missing_admission_fields,
+                        sources=retry_context,
+                        operation="admission_package",
+                        context={"programme": programme},
                         prefer_pro=False,
                     )
                 )
+                retry_model = retry_result.model_id
                 model_name = model_name or retry_model
-                facts.extend(retry_payload.get("facts", []))
+                retry_facts = self._facts_with_extraction_provenance(
+                    retry_result, retry_context
+                )
+                facts.extend(retry_facts)
                 self.store.append(
                     "extraction_events",
                     {
@@ -1948,19 +4252,19 @@ class SmokePipeline:
                             missing_admission_fields
                         ),
                         "fact_count": len(
-                            retry_payload.get("facts", [])
+                            retry_facts
                         ),
                         "model_name": retry_model,
                     },
                 )
-            except DeepSeekError as exc:
+            except ExtractionProviderError as exc:
                 self._emit_error(
                     institution_id=seed.institution_id,
                     url=programme.official_url,
                     stage="admission_coverage_retry_extraction",
                     code="ADMISSION_RETRY_EXTRACTION_FAILED",
                     message=str(exc),
-                    retryable=True,
+                    retryable=exc.retryable,
                 )
 
         source_map = {source.url: source for source in sources}
@@ -1968,8 +4272,15 @@ class SmokePipeline:
         seen_assertion_ids: set[str] = set()
         seen_facts: set[tuple[str, str, str, str]] = set()
         for fact in facts:
+            field_name = str(fact.get("field_name") or "")
+            if field_name and has_semantic_value(fact.get("value")):
+                self.metrics.add(field_candidates_created_total=1)
+                self.metrics.bump_field_metric(
+                    "field_candidates_created_by_field",
+                    field_name,
+                )
             fact_key = (
-                str(fact.get("field_name")),
+                field_name,
                 str(fact.get("source_url")),
                 json.dumps(
                     fact.get("value"),
@@ -1979,6 +4290,7 @@ class SmokePipeline:
                 str(fact.get("evidence")),
             )
             if fact_key in seen_facts:
+                self.metrics.record_candidate_drop("DUPLICATE_FACT")
                 continue
             seen_facts.add(fact_key)
             assertion = fact_to_assertion(
@@ -2000,8 +4312,10 @@ class SmokePipeline:
                 self.target_fields is not None
                 and assertion.field_name not in self.target_fields
             ):
+                self.metrics.record_candidate_drop("TARGET_FIELD_FILTER")
                 continue
             if assertion.assertion_id in seen_assertion_ids:
+                self.metrics.record_candidate_drop("DUPLICATE_ASSERTION_ID")
                 continue
             seen_assertion_ids.add(assertion.assertion_id)
             candidate_assertions.append(assertion)
@@ -2053,7 +4367,7 @@ class SmokePipeline:
         remaining_source_capacity = max(
             0,
             self.config.limits.max_deep_sources_per_programme
-            - len(sources),
+            - acquisition_source_slots_used,
         )
         coverage_retry_limit = min(
             remaining_source_capacity,
@@ -2099,6 +4413,7 @@ class SmokePipeline:
                     continue
                 coverage_retry_sources.append(retry_source)
                 sources.append(retry_source)
+                acquisition_source_slots_used += 1
                 fetched_urls.add(canonicalize_url(retry_source.url))
                 related_link_contexts.append(
                     (retry_source.url, retry_source_links)
@@ -2116,31 +4431,26 @@ class SmokePipeline:
             for field_name in coverage_field_scope
             if field_name in coverage_retry_fields
         )
-        extract_fields = getattr(
-            self.deepseek, "extract_fields", None
-        )
-        if (
-            ordered_retry_fields
-            and callable(extract_fields)
-            and not self.discovery_only
-        ):
+        if ordered_retry_fields and not self.discovery_only:
             self.metrics.add(
                 coverage_retry_programmes=1,
                 coverage_retry_sources=len(coverage_retry_sources),
             )
             try:
-                retry_model, coverage_payload = extract_fields(
-                    programme,
-                    sources,
-                    field_names=ordered_retry_fields,
-                    # Keep selective recovery concise on Flash. The client
-                    # still promotes a group when that group's own evidence is
-                    # a PDF; field type alone should not force slow reasoning.
-                    prefer_pro=False,
+                coverage_result = self.extractor.extract(
+                    self._extraction_request(
+                        entity_id=programme.programme_id,
+                        field_names=ordered_retry_fields,
+                        sources=sources,
+                        operation="fields",
+                        context={"programme": programme},
+                        # Keep selective recovery concise on Flash. The
+                        # provider may still promote a PDF-backed group.
+                        prefer_pro=False,
+                    )
                 )
-                retry_diagnostics = coverage_payload.get(
-                    "group_diagnostics", []
-                )
+                retry_model = coverage_result.model_id
+                retry_diagnostics = coverage_result.group_diagnostics
                 completed_retry_groups = sum(
                     diagnostic.get("status") == "completed"
                     for diagnostic in retry_diagnostics
@@ -2148,11 +4458,11 @@ class SmokePipeline:
                 self.metrics.add(
                     coverage_retry_groups=completed_retry_groups
                 )
-                payload.setdefault("group_diagnostics", []).extend(
-                    retry_diagnostics
-                )
+                group_diagnostics.extend(retry_diagnostics)
                 model_name = model_name or retry_model
-                retry_facts = coverage_payload.get("facts", [])
+                retry_facts = self._facts_with_extraction_provenance(
+                    coverage_result, sources
+                )
                 facts.extend(retry_facts)
                 self.store.append(
                     "extraction_events",
@@ -2221,14 +4531,14 @@ class SmokePipeline:
                 validated_assertions = validate_assertion_set(
                     candidate_assertions
                 )
-            except DeepSeekError as exc:
+            except ExtractionProviderError as exc:
                 self._emit_error(
                     institution_id=seed.institution_id,
                     url=programme.official_url,
                     stage="field_coverage_retry_extraction",
                     code="COVERAGE_RETRY_EXTRACTION_FAILED",
                     message=str(exc),
-                    retryable=True,
+                    retryable=exc.retryable,
                 )
         accepted_after_retry = {
             assertion.field_name
@@ -2290,13 +4600,30 @@ class SmokePipeline:
             )
         failed_groups = {
             str(diagnostic.get("extraction_group"))
-            for diagnostic in payload.get("group_diagnostics", [])
+            for diagnostic in group_diagnostics
             if diagnostic.get("status") == "failed"
         }
         found_fields: set[str] = set()
         assertions_by_field: dict[str, list[FieldAssertion]] = {}
         for assertion in validated_assertions:
             self._record_assertion(assertion)
+        source_bindings = {
+            source.raw_document_id: SourceBinding(
+                source,
+                seed.institution_id,
+                # Semantic acceptance requires explicit entity proof for a
+                # non-university host.  A materialized provider record gets
+                # that proof only after a configured source-native identifier
+                # or exact institution-name match; the assertion still keeps
+                # its actual external authority/relationship/provenance.
+                (
+                    (urlsplit(source.url).hostname or seed.official_domain)
+                    if source.external_entity_match
+                    else seed.official_domain
+                ),
+            )
+            for source in sources if source.raw_document_id
+        }
         effective_candidates = prefer_human_verified(
             validated_assertions
         )
@@ -2308,6 +4635,7 @@ class SmokePipeline:
             compatible_extractor_versions=(
                 self.COMPATIBLE_ASSERTION_EXTRACTORS
             ),
+            bound_raw_document_ids=frozenset(source_bindings),
         )
         if self.target_fields is not None:
             target_field_set = set(self.target_fields)
@@ -2348,6 +4676,55 @@ class SmokePipeline:
         effective_assertions = dedupe_equivalent_assertions(
             effective_assertions
         )
+        pre_reconciliation_assertions = effective_assertions
+        metadata_decisions = reconcile_assertion_metadata(
+            pre_reconciliation_assertions,
+            bindings=source_bindings,
+            programmes={programme.programme_id: {
+                "programme_id": programme.programme_id,
+                "institution_id": seed.institution_id,
+                "official_url": programme.official_url,
+                "programme_name": programme.programme_name,
+            }},
+        )
+        effective_assertions = [decision.assertion for decision in metadata_decisions]
+        for original, decision in zip(pre_reconciliation_assertions, metadata_decisions):
+            if decision.changes or decision.reasons:
+                self.store.append("semantic_metadata_reconciliation_decisions", {
+                    "original_assertion_id": original.assertion_id,
+                    "assertion_id": decision.assertion.assertion_id,
+                    "target_programme_id": programme.programme_id,
+                    "institution_id": seed.institution_id,
+                    "changes": list(decision.changes),
+                    "reasons": list(decision.reasons),
+                })
+        acceptance_decisions = reconsider_assertions(
+            effective_assertions,
+            bindings=source_bindings,
+            programmes={programme.programme_id: {
+                "programme_id": programme.programme_id,
+                "institution_id": seed.institution_id,
+                "official_url": programme.official_url,
+                "programme_name": programme.programme_name,
+            }},
+            target_cycle=self.config.source_ecosystem.target_cycle,
+        )
+        for original, decision in zip(effective_assertions, acceptance_decisions):
+            if decision.classification != "UNCHANGED":
+                self.store.append("semantic_acceptance_decisions", {
+                    "original_assertion_id": original.assertion_id,
+                    "assertion_id": decision.assertion.assertion_id,
+                    "target_programme_id": programme.programme_id,
+                    "institution_id": seed.institution_id,
+                    "classification": decision.classification,
+                    "reasons": list(decision.reasons),
+                    "changes": list(decision.changes),
+                    "verification_status": decision.assertion.verification_status.value,
+                })
+                if decision.assertion.verification_status == VerificationStatus.REJECTED:
+                    self._record_assertion(decision.assertion)
+        effective_assertions = [decision.assertion for decision in acceptance_decisions
+                                if decision.assertion.verification_status != VerificationStatus.REJECTED]
         effective_assertions = [
             self._prepare_assertion(
                 assertion,
@@ -2393,6 +4770,7 @@ class SmokePipeline:
                     },
                 )
         output_field_scope = self.target_fields or DEEP_FIELDS
+        quality_assertions = list(effective_assertions)
         for field_name in output_field_scope:
             if field_name not in found_fields:
                 missing_assertion = null_assertion(
@@ -2412,6 +4790,103 @@ class SmokePipeline:
                     "effective_field_assertions",
                     missing_assertion,
                 )
+                quality_assertions.append(missing_assertion)
+
+        self._record_extraction_trace(
+            programme=programme,
+            phase="post_assertion",
+            sources=sources,
+            deterministic_candidate_count=len(deterministic_facts),
+            llm_called=llm_called,
+            llm_success=llm_success,
+            llm_field_names=llm_field_names,
+            extracted_value_present=any(
+                has_semantic_value(fact.get("value")) for fact in facts
+            ),
+            assertion_created=len(quality_assertions),
+            assertion_value_present=any(
+                has_semantic_value(assertion.value_json)
+                and assertion.verification_status != VerificationStatus.REJECTED
+                for assertion in quality_assertions
+            ),
+        )
+
+        shadow_target_cycle = next(
+            (
+                str(assertion.value_json)
+                for assertion in quality_assertions
+                if assertion.field_name == "academic_cycle"
+                and isinstance(assertion.value_json, str)
+                and assertion.value_json.strip()
+            ),
+            None,
+        )
+        try:
+            shadow_quality = self.shadow_quality.evaluate(
+                programme,
+                output_field_scope,
+                assertions=quality_assertions,
+                effective_assertions=quality_assertions,
+                target_cycle=shadow_target_cycle,
+                audience="international",
+                entity_type="programme",
+                entity_id=programme.programme_id,
+                context={
+                    "degree_level": programme.degree_level,
+                    "country": seed.country_code,
+                },
+            )
+            for assessment in shadow_quality.assessments:
+                self.store.append("quality_coverage_assessments", assessment)
+            for conflict in shadow_quality.conflicts:
+                self.store.append("quality_conflicts", conflict.to_dict())
+            for decision in shadow_quality.recovery_decisions:
+                self.store.append("quality_recovery_decisions", decision.to_dict())
+            for inference in shadow_quality.inferences:
+                self.store.append("quality_inferences", inference.to_dict())
+            self.store.append(
+                "quality_evaluations",
+                {
+                    "entity_type": "programme",
+                    "entity_id": programme.programme_id,
+                    "target_cycle": shadow_target_cycle,
+                    "audience": "international",
+                    "policy_version": shadow_quality.policy_version,
+                    "metrics": shadow_quality.metrics.to_dict(),
+                    "evaluated_at": shadow_quality.evaluated_at,
+                },
+            )
+            # The Python path already owns Slice B acquisition and Slice C
+            # shadow evaluation. Emit the common Slice E envelope beside those
+            # streams so CSV/manual/legacy adapters can be compared without
+            # introducing a second fetcher or canonical writer.
+            first_raw_document_id = next(
+                (
+                    assertion.raw_document_id
+                    for assertion in quality_assertions
+                    if assertion.raw_document_id
+                ),
+                None,
+            )
+            convergence = ProgrammeAcquisitionAdapter.from_field_assertions(
+                quality_assertions,
+                source_url=main_source.url,
+                raw_document_id=first_raw_document_id,
+                raw_retained=first_raw_document_id is not None,
+            )
+            self.store.append("ingestion_convergence", convergence.to_dict())
+        except Exception as exc:
+            # Quality is a shadow observer. A malformed legacy assertion or a
+            # serialization issue must be visible in telemetry, but can never
+            # fail the existing extraction/admission/promotion path.
+            self._emit_error(
+                institution_id=seed.institution_id,
+                url=programme.official_url,
+                stage="shadow_quality",
+                code="SHADOW_QUALITY_FAILED",
+                message=str(exc),
+                retryable=False,
+            )
 
         self.store.append(
             "admission_packages",
@@ -2475,7 +4950,7 @@ class SmokePipeline:
                 if isinstance(intake_value, list)
                 else intake_value
             ),
-            campus=None,
+            campus=programme.campus,
             delivery_mode=programme.delivery_mode,
             audience="international",
             application_status=programme_status,
@@ -2630,6 +5105,160 @@ class SmokePipeline:
             preloaded,
         )
 
+    def _acquire_configured_source_ecosystem(
+        self,
+        seed: InstitutionSeed,
+        policy: Any,
+        *,
+        entity: Any | None = None,
+    ) -> None:
+        """Fetch configured ecosystem resources through the legacy raw boundary.
+
+        The registry supplies discovery/admission metadata; this method keeps
+        parsing and persistence in ``_fetch_and_parse_source`` so local,
+        remote, and dual evidence modes retain their established semantics.
+        No facts or assertions are produced from these resources here.
+        """
+        ecosystem = self.config.source_ecosystem
+        if (
+            not ecosystem.enabled
+            or not ecosystem.runtime_acquisition_enabled
+            or self.discovery_only
+        ):
+            return
+        decisions = self.discovery.configured_source_decisions(
+            seed,
+            policy,
+            field_groups=self.target_fields,
+            entity=entity,
+        )
+        fetched = 0
+        seen_locators: set[str] = set()
+        for intent, decision in decisions:
+            if not decision.admitted or fetched >= ecosystem.max_fetches_per_institution:
+                continue
+            candidate = decision.candidate
+            if (
+                ecosystem.external_only
+                and str(candidate.provider_id or "").casefold()
+                not in set(ecosystem.external_provider_ids)
+            ):
+                continue
+            try:
+                canonical = canonicalize_url(candidate.canonical_locator)
+            except UnsafeUrlError as exc:
+                self.discovery.record_fetch_result(
+                    intent=intent,
+                    decision=decision,
+                    status="FETCH_FAILED",
+                    error_code=AcquisitionFailureCode.FETCH_FAILED,
+                    admission_reason="INVALID_URL",
+                )
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=candidate.canonical_locator,
+                    stage="source_ecosystem_fetch",
+                    code="INVALID_URL",
+                    message=str(exc),
+                    retryable=False,
+                )
+                continue
+            if canonical in seen_locators:
+                continue
+            seen_locators.add(canonical)
+            try:
+                document, extraction_source, _ = self._fetch_and_parse_source(
+                    seed,
+                    policy,
+                    candidate.canonical_locator,
+                    source_candidate=candidate,
+                    source_allowed_domains=decision.allowed_domains,
+                )
+            except (FetchError, RuntimeError, UnsafeUrlError) as exc:
+                code = getattr(exc, "code", "SOURCE_ECOSYSTEM_FETCH_FAILED")
+                self.discovery.record_fetch_result(
+                    intent=intent,
+                    decision=decision,
+                    status="FETCH_FAILED",
+                    error_code=AcquisitionFailureCode.FETCH_FAILED,
+                    admission_reason=str(code),
+                )
+                self._emit_error(
+                    institution_id=seed.institution_id,
+                    url=candidate.canonical_locator,
+                    stage="source_ecosystem_fetch",
+                    code=str(code),
+                    message=str(exc),
+                    retryable=bool(getattr(exc, "retryable", False)),
+                )
+                continue
+            self.discovery.record_fetch_result(
+                intent=intent,
+                decision=decision,
+                status="RAW_PERSISTED",
+                raw_document_id=document.raw_document_id,
+            )
+            if extraction_source.provider_id:
+                self._cache_configured_extraction_source(
+                    seed.institution_id,
+                    extraction_source,
+                )
+            fetched += 1
+
+    @staticmethod
+    def _programme_population_reason(
+        classification: ProgrammePopulationClassification,
+    ) -> str:
+        if classification == ProgrammePopulationClassification.VERIFIED_PROGRAMME:
+            return "verified programme identity with configured source-native binding"
+        if classification == ProgrammePopulationClassification.SYNTHETIC_SEED:
+            return "institution-scoped source has no programme-native identifier"
+        if classification == ProgrammePopulationClassification.INVALID_PROVIDER_MAPPING:
+            return "transport/search label is not a programme identity"
+        return "no verified exact or strong deterministic programme binding"
+
+    def _production_programme_admission(
+        self,
+        seed: InstitutionSeed,
+        programme: ProgrammeRecord,
+    ) -> ProgrammePopulationClassification:
+        """Classify a discovered target for an explicitly production-only run.
+
+        Provider-programme identifiers are routing metadata supplied by the
+        frozen population.  They are sufficient for a strong deterministic
+        binding only when the target also has a non-empty source-native title;
+        institution-only identifiers intentionally cannot prove that a
+        programme exists.
+        """
+        provider_identifiers = seed.provider_programme_identifiers.get(
+            programme.programme_id,
+            {},
+        )
+        has_name = bool(str(programme.programme_name or "").strip())
+        classification = classify_programme_population(
+            programme,
+            provider_programme_identifiers=provider_identifiers,
+            verified_programme_identity=has_name,
+            deterministic_binding=bool(provider_identifiers),
+            institution_only_source=(
+                not provider_identifiers and bool(seed.provider_identifiers)
+            ),
+        )
+        self.store.append(
+            "programme_population_audit",
+            {
+                "institution_id": seed.institution_id,
+                "programme_id": programme.programme_id,
+                "programme_name": programme.programme_name,
+                "official_url": programme.official_url,
+                "classification": classification.value,
+                "reason": self._programme_population_reason(classification),
+                "provider_programme_identifiers": provider_identifiers,
+                "retrieved_at": utc_now_iso(),
+            },
+        )
+        return classification
+
     def _process_institution(self, seed: InstitutionSeed) -> None:
         self._progress(f"[{seed.name}] policy check started")
         self.store.append(
@@ -2665,6 +5294,8 @@ class SmokePipeline:
             )
             return
 
+        self._acquire_configured_source_ecosystem(seed, policy)
+
         if self.skip_school_profile:
             self._progress(
                 f"[{seed.name}] school profile skipped for targeted run"
@@ -2696,8 +5327,41 @@ class SmokePipeline:
         )
         programmes = []
         for candidate in candidates:
-            programme = candidate_to_programme(seed.institution_id, candidate)
-            metadata = seed.programme_metadata.get(programme.official_url, {})
+            metadata_key, metadata = programme_metadata_entry_for_url(
+                seed.programme_metadata,
+                candidate.url,
+            )
+            # Apply configured source-native names before normalisation.  This
+            # prevents endpoint titles such as ``Datastore Search`` from
+            # becoming the canonical identity when query parameter order in a
+            # URL differs from the frozen configuration key.
+            candidate_for_programme = (
+                replace(
+                    candidate,
+                    name_hint=(
+                        metadata.get("programme_name")
+                        or candidate.name_hint
+                    ),
+                )
+                if metadata
+                else candidate
+            )
+            programme = candidate_to_programme(
+                seed.institution_id,
+                candidate_for_programme,
+            )
+            if metadata_key and metadata_key != programme.official_url:
+                programme = replace(
+                    programme,
+                    # Programme configuration is keyed by the original
+                    # source URL.  Keep that stable id even when discovery
+                    # canonicalises query parameters for fetching.
+                    programme_id=stable_id(
+                        "programme",
+                        seed.institution_id,
+                        metadata_key,
+                    ),
+                )
             programmes.append(
                 replace(
                     programme,
@@ -2747,6 +5411,16 @@ class SmokePipeline:
             programmes,
             seed.programme_priorities,
         )
+        if self.config.source_ecosystem.production_programmes_only:
+            admitted: list[ProgrammeRecord] = []
+            for programme in programmes:
+                classification = self._production_programme_admission(
+                    seed,
+                    programme,
+                )
+                if classification == ProgrammePopulationClassification.VERIFIED_PROGRAMME:
+                    admitted.append(programme)
+            programmes = admitted
         priority_match_count = sum(
             programme.priority_rank is not None
             for programme in programmes
@@ -2823,7 +5497,6 @@ class SmokePipeline:
         ]
         for programme in programmes:
             self.store.append("programmes", programme)
-        self.metrics.add(institutions_completed=1)
 
     def _process_selected_deep(
         self,
@@ -2954,6 +5627,21 @@ class SmokePipeline:
         best_decisions = self._load_jsonl(
             self.paths.jsonl_path("best_assertion_decisions")
         )
+        shadow_assessments = self._load_jsonl(
+            self.paths.jsonl_path("quality_coverage_assessments")
+        )
+        shadow_evaluations = self._load_jsonl(
+            self.paths.jsonl_path("quality_evaluations")
+        )
+        shadow_state_counts: dict[str, int] = {}
+        for assessment in shadow_assessments:
+            state = str(assessment.get("state") or "UNKNOWN")
+            shadow_state_counts[state] = shadow_state_counts.get(state, 0) + 1
+        shadow_metrics = [
+            item.get("metrics")
+            for item in shadow_evaluations
+            if isinstance(item.get("metrics"), dict)
+        ]
         comparable_decisions = [
             decision
             for decision in best_decisions
@@ -2976,13 +5664,19 @@ class SmokePipeline:
             "run_name": self.config.run_name,
             "generated_at": utc_now_iso(),
             "metrics": metrics,
-            "deepseek": self.deepseek.stats.to_dict(),
+            "extraction_provider": (
+                self.extractor.stats.to_dict()
+                if getattr(self.extractor, "stats", None) is not None
+                else {"provider_id": self.extractor.provider_id, "calls": 0}
+            ),
             "crawler_runtime": {
                 "discovery_backend": self.discovery_backend,
                 "render_policy": self.render_policy,
                 "target_fields": list(self.target_fields or ()),
                 "run_mode": "delta" if self.target_fields else "full",
                 "skip_school_profile": self.skip_school_profile,
+                "acquisition_mode": self.config.source_ecosystem.acquisition_mode,
+                "source_registry_adapters": list(self.discovery.registry.adapter_ids),
                 "programme_concurrency_per_institution": (
                     self.config.limits
                     .programme_concurrency_per_institution
@@ -3001,6 +5695,28 @@ class SmokePipeline:
                     "validate high-risk fields."
                 ),
             },
+            "shadow_quality": {
+                "evaluation_count": len(shadow_evaluations),
+                "assessment_count": len(shadow_assessments),
+                "state_counts": shadow_state_counts,
+                "recovery_intents": sum(
+                    int(item.get("recovery_intents") or 0)
+                    for item in shadow_metrics
+                ),
+                "conflicts_detected": sum(
+                    int(item.get("conflicts_detected") or 0)
+                    for item in shadow_metrics
+                ),
+                "inferences_generated": sum(
+                    int(item.get("inferences_generated") or 0)
+                    for item in shadow_metrics
+                ),
+                "note": (
+                    "Slice C shadow quality is semantic and policy-driven; its "
+                    "assessments and plans do not change promotion or canonical reads."
+                ),
+            },
+            "source_class_coverage": self.discovery.source_class_coverage(),
             "best_result": {
                 "effective_non_null_assertions": len(
                     effective_non_null
@@ -3026,6 +5742,10 @@ class SmokePipeline:
         }
         self.store.write_json("coverage_report.json", report)
         self.store.write_json(
+            "source_class_coverage.json",
+            report["source_class_coverage"],
+        )
+        self.store.write_json(
             "manifest.json",
             {
                 "schema_version": "GlowBalSmokeRun/v2",
@@ -3043,15 +5763,27 @@ class SmokePipeline:
                     }
                     for seed in self.config.institutions
                 ],
-                "models": {
-                    "flash": self.config.deepseek_flash_model,
-                    "pro": self.config.deepseek_pro_model,
+                "extraction_provider": {
+                    "provider_id": self.extractor.provider_id,
+                    "configured": self.extractor.configured,
                 },
+                "raw_evidence_mode": self.raw_evidence_mode,
                 "discovery_only": self.discovery_only,
                 "allow_unreviewed_terms": self.allow_unreviewed_terms,
                 "run_mode": "delta" if self.target_fields else "full",
                 "target_fields": list(self.target_fields or ()),
                 "skip_school_profile": self.skip_school_profile,
+                "source_ecosystem": {
+                    "acquisition_mode": self.config.source_ecosystem.acquisition_mode,
+                    "required_source_classes": list(
+                        self.config.source_ecosystem.required_source_classes
+                    ),
+                    "external_providers": [
+                        provider.to_dict()
+                        for provider in self.config.source_ecosystem.external_providers
+                    ],
+                    "registry_adapters": list(self.discovery.registry.adapter_ids),
+                },
                 "crawler_runtime": {
                     "discovery_backend": self.discovery_backend,
                     "render_policy": self.render_policy,
@@ -3450,48 +6182,65 @@ class SmokePipeline:
         )
 
     def run(self) -> dict[str, object]:
-        if not self.discovery_only and not self.deepseek.configured:
-            raise RuntimeError(
-                "DEEPSEEK_API_KEY is required unless --discovery-only is used."
-            )
         self._start_monotonic = time.monotonic()
         self._progress(
             f"Starting smoke run for {len(self.config.institutions)} institution(s)"
         )
         try:
-            with ThreadPoolExecutor(
-                max_workers=min(
-                    self.config.limits.global_concurrency,
-                    self.config.limits.institution_concurrency,
-                    len(self.config.institutions),
-                )
-            ) as executor:
-                futures = {
-                    executor.submit(self._process_institution, seed): seed
-                    for seed in self.config.institutions
-                }
-                for future in as_completed(futures):
-                    seed = futures[future]
-                    try:
-                        future.result()
-                    except Exception as exc:
-                        self._emit_error(
-                            institution_id=seed.institution_id,
-                            url=seed.homepage_url,
-                            stage="institution",
-                            code="UNHANDLED_INSTITUTION_ERROR",
-                            message=str(exc),
-                            retryable=False,
-                        )
-                    finally:
-                        self._advance_progress(seed)
+            pending = self._prepare_resume_targets()
+            if pending:
+                with ThreadPoolExecutor(
+                    max_workers=min(
+                        self.config.limits.global_concurrency,
+                        self.config.limits.institution_concurrency,
+                        len(pending),
+                    )
+                ) as executor:
+                    futures = {
+                        executor.submit(self._checkpointed_institution, seed): seed
+                        for seed in pending
+                    }
+                    for future in as_completed(futures):
+                        seed = futures[future]
+                        try:
+                            future.result()
+                        except Exception as exc:
+                            self._run_had_failures = True
+                            self._emit_error(
+                                institution_id=seed.institution_id,
+                                url=seed.homepage_url,
+                                stage="institution",
+                                code="UNHANDLED_INSTITUTION_ERROR",
+                                message=str(exc),
+                                retryable=False,
+                            )
+                        finally:
+                            self._advance_progress(seed)
+        except BaseException:
+            self._run_interrupted = True
+            raise
         finally:
+            identity = self.state.get_value("run:identity", {})
+            if isinstance(identity, dict):
+                identity["status"] = (
+                    "INTERRUPTED"
+                    if self._run_interrupted
+                    else "PARTIAL"
+                    if self._run_had_failures
+                    else "COMPLETED"
+                )
+                identity["completed_at"] = utc_now_iso()
+                self.state.set_value("run:identity", identity)
             self.metrics.completed_at = utc_now_iso()
             self.metrics.elapsed_seconds = round(
                 time.monotonic() - self._start_monotonic, 3
             )
+            provider_stats = getattr(self.extractor, "stats", None)
+            if provider_stats is not None and hasattr(provider_stats, "to_dict"):
+                self.metrics.provider_stats = provider_stats.to_dict()
             try:
                 self._write_reports()
+                self._write_resume_report()
             finally:
                 self.state.close()
                 self.llm_state.close()

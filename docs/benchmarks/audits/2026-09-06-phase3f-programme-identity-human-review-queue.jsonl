@@ -1,0 +1,8 @@
+{"case_id":"GT-V2-14-programme_identity","primary_verdict":"SCORER_CONTRACT_MISMATCH","confidence":"MEDIUM","review_reason":"institution_prefix_and_punctuation_not_normalized"}
+{"case_id":"GT-V2-15-programme_identity","primary_verdict":"IDENTITY_GRANULARITY_MISMATCH","confidence":"MEDIUM","review_reason":"dual_degree_variant_family_representation"}
+{"case_id":"GT-V2-19-programme_identity","primary_verdict":"IDENTITY_GRANULARITY_MISMATCH","confidence":"HIGH","review_reason":"pre_major_to_major_stage_pathway"}
+{"case_id":"GT-V2-21-programme_identity","primary_verdict":"GENUINELY_AMBIGUOUS","confidence":"MEDIUM","review_reason":"official_source_supports_ms_and_phd_without_single_target_variant"}
+{"case_id":"GT-V2-25-programme_identity","primary_verdict":"IDENTITY_GRANULARITY_MISMATCH","confidence":"MEDIUM","review_reason":"department_and_degree_scope"}
+{"case_id":"GT-V2-31-programme_identity","primary_verdict":"IDENTITY_GRANULARITY_MISMATCH","confidence":"HIGH","review_reason":"parent_licence_and_track_hierarchy"}
+{"case_id":"GT-V2-32-programme_identity","primary_verdict":"IDENTITY_GRANULARITY_MISMATCH","confidence":"HIGH","review_reason":"parent_master_and_mind_track_hierarchy"}
+{"case_id":"GT-V2-33-programme_identity","primary_verdict":"IDENTITY_GRANULARITY_MISMATCH","confidence":"HIGH","review_reason":"parent_master_and_sar_track_hierarchy"}

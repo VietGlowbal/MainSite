@@ -1,0 +1,161 @@
+{
+    "run_name": "source-ecosystem-expansion-smoke",
+    "acquisition_backend": "platform_shadow",
+    "raw_evidence_mode": "local",
+    "source_ecosystem": {
+        "enabled": true,
+        "runtime_acquisition_enabled": true,
+        "field_groups": [
+            "tuition"
+        ],
+        "target_cycle": "2024-25",
+        "max_fetches_per_institution": 6,
+        "official_web": {
+            "enabled": true,
+            "resources": [
+                {
+                    "institution_id": "mit-us",
+                    "url": "https://ecosystem-smoke.example.edu/finance/tuition",
+                    "source_class": "official_finance",
+                    "relationship": "FINANCE_OFFICE",
+                    "authority": "OFFICIAL",
+                    "field_groups": [
+                        "tuition"
+                    ],
+                    "academic_cycle": "2024-25",
+                    "relationship_evidence": [
+                        "central finance page named by institution"
+                    ]
+                },
+                {
+                    "institution_id": "mit-us",
+                    "url": "https://ecosystem-smoke.example.edu/computing/programmes",
+                    "source_class": "official_web",
+                    "relationship": "DEPARTMENT",
+                    "authority": "OFFICIAL",
+                    "field_groups": [
+                        "tuition"
+                    ],
+                    "academic_cycle": "2024-25",
+                    "relationship_evidence": [
+                        "department page named by institution"
+                    ]
+                },
+                {
+                    "institution_id": "mit-us",
+                    "url": "https://ecosystem-smoke.example.edu/admissions/graduate",
+                    "source_class": "official_web",
+                    "relationship": "CENTRAL_ADMISSIONS",
+                    "authority": "OFFICIAL",
+                    "field_groups": [
+                        "tuition"
+                    ],
+                    "academic_cycle": "2024-25",
+                    "relationship_evidence": [
+                        "central admissions page named by institution"
+                    ]
+                }
+            ]
+        },
+        "official_catalogue": {
+            "enabled": true
+        },
+        "pdf": {
+            "enabled": true,
+            "resources": [
+                {
+                    "institution_id": "mit-us",
+                    "url": "https://ecosystem-smoke.example.edu/docs/2024-fees.pdf",
+                    "title": "2024 tuition and fees handbook",
+                    "field_groups": [
+                        "tuition"
+                    ],
+                    "academic_cycle": "2024-25"
+                }
+            ]
+        },
+        "structured_apis": {
+            "enabled": true,
+            "resources": [
+                {
+                    "institution_id": "mit-us",
+                    "url": "https://partner-data.example.org/api/tuition/ecosystem-smoke-u1.json",
+                    "provider_id": "partner-catalogue",
+                    "dataset_id": "tuition-2024",
+                    "source_class": "official_api",
+                    "relationship": "PARTNER_INSTITUTION",
+                    "authority": "OFFICIAL_PARTNER",
+                    "relationship_evidence": [
+                        "official partner dataset names institution id"
+                    ],
+                    "field_groups": [
+                        "tuition"
+                    ],
+                    "academic_cycle": "2024-25"
+                }
+            ]
+        },
+        "government_datasets": {
+            "enabled": true,
+            "providers": [
+                "ipeds",
+                "college_scorecard"
+            ],
+            "ipeds_target_config": "ipeds-us-21.json",
+            "scorecard_resources": [
+                {
+                    "institution_id": "mit-us",
+                    "url": "https://collegescorecard.ed.gov/data/",
+                    "academic_cycle": "2024-25",
+                    "dataset_id": "college-scorecard-2024",
+                    "field_groups": [
+                        "tuition"
+                    ]
+                }
+            ]
+        },
+        "archives": {
+            "enabled": false,
+            "status": "fixture_only_not_ready"
+        },
+        "search_discovery": {
+            "enabled": false,
+            "status": "provider_not_configured"
+        },
+        "external_authoritative": {
+            "enabled": true
+        }
+    },
+    "institutions": [
+        {
+            "institution_id": "mit-us",
+            "name": "Massachusetts Institute of Technology (ecosystem smoke fixture)",
+            "country_code": "US",
+            "official_domain": "ecosystem-smoke.example.edu",
+            "homepage_url": "https://ecosystem-smoke.example.edu/",
+            "external_source_rules": [
+                {
+                    "domain": "partner-data.example.org",
+                    "adapter_id": "json_api",
+                    "reason": "configured official partner catalogue resource",
+                    "relationship": "PARTNER_INSTITUTION",
+                    "authority": "OFFICIAL_PARTNER"
+                },
+                {
+                    "domain": "nces.ed.gov",
+                    "adapter_id": "ipeds",
+                    "reason": "existing IPEDS dataset contract",
+                    "relationship": "GOVERNMENT",
+                    "authority": "GOVERNMENT"
+                },
+                {
+                    "domain": "collegescorecard.ed.gov",
+                    "adapter_id": "college_scorecard",
+                    "reason": "College Scorecard government dataset",
+                    "relationship": "GOVERNMENT",
+                    "authority": "GOVERNMENT"
+                }
+            ]
+        }
+    ]
+}

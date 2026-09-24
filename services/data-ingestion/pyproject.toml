@@ -16,6 +16,10 @@ dependencies = [
 browser = ["playwright>=1.50"]
 scrapy = ["scrapy>=2.13,<3"]
 render = ["crawl4ai>=0.8.6,<0.9"]
+durable-evidence = [
+  "pymongo>=4.10,<5",
+  "boto3>=1.35,<2",
+]
 full-crawl = [
   "scrapy>=2.13,<3",
   "crawl4ai>=0.8.6,<0.9",

@@ -7,10 +7,15 @@ from collections import defaultdict
 from typing import Any, Iterable
 
 from .models import (
+    ApplicabilityState,
     ADMISSION_PACKAGE_FIELDS,
     DEEP_FIELDS,
+    EpistemicState,
     FieldAssertion,
     NullReason,
+    SourceAuthority,
+    SourceRelationship,
+    TemporalState,
     VerificationStatus,
     has_semantic_value,
     utc_now_iso,
@@ -67,6 +72,25 @@ def assertion_from_dict(payload: dict[str, Any]) -> FieldAssertion:
     )
     value["verification_status"] = VerificationStatus(
         str(verification_status)
+    )
+    value["epistemic_state"] = EpistemicState(
+        str(value.get("epistemic_state") or EpistemicState.OBSERVED.value)
+    )
+    value["temporal_state"] = TemporalState(
+        str(value.get("temporal_state") or TemporalState.UNKNOWN.value)
+    )
+    source_authority = value.get("source_authority")
+    value["source_authority"] = (
+        SourceAuthority(str(source_authority)) if source_authority else None
+    )
+    source_relationship = value.get("source_relationship")
+    value["source_relationship"] = (
+        SourceRelationship(str(source_relationship))
+        if source_relationship
+        else None
+    )
+    value["applicability_state"] = ApplicabilityState(
+        str(value.get("applicability_state") or ApplicabilityState.UNKNOWN.value)
     )
     value["validation_errors"] = [
         str(error) for error in value.get("validation_errors", [])
@@ -307,6 +331,40 @@ def _value_information(value: Any) -> int:
     return min(1000, len(str(value)))
 
 
+def _bundle_has_usable_observed_bindings(
+    assertions: Iterable[FieldAssertion],
+    *,
+    bound_raw_document_ids: frozenset[str] | None,
+) -> bool:
+    """Require a complete, currently bindable chain for observed cache data.
+
+    A best-assertion cache stores assertions, not their admitted source
+    bindings.  A cached observation is therefore reusable only when this run
+    can bind its exact raw document again.  The semantic-acceptance rail still
+    validates the full source metadata; this guard stops an unbindable cached
+    bundle from hiding a current candidate before that rail can see it.
+    """
+    if bound_raw_document_ids is None:
+        return True
+    for assertion in assertions:
+        if assertion.epistemic_state != EpistemicState.OBSERVED:
+            continue
+        if not all(
+            (
+                assertion.raw_document_id,
+                assertion.source_url,
+                assertion.source_content_hash,
+                assertion.acquisition_run_id,
+                assertion.source_authority,
+                assertion.source_relationship,
+            )
+        ):
+            return False
+        if assertion.raw_document_id not in bound_raw_document_ids:
+            return False
+    return True
+
+
 def merge_best_assertions(
     *,
     state: StateStore,
@@ -315,6 +373,7 @@ def merge_best_assertions(
     field_names: tuple[str, ...] = DEEP_FIELDS,
     extractor_version: str | None = None,
     compatible_extractor_versions: frozenset[str] | None = None,
+    bound_raw_document_ids: frozenset[str] | None = None,
 ) -> tuple[list[FieldAssertion], list[dict[str, Any]]]:
     current_by_field: dict[str, list[FieldAssertion]] = defaultdict(list)
     for assertion in current_assertions:
@@ -358,6 +417,23 @@ def merge_best_assertions(
         )
         original_current_count = len(current)
         original_cached_count = len(cached)
+        cached_provenance_usable = (
+            _bundle_has_usable_observed_bindings(
+                cached,
+                bound_raw_document_ids=bound_raw_document_ids,
+            )
+            if cached
+            else None
+        )
+        cached_missing_usable_provenance = bool(
+            cached and cached_provenance_usable is False
+        )
+        if cached_missing_usable_provenance:
+            # Do not compare quality until the cached bundle can be bound to
+            # its exact durable raw source in this run.  Otherwise a stale
+            # high-quality record can suppress the current usable evidence and
+            # fail only later as MISSING_PROVENANCE.
+            cached = []
         canonical_ids = {
             assertion.assertion_id
             for assertion in prefer_human_verified([*current, *cached])
@@ -399,8 +475,11 @@ def merge_best_assertions(
         elif cached:
             reason = "current_bundle_is_newer_or_equal_quality"
 
-        cached_was_canonicalized = len(cached) != original_cached_count
-        if selected == "current" or cached_was_canonicalized:
+        cached_was_human_canonicalized = (
+            len(cached) != original_cached_count
+            and not cached_missing_usable_provenance
+        )
+        if selected == "current" or cached_was_human_canonicalized:
             state.put_best_assertion_bundle(
                 entity_id,
                 field_name,
@@ -413,12 +492,18 @@ def merge_best_assertions(
                 "entity_id": entity_id,
                 "field_name": field_name,
                 "selected": selected,
-                "reason": reason,
+                "reason": (
+                    "cached_bundle_missing_usable_provenance"
+                    if selected == "current"
+                    and cached_missing_usable_provenance
+                    else reason
+                ),
                 "volatile": field_name in VOLATILE_FIELDS,
                 "human_canonicalized": (
                     len(current) != original_current_count
-                    or cached_was_canonicalized
+                    or cached_was_human_canonicalized
                 ),
+                "cached_provenance_usable": cached_provenance_usable,
                 "current_quality": current_quality,
                 "cached_quality": cached_quality or None,
                 "selected_quality": chosen_quality,

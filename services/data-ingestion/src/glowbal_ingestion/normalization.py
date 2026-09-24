@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import replace
 from urllib.parse import unquote, urlsplit
 
 from .config import ProgrammePriority
 from .discovery import ProgrammeCandidate
-from .models import ProgrammeRecord, VerificationStatus, stable_id, utc_now_iso
+from .models import (
+    INVALID_PROGRAMME_IDENTITY_LABELS,
+    ProgrammeRecord,
+    VerificationStatus,
+    stable_id,
+    utc_now_iso,
+)
+from .url_safety import UnsafeUrlError, canonicalize_url
 
 
 DEGREE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -193,6 +201,11 @@ def clean_programme_name(name_hint: str | None, url: str) -> str:
         "view program details",
         "view programme details",
     }
+    # Search-operation titles are not programme identities.  They are handled
+    # as unresolved until configured/source-native metadata supplies the real
+    # title (for example the RIO ``INTERNATIONALE_NAAM`` column).
+    if candidate.casefold() in INVALID_PROGRAMME_IDENTITY_LABELS:
+        candidate = ""
     if (
         len(candidate) < 3
         or len(candidate) > 180
@@ -200,13 +213,59 @@ def clean_programme_name(name_hint: str | None, url: str) -> str:
         or GENERIC_LINK_NAME_RE.fullmatch(candidate)
     ):
         candidate = slug_to_name(url)
+    if candidate.casefold() in INVALID_PROGRAMME_IDENTITY_LABELS:
+        return ""
     candidate = re.sub(
         r"\s*[|–—-]\s*(MIT|Stanford|Oxford|University.*)$",
         "",
         candidate,
         flags=re.I,
     ).strip()
-    return candidate or slug_to_name(url)
+    fallback = slug_to_name(url)
+    if candidate:
+        return candidate
+    return "" if fallback.casefold() in INVALID_PROGRAMME_IDENTITY_LABELS else fallback
+
+
+def programme_metadata_entry_for_url(
+    metadata: Mapping[str, Mapping[str, object]],
+    url: str,
+) -> tuple[str | None, Mapping[str, object]]:
+    """Find configured programme metadata using URL identity, not query order.
+
+    ``canonicalize_url`` intentionally sorts query parameters.  A provider
+    configuration may retain the source URL in a different order, so a direct
+    dictionary lookup can otherwise lose both the source-native title and the
+    programme-id mapping.  Return the original metadata key as well so the
+    caller can derive the same stable id used when the configuration was
+    frozen.
+    """
+    if not isinstance(metadata, Mapping):
+        return None, {}
+    direct = metadata.get(url)
+    if isinstance(direct, Mapping):
+        return str(url), direct
+    try:
+        canonical = canonicalize_url(url)
+    except (UnsafeUrlError, ValueError):
+        return None, {}
+    for raw_url, item in metadata.items():
+        if not isinstance(item, Mapping):
+            continue
+        try:
+            if canonicalize_url(str(raw_url)) == canonical:
+                return str(raw_url), item
+        except (UnsafeUrlError, ValueError):
+            continue
+    return None, {}
+
+
+def programme_metadata_for_url(
+    metadata: Mapping[str, Mapping[str, object]],
+    url: str,
+) -> Mapping[str, object]:
+    """Return configured metadata for a URL, tolerating query-order drift."""
+    return programme_metadata_entry_for_url(metadata, url)[1]
 
 
 def infer_degree(name: str, url: str) -> str | None:
@@ -412,17 +471,21 @@ def candidate_to_programme(
 ) -> ProgrammeRecord:
     name = clean_programme_name(candidate.name_hint, candidate.url)
     degree = infer_degree(name, candidate.url)
+    # A manually supplied URL is a crawl target, not evidence of its award.
+    # Keep degree inference for bounded deep-selection eligibility, but do not
+    # turn URL/name hints into a canonical credential without page evidence.
+    credential = (
+        None
+        if candidate.catalogue_source == "user_supplied"
+        else infer_credential(name, candidate.url, degree_level=degree)
+    )
     return ProgrammeRecord(
         programme_id=stable_id("programme", institution_id, candidate.url),
         institution_id=institution_id,
         programme_name=name,
         official_url=candidate.url,
         degree_level=degree,
-        credential=infer_credential(
-            name,
-            candidate.url,
-            degree_level=degree,
-        ),
+        credential=credential,
         normalized_field=infer_field(name),
         organisation_unit_id=None,
         language=None,

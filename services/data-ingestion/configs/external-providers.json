@@ -1,0 +1,1804 @@
+{
+  "schema_version": "GlowBalExternalProviders/v2",
+  "external_providers": [
+    {
+      "provider_id": "ipeds",
+      "name": "IPEDS official bulk data",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "US"
+      ],
+      "domain": "nces.ed.gov",
+      "dataset_id": "IPEDS-bulk",
+      "retrieval_method": "GET",
+      "retrieval_type": "zip",
+      "field_groups": [
+        "institution_metadata",
+        "programme_taxonomy",
+        "tuition",
+        "finance"
+      ],
+      "academic_cycle": "2024-25",
+      "resolution": "institution",
+      "adapter_id": "ipeds",
+      "identifier_mapping": {
+        "UNITID": "institution_id"
+      },
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "US Department of Education IPEDS official downloadable bulk files; institution-level resolution.",
+      "enabled": true,
+      "provider_type": "government_dataset",
+      "accept": "application/zip,application/octet-stream",
+      "max_bytes": 104857600,
+      "resource_specs": [
+        {
+          "url": "https://nces.ed.gov/ipeds/datacenter/data/HD2024.zip",
+          "dataset_id": "IPEDS-HD2024",
+          "data_year": "2024-25",
+          "retrieval_type": "zip",
+          "field_groups": [
+            "institution_metadata"
+          ],
+          "formats": [
+            "zip",
+            "csv"
+          ],
+          "max_bytes": 104857600
+        },
+        {
+          "url": "https://nces.ed.gov/ipeds/datacenter/data/COST1_2024.zip",
+          "dataset_id": "IPEDS-COST1_2024",
+          "data_year": "2024-25",
+          "retrieval_type": "zip",
+          "field_groups": [
+            "tuition",
+            "finance"
+          ],
+          "formats": [
+            "zip",
+            "csv"
+          ],
+          "max_bytes": 104857600
+        },
+        {
+          "url": "https://nces.ed.gov/ipeds/datacenter/data/C2024_A.zip",
+          "dataset_id": "IPEDS-C2024_A",
+          "data_year": "2023-24",
+          "retrieval_type": "zip",
+          "field_groups": [
+            "programme_taxonomy"
+          ],
+          "formats": [
+            "zip",
+            "csv"
+          ],
+          "max_bytes": 104857600
+        }
+      ],
+      "optional": false,
+      "formats": [
+        "zip",
+        "csv"
+      ]
+    },
+    {
+      "provider_id": "college_scorecard",
+      "name": "College Scorecard",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "US"
+      ],
+      "domain": "api.data.gov",
+      "base_url": "https://api.data.gov/ed/collegescorecard/v1/schools.json",
+      "dataset_id": "college-scorecard",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata",
+        "programme_taxonomy"
+      ],
+      "resolution": "institution",
+      "adapter_id": "college_scorecard",
+      "identifier_mapping": {
+        "school.name": "institution_name"
+      },
+      "pagination": {
+        "strategy": "page",
+        "page_parameter": "page",
+        "page_size_parameter": "per_page",
+        "page_size": 100,
+        "max_pages": 2
+      },
+      "authentication_mode": "api_key_query",
+      "authentication": {
+        "mode": "api_key_query",
+        "parameter": "api_key",
+        "token_env": "COLLEGE_SCORECARD_API_KEY"
+      },
+      "reason": "Optional credentialed College Scorecard API; credential-free bulk provider is the default.",
+      "enabled": false,
+      "provider_type": "government_dataset",
+      "optional": true
+    },
+    {
+      "provider_id": "eurostat_education",
+      "name": "Eurostat education statistics",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "AT",
+        "BE",
+        "BG",
+        "CH",
+        "CY",
+        "CZ",
+        "DE",
+        "DK",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "GR",
+        "HR",
+        "HU",
+        "IE",
+        "IS",
+        "IT",
+        "LI",
+        "LT",
+        "LU",
+        "LV",
+        "MT",
+        "NL",
+        "NO",
+        "PL",
+        "PT",
+        "RO",
+        "SE",
+        "SI",
+        "SK",
+        "TR",
+        "UK"
+      ],
+      "domain": "ec.europa.eu",
+      "base_url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data",
+      "resource_path": "{dataset_id}",
+      "dataset_id": "educ_uoe_enrt01",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata",
+        "programme_taxonomy"
+      ],
+      "academic_cycle": "2023",
+      "resolution": "national",
+      "parameters": {
+        "lang": "en",
+        "format": "JSON"
+      },
+      "identifier_mapping": {
+        "geo": "country_code"
+      },
+      "reason": "European Commission Eurostat public education statistics",
+      "enabled": true,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "japan_estat",
+      "name": "Japan e-Stat",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "JP"
+      ],
+      "domain": "api.e-stat.go.jp",
+      "query_endpoint": "https://api.e-stat.go.jp/rest/3.0/app/json/getStatsData",
+      "dataset_id": "e-stat-higher-education",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata",
+        "programme_taxonomy"
+      ],
+      "academic_cycle": "2023",
+      "resolution": "national",
+      "authentication_mode": "api_key_query",
+      "authentication": {
+        "mode": "api_key_query",
+        "parameter": "appId",
+        "token_env": "ESTAT_APP_ID"
+      },
+      "pagination": {
+        "strategy": "page",
+        "page_parameter": "page",
+        "page_size_parameter": "limit",
+        "page_size": 100,
+        "max_pages": 2
+      },
+      "parameters": {
+        "statsDataId": "0003448239"
+      },
+      "reason": "Japan Statistics Bureau e-Stat structured education dataset",
+      "enabled": true,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "singapore_data_gov",
+      "name": "Singapore data.gov.sg",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "SG"
+      ],
+      "domain": "api-open.data.gov.sg",
+      "query_endpoint": "https://api-open.data.gov.sg/v1/public/api/datasets",
+      "dataset_id": "singapore-education",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata",
+        "programme_taxonomy"
+      ],
+      "academic_cycle": "2024",
+      "resolution": "institution",
+      "pagination": {
+        "strategy": "page",
+        "page_parameter": "page",
+        "page_size": 100,
+        "max_pages": 2
+      },
+      "reason": "Singapore government open-data API; dataset applicability is provider-specific",
+      "enabled": true,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "unesco_uis",
+      "name": "UNESCO Institute for Statistics",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "*"
+      ],
+      "domain": "api.uis.unesco.org",
+      "resource_url": "https://api.uis.unesco.org/api/public/data/indicators",
+      "dataset_id": "unesco-uis-indicators",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata",
+        "programme_taxonomy"
+      ],
+      "academic_cycle": "latest",
+      "resolution": "national",
+      "parameters": {
+        "geoUnit": "USA",
+        "indicator": "CR.1",
+        "start": "2020",
+        "end": "2024",
+        "indicatorMetadata": "false",
+        "footnotes": "false"
+      },
+      "pagination": {
+        "max_pages": 1
+      },
+      "reason": "UNESCO UIS public indicator resource; geoUnit and indicator are explicit required query dimensions.",
+      "enabled": true,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "eqar",
+      "name": "European Quality Assurance Register",
+      "source_class": "official_registry",
+      "authority": "ACCREDITED_PROVIDER",
+      "relationship": "ACCREDITATION_BODY",
+      "countries": [
+        "AT",
+        "BE",
+        "BG",
+        "CH",
+        "CY",
+        "CZ",
+        "DE",
+        "DK",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "GR",
+        "HR",
+        "HU",
+        "IE",
+        "IS",
+        "IT",
+        "LI",
+        "LT",
+        "LU",
+        "LV",
+        "MT",
+        "NL",
+        "NO",
+        "PL",
+        "PT",
+        "RO",
+        "SE",
+        "SI",
+        "SK",
+        "TR",
+        "UK"
+      ],
+      "domain": "eqar.eu",
+      "base_url": "https://www.eqar.eu/register/search/",
+      "dataset_id": "eqar-register",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "institution_metadata",
+        "accreditation"
+      ],
+      "resolution": "institution",
+      "adapter_id": "official_registry",
+      "reason": "European Quality Assurance Register official agency register",
+      "enabled": true,
+      "provider_type": "education_registry"
+    },
+    {
+      "provider_id": "cricos_australia",
+      "name": "Australian CRICOS register",
+      "source_class": "official_registry",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "AU"
+      ],
+      "domain": "cricos.education.gov.au",
+      "resource_url": "https://cricos.education.gov.au/Course/CourseDetails.aspx?CourseCode={CRICOS_CODE}",
+      "dataset_id": "cricos-course-register",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "programme_taxonomy",
+        "tuition",
+        "finance"
+      ],
+      "resolution": "programme",
+      "field_evidence": {
+        "kind": "text_window",
+        "scope": "programme",
+        "title": "CRICOS course record",
+        "identity_patterns": [
+          "CRICOS Course Code: {CRICOS_CODE}"
+        ],
+        "context_before": 900,
+        "context_after": 1900,
+        "supported_fields": [
+          "programme_identity",
+          "credential",
+          "programme_status",
+          "tuition",
+          "additional_fees",
+          "intakes"
+        ],
+        "schema_context": "This Australian Government CRICOS record identifies a registered course. Literal course fields can include course name, CRICOS course code, course level, duration, tuition fee, non-tuition fee, estimated total course cost and course location. Do not infer a missing intake or current cycle."
+      },
+      "reason": "Australian Government Commonwealth Register of Institutions and Courses for Overseas Students",
+      "enabled": true,
+      "provider_type": "education_registry"
+    },
+    {
+      "provider_id": "anabin_germany",
+      "name": "anabin qualification and institution database",
+      "source_class": "official_registry",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "DE"
+      ],
+      "domain": "anabin.kmk.org",
+      "resource_url": "https://anabin.kmk.org/",
+      "dataset_id": "anabin",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "institution_metadata",
+        "qualification"
+      ],
+      "resolution": "qualification",
+      "reason": "German state-recognized higher-education and qualification reference",
+      "enabled": true,
+      "provider_type": "education_registry"
+    },
+    {
+      "provider_id": "eqar_accreditation",
+      "name": "EQAR accreditation register",
+      "source_class": "accreditation",
+      "authority": "ACCREDITED_PROVIDER",
+      "relationship": "ACCREDITATION_BODY",
+      "countries": [
+        "*"
+      ],
+      "domain": "www.eqar.eu",
+      "resource_url": "https://www.eqar.eu/register/search/",
+      "dataset_id": "eqar-accreditation-register",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "accreditation"
+      ],
+      "resolution": "institution",
+      "adapter_id": "accreditation_registry",
+      "reason": "Accreditation status register maintained by the European quality-assurance register",
+      "enabled": true,
+      "provider_type": "accreditation_registry"
+    },
+    {
+      "provider_id": "abet",
+      "name": "ABET accredited-programme directory",
+      "source_class": "accreditation",
+      "authority": "ACCREDITED_PROVIDER",
+      "relationship": "ACCREDITATION_BODY",
+      "countries": [
+        "*"
+      ],
+      "domain": "www.abet.org",
+      "resource_url": "https://www.abet.org/accreditation/find-programs/",
+      "dataset_id": "abet-programmes",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "accreditation",
+        "programme_taxonomy"
+      ],
+      "resolution": "programme",
+      "adapter_id": "accreditation_registry",
+      "reason": "ABET official accredited-programme directory",
+      "enabled": true,
+      "provider_type": "accreditation_registry"
+    },
+    {
+      "provider_id": "chea",
+      "name": "CHEA institution directory",
+      "source_class": "accreditation",
+      "authority": "ACCREDITED_PROVIDER",
+      "relationship": "ACCREDITATION_BODY",
+      "countries": [
+        "US"
+      ],
+      "domain": "www.chea.org",
+      "resource_url": "https://www.chea.org/search-institutions",
+      "dataset_id": "chea-institutions",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "accreditation",
+        "institution_metadata"
+      ],
+      "resolution": "institution",
+      "adapter_id": "accreditation_registry",
+      "reason": "Council for Higher Education Accreditation directory",
+      "enabled": true,
+      "provider_type": "accreditation_registry"
+    },
+    {
+      "provider_id": "jabee",
+      "name": "JABEE accredited-programme register",
+      "source_class": "accreditation",
+      "authority": "ACCREDITED_PROVIDER",
+      "relationship": "ACCREDITATION_BODY",
+      "countries": [
+        "JP"
+      ],
+      "domain": "jabee.org",
+      "resource_url": "https://jabee.org/",
+      "dataset_id": "jabee-programmes",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "accreditation",
+        "programme_taxonomy"
+      ],
+      "resolution": "programme",
+      "adapter_id": "accreditation_registry",
+      "reason": "Japan Accreditation Board for Engineering Education official register",
+      "enabled": true,
+      "provider_type": "accreditation_registry"
+    },
+    {
+      "provider_id": "ucas",
+      "name": "UCAS programme search",
+      "source_class": "official_partner",
+      "authority": "OFFICIAL_PARTNER",
+      "relationship": "CONSORTIUM",
+      "countries": [
+        "UK"
+      ],
+      "domain": "www.ucas.com",
+      "resource_url": "https://www.ucas.com/search/index.html",
+      "dataset_id": "ucas-programmes",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "programme_taxonomy",
+        "admissions"
+      ],
+      "resolution": "programme",
+      "adapter_id": "official_partner",
+      "reason": "Optional UCAS partner catalogue; robots/access policy makes it unsuitable as the default UK source.",
+      "enabled": false,
+      "provider_type": "official_partner",
+      "optional": true
+    },
+    {
+      "provider_id": "common_app",
+      "name": "Common App first-year requirements grid",
+      "source_class": "official_partner",
+      "authority": "OFFICIAL_PARTNER",
+      "relationship": "CONSORTIUM",
+      "countries": [
+        "US"
+      ],
+      "domain": "www.commonapp.org",
+      "resource_url": "https://content.commonapp.org/Files/ReqGrid.pdf",
+      "dataset_id": "common-app-requirements-grid-2026-27",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "admissions"
+      ],
+      "academic_cycle": "2026-2027",
+      "resolution": "institution",
+      "adapter_id": "official_partner",
+      "formats": [
+        "pdf"
+      ],
+      "field_evidence": {
+        "kind": "text_window",
+        "scope": "institution",
+        "title": "Common App 2026-27 first-year requirements row",
+        "context_before": 900,
+        "identity_patterns": [
+          "{COMMON_APP_NAME}"
+        ],
+        "supported_fields": [
+          "application_fee",
+          "priority_deadline",
+          "final_deadline",
+          "rolling_admission",
+          "standardized_tests"
+        ],
+        "context_after": 700,
+        "schema_context": "Table columns are: first-year application deadlines; US and international application fees (USD); fee-waiver availability; Common App supplements; minimum standard test policy; English proficiency requirement. Only literal values in the matched row may be extracted."
+      },
+      "reason": "Common App's published current first-year requirements grid; institution-level partner evidence.",
+      "enabled": true,
+      "provider_type": "official_partner"
+    },
+    {
+      "provider_id": "openalex",
+      "name": "OpenAlex institutions",
+      "source_class": "external_authoritative",
+      "authority": "TRUSTED_AGGREGATOR",
+      "relationship": "CATALOGUE_PROVIDER",
+      "countries": [
+        "*"
+      ],
+      "domain": "api.openalex.org",
+      "base_url": "https://api.openalex.org/institutions",
+      "query_parameter": "search",
+      "dataset_id": "openalex-institutions",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata"
+      ],
+      "resolution": "institution",
+      "pagination": {
+        "strategy": "page",
+        "page_parameter": "page",
+        "page_size_parameter": "per-page",
+        "page_size": 25,
+        "max_pages": 2
+      },
+      "reason": "OpenAlex public institution index for external validation",
+      "enabled": true,
+      "provider_type": "trusted_external_dataset"
+    },
+    {
+      "provider_id": "ror",
+      "name": "Research Organization Registry",
+      "source_class": "external_authoritative",
+      "authority": "TRUSTED_AGGREGATOR",
+      "relationship": "CATALOGUE_PROVIDER",
+      "countries": [
+        "*"
+      ],
+      "domain": "api.ror.org",
+      "resource_url": "https://api.ror.org/organizations",
+      "query_parameter": "query",
+      "dataset_id": "ror-organizations",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata"
+      ],
+      "resolution": "institution",
+      "reason": "Optional ROR provider; upstream robots/access policy currently blocks unattended use.",
+      "enabled": false,
+      "provider_type": "trusted_external_dataset",
+      "optional": true
+    },
+    {
+      "provider_id": "crossref",
+      "name": "Crossref metadata API",
+      "source_class": "external_authoritative",
+      "authority": "TRUSTED_AGGREGATOR",
+      "relationship": "CATALOGUE_PROVIDER",
+      "countries": [
+        "*"
+      ],
+      "domain": "api.crossref.org",
+      "resource_url": "https://api.crossref.org/works",
+      "query_parameter": "query.affiliation",
+      "dataset_id": "crossref-works",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "institution_metadata"
+      ],
+      "resolution": "institution",
+      "pagination": {
+        "strategy": "offset",
+        "offset_parameter": "offset",
+        "page_size_parameter": "rows",
+        "page_size": 20,
+        "max_pages": 2
+      },
+      "reason": "Crossref public REST metadata API for external entity/context validation; not programme tuition truth.",
+      "enabled": true,
+      "provider_type": "trusted_external_dataset",
+      "optional": false,
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0,
+        "requests_per_second": 1.0
+      },
+      "request_headers": {
+        "User-Agent": "GlowBalExternalAcquisition/1.0"
+      },
+      "formats": [
+        "json"
+      ]
+    },
+    {
+      "provider_id": "internet_archive",
+      "name": "Internet Archive Wayback",
+      "source_class": "archive",
+      "authority": "ARCHIVE",
+      "relationship": "ARCHIVE",
+      "countries": [
+        "*"
+      ],
+      "domain": "web.archive.org",
+      "capture_discovery_url": "https://web.archive.org/cdx/search/cdx?url=https://{official_domain}/*&output=json&filter=statuscode:200&fl=timestamp,original,mimetype,statuscode,digest&limit=50",
+      "dataset_id": "wayback-cdx",
+      "retrieval_method": "GET",
+      "retrieval_type": "cdx",
+      "field_groups": [
+        "tuition",
+        "deadline"
+      ],
+      "resolution": "programme",
+      "adapter_id": "archive_http",
+      "capture_url_template": "https://web.archive.org/web/{timestamp}id_/{original}",
+      "max_captures": 3,
+      "reason": "Optional Internet Archive fallback; Arquivo.pt is the default production archive provider.",
+      "enabled": false,
+      "provider_type": "archive",
+      "optional": true
+    },
+    {
+      "provider_id": "bing_web_search",
+      "name": "Bing Web Search API (optional)",
+      "source_class": "search_discovery",
+      "authority": "OTHER",
+      "relationship": "OTHER_RELATED",
+      "countries": [
+        "*"
+      ],
+      "domain": "api.bing.microsoft.com",
+      "query_endpoint": "https://api.bing.microsoft.com/v7.0/search",
+      "dataset_id": "bing-web-search",
+      "retrieval_method": "GET",
+      "retrieval_type": "search_json",
+      "query_parameter": "q",
+      "field_groups": [
+        "discovery"
+      ],
+      "resolution": "unknown",
+      "authentication_mode": "api_key_header",
+      "authentication": {
+        "mode": "api_key_header",
+        "header": "Ocp-Apim-Subscription-Key",
+        "token_env": "BING_SEARCH_API_KEY"
+      },
+      "pagination": {
+        "strategy": "page",
+        "page_parameter": "offset",
+        "page_size": 10,
+        "max_pages": 2
+      },
+      "adapter_id": "search_provider",
+      "enabled": false,
+      "reason": "Optional credentialed Bing discovery provider; public catalogue discovery is the default.",
+      "provider_type": "search",
+      "optional": true
+    },
+    {
+      "provider_id": "ipeds_nces_live",
+      "name": "IPEDS NCES live endpoint (optional legacy)",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "US"
+      ],
+      "domain": "nces.ed.gov",
+      "base_url": "https://nces.ed.gov/ipeds/datacenter/data",
+      "dataset_id": "IPEDS",
+      "retrieval_method": "GET",
+      "retrieval_type": "download",
+      "field_groups": [
+        "institution_metadata",
+        "programme_taxonomy"
+      ],
+      "academic_cycle": "2024-25",
+      "resolution": "institution",
+      "adapter_id": "ipeds",
+      "identifier_mapping": {
+        "institution_id": "institution_id"
+      },
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Optional legacy live endpoint; use IPEDS bulk files by default.",
+      "enabled": false,
+      "provider_type": "government_dataset",
+      "optional": true
+    },
+    {
+      "provider_id": "college_scorecard_bulk",
+      "name": "College Scorecard official bulk data",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "US"
+      ],
+      "domain": "ed-public-download.scorecard.network",
+      "dataset_id": "college-scorecard-bulk",
+      "retrieval_method": "GET",
+      "retrieval_type": "zip",
+      "field_groups": [
+        "institution_metadata",
+        "tuition",
+        "finance",
+        "programme_taxonomy"
+      ],
+      "resolution": "institution",
+      "adapter_id": "college_scorecard",
+      "identifier_mapping": {
+        "UNITID": "institution_id"
+      },
+      "structured_archive": {
+        "member_patterns": [
+          "Most-Recent-Cohorts-Institution.csv"
+        ],
+        "identifier_fields": [
+          "UNITID"
+        ],
+        "sample_rows": 100,
+        "max_rows": 5000,
+        "max_scan_rows": 1000000,
+        "max_member_bytes": 536870912,
+        "max_archive_bytes": 536870912,
+        "chunk_size": 65536
+      },
+      "field_evidence": {
+    "kind": "structured_rows",
+    "scope": "institution",
+    "title": "College Scorecard institution tuition record",
+    "source_temporal_context": "The literal source archive/member designation is Most-Recent-Cohorts-Institution.csv; this selected row contains no academic-cycle or reporting-year field.",
+        "identity_fields": [
+          "UNITID"
+        ],
+        "field_mappings": [
+          {
+            "field": "tuition",
+            "column": "TUITIONFEE_IN",
+            "label": "Annual tuition and fees for in-state students",
+            "currency": "USD",
+            "basis": "annual",
+            "audience": "domestic"
+          },
+          {
+            "field": "tuition",
+            "column": "TUITIONFEE_OUT",
+            "label": "Annual tuition and fees for out-of-state students",
+            "currency": "USD",
+            "basis": "annual",
+            "audience": "international"
+          }
+        ]
+      },
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "accept": "application/zip,application/octet-stream",
+      "max_bytes": 536870912,
+      "formats": [
+        "zip",
+        "csv"
+      ],
+      "resource_specs": [
+        {
+          "url": "https://ed-public-download.scorecard.network/downloads/Most-Recent-Cohorts-Institution.zip",
+          "dataset_id": "college-scorecard-bulk",
+          "retrieval_type": "zip",
+          "field_groups": [
+            "institution_metadata",
+            "tuition",
+            "finance",
+            "programme_taxonomy"
+          ],
+          "formats": [
+            "zip",
+            "csv"
+          ],
+          "max_bytes": 536870912
+        }
+      ],
+      "reason": "US Department of Education College Scorecard public downloadable bulk release; institution-level resolution.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "usdoe_affordability",
+      "name": "US Department of Education college affordability data",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "US"
+      ],
+      "domain": "collegecost.ed.gov",
+      "dataset_id": "usdoe-college-affordability-bulk",
+      "retrieval_method": "GET",
+      "retrieval_type": "xlsx",
+      "field_groups": [
+        "tuition",
+        "finance",
+        "institution_metadata"
+      ],
+      "academic_cycle": "latest",
+      "resolution": "institution",
+      "adapter_id": "government_dataset",
+      "identifier_mapping": {
+        "UNITID": "institution_id"
+      },
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream",
+      "max_bytes": 16777216,
+      "formats": [
+        "xlsx"
+      ],
+      "resource_url": "https://collegecost.ed.gov/wwwroot/documents/CATClists2024.xlsx",
+      "resource_specs": [
+        {
+          "url": "https://collegecost.ed.gov/wwwroot/documents/CATClists2024.xlsx",
+          "dataset_id": "usdoe-college-affordability-bulk",
+          "data_year": "2026",
+          "retrieval_type": "xlsx",
+          "field_groups": [
+            "tuition",
+            "finance",
+            "institution_metadata"
+          ],
+          "formats": [
+            "xlsx"
+          ],
+          "max_bytes": 16777216
+        }
+      ],
+      "reason": "US Department of Education College Affordability and Transparency Center public cost/affordability workbook; institution-level resolution.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "discover_uni_hesa",
+      "name": "HESA / Discover Uni (Unistats) structured data",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "UK"
+      ],
+      "domain": "discoveruni.gov.uk",
+      "dataset_id": "discover-uni-course-details",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "programme_taxonomy",
+        "career_outcomes"
+      ],
+      "academic_cycle": null,
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "identifier_mapping": {
+        "PUBUKPRN": "institution_id",
+        "KISCourse": "programme_id",
+        "KISMODE": "study_mode"
+      },
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "formats": ["html"],
+      "field_evidence": {
+        "kind": "text_window",
+        "scope": "programme",
+        "title": "Discover Uni programme course record",
+        "identity_patterns": [
+          "{institution_name}",
+          "{course_name}"
+        ],
+        "context_before": 450,
+        "context_after": 14000,
+        "supported_fields": [
+          "programme_identity",
+          "credential",
+          "career_outcomes",
+          "employment_outcomes"
+        ],
+        "metadata_mappings": [
+          {
+            "field": "delivery_mode",
+            "label": "Study mode",
+            "pattern": "\\bStudy mode\\s+(?P<value>Full time|Part time|Full-time|Part-time|Both)\\b"
+          },
+          {
+            "field": "duration",
+            "label": "Course length",
+            "pattern": "\\bLength\\s+(?P<value>\\d+(?:\\.\\d+)?\\s+(?:year|years|month|months|week|weeks)\\s+course)\\b"
+          },
+          {
+            "field": "campus",
+            "label": "Course location",
+            "pattern": "\\bLocation\\s*:\\s*(?P<value>.+?)(?=\\s+Save course\\b|\\s+Course details\\b)"
+          }
+        ],
+        "source_temporal_context": "The course page reports programme metadata and outcome observations for explicitly labelled periods (including Graduate Outcomes for students graduating 2021-23 and NSS 2024-25); these observation periods are not an inferred programme academic cycle.",
+        "schema_context": "This official Discover Uni course-details record is selected by the source-native PUBUKPRN/KISCourse/KISMODE route identifiers. It explicitly names the course, award and institution. Only programme-qualified outcome cards may support career_outcomes or employment_outcomes; subject-level computer-science aggregates and generic institution marketing must not be attached to this programme. Preserve the source-labelled outcome period in evidence and leave academic_cycle null unless the page explicitly labels a programme cycle."
+      },
+      "resource_specs": [
+        {
+          "url": "https://discoveruni.gov.uk/course-details/{PUBUKPRN}/{KISCourse}/{KISMODE}/",
+          "dataset_id": "discover-uni-course-details",
+          "retrieval_type": "html",
+          "field_groups": [
+            "programme_taxonomy",
+            "career_outcomes"
+          ],
+          "formats": ["html"],
+          "max_bytes": 5242880
+        }
+      ],
+      "reason": "Official Discover Uni course-details route in the HESA/Unistats ecosystem; programme-qualified identity and Graduate Outcomes fields are exposed on a compliant static page.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "education_registry"
+    },
+    {
+      "provider_id": "duo_rio_ho",
+      "name": "DUO RIO higher-education programme overview",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "NL"
+      ],
+      "domain": "onderwijsdata.duo.nl",
+      "dataset_id": "duo-rio-ho-opleidingsoverzicht",
+      "retrieval_method": "GET",
+      "retrieval_type": "json",
+      "field_groups": [
+        "programme_taxonomy"
+      ],
+      "academic_cycle": null,
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "formats": ["json"],
+      "field_evidence": {
+        "kind": "structured_rows",
+        "scope": "programme",
+        "title": "DUO RIO higher-education programme row",
+        "record_path": "result.records",
+        "source_temporal_context": "The RIO row exposes source-native programme and offering dates (for example BEGINDATUM and AANGEBODEN_OPLEIDING_BEGINDATUM) but no academic-cycle label. Preserve those dates as row evidence and do not convert them into an academic cycle.",
+        "identity_fields": [
+          "ONDERWIJSBESTUURID",
+          "OPLEIDINGSEENHEIDCODE"
+        ],
+        "supported_fields": [
+          "programme_identity",
+          "credential"
+        ],
+        "field_mappings": [
+          {
+            "field": "programme_identity",
+            "column": "NAAM_LANG",
+            "label": "RIO programme name"
+          },
+          {
+            "field": "credential",
+            "column": "GRAAD",
+            "label": "RIO award/degree"
+          }
+        ],
+        "metadata_mappings": [
+          {
+            "field": "language",
+            "column": "VOERTAAL",
+            "label": "RIO programme language"
+          },
+          {
+            "field": "delivery_mode",
+            "column": "VORM",
+            "label": "RIO delivery mode"
+          },
+          {
+            "field": "programme_start_date",
+            "column": "BEGINDATUM",
+            "label": "RIO programme start date"
+          },
+          {
+            "field": "offering_start_date",
+            "column": "AANGEBODEN_OPLEIDING_BEGINDATUM",
+            "label": "RIO offering start date"
+          },
+          {
+            "field": "study_load",
+            "column": "STUDIELAST",
+            "label": "RIO study load"
+          },
+          {
+            "field": "qualification_level",
+            "column": "NIVEAU",
+            "label": "RIO qualification level"
+          }
+        ],
+        "schema_context": "This official DUO RIO row is selected by exact ONDERWIJSBESTUURID plus OPLEIDINGSEENHEIDCODE. NAAM_LANG and GRAAD are literal programme identity/award columns. Other observed columns such as NIVEAU, STUDIELAST, VOERTAAL and date fields remain source metadata unless a requested deep field is explicitly mapped; do not infer tuition, duration, location, admissions thresholds, deadlines or an academic cycle from their absence."
+      },
+      "resource_specs": [
+        {
+          "url": "https://onderwijsdata.duo.nl/api/3/action/datastore_search?resource_id=ffffa7ad-e6a2-4ba7-9fc2-a09df4128555&limit=1&filters=%7B%22ONDERWIJSBESTUURID%22%3A%22{ONDERWIJSBESTUURID}%22%2C%22OPLEIDINGSEENHEIDCODE%22%3A%22{OPLEIDINGSEENHEIDCODE}%22%7D",
+          "dataset_id": "duo-rio-ho-opleidingsoverzicht",
+          "retrieval_type": "json",
+          "field_groups": [
+            "programme_taxonomy"
+          ],
+          "formats": ["json"],
+          "max_bytes": 8388608
+        }
+      ],
+      "reason": "DUO public RIO higher-education overview exposed through the official CKAN datastore API; exact institution and programme identifiers are applied as a server-side record filter and then matched again in the returned row.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "education_registry"
+    },
+    {
+      "provider_id": "arquivo_pt",
+      "name": "Arquivo.pt public web archive",
+      "source_class": "archive",
+      "authority": "ARCHIVE",
+      "relationship": "ARCHIVE",
+      "countries": [
+        "*"
+      ],
+      "domain": "arquivo.pt",
+      "capture_discovery_url": "https://arquivo.pt/wayback/cdx?url=https://{official_domain}/*&output=json&filter=statuscode:200&fl=timestamp,original,mimetype,statuscode,digest&limit=50",
+      "dataset_id": "arquivo-pt-cdx",
+      "retrieval_method": "GET",
+      "retrieval_type": "cdx",
+      "field_groups": [
+        "tuition",
+        "deadline"
+      ],
+      "resolution": "programme",
+      "adapter_id": "archive_http",
+      "original_url": "https://{official_domain}/",
+      "capture_url_template": "https://arquivo.pt/wayback/{timestamp}id_/{original}",
+      "max_captures": 3,
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Portuguese national web archive capture discovery and historical retrieval; all evidence is HISTORICAL.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "archive",
+      "formats": [
+        "json",
+        "html",
+        "pdf",
+        "text"
+      ]
+    },
+    {
+      "provider_id": "data_europa_eu",
+      "name": "data.europa.eu dataset discovery",
+      "source_class": "search_discovery",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "*"
+      ],
+      "domain": "data.europa.eu",
+      "query_endpoint": "https://data.europa.eu/api/hub/search/ckan/package_search",
+      "dataset_id": "data-europa-datasets",
+      "retrieval_method": "GET",
+      "retrieval_type": "search_json",
+      "query_parameter": "q",
+      "result_path": "result.results",
+      "result_url_field": "id",
+      "result_url_template": "https://data.europa.eu/api/hub/search/ckan/package_show?id={id}",
+      "field_groups": [
+        "discovery"
+      ],
+      "resolution": "dataset",
+      "adapter_id": "search_provider",
+      "pagination": {
+        "strategy": "offset",
+        "offset_parameter": "start",
+        "page_size_parameter": "rows",
+        "page_size": 20,
+        "max_pages": 2
+      },
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Free public European data catalogue used for discovery only; returned resources require normal source admission and fetch.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "public_data_catalogue",
+      "formats": [
+        "json"
+      ]
+    },
+    {
+      "provider_id": "data_gov_us",
+      "name": "US Data.gov catalogue discovery",
+      "source_class": "search_discovery",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "US"
+      ],
+      "domain": "api.gsa.gov",
+      "query_endpoint": "https://api.gsa.gov/technology/datagov/v4/search",
+      "dataset_id": "data-gov-us-packages",
+      "retrieval_method": "GET",
+      "retrieval_type": "search_json",
+      "query_parameter": "q",
+      "result_path": "results",
+      "result_url_field": "harvest_record_raw",
+      "field_groups": [
+        "discovery"
+      ],
+      "resolution": "dataset",
+      "adapter_id": "search_provider",
+      "pagination": {
+        "max_pages": 1
+      },
+      "authentication_mode": "api_key_query",
+      "authentication": {
+        "mode": "api_key_query",
+        "parameter": "api_key",
+        "token_env": "DATAGOV_API_KEY"
+      },
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Free official US data catalogue used for discovery only; returned resources require normal source admission and fetch.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "public_data_catalogue",
+      "formats": [
+        "json"
+      ]
+    },
+    {
+      "provider_id": "swissuniversities_tuition",
+      "name": "swissuniversities tuition fee table",
+      "source_class": "official_partner",
+      "authority": "OFFICIAL_PARTNER",
+      "relationship": "CONSORTIUM",
+      "countries": [
+        "CH"
+      ],
+      "domain": "www.swissuniversities.ch",
+      "resource_url": "https://www.swissuniversities.ch/en/themen/lehre-studium/information-on-studies/tuition-fees/tuition-fees-at-universities",
+      "dataset_id": "swissuniversities-tuition-2026-27",
+      "retrieval_method": "GET",
+      "retrieval_type": "html",
+      "field_groups": [
+        "tuition",
+        "finance"
+      ],
+      "academic_cycle": "2026-2027",
+      "resolution": "institution",
+      "adapter_id": "official_partner",
+      "formats": [
+        "html"
+      ],
+      "field_evidence": {
+        "kind": "text_window",
+        "scope": "institution",
+        "title": "swissuniversities 2026-27 tuition table row",
+        "identity_patterns": [
+          "{SWISSUNIVERSITIES_NAME}"
+        ],
+        "supported_fields": [
+          "tuition",
+          "additional_fees"
+        ],
+        "context_before": 450,
+        "context_after": 650,
+        "schema_context": "This swissuniversities table states fees in CHF. Columns are domestic tuition per semester, foreign tuition per semester, other compulsory fees per semester, and one-time fees. Only literal values in the matched institution row may be extracted.",
+        "row_value_mappings": [
+          {
+            "field": "tuition",
+            "label": "Domestic tuition",
+            "value_index": 0,
+            "credential": "Domestic tuition",
+            "currency": "CHF",
+            "basis": "per semester",
+            "audience": "domestic"
+          },
+          {
+            "field": "tuition",
+            "label": "Foreign tuition",
+            "value_index": 1,
+            "credential": "Foreign tuition",
+            "currency": "CHF",
+            "basis": "per semester",
+            "audience": "international"
+          },
+          {
+            "field": "additional_fees",
+            "label": "Other compulsory fees",
+            "value_index": 2,
+            "currency": "CHF",
+            "basis": "per semester",
+            "audience": "all"
+          }
+        ]
+      },
+      "reason": "swissuniversities publishes a current-cycle member-university fee overview; rows are matched by exact listed institution name.",
+      "enabled": true,
+      "provider_type": "official_university_consortium"
+    },
+    {
+      "provider_id": "onisep_higher_ed",
+      "name": "Onisep Idéo initial higher-education catalogue",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "FR"
+      ],
+      "domain": "api.opendata.onisep.fr",
+      "resource_url": "https://api.opendata.onisep.fr/downloads/605344579a7d7/605344579a7d7.csv",
+      "dataset_id": "ideo-actions-formation-initiale-univers-enseignement-superieur",
+      "retrieval_method": "GET",
+      "retrieval_type": "csv",
+      "field_groups": [
+        "programme_taxonomy",
+        "tuition",
+        "finance"
+      ],
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "source_temporal_context": "The published CSV carries AF date de création and AF date de modification as source update metadata; it does not publish an academic or admission cycle. Keep academic_cycle null.",
+      "field_evidence": {
+        "kind": "structured_rows",
+        "scope": "programme",
+        "title": "Onisep Idéo higher-education training action",
+        "source_temporal_context": "The source exposes AF date de modification as a dataset record update date, not an academic cycle; no academic-cycle field is published.",
+        "schema_context": "For a schooling-cost value, use the literal FOR type column as the fee credential category. Do not use the longer Formation (FOR) libellé as the tuition credential unless the source fee row labels it that way. The text 'par an' explicitly marks the annual values; emit those as the annual/year basis. The preceding range is not labelled as a total, so do not emit a total-basis fee unless the row explicitly says total.",
+        "identity_fields": [
+          "ENS code UAI",
+          "Action de Formation (AF) identifiant Onisep"
+        ],
+        "supported_fields": [
+          "programme_identity",
+          "credential",
+          "tuition"
+        ],
+        "field_mappings": [
+          {
+            "field": "programme_identity",
+            "column": "Formation (FOR) libellé",
+            "label": "Formation label"
+          },
+          {
+            "field": "credential",
+            "column": "FOR type",
+            "label": "Qualification type"
+          },
+          {
+            "field": "tuition",
+            "column": "AF coût scolarité",
+            "label": "Tuition (schooling cost)",
+            "credential_column": "FOR type",
+            "credential_label": "fee credential category",
+            "render_pattern": "(?P<value>\\d[\\d\\s]*(?:(?:à|a|-)\\s*\\d[\\d\\s]*)?\\s+euros?\\s+par\\s+an(?:[^)]*)?)"
+          }
+        ],
+        "metadata_mappings": [
+          {
+            "field": "duration",
+            "column": "AF durée cycle standard",
+            "label": "Standard cycle duration",
+            "scope": "programme"
+          },
+          {
+            "field": "delivery_mode",
+            "column": "AF modalités scolarité",
+            "label": "Study modality",
+            "scope": "programme"
+          },
+          {
+            "field": "campus",
+            "column": "ENS commune",
+            "label": "Teaching location",
+            "scope": "programme"
+          }
+        ]
+      },
+      "accept": "text/csv,application/csv,application/octet-stream",
+      "max_bytes": 31457280,
+      "formats": [
+        "csv"
+      ],
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "French public Onisep Idéo export of initial higher-education training actions; exact UAI and Onisep AF identifiers permit bounded programme matching.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "studyinfo_hakukohde",
+      "name": "Finnish Studyinfo application-target JSON",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "FI"
+      ],
+      "domain": "opintopolku.fi",
+      "resource_url": "https://opintopolku.fi/konfo-backend/hakukohde/{STUDYINFO_HAKUKOHDE_OID}",
+      "dataset_id": "studyinfo-konfo-hakukohde",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "programme_taxonomy",
+        "admissions",
+        "deadline"
+      ],
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "academic_cycle": null,
+      "identifier_mapping": {},
+      "field_evidence": {
+        "kind": "structured_rows",
+        "scope": "programme",
+        "title": "Studyinfo application target",
+        "identity_fields": [
+          "oid"
+        ],
+        "supported_fields": [
+          "rolling_admission",
+          "minimum_degree",
+          "required_documents"
+        ],
+        "field_mappings": [
+          {
+            "field": "rolling_admission",
+            "column": "hakuNimi.en",
+            "label": "Application route (rolling admission only when explicitly named)"
+          },
+          {
+            "field": "minimum_degree",
+            "column": "pohjakoulutusvaatimus.0.nimi.en",
+            "label": "Required prior education (minimum degree requirement)"
+          },
+          {
+            "field": "required_documents",
+            "column": "liitteet.0.nimi.en",
+            "label": "Required application document name"
+          }
+        ],
+        "source_temporal_context": "Studyinfo application-target JSON publishes source-native application windows, start terms and document-delivery dates. These are application and registry dates; no academic cycle is inferred.",
+        "schema_context": "This Finnish National Agency for Education Studyinfo record is matched by the exact hakukohde OID. Map rolling_admission only when the source hakuNimi or target name explicitly contains Rolling admission; do not infer rolling admission from a generic separate-application route. The materialized pohjakoulutusvaatimus value is one source-native prior-education option and may support minimum_degree only for a programme whose target degree makes that field applicable; emit that one literal English label. For minimum_degree, evidence MUST copy the complete continuous line beginning `Required prior education (minimum degree requirement):`; an evidence span containing only the degree label is insufficient. The materialized liitteet value is one source-native application-document name; emit required_documents as that literal string only, never as a structured object and never as a list assembled from other source records. Preserve required versus conditional/post-offer language only when it is in the same exact evidence span. Ignore registry publication markers completely: they are not admissions status. Do not map application deadlines to priority/international/funding types without an explicit label."
+      },
+      "accept": "application/json",
+      "max_bytes": 8388608,
+      "formats": [
+        "json"
+      ],
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Official Finnish Studyinfo/Opintopolku backend exposes exact application-target records with source-native prior-education requirements, document attachments, and explicitly named rolling-admission routes.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "studyinfo_valintaperuste",
+      "name": "Finnish Studyinfo selection-criteria JSON",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "FI"
+      ],
+      "domain": "opintopolku.fi",
+      "resource_url": "https://opintopolku.fi/konfo-backend/valintaperuste/{STUDYINFO_VALINTAPERUSTE_ID}",
+      "dataset_id": "studyinfo-konfo-valintaperuste",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "admissions",
+        "language",
+        "funding",
+        "programme_taxonomy"
+      ],
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "academic_cycle": null,
+      "identifier_mapping": {},
+      "field_evidence": {
+        "kind": "structured_rows",
+        "scope": "programme",
+        "title": "Studyinfo selection criteria",
+        "title_column": "nimi.en",
+        "identity_fields": [
+          "id"
+        ],
+        "supported_fields": [
+          "standardized_tests",
+          "ielts_overall",
+          "toefl",
+          "work_experience",
+          "scholarships",
+          "academic_cycle"
+        ],
+        "field_mappings": [
+          {
+            "field": "standardized_tests",
+            "column": "metadata.valintatavat.0.kynnysehto.en",
+            "label": "Explicit standardized-test admission threshold"
+          },
+          {
+            "field": "standardized_tests",
+            "column": "metadata.hakukelpoisuus.en",
+            "label": "Explicit standardized/language test requirements"
+          },
+          {
+            "field": "ielts_overall",
+            "column": "metadata.hakukelpoisuus.en",
+            "label": "IELTS overall language threshold"
+          },
+          {
+            "field": "toefl",
+            "column": "metadata.hakukelpoisuus.en",
+            "label": "TOEFL language threshold"
+          },
+          {
+            "field": "work_experience",
+            "column": "metadata.hakukelpoisuus.en",
+            "label": "Explicit work-experience eligibility requirement"
+          },
+          {
+            "field": "scholarships",
+            "column": "metadata.lisatiedot.en",
+            "label": "Explicit scholarship/tuition-waiver policy",
+            "render_pattern": "(?is)(?P<value>Applicants subject to tuition fees can apply for tuition waivers and scholarships.*?application form\\.)"
+          },
+          {
+            "field": "academic_cycle",
+            "column": "metadata.lisatiedot.en",
+            "label": "Explicit academic-year context",
+            "render_pattern": "(?i)(?P<value>20\\d{2}[–-]20\\d{2} academic year)"
+          }
+        ],
+        "source_temporal_context": "Studyinfo selection-criteria JSON carries source-native application and programme text. Academic cycle may be emitted only when the matched text explicitly labels an academic year or admissions year; modified/timestamp metadata is not a cycle.",
+        "schema_context": "This Finnish National Agency for Education Studyinfo record is matched by the exact valintaperuste id. Emit standardized_tests only for an explicitly named standardized admission test or threshold (for example GMAT/GRE/SAT); a generic course score is not a test requirement. For ielts_overall and toefl, emit only the exact named minimum overall threshold from metadata.hakukelpoisuus; do not derive subscores or treat a general English-language statement as numeric evidence. Emit work_experience only when metadata.hakukelpoisuus explicitly requires work experience and preserve its duration/field wording. Emit scholarships only for an explicit scholarship, waiver, grant or funding policy in metadata.lisatiedot; do not turn tuition amounts or a linked page into an award, amount or eligibility. Emit academic_cycle only from an explicit admissions/academic-year label in the same evidence; never use modified, timestamp, application dates or start terms to invent one. Preserve all source text and programme scope; no value is hard-coded."
+      },
+      "accept": "application/json",
+      "max_bytes": 8388608,
+      "formats": [
+        "json"
+      ],
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Official Finnish Studyinfo selection-criteria JSON publishes programme-specific language thresholds, standardized-test thresholds, work-experience eligibility and explicit scholarship policy where present.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "studyinfo_toteutus",
+      "name": "Finnish Studyinfo offering JSON",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "FI"
+      ],
+      "domain": "opintopolku.fi",
+      "resource_url": "https://opintopolku.fi/konfo-backend/toteutus/{STUDYINFO_TOTEUTUS_OID}",
+      "dataset_id": "studyinfo-konfo-toteutus",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "programme_taxonomy",
+        "admissions"
+      ],
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "academic_cycle": null,
+      "identifier_mapping": {},
+      "field_evidence": {
+        "kind": "structured_rows",
+        "scope": "programme",
+        "title": "Studyinfo programme offering",
+        "identity_fields": [
+          "oid"
+        ],
+        "supported_fields": [
+          "programme_status"
+        ],
+        "field_mappings": [
+          {
+            "field": "programme_status",
+            "column": "hakuAuki",
+            "label": "Studyinfo application-window status (source hakuAuki)"
+          }
+        ],
+        "metadata_mappings": [
+          {
+            "field": "application_windows",
+            "column": "hakutiedot.0.hakukohteet.0.hakuajat",
+            "label": "Source-native application window dates",
+            "scope": "programme"
+          }
+        ],
+        "source_temporal_context": "Studyinfo hakuAuki is an application-window state on the offering; linked haku records carry source-native application dates and start terms. The offering's lifecycle timestamps are registry metadata, not an academic cycle.",
+        "schema_context": "This Finnish National Agency for Education Studyinfo offering is matched by exact toteutus OID. Emit programme_status only from the exact hakuAuki boolean when it is true or false and the evidence also preserves the applicable current application window. Ignore every registry publication marker and do not emit a publication value as programme_status. Do not infer an academic cycle from modified/timestamp or from a generic offering record."
+      },
+      "accept": "application/json",
+      "max_bytes": 8388608,
+      "formats": [
+        "json"
+      ],
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Official Finnish Studyinfo/Opintopolku offering JSON exposes exact offering identity and hakuAuki application-window state with linked application-route dates.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "susa_navet_event",
+      "name": "Skolverket Susa-navet education-event API",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "SE"
+      ],
+      "domain": "api.skolverket.se",
+      "resource_url": "https://api.skolverket.se/susa-navet/emil3/educationEvents/{SUSA_EVENT_ID}",
+      "dataset_id": "susa-navet-education-events",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "programme_taxonomy",
+        "admissions",
+        "deadline",
+        "finance",
+        "language"
+      ],
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "academic_cycle": null,
+      "identifier_mapping": {},
+      "field_evidence": {
+        "kind": "structured_rows",
+        "scope": "programme",
+        "title": "Susa-navet education event",
+        "identity_fields": [
+          "id",
+          "content.providers"
+        ],
+        "supported_fields": [
+          "programme_status",
+          "final_deadline",
+          "intakes",
+          "tuition"
+        ],
+        "field_mappings": [
+          {
+            "field": "programme_status",
+            "column": "status",
+            "label": "Susa programme status"
+          },
+          {
+            "field": "final_deadline",
+            "column": "content.application.last",
+            "label": "Application closing date"
+          },
+          {
+            "field": "intakes",
+            "column": "content.extensions.0.startPeriod.period",
+            "label": "Source-native start period"
+          },
+          {
+            "field": "tuition",
+            "column": "content.extensions.0.tuitionFee",
+            "label": "Source-native tuition fee"
+          }
+        ],
+        "metadata_mappings": [
+          {
+            "field": "language",
+            "column": "content.languageOfInstructions",
+            "label": "Language of instruction",
+            "scope": "programme"
+          },
+          {
+            "field": "application_policy",
+            "column": "content.extensions.0.applicationDetails",
+            "label": "Application visibility and closing-date policy",
+            "scope": "programme"
+          }
+        ],
+        "source_temporal_context": "Susa-navet application.last/closeDate is an explicit application closing date and startPeriod.period is a source-native intake period. The record is a current registry offering; no academic cycle is inferred.",
+        "schema_context": "This official Skolverket JSON record is matched by its exact event id and source-native provider-id array. tuitionFee.first and tuitionFee.total are literal fee amounts, but the inspected API record does not publish an ISO currency; never invent SEK. Do not map languageOfInstructions to IELTS/TOEFL, execution dates to duration, or application visibility flags to an international deadline unless the exact flag supports that audience."
+      },
+      "accept": "application/json",
+      "max_bytes": 5242880,
+      "formats": [
+        "json"
+      ],
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Skolverket publishes Susa-navet as an open REST JSON education-opportunity registry; inspected KTH records expose exact event identity, application closing date, source-native start period, status, fee object, provider id, location and instruction-language fields.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    },
+    {
+      "provider_id": "susa_navet_info",
+      "name": "Skolverket Susa-navet education-info API",
+      "source_class": "government_dataset",
+      "authority": "GOVERNMENT",
+      "relationship": "GOVERNMENT",
+      "countries": [
+        "SE"
+      ],
+      "domain": "api.skolverket.se",
+      "resource_url": "https://api.skolverket.se/susa-navet/emil3/educationInfos/{SUSA_INFO_ID}",
+      "dataset_id": "susa-navet-education-infos",
+      "retrieval_method": "GET",
+      "retrieval_type": "json_api",
+      "field_groups": [
+        "programme_taxonomy",
+        "admissions"
+      ],
+      "resolution": "programme",
+      "adapter_id": "government_dataset",
+      "academic_cycle": null,
+      "identifier_mapping": {},
+      "field_evidence": {
+        "kind": "structured_rows",
+        "scope": "programme",
+        "title": "Susa-navet education information",
+        "identity_fields": [
+          "id"
+        ],
+        "supported_fields": [
+          "programme_identity",
+          "credential",
+          "subject_prerequisites",
+          "programme_status"
+        ],
+        "field_mappings": [
+          {
+            "field": "programme_identity",
+            "column": "content.title.strings.1.value",
+            "label": "Programme title (English)"
+          },
+          {
+            "field": "credential",
+            "column": "content.degrees.0.strings.0.value",
+            "label": "Award or credential"
+          },
+          {
+            "field": "subject_prerequisites",
+            "column": "content.eligibility.strings.0.value",
+            "label": "Eligibility and subject prerequisites"
+          },
+          {
+            "field": "programme_status",
+            "column": "status",
+            "label": "Susa programme status"
+          }
+        ],
+        "metadata_mappings": [
+          {
+            "field": "credits",
+            "column": "content.credits",
+            "label": "Source-native programme credits",
+            "scope": "programme"
+          },
+          {
+            "field": "qualification_level",
+            "column": "content.educationLevels.0.code",
+            "label": "Source-native education level",
+            "scope": "programme"
+          },
+          {
+            "field": "registry_temporal_context",
+            "column": "content.lastEdited",
+            "label": "Registry record last edited",
+            "scope": "programme"
+          }
+        ],
+        "source_temporal_context": "Susa-navet lastEdited and expires are registry record metadata, not an academic or admission cycle. The information record has no cycle value to infer.",
+        "schema_context": "Title, degree and eligibility are literal source-native fields. The inspected KTH record provides an English title and Swedish eligibility text; retain the source language and do not translate, infer minimum degree/GPA, or turn education level/credits into duration. The outer ACTIVE value is a registry status literal, not evidence that applications are open."
+      },
+      "accept": "application/json",
+      "max_bytes": 5242880,
+      "formats": [
+        "json"
+      ],
+      "rate_limit_policy": {
+        "min_interval_seconds": 1.0
+      },
+      "reason": "Skolverket Susa-navet education-info records expose exact programme title, award, eligibility/prerequisite text, status, education level and credits in the open REST JSON schema inspected for KTH.",
+      "enabled": true,
+      "optional": false,
+      "provider_type": "government_dataset"
+    }
+  ]
+}

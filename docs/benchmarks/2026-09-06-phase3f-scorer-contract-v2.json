@@ -1,0 +1,74 @@
+{
+  "schema_version": "phase3f-identity-scorer-contract-v2",
+  "status": "FROZEN",
+  "input": "structured programme identity records; source-native identity retained",
+  "equivalence_classes": [
+    "EXACT_EQUIVALENT",
+    "CANONICALLY_EQUIVALENT",
+    "PARENT_CHILD_RELATED_NOT_EQUIVALENT",
+    "CREDENTIAL_VARIANT",
+    "ALIAS_EQUIVALENT",
+    "NOT_EQUIVALENT",
+    "AMBIGUOUS"
+  ],
+  "safe_normalization": [
+    "case",
+    "whitespace",
+    "punctuation",
+    "proven credential separation",
+    "official alias with provenance",
+    "explicit parent-child relation"
+  ],
+  "fuzzy_only_pass": false,
+  "parent_child_equal": false,
+  "institution_in_canonical_name": false,
+  "credential_separate": true,
+  "native_translation_requires_official_provenance": true,
+  "coverage_states": [
+    "COVERAGE_LOSS",
+    "ACCESS_BLOCKED",
+    "NEEDS_REVIEW",
+    "FOUND"
+  ],
+  "ambiguous_is_not_pass": true,
+  "version": "phase-3f-scorer-contract/v2",
+  "benchmark_version": "phase3f-v3",
+  "truth_version": "phase-3f-ground-truth-v3-frozen",
+  "truth_path": "docs/benchmarks/2026-09-06-phase3f-ground-truth-v3-frozen.jsonl",
+  "contract_markdown": "docs/benchmarks/2026-09-06-phase3f-scorer-contract-v2.md",
+  "machine_scorer": "scripts/score_phase3f_benchmark_v3_offline.py",
+  "identity_comparison": {
+    "pass_classes": [
+      "EXACT_EQUIVALENT",
+      "CANONICALLY_EQUIVALENT",
+      "OFFICIAL_ALIAS_EQUIVALENT",
+      "CREDENTIAL_AWARE_EQUIVALENT"
+    ],
+    "non_pass_classes": [
+      "WRONG_GRANULARITY",
+      "PROGRAMME_VS_TRACK",
+      "PROGRAMME_VS_CONCENTRATION",
+      "PROGRAMME_VS_DEPARTMENT",
+      "PARENT_VS_CHILD",
+      "PRE_MAJOR_VS_FINAL_MAJOR",
+      "JOINT_PROGRAMME_VS_COMPONENT",
+      "DUAL_DEGREE_VS_SINGLE_PROGRAMME",
+      "FACTUALLY_WRONG",
+      "FUZZY_ONLY"
+    ],
+    "fuzzy_only_pass": false,
+    "official_alias_requires_provenance": true,
+    "credential_separate": true,
+    "parent_child_equal": false,
+    "native_translation_requires_official_provenance": true
+  },
+  "ambiguous_identity_policy": {
+    "comparison_class": "AMBIGUOUS",
+    "concrete_precision": "exclude_from_identity_precision_denominator_and_numerator",
+    "resolved_coverage": "count_as_unresolved_coverage_loss",
+    "safe_unresolved": "report_separately; do not treat as a confirmed NEEDS_REVIEW pass unless runtime state also satisfies that policy",
+    "fuzzy_only": "never a pass"
+  },
+  "thresholds_inherited_from_v1": true,
+  "v2_manifest_immutable": true
+}
