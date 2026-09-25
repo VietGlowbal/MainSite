@@ -16,6 +16,14 @@ export {
 } from './cost-reference';
 export { createFxReferenceProvider, parseFxReferenceDataset } from './fx-reference';
 export {
+  aggregateFrequentlyPicked,
+  DEFAULT_FREQUENTLY_PICKED_POLICY,
+  DEFAULT_FREQUENTLY_PICKED_THRESHOLD,
+  FREQUENTLY_PICKED_POLICY_VERSION,
+  normalizeFrequentlyPickedScholarshipIds,
+  validateFrequentlyPickedPolicy,
+} from './frequently-picked';
+export {
   buildScholarshipMatchingContext,
   scholarshipMatchingContextCacheKey,
   SCHOLARSHIP_MATCHING_CONTEXT_VERSION,
@@ -121,6 +129,12 @@ export type {
   FxReferenceDiagnosticCode,
   FxReferenceProvider,
 } from './fx-reference';
+export type {
+  FrequentlyPickedAggregate,
+  FrequentlyPickedPolicy,
+  FrequentlyPickedRow,
+  FrequentlyPickedSummary,
+} from './frequently-picked';
 export type {
   AcademicAchievementSource,
   AcademicActivitySource,

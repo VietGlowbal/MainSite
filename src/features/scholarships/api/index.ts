@@ -33,6 +33,12 @@ export {
   loadScholarshipMatchingContext,
 } from './matching-context-loader';
 export {
+  FREQUENTLY_PICKED_CACHE_TAG,
+  FREQUENTLY_PICKED_CACHE_TTL_SECONDS,
+  loadFrequentlyPicked,
+  loadFrequentlyPickedUncached,
+} from './frequently-picked';
+export {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
 } from './scholarship-queries';
@@ -48,3 +54,7 @@ export type {
   ScholarshipUniversityLite,
 } from './scholarship-queries';
 export type { ScholarshipMatchingContextRepository } from './matching-context-loader';
+export type {
+  FrequentlyPickedRowsReader,
+  LoadFrequentlyPickedInput,
+} from './frequently-picked';

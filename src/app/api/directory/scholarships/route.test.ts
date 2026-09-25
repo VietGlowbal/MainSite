@@ -34,6 +34,9 @@ describe('GET /api/directory/scholarships', () => {
       focusPage: null,
       countryPage: null,
       focusUniversity: null,
+      frequentlyPicked: {
+        '1': { count: 3, threshold: 3, isFrequentlyPicked: true },
+      },
       canonicalSearch: '',
     });
 
@@ -44,7 +47,11 @@ describe('GET /api/directory/scholarships', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toContain('max-age=60');
-    expect(response.headers.get('Vercel-CDN-Cache-Control')).toContain('stale-while-revalidate=86400');
+    expect(response.headers.get('Vercel-CDN-Cache-Control')).toContain('max-age=60');
+    expect(response.headers.get('Vercel-CDN-Cache-Control')).toContain('stale-while-revalidate=300');
+    expect(payload.frequentlyPicked).toEqual({
+      '1': { count: 3, threshold: 3, isFrequentlyPicked: true },
+    });
     expect(payload).not.toHaveProperty('userId');
     expect(payload).not.toHaveProperty('savedScholarshipIds');
   });

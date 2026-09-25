@@ -142,6 +142,20 @@ export {
   parseFxReferenceDataset,
 } from './domain/fx-reference';
 export {
+  aggregateFrequentlyPicked,
+  DEFAULT_FREQUENTLY_PICKED_POLICY,
+  DEFAULT_FREQUENTLY_PICKED_THRESHOLD,
+  FREQUENTLY_PICKED_POLICY_VERSION,
+  normalizeFrequentlyPickedScholarshipIds,
+  validateFrequentlyPickedPolicy,
+} from './domain/frequently-picked';
+export type {
+  FrequentlyPickedAggregate,
+  FrequentlyPickedPolicy,
+  FrequentlyPickedRow,
+  FrequentlyPickedSummary,
+} from './domain/frequently-picked';
+export {
   buildScholarshipMatchingContext,
   scholarshipMatchingContextCacheKey,
   SCHOLARSHIP_MATCHING_CONTEXT_VERSION,

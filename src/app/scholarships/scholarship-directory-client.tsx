@@ -91,6 +91,8 @@ type Props = {
   focusUniversity?: { id: number; name: string; country: string | null } | null;
   // Only rows whose scholarship and university are both present in My Portal.
   savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
+  /** Server aggregate for the future Frequently-picked badge; not rendered in T7. */
+  frequentlyPicked?: ScholarshipDirectoryResponse['frequentlyPicked'];
   canonicalSearch: string;
   isPlus?: boolean;
   locale?: Locale;
@@ -138,6 +140,7 @@ export function ScholarshipDirectoryClient({
   existingScholarships,
   focusUniversity: initialFocusUniversity = null,
   savedScholarships = [],
+  frequentlyPicked = {},
   canonicalSearch,
   isPlus: initialIsPlus,
   locale = 'en',
@@ -155,8 +158,10 @@ export function ScholarshipDirectoryClient({
     countryPage: initialCountryPage,
     focusUniversity: initialFocusUniversity,
     canonicalSearch,
+    frequentlyPicked,
   }), [
     canonicalSearch,
+    frequentlyPicked,
     initialCountryPage,
     initialDirectoryPage,
     initialFocusPage,

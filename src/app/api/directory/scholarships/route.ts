@@ -7,9 +7,12 @@ import { parseScholarshipSearchParams } from '@/features/scholarships/directory-
 
 export const runtime = 'nodejs';
 
+// The response includes the separate Frequently-picked aggregate. Keep the
+// HTTP/CDN lifetime aligned with that provider's short TTL; the underlying
+// catalogue/ranking data remains independently cached in the feature loader.
 const PUBLIC_CACHE_HEADERS = {
   'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-  'Vercel-CDN-Cache-Control': 'public, max-age=43200, stale-while-revalidate=86400',
+  'Vercel-CDN-Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
 };
 
 export async function GET(request: Request) {

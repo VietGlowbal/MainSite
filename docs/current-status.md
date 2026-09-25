@@ -71,6 +71,24 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-25 (Scholarship Personalization T7): added the
+privacy-safe Frequently-picked aggregate over current `user_scholarships`
+rows. The server reads `scholarship_id,user_id` once for the requested batch,
+deduplicates by user, and returns only `count`, `threshold`, and
+`isFrequentlyPicked`; application submission and award state are not read.
+The default versioned threshold is 3, configurable through the domain policy.
+The aggregate uses an independent 60-second cache/tag, while public directory
+HTTP responses containing the aggregate use a 60-second CDN max-age with a
+300-second stale-while-revalidate window; direct browser save/remove writes
+therefore become visible within that bounded staleness window without changing
+save semantics. The server directory output
+now carries the aggregate map, but no UI badge was rendered. Existing RLS and
+service-role boundaries are preserved, and no migration, index, RPC, or data
+acquisition was added. T7 focused tests passed (4 files, 17 tests); the pure
+scholarship-domain strict compilation passed; the current-scale fixture sanity
+check aggregated 2,877 scholarship IDs and 48 save rows in 2ms. `git diff
+--check` passed.
+
 Working tree 2026-09-25 (Scholarship Personalization T6): added versioned
 global ranking over the complete filtered scholarship set before pagination.
 Public catalogue sorting now uses the T2A lower-bound comparable value when

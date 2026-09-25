@@ -5,11 +5,13 @@ import { setScholarshipQueries } from '../index';
 import { parseScholarshipSearchParams } from '../../domain/query-state';
 
 const getPublicUniversityFocus = vi.hoisted(() => vi.fn());
+const loadFrequentlyPicked = vi.hoisted(() => vi.fn(async () => ({})));
 
 vi.mock('next/cache', () => ({
   unstable_cache: (loader: unknown) => loader,
 }));
 vi.mock('@/server/directory/university-focus', () => ({ getPublicUniversityFocus }));
+vi.mock('../frequently-picked', () => ({ loadFrequentlyPicked }));
 
 import { loadScholarshipDirectory, scholarshipListQuery } from '../directory-loader';
 
@@ -24,6 +26,7 @@ const page = (requested: number, total = 1): Page<DirectoryScholarship> => ({
 afterEach(() => {
   setScholarshipQueries(null);
   getPublicUniversityFocus.mockReset();
+  loadFrequentlyPicked.mockClear();
 });
 
 describe('loadScholarshipDirectory', () => {
@@ -52,6 +55,8 @@ describe('loadScholarshipDirectory', () => {
     );
 
     expect(listPublished).toHaveBeenCalledTimes(2);
+    expect(loadFrequentlyPicked).toHaveBeenCalledTimes(1);
+    expect(loadFrequentlyPicked).toHaveBeenCalledWith({ scholarshipIds: [] });
     expect(result.query.page).toBe(2);
     expect(result.canonicalSearch).toBe('page=2');
   });
@@ -83,5 +88,7 @@ describe('loadScholarshipDirectory', () => {
         excludeUniversityId: 42,
       }),
     );
+    expect(loadFrequentlyPicked).toHaveBeenCalledTimes(1);
+    expect(loadFrequentlyPicked).toHaveBeenCalledWith({ scholarshipIds: [1] });
   });
 });

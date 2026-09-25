@@ -7,6 +7,7 @@ import {
   scholarshipSearchParams,
   type ScholarshipQueryState,
 } from '../domain/query-state';
+import type { FrequentlyPickedAggregate } from '../domain/frequently-picked';
 import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
 import {
   evaluateScholarshipEligibility,
@@ -30,6 +31,7 @@ import {
   getFileFxReferenceProvider,
 } from './file-reference-providers';
 import { loadScholarshipMatchingContext } from './matching-context-loader';
+import { loadFrequentlyPicked } from './frequently-picked';
 import { getScholarshipQueries } from './index';
 import type {
   DirectoryScholarship,
@@ -44,7 +46,11 @@ export type ScholarshipDirectoryResponse = {
   countryPage: Page<DirectoryScholarship> | null;
   focusUniversity: { id: number; name: string; country: string | null } | null;
   canonicalSearch: string;
+  /** Aggregate-only popularity data; individual users never cross this boundary. */
+  frequentlyPicked: FrequentlyPickedAggregate;
 };
+
+type ScholarshipDirectoryBaseResponse = Omit<ScholarshipDirectoryResponse, 'frequentlyPicked'>;
 
 const emptyPage = (page: number): Page<DirectoryScholarship> => ({
   items: [],
@@ -53,6 +59,21 @@ const emptyPage = (page: number): Page<DirectoryScholarship> => ({
   pageSize: 9,
   hasMore: false,
 });
+
+async function attachFrequentlyPicked(
+  response: ScholarshipDirectoryBaseResponse,
+): Promise<ScholarshipDirectoryResponse> {
+  const scholarshipIds = [...new Set([
+    ...(response.directoryPage?.items ?? []),
+    ...(response.focusPage?.items ?? []),
+    ...(response.countryPage?.items ?? []),
+  ].map((scholarship) => scholarship.id))].sort((left, right) => left - right);
+
+  return {
+    ...response,
+    frequentlyPicked: await loadFrequentlyPicked({ scholarshipIds }),
+  };
+}
 
 export function scholarshipListQuery(
   state: ScholarshipQueryState,
@@ -300,18 +321,18 @@ export async function loadScholarshipDirectoryForUser(args: {
   const publicFocus = focusUniversity
     ? { id: focusUniversity.id, name: focusUniversity.name, country: focusUniversity.country }
     : null;
-  return {
+  return attachFrequentlyPicked({
     query,
     directoryPage,
     focusPage,
     countryPage,
     focusUniversity: publicFocus,
     canonicalSearch: scholarshipSearchParams(query, {}).toString(),
-  };
+  });
 }
 
 const loadCached = unstable_cache(
-  async (requested: ScholarshipQueryState): Promise<ScholarshipDirectoryResponse> => {
+  async (requested: ScholarshipQueryState): Promise<ScholarshipDirectoryBaseResponse> => {
     if (requested.view !== 'directory') {
       throw new Error('The public scholarship loader only supports directory view');
     }
@@ -377,5 +398,5 @@ const loadCached = unstable_cache(
 );
 
 export function loadScholarshipDirectory(state: ScholarshipQueryState) {
-  return loadCached(state);
+  return loadCached(state).then(attachFrequentlyPicked);
 }
