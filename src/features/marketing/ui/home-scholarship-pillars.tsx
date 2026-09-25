@@ -4,10 +4,9 @@ import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarship-constants';
 import { ICONS, KitIcon } from '@/shared/ui';
+import type { ScholarshipValueViewModel } from '@/shared/types/scholarship-value';
+import { SharedScholarshipValueSummary } from '@/shared/ui/scholarship-value-summary';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
-import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
-import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
-import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
 
 export type ScholarshipTeaser = {
   id: number;
@@ -24,9 +23,8 @@ export type ScholarshipTeaser = {
   deadline?: string | null;
   fundingTypes?: readonly string[] | null;
   country?: string | null;
-  /** Canonical scholarship value when Home has catalogue evidence for it. */
-  benefits?: NormalizedScholarshipBenefits | null;
-  canonicalValue?: ScholarshipValueResult | null;
+  /** Canonical scholarship value view model supplied by the server route. */
+  valueModel?: ScholarshipValueViewModel | null;
 };
 
 const LEGACY_FUNDING_TYPE_LABELS: Readonly<Record<string, string>> = {
@@ -233,10 +231,9 @@ export function HomeScholarshipPillars({ entries, locale = 'en' }: { entries: re
                   <p className="text-gb-xs font-semibold uppercase tracking-[0.1em] text-brand">
                     {getLocaleText(locale, entry.valueLabel || 'Scholarship value')}
                   </p>
-                  {entry.benefits || entry.canonicalValue ? (
-                    <ScholarshipValueSummary
-                      benefits={entry.benefits}
-                      value={entry.canonicalValue}
+                  {entry.valueModel ? (
+                    <SharedScholarshipValueSummary
+                      model={entry.valueModel}
                       compact
                       className="mt-gb-md"
                     />

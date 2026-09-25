@@ -119,10 +119,12 @@ function renderDirectory(
   const queryState = {
     search: '',
     universitySearch: '',
+    subject: '',
     major: 'all' as const,
     degree: 'all' as const,
     country: 'all',
     funding: [],
+    deadline: 'any' as const,
     sort: 'relevance' as const,
     page: 1,
     universityId: null,

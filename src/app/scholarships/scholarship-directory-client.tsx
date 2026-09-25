@@ -30,13 +30,14 @@ import {
   type ScholarshipQueryState,
   type ScholarshipSort,
 } from '@/features/scholarships/directory-query';
-import { scholarshipSaveDestination } from '@/features/scholarships/domain';
+import {
+  scholarshipSaveDestination,
+  type FrequentlyPickedSummary,
+  type ScholarshipRecommendationResult,
+  type ScholarshipValueResult,
+} from '@/features/scholarships/domain';
 import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
-import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
-import type { ScholarshipRecommendationResult } from '@/features/scholarships/domain/recommendation';
-import type { FrequentlyPickedSummary } from '@/features/scholarships/domain/frequently-picked';
-import { ScholarshipBadges } from '@/features/scholarships/ui/scholarship-badges';
-import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
+import { ScholarshipBadges, ScholarshipValueSummary } from '@/features/scholarships/ui';
 import { useDebouncedSearchField } from '@/shared/hooks/use-debounced-search-field';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
 import { GlowbalIcon, type GlowbalIconName } from '@/shared/ui';

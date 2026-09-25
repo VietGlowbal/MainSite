@@ -13,12 +13,13 @@ import {
   scholarshipCandidates,
   scholarshipLabel,
 } from '@/features/universities/domain';
-import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
-import type { FrequentlyPickedSummary } from '@/features/scholarships/domain/frequently-picked';
-import type { ScholarshipRecommendationResult } from '@/features/scholarships/domain/recommendation';
-import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
-import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
-import { ScholarshipBadges } from '@/features/scholarships/ui/scholarship-badges';
+import type {
+  FrequentlyPickedSummary,
+  NormalizedScholarshipBenefits,
+  ScholarshipRecommendationResult,
+  ScholarshipValueResult,
+} from '@/features/scholarships/domain';
+import { ScholarshipBadges, ScholarshipValueSummary } from '@/features/scholarships/ui';
 import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarship-constants';
 import { TID, testId } from '@/shared/lib/testids';
 import { Badge } from '@/shared/ui/badge';

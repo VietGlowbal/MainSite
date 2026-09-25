@@ -2,9 +2,9 @@
 
 import { useId, useMemo, useState } from 'react';
 import { ICONS, KitIcon, SearchMark, controlClasses } from '@/shared/ui';
+import { SharedScholarshipValueSummary } from '@/shared/ui/scholarship-value-summary';
 import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 import type { ScholarshipTeaser } from './home-scholarship-pillars';
-import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
 
 /**
  * The Scholarship Library preview that opens under the partner orbit when
@@ -178,11 +178,10 @@ export function HomeScholarshipPreview({
                 {entry.organization}
               </span>
               <span className="font-semibold text-fg">{entry.title}</span>
-              {entry.benefits || entry.canonicalValue ? (
+              {entry.valueModel ? (
                 <div className="rounded-gb-md bg-brand-subtle px-gb-lg py-gb-md text-gb-sm font-semibold text-brand">
-                  <ScholarshipValueSummary
-                    benefits={entry.benefits}
-                    value={entry.canonicalValue}
+                  <SharedScholarshipValueSummary
+                    model={entry.valueModel}
                     compact
                   />
                 </div>

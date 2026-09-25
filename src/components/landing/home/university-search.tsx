@@ -4,9 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarships';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
-import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
-import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
+import type { ScholarshipValueViewModel } from '@/shared/types/scholarship-value';
+import { SharedScholarshipValueSummary } from '@/shared/ui/scholarship-value-summary';
 
 /**
  * UniversitySearch — the interactive entry point into the funnel (Phase 3).
@@ -28,8 +27,7 @@ type PreviewScholarship = {
   amountLabel: string | null;
   fundingType: string[];
   deadlineLabel: string | null;
-  benefits: NormalizedScholarshipBenefits | null;
-  value: ScholarshipValueResult | null;
+  valueModel: ScholarshipValueViewModel | null;
 };
 
 type UniversityMatch = {
@@ -220,9 +218,20 @@ function SelectedUniversity({
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <ScholarshipValueSummary
-                  value={s.value}
-                  benefits={s.benefits}
+                <SharedScholarshipValueSummary
+                  model={s.valueModel ?? {
+                    coverageLabel: null,
+                    originalAwardLabel: null,
+                    totalValueLabel: 'Total value unavailable',
+                    totalValueKind: 'unavailable',
+                    totalValueStatusLabel: null,
+                    durationLabel: null,
+                    components: [],
+                    evidence: [],
+                    sourceUrl: null,
+                    warnings: [],
+                    hasComparableValue: false,
+                  }}
                   fallbackAwardLabel={s.amountLabel}
                   compact
                   className="min-w-0"

@@ -32,6 +32,8 @@ export { Radio, RadioGroup } from './radio';
 export { RatingsBadge } from './ratings-badge';
 export { Select } from './select';
 export { Textarea } from './textarea';
+export { SharedScholarshipValueSummary } from './scholarship-value-summary';
+export type { SharedScholarshipValueSummaryProps } from './scholarship-value-summary';
 export { useAutoGrowTextarea } from './use-autogrow-textarea';
 export { Footer } from './footer';
 export type { FooterColumn, FooterLink, FooterSocial } from './footer';

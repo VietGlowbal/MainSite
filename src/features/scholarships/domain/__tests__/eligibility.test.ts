@@ -188,7 +188,7 @@ describe('scholarship eligibility normalization and evaluation', () => {
       raw: { programme_ids: ['programme-1'] },
       eligibility: 'Vietnamese citizens only',
     });
-    const selected = {
+    const selected: ScholarshipMatchingContext['selection'] = {
       requestedApplicationId: null,
       requestedProgrammeId: 'programme-1',
       requestedUniversityId: 42,
@@ -208,7 +208,7 @@ describe('scholarship eligibility normalization and evaluation', () => {
     const wrongUniversity = evaluate(current, context(student(), current, {
       ...selected,
       requestedUniversityId: 99,
-      university: { ...selected.university, id: 99 },
+      university: { ...selected.university!, id: 99 },
     }));
 
     expect(eligible.status).toBe('ELIGIBLE');

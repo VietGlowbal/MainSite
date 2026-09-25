@@ -41,7 +41,7 @@ function row(id = 1) {
     id,
     name: `Award ${id}`,
     slug: `award-${id}`,
-    scope: 'university',
+    scope: 'university' as const,
     country: 'United Kingdom',
     provider: null,
     funding_type: ['merit'],
@@ -58,9 +58,9 @@ function row(id = 1) {
     deadline_date: null,
     deadline_text: null,
     source_url: null,
-    source_lang: 'en',
+    source_lang: 'en' as const,
     ranking_note: null,
-    status: 'published',
+    status: 'published' as const,
     scholarship_universities: [],
   };
 }

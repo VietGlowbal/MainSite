@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 import { GlowbalIcon } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
-import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
-import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
+import type { NormalizedScholarshipBenefits, ScholarshipValueResult } from '@/features/scholarships/domain';
+import { ScholarshipValueSummary } from '@/features/scholarships/ui';
 
 /* ─────────────────────────────────────────────────────────────────────────
    TYPES

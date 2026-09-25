@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getServerIdentity: vi.fn(),
   getByIds: vi.fn(),
   byUniversityIds: vi.fn(),
+  loadFrequentlyPicked: vi.fn(),
   redirect: vi.fn(),
 }));
 
@@ -19,6 +20,7 @@ vi.mock('@/features/universities/api', () => ({
 }));
 vi.mock('@/features/scholarships/api', () => ({
   getScholarshipQueries: () => ({ byUniversityIds: mocks.byUniversityIds }),
+  loadFrequentlyPicked: mocks.loadFrequentlyPicked,
 }));
 vi.mock('@/features/universities/domain', () => ({
   formatTuitionForCard: vi.fn(() => null),
@@ -68,7 +70,10 @@ function deferred<T>() {
 }
 
 describe('ApplyPage logo loading', () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.loadFrequentlyPicked.mockResolvedValue({});
+  });
 
   it('uses the application university join without a second university lookup', async () => {
     const university = {

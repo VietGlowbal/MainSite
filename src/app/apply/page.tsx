@@ -4,10 +4,9 @@ import { getScholarshipQueries } from '@/features/scholarships/api';
 import {
   loadScholarshipSurfacePersonalization,
   type ScholarshipSurfaceCandidate,
-} from '@/features/scholarships/api/directory-loader';
-import { loadFrequentlyPicked } from '@/features/scholarships/api/frequently-picked';
-import { normalizeScholarshipBenefits } from '@/features/scholarships/domain/benefit-normalization';
-import { calculateDisplayScholarshipValue } from '@/features/scholarships/domain/value-formatting';
+} from '@/features/scholarships/directory-loader';
+import { loadFrequentlyPicked } from '@/features/scholarships/api';
+import { calculateDisplayScholarshipValue, normalizeScholarshipBenefits } from '@/features/scholarships/domain';
 import {
   formatDeadlineLabel,
   formatTuitionForCard,

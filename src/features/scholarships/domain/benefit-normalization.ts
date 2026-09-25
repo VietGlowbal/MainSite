@@ -142,7 +142,7 @@ function parseAmount(text: string, fallbackCurrency: string | null): ParsedAmoun
   const primary = following ?? preceding;
   if (!primary) return null;
 
-  let values = [primary.value];
+  const values = [primary.value];
   if (following) {
     const next = tokens.find((token) => token.start > primary.end);
     if (next && isRangeSeparator(text.slice(primary.end, next.start))) values.push(next.value);
@@ -216,11 +216,13 @@ function parseDuration(text: string): BenefitDuration | null {
   const compact = text.match(/\b(\d+(?:\.\d+)?)\s*-\s*(months?|years?|terms?)\b/i);
   const match = explicit ?? compact;
   if (!match) return null;
+  const rawUnit = match[2];
+  if (!rawUnit) return null;
   const count = Number(match[1]);
   if (!Number.isFinite(count) || count <= 0) return null;
   return {
     count,
-    unit: durationUnit(match[2]),
+    unit: durationUnit(rawUnit),
     basis: 'explicit',
     rawText: cleanExcerpt(match[0]),
   };

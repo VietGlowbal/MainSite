@@ -91,6 +91,26 @@ start because the available sibling toolchain resolves no
 checkout has no `tsc`. `git diff --check` passed. No schema, migration, data
 acquisition, recommendation-policy, eligibility-rule, or popularity-semantic
 changes were made.
+Working tree 2026-09-25 (Scholarship Personalization final verification):
+restored the locked npm dependency set with `npm ci`, fixed the current-branch
+T1 strictness/fixture issues, repaired the T9 shared UI import boundaries, and
+updated the current ApplyPage test mock for the integrated
+`loadFrequentlyPicked` API. Base and strict typechecks passed; ESLint passed
+with 0 errors and 9 existing warnings; the focused scholarship/application/UI
+run passed 31 files / 175 tests; the full suite passed 431 files / 4,040 tests
+with 2 todos and 3 unrelated failures (the real i18n checker and two
+candidate-confirmation timing/interaction tests). The production build passed
+with the existing missing Supabase-environment warnings. E2E could not start
+because this checkout has no Supabase environment; `verify:pr` stopped at the
+repository Node gate because the workstation exposes Node 22.15.0 while the
+repository requires Node 24.19.0. `git diff --check` passed. T2B production
+cost/FX coverage remains intentionally incomplete; no values were fabricated.
+No schema, migration, ranking policy, eligibility rule, popularity semantic,
+or external-data change was made in verification hardening. The independent
+OpenCode review was attempted through Orca twice and then through the existing
+read-only terminal, but its dispatch input stalled and the manual review
+remained stuck in a file-read state without a findings report; OpenCode was
+therefore not marked complete.
 
 Working tree 2026-09-25 (Scholarship Personalization T8): added the pure,
 versioned GlowBal Recommend domain. Recommendations gate INELIGIBLE and

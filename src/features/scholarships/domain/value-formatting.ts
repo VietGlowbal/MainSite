@@ -12,42 +12,23 @@ import {
   calculateScholarshipValue,
   type ScholarshipValueResult,
 } from './valuation';
+import type {
+  ScholarshipValueBreakdownItem,
+  ScholarshipValueKind,
+  ScholarshipValueViewModel,
+} from '@/shared/types/scholarship-value';
+
+export type {
+  ScholarshipValueBreakdownItem,
+  ScholarshipValueKind,
+  ScholarshipValueViewModel,
+} from '@/shared/types/scholarship-value';
 
 export type ScholarshipValueFormattingInput = {
   value?: ScholarshipValueResult | null | undefined;
   benefits?: NormalizedScholarshipBenefits | readonly BenefitComponent[] | null | undefined;
   /** Raw catalogue fields are a display fallback, never a valuation source. */
   raw?: ScholarshipBenefitNormalizationInput | null | undefined;
-};
-
-export type ScholarshipValueKind = 'exact' | 'mixed' | 'estimated' | 'unavailable';
-
-export type ScholarshipValueBreakdownItem = {
-  type: BenefitType;
-  label: string;
-  amountLabel: string | null;
-  totalLabel: string | null;
-  periodLabel: string | null;
-  durationLabel: string | null;
-  status: 'EXACT' | 'MIXED' | 'ESTIMATED' | 'UNAVAILABLE';
-  sourceLabel: string | null;
-  included: boolean;
-  reason: string | null;
-  evidence: readonly BenefitEvidence[];
-};
-
-export type ScholarshipValueViewModel = {
-  coverageLabel: string | null;
-  originalAwardLabel: string | null;
-  totalValueLabel: string;
-  totalValueKind: ScholarshipValueKind;
-  totalValueStatusLabel: string | null;
-  durationLabel: string | null;
-  components: readonly ScholarshipValueBreakdownItem[];
-  evidence: readonly BenefitEvidence[];
-  sourceUrl: string | null;
-  warnings: readonly string[];
-  hasComparableValue: boolean;
 };
 
 const BENEFIT_LABELS: Readonly<Record<BenefitType, string>> = {
