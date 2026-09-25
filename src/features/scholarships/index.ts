@@ -9,12 +9,14 @@ export {
   parseScholarshipSearchParams,
   scholarshipSearchParams,
   SCHOLARSHIP_DEGREES,
+  SCHOLARSHIP_DEADLINE_FILTERS,
   SCHOLARSHIP_FUNDING,
   SCHOLARSHIP_MAJORS,
   SCHOLARSHIP_SORTS,
   SCHOLARSHIP_VIEWS,
 } from './domain/query-state';
 export type {
+  ScholarshipDeadlineFilter,
   ScholarshipDegree,
   ScholarshipFunding,
   ScholarshipMajor,
@@ -22,6 +24,50 @@ export type {
   ScholarshipSort,
   ScholarshipView,
 } from './domain/query-state';
+export {
+  evaluateScholarshipEligibility,
+  matchScholarshipDirectoryFilters,
+  SCHOLARSHIP_ELIGIBILITY_POLICY_VERSION,
+} from './domain/eligibility';
+export {
+  normalizeScholarshipDirectoryFilters,
+  normalizeScholarshipEligibility,
+  SCHOLARSHIP_ELIGIBILITY_NORMALIZER_VERSION,
+} from './domain/eligibility-normalization';
+export type {
+  EligibilityCheck,
+  EligibilityCheckStatus,
+  EligibilityEvidence,
+  EligibilityReasonCode,
+  EligibilityRequirementState,
+  EligibilitySignal,
+  EligibilityStatus,
+  EligibilityWarning,
+  EligibilityWarningCode,
+  EvaluateScholarshipEligibilityInput,
+  ScholarshipDirectoryCandidate,
+  ScholarshipDirectoryFilterInput,
+  ScholarshipDirectoryFilterMatch,
+  ScholarshipDirectoryFilters,
+  ScholarshipEligibilityPolicy,
+  ScholarshipEligibilityResult,
+} from './domain/eligibility';
+export type {
+  DirectoryDeadlineFilter,
+  DirectoryValueFilter,
+  EligibilityEvidenceField,
+  EligibilityNormalizationWarning,
+  EligibilityNormalizationWarningCode,
+  IntakeSeason,
+  NormalizedAcademicRequirement,
+  NormalizedAcademicTestRequirement,
+  NormalizedDeadlineRequirement,
+  NormalizedInstitutionRequirement,
+  NormalizedIntakeRequirement,
+  NormalizedNationalityRequirement,
+  NormalizedScholarshipEligibility,
+  NormalizedTextRequirement,
+} from './domain/eligibility-normalization';
 export {
   scholarshipSaveDestination,
   type ScholarshipSaveDestination,

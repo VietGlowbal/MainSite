@@ -22,10 +22,12 @@ describe('scholarship query state', () => {
     ).toEqual({
       search: 'a'.repeat(100),
       universitySearch: 'Oxford',
+      subject: '',
       major: 'stem',
       degree: 'postgraduate',
       country: 'United Kingdom',
       funding: ['merit', 'need'],
+      deadline: 'any',
       sort: 'deadline',
       page: 2,
       universityId: 42,
@@ -47,10 +49,12 @@ describe('scholarship query state', () => {
     ).toEqual({
       search: '',
       universitySearch: '',
+      subject: '',
       major: 'all',
       degree: 'all',
       country: 'all',
       funding: [],
+      deadline: 'any',
       sort: 'relevance',
       page: 1,
       universityId: null,
@@ -94,5 +98,20 @@ describe('scholarship query state', () => {
     expect(ai.view).toBe('ai');
     expect(scholarshipSearchParams(ai, {}).toString()).toBe('page=2&view=ai');
     expect(scholarshipSearchParams(ai, { view: 'directory' }).toString()).toBe('page=2');
+  });
+
+  it('parses and serializes structured subject and deadline filters', () => {
+    const state = parseScholarshipSearchParams({
+      subject: 'Computer Science',
+      deadline: 'open',
+    });
+
+    expect(state).toMatchObject({
+      subject: 'Computer Science',
+      deadline: 'open',
+    });
+    expect(scholarshipSearchParams(state, {}).toString()).toBe(
+      'subject=Computer+Science&deadline=open',
+    );
   });
 });

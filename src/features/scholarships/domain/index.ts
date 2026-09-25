@@ -20,6 +20,16 @@ export {
   scholarshipMatchingContextCacheKey,
   SCHOLARSHIP_MATCHING_CONTEXT_VERSION,
 } from './matching-context';
+export {
+  evaluateScholarshipEligibility,
+  matchScholarshipDirectoryFilters,
+  SCHOLARSHIP_ELIGIBILITY_POLICY_VERSION,
+} from './eligibility';
+export {
+  normalizeScholarshipDirectoryFilters,
+  normalizeScholarshipEligibility,
+  SCHOLARSHIP_ELIGIBILITY_NORMALIZER_VERSION,
+} from './eligibility-normalization';
 export { BENEFIT_PERIODS, BENEFIT_TYPES } from './benefit-types';
 export type {
   BenefitAmount,
@@ -116,3 +126,37 @@ export type {
   SavedUniversitySource,
   StandardizedTestSource,
 } from './matching-context';
+export type {
+  EligibilityCheck,
+  EligibilityCheckStatus,
+  EligibilityReasonCode,
+  EligibilitySignal,
+  EligibilityStatus,
+  EligibilityWarning,
+  EligibilityWarningCode,
+  EvaluateScholarshipEligibilityInput,
+  ScholarshipDirectoryCandidate,
+  ScholarshipDirectoryFilterMatch,
+  ScholarshipDirectoryFilters,
+  ScholarshipEligibilityPolicy,
+  ScholarshipEligibilityResult,
+} from './eligibility';
+export type {
+  DirectoryDeadlineFilter,
+  DirectoryValueFilter,
+  EligibilityEvidence,
+  EligibilityEvidenceField,
+  EligibilityNormalizationWarning,
+  EligibilityNormalizationWarningCode,
+  EligibilityRequirementState,
+  IntakeSeason,
+  NormalizedAcademicRequirement,
+  NormalizedAcademicTestRequirement,
+  NormalizedDeadlineRequirement,
+  NormalizedInstitutionRequirement,
+  NormalizedIntakeRequirement,
+  NormalizedNationalityRequirement,
+  NormalizedScholarshipEligibility,
+  NormalizedTextRequirement,
+  ScholarshipDirectoryFilterInput,
+} from './eligibility-normalization';

@@ -7,6 +7,9 @@ export type ScholarshipDegree = (typeof SCHOLARSHIP_DEGREES)[number];
 export const SCHOLARSHIP_SORTS = ['relevance', 'deadline', 'name'] as const;
 export type ScholarshipSort = (typeof SCHOLARSHIP_SORTS)[number];
 
+export const SCHOLARSHIP_DEADLINE_FILTERS = ['any', 'open', 'closed', 'undated'] as const;
+export type ScholarshipDeadlineFilter = (typeof SCHOLARSHIP_DEADLINE_FILTERS)[number];
+
 export const SCHOLARSHIP_VIEWS = ['directory', 'ai'] as const;
 export type ScholarshipView = (typeof SCHOLARSHIP_VIEWS)[number];
 
@@ -16,10 +19,12 @@ export type ScholarshipFunding = (typeof SCHOLARSHIP_FUNDING)[number];
 export type ScholarshipQueryState = {
   search: string;
   universitySearch: string;
+  subject: string;
   major: ScholarshipMajor;
   degree: ScholarshipDegree;
   country: string;
   funding: ScholarshipFunding[];
+  deadline: ScholarshipDeadlineFilter;
   sort: ScholarshipSort;
   page: number;
   universityId: number | null;
@@ -51,10 +56,12 @@ export function parseScholarshipSearchParams(params: RawSearchParams): Scholarsh
   return {
     search: text(params.q),
     universitySearch: text(params.school),
+    subject: text(params.subject),
     major: member(first(params.major), SCHOLARSHIP_MAJORS, 'all'),
     degree: member(first(params.degree), SCHOLARSHIP_DEGREES, 'all'),
     country: text(params.country) || 'all',
     funding: [...new Set(funding)].sort(),
+    deadline: member(first(params.deadline), SCHOLARSHIP_DEADLINE_FILTERS, 'any'),
     sort: member(first(params.sort), SCHOLARSHIP_SORTS, 'relevance'),
     page: positiveInt(params.page),
     universityId: Number.isSafeInteger(universityId) && universityId > 0 ? universityId : null,
@@ -66,10 +73,12 @@ export function parseScholarshipSearchParams(params: RawSearchParams): Scholarsh
 const FILTER_KEYS = new Set<keyof ScholarshipQueryState>([
   'search',
   'universitySearch',
+  'subject',
   'major',
   'degree',
   'country',
   'funding',
+  'deadline',
   'sort',
   'universityId',
 ]);
@@ -87,12 +96,14 @@ export function scholarshipSearchParams(
   const params = new URLSearchParams();
   if (next.search) params.set('q', next.search);
   if (next.universitySearch) params.set('school', next.universitySearch);
+  if (next.subject) params.set('subject', next.subject);
   if (next.major !== 'all') params.set('major', next.major);
   if (next.degree !== 'all') params.set('degree', next.degree);
   if (next.country !== 'all') params.set('country', next.country);
   if (next.funding.length > 0) {
     params.set('funding', [...new Set(next.funding)].sort().join(','));
   }
+  if (next.deadline !== 'any') params.set('deadline', next.deadline);
   if (next.sort !== 'relevance') params.set('sort', next.sort);
   if (next.page > 1) params.set('page', String(next.page));
   if (next.universityId != null) params.set('university', String(next.universityId));

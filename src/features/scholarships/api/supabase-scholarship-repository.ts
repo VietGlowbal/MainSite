@@ -10,6 +10,7 @@ import {
   type ScholarshipRow,
 } from '@/lib/scholarships-data';
 import type { ScholarshipDegree, ScholarshipMajor } from '../domain/query-state';
+import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
 import {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
@@ -96,7 +97,12 @@ function selectHomeHighlights(
 }
 
 async function linkedScholarshipIds(
-  filter: { universityId?: number; universityName?: string; universityCountry?: string },
+  filter: {
+    universityId?: number;
+    universityIds?: readonly number[];
+    universityName?: string;
+    universityCountry?: string;
+  },
 ): Promise<number[]> {
   const admin = createAdminClient();
   let query = admin
@@ -105,8 +111,11 @@ async function linkedScholarshipIds(
       filter.universityName || filter.universityCountry
         ? 'scholarship_id, universities!inner(id)'
         : 'scholarship_id',
-    );
+  );
   if (filter.universityId != null) query = query.eq('university_id', filter.universityId);
+  else if (filter.universityIds && filter.universityIds.length > 0) {
+    query = query.in('university_id', [...filter.universityIds]);
+  }
   if (filter.universityName) {
     query = query.ilike('universities.name', `%${filter.universityName}%`);
   }
@@ -139,6 +148,14 @@ function keywordFilter(keywords: readonly string[]): string {
   return keywords.flatMap((keyword) => SEARCH_COLUMNS.map((column) => `${column}.ilike.%${keyword}%`)).join(',');
 }
 
+function discoveryKeyword(value: string): string {
+  return value
+    .replace(/[^a-zA-Z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 100);
+}
+
 async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>> {
   const page = clampPage(query.page);
   const pageSize = clampPageSize(
@@ -146,10 +163,21 @@ async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<
     SCHOLARSHIP_PAGE_SIZE_MAX,
     SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   );
+  const filters = query.filters ?? normalizeScholarshipDirectoryFilters({
+    country: query.country ?? null,
+    universityIds: query.universityId == null ? [] : [query.universityId],
+    major: query.major && query.major !== 'all' ? query.major : null,
+    degree: query.degree && query.degree !== 'all' ? query.degree : null,
+    fundingTypes: query.funding ?? [],
+  });
 
   const [universityIds, schoolIds, excludedIds, relatedLinks, relatedCountry] = await Promise.all([
-    query.universityId != null
-      ? linkedScholarshipIds({ universityId: query.universityId })
+    query.universityId != null || filters.universityIds.length > 0
+      ? linkedScholarshipIds(
+          query.universityId != null
+            ? { universityId: query.universityId }
+            : { universityIds: filters.universityIds },
+        )
       : Promise.resolve(null),
     query.universitySearch
       ? linkedScholarshipIds({ universityName: query.universitySearch })
@@ -183,16 +211,31 @@ async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<
     .select(SCHOLARSHIPS_SELECT, { count: 'exact' })
     .eq('status', 'published');
   if (query.search) databaseQuery = databaseQuery.ilike('name', `%${query.search}%`);
-  if (query.country) databaseQuery = databaseQuery.eq('country', query.country);
+  if (filters.country) databaseQuery = databaseQuery.eq('country', filters.country);
   if (query.scope) databaseQuery = databaseQuery.eq('scope', query.scope);
-  if (query.funding?.length) databaseQuery = databaseQuery.overlaps('funding_type', query.funding);
+  if (filters.fundingTypes.length) databaseQuery = databaseQuery.overlaps('funding_type', filters.fundingTypes);
   if (included) databaseQuery = databaseQuery.in('id', included);
   if (excludedIds.length) databaseQuery = databaseQuery.not('id', 'in', `(${excludedIds.join(',')})`);
-  if (query.major && query.major !== 'all') {
-    databaseQuery = databaseQuery.or(keywordFilter(MAJOR_KEYWORDS[query.major]));
+  const major = filters.major;
+  if (major && major in MAJOR_KEYWORDS) {
+    databaseQuery = databaseQuery.or(keywordFilter(MAJOR_KEYWORDS[major as ScholarshipMajor & keyof typeof MAJOR_KEYWORDS]));
   }
-  if (query.degree && query.degree !== 'all') {
-    databaseQuery = databaseQuery.or(keywordFilter(DEGREE_KEYWORDS[query.degree]));
+  const degree = filters.degree;
+  if (degree && degree in DEGREE_KEYWORDS) {
+    databaseQuery = databaseQuery.or(keywordFilter(DEGREE_KEYWORDS[degree as ScholarshipDegree & keyof typeof DEGREE_KEYWORDS]));
+  }
+  const subjectKeyword = filters.subject ? discoveryKeyword(filters.subject) : '';
+  if (subjectKeyword) {
+    // The catalogue stores subject eligibility as prose. This is a discovery
+    // filter only; the T4 evaluator never treats this SQL match as proof.
+    databaseQuery = databaseQuery.or(keywordFilter([subjectKeyword]));
+  }
+  if (filters.deadline === 'open') {
+    databaseQuery = databaseQuery.gte('deadline_date', new Date().toISOString().slice(0, 10));
+  } else if (filters.deadline === 'closed') {
+    databaseQuery = databaseQuery.lt('deadline_date', new Date().toISOString().slice(0, 10));
+  } else if (filters.deadline === 'undated') {
+    databaseQuery = databaseQuery.is('deadline_date', null);
   }
 
   if (query.sort === 'deadline') {

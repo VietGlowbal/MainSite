@@ -6,6 +6,7 @@ import type {
   ScholarshipMajor,
   ScholarshipSort,
 } from '../domain/query-state';
+import type { ScholarshipDirectoryFilters } from '../domain/eligibility';
 
 export type { Page };
 
@@ -57,6 +58,8 @@ export interface ScholarshipListQuery {
   funding?: ScholarshipFunding[];
   sort?: ScholarshipSort;
   universityId?: number;
+  /** Canonical structured filters; legacy fields remain for compatibility. */
+  filters?: ScholarshipDirectoryFilters;
   relatedUniversityCountry?: string;
   excludeUniversityId?: number;
 }

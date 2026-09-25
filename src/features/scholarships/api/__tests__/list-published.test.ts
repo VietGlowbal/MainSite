@@ -11,6 +11,7 @@ vi.mock('@/server/db/admin', () => ({
 
 import { toDirectoryScholarship } from '@/lib/scholarships-data';
 import { SupabaseScholarshipRepository } from '../supabase-scholarship-repository';
+import { normalizeScholarshipDirectoryFilters } from '../../domain/eligibility-normalization';
 
 type Result = { data: unknown[] | null; error: { message: string } | null; count?: number | null };
 
@@ -26,6 +27,9 @@ class Query {
   in(...args: unknown[]) { this.calls.push(['in', ...args]); return this; }
   not(...args: unknown[]) { this.calls.push(['not', ...args]); return this; }
   or(...args: unknown[]) { this.calls.push(['or', ...args]); return this; }
+  gte(...args: unknown[]) { this.calls.push(['gte', ...args]); return this; }
+  lt(...args: unknown[]) { this.calls.push(['lt', ...args]); return this; }
+  is(...args: unknown[]) { this.calls.push(['is', ...args]); return this; }
   order(...args: unknown[]) { this.calls.push(['order', ...args]); return this; }
   range(...args: unknown[]) { this.calls.push(['range', ...args]); return this; }
   limit(...args: unknown[]) { this.calls.push(['limit', ...args]); return this; }
@@ -100,6 +104,30 @@ describe('SupabaseScholarshipRepository.listPublished', () => {
     expect(query.calls.find(([method]) => method === 'select')?.[2]).toEqual({ count: 'exact' });
     expect(result.total).toBe(17);
     expect(result.items).toHaveLength(1);
+  });
+
+  it('carries structured country, funding, discovery, and date-backed deadline filters to SQL', async () => {
+    const query = new Query({ data: [row(10)], error: null, count: 1 });
+    from.mockReturnValue(query);
+
+    await new SupabaseScholarshipRepository().listPublished({
+      page: 1,
+      pageSize: 9,
+      sort: 'name',
+      filters: normalizeScholarshipDirectoryFilters({
+        country: 'United Kingdom',
+        fundingTypes: ['merit'],
+        major: 'stem',
+        degree: 'postgraduate',
+        subject: 'Computer Science',
+        deadline: 'open',
+      }),
+    });
+
+    expect(query.calls).toContainEqual(['eq', 'country', 'United Kingdom']);
+    expect(query.calls).toContainEqual(['overlaps', 'funding_type', ['merit']]);
+    expect(query.calls).toContainEqual(['gte', 'deadline_date', expect.any(String)]);
+    expect(query.calls.filter(([method]) => method === 'or').length).toBe(3);
   });
 
   it('excludes scholarships linked to the focused university from the country section', async () => {

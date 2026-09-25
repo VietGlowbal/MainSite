@@ -71,6 +71,23 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-25 (Scholarship Personalization T4): added deterministic,
+fail-closed eligibility normalization/evaluation over the T3 matching context.
+The domain returns ELIGIBLE, INELIGIBLE, or UNKNOWN with reason codes,
+warnings, missing signals, evidence, and a versioned policy; explicit
+contradictions fail, while missing or ambiguous profile/catalogue evidence
+remains UNKNOWN. Added structured directory filter contracts for country,
+university, subject/major, degree, funding, deadline, and comparable value.
+The public query path currently applies structured country/university/funding
+and date-backed deadline filters; subject/degree SQL is discovery-only, and
+value matching remains a pure contract until T6 supplies comparable values.
+No T5 fit, ranking, recommendation, UI, migration, or data acquisition work
+was added. T4-focused tests passed (3 files, 22 tests), the focused repository
+filter test passed, and the pure T4 domain strict compilation passed. The
+broader scholarship run passed 85 tests with one existing sibling-worktree
+alias mismatch in the pre-T1 catalogue normalization assertion; repository
+local dependencies remain unavailable in this checkout.
+
 Working tree 2026-09-24 (Scholarship Personalization T3): added the pure,
 versioned canonical scholarship matching context and a request-scoped server
 loader. The context carries profile preferences, academic evidence, saved

@@ -5,6 +5,7 @@ import {
   scholarshipSearchParams,
   type ScholarshipQueryState,
 } from '../domain/query-state';
+import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
 import { getScholarshipQueries } from './index';
 import type {
   DirectoryScholarship,
@@ -42,6 +43,15 @@ export function scholarshipListQuery(
     degree: state.degree,
     ...(state.country === 'all' ? {} : { country: state.country }),
     funding: state.funding,
+    filters: normalizeScholarshipDirectoryFilters({
+      country: state.country === 'all' ? null : state.country,
+      universityIds: state.universityId == null ? [] : [state.universityId],
+      subject: state.subject || null,
+      major: state.major === 'all' ? null : state.major,
+      degree: state.degree === 'all' ? null : state.degree,
+      fundingTypes: state.funding,
+      deadline: state.deadline,
+    }),
     sort: state.sort,
   };
 }
