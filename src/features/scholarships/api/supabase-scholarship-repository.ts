@@ -20,6 +20,7 @@ import {
 import { PERSONAL_FIT_POLICY_VERSION } from '../domain/personal-fit-policy';
 import { SCHOLARSHIP_VALUE_SORT_VERSION } from '../domain/value-sort';
 import { calculateScholarshipValue } from '../domain/valuation';
+import { normalizeScholarshipBenefits } from '../domain/benefit-normalization';
 import { FILE_COST_REFERENCE_DATASET, FILE_FX_REFERENCE_DATASET } from './file-reference-providers';
 import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
 import {
@@ -562,6 +563,14 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
         appliesToText: s.applies_to_text,
         deadlineLabel: formatDeadline(s.deadline_date, s.deadline_text),
         sourceUrl: s.source_url,
+        benefits: normalizeScholarshipBenefits({
+          coverage: s.coverage,
+          amount_min: s.amount_min,
+          amount_max: s.amount_max,
+          amount_currency: s.amount_currency,
+          funding_type: s.funding_type ?? [],
+          source_url: s.source_url,
+        }),
       };
 
       const bucket = out.get(row.university_id);

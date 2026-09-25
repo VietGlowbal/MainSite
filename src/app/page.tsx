@@ -4,6 +4,7 @@ import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
 import { getUniversityQueries } from '@/features/universities/api';
 import { getScholarshipQueries } from '@/features/scholarships/api';
+import { calculateDisplayScholarshipValue } from '@/features/scholarships/domain/value-formatting';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
   HomeContact,
@@ -165,6 +166,10 @@ async function getHomeScholarshipSpotlight() {
           value: scholarship.amountLabel ?? compactCoverage(scholarship.coverage),
           valueLabel: scholarship.amountLabel ? 'Award value' : 'What it covers',
           coverage: scholarship.amountLabel ? compactCoverage(scholarship.coverage) : null,
+          benefits: scholarship.benefits ?? null,
+          canonicalValue: scholarship.benefits
+            ? calculateDisplayScholarshipValue(scholarship.benefits)
+            : null,
           ranking: scholarship.ranking_note,
           deadline: scholarship.deadlineLabel,
           fundingTypes: scholarship.funding_type,

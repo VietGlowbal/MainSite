@@ -13,6 +13,12 @@ import {
   scholarshipCandidates,
   scholarshipLabel,
 } from '@/features/universities/domain';
+import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
+import type { FrequentlyPickedSummary } from '@/features/scholarships/domain/frequently-picked';
+import type { ScholarshipRecommendationResult } from '@/features/scholarships/domain/recommendation';
+import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
+import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
+import { ScholarshipBadges } from '@/features/scholarships/ui/scholarship-badges';
 import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarship-constants';
 import { TID, testId } from '@/shared/lib/testids';
 import { Badge } from '@/shared/ui/badge';
@@ -127,6 +133,10 @@ export type ScholarshipOption = {
   insight: string | null;
   appliesToText: string | null;
   sourceUrl: string | null;
+  benefits?: NormalizedScholarshipBenefits | null;
+  value?: ScholarshipValueResult | null;
+  recommendation?: ScholarshipRecommendationResult | null;
+  frequentlyPicked?: FrequentlyPickedSummary | null;
 };
 
 export type SavedRow = {
@@ -159,7 +169,16 @@ export type SavedRow = {
   program: string | null;
   /** A course page they pasted when the directory did not list their subject. */
   programUrl: string | null;
-  attached: Array<{ savedId: number; id: number; name: string; amountLabel: string | null }>;
+  attached: Array<{
+    savedId: number;
+    id: number;
+    name: string;
+    amountLabel: string | null;
+    benefits?: NormalizedScholarshipBenefits | null;
+    value?: ScholarshipValueResult | null;
+    recommendation?: ScholarshipRecommendationResult | null;
+    frequentlyPicked?: FrequentlyPickedSummary | null;
+  }>;
   options: ScholarshipOption[];
 };
 
@@ -323,15 +342,20 @@ function AttachedScholarships({ row }: { row: SavedRow }) {
   return (
     <ul className="flex min-w-0 flex-wrap gap-gb-md">
       {row.attached.map((s) => (
-        /* `title` on the wrapper, not the pill: `Badge` takes only `variant`
-           and `className`, as the tuition badge above also notes. */
-        <li key={s.savedId} className="flex min-w-0 max-w-full" title={s.name}>
-          <Badge variant="brand-subtle" className="min-w-0 max-w-full">
-            <span className="min-w-0 truncate">{scholarshipLabel(s.name, row.name)}</span>
-            {s.amountLabel ? (
-              <span className="shrink-0">{' · '}{s.amountLabel}</span>
-            ) : null}
-          </Badge>
+        <li key={s.savedId} className="flex min-w-0 max-w-full items-center gap-gb-sm rounded-gb-full bg-brand-subtle px-gb-lg py-gb-xs" title={s.name}>
+          <span className="min-w-0 truncate text-gb-xs font-medium text-fg-brand">
+            {scholarshipLabel(s.name, row.name)}
+          </span>
+          <ScholarshipValueSummary
+            value={s.value}
+            benefits={s.benefits}
+            fallbackAwardLabel={s.amountLabel}
+            compact
+          />
+          <ScholarshipBadges
+            recommendation={s.recommendation}
+            frequentlyPicked={s.frequentlyPicked}
+          />
         </li>
       ))}
     </ul>
@@ -568,6 +592,11 @@ function ScholarshipDetail({
           <Badge variant="brand-subtle">{scopeLabel(option.scope)}</Badge>
         </div>
       ) : null}
+      <ScholarshipBadges
+        recommendation={option.recommendation}
+        frequentlyPicked={option.frequentlyPicked}
+        showReasons
+      />
 
       {/* Figma 337:19366 — the value card */}
       <div className="flex items-start gap-gb-xl rounded-gb-xl border border-line p-gb-xl">
@@ -583,14 +612,14 @@ function ScholarshipDetail({
         ) : null}
         <div className="flex min-w-0 flex-col gap-gb-md">
           <span className="text-gb-sm text-fg-secondary">Scholarship value</span>
-          {option.amountLabel ? (
-            <span className="text-gb-display-xs font-semibold text-brand">{option.amountLabel}</span>
-          ) : (
-            <span className="text-gb-md text-fg-tertiary">Value not published</span>
-          )}
-          {option.coverage ? (
-            <p className="whitespace-pre-line text-gb-sm text-fg-tertiary">{option.coverage}</p>
-          ) : null}
+          <ScholarshipValueSummary
+            value={option.value}
+            benefits={option.benefits}
+            raw={{ coverage: option.coverage, fundingType: option.fundingType, sourceUrl: option.sourceUrl }}
+            fallbackAwardLabel={option.amountLabel}
+            showBreakdown
+            showEvidence
+          />
           {option.deadlineLabel ? (
             <span className="flex items-center gap-gb-sm text-gb-sm text-fg-tertiary">
               <KitIcon art={ICONS.clock} frame={20} className="shrink-0" />
@@ -692,7 +721,7 @@ function ScholarshipCandidateCard({
       )}
 
       {/* 375:13309 sits behind a 1px rule in the frame. */}
-      <span className="flex min-w-0 flex-1 flex-col gap-gb-md border-l border-line pl-gb-xl">
+      <div className="flex min-w-0 flex-1 flex-col gap-gb-md border-l border-line pl-gb-xl">
         {/* The label, not the raw enum. `scope` is stored as "university" /
             "country" / "consortium" / "provider", and printing it straight into
             the frame's badge slot leaks a database value into the UI — the
@@ -711,11 +740,13 @@ function ScholarshipCandidateCard({
         {option.name.includes(universityName) ? null : (
           <span className="text-gb-sm text-fg-tertiary">{universityName}</span>
         )}
-        {option.amountLabel ? (
-          <span className="text-gb-xl font-semibold text-brand">{option.amountLabel}</span>
-        ) : (
-          <span className="text-gb-sm text-fg-tertiary">Value not published</span>
-        )}
+        <ScholarshipValueSummary
+          value={option.value}
+          benefits={option.benefits}
+          raw={{ coverage: option.coverage, fundingType: option.fundingType, sourceUrl: option.sourceUrl }}
+          fallbackAwardLabel={option.amountLabel}
+          compact
+        />
         <span className="flex w-full min-w-0 flex-wrap items-center justify-between gap-gb-lg">
           {option.deadlineLabel ? (
             /*
@@ -751,7 +782,7 @@ function ScholarshipCandidateCard({
             <KitIcon art={ICONS.arrowUpRight} frame={20} />
           </button>
         </span>
-      </span>
+      </div>
     </>
   );
 

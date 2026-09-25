@@ -5,6 +5,9 @@ import { useCallback, useRef, useState } from 'react';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarship-constants';
 import { ICONS, KitIcon } from '@/shared/ui';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
+import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
+import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
+import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
 
 export type ScholarshipTeaser = {
   id: number;
@@ -21,6 +24,9 @@ export type ScholarshipTeaser = {
   deadline?: string | null;
   fundingTypes?: readonly string[] | null;
   country?: string | null;
+  /** Canonical scholarship value when Home has catalogue evidence for it. */
+  benefits?: NormalizedScholarshipBenefits | null;
+  canonicalValue?: ScholarshipValueResult | null;
 };
 
 const LEGACY_FUNDING_TYPE_LABELS: Readonly<Record<string, string>> = {
@@ -227,17 +233,28 @@ export function HomeScholarshipPillars({ entries, locale = 'en' }: { entries: re
                   <p className="text-gb-xs font-semibold uppercase tracking-[0.1em] text-brand">
                     {getLocaleText(locale, entry.valueLabel || 'Scholarship value')}
                   </p>
-                  <p
-                    data-no-auto-translate
-                    className="mt-gb-md line-clamp-2 min-h-[2.75rem] font-display text-gb-xl font-semibold leading-snug text-brand"
-                  >
-                    {entry.value}
-                  </p>
-                  {entry.coverage ? (
-                    <p data-no-auto-translate className="mt-gb-md line-clamp-1 text-gb-xs font-medium text-fg-secondary">
-                      {entry.coverage}
-                    </p>
-                  ) : null}
+                  {entry.benefits || entry.canonicalValue ? (
+                    <ScholarshipValueSummary
+                      benefits={entry.benefits}
+                      value={entry.canonicalValue}
+                      compact
+                      className="mt-gb-md"
+                    />
+                  ) : (
+                    <>
+                      <p
+                        data-no-auto-translate
+                        className="mt-gb-md line-clamp-2 min-h-[2.75rem] font-display text-gb-xl font-semibold leading-snug text-brand"
+                      >
+                        {entry.value}
+                      </p>
+                      {entry.coverage ? (
+                        <p data-no-auto-translate className="mt-gb-md line-clamp-1 text-gb-xs font-medium text-fg-secondary">
+                          {entry.coverage}
+                        </p>
+                      ) : null}
+                    </>
+                  )}
                 </div>
 
                 <dl className="mt-gb-2xl grid grid-cols-2 gap-x-gb-xl gap-y-gb-xl border-y border-line py-gb-2xl">

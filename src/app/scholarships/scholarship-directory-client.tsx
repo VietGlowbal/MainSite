@@ -30,8 +30,13 @@ import {
   type ScholarshipQueryState,
   type ScholarshipSort,
 } from '@/features/scholarships/directory-query';
-import { scorePersonalMatch, scholarshipSaveDestination } from '@/features/scholarships/domain';
+import { scholarshipSaveDestination } from '@/features/scholarships/domain';
 import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
+import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
+import type { ScholarshipRecommendationResult } from '@/features/scholarships/domain/recommendation';
+import type { FrequentlyPickedSummary } from '@/features/scholarships/domain/frequently-picked';
+import { ScholarshipBadges } from '@/features/scholarships/ui/scholarship-badges';
+import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
 import { useDebouncedSearchField } from '@/shared/hooks/use-debounced-search-field';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
 import { GlowbalIcon, type GlowbalIconName } from '@/shared/ui';
@@ -91,10 +96,12 @@ type Props = {
   focusUniversity?: { id: number; name: string; country: string | null } | null;
   // Only rows whose scholarship and university are both present in My Portal.
   savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
-  /** Server aggregate for the future Frequently-picked badge; not rendered in T7. */
+  /** Server aggregate for the Frequently-picked badge. */
   frequentlyPicked?: ScholarshipDirectoryResponse['frequentlyPicked'];
-  /** Server recommendation results for T9; no recommendation badge is rendered in T8. */
+  /** Server recommendation results for the GlowBal Recommend badge. */
   recommendations?: ScholarshipDirectoryResponse['recommendations'];
+  /** Canonical value results for visible catalogue rows. */
+  values?: ScholarshipDirectoryResponse['values'];
   canonicalSearch: string;
   isPlus?: boolean;
   locale?: Locale;
@@ -144,6 +151,7 @@ export function ScholarshipDirectoryClient({
   savedScholarships = [],
   frequentlyPicked = {},
   recommendations = {},
+  values = {},
   canonicalSearch,
   isPlus: initialIsPlus,
   locale = 'en',
@@ -163,6 +171,7 @@ export function ScholarshipDirectoryClient({
     canonicalSearch,
     frequentlyPicked,
     recommendations,
+    values,
   }), [
     canonicalSearch,
     frequentlyPicked,
@@ -172,6 +181,7 @@ export function ScholarshipDirectoryClient({
     initialFocusUniversity,
     initialQueryState,
     recommendations,
+    values,
   ]);
   const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data, locale), [locale]);
   const directory = useDirectoryNavigation({
@@ -185,6 +195,7 @@ export function ScholarshipDirectoryClient({
   const directoryPage = publicData.directoryPage;
   const focusPage = publicData.focusPage;
   const countryPage = publicData.countryPage;
+  const valueResults = publicData.values ?? {};
   const focusUniversityProp = publicData.focusUniversity;
   const tab = queryState.view;
 
@@ -482,14 +493,16 @@ export function ScholarshipDirectoryClient({
   // Deep-link focus: split the directory into "at this university" + "same country".
   const focusHasMatches = (focusPage?.total ?? 0) > 0;
 
-  // Personalization: which scholarships match the user's saved universities.
-  const matchedIds = useMemo(() => {
+  // Personalization is the server-side canonical recommendation result. The
+  // legacy page-local saved-university matcher is not rendered as a product
+  // recommendation badge.
+  const recommendedIds = useMemo(() => {
     const set = new Set<number>();
-    for (const s of scholarships) {
-      if (scorePersonalMatch(s, savedUniversityIds, savedCountries).matched) set.add(s.id);
+    for (const recommendation of Object.values(publicData.recommendations)) {
+      if (recommendation.recommended) set.add(recommendation.scholarshipId);
     }
     return set;
-  }, [scholarships, savedUniversityIds, savedCountries]);
+  }, [publicData.recommendations]);
 
   const fundingPresent = FUNDING_TYPES;
   const countriesPresent = facets.countries.map(({ value }) => value);
@@ -556,7 +569,9 @@ export function ScholarshipDirectoryClient({
             <ScholarshipDirectoryCard
               key={s.id}
               scholarship={s}
-              matched={matchedIds.has(s.id)}
+              value={valueResults[String(s.id)] ?? null}
+              recommendation={publicData.recommendations[String(s.id)] ?? null}
+              frequentlyPicked={publicData.frequentlyPicked[String(s.id)] ?? null}
               saved={savedIds.has(s.id)}
               busy={savingIds.has(s.id)}
               onOpen={() => setSelected(s)}
@@ -623,7 +638,7 @@ export function ScholarshipDirectoryClient({
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[430px]">
             <HeroMetric value={facets.total.toLocaleString()} label={t('opportunities')} />
-            <HeroMetric value={String(matchedIds.size)} label={t('matched on this page')} />
+            <HeroMetric value={String(recommendedIds.size)} label={t('recommended on this page')} />
             <HeroMetric value={String(savedIds.size)} label={t('saved')} className="col-span-2 sm:col-span-1" />
           </div>
         </div>
@@ -895,10 +910,10 @@ export function ScholarshipDirectoryClient({
               )}
 
               {/* Personalized note */}
-              {queryState.sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
+              {queryState.sort === 'relevance' && recommendedIds.size > 0 && !hasActiveFilters && (
                 <p className="flex items-center gap-2 text-xs font-medium text-fg-secondary">
                   <span className="inline-block h-2 w-2 rounded-full bg-brand shadow-[0_0_0_4px_var(--color-brand-subtle)]" />
-                  {t('Matched to your saved universities on this page')}
+                  {t('GlowBal recommendations are ranked globally for your profile')}
                 </p>
               )}
 
@@ -933,6 +948,9 @@ export function ScholarshipDirectoryClient({
       {selected && (
         <ScholarshipDetailModal
           scholarship={selected}
+          value={valueResults[String(selected.id)] ?? null}
+          recommendation={publicData.recommendations[String(selected.id)] ?? null}
+          frequentlyPicked={publicData.frequentlyPicked[String(selected.id)] ?? null}
           saved={savedIds.has(selected.id)}
           busy={savingIds.has(selected.id)}
           onToggleSave={() => toggleSave(selected)}
@@ -1032,7 +1050,9 @@ type Translate = (en: string, vars?: Record<string, string | number>) => string;
 
 function ScholarshipDirectoryCard({
   scholarship: s,
-  matched,
+  value,
+  recommendation,
+  frequentlyPicked,
   saved,
   busy,
   onOpen,
@@ -1040,7 +1060,9 @@ function ScholarshipDirectoryCard({
   t,
 }: {
   scholarship: DirectoryScholarship;
-  matched: boolean;
+  value: ScholarshipValueResult | null;
+  recommendation: ScholarshipRecommendationResult | null;
+  frequentlyPicked: FrequentlyPickedSummary | null;
   saved: boolean;
   busy: boolean;
   onOpen: () => void;
@@ -1083,7 +1105,10 @@ function ScholarshipDirectoryCard({
           <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-fg-secondary">
             {t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}
           </span>
-          {matched && <span className="rounded-full bg-brand-subtle px-2.5 py-1 text-[11px] font-semibold text-fg-brand">{t('For you')}</span>}
+          <ScholarshipBadges
+            recommendation={recommendation}
+            frequentlyPicked={frequentlyPicked}
+          />
         </div>
         <h3 className="font-[family-name:var(--font-gb-display)] text-xl font-semibold leading-[1.15] tracking-[-0.025em] text-fg line-clamp-2 transition group-hover:text-fg-brand">{s.name}</h3>
         <p className="mt-2 truncate text-sm text-fg-tertiary">
@@ -1093,23 +1118,24 @@ function ScholarshipDirectoryCard({
       </div>
 
       {/* Amount / coverage */}
-      {(s.amountLabel || s.coverage) && (
+      {(s.amountLabel || s.coverage || (s.benefits?.components.length ?? 0) > 0) && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3">
           <GlowbalIcon name="awardAmount" size={20} className="mt-1" />
-          <div className="min-w-0 flex-1">
-            {s.amountLabel ? (
-              <p className="font-[family-name:var(--font-gb-display)] text-xl font-semibold tracking-tight text-fg-brand">{s.amountLabel}</p>
-            ) : (
-              <AutoTranslate
-                as="p"
-                className="text-sm font-semibold text-fg-brand line-clamp-2"
-                text={s.coverage}
-              />
-            )}
-            {s.amountLabel && s.coverage && (
-              <AutoTranslate as="p" className="mt-1 text-xs text-fg-brand/80 line-clamp-1" text={s.coverage} />
-            )}
-          </div>
+          <ScholarshipValueSummary
+            value={value}
+            benefits={s.benefits}
+            raw={{
+              coverage: s.coverage,
+              amountMin: s.amount_min,
+              amountMax: s.amount_max,
+              amountCurrency: s.amount_currency,
+              fundingType: s.funding_type,
+              sourceUrl: s.source_url,
+            }}
+            fallbackAwardLabel={s.amountLabel}
+            compact
+            className="min-w-0 flex-1"
+          />
         </div>
       )}
 
@@ -1159,6 +1185,9 @@ function ScholarshipDirectoryCard({
 
 function ScholarshipDetailModal({
   scholarship: s,
+  value,
+  recommendation,
+  frequentlyPicked,
   saved,
   busy,
   onToggleSave,
@@ -1166,6 +1195,9 @@ function ScholarshipDetailModal({
   t,
 }: {
   scholarship: DirectoryScholarship;
+  value: ScholarshipValueResult | null;
+  recommendation: ScholarshipRecommendationResult | null;
+  frequentlyPicked: FrequentlyPickedSummary | null;
   saved: boolean;
   busy: boolean;
   onToggleSave: () => void;
@@ -1215,6 +1247,13 @@ function ScholarshipDetailModal({
           ))}
         </div>
 
+        <ScholarshipBadges
+          recommendation={recommendation}
+          frequentlyPicked={frequentlyPicked}
+          showReasons
+          className="mt-4"
+        />
+
         <section className="mt-6 rounded-gb-lg border border-line bg-surface p-4 sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <div className="flex h-20 w-full shrink-0 items-center justify-center rounded-gb-md border-b border-line pb-5 text-3xl sm:h-24 sm:w-40 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-5">
@@ -1225,8 +1264,22 @@ function ScholarshipDetailModal({
                 <GlowbalIcon name="awardAmount" size={16} />
                 {t('Scholarship value')}
               </p>
-              {s.amountLabel && <p className="mt-1 font-[family-name:var(--font-gb-display)] text-3xl font-semibold tracking-[-0.03em] text-fg-brand">{s.amountLabel}</p>}
-              {s.coverage && <AutoTranslate as="p" className="mt-2 text-sm leading-6 text-fg-secondary" text={s.coverage} />}
+              <ScholarshipValueSummary
+                value={value}
+                benefits={s.benefits}
+                raw={{
+                  coverage: s.coverage,
+                  amountMin: s.amount_min,
+                  amountMax: s.amount_max,
+                  amountCurrency: s.amount_currency,
+                  fundingType: s.funding_type,
+                  sourceUrl: s.source_url,
+                }}
+                fallbackAwardLabel={s.amountLabel}
+                showBreakdown
+                showEvidence
+                className="mt-2"
+              />
               {s.deadlineLabel && (
                 <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-fg-tertiary">
                   <GlowbalIcon name="deadlineAlert" size={16} />

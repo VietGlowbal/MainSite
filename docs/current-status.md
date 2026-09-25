@@ -71,6 +71,27 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-25 (Scholarship Personalization T9): unified scholarship
+value formatting and badges across the directory cards/detail, saved list,
+application drawer/picker, Home catalogue-backed surfaces, and the AI surface's
+canonical/non-canonical amount boundary. Shared summaries preserve coverage,
+original award amounts, total value, duration, component breakdown, evidence,
+and EXACT/MIXED/ESTIMATED/unavailable states; 100% tuition is never rendered as
+full ride, and AI-researched amounts remain explicitly non-canonical unless a
+catalogue id/value is supplied. Directory output carries the same visible-row
+T6 value results, T7 aggregate summaries, and T8 recommendation results; saved
+and application server loaders now reuse the same T2A/T4/T5/T8 adapters over a
+bounded complete candidate set. Save/select semantics and Home editorial
+highlighting remain separate. The formatter domain suite passed 7/7 tests and
+the focused T6/T7/T8/value integration set passed 31/31 tests. The broader
+scholarship run passed 146/147, with the one existing sibling-worktree alias
+mismatch in the pre-T1 catalogue normalization assertion. UI suites could not
+start because the available sibling toolchain resolves no
+`@testing-library/jest-dom`; local typecheck could not start because this
+checkout has no `tsc`. `git diff --check` passed. No schema, migration, data
+acquisition, recommendation-policy, eligibility-rule, or popularity-semantic
+changes were made.
+
 Working tree 2026-09-25 (Scholarship Personalization T8): added the pure,
 versioned GlowBal Recommend domain. Recommendations gate INELIGIBLE and
 UNKNOWN eligibility, use T5 fit as the primary signal, normalize T2A lower-bound

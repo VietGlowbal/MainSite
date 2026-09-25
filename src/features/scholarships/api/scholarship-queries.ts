@@ -7,6 +7,7 @@ import type {
   ScholarshipSort,
 } from '../domain/query-state';
 import type { ScholarshipDirectoryFilters } from '../domain/eligibility';
+import type { NormalizedScholarshipBenefits } from '../domain/benefit-types';
 
 export type { Page };
 
@@ -42,6 +43,7 @@ export interface ScholarshipForUniversity {
   appliesToText: string | null;
   deadlineLabel: string | null;
   sourceUrl: string | null;
+  benefits: NormalizedScholarshipBenefits;
 }
 
 export interface ScholarshipListQuery {

@@ -198,6 +198,7 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
           savedScholarships={savedScholarships}
           frequentlyPicked={directory?.frequentlyPicked ?? {}}
           recommendations={directory?.recommendations ?? {}}
+          values={directory?.values ?? {}}
           canonicalSearch={directory?.canonicalSearch ?? currentSearch}
           isPlus={isPlus}
           locale={locale}

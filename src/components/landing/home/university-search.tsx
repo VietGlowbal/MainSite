@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarships';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
+import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
+import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
 
 /**
  * UniversitySearch — the interactive entry point into the funnel (Phase 3).
@@ -25,6 +28,8 @@ type PreviewScholarship = {
   amountLabel: string | null;
   fundingType: string[];
   deadlineLabel: string | null;
+  benefits: NormalizedScholarshipBenefits | null;
+  value: ScholarshipValueResult | null;
 };
 
 type UniversityMatch = {
@@ -215,7 +220,13 @@ function SelectedUniversity({
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                {s.amountLabel ? <span className="text-sm font-bold text-slate-900">{s.amountLabel}</span> : null}
+                <ScholarshipValueSummary
+                  value={s.value}
+                  benefits={s.benefits}
+                  fallbackAwardLabel={s.amountLabel}
+                  compact
+                  className="min-w-0"
+                />
                 {s.fundingType.slice(0, 2).map((f) => (
                   <span key={f} className="rounded-full bg-pink-50 px-2 py-0.5 text-[11px] font-medium text-pink-600">{fundingLabel(f)}</span>
                 ))}

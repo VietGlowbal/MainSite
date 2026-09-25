@@ -15,6 +15,9 @@
 import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPublishedScholarships } from '@/lib/scholarships-data';
+import { calculateDisplayScholarshipValue } from '@/features/scholarships/domain/value-formatting';
+import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
+import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
 
 export type PreviewScholarship = {
   id: number;
@@ -24,6 +27,8 @@ export type PreviewScholarship = {
   amountLabel: string | null;
   fundingType: string[];
   deadlineLabel: string | null;
+  benefits: NormalizedScholarshipBenefits | null;
+  value: ScholarshipValueResult | null;
 };
 
 export type UniversityMatch = {
@@ -63,6 +68,8 @@ const getHomeIndex = unstable_cache(
         amountLabel: s.amountLabel,
         fundingType: s.funding_type,
         deadlineLabel: s.deadlineLabel,
+        benefits: s.benefits ?? null,
+        value: s.benefits ? calculateDisplayScholarshipValue(s.benefits) : null,
       };
       for (const uid of s.universityIds) {
         (byUniversityId[uid] ??= []).push(lite);

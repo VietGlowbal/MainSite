@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 import { GlowbalIcon } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
+import type { ScholarshipValueResult } from '@/features/scholarships/domain/valuation';
+import { ScholarshipValueSummary } from '@/features/scholarships/ui/scholarship-value-summary';
 
 /* ─────────────────────────────────────────────────────────────────────────
    TYPES
@@ -47,6 +50,10 @@ type AIScholarship = {
   courseApplicationId: string;
   isUniversitySpecific: boolean;
   type: string;
+  /** Populated only when an AI result has been resolved to the catalogue. */
+  canonicalScholarshipId?: number | null;
+  canonicalBenefits?: NormalizedScholarshipBenefits | null;
+  canonicalValue?: ScholarshipValueResult | null;
 };
 
 type Props = {
@@ -373,16 +380,29 @@ function ScholarshipCard({
           <p className="mt-0.5 text-xs text-slate-400">{s.provider}</p>
         </div>
         {/* Match score */}
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 text-xs font-bold text-emerald-700">
+        <span
+          title="AI match score; not the canonical catalogue ranking"
+          aria-label={`AI match score ${s.matchScore}; not the canonical catalogue ranking`}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 text-xs font-bold text-emerald-700"
+        >
           {s.matchScore}
         </span>
       </div>
 
       {/* Amount */}
       <div className="mb-3 rounded-lg bg-gradient-to-r from-pink-50 to-violet-50 px-3 py-2">
-        <p className="text-base font-bold text-slate-900">{s.amount}</p>
-        {s.coverage && (
-          <p className="text-[11px] text-slate-500">{s.coverage}</p>
+        {s.canonicalScholarshipId != null && s.canonicalValue ? (
+          <ScholarshipValueSummary
+            value={s.canonicalValue}
+            benefits={s.canonicalBenefits}
+            compact
+          />
+        ) : (
+          <>
+            <p className="text-xs font-semibold text-slate-500">AI-researched amount — not catalogue verified</p>
+            <p className="text-base font-bold text-slate-900">{s.amount}</p>
+            {s.coverage ? <p className="text-[11px] text-slate-500">{s.coverage}</p> : null}
+          </>
         )}
       </div>
 

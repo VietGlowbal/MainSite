@@ -8,6 +8,12 @@ export { scorePersonalMatch } from './personal-match';
 export { scholarshipSaveDestination } from './save-destination';
 export { normalizeScholarshipBenefits } from './benefit-normalization';
 export { calculateScholarshipValue } from './valuation';
+export {
+  calculateDisplayScholarshipValue,
+  createScholarshipValueViewModel,
+  formatMoneyAmount,
+  recommendationReasonLabel,
+} from './value-formatting';
 export { durationInMonths, periodMultiplier, resolveScholarshipDuration } from './duration';
 export {
   COST_REFERENCE_LEVELS,
@@ -107,6 +113,12 @@ export type {
   ValuationPolicy,
   ValueStatus,
 } from './valuation';
+export type {
+  ScholarshipValueBreakdownItem,
+  ScholarshipValueFormattingInput,
+  ScholarshipValueKind,
+  ScholarshipValueViewModel,
+} from './value-formatting';
 export type {
   DurationContext,
   DurationInput,
