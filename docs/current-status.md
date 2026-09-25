@@ -92,25 +92,24 @@ checkout has no `tsc`. `git diff --check` passed. No schema, migration, data
 acquisition, recommendation-policy, eligibility-rule, or popularity-semantic
 changes were made.
 Working tree 2026-09-25 (Scholarship Personalization final verification):
-restored the locked npm dependency set with `npm ci`, fixed the current-branch
-T1 strictness/fixture issues, repaired the T9 shared UI import boundaries, and
-updated the current ApplyPage test mock for the integrated
-`loadFrequentlyPicked` API. Base and strict typechecks passed; ESLint passed
-with 0 errors and 9 existing warnings; the focused scholarship/application/UI
-run passed 31 files / 175 tests; the full suite passed 431 files / 4,040 tests
-with 2 todos and 3 unrelated failures (the real i18n checker and two
-candidate-confirmation timing/interaction tests). The production build passed
-with the existing missing Supabase-environment warnings. E2E could not start
-because this checkout has no Supabase environment; `verify:pr` stopped at the
-repository Node gate because the workstation exposes Node 22.15.0 while the
-repository requires Node 24.19.0. `git diff --check` passed. T2B production
-cost/FX coverage remains intentionally incomplete; no values were fabricated.
-No schema, migration, ranking policy, eligibility rule, popularity semantic,
-or external-data change was made in verification hardening. The independent
-OpenCode review was attempted through Orca twice and then through the existing
-read-only terminal, but its dispatch input stalled and the manual review
-remained stuck in a file-read state without a findings report; OpenCode was
-therefore not marked complete.
+the required Node 24.19.0 runtime was used with the existing npm 10.9.2 CLI.
+The branch-specific i18n checker now reports zero missing static keys and zero
+placeholder mismatches after adding the scholarship catalog translations
+introduced by T6-T9. Base and strict typechecks passed; ESLint passed with 0
+errors and 9 existing warnings; the focused scholarship/application/UI run
+passed 32 files / 177 tests. A direct full `npm test` run had 3 unrelated
+candidate API timing/interaction failures; the unchanged test files pass in
+isolation against the branch and origin/main, and the CI-style `test:ci` gate
+passed all 433 files / 4,043 tests with 2 todos. Build and `verify:pr` passed,
+with expected missing-Supabase/fetch warnings during static generation. E2E
+remains blocked because this checkout has no Supabase environment and the
+configured Playwright web server timed out after 300 seconds. `git diff --check`
+passed. T2B production cost/FX coverage remains intentionally incomplete; no
+values were fabricated. No schema, migration, ranking policy, eligibility
+rule, popularity semantic, or external-data change was made in verification
+hardening. OpenCode was not marked complete: the supervised dispatch stalled,
+and a fresh OpenCode terminal stopped with an invalid API key before producing
+a findings report.
 
 Working tree 2026-09-25 (Scholarship Personalization T8): added the pure,
 versioned GlowBal Recommend domain. Recommendations gate INELIGIBLE and
