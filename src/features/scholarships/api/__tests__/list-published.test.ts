@@ -144,6 +144,8 @@ describe('SupabaseScholarshipRepository.listPublished', () => {
       page: 1,
       pageSize: 9,
       sort: 'name',
+      universityId: 42,
+      filters: normalizeScholarshipDirectoryFilters({ universityIds: [42] }),
       relatedUniversityCountry: 'United Kingdom',
       excludeUniversityId: 42,
     });

@@ -63,7 +63,7 @@ describe('calculateScholarshipValue', () => {
     });
 
     expect(total(result)).toMatchObject({ min: 80_000, max: 80_000, currency: 'USD' });
-    expect(result.comparableTotalValue).toMatchObject({ amount: 80_000, currency: 'USD', bound: 'lower' });
+    expect(result.comparableTotalValue).toMatchObject({ amount: 80_000, upperBound: 80_000, currency: 'USD', bound: 'lower' });
     expect(result.status).toBe('EXACT');
   });
 
@@ -89,7 +89,7 @@ describe('calculateScholarshipValue', () => {
       benefits: [
         benefit({
           period: 'annual',
-          amount: amount(30_000, 'GBP'),
+          amount: amount(30_000, 'GBP', 40_000),
           duration: { count: 3, unit: 'year', basis: 'explicit', rawText: '£30,000/year × 3 years' },
         }),
       ],
@@ -100,8 +100,8 @@ describe('calculateScholarshipValue', () => {
       },
     });
 
-    expect(total(result)).toMatchObject({ min: 90_000, currency: 'GBP' });
-    expect(result.comparableTotalValue).toMatchObject({ amount: 112_500, currency: 'USD', fxVersion: 'test-fx-v1' });
+    expect(total(result)).toMatchObject({ min: 90_000, max: 120_000, currency: 'GBP' });
+    expect(result.comparableTotalValue).toMatchObject({ amount: 112_500, upperBound: 150_000, currency: 'USD', fxVersion: 'test-fx-v1' });
   });
 
   it('multiplies a monthly stipend by twelve months', () => {
@@ -213,6 +213,22 @@ describe('calculateScholarshipValue', () => {
     expect(result.comparableTotalValue?.amount).toBe(80_000);
   });
 
+  it('never reports an incomplete exact component set as EXACT', () => {
+    const result = calculateScholarshipValue({
+      benefits: [
+        benefit({ type: 'tuition', amount: amount(20_000) }),
+        benefit({ type: 'living', amount: null, period: 'monthly', valueKind: 'coverage' }),
+      ],
+      policy: policy(),
+    });
+
+    expect(result.complete).toBe(false);
+    expect(result.totalValue).toBeNull();
+    expect(result.comparableTotalValue).toBeNull();
+    expect(result.status).toBe('MIXED');
+    expect(result.valueStatus).not.toBe('EXACT');
+  });
+
   it('does not expand a periodic amount when duration is unknown', () => {
     const result = calculateScholarshipValue({
       benefits: [benefit({ type: 'stipend', period: 'monthly', amount: amount(5_000) })],
@@ -284,7 +300,7 @@ describe('calculateScholarshipValue', () => {
     });
 
     expect(total(result)).toMatchObject({ min: 10_000, max: 20_000 });
-    expect(result.comparableTotalValue).toMatchObject({ amount: 10_000, bound: 'lower' });
+    expect(result.comparableTotalValue).toMatchObject({ amount: 10_000, upperBound: 20_000, bound: 'lower' });
   });
 
   it('uses an explicit one-year benefit duration instead of multiplying by a four-year programme', () => {

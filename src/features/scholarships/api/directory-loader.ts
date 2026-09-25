@@ -161,6 +161,18 @@ function programmeTuitionSource(
   };
 }
 
+/**
+ * The focused university is a presentation section, not a directory-wide
+ * constraint. Related-country and zero-focus fallback queries must retain the
+ * user's other filters while removing only that university scope.
+ */
+function unscopedScholarshipListQuery(
+  state: ScholarshipQueryState,
+  page: number,
+): ScholarshipListQuery {
+  return scholarshipListQuery({ ...state, universityId: null }, page);
+}
+
 function privateScholarshipValue(
   item: { id: number; benefits?: NormalizedScholarshipBenefits | null },
   context: Awaited<ReturnType<typeof loadScholarshipMatchingContext>>,
@@ -404,7 +416,9 @@ export async function loadScholarshipDirectoryForUser(args: {
   const query: ScholarshipQueryState = focusUniversity
     ? { ...requested }
     : { ...requested, universityId: null, countryPage: 1 };
-  const baseQuery = scholarshipListQuery(query, 1);
+  const directoryQuery = focusUniversity
+    ? unscopedScholarshipListQuery(query, 1)
+    : scholarshipListQuery(query, 1);
   const repository = getScholarshipQueries();
   const candidateQuery = (value: ScholarshipListQuery): ScholarshipListQuery => ({
     ...value,
@@ -416,19 +430,26 @@ export async function loadScholarshipDirectoryForUser(args: {
   let focusCandidates: DirectoryScholarship[] = [];
   let countryCandidates: DirectoryScholarship[] = [];
   if (focusUniversity) {
+    const focusQuery: ScholarshipListQuery = {
+      ...directoryQuery,
+      universityId: focusUniversity.id,
+    };
+    const countryQuery = focusUniversity.country
+      ? {
+          ...unscopedScholarshipListQuery(query, 1),
+          relatedUniversityCountry: focusUniversity.country,
+          excludeUniversityId: focusUniversity.id,
+        }
+      : null;
     [directoryCandidates, focusCandidates, countryCandidates] = await Promise.all([
-      repository.listPublishedCandidates(candidateQuery(baseQuery)),
-      repository.listPublishedCandidates(candidateQuery({ ...baseQuery, universityId: focusUniversity.id })),
-      focusUniversity.country
-        ? repository.listPublishedCandidates(candidateQuery({
-            ...scholarshipListQuery(query, 1),
-            relatedUniversityCountry: focusUniversity.country,
-            excludeUniversityId: focusUniversity.id,
-          }))
+      repository.listPublishedCandidates(candidateQuery(directoryQuery)),
+      repository.listPublishedCandidates(candidateQuery(focusQuery)),
+      countryQuery
+        ? repository.listPublishedCandidates(candidateQuery(countryQuery))
         : Promise.resolve([]),
     ]);
   } else {
-    directoryCandidates = await repository.listPublishedCandidates(candidateQuery(baseQuery));
+    directoryCandidates = await repository.listPublishedCandidates(candidateQuery(directoryQuery));
   }
 
   const scholarshipIds = [...new Set([
@@ -457,27 +478,38 @@ export async function loadScholarshipDirectoryForUser(args: {
   let focusPage: Page<DirectoryScholarship> | null = null;
   let countryPage: Page<DirectoryScholarship> | null = null;
   if (focusUniversity) {
+    const focusQuery: ScholarshipListQuery = {
+      ...directoryQuery,
+      universityId: focusUniversity.id,
+    };
+    const countryQuery = focusUniversity.country
+      ? {
+          ...unscopedScholarshipListQuery(query, query.countryPage),
+          relatedUniversityCountry: focusUniversity.country,
+          excludeUniversityId: focusUniversity.id,
+        }
+      : null;
     focusPage = privatePage(
       focusCandidates,
       context,
-      { ...baseQuery, universityId: focusUniversity.id },
+      focusQuery,
       asOf,
       prepared,
     );
     countryPage = privatePage(
       countryCandidates,
       context,
-      scholarshipListQuery(query, query.countryPage),
+      countryQuery ?? unscopedScholarshipListQuery(query, query.countryPage),
       asOf,
       prepared,
     );
     query.page = focusPage.page;
     query.countryPage = countryPage.page;
     if (focusPage.total === 0) {
-      directoryPage = privatePage(directoryCandidates, context, baseQuery, asOf, prepared);
+      directoryPage = privatePage(directoryCandidates, context, directoryQuery, asOf, prepared);
     }
   } else {
-    directoryPage = privatePage(directoryCandidates, context, baseQuery, asOf, prepared);
+    directoryPage = privatePage(directoryCandidates, context, directoryQuery, asOf, prepared);
     query.page = directoryPage.page;
   }
 
@@ -527,27 +559,36 @@ const loadCached = unstable_cache(
     const query: ScholarshipQueryState = focusUniversity
       ? { ...requested }
       : { ...requested, universityId: null, countryPage: 1 };
-    const baseQuery = scholarshipListQuery(query, query.page);
+    const directoryQuery = focusUniversity
+      ? unscopedScholarshipListQuery(query, query.page)
+      : scholarshipListQuery(query, query.page);
     let directoryPage: Page<DirectoryScholarship> | null = null;
     let focusPage: Page<DirectoryScholarship> | null = null;
     let countryPage: Page<DirectoryScholarship> | null = null;
 
     if (focusUniversity) {
+      const focusQuery: ScholarshipListQuery = {
+        ...directoryQuery,
+        universityId: focusUniversity.id,
+      };
+      const countryQuery = focusUniversity.country
+        ? {
+            ...unscopedScholarshipListQuery(query, query.countryPage),
+            relatedUniversityCountry: focusUniversity.country,
+            excludeUniversityId: focusUniversity.id,
+          }
+        : null;
       [focusPage, countryPage] = await Promise.all([
-        loadPage({ ...baseQuery, universityId: focusUniversity.id }),
-        focusUniversity.country
-          ? loadPage({
-              ...scholarshipListQuery(query, query.countryPage),
-              relatedUniversityCountry: focusUniversity.country,
-              excludeUniversityId: focusUniversity.id,
-            })
+        loadPage(focusQuery),
+        countryQuery
+          ? loadPage(countryQuery)
           : Promise.resolve(emptyPage(query.countryPage)),
       ]);
       query.page = focusPage.page;
       query.countryPage = countryPage.page;
-      if (focusPage.total === 0) directoryPage = await loadPage(baseQuery);
+      if (focusPage.total === 0) directoryPage = await loadPage(directoryQuery);
     } else {
-      directoryPage = await loadPage(baseQuery);
+      directoryPage = await loadPage(directoryQuery);
       query.page = directoryPage.page;
     }
 

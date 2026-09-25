@@ -88,7 +88,43 @@ describe('loadScholarshipDirectory', () => {
         excludeUniversityId: 42,
       }),
     );
+    const relatedCountryQuery = listPublished.mock.calls
+      .map(([query]) => query as ScholarshipListQuery)
+      .find((query) => query.relatedUniversityCountry === 'United Kingdom');
+    expect(relatedCountryQuery).not.toHaveProperty('universityId');
+    expect(relatedCountryQuery?.filters?.universityIds).toEqual([]);
     expect(loadFrequentlyPicked).toHaveBeenCalledTimes(1);
     expect(loadFrequentlyPicked).toHaveBeenCalledWith({ scholarshipIds: [1] });
+  });
+
+  it('returns the broader directory fallback when the focused university has no scholarships', async () => {
+    const empty = (requested: number): Page<DirectoryScholarship> => ({
+      items: [],
+      total: 0,
+      page: requested,
+      pageSize: 9,
+      hasMore: false,
+    });
+    const listPublished = vi.fn((query: ScholarshipListQuery) =>
+      Promise.resolve(query.universityId === 42 ? empty(query.page) : page(query.page, 2)),
+    );
+    setScholarshipQueries({ listPublished } as unknown as ScholarshipQueries);
+    getPublicUniversityFocus.mockResolvedValue({
+      id: 42,
+      name: 'Oxford',
+      country: 'United Kingdom',
+    });
+
+    const result = await loadScholarshipDirectory(
+      parseScholarshipSearchParams({ university: '42' }),
+    );
+
+    expect(result.focusPage?.total).toBe(0);
+    expect(result.directoryPage?.total).toBe(2);
+    const fallbackQuery = listPublished.mock.calls
+      .map(([query]) => query as ScholarshipListQuery)
+      .find((query) => query.relatedUniversityCountry == null && query.universityId == null);
+    expect(fallbackQuery).toBeDefined();
+    expect(fallbackQuery?.filters?.universityIds).toEqual([]);
   });
 });

@@ -162,7 +162,6 @@ export function deriveRecommendationReasons(args: {
     : null;
   const value = candidate.value;
   const comparable = value?.comparableTotalValue ?? null;
-  const total = value?.totalValue ?? null;
   const evidenceConfidence = confidenceFor(value);
   const reasonCodes: RecommendationReasonCode[] = [];
   const warnings: RecommendationWarning[] = [];
@@ -194,7 +193,7 @@ export function deriveRecommendationReasons(args: {
     warnings.push(warning('fit-unknown', 'The fit result is not rankable because its eligibility gate is not satisfied.'));
   }
 
-  if (value?.status === 'EXACT') addReason(reasonCodes, 'exact-award-value');
+  if (value?.status === 'EXACT' && value.complete) addReason(reasonCodes, 'exact-award-value');
   if (value?.status === 'MIXED') addReason(reasonCodes, 'mixed-award-value');
   if (value?.status === 'ESTIMATED') {
     addReason(reasonCodes, 'estimated-award-value');
@@ -221,9 +220,7 @@ export function deriveRecommendationReasons(args: {
     comparableValueScore: args.comparableValueScore,
     valueScore: args.valueScore,
     valueAmount: comparable?.amount ?? null,
-    valueUpperBound: total && comparable && total.currency?.toUpperCase() === comparable.currency.toUpperCase()
-      ? total.max
-      : null,
+    valueUpperBound: comparable?.upperBound ?? null,
     valueCurrency: comparable?.currency ?? null,
     valueStatus: value?.status ?? null,
     valueQualityScore: args.valueQualityScore,

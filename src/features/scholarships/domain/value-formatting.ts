@@ -15,6 +15,7 @@ import {
 import type {
   ScholarshipValueBreakdownItem,
   ScholarshipValueKind,
+  ScholarshipTextTranslator,
   ScholarshipValueViewModel,
 } from '@/shared/types/scholarship-value';
 
@@ -23,6 +24,11 @@ export type {
   ScholarshipValueKind,
   ScholarshipValueViewModel,
 } from '@/shared/types/scholarship-value';
+
+const identityTranslate: ScholarshipTextTranslator = (source, vars) => {
+  if (!vars) return source;
+  return source.replace(/\{(\w+)\}/g, (_, key) => (key in vars ? String(vars[key]) : `{${key}}`));
+};
 
 export type ScholarshipValueFormattingInput = {
   value?: ScholarshipValueResult | null | undefined;
@@ -101,6 +107,7 @@ function numberFormatter(locale: string): Intl.NumberFormat {
 export function formatMoneyAmount(
   amount: BenefitAmount | null | undefined,
   locale = 'en-US',
+  t: ScholarshipTextTranslator = identityTranslate,
 ): string | null {
   if (!amount || !Number.isFinite(amount.min)) return null;
   const formatter = numberFormatter(locale);
@@ -115,7 +122,7 @@ export function formatMoneyAmount(
   if (amount.max == null || amount.max === amount.min) {
     return amount.currencyStatus === 'known' && knownCurrency(amount.currency)
       ? min
-      : `${min} (currency unavailable)`;
+      : `${min} (${t('currency unavailable')})`;
   }
   const max = knownCurrency(amount.currency) && amount.currencyStatus === 'known'
     ? new Intl.NumberFormat(locale, {
@@ -127,19 +134,23 @@ export function formatMoneyAmount(
     : formatter.format(amount.max);
   const suffix = amount.currencyStatus === 'known' && knownCurrency(amount.currency)
     ? ''
-    : ' (currency unavailable)';
+    : ` (${t('currency unavailable')})`;
   return `${min}–${max}${suffix}`;
 }
 
-function formatPeriod(period: BenefitPeriod): string | null {
-  return PERIOD_LABELS[period];
+function formatPeriod(period: BenefitPeriod, t: ScholarshipTextTranslator): string | null {
+  const label = PERIOD_LABELS[period];
+  return label ? t(label) : null;
 }
 
-function formatDuration(duration: { count: number; unit: string } | null | undefined): string | null {
+function formatDuration(
+  duration: { count: number; unit: string } | null | undefined,
+  t: ScholarshipTextTranslator,
+): string | null {
   if (!duration || !Number.isFinite(duration.count)) return null;
   const count = Number.isInteger(duration.count) ? String(duration.count) : String(duration.count);
   const unit = duration.unit === 'month' ? 'month' : duration.unit === 'term' ? 'term' : 'year';
-  return `${count} ${unit}${duration.count === 1 ? '' : 's'}`;
+  return t(`{count} ${unit}${duration.count === 1 ? '' : 's'}`, { count });
 }
 
 function tuitionPercentage(component: BenefitComponent): string | null {
@@ -152,40 +163,57 @@ function tuitionPercentage(component: BenefitComponent): string | null {
 function coverageLabel(
   normalized: NormalizedScholarshipBenefits,
   components: readonly BenefitComponent[],
+  t: ScholarshipTextTranslator,
 ): string | null {
   const tuition = components.find((component) => component.type === 'tuition');
   const fullRide = normalized.classification.fullRideStatus === 'supported';
   if (tuition) {
     const percentage = tuitionPercentage(tuition);
-    if (fullRide) return `${percentage ?? '100%'} Full-ride`;
-    if (percentage) return `${percentage} Tuition`;
-    if (tuition.coverage === 'full') return '100% Tuition';
+    if (fullRide) return t('{percentage} Full-ride', { percentage: percentage ?? '100%' });
+    if (percentage) return t('{percentage} Tuition', { percentage });
+    if (tuition.coverage === 'full') return t('100% Tuition');
   }
-  if (fullRide) return 'Full-ride';
-  if (normalized.classification.fullyFundedClaimed) return 'Fully funded — details incomplete';
+  if (fullRide) return t('Full-ride');
+  if (normalized.classification.fullyFundedClaimed) return t('Fully funded — details incomplete');
   if (components.some((component) => component.type !== 'tuition')) {
-    return 'Benefits included';
+    return t('Benefits included');
   }
   return null;
 }
 
-function sourceLabel(source: ScholarshipValueBreakdownItem['status'], sourceType: string | null): string | null {
-  if (sourceType) return sourceType;
-  if (source === 'EXACT') return 'Published scholarship field';
-  if (source === 'ESTIMATED') return 'Estimated reference';
+function sourceLabel(
+  source: ScholarshipValueBreakdownItem['status'],
+  sourceType: string | null,
+  t: ScholarshipTextTranslator,
+): string | null {
+  if (sourceType === 'cost-reference' || sourceType?.endsWith('-cost-reference')) {
+    return t('Estimated reference');
+  }
+  if (sourceType === 'programme' || sourceType === 'programme-tuition') {
+    return t('Programme tuition reference');
+  }
+  if (sourceType === 'catalogue-field') return t('Published scholarship field');
+  if (sourceType) return t(sourceType);
+  if (source === 'EXACT') return t('Published scholarship field');
+  if (source === 'ESTIMATED') return t('Estimated reference');
   return null;
 }
 
-function originalAmountFor(component: BenefitComponent, locale: string): string | null {
+function originalAmountFor(
+  component: BenefitComponent,
+  locale: string,
+  t: ScholarshipTextTranslator,
+): string | null {
   // Percentage coverage is already represented by coverageLabel. Repeating
   // the bare percentage as an "award amount" makes 50% Tuition read as two
   // competing values in compact cards.
   if (component.valueKind === 'percentage') return null;
-  return formatMoneyAmount(component.amount, locale);
+  return formatMoneyAmount(component.amount, locale, t);
 }
 
 function valueForDisplay(
   value: ScholarshipValueResult | null | undefined,
+  t: ScholarshipTextTranslator,
 ): { amount: BenefitAmount; kind: ScholarshipValueKind; statusLabel: string } | null {
   const totalValue = value?.totalValue;
   const comparableValue = value?.comparableTotalValue;
@@ -203,7 +231,7 @@ function valueForDisplay(
       currencyStatus: totalValue?.currencyStatus ?? 'known',
     },
     kind,
-    statusLabel: kind === 'exact' ? 'Exact' : kind === 'mixed' ? 'Mixed estimate' : 'Estimated',
+    statusLabel: t(kind === 'exact' ? 'Exact' : kind === 'mixed' ? 'Mixed estimate' : 'Estimated'),
   };
 }
 
@@ -220,29 +248,40 @@ function collectEvidence(
   ) === index);
 }
 
+function valueWarningLabel(warning: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    'scenario-selection-required': 'A benefit scenario must be selected before a total can be calculated.',
+    'complete-total-unavailable': 'The available evidence is not sufficient to calculate a defensible total.',
+    'unknown-currency-comparable-unavailable': 'An amount was preserved with an unknown currency; no USD default was applied.',
+    'comparable-value-unavailable': 'No defensible comparable monetary value is available for ranking.',
+  };
+  return labels[warning] ?? warning;
+}
+
 export function createScholarshipValueViewModel(
   input: ScholarshipValueFormattingInput,
   locale = 'en-US',
+  t: ScholarshipTextTranslator = identityTranslate,
 ): ScholarshipValueViewModel {
   const normalized = normalizedBenefitsFrom(input);
   const benefits = componentsFrom(normalized);
   const value = input.value ?? null;
-  const displayValue = valueForDisplay(value);
+  const displayValue = valueForDisplay(value, t);
   const components = benefits.map((component, index): ScholarshipValueBreakdownItem => {
     const valuation = value?.components[index] ?? null;
     const status = valuation?.totalValue
       ? valuation.status
       : 'UNAVAILABLE';
-    const total = valuation?.totalValue ? formatMoneyAmount(valuation.totalValue, locale) : null;
+    const total = valuation?.totalValue ? formatMoneyAmount(valuation.totalValue, locale, t) : null;
     return {
       type: component.type,
-      label: BENEFIT_LABELS[component.type],
-      amountLabel: originalAmountFor(component, locale),
+      label: t(BENEFIT_LABELS[component.type]),
+      amountLabel: originalAmountFor(component, locale, t),
       totalLabel: total,
-      periodLabel: formatPeriod(component.period),
-      durationLabel: formatDuration(component.duration ?? value?.duration),
+      periodLabel: formatPeriod(component.period, t),
+      durationLabel: formatDuration(component.duration ?? value?.duration, t),
       status,
-      sourceLabel: sourceLabel(status, valuation?.sourceType ?? null),
+      sourceLabel: sourceLabel(status, valuation?.sourceType ?? null, t),
       included: valuation?.included ?? true,
       reason: valuation?.reason ?? null,
       evidence: valuation?.evidence ?? component.evidence,
@@ -253,23 +292,28 @@ export function createScholarshipValueViewModel(
     .map((component) => component.amountLabel!);
   const totalValueLabel = displayValue
     ? displayValue.kind === 'estimated'
-      ? `≈ ${formatMoneyAmount(displayValue.amount, locale)} estimated total value`
-      : `${formatMoneyAmount(displayValue.amount, locale)} total value — ${displayValue.statusLabel}`
-    : 'Total value unavailable';
+      ? t('≈ {amount} estimated total value', {
+          amount: formatMoneyAmount(displayValue.amount, locale, t) ?? '',
+        })
+      : t('{amount} total value — {status}', {
+          amount: formatMoneyAmount(displayValue.amount, locale, t) ?? '',
+          status: displayValue.statusLabel,
+        })
+    : t('Total value unavailable');
   const rawSourceUrl = normalized.raw.sourceUrl;
   return {
-    coverageLabel: coverageLabel(normalized, benefits),
+    coverageLabel: coverageLabel(normalized, benefits, t),
     originalAwardLabel: originalAmounts.length > 0 ? [...new Set(originalAmounts)].join(' + ') : null,
     totalValueLabel,
     totalValueKind: displayValue?.kind ?? 'unavailable',
     totalValueStatusLabel: displayValue?.statusLabel ?? null,
-    durationLabel: formatDuration(value?.duration),
+    durationLabel: formatDuration(value?.duration, t),
     components,
     evidence: collectEvidence(normalized, value),
     sourceUrl: rawSourceUrl,
     warnings: [...new Set([
-      ...normalized.warnings.map((warning) => warning.message),
-      ...(value?.warnings ?? []),
+      ...normalized.warnings.map((warning) => t(warning.message)),
+      ...(value?.warnings ?? []).map((warning) => t(valueWarningLabel(warning))),
     ])],
     hasComparableValue: value?.comparableTotalValue != null,
   };

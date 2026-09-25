@@ -236,6 +236,7 @@ export function HomeScholarshipPillars({ entries, locale = 'en' }: { entries: re
                       model={entry.valueModel}
                       compact
                       className="mt-gb-md"
+                      t={(source, vars) => getLocaleText(locale, source, vars)}
                     />
                   ) : (
                     <>

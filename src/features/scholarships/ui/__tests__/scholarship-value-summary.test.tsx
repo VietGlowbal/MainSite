@@ -1,8 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { normalizeScholarshipBenefits } from '../../domain/benefit-normalization';
-import { calculateDisplayScholarshipValue } from '../../domain/value-formatting';
+import { calculateDisplayScholarshipValue, createScholarshipValueViewModel } from '../../domain/value-formatting';
 import { ScholarshipValueSummary } from '../scholarship-value-summary';
+import { SharedScholarshipValueSummary } from '@/shared/ui/scholarship-value-summary';
+import { SCHOLARSHIP_TRANSLATIONS } from '@/lib/i18n-scholarships';
 
 describe('ScholarshipValueSummary', () => {
   it('renders the same canonical value in compact and detail views', () => {
@@ -24,5 +26,31 @@ describe('ScholarshipValueSummary', () => {
 
     expect(screen.getByLabelText('Total value unavailable')).toBeInTheDocument();
     expect(screen.getByText('Value unavailable')).toBeInTheDocument();
+  });
+
+  it('localizes shared value labels through the scholarship catalogue', () => {
+    const benefits = normalizeScholarshipBenefits({ coverage: '50% tuition' });
+    const model = createScholarshipValueViewModel(
+      { benefits, value: calculateDisplayScholarshipValue(benefits) },
+      'vi-VN',
+      (source, vars) => {
+        const translated = SCHOLARSHIP_TRANSLATIONS[source] ?? source;
+        return vars
+          ? translated.replace(/\{(\w+)\}/g, (_, key) => key in vars ? String(vars[key]) : `{${key}}`)
+          : translated;
+      },
+    );
+
+    render(
+      <SharedScholarshipValueSummary
+        model={model}
+        showBreakdown
+        t={(source) => SCHOLARSHIP_TRANSLATIONS[source] ?? source}
+      />,
+    );
+
+    expect(screen.getByRole('region', { name: 'Giá trị học bổng' })).toBeInTheDocument();
+    expect(screen.getByText('Phân tích quyền lợi')).toBeInTheDocument();
+    expect(screen.getByText('50% học phí')).toBeInTheDocument();
   });
 });

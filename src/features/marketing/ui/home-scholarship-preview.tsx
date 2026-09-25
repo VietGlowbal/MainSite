@@ -183,6 +183,7 @@ export function HomeScholarshipPreview({
                   <SharedScholarshipValueSummary
                     model={entry.valueModel}
                     compact
+                    t={(source, vars) => getLocaleText(locale, source, vars)}
                   />
                 </div>
               ) : entry.value ? (

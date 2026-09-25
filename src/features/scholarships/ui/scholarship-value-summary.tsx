@@ -1,3 +1,5 @@
+'use client';
+
 import type { BenefitComponent, NormalizedScholarshipBenefits, ScholarshipBenefitNormalizationInput } from '../domain/benefit-types';
 import type { ScholarshipValueResult } from '../domain/valuation';
 import {
@@ -9,6 +11,7 @@ import {
   SharedScholarshipValueSummary,
   type SharedScholarshipValueSummaryProps,
 } from '@/shared/ui/scholarship-value-summary';
+import { useLanguage } from '@/lib/i18n';
 
 export type ScholarshipValueSummaryProps = ScholarshipValueFormattingInput & Omit<SharedScholarshipValueSummaryProps, 'model'> & {
   model?: ScholarshipValueViewModel | undefined;
@@ -27,7 +30,9 @@ export function ScholarshipValueSummary({
   className = '',
   fallbackAwardLabel = null,
 }: ScholarshipValueSummaryProps) {
-  const model = providedModel ?? createScholarshipValueViewModel({ value, benefits, raw }, locale);
+  const { lang, t } = useLanguage();
+  const numberLocale = locale === 'en-US' && lang === 'vi' ? 'vi-VN' : locale;
+  const model = providedModel ?? createScholarshipValueViewModel({ value, benefits, raw }, numberLocale, t);
   return (
     <SharedScholarshipValueSummary
       model={model}
@@ -36,6 +41,7 @@ export function ScholarshipValueSummary({
       showEvidence={showEvidence}
       className={className}
       fallbackAwardLabel={fallbackAwardLabel}
+      t={t}
     />
   );
 }

@@ -32,7 +32,7 @@ import { getTeamMembers } from '@/lib/team';
 import { SITE_URL } from '@/lib/site-url';
 import { buildOrganizationJsonLd, buildWebSiteJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
-import { homeCopy, type Locale } from '@/lib/i18n/locale';
+import { getLocaleText, homeCopy, type Locale } from '@/lib/i18n/locale';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -142,7 +142,7 @@ function compactCoverage(value: string | null): string {
  * The repository ranks the explicitly editorialised records and caches the
  * result with the same invalidation tag as `/scholarships`.
  */
-async function getHomeScholarshipSpotlight() {
+async function getHomeScholarshipSpotlight(locale: Locale = 'en') {
   try {
     const result = await getScholarshipQueries().homeHighlights(6);
     return {
@@ -170,7 +170,7 @@ async function getHomeScholarshipSpotlight() {
             ? createScholarshipValueViewModel({
               benefits: scholarship.benefits,
               value: calculateDisplayScholarshipValue(scholarship.benefits),
-            })
+            }, locale === 'vi' ? 'vi-VN' : 'en-US', (source, vars) => getLocaleText(locale, source, vars))
             : null,
           ranking: scholarship.ranking_note,
           deadline: scholarship.deadlineLabel,
@@ -279,7 +279,7 @@ export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {})
   const [partnerUniversityIds, team, scholarshipSpotlight] = await Promise.all([
     getPartnerUniversityIds(),
     getTeamMembers(),
-    getHomeScholarshipSpotlight(),
+    getHomeScholarshipSpotlight(locale),
   ]);
 
   const copy = homeCopy[locale];

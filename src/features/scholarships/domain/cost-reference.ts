@@ -132,6 +132,18 @@ const BENEFIT_PERIODS: readonly ValuationPeriod[] = [
 const DURATION_UNITS: readonly BenefitDurationUnit[] = ['month', 'year', 'term'];
 const CONFIDENCE_VALUES: readonly BenefitConfidence[] = ['high', 'medium', 'low'];
 const SOURCE_STATUS_VALUES: readonly SourceValueStatus[] = ['EXACT', 'ESTIMATED'];
+const SUPPORTED_CURRENCIES = new Set([
+  'USD',
+  'GBP',
+  'EUR',
+  'AUD',
+  'NZD',
+  'CAD',
+  'CHF',
+  'VND',
+  'JPY',
+  'SGD',
+]);
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -218,7 +230,9 @@ function parseCurrency(value: unknown, status: unknown): {
     return { currency: null, currencyStatus: 'unknown' };
   }
   if (!nonEmptyString(value) || !isCurrencyStatus(status)) return null;
-  return { currency: value.trim().toUpperCase(), currencyStatus: status };
+  const currency = value.trim().toUpperCase();
+  if (status === 'known' && !SUPPORTED_CURRENCIES.has(currency)) return null;
+  return { currency, currencyStatus: status };
 }
 
 function malformed(key: string | null, message: string): {
@@ -253,8 +267,14 @@ function parseRecord(
   if (!isDate(value.sourceDate) || !isDate(value.effectiveDate) || !isDate(value.retrievalDate)) {
     return malformed(key, 'Source, effective, and retrieval dates must be YYYY-MM-DD.');
   }
+  if (value.sourceDate > value.retrievalDate || value.effectiveDate > value.retrievalDate) {
+    return malformed(key, 'Source and effective dates cannot be later than retrievalDate.');
+  }
   if (value.validUntil !== undefined && value.validUntil !== null && !isDate(value.validUntil)) {
     return malformed(key, 'validUntil must be YYYY-MM-DD when provided.');
+  }
+  if (value.validUntil !== undefined && value.validUntil !== null && value.validUntil < value.retrievalDate) {
+    return malformed(key, 'validUntil cannot be earlier than retrievalDate.');
   }
   if (value.datasetVersion !== datasetVersion || !nonEmptyString(value.methodology)) {
     return malformed(key, 'datasetVersion and methodology are required and must be versioned.');
@@ -329,6 +349,8 @@ function staleReason(
   asOf: string,
   maxAgeDays: number | null,
 ): string | null {
+  if (record.retrievalDate > asOf) return 'reference-retrieval-in-future';
+  if (record.sourceDate > asOf) return 'reference-source-in-future';
   if (record.effectiveDate > asOf) return 'reference-not-effective';
   if (record.validUntil && asOf > record.validUntil) return 'reference-expired';
   if (maxAgeDays !== null && dateAgeDays(record.retrievalDate, asOf) > maxAgeDays) {

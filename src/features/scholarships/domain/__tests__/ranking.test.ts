@@ -31,6 +31,7 @@ function value(
     },
     comparableTotalValue: {
       amount,
+      upperBound: max,
       currency,
       bound: 'lower',
       fxVersion: 'test-fx-v1',
@@ -108,6 +109,36 @@ describe('scholarship global ranking', () => {
     );
 
     expect(ranked.map((item) => item.id)).toEqual([2, 3, 1]);
+  });
+
+  it('uses the comparable upper bound as a range tie-break', () => {
+    const ranked = rankScholarships(
+      [
+        candidate(1, { value: value(10_000, { max: 20_000 }) }),
+        candidate(2, { value: value(10_000, { max: 30_000 }) }),
+      ],
+      'value_desc',
+      policy,
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual([2, 1]);
+  });
+
+  it('retains a converted upper bound for cross-currency range ties', () => {
+    const lower = value(112_500, { currency: 'USD' });
+    lower.totalValue = { min: 90_000, max: 120_000, currency: 'GBP', currencyStatus: 'known' };
+    lower.comparableTotalValue!.upperBound = 150_000;
+    const higher = value(112_500, { currency: 'USD' });
+    higher.totalValue = { min: 90_000, max: 110_000, currency: 'GBP', currencyStatus: 'known' };
+    higher.comparableTotalValue!.upperBound = 137_500;
+
+    const ranked = rankScholarships(
+      [candidate(1, { value: lower }), candidate(2, { value: higher })],
+      'value_desc',
+      policy,
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual([1, 2]);
   });
 
   it('keeps a mixed-currency set incomparable until an FX target is supplied', () => {

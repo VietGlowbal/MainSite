@@ -103,11 +103,17 @@ function parseRate(
   if (!isDate(value.effectiveDate) || !isDate(value.retrievalDate)) {
     return malformed(key, 'FX effective and retrieval dates must be YYYY-MM-DD.');
   }
+  if (value.effectiveDate > value.retrievalDate) {
+    return malformed(key, 'FX effectiveDate cannot be later than retrievalDate.');
+  }
   if (!nonEmptyString(value.source) || !nonEmptyString(value.version) || value.version !== datasetVersion) {
     return malformed(key, 'FX source and dataset version are required and must match.');
   }
   if (value.validUntil !== undefined && value.validUntil !== null && !isDate(value.validUntil)) {
     return malformed(key, 'FX validUntil must be YYYY-MM-DD when provided.');
+  }
+  if (value.validUntil !== undefined && value.validUntil !== null && value.validUntil < value.retrievalDate) {
+    return malformed(key, 'FX validUntil cannot be earlier than retrievalDate.');
   }
 
   return {
@@ -132,6 +138,7 @@ function dateAgeDays(retrievalDate: string, asOf: string): number {
 }
 
 function staleReason(rate: FxRateRecord, asOf: string, maxAgeDays: number | null): string | null {
+  if (rate.retrievalDate > asOf) return 'rate-retrieval-in-future';
   if (rate.effectiveDate > asOf) return 'rate-not-effective';
   if (rate.validUntil && asOf > rate.validUntil) return 'rate-expired';
   if (maxAgeDays !== null && dateAgeDays(rate.retrievalDate, asOf) > maxAgeDays) {

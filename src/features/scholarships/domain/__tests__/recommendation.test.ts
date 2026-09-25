@@ -71,6 +71,7 @@ function value(
     },
     comparableTotalValue: {
       amount: total,
+      upperBound: total,
       currency,
       bound: 'lower',
       fxVersion: 'test-fx-v1',
@@ -256,6 +257,22 @@ describe('GlowBal recommendation', () => {
     expect(resultFor(results, 2).reasonCodes).toContain('mixed-award-value');
     expect(resultFor(results, 3).reasonCodes).toContain('estimated-award-value');
     expect(resultFor(results, 3).warnings.map((warning) => warning.code)).toContain('estimated-value');
+  });
+
+  it('does not emit an exact-value reason for an incomplete valuation', () => {
+    const incomplete = {
+      ...value(100, 'EXACT'),
+      complete: false,
+      totalValue: null,
+      comparableTotalValue: null,
+    };
+    const result = resultFor(
+      recommendScholarships([candidate(1, { value: incomplete })]),
+      1,
+    );
+
+    expect(result.reasonCodes).not.toContain('exact-award-value');
+    expect(result.reasonCodes).toContain('no-comparable-value');
   });
 
   it('does not treat missing value as zero and can recommend strong fit without a value', () => {

@@ -1,4 +1,7 @@
-import type { ScholarshipValueViewModel } from '@/shared/types/scholarship-value';
+import type {
+  ScholarshipTextTranslator,
+  ScholarshipValueViewModel,
+} from '@/shared/types/scholarship-value';
 
 export type SharedScholarshipValueSummaryProps = {
   model: ScholarshipValueViewModel;
@@ -8,18 +11,26 @@ export type SharedScholarshipValueSummaryProps = {
   className?: string;
   /** Legacy display fallback used only when no canonical amount is available. */
   fallbackAwardLabel?: string | null | undefined;
+  /** Route-provided translation function; the shared renderer owns no catalog. */
+  t?: ScholarshipTextTranslator;
 };
 
-function ValueStatus({ model }: { model: ScholarshipValueViewModel }) {
+function ValueStatus({
+  model,
+  t,
+}: {
+  model: ScholarshipValueViewModel;
+  t: ScholarshipTextTranslator;
+}) {
   if (model.totalValueKind === 'unavailable') {
-    return <span className="text-gb-xs font-medium text-fg-muted">Value unavailable</span>;
+    return <span className="text-gb-xs font-medium text-fg-muted">{t('Value unavailable')}</span>;
   }
   return (
     <span
       className="text-gb-xs font-semibold text-fg-secondary"
-      aria-label={`Value status: ${model.totalValueStatusLabel}`}
+      aria-label={`${t('Value status')}: ${model.totalValueStatusLabel ? t(model.totalValueStatusLabel) : ''}`}
     >
-      {model.totalValueStatusLabel}
+      {model.totalValueStatusLabel ? t(model.totalValueStatusLabel) : null}
     </span>
   );
 }
@@ -31,12 +42,13 @@ export function SharedScholarshipValueSummary({
   showEvidence = false,
   className = '',
   fallbackAwardLabel = null,
+  t = (source) => source,
 }: SharedScholarshipValueSummaryProps) {
   const visibleComponents = model.components.filter((component) => component.included || !compact);
 
   return (
     <section
-      aria-label="Scholarship value"
+      aria-label={t('Scholarship value')}
       className={`flex min-w-0 flex-col gap-gb-sm ${className}`.trim()}
     >
       <div className="flex min-w-0 flex-col gap-gb-xxs">
@@ -54,29 +66,29 @@ export function SharedScholarshipValueSummary({
         >
           {model.totalValueLabel}
         </p>
-        {!compact ? <ValueStatus model={model} /> : null}
+        {!compact ? <ValueStatus model={model} t={t} /> : null}
       </div>
 
       {model.durationLabel ? (
-        <p className="text-gb-xs text-fg-tertiary">Award duration: {model.durationLabel}</p>
+        <p className="text-gb-xs text-fg-tertiary">{t('Award duration:')} {model.durationLabel}</p>
       ) : null}
 
       {showBreakdown && visibleComponents.length > 0 ? (
         <div className="border-t border-line pt-gb-md">
           <h4 className="text-gb-xs font-semibold uppercase tracking-wide text-fg-secondary">
-            Benefit breakdown
+            {t('Benefit breakdown')}
           </h4>
-          <ul className="mt-gb-sm flex flex-col gap-gb-sm" aria-label="Benefit breakdown">
+          <ul className="mt-gb-sm flex flex-col gap-gb-sm" aria-label={t('Benefit breakdown')}>
             {visibleComponents.map((component, index) => (
               <li key={`${component.type}-${index}`} className="flex min-w-0 items-start justify-between gap-gb-lg text-gb-sm">
                 <span className="min-w-0 text-fg-secondary">
                   {component.label}
                   {component.periodLabel ? ` ${component.periodLabel}` : ''}
                   {component.durationLabel ? ` × ${component.durationLabel}` : ''}
-                  {!component.included ? ' (alternative)' : ''}
+                  {!component.included ? ` (${t('alternative')})` : ''}
                 </span>
                 <span className="shrink-0 text-right font-medium text-fg">
-                  {component.totalLabel ?? component.amountLabel ?? 'Amount unavailable'}
+                  {component.totalLabel ?? component.amountLabel ?? t('Amount unavailable')}
                 </span>
               </li>
             ))}
@@ -87,21 +99,21 @@ export function SharedScholarshipValueSummary({
       {!compact && model.warnings.length > 0 ? (
         <p role="note" className="text-gb-xs text-fg-error">
           {model.totalValueKind === 'unavailable'
-            ? 'The available evidence is not sufficient to calculate a defensible total.'
-            : 'Some value components use incomplete or estimated evidence.'}
+            ? t('The available evidence is not sufficient to calculate a defensible total.')
+            : t('Some value components use incomplete or estimated evidence.')}
         </p>
       ) : null}
 
       {showEvidence && (model.evidence.length > 0 || model.sourceUrl) ? (
         <details className="border-t border-line pt-gb-sm text-gb-xs text-fg-tertiary">
-          <summary className="cursor-pointer font-semibold text-fg-secondary">Sources and evidence</summary>
+          <summary className="cursor-pointer font-semibold text-fg-secondary">{t('Sources and evidence')}</summary>
           <ul className="mt-gb-sm flex list-disc flex-col gap-gb-xs pl-gb-lg">
             {model.evidence.map((evidence, index) => (
               <li key={`${evidence.sourceField}-${index}`}>
                 {evidence.excerpt}
                 {evidence.sourceUrl ? (
                   <a className="ml-gb-xs text-brand underline" href={evidence.sourceUrl} target="_blank" rel="noreferrer noopener">
-                    Source
+                    {t('Source')}
                   </a>
                 ) : null}
               </li>
@@ -109,7 +121,7 @@ export function SharedScholarshipValueSummary({
           </ul>
           {model.sourceUrl ? (
             <a className="mt-gb-sm inline-flex text-brand underline" href={model.sourceUrl} target="_blank" rel="noreferrer noopener">
-              Official scholarship source
+              {t('Official scholarship source')}
             </a>
           ) : null}
         </details>

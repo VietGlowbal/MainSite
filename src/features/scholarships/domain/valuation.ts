@@ -72,6 +72,8 @@ export type MonetaryValue = BenefitAmount;
 export type ComparableTotalValue = {
   /** V1 ranking number: the lower bound of the complete award total. */
   amount: number;
+  /** Range upper bound in the same currency as amount. */
+  upperBound: number;
   currency: string;
   bound: 'lower';
   fxVersion: string;
@@ -269,10 +271,10 @@ function evidenceFrom(...groups: readonly (readonly BenefitEvidence[])[]): Benef
 }
 
 function valueStatus(values: readonly ValuedBenefitComponent[]): ValueStatus {
-  const included = values.filter((value) => value.included && value.totalValue !== null);
+  const included = values.filter((value) => value.included);
   if (included.length === 0) return 'ESTIMATED';
   const hasExact = included.some((value) => value.status === 'EXACT');
-  const hasEstimated = included.some((value) => value.status === 'ESTIMATED');
+  const hasEstimated = included.some((value) => value.status === 'ESTIMATED' || value.totalValue === null);
   if (hasExact && hasEstimated) return 'MIXED';
   if (hasEstimated) return 'ESTIMATED';
   return 'EXACT';
@@ -532,14 +534,17 @@ function aggregateComparable(args: {
   if (monetary.length === 0 || monetary.some((amount) => !sourceCurrencyKnown(amount))) return null;
 
   let lower = 0;
+  let upper = 0;
   for (const amount of monetary) {
     const converted = convertAmount(amount, args.currency, args.fx);
     if (!converted) return null;
     lower += converted.min;
+    upper += converted.max ?? converted.min;
   }
 
   return {
     amount: lower,
+    upperBound: upper,
     currency: args.currency,
     bound: 'lower',
     fxVersion: args.fx?.version ?? 'identity',

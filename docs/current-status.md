@@ -91,6 +91,23 @@ start because the available sibling toolchain resolves no
 checkout has no `tsc`. `git diff --check` passed. No schema, migration, data
 acquisition, recommendation-policy, eligibility-rule, or popularity-semantic
 changes were made.
+Working tree 2026-09-26 (Scholarship Personalization OpenCode review fixes):
+under Node 24.19.0, the scoped fixes close the focused-university related-
+country/fallback intersection, preserve full-tuition versus full-ride
+semantics, prevent incomplete valuations from being labelled exact, validate
+known currencies and reference chronology, carry comparable upper bounds
+through FX conversion, and route shared scholarship labels through the existing
+Vietnamese catalogue. Focused scholarship tests passed 25 files / 163 tests;
+base and strict typechecks passed; ESLint passed with 0 errors and 9 existing
+warnings; the i18n checker reported 0 missing static keys and 0 placeholder
+mismatches. Direct `npm test` still has 2 unrelated CV API timing failures in
+unchanged files that have no diff versus origin/main; the CI-style `test:ci`
+gate passed all 433 files / 4,054 tests with 2 todos. Build and `verify:pr`
+passed with expected missing-Supabase/fetch warnings during static generation.
+E2E remains blocked by the unavailable Supabase environment. `git diff --check`
+passed. T2B production cost/FX coverage remains intentionally incomplete; no
+values were fabricated, and no schema or migration change was made.
+
 Working tree 2026-09-25 (Scholarship Personalization final verification):
 the required Node 24.19.0 runtime was used with the existing npm 10.9.2 CLI.
 The branch-specific i18n checker now reports zero missing static keys and zero

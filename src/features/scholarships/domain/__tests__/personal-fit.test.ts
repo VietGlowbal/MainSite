@@ -346,6 +346,29 @@ describe('deterministic scholarship personal fit', () => {
     expect(budgetMismatch.reasonCodes).toContain('budget-misaligned');
   });
 
+  it('keeps full tuition separate from a full-ride funding preference', () => {
+    const tuitionOnlyBenefits: NormalizedScholarshipBenefits = {
+      ...benefits,
+      classification: {
+        ...benefits.classification,
+        label: 'tuition-only',
+        tuitionCoverage: 'full',
+      },
+    };
+    const fullRidePreference = fitFor(
+      { fundingPreference: 'full-ride' },
+      { fundingType: ['full-ride'], normalizedBenefits: tuitionOnlyBenefits },
+    );
+    const fullTuitionPreference = fitFor(
+      { fundingPreference: 'full-tuition' },
+      { fundingType: ['full tuition'], normalizedBenefits: tuitionOnlyBenefits },
+    );
+
+    expect(fullRidePreference.reasonCodes).toContain('funding-preference-mismatch');
+    expect(fullRidePreference.reasonCodes).not.toContain('funding-preference-match');
+    expect(fullTuitionPreference.reasonCodes).toContain('funding-preference-match');
+  });
+
   it('uses the selected programme before profile subject and degree preferences', () => {
     const result = fitFor({
       targetSubjects: ['History'],

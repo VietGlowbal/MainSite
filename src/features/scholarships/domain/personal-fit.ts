@@ -187,7 +187,10 @@ const FUNDING_ALIASES: Readonly<Record<string, string>> = {
   'academic merit': 'merit',
   'field specific': 'field-specific',
   'full ride': 'full-ride',
-  'full tuition': 'full-ride',
+  'full tuition': 'full-tuition',
+  'tuition only': 'full-tuition',
+  '100 tuition': 'full-tuition',
+  '100 tuition coverage': 'full-tuition',
   'partially funded': 'partial',
   'partial funding': 'partial',
 };
@@ -237,6 +240,29 @@ function canonicalFunding(value: string | null | undefined): string | null {
   if (!cleaned) return null;
   const key = normalizedText(cleaned);
   return FUNDING_ALIASES[key] ?? key.replace(/\s+/g, '-');
+}
+
+function scholarshipFundingTypes(scholarship: MatchingScholarshipContext): string[] {
+  const candidates = unique(
+    scholarship.fundingType
+      .map(canonicalFunding)
+      .filter((value): value is string => value !== null),
+  );
+  const classification = scholarship.normalizedBenefits?.classification;
+  if (!classification) return candidates;
+
+  // A stale legacy full-ride token must not override the normalized benefit
+  // classification. Tuition-only coverage is a separate funding preference.
+  if (classification.label === 'tuition-only') {
+    return unique([
+      ...candidates.filter((value) => value !== 'full-ride'),
+      'full-tuition',
+    ]);
+  }
+  if (classification.fullRideStatus !== 'supported') {
+    return candidates.filter((value) => value !== 'full-ride');
+  }
+  return unique([...candidates, 'full-ride']);
 }
 
 function canonicalMode(value: string | null | undefined): string | null {
@@ -824,11 +850,7 @@ function evaluateFundingPreference(
       warning: warning('missing-profile-signal', 'Funding preference evidence is missing.', 'funding-preference'),
     } : {});
   }
-  const candidates = unique(
-    scholarship.fundingType
-      .map(canonicalFunding)
-      .filter((value): value is string => value !== null),
-  );
+  const candidates = scholarshipFundingTypes(scholarship);
   if (candidates.length === 0) {
     return signalEvaluation(policy, 'funding-preference', 'unknown', null, preference, null, [], {
       missingSignal: 'funding-preference',

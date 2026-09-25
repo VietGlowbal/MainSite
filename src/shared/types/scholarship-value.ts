@@ -5,6 +5,11 @@
  * independent from the scholarships feature while allowing server adapters to
  * supply the canonical, already-valued model.
  */
+export type ScholarshipTextTranslator = (
+  source: string,
+  vars?: Record<string, string | number>,
+) => string;
+
 export type ScholarshipValueKind = 'exact' | 'mixed' | 'estimated' | 'unavailable';
 
 export type ScholarshipValueEvidence = {

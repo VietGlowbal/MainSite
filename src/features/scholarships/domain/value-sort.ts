@@ -97,9 +97,9 @@ function compareId(left: string | number, right: string | number): number {
 /**
  * Derive the range/status metadata used by the v1 value comparator.
  *
- * T2A exposes the lower bound as the only comparable number. The upper bound
- * is taken from the already-normalized total only when it is in the same
- * comparable currency; no independent FX or USD fallback is introduced here.
+ * T2A exposes both comparable range bounds in the same currency. The
+ * fallback to totalValue is retained for older injected results, but no
+ * independent FX or USD fallback is introduced here.
  */
 export function valueSortInputFromResult(
   result: ScholarshipValueResult | null | undefined,
@@ -108,8 +108,9 @@ export function valueSortInputFromResult(
   const comparableCurrency = normalizedCurrency(comparable?.currency);
   const total = result?.totalValue ?? null;
   const totalCurrency = normalizedCurrency(total?.currency);
-  const upperBound =
-    comparableCurrency !== null && comparableCurrency === totalCurrency && total !== null
+  const upperBound = comparable && finite(comparable.upperBound)
+    ? comparable.upperBound
+    : comparableCurrency !== null && comparableCurrency === totalCurrency && total !== null
       ? (finite(total.max) ? total.max : total.min)
       : null;
   const included = result?.components.filter((component) => component.included) ?? [];

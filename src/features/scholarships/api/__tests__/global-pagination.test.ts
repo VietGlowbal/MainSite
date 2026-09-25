@@ -14,7 +14,13 @@ function amount(value: number): ScholarshipValueResult {
     duration: null,
     scenarioKey: null,
     totalValue: { min: value, max: value, currency: 'USD', currencyStatus: 'known' },
-    comparableTotalValue: { amount: value, currency: 'USD', bound: 'lower', fxVersion: 'fx-v1' },
+    comparableTotalValue: {
+      amount: value,
+      upperBound: value,
+      currency: 'USD',
+      bound: 'lower',
+      fxVersion: 'fx-v1',
+    },
     components: [],
     warnings: [],
   };

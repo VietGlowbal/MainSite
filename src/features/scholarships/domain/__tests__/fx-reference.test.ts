@@ -60,7 +60,7 @@ describe('versioned FX provider', () => {
 
   it('returns missing for unknown, stale, and unavailable FX', () => {
     const provider = createFxReferenceProvider(
-      dataset([rawRate({ retrievalDate: '2025-01-01', validUntil: '2025-12-31' })]),
+      dataset([rawRate({ effectiveDate: '2024-12-01', retrievalDate: '2025-01-01', validUntil: '2025-12-31' })]),
       { asOf: '2026-09-24' },
     );
 
@@ -81,6 +81,28 @@ describe('versioned FX provider', () => {
       'malformed-rate',
       'malformed-rate',
     ]);
+  });
+
+  it('rejects inconsistent FX date ranges', () => {
+    const parsed = dataset([
+      rawRate({ key: 'effective-after-retrieval', effectiveDate: '2026-09-22', retrievalDate: '2026-09-21' }),
+      rawRate({ key: 'expiry-before-retrieval', validUntil: '2026-09-20' }),
+    ]);
+
+    expect(parsed.rates).toHaveLength(0);
+    expect(parsed.diagnostics).toHaveLength(2);
+  });
+
+  it('does not select an FX rate retrieved in the future', () => {
+    const provider = createFxReferenceProvider(
+      dataset([rawRate({ retrievalDate: '2026-10-01' })]),
+      { asOf: '2026-09-24' },
+    );
+
+    expect(provider.resolve('GBP', 'USD')).toMatchObject({
+      status: 'missing',
+      reason: 'rate-retrieval-in-future',
+    });
   });
 
   it('uses identity only for the same explicit currency', () => {

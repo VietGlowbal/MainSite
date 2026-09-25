@@ -200,8 +200,13 @@ async function loadPublishedCandidatesUncached(query: ScholarshipListQuery): Pro
     fundingTypes: query.funding ?? [],
   });
 
+  // A related-country query is intentionally broader than the focused
+  // university query. Ignore any leaked university scope here as a defensive
+  // boundary; the loader still preserves every other structured filter and
+  // applies the focused-university exclusion below.
+  const relatedCountryQuery = Boolean(query.relatedUniversityCountry);
   const [universityIds, schoolIds, excludedIds, relatedLinks, relatedCountry] = await Promise.all([
-    query.universityId != null || filters.universityIds.length > 0
+    !relatedCountryQuery && (query.universityId != null || filters.universityIds.length > 0)
       ? linkedScholarshipIds(
           query.universityId != null
             ? { universityId: query.universityId }

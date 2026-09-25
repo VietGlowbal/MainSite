@@ -16,6 +16,8 @@ import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPublishedScholarships } from '@/lib/scholarships-data';
 import { calculateDisplayScholarshipValue, createScholarshipValueViewModel } from '@/features/scholarships/domain';
+import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain';
+import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 import type { ScholarshipValueViewModel } from '@/shared/types/scholarship-value';
 
 export type PreviewScholarship = {
@@ -39,9 +41,38 @@ export type UniversityMatch = {
 
 type HomeIndex = {
   universities: Array<{ id: number; name: string; country: string | null }>;
-  byUniversityId: Record<number, PreviewScholarship[]>;
-  byCountry: Record<string, PreviewScholarship[]>;
+  byUniversityId: Record<number, HomePreviewRecord[]>;
+  byCountry: Record<string, HomePreviewRecord[]>;
 };
+
+type HomePreviewRecord = Omit<PreviewScholarship, 'valueModel'> & {
+  benefits: NormalizedScholarshipBenefits | null;
+};
+
+function localizedPreview(
+  record: HomePreviewRecord,
+  locale: Locale,
+): PreviewScholarship {
+  return {
+    id: record.id,
+    name: record.name,
+    provider: record.provider,
+    country: record.country,
+    amountLabel: record.amountLabel,
+    fundingType: record.fundingType,
+    deadlineLabel: record.deadlineLabel,
+    valueModel: record.benefits
+      ? createScholarshipValueViewModel(
+          {
+            benefits: record.benefits,
+            value: calculateDisplayScholarshipValue(record.benefits),
+          },
+          locale === 'vi' ? 'vi-VN' : 'en-US',
+          (source, vars) => getLocaleText(locale, source, vars),
+        )
+      : null,
+  };
+}
 
 const getHomeIndex = unstable_cache(
   async (): Promise<HomeIndex> => {
@@ -54,11 +85,11 @@ const getHomeIndex = unstable_cache(
       getPublishedScholarships(),
     ]);
 
-    const byUniversityId: Record<number, PreviewScholarship[]> = {};
-    const byCountry: Record<string, PreviewScholarship[]> = {};
+    const byUniversityId: Record<number, HomePreviewRecord[]> = {};
+    const byCountry: Record<string, HomePreviewRecord[]> = {};
 
     for (const s of scholarships) {
-      const lite: PreviewScholarship = {
+      const lite: HomePreviewRecord = {
         id: s.id,
         name: s.name,
         provider: s.provider,
@@ -66,12 +97,7 @@ const getHomeIndex = unstable_cache(
         amountLabel: s.amountLabel,
         fundingType: s.funding_type,
         deadlineLabel: s.deadlineLabel,
-        valueModel: s.benefits
-          ? createScholarshipValueViewModel({
-            benefits: s.benefits,
-            value: calculateDisplayScholarshipValue(s.benefits),
-          })
-          : null,
+        benefits: s.benefits ?? null,
       };
       for (const uid of s.universityIds) {
         (byUniversityId[uid] ??= []).push(lite);
@@ -98,7 +124,7 @@ const getHomeIndex = unstable_cache(
  */
 export async function searchHomeUniversities(
   query: string,
-  { limit = 6, previewLimit = 3 } = {},
+  { limit = 6, previewLimit = 3, locale = 'en' }: { limit?: number; previewLimit?: number; locale?: Locale } = {},
 ): Promise<UniversityMatch[]> {
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];
@@ -124,7 +150,7 @@ export async function searchHomeUniversities(
       name: u.name,
       country: u.country,
       scholarshipCount: pool.length,
-      preview: pool.slice(0, previewLimit),
+      preview: pool.slice(0, previewLimit).map((record) => localizedPreview(record, locale)),
     };
   });
 }

@@ -119,7 +119,7 @@ describe('cost-reference provider', () => {
         level: 'programme',
         key: 'stale-programme-living-v1',
         scopeKey: 'programme-example',
-        validUntil: '2026-01-01',
+        validUntil: '2026-09-20',
         excludedCategories: [],
       }),
       rawCost({ key: 'university-living-v1', excludedCategories: [] }),
@@ -131,8 +131,11 @@ describe('cost-reference provider', () => {
     });
 
     expect(resolved.level).toBe('university');
-    expect(resolved.attempts[0]).toMatchObject({ outcome: 'rejected', reason: 'reference-expired' });
-    expect(resolved.attempts[1]).toMatchObject({ outcome: 'selected' });
+    expect(resolved.attempts.find((attempt) => attempt.level === 'programme')).toMatchObject({
+      outcome: 'rejected',
+      reason: 'reference-expired',
+    });
+    expect(resolved.attempts.find((attempt) => attempt.level === 'university')).toMatchObject({ outcome: 'selected' });
   });
 
   it('reaches city, country, and global levels only when more-specific keys are unavailable', () => {
@@ -198,6 +201,43 @@ describe('cost-reference provider', () => {
     expect(parsed.diagnostics).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: 'malformed-record', message: 'Cost max cannot be lower than min.' }),
     ]));
+  });
+
+  it('rejects malformed identifiers marked as known currencies', () => {
+    const parsed = dataset([rawCost({ currency: 'not-a-currency', currencyStatus: 'known' })]);
+
+    expect(parsed.records).toHaveLength(0);
+    expect(parsed.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'malformed-record' }),
+    ]));
+  });
+
+  it('rejects internally inconsistent cost-reference dates', () => {
+    const parsed = dataset([
+      rawCost({ key: 'effective-after-retrieval', effectiveDate: '2026-09-11', retrievalDate: '2026-09-10' }),
+      rawCost({ key: 'expiry-before-retrieval', validUntil: '2026-09-09' }),
+    ]);
+
+    expect(parsed.records).toHaveLength(0);
+    expect(parsed.diagnostics).toHaveLength(2);
+  });
+
+  it('rejects a future retrieval reference at lookup time', () => {
+    const provider = createCostReferenceProvider(dataset([
+      rawCost({ retrievalDate: '2026-10-01' }),
+    ]));
+
+    const resolved = provider.resolve({
+      benefitType: 'living',
+      context: { universityKey: 'university-example' },
+      asOf: '2026-09-24',
+    });
+
+    expect(resolved.record).toBeNull();
+    expect(resolved.attempts.find((attempt) => attempt.level === 'university')).toMatchObject({
+      outcome: 'rejected',
+      reason: 'reference-retrieval-in-future',
+    });
   });
 
   it('preserves unknown currency and never defaults it to USD', () => {
