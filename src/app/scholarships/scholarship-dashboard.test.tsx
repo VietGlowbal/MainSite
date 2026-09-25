@@ -50,12 +50,12 @@ function aiScholarship(name: string, amount: string) {
   };
 }
 
-describe('current AI scholarship Amount sort behavior', () => {
+describe('AI scholarship sort controls', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('keeps the response order because the current Amount comparator returns zero', async () => {
+  it('does not expose the broken non-canonical Amount comparator', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -73,9 +73,7 @@ describe('current AI scholarship Amount sort behavior', () => {
     await user.click(screen.getByRole('button', { name: 'Find scholarships' }));
     await screen.findByRole('heading', { name: 'Lower nominal award' });
 
-    await user.selectOptions(screen.getByRole('combobox'), 'amount');
-
-    // Current bug characterization: selecting Amount does not compare amounts.
+    expect(screen.queryByRole('option', { name: 'Amount' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
       'Lower nominal award',
       'Higher nominal award',

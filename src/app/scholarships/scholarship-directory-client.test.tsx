@@ -207,17 +207,17 @@ describe('ScholarshipDirectoryClient save picker coordination', () => {
     expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
   });
 
-  it('only evaluates relevance within the already-paginated server page', () => {
+  it('does not re-sort a server-ranked page with page-local relevance', () => {
     renderDirectory(
-      [scholarship(1)],
+      [scholarship(2), scholarship(1, [7])],
       { savedUniversityIds: [7], total: 2, pageSize: 1, hasMore: true },
     );
 
-    // Scholarship 2 is the saved-university match on the next server page;
-    // the current client cannot see it and therefore cannot move it ahead of
-    // the non-matching scholarship on page 1.
-    expect(screen.getByText('Scholarship 1')).toBeInTheDocument();
-    expect(screen.queryByText('Scholarship 2')).not.toBeInTheDocument();
-    expect(screen.queryByText('Matched to your saved universities on this page')).not.toBeInTheDocument();
+    // The server owns the complete-set order. A saved-university signal on a
+    // visible card must not move it locally after pagination.
+    expect(screen.getAllByTestId(TID.scholarshipCard).map((card) => card.textContent)).toEqual([
+      expect.stringContaining('Scholarship 2'),
+      expect.stringContaining('Scholarship 1'),
+    ]);
   });
 });

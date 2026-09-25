@@ -98,7 +98,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
   const [searched, setSearched] = useState(false);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'match' | 'amount' | 'difficulty'>('match');
+  const [sortBy, setSortBy] = useState<'match' | 'difficulty'>('match');
 
   const handleSearch = async () => {
     setLoading(true);
@@ -143,7 +143,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
         const order = { easy: 0, medium: 1, hard: 2 };
         return (order[a.difficulty] ?? 1) - (order[b.difficulty] ?? 1);
       }
-      return 0; // amount sort not easily comparable
+      return 0;
     });
 
   const uniqueTypes = [...new Set(scholarships.map((s) => s.type))];
@@ -317,7 +317,6 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                 >
                   <option value="match">{t('Best match')}</option>
                   <option value="difficulty">{t('Easiest first')}</option>
-                  <option value="amount">{t('Amount')}</option>
                 </select>
               </div>
 

@@ -71,6 +71,25 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-25 (Scholarship Personalization T6): added versioned
+global ranking over the complete filtered scholarship set before pagination.
+Public catalogue sorting now uses the T2A lower-bound comparable value when
+currencies are comparable; missing/undefensible values remain last for both
+value directions, with range/status/evidence/deadline/name/id tie-breaks.
+Signed-in directory requests load the public candidate set separately, then
+compose T3 context, T4 eligibility, T5 fit, and T2A valuation in a private
+request-scoped ranking pass. Browser-side page-local relevance sorting was
+removed, query state now supports relevance/value_desc/value_asc/deadline/name,
+and the non-canonical AI Amount control was removed. No schema, migration, cost
+data, FX data, or T7/T8 work was added. Focused T6 domain/API tests passed
+(5 files, 24 tests); the existing list-published suite passed 5/6 with the
+known sibling-worktree alias mismatch in the pre-T1 benefit-normalization
+assertion. The UI suite could not load because the sibling dependency set lacks
+`@testing-library/jest-dom`; page tests also resolve the sibling pre-T6 page in
+that runner. Pure T6 domain strict compilation and `git diff --check` passed;
+the 2,877-candidate in-memory ranking sanity check completed in 12ms. No
+production cost/FX dataset was fabricated.
+
 Working tree 2026-09-25 (Scholarship Personalization T5): added deterministic
 soft personal-fit scoring over the T3 context and T4 EligibilityResult. The
 versioned policy weights preferred country, one deduplicated selected/saved

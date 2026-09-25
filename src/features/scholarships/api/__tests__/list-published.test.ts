@@ -86,20 +86,19 @@ describe('SupabaseScholarshipRepository.listPublished', () => {
     });
   });
 
-  it('queries published rows with exact count, stable ordering, and a nine-row range', async () => {
+  it('loads the complete filtered set before applying deterministic ranking and pagination', async () => {
     const query = new Query({ data: [row(10)], error: null, count: 17 });
     from.mockReturnValue(query);
 
     const result = await new SupabaseScholarshipRepository().listPublished({
-      page: 2,
+      page: 1,
       pageSize: 9,
       sort: 'name',
     });
 
     expect(from).toHaveBeenCalledWith('scholarships');
     expect(query.calls).toContainEqual(['eq', 'status', 'published']);
-    expect(query.calls).toContainEqual(['range', 9, 17]);
-    expect(query.calls).toContainEqual(['order', 'name', { ascending: true }]);
+    expect(query.calls).toContainEqual(['range', 0, 999]);
     expect(query.calls).toContainEqual(['order', 'id', { ascending: true }]);
     expect(query.calls.find(([method]) => method === 'select')?.[2]).toEqual({ count: 'exact' });
     expect(result.total).toBe(17);

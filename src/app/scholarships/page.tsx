@@ -8,7 +8,10 @@ import {
   scholarshipSearchParams,
 } from '@/features/scholarships/directory-query';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
-import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
+import {
+  loadScholarshipDirectory,
+  loadScholarshipDirectoryForUser,
+} from '@/features/scholarships/directory-loader';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { localizePath, type Locale } from '@/lib/i18n/locale';
@@ -43,10 +46,6 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
   const currentSearch = scholarshipSearchParams(state, {}).toString();
   const returnTo = localizePath(currentSearch ? `/scholarships?${currentSearch}` : '/scholarships', locale);
 
-  const directoryPromise = state.view === 'directory'
-    ? loadScholarshipDirectory(state)
-    : Promise.resolve(null);
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,6 +55,12 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
   if (!user && state.view === 'ai') {
     redirect(`/auth?redirect=${encodeURIComponent(returnTo)}`);
   }
+
+  const directoryPromise = state.view === 'directory'
+    ? user
+      ? loadScholarshipDirectoryForUser({ state, supabase, userId: user.id })
+      : loadScholarshipDirectory(state)
+    : Promise.resolve(null);
 
   const applicationsPromise = (user && state.view === 'ai')
     ? supabase

@@ -4,7 +4,13 @@ export type ScholarshipMajor = (typeof SCHOLARSHIP_MAJORS)[number];
 export const SCHOLARSHIP_DEGREES = ['all', 'undergraduate', 'postgraduate', 'doctoral'] as const;
 export type ScholarshipDegree = (typeof SCHOLARSHIP_DEGREES)[number];
 
-export const SCHOLARSHIP_SORTS = ['relevance', 'deadline', 'name'] as const;
+export const SCHOLARSHIP_SORTS = [
+  'relevance',
+  'value_desc',
+  'value_asc',
+  'deadline',
+  'name',
+] as const;
 export type ScholarshipSort = (typeof SCHOLARSHIP_SORTS)[number];
 
 export const SCHOLARSHIP_DEADLINE_FILTERS = ['any', 'open', 'closed', 'undated'] as const;

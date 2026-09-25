@@ -494,16 +494,13 @@ export function ScholarshipDirectoryClient({
     queryState.country !== 'all' ||
     queryState.sort !== 'relevance';
 
-  const sortVisible = (items: DirectoryScholarship[]) => {
-    if (queryState.sort !== 'relevance') return items;
-    return [...items].sort((a, b) => {
-      const matched = Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id));
-      return matched || a.name.localeCompare(b.name);
-    });
-  };
-  const directoryItems = sortVisible(directoryPage?.items ?? []);
-  const sectionAtUni = sortVisible(focusPage?.items ?? []);
-  const sectionSameCountry = sortVisible(countryPage?.items ?? []);
+  // Ordering is finalized by the server over the complete filtered set before
+  // this page is delivered. Never re-sort these slices in the browser: doing
+  // so would make relevance page-local again and could move a later-page item
+  // behind the wrong first-page item.
+  const directoryItems = directoryPage?.items ?? [];
+  const sectionAtUni = focusPage?.items ?? [];
+  const sectionSameCountry = countryPage?.items ?? [];
 
   // Reset to the first page whenever the result set changes (filters/search/sort).
   const pageCount = (value: Page<DirectoryScholarship> | null) =>
@@ -748,7 +745,7 @@ export function ScholarshipDirectoryClient({
                 onClick={() => navigate({ sort: 'relevance' })}
                 className="inline-flex h-11 items-center rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic transition hover:bg-surface-hover focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-subtle"
               >
-                {t('Popular')}
+                {t('Relevance')}
               </button>
 
               <label className="relative block">
@@ -798,7 +795,9 @@ export function ScholarshipDirectoryClient({
                   onChange={(event) => navigate({ sort: event.target.value as ScholarshipSort })}
                   className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
-                  <option value="relevance">{t('Competition rate')}</option>
+                  <option value="relevance">{t('Relevance')}</option>
+                  <option value="value_desc">{t('Highest value')}</option>
+                  <option value="value_asc">{t('Lowest value')}</option>
                   <option value="deadline">{t('Deadline (soonest)')}</option>
                   <option value="name">{t('Name (A-Z)')}</option>
                 </select>
@@ -813,6 +812,8 @@ export function ScholarshipDirectoryClient({
                   className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-fg outline-none focus:border-brand"
                 >
                   <option value="relevance">{t('Relevance')}</option>
+                  <option value="value_desc">{t('Highest value')}</option>
+                  <option value="value_asc">{t('Lowest value')}</option>
                   <option value="deadline">{t('Deadline (soonest)')}</option>
                   <option value="name">{t('Name (A–Z)')}</option>
                 </select>

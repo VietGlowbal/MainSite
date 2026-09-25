@@ -114,4 +114,12 @@ describe('scholarship query state', () => {
       'subject=Computer+Science&deadline=open',
     );
   });
+
+  it('accepts global value sort directions and preserves them in the URL', () => {
+    expect(parseScholarshipSearchParams({ sort: 'value_desc' }).sort).toBe('value_desc');
+    expect(parseScholarshipSearchParams({ sort: 'value_asc' }).sort).toBe('value_asc');
+    expect(
+      scholarshipSearchParams(parseScholarshipSearchParams({ sort: 'value_desc' }), {}).toString(),
+    ).toBe('sort=value_desc');
+  });
 });

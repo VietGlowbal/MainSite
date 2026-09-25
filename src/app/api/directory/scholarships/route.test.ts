@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ load: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  load: vi.fn(),
+  createClient: vi.fn(async () => ({
+    auth: { getUser: vi.fn(async () => ({ data: { user: null } })) },
+  })),
+}));
 
 vi.mock('@/features/scholarships/api/directory-loader', () => ({
   loadScholarshipDirectory: mocks.load,
+  loadScholarshipDirectoryForUser: vi.fn(),
 }));
+vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
 
 import { GET } from './route';
 
 describe('GET /api/directory/scholarships', () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it('rejects the personalized AI view', async () => {
     const response = await GET(

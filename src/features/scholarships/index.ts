@@ -36,6 +36,21 @@ export {
 } from './domain/eligibility-normalization';
 export { scorePersonalFit } from './domain/personal-fit';
 export {
+  paginateRanked,
+  rankScholarships,
+  scholarshipRankingCacheKey,
+  SCHOLARSHIP_BENEFIT_NORMALIZER_VERSION,
+  SCHOLARSHIP_QUERY_VERSION,
+  SCHOLARSHIP_RANKING_VERSION,
+  SCHOLARSHIP_VALUATION_VERSION,
+} from './domain/ranking';
+export {
+  commonComparableCurrency,
+  compareScholarshipValues,
+  valueSortInputFromResult,
+  SCHOLARSHIP_VALUE_SORT_VERSION,
+} from './domain/value-sort';
+export {
   DEFAULT_PERSONAL_FIT_POLICY,
   PERSONAL_FIT_POLICY_VERSION,
   resolvePersonalFitPolicy,
@@ -90,6 +105,18 @@ export type {
   PersonalFitPolicy,
   PersonalFitPolicyWeights,
 } from './domain/personal-fit-policy';
+export type {
+  RankedPage,
+  ScholarshipRankingCacheKeyInput,
+  ScholarshipRankingCandidate,
+  ScholarshipRankingPolicy,
+  ScholarshipRankingSort,
+} from './domain/ranking';
+export type {
+  ScholarshipValueSortInput,
+  ValueSortCandidate,
+  ValueSortDirection,
+} from './domain/value-sort';
 export {
   scholarshipSaveDestination,
   type ScholarshipSaveDestination,

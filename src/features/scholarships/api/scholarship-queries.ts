@@ -85,6 +85,9 @@ export interface ScholarshipQueries {
   /** Reads one stable, counted page from the published directory. */
   listPublished(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>>;
 
+  /** Read the complete filtered published set for a private ranking pass. */
+  listPublishedCandidates(query: ScholarshipListQuery): Promise<DirectoryScholarship[]>;
+
   /**
    * Scholarships linked to the given universities, keyed by university id.
    *
