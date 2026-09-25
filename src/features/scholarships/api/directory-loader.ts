@@ -8,6 +8,11 @@ import {
   type ScholarshipQueryState,
 } from '../domain/query-state';
 import type { FrequentlyPickedAggregate } from '../domain/frequently-picked';
+import {
+  recommendScholarships,
+  type ScholarshipRecommendationCandidate,
+  type ScholarshipRecommendationResult,
+} from '../domain/recommendation';
 import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
 import {
   evaluateScholarshipEligibility,
@@ -48,9 +53,11 @@ export type ScholarshipDirectoryResponse = {
   canonicalSearch: string;
   /** Aggregate-only popularity data; individual users never cross this boundary. */
   frequentlyPicked: FrequentlyPickedAggregate;
+  /** User-scoped canonical recommendations; public responses carry an empty map. */
+  recommendations: Record<string, ScholarshipRecommendationResult>;
 };
 
-type ScholarshipDirectoryBaseResponse = Omit<ScholarshipDirectoryResponse, 'frequentlyPicked'>;
+type ScholarshipDirectoryBaseResponse = Omit<ScholarshipDirectoryResponse, 'frequentlyPicked' | 'recommendations'>;
 
 const emptyPage = (page: number): Page<DirectoryScholarship> => ({
   items: [],
@@ -62,6 +69,7 @@ const emptyPage = (page: number): Page<DirectoryScholarship> => ({
 
 async function attachFrequentlyPicked(
   response: ScholarshipDirectoryBaseResponse,
+  recommendations: Record<string, ScholarshipRecommendationResult> = {},
 ): Promise<ScholarshipDirectoryResponse> {
   const scholarshipIds = [...new Set([
     ...(response.directoryPage?.items ?? []),
@@ -72,6 +80,7 @@ async function attachFrequentlyPicked(
   return {
     ...response,
     frequentlyPicked: await loadFrequentlyPicked({ scholarshipIds }),
+    recommendations,
   };
 }
 
@@ -182,38 +191,68 @@ function privateScholarshipValue(
   });
 }
 
-function privateRankedItems(
-  items: readonly DirectoryScholarship[],
+type PrivateProjection = {
+  ranking: {
+    id: number;
+    name: string;
+    deadline: string | number | null;
+    value: ReturnType<typeof privateScholarshipValue>;
+    eligibility: ScholarshipEligibilityResult | null;
+    fit: PersonalFitResult | null;
+    item: DirectoryScholarship;
+  };
+  recommendation: ScholarshipRecommendationCandidate<DirectoryScholarship>;
+};
+
+function privateProjection(
+  item: DirectoryScholarship,
   context: Awaited<ReturnType<typeof loadScholarshipMatchingContext>>,
-  sort: ScholarshipQueryState['sort'],
   asOf: string,
-): DirectoryScholarship[] {
-  const matching = new Map(context.scholarships.map((scholarship) => [scholarship.id, scholarship]));
-  const projections = items.map((item) => {
-    const scholarship = matching.get(item.id);
-    let eligibility: ScholarshipEligibilityResult | null = null;
-    let fit: PersonalFitResult | null = null;
-    if (scholarship) {
-      eligibility = evaluateScholarshipEligibility({
-        context,
-        scholarship,
-        policy: { asOf },
-      });
-      fit = scorePersonalFit({ context, scholarship, eligibility });
-    }
-    return {
+  matching = new Map(context.scholarships.map((scholarship) => [scholarship.id, scholarship])),
+): PrivateProjection {
+  const scholarship = matching.get(item.id);
+  let eligibility: ScholarshipEligibilityResult | null = null;
+  let fit: PersonalFitResult | null = null;
+  if (scholarship) {
+    eligibility = evaluateScholarshipEligibility({
+      context,
+      scholarship,
+      policy: { asOf },
+    });
+    fit = scorePersonalFit({ context, scholarship, eligibility });
+  }
+  const value = privateScholarshipValue(item, context, asOf);
+  const benefits = scholarship?.benefits ?? item.benefits?.components ?? [];
+  return {
+    ranking: {
       id: item.id,
       name: item.name,
       deadline: item.deadline_date,
-      value: privateScholarshipValue(item, context, asOf),
+      value,
       eligibility,
       fit,
       item,
-    };
-  });
+    },
+    recommendation: {
+      id: item.id,
+      name: item.name,
+      deadline: item.deadline_date,
+      benefits,
+      eligibility,
+      fit,
+      value,
+      item,
+    },
+  };
+}
 
-  return rankScholarships(projections, sort, { version: SCHOLARSHIP_RANKING_VERSION })
-    .map((candidate) => candidate.item);
+function privateProjections(
+  items: readonly DirectoryScholarship[],
+  context: Awaited<ReturnType<typeof loadScholarshipMatchingContext>>,
+  asOf: string,
+): PrivateProjection[] {
+  const matching = new Map(context.scholarships.map((scholarship) => [scholarship.id, scholarship]));
+  return items.map((item) => privateProjection(item, context, asOf, matching));
 }
 
 function privatePage(
@@ -221,10 +260,16 @@ function privatePage(
   context: Awaited<ReturnType<typeof loadScholarshipMatchingContext>>,
   query: ScholarshipListQuery,
   asOf: string,
+  prepared?: ReadonlyMap<number, PrivateProjection>,
 ): Page<DirectoryScholarship> {
   const page = clampPage(query.page);
   const pageSize = clampPageSize(query.pageSize, 100, 9);
-  const ranked = privateRankedItems(items, context, query.sort ?? 'relevance', asOf);
+  const projections = items.map((item) => prepared?.get(item.id) ?? privateProjection(item, context, asOf));
+  const ranked = rankScholarships(
+    projections.map((projection) => projection.ranking),
+    query.sort ?? 'relevance',
+    { version: SCHOLARSHIP_RANKING_VERSION },
+  ).map((candidate) => candidate.item);
   const start = pageOffset(page, pageSize);
   return toPage(ranked.slice(start, start + pageSize), ranked.length, page, pageSize);
 }
@@ -291,6 +336,13 @@ export async function loadScholarshipDirectoryForUser(args: {
     },
   });
   const asOf = asOfDate();
+  const completeCandidates = [...new Map([
+    ...directoryCandidates,
+    ...focusCandidates,
+    ...countryCandidates,
+  ].map((item) => [item.id, item] as const)).values()];
+  const preparedProjections = privateProjections(completeCandidates, context, asOf);
+  const prepared = new Map(preparedProjections.map((projection) => [projection.ranking.id, projection]));
 
   let directoryPage: Page<DirectoryScholarship> | null = null;
   let focusPage: Page<DirectoryScholarship> | null = null;
@@ -301,22 +353,38 @@ export async function loadScholarshipDirectoryForUser(args: {
       context,
       { ...baseQuery, universityId: focusUniversity.id },
       asOf,
+      prepared,
     );
     countryPage = privatePage(
       countryCandidates,
       context,
       scholarshipListQuery(query, query.countryPage),
       asOf,
+      prepared,
     );
     query.page = focusPage.page;
     query.countryPage = countryPage.page;
     if (focusPage.total === 0) {
-      directoryPage = privatePage(directoryCandidates, context, baseQuery, asOf);
+      directoryPage = privatePage(directoryCandidates, context, baseQuery, asOf, prepared);
     }
   } else {
-    directoryPage = privatePage(directoryCandidates, context, baseQuery, asOf);
+    directoryPage = privatePage(directoryCandidates, context, baseQuery, asOf, prepared);
     query.page = directoryPage.page;
   }
+
+  const recommendationSet = recommendScholarships(
+    preparedProjections.map((projection) => projection.recommendation),
+  );
+  const visibleIds = new Set([
+    ...(directoryPage?.items ?? []),
+    ...(focusPage?.items ?? []),
+    ...(countryPage?.items ?? []),
+  ].map((item) => item.id));
+  const recommendations = Object.fromEntries(
+    recommendationSet.recommendations
+      .filter((entry) => visibleIds.has(entry.result.scholarshipId))
+      .map((entry) => [String(entry.result.scholarshipId), entry.result]),
+  );
 
   const publicFocus = focusUniversity
     ? { id: focusUniversity.id, name: focusUniversity.name, country: focusUniversity.country }
@@ -328,7 +396,7 @@ export async function loadScholarshipDirectoryForUser(args: {
     countryPage,
     focusUniversity: publicFocus,
     canonicalSearch: scholarshipSearchParams(query, {}).toString(),
-  });
+  }, recommendations);
 }
 
 const loadCached = unstable_cache(

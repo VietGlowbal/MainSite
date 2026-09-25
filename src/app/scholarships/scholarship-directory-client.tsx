@@ -93,6 +93,8 @@ type Props = {
   savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
   /** Server aggregate for the future Frequently-picked badge; not rendered in T7. */
   frequentlyPicked?: ScholarshipDirectoryResponse['frequentlyPicked'];
+  /** Server recommendation results for T9; no recommendation badge is rendered in T8. */
+  recommendations?: ScholarshipDirectoryResponse['recommendations'];
   canonicalSearch: string;
   isPlus?: boolean;
   locale?: Locale;
@@ -141,6 +143,7 @@ export function ScholarshipDirectoryClient({
   focusUniversity: initialFocusUniversity = null,
   savedScholarships = [],
   frequentlyPicked = {},
+  recommendations = {},
   canonicalSearch,
   isPlus: initialIsPlus,
   locale = 'en',
@@ -159,6 +162,7 @@ export function ScholarshipDirectoryClient({
     focusUniversity: initialFocusUniversity,
     canonicalSearch,
     frequentlyPicked,
+    recommendations,
   }), [
     canonicalSearch,
     frequentlyPicked,
@@ -167,6 +171,7 @@ export function ScholarshipDirectoryClient({
     initialFocusPage,
     initialFocusUniversity,
     initialQueryState,
+    recommendations,
   ]);
   const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data, locale), [locale]);
   const directory = useDirectoryNavigation({

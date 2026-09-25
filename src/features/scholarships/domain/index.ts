@@ -39,6 +39,13 @@ export {
   SCHOLARSHIP_ELIGIBILITY_NORMALIZER_VERSION,
 } from './eligibility-normalization';
 export { scorePersonalFit } from './personal-fit';
+export { recommendScholarships } from './recommendation';
+export {
+  DEFAULT_RECOMMENDATION_POLICY,
+  GLOWBAL_RECOMMENDATION_POLICY_VERSION,
+  resolveRecommendationPolicy,
+  validateRecommendationPolicy,
+} from './recommendation-policy';
 export {
   paginateRanked,
   rankScholarships,
@@ -211,6 +218,25 @@ export type {
   PersonalFitPolicy,
   PersonalFitPolicyWeights,
 } from './personal-fit-policy';
+export type {
+  RecommendationEligibility,
+  RecommendationFit,
+  ScholarshipRecommendation,
+  ScholarshipRecommendationCandidate,
+  ScholarshipRecommendationResult,
+  ScholarshipRecommendationSet,
+} from './recommendation';
+export type {
+  RecommendationPolicy,
+  RecommendationPolicyWeights,
+} from './recommendation-policy';
+export type {
+  RecommendationReasonCode,
+  RecommendationReasonData,
+  RecommendationReasonResult,
+  RecommendationWarning,
+  RecommendationWarningCode,
+} from './recommendation-reasons';
 export type {
   RankedPage,
   ScholarshipRankingCacheKeyInput,

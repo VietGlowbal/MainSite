@@ -71,6 +71,25 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-25 (Scholarship Personalization T8): added the pure,
+versioned GlowBal Recommend domain. Recommendations gate INELIGIBLE and
+UNKNOWN eligibility, use T5 fit as the primary signal, normalize T2A lower-bound
+values over the complete candidate set, keep missing values non-zero/non-fabricated,
+and discount MIXED/ESTIMATED value quality separately from source confidence.
+Results include recommendation state, score, rank, deterministic reason codes,
+structured reason data, warnings, and policy version. The default policy is
+configurable and versioned; AI match scores and Home editorial scores are not
+inputs. Signed-in directory loading computes over the deduplicated complete
+candidate union before page slicing and exposes results only for visible rows;
+public output carries an empty recommendation map. No badge/UI rendering,
+schema, migration, cost/FX acquisition, or Frequently-picked semantics changed.
+T8 focused tests passed (1 file, 13 tests); the T6/T7 regression set passed
+(6 files, 38 tests); pure recommendation-domain strict compilation passed;
+`git diff --check` passed. The broader scholarship run passed 141/142 tests,
+with the same existing sibling-worktree alias mismatch in the pre-T1 benefit
+normalization assertion. Full repository typecheck remains unavailable in this
+checkout because local framework/dependency packages are absent.
+
 Working tree 2026-09-25 (Scholarship Personalization T7): added the
 privacy-safe Frequently-picked aggregate over current `user_scholarships`
 rows. The server reads `scholarship_id,user_id` once for the requested batch,
