@@ -71,6 +71,22 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+Working tree 2026-09-25 (Scholarship Personalization T5): added deterministic
+soft personal-fit scoring over the T3 context and T4 EligibilityResult. The
+versioned policy weights preferred country, one deduplicated selected/saved
+university signal, selected programme, subject, study level, intake, funding,
+budget, and study mode. Missing evidence contributes no positive score;
+confidence, warnings, missing signals, reason codes, and structured reason
+data explain coverage. Discovery text is capped at a policy multiplier and
+cannot prove fit. INELIGIBLE and UNKNOWN eligibility are hard gates and return
+no rankable fit score. No legacy personal-match behavior, UI, ranking,
+recommendation, migration, or data acquisition was changed. The T5 suite
+passed (1 file, 14 tests); T3/T4 regression tests also passed. The broader
+scholarship run passed 99 tests with the same one existing sibling-worktree
+alias mismatch in the pre-T1 catalogue normalization assertion. Pure T5
+domain strict compilation and `git diff --check` passed; repository-local
+dependencies remain unavailable in this checkout.
+
 Working tree 2026-09-25 (Scholarship Personalization T4): added deterministic,
 fail-closed eligibility normalization/evaluation over the T3 matching context.
 The domain returns ELIGIBLE, INELIGIBLE, or UNKNOWN with reason codes,

@@ -30,6 +30,13 @@ export {
   normalizeScholarshipEligibility,
   SCHOLARSHIP_ELIGIBILITY_NORMALIZER_VERSION,
 } from './eligibility-normalization';
+export { scorePersonalFit } from './personal-fit';
+export {
+  DEFAULT_PERSONAL_FIT_POLICY,
+  PERSONAL_FIT_POLICY_VERSION,
+  resolvePersonalFitPolicy,
+  validatePersonalFitPolicy,
+} from './personal-fit-policy';
 export { BENEFIT_PERIODS, BENEFIT_TYPES } from './benefit-types';
 export type {
   BenefitAmount,
@@ -160,3 +167,18 @@ export type {
   NormalizedTextRequirement,
   ScholarshipDirectoryFilterInput,
 } from './eligibility-normalization';
+export type {
+  PersonalFitReasonCode,
+  PersonalFitReasonData,
+  PersonalFitResult,
+  PersonalFitSignal,
+  PersonalFitStatus,
+  PersonalFitValue,
+  PersonalFitWarning,
+  PersonalFitWarningCode,
+  ScorePersonalFitInput,
+} from './personal-fit';
+export type {
+  PersonalFitPolicy,
+  PersonalFitPolicyWeights,
+} from './personal-fit-policy';

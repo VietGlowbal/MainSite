@@ -34,6 +34,13 @@ export {
   normalizeScholarshipEligibility,
   SCHOLARSHIP_ELIGIBILITY_NORMALIZER_VERSION,
 } from './domain/eligibility-normalization';
+export { scorePersonalFit } from './domain/personal-fit';
+export {
+  DEFAULT_PERSONAL_FIT_POLICY,
+  PERSONAL_FIT_POLICY_VERSION,
+  resolvePersonalFitPolicy,
+  validatePersonalFitPolicy,
+} from './domain/personal-fit-policy';
 export type {
   EligibilityCheck,
   EligibilityCheckStatus,
@@ -68,6 +75,21 @@ export type {
   NormalizedScholarshipEligibility,
   NormalizedTextRequirement,
 } from './domain/eligibility-normalization';
+export type {
+  PersonalFitReasonCode,
+  PersonalFitReasonData,
+  PersonalFitResult,
+  PersonalFitSignal,
+  PersonalFitStatus,
+  PersonalFitValue,
+  PersonalFitWarning,
+  PersonalFitWarningCode,
+  ScorePersonalFitInput,
+} from './domain/personal-fit';
+export type {
+  PersonalFitPolicy,
+  PersonalFitPolicyWeights,
+} from './domain/personal-fit-policy';
 export {
   scholarshipSaveDestination,
   type ScholarshipSaveDestination,
