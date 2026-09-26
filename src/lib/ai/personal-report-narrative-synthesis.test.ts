@@ -7,9 +7,22 @@ import {
   synthesisInputFromReport,
   synthesizePersonalReportNarrative,
 } from './personal-report-narrative-synthesis';
+import { getReportPrompt } from './runtime/prompt-registry';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('Personal Report synthesis prompt', () => {
+  it('keeps reference style profile-neutral and complete for sparse profiles', () => {
+    const prompt = getReportPrompt('report_narrative_synthesis');
+
+    expect(prompt.version).toBe('report-synthesis-v19-profile-neutral-complete-framework');
+    expect(prompt.systemPrompt).toContain('derive the causal arrow chain from the applicant');
+    expect(prompt.systemPrompt).toContain('Do not default every profile to software');
+    expect(prompt.systemPrompt).toContain('include every supplied capability when fewer than four exist');
+    expect(prompt.systemPrompt).toContain('include fewer when evidence is sparse');
+  });
 });
 
 function chatResponse(content: string) {
@@ -571,6 +584,15 @@ describe('synthesisInputFromReport', () => {
     }), null);
 
     expect(input.personalPositioning?.supportingExperienceTitles).toEqual(['Coding club', 'Mentoring project']);
+  });
+
+  it('keeps a supplied proof title as the positioning anchor when identity refs are sparse', () => {
+    const base = fullReport();
+    const input = synthesisInputFromReport(fullReport({
+      coreIdentity: { ...base.coreIdentity, evidenceRefs: [] },
+    }), null);
+
+    expect(input.personalPositioning?.supportingExperienceTitles).toEqual(['Coding club']);
   });
 });
 

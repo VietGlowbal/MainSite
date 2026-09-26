@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PersonalReportV2 } from '../../domain';
 import {
@@ -178,6 +178,19 @@ describe('PersonalCanvasView', () => {
       ).toBeGreaterThan(0);
     }
 
+    expect(
+      Array.from(document.querySelectorAll('[data-canvas-section]'))
+        .slice(0, 6)
+        .map((button) => button.getAttribute('data-canvas-section')),
+    ).toEqual([
+      'coreIdentity',
+      'drivingForces',
+      'provenCapabilities',
+      'socialProof',
+      'areasForGrowth',
+      'longTermVision',
+    ]);
+
     fireEvent.click(screen.getAllByRole('button', { name: /social proof/i })[0]!);
     expect(onSelect).toHaveBeenCalledWith('socialProof' satisfies PersonalCanvasSectionKey);
   });
@@ -250,6 +263,45 @@ describe('PersonalCanvasWorkspace', () => {
         screen.queryByRole('dialog', { name: /social proof details/i }),
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('keeps the popup within the viewport and wires its tabs to the active panel', () => {
+    render(
+      <PersonalCanvasWorkspace
+        report={report()}
+        returnTo={undefined}
+        onRegenerate={undefined}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: /core identity/i })[0]!);
+
+    const dialog = screen.getByRole('dialog', { name: /core identity details/i });
+    expect(dialog).toHaveClass('w-full');
+    expect(dialog).not.toHaveClass('w-[95vw]');
+    expect(
+      within(dialog).getByRole('heading', { level: 2, name: /someone who builds practical solutions/i }),
+    ).toHaveClass('line-clamp-3');
+
+    const tablist = within(dialog).getByRole('tablist');
+    expect(tablist).toHaveAttribute('aria-label', 'Core Identity views');
+    const overviewTab = within(tablist).getByRole('tab', { name: 'Overview' });
+    const panel = within(dialog).getByRole('tabpanel');
+    expect(overviewTab).toHaveAttribute(
+      'aria-controls',
+      'personal-report-coreIdentity-overview-panel',
+    );
+    expect(panel).toHaveAttribute('aria-labelledby', overviewTab.id);
+
+    fireEvent.click(within(tablist).getByRole('tab', { name: 'Signature Pattern' }));
+    expect(within(tablist).getByRole('tab', { name: 'Signature Pattern' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(within(dialog).getByRole('tabpanel')).toHaveAttribute(
+      'id',
+      'personal-report-coreIdentity-signature-pattern-panel',
+    );
   });
 
   it('captures new supporting evidence inside an insufficient Canvas section and regenerates', async () => {

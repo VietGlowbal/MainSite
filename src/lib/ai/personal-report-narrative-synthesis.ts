@@ -12,7 +12,10 @@ import type {
   ReflectionFinding,
 } from '@/shared/evaluation';
 import type { EvidenceBank } from '@/shared/evidence/domain';
-import type { PersonalCanvasDetails } from '@/features/apply/domain/personal-canvas-details';
+import {
+  APPLICANT_IMPACT_METRIC_KEYS,
+  type PersonalCanvasDetails,
+} from '@/features/apply/domain/personal-canvas-details';
 import { openAiJsonCompletion } from './openai-client';
 import { getReportPrompt } from './runtime/prompt-registry';
 
@@ -514,11 +517,19 @@ export function synthesisInputFromReport(
   const repeated = findingsWithStatus.filter(({ status }) => status === 'repeated');
   const corroborated = repeated.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key));
   const reportReflectionFindings = Object.fromEntries(findingsWithStatus.map((item) => [item.finding.key, item])) as Partial<Record<ReflectionAnswerKey, ReflectionFindingWithStatus>>;
-  const supportingExperienceTitles = report.proofOfMe.cards
+  const coreLinkedExperienceTitles = report.proofOfMe.cards
     .filter((card) => report.coreIdentity.evidenceRefs.some((ref) =>
       ref.id === card.activityId || card.evidenceRefs.some((cardRef) => cardRef.id === ref.id),
     ))
     .map((card) => card.title);
+  // Positioning still needs one supplied anchor when identity evidence is
+  // sparse or a profile's strongest proof is attached to another section.
+  // Fall back only to canonical Proof of Me titles; never synthesize a label.
+  // Keep the model's anchor-plus-corroborators context bounded to five titles.
+  const supportingExperienceTitles = (coreLinkedExperienceTitles.length > 0
+    ? coreLinkedExperienceTitles
+    : [...new Set(report.proofOfMe.cards.map((card) => card.title).filter(Boolean))])
+    .slice(0, 5);
   const growthAreas = (report.growthAreas ?? []).map((area) => ({
     title: area.statement,
     gap: area.currentGap ?? area.statement,
@@ -1150,7 +1161,9 @@ function structuredSectionAvailable(key: StructuredNarrativeSection, input: Synt
   if (key === 'drivingForce') return Boolean(input.drivingForce);
   if (key === 'profilePositioning') return Boolean(input.personalPositioning);
   if (key === 'provenCapabilities') return input.canvasDetails.capabilities.length > 0;
-  if (key === 'socialProof') return input.canvasDetails.socialProof.some((metric) => metric.value > 0 && metric.evidenceIds.length > 0);
+  if (key === 'socialProof') return input.canvasDetails.socialProof.some((metric) =>
+    APPLICANT_IMPACT_METRIC_KEYS.has(metric.key) && metric.value > 0 && metric.evidenceIds.length > 0,
+  );
   return Boolean(
     input.takeawayFacts.standOut.evidenceIds.length ||
     input.takeawayFacts.competitiveAdvantage.evidenceIds.length ||
@@ -1364,12 +1377,16 @@ function materializeNarrativeDetails(
     const candidateTraits = new Map(
       sectionInput.coreIdentity?.traitCandidates.map((candidate) => [traitCandidateKey(candidate.characteristic), candidate]) ?? [],
     );
+    const seenTraits = new Set<string>();
     output.coreIdentity = {
       identityStatement: details.coreIdentity.identityStatement,
       evidenceIds: requireEvidenceIds(details.coreIdentity.evidenceIds, allowedBySection.narrativeCoreIdentity),
       definingTraits: details.coreIdentity.definingTraits.flatMap((trait) => {
-        const candidate = candidateTraits.get(traitCandidateKey(trait.characteristic));
+        const key = traitCandidateKey(trait.characteristic);
+        const candidate = candidateTraits.get(key);
         if (!candidate) return [];
+        if (seenTraits.has(key)) return [];
+        seenTraits.add(key);
         try {
           return [{
             ...trait,
@@ -1383,7 +1400,7 @@ function materializeNarrativeDetails(
         } catch {
           return [];
         }
-      }),
+      }).slice(0, 5),
     };
   }
   if (requested.has('drivingForce') && details.drivingForce) {
@@ -1404,12 +1421,16 @@ function materializeNarrativeDetails(
   }
   if (requested.has('provenCapabilities') && details.provenCapabilities) {
     const canonical = new Map(sectionInput.canvasDetails.capabilities.slice(0, 4).map((capability) => [normalizeNarrativeLabel(capability.capability), capability]));
+    const seenCapabilities = new Set<string>();
     output.provenCapabilities = {
       overview: details.provenCapabilities.overview,
       overviewEvidenceIds: requireEvidenceIds(details.provenCapabilities.overviewEvidenceIds, allowedBySection.narrativeCapabilities),
       capabilities: details.provenCapabilities.capabilities.flatMap((capability) => {
-        const match = canonical.get(normalizeNarrativeLabel(capability.capability));
+        const key = normalizeNarrativeLabel(capability.capability);
+        const match = canonical.get(key);
         if (!match) return [];
+        if (seenCapabilities.has(key)) return [];
+        seenCapabilities.add(key);
         const { applicationRelevance: modelApplicationRelevance, ...capabilityWithoutApplicationRelevance } = capability;
         const applicationRelevance = modelApplicationRelevance ?? match.applicationRelevance;
         const grounded = {
@@ -1418,7 +1439,7 @@ function materializeNarrativeDetails(
           supportingActivities: requireSubset(capability.supportingActivities, new Set(match.supportingActivities)),
         };
         return applicationRelevance ? { ...grounded, applicationRelevance } : grounded;
-      }),
+      }).slice(0, 4),
       combinationInsight: details.provenCapabilities.combinationInsight,
       combinationEvidenceIds: requireEvidenceIds(details.provenCapabilities.combinationEvidenceIds, allowedBySection.narrativeCapabilities),
     };
@@ -1437,7 +1458,7 @@ function materializeNarrativeDetails(
       experienceConnection: {
         ...details.profilePositioning.experienceConnection,
         anchorExperience: supportingExperienceTitles[0] ?? null,
-        supportingExperienceCount: supportingExperienceTitles.length,
+        supportingExperienceCount: Math.max(0, supportingExperienceTitles.length - 1),
         supportingExperienceTitles,
         evidenceIds: requireEvidenceIds(details.profilePositioning.experienceConnection.evidenceIds, allowedBySection.narrativePositioning),
       },

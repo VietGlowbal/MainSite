@@ -19,7 +19,10 @@ import {
   type ThemeMaturityResult,
 } from '@/shared/evaluation';
 import { buildPersonalReportAnalytics, type PersonalReportAnalytics } from './personal-report-analytics';
-import type { PersonalCanvasDetails } from './personal-canvas-details';
+import {
+  APPLICANT_IMPACT_METRIC_KEYS,
+  type PersonalCanvasDetails,
+} from './personal-canvas-details';
 import type { EvidenceBank } from '@/shared/evidence/domain';
 
 /**
@@ -1023,7 +1026,7 @@ function snapshotPhrase(value: string | undefined, fallback: string): string {
   if (!candidate) return fallback;
   if (
     candidate.length > 180 ||
-    /(?:^|[\s(])(?:i(?:['’](?:m|ve|d|ll))?|me|my|mine|we(?:['’](?:re|ve))?|our|ours|us|tôi|mình|em|chúng tôi|chúng mình|của tôi|của mình)(?=$|[\s,.;:!?])/iu.test(
+    /(?:^|[\s(])(?:i(?:['’](?:m|ve|d|ll))?|me|my|mine|we(?:['’](?:re|ve))?|our|ours|us|tôi|mình|em(?=\s+(?:là|đã|có|muốn|thích|được|vì))|chúng tôi|chúng mình|của tôi|của mình)(?=$|[\s,.;:!?])/iu.test(
       candidate,
     )
   ) {
@@ -1583,7 +1586,9 @@ export function validatePersonalReportFramework(report: PersonalReportV2): Perso
   const idsFor = (...groups: readonly string[][]) => [...new Set(groups.flat())];
   const hasCanvas = Boolean(report.canvasDetails && typeof report.canvasDetails === 'object');
   const hasCapabilities = (report.canvasDetails?.capabilities?.length ?? 0) > 0;
-  const hasSocialProof = report.canvasDetails?.socialProof?.some((metric) => metric.value > 0 && metric.evidenceIds.length > 0) ?? false;
+  const hasSocialProof = report.canvasDetails?.socialProof?.some((metric) =>
+    APPLICANT_IMPACT_METRIC_KEYS.has(metric.key) && metric.value > 0 && metric.evidenceIds.length > 0,
+  ) ?? false;
   const hasTraits = Boolean(narrative?.coreIdentity?.definingTraits.length || coreIdentity?.observedBehaviours?.length || coreIdentity?.recurringBehaviours?.length);
   const identitySubstantive = Boolean(narrative?.coreIdentity?.identityStatement || coreIdentity?.headline || coreIdentity?.interpretation);
   const positioningSubstantive = Boolean(narrative?.profilePositioning?.profileNarrative || personalPositioning?.statement);
