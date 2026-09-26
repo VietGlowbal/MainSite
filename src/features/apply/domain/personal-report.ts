@@ -968,6 +968,8 @@ export type PersonalReportNarrativeDetails = {
       connectionExplanation: string;
       confidence: ReportConfidence;
       supportingExperienceCount: number;
+      /** The deterministic primary anchor used to explain the profile thread. */
+      anchorExperience?: string | null;
       supportingExperienceTitles?: string[];
       evidenceIds: string[];
     };
@@ -1664,7 +1666,10 @@ export function validatePersonalReportFramework(report: PersonalReportV2): Perso
     contentCompleteness: { complete: contentMissing.length === 0, missing: contentMissing },
     evidenceCoverage: statuses,
     narrativeGeneration: {
-      status: narrativeSections.length >= 6 ? 'complete' : narrativeSections.length > 0 ? 'partial' : 'deterministic_fallback',
+      // The structured narrative contract has seven top-level parts. Six is
+      // still partial; deterministic Canvas prose remains the framework
+      // fallback when any model-authored part is unavailable.
+      status: narrativeSections.length === 7 ? 'complete' : narrativeSections.length > 0 ? 'partial' : 'deterministic_fallback',
       generatedSections: narrativeSections,
     },
     groundingValidity: { valid: invalidEvidenceIds.length === 0, invalidEvidenceIds },

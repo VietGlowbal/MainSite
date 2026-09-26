@@ -102,6 +102,8 @@ const narrativeDetailsSchema = z.object({
       connectionExplanation: z.string().min(1).max(700),
       confidence: z.enum(['high', 'medium', 'low']),
       supportingExperienceCount: z.number().int().nonnegative(),
+      anchorExperience: z.string().min(1).max(160).nullish(),
+      supportingExperienceTitles: z.array(z.string().min(1).max(160)).max(6).nullish(),
       evidenceIds: evidenceIdsSchema,
     }),
     positioningOptions: z.array(z.object({
@@ -198,9 +200,9 @@ When a requested section is present, include every field in its contract. Requir
 - keyTakeaways.growthOpportunity: title, growthArea, currentGap, recommendedDirection, whyItMatters, basis, evidenceIds.
 - coreIdentity: identityStatement, evidenceIds, definingTraits; every definingTraits item: characteristic, insight, evidenceIds, whyItMatters, supportingExperienceTitles, evidenceStrength, maturity, scope, confidence.
 - drivingForce: primaryMotivation, repeatedChoices, recurringProblems, decisionMaking, underlyingValues, strategicInterpretation, evidenceStrength, isHypothesis, evidenceIds.
-- profilePositioning: experienceConnection, positioningOptions, profileNarrative, profileNarrativeEvidenceIds; every experienceConnection item: strongestProfileThread, connectionExplanation, confidence, supportingExperienceCount, evidenceIds; every positioningOptions item: title, statement, supportingEvidenceIds, supportingExperienceTitles.
+- profilePositioning: experienceConnection, positioningOptions, profileNarrative, profileNarrativeEvidenceIds; every experienceConnection item: strongestProfileThread, connectionExplanation, confidence, supportingExperienceCount, anchorExperience, supportingExperienceTitles, evidenceIds; every positioningOptions item: title, statement, supportingEvidenceIds, supportingExperienceTitles.
 
-Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. If an entire optional section is unsupported, return that section as null or omit it. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130. For any word-length repair, count whitespace-separated words and target the safe middle instead of the lower boundary: snapshot 165-180, core identity 90-105, capability overview 110-118, profile narrative 110-125. If below minimum, add a grounded sentence using only supplied facts.`;
+Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. Every requested framework section key must be present in narrativeDetails; return that section as null when it is unavailable, never omit the framework part. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130. For any word-length repair, count whitespace-separated words and target the safe middle instead of the lower boundary: snapshot 165-180, core identity 90-105, capability overview 110-118, profile narrative 110-125. If below minimum, add a grounded sentence using only supplied facts.`;
 
 type SynthesisSectionInput = {
   coreIdentity: {
@@ -1434,6 +1436,7 @@ function materializeNarrativeDetails(
     output.profilePositioning = {
       experienceConnection: {
         ...details.profilePositioning.experienceConnection,
+        anchorExperience: supportingExperienceTitles[0] ?? null,
         supportingExperienceCount: supportingExperienceTitles.length,
         supportingExperienceTitles,
         evidenceIds: requireEvidenceIds(details.profilePositioning.experienceConnection.evidenceIds, allowedBySection.narrativePositioning),
@@ -1559,6 +1562,22 @@ function parseNarrativeBatch(
       invalidSections.push(key);
       firstValidationError ??= error;
     }
+  }
+  // Strict response formats are enforced by the provider, but a mocked or
+  // degraded provider can still return a syntactically valid partial object.
+  // Do not silently treat an omitted available framework section as success;
+  // send it through the existing targeted-repair path instead.
+  const missingSections = batch.structured.filter((key) =>
+    key !== 'snapshot' &&
+    structuredSectionAvailable(key, batchInputValue) &&
+    !Object.hasOwn(acceptedDetails, key) &&
+    !invalidSections.includes(key),
+  );
+  if (missingSections.length > 0) {
+    const detail = `Narrative synthesis did not cover every available report section: ${missingSections.join(', ')}.`;
+    invalidSections.push(...missingSections);
+    issues.push({ path: ['narrativeDetails', ...missingSections], code: 'custom', message: detail });
+    firstValidationError ??= new Error(detail);
   }
   if (invalidSections.length > 0 && Object.keys(acceptedDetails).length === 0) {
     throw firstValidationError ?? new Error(`Narrative synthesis sections failed validation: ${invalidSections.join(', ')}`);

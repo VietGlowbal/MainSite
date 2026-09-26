@@ -619,6 +619,7 @@ describe('synthesizePersonalReportNarrative', () => {
 
     expect(result?.narrativeDetails?.coreIdentity?.identityStatement.split(/\s+/)).toHaveLength(80);
     expect(result?.narrativeDetails?.profilePositioning?.positioningOptions[0]?.supportingEvidenceIds).toEqual(['activity-1']);
+    expect(result?.narrativeDetails?.profilePositioning?.experienceConnection.anchorExperience).toBe('Coding club');
   });
 
   it('uses the narrative schema vocabulary for model evidence strength', async () => {
@@ -753,6 +754,29 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     expect(result).toBeNull();
+  });
+
+  it('repairs an omitted available framework section before accepting the batch', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }>; response_format?: unknown };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[]; invalidResponse?: string };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      const details = structuredNarrativeDetails(batch) as Record<string, unknown>;
+      if (batch === 'a' && !request.invalidResponse) delete details.coreIdentity;
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('keeps valid siblings when a section cites an unknown evidence id', async () => {
