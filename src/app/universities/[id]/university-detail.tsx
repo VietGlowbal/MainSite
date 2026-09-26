@@ -23,6 +23,7 @@ import {
   type GlowbalIconName,
 } from '@/shared/ui';
 import { TID, testId } from '@/shared/lib/testids';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import type { University } from '@/lib/types';
 import { FadeInImage } from '../fade-in-image';
 import { DetailNav, type DetailSection } from './detail-nav';
@@ -535,9 +536,9 @@ export function UniversityDetail({
                             </span>
                           ) : null}
                         </div>
-                        {scholarship.sourceUrl ? (
+                        {canonicalizeExternalUrl(scholarship.sourceUrl) ? (
                           <div className="flex">
-                            <Button href={scholarship.sourceUrl} variant="secondary" size="sm">
+                            <Button href={canonicalizeExternalUrl(scholarship.sourceUrl)!} variant="secondary" size="sm">
                               {t('Official link')}
                             </Button>
                           </div>

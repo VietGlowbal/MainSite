@@ -10,6 +10,8 @@ import type {
   ValuationPeriod,
 } from './valuation';
 import type { DurationValue } from './duration';
+import { isSupportedCurrency } from './currency';
+import { isSafeExternalUrl } from '@/shared/lib/external-url';
 
 export const COST_REFERENCE_LEVELS = [
   'programme',
@@ -132,19 +134,6 @@ const BENEFIT_PERIODS: readonly ValuationPeriod[] = [
 const DURATION_UNITS: readonly BenefitDurationUnit[] = ['month', 'year', 'term'];
 const CONFIDENCE_VALUES: readonly BenefitConfidence[] = ['high', 'medium', 'low'];
 const SOURCE_STATUS_VALUES: readonly SourceValueStatus[] = ['EXACT', 'ESTIMATED'];
-const SUPPORTED_CURRENCIES = new Set([
-  'USD',
-  'GBP',
-  'EUR',
-  'AUD',
-  'NZD',
-  'CAD',
-  'CHF',
-  'VND',
-  'JPY',
-  'SGD',
-]);
-
 type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -159,16 +148,6 @@ function isDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = Date.parse(`${value}T00:00:00Z`);
   return Number.isFinite(parsed);
-}
-
-function isHttpUrl(value: unknown): value is string {
-  if (!nonEmptyString(value)) return false;
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
 }
 
 function isBenefitType(value: unknown): value is BenefitType {
@@ -231,7 +210,7 @@ function parseCurrency(value: unknown, status: unknown): {
   }
   if (!nonEmptyString(value) || !isCurrencyStatus(status)) return null;
   const currency = value.trim().toUpperCase();
-  if (status === 'known' && !SUPPORTED_CURRENCIES.has(currency)) return null;
+  if (status === 'known' && !isSupportedCurrency(currency)) return null;
   return { currency, currencyStatus: status };
 }
 
@@ -263,7 +242,7 @@ function parseRecord(
   if (!isPeriod(value.period)) return malformed(key, 'Cost period is invalid.');
   const currency = parseCurrency(value.currency, value.currencyStatus);
   if (!currency) return malformed(key, 'Currency and currencyStatus are invalid.');
-  if (!isHttpUrl(value.sourceUrl)) return malformed(key, 'A valid source URL is required.');
+  if (!isSafeExternalUrl(value.sourceUrl)) return malformed(key, 'A valid http(s) source URL is required.');
   if (!isDate(value.sourceDate) || !isDate(value.effectiveDate) || !isDate(value.retrievalDate)) {
     return malformed(key, 'Source, effective, and retrieval dates must be YYYY-MM-DD.');
   }

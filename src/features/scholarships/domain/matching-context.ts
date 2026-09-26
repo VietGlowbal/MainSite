@@ -7,9 +7,13 @@ import type {
 } from './benefit-types';
 import type { DurationValue } from './duration';
 import type { ValuationPeriod } from './valuation';
+import {
+  buildScholarshipValuationContexts,
+  type ScholarshipValuationContext,
+} from './valuation-context';
 
 /** Bump when the shape or meaning of the canonical matching context changes. */
-export const SCHOLARSHIP_MATCHING_CONTEXT_VERSION = 'scholarship-matching-context-v1';
+export const SCHOLARSHIP_MATCHING_CONTEXT_VERSION = 'scholarship-matching-context-v2';
 
 export type MatchingSourceKind =
   | 'student-profile'
@@ -191,6 +195,8 @@ export type MatchingScholarshipSource = {
   universityIds: readonly number[];
   universityCountries: readonly string[];
   normalizedBenefits: NormalizedScholarshipBenefits;
+  /** Candidate-owned alternatives; student selection is not stored here. */
+  valuationContexts?: readonly ScholarshipValuationContext[];
   source: MatchingProvenance;
 };
 
@@ -252,6 +258,7 @@ export type MatchingSavedUniversityContext = SavedUniversitySource;
 export type MatchingScholarshipContext = MatchingScholarshipSource & {
   /** Normalized facts are carried once; downstream valuation must not reparse raw prose. */
   benefits: readonly BenefitComponent[];
+  valuationContexts?: readonly ScholarshipValuationContext[] | undefined;
 };
 
 export type ScholarshipMatchingContext = {
@@ -518,6 +525,19 @@ export function buildScholarshipMatchingContext(
     .map((scholarship): MatchingScholarshipContext => ({
       ...scholarship,
       benefits: scholarship.normalizedBenefits.components,
+      valuationContexts: scholarship.valuationContexts ?? buildScholarshipValuationContexts({
+        scholarshipId: scholarship.id,
+        scholarshipCountry: scholarship.country,
+        universities: scholarship.universityIds.map((id) => ({
+          id,
+          // `universityCountries` is a filtered display list, so its indexes
+          // are not a reliable join to `universityIds`. The loader normally
+          // supplies full candidate contexts; this compatibility fallback must
+          // prefer the scholarship's own country over assigning another
+          // university's country to this candidate.
+          country: scholarship.country,
+        })),
+      }),
     }))
     .sort((left, right) => left.id - right.id);
 

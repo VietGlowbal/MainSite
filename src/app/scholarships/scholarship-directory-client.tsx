@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { clearFocusUniversity, getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
 import { TID, testId } from '@/shared/lib/testids';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import { useLanguage } from '@/lib/i18n';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { AutoTranslate } from '@/lib/use-auto-translate';
@@ -1334,9 +1335,9 @@ function ScholarshipDetailModal({
             <GlowbalIcon name="savedScholarship" size={16} tone="current" />
             {saved ? t('Saved to My Universities') : t('Save to My Universities')}
           </button>
-          {s.source_url && (
+          {canonicalizeExternalUrl(s.source_url) && (
             <a
-              href={s.source_url}
+              href={canonicalizeExternalUrl(s.source_url)!}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-gb-md bg-surface-inverse px-5 text-sm font-semibold text-fg-on-inverse shadow-gb-xs-skeuomorphic transition hover:bg-surface-inverse-strong"

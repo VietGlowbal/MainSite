@@ -6,6 +6,7 @@
  */
 export const SCHOLARSHIP_TRANSLATIONS: Record<string, string> = {
   'AI match score; not the canonical catalogue ranking': 'Điểm khớp AI; không phải thứ hạng danh mục chính thức',
+  'AI match score {score}; not the canonical catalogue ranking': 'Điểm khớp AI {score}; không phải thứ hạng danh mục chính thức',
   'AI-researched amount — not catalogue verified': 'Số tiền do AI tìm kiếm — chưa được danh mục xác minh',
   'recommended on this page': 'được đề xuất trên trang này',
   'Highest value': 'Giá trị cao nhất',

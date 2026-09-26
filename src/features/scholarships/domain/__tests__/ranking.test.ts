@@ -141,7 +141,7 @@ describe('scholarship global ranking', () => {
     expect(ranked.map((item) => item.id)).toEqual([1, 2]);
   });
 
-  it('keeps a mixed-currency set incomparable until an FX target is supplied', () => {
+  it('uses the explicit canonical target and leaves values without FX unavailable', () => {
     const ranked = rankScholarships(
       [
         candidate(1, { name: 'USD award', value: value(90_000, { currency: 'USD' }) }),
@@ -151,7 +151,7 @@ describe('scholarship global ranking', () => {
       policy,
     );
 
-    expect(ranked.map((item) => item.id)).toEqual([2, 1]);
+    expect(ranked.map((item) => item.id)).toEqual([1, 2]);
   });
 
   it('uses T5 fit only for eligible candidates in relevance order', () => {
@@ -230,5 +230,26 @@ describe('scholarship ranking cache identity', () => {
     const first = scholarshipRankingCacheKey({ scope: 'public', ...common, fxVersion: 'fx-v1' });
     const second = scholarshipRankingCacheKey({ scope: 'public', ...common, fxVersion: 'fx-v2' });
     expect(first).not.toBe(second);
+  });
+
+  it('changes when the comparison policy version or currency changes', () => {
+    const usdV1 = scholarshipRankingCacheKey({
+      scope: 'public',
+      ...common,
+      comparisonPolicy: { version: 'comparison-v1', currency: 'USD' },
+    });
+    const usdV2 = scholarshipRankingCacheKey({
+      scope: 'public',
+      ...common,
+      comparisonPolicy: { version: 'comparison-v2', currency: 'USD' },
+    });
+    const gbpV1 = scholarshipRankingCacheKey({
+      scope: 'public',
+      ...common,
+      comparisonPolicy: { version: 'comparison-v1', currency: 'GBP' },
+    });
+
+    expect(usdV1).not.toBe(usdV2);
+    expect(usdV1).not.toBe(gbpV1);
   });
 });

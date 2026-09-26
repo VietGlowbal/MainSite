@@ -211,7 +211,7 @@ function context(
 ): ScholarshipMatchingContext {
   const currentScholarship = scholarship(scholarshipOverrides);
   return {
-    contextVersion: 'scholarship-matching-context-v1',
+    contextVersion: 'scholarship-matching-context-v2',
     cache: {
       scope: 'user',
       key: 'user-fit-test',

@@ -2,7 +2,11 @@ import type { ScholarshipEligibilityResult } from './eligibility';
 import type { PersonalFitResult } from './personal-fit';
 import type { ScholarshipValueResult } from './valuation';
 import {
-  commonComparableCurrency,
+  DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
+  resolveScholarshipComparisonPolicy,
+  type ScholarshipComparisonPolicy,
+} from './comparison-policy';
+import {
   compareScholarshipValues,
   SCHOLARSHIP_VALUE_SORT_VERSION,
   valueSortInputFromResult,
@@ -34,7 +38,9 @@ export type ScholarshipRankingCandidate<T = unknown> = {
 export type ScholarshipRankingPolicy = {
   /** A versioned policy is required for reproducible cached ordering. */
   version: string;
-  /** Required when an injected FX provider produced one target currency. */
+  /** Explicit target policy used by production ranking. */
+  comparisonPolicy?: ScholarshipComparisonPolicy | null;
+  /** Compatibility input for older domain callers. */
   comparisonCurrency?: string | null;
 };
 
@@ -53,7 +59,9 @@ export type ScholarshipRankingCacheKeyInput = {
   queryVersion?: string;
   filtersKey: string;
   sort: ScholarshipRankingSort;
+  comparisonPolicy?: ScholarshipComparisonPolicy | null;
   comparisonCurrency?: string | null;
+  comparisonPolicyVersion?: string | null;
   normalizerVersion?: string;
   valuationVersion?: string;
   valueSortVersion?: string;
@@ -99,17 +107,6 @@ function fitRank(candidate: ScholarshipRankingCandidate): number {
   if (candidate.eligibility?.status === 'ELIGIBLE') return 1;
   if (candidate.eligibility?.status === 'UNKNOWN') return 2;
   return 3;
-}
-
-function comparableCurrency(
-  candidates: readonly ScholarshipRankingCandidate[],
-  policy: ScholarshipRankingPolicy,
-): string | null {
-  const explicit = policy.comparisonCurrency?.trim().toUpperCase() ?? null;
-  if (explicit) return explicit;
-
-  const values = candidates.map((candidate) => valueSortInputFromResult(candidate.value));
-  return commonComparableCurrency(values);
 }
 
 function rankingValue(
@@ -209,19 +206,11 @@ export function rankScholarships<T>(
   policy: ScholarshipRankingPolicy,
 ): ScholarshipRankingCandidate<T>[] {
   if (!policy.version.trim()) throw new Error('Scholarship ranking policy version is required.');
-
-  const values = candidates.map((candidate) => valueSortInputFromResult(candidate.value));
-  const explicitCurrency = policy.comparisonCurrency?.trim().toUpperCase() ?? null;
-  const currencies = new Set(
-    values
-      .map((value) => value.comparableTotalValue?.currency.trim().toUpperCase() ?? null)
-      .filter((currency): currency is string => currency !== null),
-  );
-  const currency = explicitCurrency ?? comparableCurrency(candidates, policy);
-  // If a caller did not inject a target currency and the candidate set mixes
-  // currencies, comparing their raw numbers would be incorrect. They remain
-  // visible but their values are treated as unavailable until T2B supplies FX.
-  const currenciesAreComparable = explicitCurrency !== null || currencies.size <= 1;
+  const comparisonPolicy = resolveScholarshipComparisonPolicy(policy);
+  const currency = comparisonPolicy.currency;
+  // Values in another currency are unavailable unless T2A already converted
+  // them into this explicit target. Raw cross-currency numbers are never used.
+  const currenciesAreComparable = true;
 
   return [...candidates].sort((left, right) =>
     compareCandidates(left, right, sort, currency, currenciesAreComparable),
@@ -276,6 +265,10 @@ export function scholarshipRankingCacheKey(input: ScholarshipRankingCacheKeyInpu
     keyPart(input.fitPolicyVersion),
     keyPart(input.filtersKey),
     keyPart(input.sort),
-    keyPart(input.comparisonCurrency),
+    keyPart(input.comparisonPolicyVersion ?? resolveScholarshipComparisonPolicy({
+      ...(input.comparisonPolicy !== undefined ? { comparisonPolicy: input.comparisonPolicy } : {}),
+      ...(input.comparisonCurrency !== undefined ? { comparisonCurrency: input.comparisonCurrency } : {}),
+    }).version),
+    keyPart(input.comparisonCurrency ?? input.comparisonPolicy?.currency ?? DEFAULT_SCHOLARSHIP_COMPARISON_POLICY.currency),
   ].join('|');
 }

@@ -14,6 +14,7 @@ import {
   type ScholarshipRecommendationResult,
 } from '../domain/recommendation';
 import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
+import { DEFAULT_SCHOLARSHIP_COMPARISON_POLICY } from '../domain/comparison-policy';
 import {
   evaluateScholarshipEligibility,
   type ScholarshipEligibilityResult,
@@ -27,16 +28,13 @@ import {
 } from '../domain/ranking';
 import { PERSONAL_FIT_POLICY_VERSION } from '../domain/personal-fit-policy';
 import { scorePersonalFit, type PersonalFitResult } from '../domain/personal-fit';
-import { calculateScholarshipValue, type TuitionSource } from '../domain/valuation';
 import type { ScholarshipValueResult } from '../domain/valuation';
-import { calculateDisplayScholarshipValue } from '../domain/value-formatting';
 import { SCHOLARSHIP_VALUE_SORT_VERSION } from '../domain/value-sort';
 import {
-  FILE_COST_REFERENCE_DATASET,
-  FILE_FX_REFERENCE_DATASET,
-  getFileCostReferenceProvider,
-  getFileFxReferenceProvider,
-} from './file-reference-providers';
+  calculateCandidateScholarshipValue,
+  CANDIDATE_VALUATION_CACHE_VERSIONS,
+  valuationRefinementFromMatchingSelection,
+} from './candidate-valuation';
 import { loadScholarshipMatchingContext } from './matching-context-loader';
 import { loadFrequentlyPicked } from './frequently-picked';
 import { getScholarshipQueries } from './index';
@@ -91,11 +89,21 @@ async function attachFrequentlyPicked(
 
 function publicValueResults(
   items: readonly DirectoryScholarship[],
+  asOf: string,
 ): Record<string, ScholarshipValueResult> {
   return Object.fromEntries(
     items.map((item) => [
       String(item.id),
-      calculateDisplayScholarshipValue(item.benefits?.components ?? []),
+      calculateCandidateScholarshipValue(
+        {
+          id: item.id,
+          country: item.country,
+          benefits: item.benefits?.components ?? [],
+          valuationContexts: item.valuationContexts,
+        },
+        null,
+        { asOf },
+      ),
     ]),
   );
 }
@@ -139,28 +147,6 @@ function asOfDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function programmeTuitionSource(
-  context: Awaited<ReturnType<typeof loadScholarshipMatchingContext>>,
-): TuitionSource | null {
-  const programme = context.selection.programme;
-  if (!programme?.tuitionAmount) return null;
-  return {
-    amount: programme.tuitionAmount,
-    period: programme.tuitionPeriod,
-    ...(programme.duration ? { duration: programme.duration } : {}),
-    status: 'ESTIMATED',
-    sourceType: 'programme-tuition',
-    ...(programme.source.retrievedAt ? { sourceVersion: programme.source.retrievedAt } : {}),
-    confidence: 'medium',
-    evidence: [{
-      sourceType: 'catalogue-field',
-      sourceField: 'raw',
-      excerpt: programme.tuitionText ?? 'Programme tuition source',
-      sourceUrl: programme.source.sourceUrl,
-    }],
-  };
-}
-
 /**
  * The focused university is a presentation section, not a directory-wide
  * constraint. Related-country and zero-focus fallback queries must retain the
@@ -174,49 +160,26 @@ function unscopedScholarshipListQuery(
 }
 
 function privateScholarshipValue(
-  item: { id: number; benefits?: NormalizedScholarshipBenefits | null },
+  item: {
+    id: number;
+    country?: string | null;
+    benefits?: NormalizedScholarshipBenefits | null;
+    valuationContexts?: DirectoryScholarship['valuationContexts'] | undefined;
+  },
   context: Awaited<ReturnType<typeof loadScholarshipMatchingContext>>,
   asOf: string,
 ) {
   const matching = context.scholarships.find((scholarship) => scholarship.id === item.id);
-  const benefits = matching?.benefits ?? item.benefits?.components ?? [];
-  const tuitionSource = programmeTuitionSource(context);
-  const programme = context.selection.programme;
-  const university = context.selection.university;
-  const costProvider = getFileCostReferenceProvider();
-  const fx = getFileFxReferenceProvider({ asOf });
-  const currencies = new Set(
-    [
-      ...benefits
-        .map((component) => component.amount)
-        .filter((amount) => amount?.currencyStatus === 'known' && amount.currency !== null)
-        .map((amount) => amount!.currency!.toUpperCase()),
-      ...(tuitionSource?.amount.currencyStatus === 'known' && tuitionSource.amount.currency
-        ? [tuitionSource.amount.currency.toUpperCase()]
-        : []),
-    ],
+  return calculateCandidateScholarshipValue(
+    {
+      id: item.id,
+      country: item.country,
+      benefits: matching?.benefits ?? item.benefits?.components ?? [],
+      valuationContexts: matching?.valuationContexts ?? item.valuationContexts,
+    },
+    valuationRefinementFromMatchingSelection(context.selection),
+    { asOf },
   );
-  const comparableCurrency = currencies.size === 1 ? [...currencies][0]! : undefined;
-  const costContext = {
-    programmeKey: programme?.id ?? null,
-    universityKey: university?.id == null ? null : String(university.id),
-    cityKey: university?.city ?? null,
-    countryKey: university?.country ?? null,
-    globalKey: 'global',
-  };
-
-  return calculateScholarshipValue({
-    benefits,
-    ...(programme?.duration ? { duration: { programme: programme.duration } } : {}),
-    ...(tuitionSource ? { tuitionSource } : {}),
-    costSources: (component) => costProvider.resolve({
-      benefitType: component.type,
-      context: costContext,
-      asOf,
-    }).source,
-    fx,
-    ...(comparableCurrency === undefined ? {} : { policy: { comparableCurrency } }),
-  });
 }
 
 export type ScholarshipSurfaceCandidate = {
@@ -389,7 +352,7 @@ function privatePage(
   const ranked = rankScholarships(
     projections.map((projection) => projection.ranking),
     query.sort ?? 'relevance',
-    { version: SCHOLARSHIP_RANKING_VERSION },
+    { version: SCHOLARSHIP_RANKING_VERSION, comparisonPolicy: DEFAULT_SCHOLARSHIP_COMPARISON_POLICY },
   ).map((candidate) => candidate.item);
   const start = pageOffset(page, pageSize);
   return toPage(ranked.slice(start, start + pageSize), ranked.length, page, pageSize);
@@ -608,7 +571,7 @@ const loadCached = unstable_cache(
       countryPage,
       focusUniversity: publicFocus,
       canonicalSearch: scholarshipSearchParams(query, {}).toString(),
-      values: publicValueResults(visibleItems),
+      values: publicValueResults(visibleItems, asOfDate()),
     };
   },
   [
@@ -619,8 +582,7 @@ const loadCached = unstable_cache(
     SCHOLARSHIP_VALUE_SORT_VERSION,
     PERSONAL_FIT_POLICY_VERSION,
     SCHOLARSHIP_QUERY_VERSION,
-    FILE_COST_REFERENCE_DATASET.version,
-    FILE_FX_REFERENCE_DATASET.version,
+    ...CANDIDATE_VALUATION_CACHE_VERSIONS,
   ],
   {
     revalidate: CACHE_TTL_LONG,

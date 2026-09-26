@@ -380,8 +380,8 @@ function ScholarshipCard({
         </div>
         {/* Match score */}
         <span
-          title="AI match score; not the canonical catalogue ranking"
-          aria-label={`AI match score ${s.matchScore}; not the canonical catalogue ranking`}
+          title={t('AI match score; not the canonical catalogue ranking')}
+          aria-label={t('AI match score {score}; not the canonical catalogue ranking', { score: s.matchScore })}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 text-xs font-bold text-emerald-700"
         >
           {s.matchScore}
@@ -398,7 +398,7 @@ function ScholarshipCard({
           />
         ) : (
           <>
-            <p className="text-xs font-semibold text-slate-500">AI-researched amount — not catalogue verified</p>
+            <p className="text-xs font-semibold text-slate-500">{t('AI-researched amount — not catalogue verified')}</p>
             <p className="text-base font-bold text-slate-900">{s.amount}</p>
             {s.coverage ? <p className="text-[11px] text-slate-500">{s.coverage}</p> : null}
           </>

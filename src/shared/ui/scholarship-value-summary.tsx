@@ -2,6 +2,7 @@ import type {
   ScholarshipTextTranslator,
   ScholarshipValueViewModel,
 } from '@/shared/types/scholarship-value';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 export type SharedScholarshipValueSummaryProps = {
   model: ScholarshipValueViewModel;
@@ -111,16 +112,16 @@ export function SharedScholarshipValueSummary({
             {model.evidence.map((evidence, index) => (
               <li key={`${evidence.sourceField}-${index}`}>
                 {evidence.excerpt}
-                {evidence.sourceUrl ? (
-                  <a className="ml-gb-xs text-brand underline" href={evidence.sourceUrl} target="_blank" rel="noreferrer noopener">
+                {canonicalizeExternalUrl(evidence.sourceUrl) ? (
+                  <a className="ml-gb-xs text-brand underline" href={canonicalizeExternalUrl(evidence.sourceUrl)!} target="_blank" rel="noreferrer noopener">
                     {t('Source')}
                   </a>
                 ) : null}
               </li>
             ))}
           </ul>
-          {model.sourceUrl ? (
-            <a className="mt-gb-sm inline-flex text-brand underline" href={model.sourceUrl} target="_blank" rel="noreferrer noopener">
+          {canonicalizeExternalUrl(model.sourceUrl) ? (
+            <a className="mt-gb-sm inline-flex text-brand underline" href={canonicalizeExternalUrl(model.sourceUrl)!} target="_blank" rel="noreferrer noopener">
               {t('Official scholarship source')}
             </a>
           ) : null}

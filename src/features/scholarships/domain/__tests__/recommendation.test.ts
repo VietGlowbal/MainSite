@@ -369,15 +369,15 @@ describe('GlowBal recommendation', () => {
     expect(ranked.map((entry) => entry.result.rank)).toEqual([1, 2]);
   });
 
-  it('does not compare currencies without an explicit common target', () => {
+  it('uses the explicit canonical target and does not compare raw GBP numerically', () => {
     const results = recommendScholarships([
       candidate(1, { value: value(100, 'EXACT', 'high', 'USD') }),
       candidate(2, { value: value(100, 'EXACT', 'high', 'GBP') }),
     ]);
 
-    expect(resultFor(results, 1).reasonData.comparableValueScore).toBeNull();
+    expect(resultFor(results, 1).reasonData.comparableValueScore).toBe(1);
     expect(resultFor(results, 2).reasonData.comparableValueScore).toBeNull();
-    expect(resultFor(results, 1).reasonCodes).toContain('no-comparable-value');
+    expect(resultFor(results, 2).reasonCodes).toContain('no-comparable-value');
   });
 
   it('uses an explicit already-converted target currency without defaulting unknown currencies', () => {

@@ -22,6 +22,12 @@ export {
 } from './cost-reference';
 export { createFxReferenceProvider, parseFxReferenceDataset } from './fx-reference';
 export {
+  DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
+  SCHOLARSHIP_COMPARISON_POLICY_VERSION,
+  resolveScholarshipComparisonPolicy,
+  validateScholarshipComparisonPolicy,
+} from './comparison-policy';
+export {
   aggregateFrequentlyPicked,
   DEFAULT_FREQUENTLY_PICKED_POLICY,
   DEFAULT_FREQUENTLY_PICKED_THRESHOLD,
@@ -113,6 +119,29 @@ export type {
   ValuationPolicy,
   ValueStatus,
 } from './valuation';
+export {
+  buildScholarshipValuationContexts,
+  refineScholarshipValuationContext,
+  selectScholarshipValuationContext,
+  SCHOLARSHIP_VALUATION_CONTEXT_VERSION,
+} from './valuation-context';
+export type {
+  ScholarshipValuationContext,
+  ScholarshipValuationProgrammeContext,
+  ScholarshipValuationProvenance,
+  ScholarshipValuationUniversityContext,
+  ScholarshipValuationUniversityInput,
+} from './valuation-context';
+export type {
+  ComparisonPolicyInput,
+  ScholarshipComparisonPolicy,
+} from './comparison-policy';
+export {
+  isSupportedCurrency,
+  normalizeSupportedCurrency,
+  SUPPORTED_CURRENCIES,
+} from './currency';
+export type { SupportedCurrency } from './currency';
 export type {
   ScholarshipValueBreakdownItem,
   ScholarshipValueFormattingInput,

@@ -26,6 +26,9 @@ import {
 import type { BenefitAmount } from '../domain/benefit-types';
 import type { DurationValue } from '../domain/duration';
 import type { ValuationPeriod } from '../domain/valuation';
+import { isSupportedCurrency } from '../domain/currency';
+import { buildScholarshipValuationContexts } from '../domain/valuation-context';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 const PROFILE_SELECT = `
   id, profile_version, nationality, preferred_countries, target_subjects,
@@ -50,7 +53,7 @@ const COURSE_SELECT = `
 `;
 
 const UNIVERSITY_SELECT = `
-  id, name, country, type, tuition_usd, living_cost_usd, housing
+  id, name, country, city, type, tuition_usd, living_cost_usd, housing
 `;
 
 const SCHOLARSHIP_SELECT = `
@@ -60,7 +63,7 @@ const SCHOLARSHIP_SELECT = `
   source_url, source_lang, ranking_note, raw, source_key, updated_at,
   scholarship_universities (
     university_id,
-    universities ( id, name, country )
+    universities ( id, name, country, city )
   )
 `;
 
@@ -204,10 +207,6 @@ function parseDuration(text: string | null): DurationValue | null {
   return { count, unit, rawText: text.trim() };
 }
 
-const KNOWN_CURRENCIES = new Set([
-  'USD', 'GBP', 'EUR', 'AUD', 'NZD', 'CAD', 'CHF', 'VND', 'JPY', 'SGD',
-]);
-
 function tuitionAmount(row: UnknownRecord): BenefitAmount | null {
   const minValue = numberValue(row, 'tuition_fee_min');
   const maxValue = numberValue(row, 'tuition_fee_max');
@@ -222,7 +221,7 @@ function tuitionAmount(row: UnknownRecord): BenefitAmount | null {
     min,
     max,
     currency,
-    currencyStatus: currency && KNOWN_CURRENCIES.has(currency) ? 'known' : 'unknown',
+    currencyStatus: currency && isSupportedCurrency(currency) ? 'known' : 'unknown',
   };
 }
 
@@ -396,7 +395,7 @@ function scholarshipFromRow(row: UnknownRecord): MatchingScholarshipSource | nul
   const id = numberValue(row, 'id');
   const name = stringValue(row, 'name');
   if (id == null || !name) return null;
-  const sourceUrl = stringValue(row, 'source_url');
+  const sourceUrl = canonicalizeExternalUrl(stringValue(row, 'source_url'));
   const fundingType = stringList(row, 'funding_type') ?? [];
   const linkedRows = asRows(row['scholarship_universities']);
   const universityIds = linkedRows
@@ -405,6 +404,21 @@ function scholarshipFromRow(row: UnknownRecord): MatchingScholarshipSource | nul
   const universityCountries = linkedRows
     .map((link) => stringValue(nestedRecord(link, 'universities') ?? {}, 'country'))
     .filter((value): value is string => value !== null);
+  const valuationUniversities = linkedRows
+    .map((link) => {
+      const university = nestedRecord(link, 'universities');
+      const universityId = numberValue(link, 'university_id');
+      if (universityId == null) return null;
+      return {
+        id: universityId,
+        name: stringValue(university ?? {}, 'name'),
+        country: stringValue(university ?? {}, 'country'),
+        city: stringValue(university ?? {}, 'city'),
+        sourceUrl: null,
+        retrievedAt: stringValue(row, 'updated_at'),
+      };
+    })
+    .filter((value): value is NonNullable<typeof value> => value !== null);
   const raw = record(row['raw']) ?? {};
   const rawFields: Record<string, unknown> = {
     ...raw,
@@ -442,6 +456,11 @@ function scholarshipFromRow(row: UnknownRecord): MatchingScholarshipSource | nul
       fundingType,
       sourceUrl,
       raw: rawFields,
+    }),
+    valuationContexts: buildScholarshipValuationContexts({
+      scholarshipId: id,
+      scholarshipCountry: stringValue(row, 'country'),
+      universities: valuationUniversities,
     }),
     source: provenance(
       'scholarship-catalogue',
@@ -553,9 +572,9 @@ export function createSupabaseScholarshipMatchingContextRepository(
 
     readSavedUniversities: (userId) => readMany(
       'user_universities',
-      supabase
+        supabase
         .from('user_universities')
-        .select('id, university_id, status, added_at, updated_at, universities(id, name, country, type, tuition_usd, living_cost_usd, housing)')
+        .select('id, university_id, status, added_at, updated_at, universities(id, name, country, city, type, tuition_usd, living_cost_usd, housing)')
         .eq('user_id', userId)
         .order('added_at', { ascending: true })
         .order('id', { ascending: true }),

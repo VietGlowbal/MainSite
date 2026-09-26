@@ -107,6 +107,21 @@ passed with expected missing-Supabase/fetch warnings during static generation.
 E2E remains blocked by the unavailable Supabase environment. `git diff --check`
 passed. T2B production cost/FX coverage remains intentionally incomplete; no
 values were fabricated, and no schema or migration change was made.
+Working tree 2026-09-27 (Scholarship Personalization second-review hardening):
+under Node 24.19.0, the scoped fixes now use candidate-owned valuation
+contexts for public and private paths, an explicit versioned comparison
+currency policy, shared external-URL validation, and localized AI-only
+scholarship disclaimers. Focused scholarship/UI tests passed 29 files / 190
+tests; base and strict typechecks passed; ESLint passed with 0 errors and 9
+existing warnings; the i18n checker reported 0 missing static keys and 0
+placeholder mismatches. The direct default-timeout `npm test` run had 2
+full-suite timeout failures, but both files passed in isolation; the CI-style
+`test:ci` gate passed all 436 files / 4,081 tests with 2 todos on the final
+`verify:pr` rerun. Production build and `verify:pr` passed, with expected
+unavailable-Supabase/fetch warnings during static generation. E2E was not rerun
+in this fix pass and remains environment-blocked. `git diff --check` passed.
+T2B production cost/FX coverage remains intentionally incomplete; no values
+were fabricated, and no schema or migration change was made.
 
 Working tree 2026-09-25 (Scholarship Personalization final verification):
 the required Node 24.19.0 runtime was used with the existing npm 10.9.2 CLI.

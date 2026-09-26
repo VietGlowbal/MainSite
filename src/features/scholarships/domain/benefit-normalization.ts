@@ -15,19 +15,8 @@ import {
   type ScholarshipBenefitClassification,
   type ScholarshipBenefitNormalizationInput,
 } from './benefit-types';
-
-const KNOWN_CURRENCIES = new Set([
-  'USD',
-  'GBP',
-  'EUR',
-  'AUD',
-  'NZD',
-  'CAD',
-  'CHF',
-  'VND',
-  'JPY',
-  'SGD',
-]);
+import { isSupportedCurrency } from './currency';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   '$': 'USD',
@@ -68,7 +57,7 @@ function canonicalInput(input: ScholarshipBenefitNormalizationInput): CanonicalI
     amountMax: firstDefined(input.amountMax, input.amount_max),
     amountCurrency: firstDefined(input.amountCurrency, input.amount_currency),
     fundingType: [...(input.fundingType ?? input.funding_type ?? [])],
-    sourceUrl: firstDefined(input.sourceUrl, input.source_url),
+    sourceUrl: canonicalizeExternalUrl(firstDefined(input.sourceUrl, input.source_url)),
     fields: { ...(input.raw ?? {}) },
   };
 }
@@ -94,7 +83,7 @@ function parseCurrency(value: string | null | undefined): ParsedCurrency {
   const code = trimmed.toUpperCase();
   return {
     currency: code,
-    currencyStatus: KNOWN_CURRENCIES.has(code) ? 'known' : 'unknown',
+    currencyStatus: isSupportedCurrency(code) ? 'known' : 'unknown',
   };
 }
 

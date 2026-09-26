@@ -1,5 +1,10 @@
 import type { BenefitConfidence } from './benefit-types';
 import type { ValueStatus } from './valuation';
+import {
+  DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
+  resolveScholarshipComparisonPolicy,
+  type ScholarshipComparisonPolicy,
+} from './comparison-policy';
 
 /**
  * Versioned configuration for the canonical GlowBal recommendation pass.
@@ -19,7 +24,9 @@ export type RecommendationPolicyWeights = {
 export type RecommendationPolicy = {
   version: string;
   topK: number;
-  /** Optional target for already-converted T2A comparable values. */
+  /** Shared explicit target for already-converted T2A comparable values. */
+  comparisonPolicy: ScholarshipComparisonPolicy;
+  /** Compatibility input for existing policy callers. */
   comparisonCurrency?: string | null;
   weights: Readonly<RecommendationPolicyWeights>;
   /** Quality multiplier applied to a comparable value before weighting it. */
@@ -33,6 +40,7 @@ export type RecommendationPolicy = {
 export const DEFAULT_RECOMMENDATION_POLICY: RecommendationPolicy = {
   version: GLOWBAL_RECOMMENDATION_POLICY_VERSION,
   topK: 3,
+  comparisonPolicy: DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
   comparisonCurrency: null,
   weights: {
     fit: 0.55,
@@ -66,6 +74,7 @@ export function validateRecommendationPolicy(
   if (!Number.isInteger(policy.topK) || policy.topK < 0) {
     throw new Error('Recommendation policy topK must be a non-negative integer.');
   }
+  resolveScholarshipComparisonPolicy(policy);
 
   const weights = Object.values(policy.weights);
   if (weights.some((weight) => !Number.isFinite(weight) || weight < 0)) {

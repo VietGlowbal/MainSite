@@ -174,6 +174,16 @@ describe('normalizeScholarshipBenefits', () => {
     expect(result.components[0]!.amount?.currency).not.toBe('USD');
   });
 
+  it('removes unsafe source URLs from the UI-facing evidence contract', () => {
+    const result = normalizeScholarshipBenefits({
+      coverage: '$20,000',
+      sourceUrl: 'javascript:alert(1)',
+    });
+
+    expect(result.raw.sourceUrl).toBeNull();
+    expect(result.components[0]?.evidence[0]?.sourceUrl).toBeNull();
+  });
+
   it('uses existing numeric fields conservatively and preserves raw evidence', () => {
     const result = normalizeScholarshipBenefits({
       coverage: 'full tuition',

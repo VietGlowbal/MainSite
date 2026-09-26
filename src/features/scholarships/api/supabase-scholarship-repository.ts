@@ -19,9 +19,13 @@ import {
 } from '../domain/ranking';
 import { PERSONAL_FIT_POLICY_VERSION } from '../domain/personal-fit-policy';
 import { SCHOLARSHIP_VALUE_SORT_VERSION } from '../domain/value-sort';
-import { calculateScholarshipValue } from '../domain/valuation';
+import { DEFAULT_SCHOLARSHIP_COMPARISON_POLICY } from '../domain/comparison-policy';
 import { normalizeScholarshipBenefits } from '../domain/benefit-normalization';
-import { FILE_COST_REFERENCE_DATASET, FILE_FX_REFERENCE_DATASET } from './file-reference-providers';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
+import {
+  calculateCandidateScholarshipValue,
+  CANDIDATE_VALUATION_CACHE_VERSIONS,
+} from './candidate-valuation';
 import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
 import {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
@@ -169,21 +173,17 @@ function discoveryKeyword(value: string): string {
     .slice(0, 100);
 }
 
-function catalogueValue(scholarship: DirectoryScholarship) {
-  const benefits = scholarship.benefits?.components ?? [];
-  const currencies = new Set(
-    benefits
-      .map((component) => component.amount)
-      .filter((amount) => amount?.currencyStatus === 'known' && amount.currency !== null)
-      .map((amount) => amount!.currency!.toUpperCase()),
+function catalogueValue(scholarship: DirectoryScholarship, asOf: string) {
+  return calculateCandidateScholarshipValue(
+    {
+      id: scholarship.id,
+      country: scholarship.country,
+      benefits: scholarship.benefits?.components ?? [],
+      valuationContexts: scholarship.valuationContexts,
+    },
+    null,
+    { asOf },
   );
-  const comparableCurrency = currencies.size === 1 ? [...currencies][0]! : undefined;
-  return calculateScholarshipValue({
-    benefits,
-    ...(comparableCurrency === undefined
-      ? {}
-      : { policy: { comparableCurrency } }),
-  });
 }
 
 type PublishedCandidates = {
@@ -307,8 +307,7 @@ const listPublishedCandidatesCached: (
       SCHOLARSHIP_VALUE_SORT_VERSION,
       PERSONAL_FIT_POLICY_VERSION,
       SCHOLARSHIP_QUERY_VERSION,
-      FILE_COST_REFERENCE_DATASET.version,
-      FILE_FX_REFERENCE_DATASET.version,
+      ...CANDIDATE_VALUATION_CACHE_VERSIONS,
     ],
     { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
   );
@@ -320,13 +319,14 @@ async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<
     SCHOLARSHIP_PAGE_SIZE_MAX,
     SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   );
+  const asOf = new Date().toISOString().slice(0, 10);
   const { items, total } = await listPublishedCandidatesCached(query);
   const ranked = rankScholarships(
     items.map((item) => ({
       id: item.id,
       name: item.name,
       deadline: item.deadline_date,
-      value: catalogueValue(item),
+      value: catalogueValue(item, asOf),
       // User-specific T3/T4/T5 projections are injected by the private
       // ranking adapter. The public catalogue never invents eligibility or
       // fit, so relevance falls back to deterministic catalogue order here.
@@ -335,7 +335,7 @@ async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<
       item,
     })),
     query.sort ?? 'relevance',
-    { version: SCHOLARSHIP_RANKING_VERSION },
+    { version: SCHOLARSHIP_RANKING_VERSION, comparisonPolicy: DEFAULT_SCHOLARSHIP_COMPARISON_POLICY },
   ).map((candidate) => candidate.item);
 
   const start = pageOffset(page, pageSize);
@@ -357,8 +357,7 @@ const listPublishedCached = unstable_cache(
     SCHOLARSHIP_VALUE_SORT_VERSION,
     PERSONAL_FIT_POLICY_VERSION,
     SCHOLARSHIP_QUERY_VERSION,
-    FILE_COST_REFERENCE_DATASET.version,
-    FILE_FX_REFERENCE_DATASET.version,
+    ...CANDIDATE_VALUATION_CACHE_VERSIONS,
   ],
   { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
 );
@@ -567,14 +566,14 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
         insight: s.insight,
         appliesToText: s.applies_to_text,
         deadlineLabel: formatDeadline(s.deadline_date, s.deadline_text),
-        sourceUrl: s.source_url,
+        sourceUrl: canonicalizeExternalUrl(s.source_url),
         benefits: normalizeScholarshipBenefits({
           coverage: s.coverage,
           amount_min: s.amount_min,
           amount_max: s.amount_max,
           amount_currency: s.amount_currency,
           funding_type: s.funding_type ?? [],
-          source_url: s.source_url,
+          source_url: canonicalizeExternalUrl(s.source_url),
         }),
       };
 
@@ -628,7 +627,7 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
         scope: row.scope,
         amountLabel: formatAmount(row.amount_min, row.amount_max, row.amount_currency),
         deadlineLabel: formatDeadline(row.deadline_date, row.deadline_text),
-        sourceUrl: row.source_url,
+        sourceUrl: canonicalizeExternalUrl(row.source_url),
       });
     }
     return out;

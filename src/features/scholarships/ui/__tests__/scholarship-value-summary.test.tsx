@@ -28,6 +28,19 @@ describe('ScholarshipValueSummary', () => {
     expect(screen.getByText('Value unavailable')).toBeInTheDocument();
   });
 
+  it('does not render an unsafe evidence URL as an anchor', () => {
+    const benefits = normalizeScholarshipBenefits({
+      coverage: '$5,000',
+      sourceUrl: 'javascript:alert(1)',
+    });
+    const value = calculateDisplayScholarshipValue(benefits);
+
+    render(<ScholarshipValueSummary benefits={benefits} value={value} showEvidence />);
+
+    expect(screen.queryByRole('link', { name: 'Source' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Official scholarship source' })).not.toBeInTheDocument();
+  });
+
   it('localizes shared value labels through the scholarship catalogue', () => {
     const benefits = normalizeScholarshipBenefits({ coverage: '50% tuition' });
     const model = createScholarshipValueViewModel(

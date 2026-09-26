@@ -120,7 +120,7 @@ function context(
   },
 ): ScholarshipMatchingContext {
   return {
-    contextVersion: 'scholarship-matching-context-v1',
+    contextVersion: 'scholarship-matching-context-v2',
     cache: { scope: 'user', key: 'cache', userId: currentStudent.userId, profileVersion: currentStudent.profileVersion },
     student: currentStudent,
     academicEvidence,

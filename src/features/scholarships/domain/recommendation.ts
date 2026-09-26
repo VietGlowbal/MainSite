@@ -13,6 +13,7 @@ import {
   type RecommendationWarning,
 } from './recommendation-reasons';
 import type { ScholarshipValueResult, ValueStatus } from './valuation';
+import { resolveScholarshipComparisonPolicy } from './comparison-policy';
 
 export type RecommendationEligibility = Pick<
   ScholarshipEligibilityResult,
@@ -101,17 +102,9 @@ function normalizedCurrency(value: string | null | undefined): string | null {
 }
 
 function comparableCurrency(
-  candidates: readonly ScholarshipRecommendationCandidate[],
   policy: RecommendationPolicy,
-): string | null {
-  const explicit = normalizedCurrency(policy.comparisonCurrency);
-  if (explicit) return explicit;
-  const values = candidates
-    .filter((candidate) => candidate.eligibility?.status === 'ELIGIBLE')
-    .map((candidate) => normalizedCurrency(candidate.value?.comparableTotalValue?.currency))
-    .filter((currency): currency is string => currency !== null);
-  const uniqueCurrencies = [...new Set(values)];
-  return uniqueCurrencies.length === 1 ? uniqueCurrencies[0]! : null;
+): string {
+  return resolveScholarshipComparisonPolicy(policy).currency;
 }
 
 function evidenceConfidence(
@@ -335,7 +328,7 @@ export function recommendScholarships<T>(
     candidate.eligibility?.scholarshipId === candidate.id
     && candidate.eligibility.status === 'ELIGIBLE',
   );
-  const currency = comparableCurrency(eligibleValues, policy);
+  const currency = comparableCurrency(policy);
   const scored = candidates.map((candidate) =>
     scoreCandidate(candidate, eligibleValues, currency, policy),
   );

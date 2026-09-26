@@ -22,6 +22,7 @@ import type {
 import { ScholarshipBadges, ScholarshipValueSummary } from '@/features/scholarships/ui';
 import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarship-constants';
 import { TID, testId } from '@/shared/lib/testids';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
@@ -650,9 +651,9 @@ function ScholarshipDetail({
         ) : null}
       </div>
 
-      {option.sourceUrl ? (
+      {canonicalizeExternalUrl(option.sourceUrl) ? (
         <Link
-          href={option.sourceUrl}
+          href={canonicalizeExternalUrl(option.sourceUrl)!}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover"

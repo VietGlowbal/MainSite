@@ -16,6 +16,7 @@ import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
 import { Modal } from '@/shared/ui/modal';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 /**
  * The scholarship drawer on an application row — /apply, "My application".
@@ -199,9 +200,9 @@ function VoucherCard({
       </div>
 
       <div className="flex shrink-0 items-center gap-gb-lg sm:pl-gb-lg">
-        {scholarship.sourceUrl ? (
+        {canonicalizeExternalUrl(scholarship.sourceUrl) ? (
           <a
-            href={scholarship.sourceUrl}
+            href={canonicalizeExternalUrl(scholarship.sourceUrl)!}
             target="_blank"
             rel="noreferrer noopener"
             className="flex items-center gap-gb-xs rounded-gb-sm text-gb-xs font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
@@ -363,13 +364,13 @@ function ScholarshipChoiceDialog({
                       ) : (
                         <span />
                       )}
-                      {option.sourceUrl ? (
+                      {canonicalizeExternalUrl(option.sourceUrl) ? (
                         /* An <a> inside a <label> is activated by clicking the
                            label, which would tick the box on the way to a new
                            tab. `stopPropagation` keeps the two apart — the same
                            trap the saved list's "See details" button documents. */
                         <a
-                          href={option.sourceUrl}
+                          href={canonicalizeExternalUrl(option.sourceUrl)!}
                           target="_blank"
                           rel="noreferrer noopener"
                           onClick={(event) => event.stopPropagation()}

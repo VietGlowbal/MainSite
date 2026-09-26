@@ -16,6 +16,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { ScholarshipScope, ScholarshipStatus } from '@/lib/types';
 import { normalizeScholarshipBenefits } from '@/features/scholarships/domain/benefit-normalization';
 import type { NormalizedScholarshipBenefits } from '@/features/scholarships/domain/benefit-types';
+import {
+  buildScholarshipValuationContexts,
+  type ScholarshipValuationContext,
+} from '@/features/scholarships/domain/valuation-context';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 export const SCHOLARSHIPS_REVALIDATE = 43200; // 12h — matches the universities page
 
@@ -24,6 +29,7 @@ export type ScholarshipUniversityLite = {
   id: number;
   name: string;
   country: string | null;
+  city?: string | null;
   logo_url: string | null;
 };
 
@@ -56,6 +62,8 @@ export type DirectoryScholarship = {
   universities: ScholarshipUniversityLite[];
   universityIds: number[];
   universityCountries: string[];
+  /** Public candidate-owned valuation contexts; never user-selected context. */
+  valuationContexts?: readonly ScholarshipValuationContext[] | undefined;
   // Computed display helpers:
   amountLabel: string | null;
   deadlineLabel: string | null;
@@ -165,12 +173,24 @@ export function toDirectoryScholarship(row: ScholarshipRow): DirectoryScholarshi
     insight: row.insight,
     deadline_date: row.deadline_date,
     deadline_text: row.deadline_text,
-    source_url: row.source_url,
+    source_url: canonicalizeExternalUrl(row.source_url),
     source_lang: row.source_lang,
     ranking_note: row.ranking_note,
     universities,
     universityIds: joins.map((j) => j.university_id),
     universityCountries,
+    valuationContexts: buildScholarshipValuationContexts({
+      scholarshipId: row.id,
+      scholarshipCountry: row.country,
+      universities: joins.map((join) => ({
+        id: join.university_id,
+        name: join.universities?.name ?? null,
+        country: join.universities?.country ?? null,
+        city: join.universities?.city ?? null,
+        sourceUrl: null,
+        retrievedAt: null,
+      })),
+    }),
     amountLabel: formatAmount(row.amount_min, row.amount_max, row.amount_currency),
     deadlineLabel: formatDeadline(row.deadline_date, row.deadline_text),
     deadlineSortValue: row.deadline_date ? (Date.parse(row.deadline_date) || Infinity) : Infinity,
@@ -180,7 +200,7 @@ export function toDirectoryScholarship(row: ScholarshipRow): DirectoryScholarshi
       amount_max: row.amount_max,
       amount_currency: row.amount_currency,
       funding_type: row.funding_type ?? [],
-      source_url: row.source_url,
+      source_url: canonicalizeExternalUrl(row.source_url),
     }),
   };
 }
@@ -195,7 +215,7 @@ export const SCHOLARSHIPS_SELECT = `id, name, slug, scope, country, provider, fu
    deadline_date, deadline_text, source_url, source_lang, ranking_note, status,
    scholarship_universities (
      university_id, match_score, confirmed,
-     universities ( id, name, country, logo_url )
+     universities ( id, name, country, city, logo_url )
    )`;
 
 const getPublishedScholarshipsCached = unstable_cache(
