@@ -61,4 +61,29 @@ describe('SavedListSection', () => {
 
     expect(screen.getByText('Chevening Scholarship')).toBeInTheDocument();
   });
+
+  it.each(['https://example.edu/courses/law', 'http://example.edu/courses/law'])('renders a valid programme URL as a safe link: %s', (programUrl) => {
+    render(
+      <SavedListSection rows={[row({ programUrl })]} onPlan={vi.fn()} onGoToApplications={vi.fn()} isPlus />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Course page' })).toHaveAttribute('href', programUrl);
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    'blob:https://example.edu/id',
+    'course/law',
+    'https://example.edu/course page',
+  ])('does not render an unsafe persisted programme URL as an anchor: %s', (programUrl) => {
+    render(
+      <SavedListSection rows={[row({ programUrl })]} onPlan={vi.fn()} onGoToApplications={vi.fn()} isPlus />,
+    );
+
+    expect(screen.queryByRole('link', { name: 'Course page' })).not.toBeInTheDocument();
+    expect(screen.getByText('No link available')).toBeInTheDocument();
+  });
 });

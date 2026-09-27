@@ -278,7 +278,9 @@ function TuitionBadges({ row }: { row: SavedRow }) {
  * subject into an empty slot would be inventing the student's own answer.
  */
 function ProgramRow({ row }: { row: SavedRow }) {
+  const { t } = useLanguage();
   const href = `/my-universities/program?u=${row.universityId}`;
+  const programUrl = canonicalizeExternalUrl(row.programUrl);
 
   return (
     <div className="flex flex-wrap items-center gap-gb-lg">
@@ -292,16 +294,18 @@ function ProgramRow({ row }: { row: SavedRow }) {
       ) : (
         <span className="text-gb-md text-fg-tertiary">No subject chosen yet</span>
       )}
-      {row.programUrl ? (
+      {programUrl ? (
         <a
-          href={row.programUrl}
+          href={programUrl}
           target="_blank"
           rel="noreferrer noopener"
           className="flex items-center gap-gb-xs text-gb-sm font-semibold text-fg-tertiary hover:text-fg"
         >
-          Course page
+          {t('Course page')}
           <KitIcon art={ICONS.arrowUpRight} frame={16} />
         </a>
+      ) : row.programUrl ? (
+        <span className="text-gb-sm text-fg-muted">{t('No link available')}</span>
       ) : null}
       <Link
         href={href}

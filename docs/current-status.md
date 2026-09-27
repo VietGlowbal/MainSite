@@ -140,6 +140,21 @@ Supabase environment is available; the local server repeatedly failed
 Supabase client creation. `git diff --check` passed. T2B production cost/FX
 coverage remains intentionally incomplete; no values were fabricated, and no
 schema or migration change was made.
+Working tree 2026-09-27 (Scholarship Personalization final review fixes):
+the two scoped final review fixes are implemented. An explicitly requested but
+unresolved university now fails closed before programme tuition, duration, or
+cost context can refine valuation; saved programme URLs are sanitized at the
+server mapping boundary and again before rendering. Focused scholarship and
+saved-list tests passed (4 files / 43 tests), base and strict typechecks passed,
+ESLint passed with 0 errors and 9 existing warnings, the i18n checker passed
+with 0 missing static keys and 0 placeholder mismatches, and the production
+build passed with expected missing-Supabase/fetch warnings during static
+generation. The full `npm test` run remains subject to 3 unrelated pre-existing
+CV/API timing and interaction failures; the affected tests pass in isolation.
+`verify:pr` is blocked before its code checks because this workspace has Node
+22.15.0 while `.node-version` requires Node 24.19.0. `git diff --check` passed.
+T2B production cost/FX coverage remains intentionally incomplete; no values
+were fabricated, and no schema or migration change was made.
 
 Working tree 2026-09-25 (Scholarship Personalization final verification):
 the required Node 24.19.0 runtime was used with the existing npm 10.9.2 CLI.

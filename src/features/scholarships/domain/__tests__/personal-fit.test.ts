@@ -10,6 +10,7 @@ import type {
   ScholarshipMatchingContext,
   SavedUniversitySource,
 } from '../matching-context';
+import { SCHOLARSHIP_MATCHING_CONTEXT_VERSION } from '../matching-context';
 import {
   evaluateScholarshipEligibility,
   type ScholarshipEligibilityResult,
@@ -211,7 +212,7 @@ function context(
 ): ScholarshipMatchingContext {
   const currentScholarship = scholarship(scholarshipOverrides);
   return {
-    contextVersion: 'scholarship-matching-context-v2',
+    contextVersion: SCHOLARSHIP_MATCHING_CONTEXT_VERSION,
     cache: {
       scope: 'user',
       key: 'user-fit-test',

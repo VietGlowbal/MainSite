@@ -13,7 +13,7 @@ import {
 } from './valuation-context';
 
 /** Bump when the shape or meaning of the canonical matching context changes. */
-export const SCHOLARSHIP_MATCHING_CONTEXT_VERSION = 'scholarship-matching-context-v2';
+export const SCHOLARSHIP_MATCHING_CONTEXT_VERSION = 'scholarship-matching-context-v3';
 
 export type MatchingSourceKind =
   | 'student-profile'
@@ -433,7 +433,17 @@ function selectedUniversity(
 function coherentProgrammeUniversitySelection(
   programme: MatchingProgrammeContext | null,
   university: MatchingUniversityContext | null,
+  requestedUniversityId: number | null,
 ): boolean {
+  if (!programme) return true;
+
+  // An explicit university selection is a verification boundary. A missing
+  // resolved row is not the same thing as no selection: without the row we
+  // cannot safely apply programme tuition, duration, or cost context.
+  if (requestedUniversityId != null) {
+    return university?.id === requestedUniversityId && programme.universityId === requestedUniversityId;
+  }
+
   return programme?.universityId == null || university?.id == null || programme.universityId === university.id;
 }
 
@@ -485,14 +495,16 @@ function diagnosticForSelection(
     diagnostics.push({
       source: 'university',
       status: 'invalid-selection',
-      message: 'The requested university was not found in the available catalogue.',
+      message: 'The requested university could not be resolved from the available catalogue.',
     });
   }
   if (!selectionIsCoherent) {
     diagnostics.push({
       source: 'context-loader',
       status: 'invalid-selection',
-      message: 'The selected programme and university do not refer to the same university.',
+      message: request.selectedUniversityId != null && !university
+        ? 'The selected programme was not used because the requested university could not be resolved.'
+        : 'The selected programme and university do not refer to the same university.',
     });
   }
   return diagnostics;
@@ -538,6 +550,7 @@ export function buildScholarshipMatchingContext(
   const selectionIsCoherent = coherentProgrammeUniversitySelection(
     selectedProgrammeContext,
     selectedUniversityContext,
+    request.selectedUniversityId ?? null,
   );
   // Keep the invalid selection visible through diagnostics, but do not pass
   // an incoherent programme into valuation or downstream personalization.

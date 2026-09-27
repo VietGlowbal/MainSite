@@ -5,6 +5,7 @@ import type {
   MatchingStudentContext,
   ScholarshipMatchingContext,
 } from '../matching-context';
+import { SCHOLARSHIP_MATCHING_CONTEXT_VERSION } from '../matching-context';
 import {
   evaluateScholarshipEligibility,
   matchScholarshipDirectoryFilters,
@@ -120,7 +121,7 @@ function context(
   },
 ): ScholarshipMatchingContext {
   return {
-    contextVersion: 'scholarship-matching-context-v2',
+    contextVersion: SCHOLARSHIP_MATCHING_CONTEXT_VERSION,
     cache: { scope: 'user', key: 'cache', userId: currentStudent.userId, profileVersion: currentStudent.profileVersion },
     student: currentStudent,
     academicEvidence,

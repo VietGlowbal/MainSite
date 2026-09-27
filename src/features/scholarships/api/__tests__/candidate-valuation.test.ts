@@ -6,6 +6,7 @@ import { buildScholarshipValuationContexts } from '../../domain/valuation-contex
 import {
   calculateCandidateScholarshipValue,
   scholarshipValuationCacheKey,
+  valuationRefinementFromMatchingSelection,
 } from '../candidate-valuation';
 
 const evidence = {
@@ -253,6 +254,48 @@ describe('candidate valuation adapter', () => {
       }),
     }));
     expect(result.duration).toMatchObject({ count: 3, unit: 'year' });
+  });
+
+  it('preserves candidate valuation facts when matching rejects an unresolved university selection', () => {
+    const costProvider = provider((context) => ({
+      record: null,
+      source: context.programmeKey === 'candidate-programme' ? source() : null,
+      level: context.programmeKey === 'candidate-programme' ? 'programme' : null,
+      attempts: [],
+    }));
+    const [candidateContext] = buildScholarshipValuationContexts({
+      scholarshipId: 81,
+      scholarshipCountry: 'United Kingdom',
+      universities: [{ id: 20, name: 'University B', country: 'United Kingdom', city: 'Oxford' }],
+    });
+    const candidate = {
+      id: 81,
+      country: 'United Kingdom',
+      benefits: [livingBenefit()],
+      valuationContexts: [{
+        ...candidateContext!,
+        duration: { count: 3, unit: 'year' as const },
+        programmeKey: 'candidate-programme',
+        tuitionReferenceKey: 'candidate-tuition',
+      }],
+    };
+
+    const result = calculateCandidateScholarshipValue(
+      candidate,
+      valuationRefinementFromMatchingSelection({ programme: null, university: null }),
+      { asOf: '2026-09-24', costProvider },
+    );
+
+    expect(result.duration).toMatchObject({ count: 3, unit: 'year' });
+    expect(costProvider.resolve).toHaveBeenCalledWith(expect.objectContaining({
+      context: {
+        programmeKey: 'candidate-programme',
+        universityKey: '20',
+        cityKey: 'Oxford',
+        countryKey: 'United Kingdom',
+        globalKey: 'global',
+      },
+    }));
   });
 
   it('converts candidate values into the explicit comparison currency', () => {

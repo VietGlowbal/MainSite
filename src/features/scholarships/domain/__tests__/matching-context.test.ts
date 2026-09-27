@@ -5,8 +5,10 @@ import {
   scholarshipMatchingContextCacheKey,
   SCHOLARSHIP_MATCHING_CONTEXT_VERSION,
   type MatchingContextSources,
+  type MatchingProgrammeSource,
   type MatchingProfileSource,
   type MatchingProvenance,
+  type MatchingUniversitySource,
 } from '../matching-context';
 
 const source = (sourceKind: MatchingProvenance['sourceKind'], recordId: string | null): MatchingProvenance => ({
@@ -109,6 +111,41 @@ function emptySources(overrides: Partial<MatchingContextSources> = {}): Matching
     universities: read([]),
     scholarships: read([]),
     ...overrides,
+  };
+}
+
+function selectedProgramme(universityId: number | null): MatchingProgrammeSource {
+  return {
+    id: 'programme-selection',
+    universityId,
+    universityName: universityId == null ? null : `University ${universityId}`,
+    name: 'Selected Course',
+    degreeLevel: 'undergraduate',
+    subject: 'Computing',
+    studyMode: 'full-time',
+    intake: 'autumn-2027',
+    country: 'United Kingdom',
+    city: 'London',
+    durationText: '3 years',
+    duration: { count: 3, unit: 'year' },
+    tuitionText: '£20,000/year',
+    tuitionAmount: { min: 20_000, max: null, currency: 'GBP', currencyStatus: 'known' },
+    tuitionPeriod: 'annual',
+    source: source('programme', 'programme-selection'),
+  };
+}
+
+function selectedUniversity(id: number): MatchingUniversitySource {
+  return {
+    id,
+    name: `University ${id}`,
+    country: 'United Kingdom',
+    city: 'London',
+    type: null,
+    tuitionText: null,
+    livingCostText: null,
+    housingText: null,
+    source: source('university', String(id)),
   };
 }
 
@@ -365,6 +402,100 @@ describe('canonical scholarship matching context', () => {
         message: expect.stringContaining('do not refer to the same university'),
       }),
     ]));
+  });
+
+  it('preserves a valid programme when no university was explicitly requested', () => {
+    const context = buildScholarshipMatchingContext(
+      {
+        userId: 'user-no-explicit-university',
+        selectedProgrammeId: 'programme-selection',
+      },
+      emptySources({
+        programmes: read([selectedProgramme(20)]),
+        universities: read([selectedUniversity(20)]),
+      }),
+    );
+
+    expect(context.selection.programme?.id).toBe('programme-selection');
+    expect(context.selection.university?.id).toBe(20);
+  });
+
+  it.each([
+    { label: 'different university', programmeUniversityId: 10 },
+    { label: 'same university', programmeUniversityId: 20 },
+  ])('rejects a programme when explicit university 20 is unresolved ($label)', ({ programmeUniversityId }) => {
+    const context = buildScholarshipMatchingContext(
+      {
+        userId: `user-unresolved-${programmeUniversityId}`,
+        selectedProgrammeId: 'programme-selection',
+        selectedUniversityId: 20,
+      },
+      emptySources({
+        programmes: read([selectedProgramme(programmeUniversityId)]),
+        universities: read([]),
+      }),
+    );
+
+    expect(context.selection.programme).toBeNull();
+    expect(context.selection.university).toBeNull();
+    expect(context.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        source: 'university',
+        status: 'invalid-selection',
+        message: expect.stringContaining('could not be resolved'),
+      }),
+      expect.objectContaining({
+        source: 'context-loader',
+        status: 'invalid-selection',
+        message: expect.stringContaining('programme was not used'),
+      }),
+    ]));
+  });
+
+  it('rejects a programme from a different university when the explicit university resolves', () => {
+    const context = buildScholarshipMatchingContext(
+      {
+        userId: 'user-resolved-mismatch',
+        selectedProgrammeId: 'programme-selection',
+        selectedUniversityId: 20,
+      },
+      emptySources({
+        programmes: read([selectedProgramme(10)]),
+        universities: read([selectedUniversity(20)]),
+      }),
+    );
+
+    expect(context.selection.programme).toBeNull();
+    expect(context.selection.university?.id).toBe(20);
+    expect(context.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        source: 'context-loader',
+        status: 'invalid-selection',
+        message: expect.stringContaining('do not refer to the same university'),
+      }),
+    ]));
+  });
+
+  it('accepts a programme when the explicit university resolves and agrees', () => {
+    const context = buildScholarshipMatchingContext(
+      {
+        userId: 'user-resolved-match',
+        selectedProgrammeId: 'programme-selection',
+        selectedUniversityId: 20,
+      },
+      emptySources({
+        programmes: read([selectedProgramme(20)]),
+        universities: read([selectedUniversity(20)]),
+      }),
+    );
+
+    expect(context.selection.programme).toMatchObject({
+      id: 'programme-selection',
+      universityId: 20,
+      duration: { count: 3, unit: 'year' },
+      tuitionAmount: { min: 20_000, currency: 'GBP' },
+    });
+    expect(context.selection.university?.id).toBe(20);
   });
 
   it('keeps user cache identities isolated and versioned', () => {

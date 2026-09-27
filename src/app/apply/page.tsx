@@ -16,6 +16,7 @@ import { formatAmount } from '@/lib/scholarships-data';
 import { createClient } from '@/lib/supabase/server';
 import { getServerIdentity } from '@/server/auth/server-identity';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import type { CourseApplication } from '@/lib/apply-types';
 import type {
   ApplicationScholarship,
@@ -673,7 +674,9 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
         tuition: formatTuitionForCard(uni.tuition_usd),
         tuitionRaw: uni.tuition_usd ?? null,
         program: row.program ?? null,
-        programUrl: row.program_url ?? null,
+        // Persisted rows may predate the write-time URL validator. Do not pass
+        // an unsafe value into the client component's URL-bearing contract.
+        programUrl: canonicalizeExternalUrl(row.program_url),
         attached,
         options,
       },

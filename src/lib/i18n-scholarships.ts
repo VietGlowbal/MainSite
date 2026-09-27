@@ -34,6 +34,8 @@ export const SCHOLARSHIP_TRANSLATIONS: Record<string, string> = {
   'The requested application was not found for this user.': 'Không tìm thấy hồ sơ đăng ký được yêu cầu của người dùng này.',
   'The requested programme was not found in the available catalogue.': 'Không tìm thấy chương trình được yêu cầu trong danh mục hiện có.',
   'The requested university was not found in the available catalogue.': 'Không tìm thấy trường được yêu cầu trong danh mục hiện có.',
+  'The requested university could not be resolved from the available catalogue.': 'Không thể xác định trường đại học được yêu cầu từ danh mục hiện có.',
+  'The selected programme was not used because the requested university could not be resolved.': 'Chương trình đã chọn không được sử dụng vì không thể xác định trường đại học được yêu cầu.',
   'This candidate scored positively but fell outside the configured recommendation top-K.': 'Ứng viên này có điểm tích cực nhưng nằm ngoài top-K đề xuất đã cấu hình.',
   unknown: 'không xác định',
   'GlowBal Recommend': 'GlowBal đề xuất',
