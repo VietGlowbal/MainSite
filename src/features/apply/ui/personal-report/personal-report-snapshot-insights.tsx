@@ -2,11 +2,12 @@
 
 import { useT } from '@/lib/i18n';
 import type { PersonalReportV2 } from '../../domain';
-import type {
-  CapabilityRating,
-  FuturePathway,
-  GrowthPriority,
-  PersonalCanvasDetails,
+import {
+  APPLICANT_IMPACT_METRIC_KEYS,
+  type CapabilityRating,
+  type FuturePathway,
+  type GrowthPriority,
+  type PersonalCanvasDetails,
 } from '../../domain/personal-canvas-details';
 import { Badge, HorizontalBarChart, RadarChart } from '@/shared/ui';
 import {
@@ -18,14 +19,6 @@ import {
 } from './personal-report-insights';
 
 type ReportWithCanvasDetails = PersonalReportV2 & { canvasDetails?: PersonalCanvasDetails };
-
-const APPLICANT_IMPACT_METRIC_KEYS = new Set([
-  'recordedOutcomes',
-  'quantifiedOutcomes',
-  'teamMembersLed',
-  'communityReach',
-  'yearsOfCommitment',
-]);
 
 function detailsFor(report: PersonalReportV2): PersonalCanvasDetails | undefined {
   return (report as ReportWithCanvasDetails).canvasDetails;

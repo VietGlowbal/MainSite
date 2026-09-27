@@ -7,9 +7,22 @@ import {
   synthesisInputFromReport,
   synthesizePersonalReportNarrative,
 } from './personal-report-narrative-synthesis';
+import { getReportPrompt } from './runtime/prompt-registry';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('Personal Report synthesis prompt', () => {
+  it('keeps reference style profile-neutral and complete for sparse profiles', () => {
+    const prompt = getReportPrompt('report_narrative_synthesis');
+
+    expect(prompt.version).toBe('report-synthesis-v19-profile-neutral-complete-framework');
+    expect(prompt.systemPrompt).toContain('derive the causal arrow chain from the applicant');
+    expect(prompt.systemPrompt).toContain('Do not default every profile to software');
+    expect(prompt.systemPrompt).toContain('include every supplied capability when fewer than four exist');
+    expect(prompt.systemPrompt).toContain('include fewer when evidence is sparse');
+  });
 });
 
 function chatResponse(content: string) {
@@ -572,6 +585,15 @@ describe('synthesisInputFromReport', () => {
 
     expect(input.personalPositioning?.supportingExperienceTitles).toEqual(['Coding club', 'Mentoring project']);
   });
+
+  it('keeps a supplied proof title as the positioning anchor when identity refs are sparse', () => {
+    const base = fullReport();
+    const input = synthesisInputFromReport(fullReport({
+      coreIdentity: { ...base.coreIdentity, evidenceRefs: [] },
+    }), null);
+
+    expect(input.personalPositioning?.supportingExperienceTitles).toEqual(['Coding club']);
+  });
 });
 
 describe('allowedEvidenceIdsFor', () => {
@@ -619,6 +641,7 @@ describe('synthesizePersonalReportNarrative', () => {
 
     expect(result?.narrativeDetails?.coreIdentity?.identityStatement.split(/\s+/)).toHaveLength(80);
     expect(result?.narrativeDetails?.profilePositioning?.positioningOptions[0]?.supportingEvidenceIds).toEqual(['activity-1']);
+    expect(result?.narrativeDetails?.profilePositioning?.experienceConnection.anchorExperience).toBe('Coding club');
   });
 
   it('uses the narrative schema vocabulary for model evidence strength', async () => {
@@ -753,6 +776,29 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     expect(result).toBeNull();
+  });
+
+  it('repairs an omitted available framework section before accepting the batch', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }>; response_format?: unknown };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[]; invalidResponse?: string };
+      const batch = request.requestedSections.includes('provenCapabilities') ? 'b' : 'a';
+      const details = structuredNarrativeDetails(batch) as Record<string, unknown>;
+      if (batch === 'a' && !request.invalidResponse) delete details.coreIdentity;
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      grounding: narrativeGrounding(),
+    });
+
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('keeps valid siblings when a section cites an unknown evidence id', async () => {

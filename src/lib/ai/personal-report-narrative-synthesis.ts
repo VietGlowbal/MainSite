@@ -12,7 +12,10 @@ import type {
   ReflectionFinding,
 } from '@/shared/evaluation';
 import type { EvidenceBank } from '@/shared/evidence/domain';
-import type { PersonalCanvasDetails } from '@/features/apply/domain/personal-canvas-details';
+import {
+  APPLICANT_IMPACT_METRIC_KEYS,
+  type PersonalCanvasDetails,
+} from '@/features/apply/domain/personal-canvas-details';
 import { openAiJsonCompletion } from './openai-client';
 import { getReportPrompt } from './runtime/prompt-registry';
 
@@ -102,6 +105,8 @@ const narrativeDetailsSchema = z.object({
       connectionExplanation: z.string().min(1).max(700),
       confidence: z.enum(['high', 'medium', 'low']),
       supportingExperienceCount: z.number().int().nonnegative(),
+      anchorExperience: z.string().min(1).max(160).nullish(),
+      supportingExperienceTitles: z.array(z.string().min(1).max(160)).max(6).nullish(),
       evidenceIds: evidenceIdsSchema,
     }),
     positioningOptions: z.array(z.object({
@@ -198,9 +203,9 @@ When a requested section is present, include every field in its contract. Requir
 - keyTakeaways.growthOpportunity: title, growthArea, currentGap, recommendedDirection, whyItMatters, basis, evidenceIds.
 - coreIdentity: identityStatement, evidenceIds, definingTraits; every definingTraits item: characteristic, insight, evidenceIds, whyItMatters, supportingExperienceTitles, evidenceStrength, maturity, scope, confidence.
 - drivingForce: primaryMotivation, repeatedChoices, recurringProblems, decisionMaking, underlyingValues, strategicInterpretation, evidenceStrength, isHypothesis, evidenceIds.
-- profilePositioning: experienceConnection, positioningOptions, profileNarrative, profileNarrativeEvidenceIds; every experienceConnection item: strongestProfileThread, connectionExplanation, confidence, supportingExperienceCount, evidenceIds; every positioningOptions item: title, statement, supportingEvidenceIds, supportingExperienceTitles.
+- profilePositioning: experienceConnection, positioningOptions, profileNarrative, profileNarrativeEvidenceIds; every experienceConnection item: strongestProfileThread, connectionExplanation, confidence, supportingExperienceCount, anchorExperience, supportingExperienceTitles, evidenceIds; every positioningOptions item: title, statement, supportingEvidenceIds, supportingExperienceTitles.
 
-Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. If an entire optional section is unsupported, return that section as null or omit it. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130. For any word-length repair, count whitespace-separated words and target the safe middle instead of the lower boundary: snapshot 165-180, core identity 90-105, capability overview 110-118, profile narrative 110-125. If below minimum, add a grounded sentence using only supplied facts.`;
+Use [] only for array fields that are allowed to be empty; evidence ID arrays must contain supplied allowed IDs when the section or claim is supported. Every requested framework section key must be present in narrativeDetails; return that section as null when it is unavailable, never omit the framework part. Required word ranges: snapshot 150-200, coreIdentity.identityStatement 80-120, provenCapabilities.overview 100-120, profilePositioning.profileNarrative 100-130. For any word-length repair, count whitespace-separated words and target the safe middle instead of the lower boundary: snapshot 165-180, core identity 90-105, capability overview 110-118, profile narrative 110-125. If below minimum, add a grounded sentence using only supplied facts.`;
 
 type SynthesisSectionInput = {
   coreIdentity: {
@@ -512,11 +517,19 @@ export function synthesisInputFromReport(
   const repeated = findingsWithStatus.filter(({ status }) => status === 'repeated');
   const corroborated = repeated.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key));
   const reportReflectionFindings = Object.fromEntries(findingsWithStatus.map((item) => [item.finding.key, item])) as Partial<Record<ReflectionAnswerKey, ReflectionFindingWithStatus>>;
-  const supportingExperienceTitles = report.proofOfMe.cards
+  const coreLinkedExperienceTitles = report.proofOfMe.cards
     .filter((card) => report.coreIdentity.evidenceRefs.some((ref) =>
       ref.id === card.activityId || card.evidenceRefs.some((cardRef) => cardRef.id === ref.id),
     ))
     .map((card) => card.title);
+  // Positioning still needs one supplied anchor when identity evidence is
+  // sparse or a profile's strongest proof is attached to another section.
+  // Fall back only to canonical Proof of Me titles; never synthesize a label.
+  // Keep the model's anchor-plus-corroborators context bounded to five titles.
+  const supportingExperienceTitles = (coreLinkedExperienceTitles.length > 0
+    ? coreLinkedExperienceTitles
+    : [...new Set(report.proofOfMe.cards.map((card) => card.title).filter(Boolean))])
+    .slice(0, 5);
   const growthAreas = (report.growthAreas ?? []).map((area) => ({
     title: area.statement,
     gap: area.currentGap ?? area.statement,
@@ -1148,7 +1161,9 @@ function structuredSectionAvailable(key: StructuredNarrativeSection, input: Synt
   if (key === 'drivingForce') return Boolean(input.drivingForce);
   if (key === 'profilePositioning') return Boolean(input.personalPositioning);
   if (key === 'provenCapabilities') return input.canvasDetails.capabilities.length > 0;
-  if (key === 'socialProof') return input.canvasDetails.socialProof.some((metric) => metric.value > 0 && metric.evidenceIds.length > 0);
+  if (key === 'socialProof') return input.canvasDetails.socialProof.some((metric) =>
+    APPLICANT_IMPACT_METRIC_KEYS.has(metric.key) && metric.value > 0 && metric.evidenceIds.length > 0,
+  );
   return Boolean(
     input.takeawayFacts.standOut.evidenceIds.length ||
     input.takeawayFacts.competitiveAdvantage.evidenceIds.length ||
@@ -1362,12 +1377,16 @@ function materializeNarrativeDetails(
     const candidateTraits = new Map(
       sectionInput.coreIdentity?.traitCandidates.map((candidate) => [traitCandidateKey(candidate.characteristic), candidate]) ?? [],
     );
+    const seenTraits = new Set<string>();
     output.coreIdentity = {
       identityStatement: details.coreIdentity.identityStatement,
       evidenceIds: requireEvidenceIds(details.coreIdentity.evidenceIds, allowedBySection.narrativeCoreIdentity),
       definingTraits: details.coreIdentity.definingTraits.flatMap((trait) => {
-        const candidate = candidateTraits.get(traitCandidateKey(trait.characteristic));
+        const key = traitCandidateKey(trait.characteristic);
+        const candidate = candidateTraits.get(key);
         if (!candidate) return [];
+        if (seenTraits.has(key)) return [];
+        seenTraits.add(key);
         try {
           return [{
             ...trait,
@@ -1381,7 +1400,7 @@ function materializeNarrativeDetails(
         } catch {
           return [];
         }
-      }),
+      }).slice(0, 5),
     };
   }
   if (requested.has('drivingForce') && details.drivingForce) {
@@ -1402,12 +1421,16 @@ function materializeNarrativeDetails(
   }
   if (requested.has('provenCapabilities') && details.provenCapabilities) {
     const canonical = new Map(sectionInput.canvasDetails.capabilities.slice(0, 4).map((capability) => [normalizeNarrativeLabel(capability.capability), capability]));
+    const seenCapabilities = new Set<string>();
     output.provenCapabilities = {
       overview: details.provenCapabilities.overview,
       overviewEvidenceIds: requireEvidenceIds(details.provenCapabilities.overviewEvidenceIds, allowedBySection.narrativeCapabilities),
       capabilities: details.provenCapabilities.capabilities.flatMap((capability) => {
-        const match = canonical.get(normalizeNarrativeLabel(capability.capability));
+        const key = normalizeNarrativeLabel(capability.capability);
+        const match = canonical.get(key);
         if (!match) return [];
+        if (seenCapabilities.has(key)) return [];
+        seenCapabilities.add(key);
         const { applicationRelevance: modelApplicationRelevance, ...capabilityWithoutApplicationRelevance } = capability;
         const applicationRelevance = modelApplicationRelevance ?? match.applicationRelevance;
         const grounded = {
@@ -1416,7 +1439,7 @@ function materializeNarrativeDetails(
           supportingActivities: requireSubset(capability.supportingActivities, new Set(match.supportingActivities)),
         };
         return applicationRelevance ? { ...grounded, applicationRelevance } : grounded;
-      }),
+      }).slice(0, 4),
       combinationInsight: details.provenCapabilities.combinationInsight,
       combinationEvidenceIds: requireEvidenceIds(details.provenCapabilities.combinationEvidenceIds, allowedBySection.narrativeCapabilities),
     };
@@ -1434,7 +1457,8 @@ function materializeNarrativeDetails(
     output.profilePositioning = {
       experienceConnection: {
         ...details.profilePositioning.experienceConnection,
-        supportingExperienceCount: supportingExperienceTitles.length,
+        anchorExperience: supportingExperienceTitles[0] ?? null,
+        supportingExperienceCount: Math.max(0, supportingExperienceTitles.length - 1),
         supportingExperienceTitles,
         evidenceIds: requireEvidenceIds(details.profilePositioning.experienceConnection.evidenceIds, allowedBySection.narrativePositioning),
       },
@@ -1559,6 +1583,22 @@ function parseNarrativeBatch(
       invalidSections.push(key);
       firstValidationError ??= error;
     }
+  }
+  // Strict response formats are enforced by the provider, but a mocked or
+  // degraded provider can still return a syntactically valid partial object.
+  // Do not silently treat an omitted available framework section as success;
+  // send it through the existing targeted-repair path instead.
+  const missingSections = batch.structured.filter((key) =>
+    key !== 'snapshot' &&
+    structuredSectionAvailable(key, batchInputValue) &&
+    !Object.hasOwn(acceptedDetails, key) &&
+    !invalidSections.includes(key),
+  );
+  if (missingSections.length > 0) {
+    const detail = `Narrative synthesis did not cover every available report section: ${missingSections.join(', ')}.`;
+    invalidSections.push(...missingSections);
+    issues.push({ path: ['narrativeDetails', ...missingSections], code: 'custom', message: detail });
+    firstValidationError ??= new Error(detail);
   }
   if (invalidSections.length > 0 && Object.keys(acceptedDetails).length === 0) {
     throw firstValidationError ?? new Error(`Narrative synthesis sections failed validation: ${invalidSections.join(', ')}`);

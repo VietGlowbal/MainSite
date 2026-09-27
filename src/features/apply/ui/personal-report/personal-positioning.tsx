@@ -37,6 +37,9 @@ export function PersonalPositioningView({
   }) {
   const t = useT();
   const narrative = report?.narrativeDetails?.profilePositioning;
+  const supportingExperienceTitles = narrative?.experienceConnection?.supportingExperienceTitles?.filter(
+    (title) => title !== narrative.experienceConnection.anchorExperience,
+  ) ?? [];
   const hasPositioningNarrative = Boolean(narrative?.profileNarrative?.trim() || section.statement?.trim());
   return (
     <SectionShell
@@ -58,6 +61,12 @@ export function PersonalPositioningView({
                 {narrative.positioningOptions.map((option) => (
                   <div key={option.title} className="rounded-gb-lg border border-line/50 bg-surface-muted/60 p-gb-md text-gb-sm leading-relaxed text-fg-secondary">
                     <span className="font-bold text-fg">{option.title}:</span> {option.statement}
+                    {option.supportingExperienceTitles.length > 0 ? (
+                      <p className="mt-gb-xs text-gb-xs text-fg-muted">
+                        <span className="font-semibold text-fg">{t('Supported by')}:</span>{' '}
+                        {option.supportingExperienceTitles.join(' · ')}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -101,6 +110,18 @@ export function PersonalPositioningView({
                 <div className="rounded-gb-lg border border-line/60 bg-surface-muted/60 p-gb-lg">
                   <p className="text-gb-base font-bold text-fg">{narrative.experienceConnection.strongestProfileThread}</p>
                   <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.experienceConnection.connectionExplanation}</p>
+                  {narrative.experienceConnection.anchorExperience ? (
+                    <p className="mt-gb-sm text-gb-xs leading-relaxed text-fg-muted">
+                      <span className="font-semibold text-fg">{t('Anchor experience')}:</span>{' '}
+                      {narrative.experienceConnection.anchorExperience}
+                    </p>
+                  ) : null}
+                  {supportingExperienceTitles.length ? (
+                    <p className="mt-gb-xs text-gb-xs leading-relaxed text-fg-muted">
+                      <span className="font-semibold text-fg">{t('Supporting experiences')}:</span>{' '}
+                      {supportingExperienceTitles.join(' · ')}
+                    </p>
+                  ) : null}
                   <p className="mt-gb-sm text-gb-xs font-medium text-fg-muted">{t('{count} supporting experiences', { count: narrative.experienceConnection.supportingExperienceCount })}</p>
                 </div>
               ) : (

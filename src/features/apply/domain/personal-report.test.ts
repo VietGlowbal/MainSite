@@ -322,6 +322,30 @@ describe('buildPersonalReport', () => {
     expect(coverage.renderingCompleteness).toMatchObject({ complete: true, interactive: true, print: true });
   });
 
+  it('does not treat metadata counts as applicant Social Proof', () => {
+    const result = report();
+    const canvas = buildPersonalCanvasDetails({
+      activities: [TUTOR],
+      coreIdentity: result.coreIdentity,
+      drivingForce: result.drivingForce,
+      emergingThemes: result.emergingThemes,
+      personalPositioning: result.personalPositioning,
+      proofOfMe: result.proofOfMe,
+      intendedDirection: null,
+    });
+    canvas.socialProof = [{
+      key: 'activities',
+      label: 'Activities analysed',
+      value: 99,
+      caption: 'Metadata only',
+      evidenceIds: ['metadata:activities'],
+    }];
+
+    const coverage = validatePersonalReportFramework({ ...result, canvasDetails: canvas });
+    expect(coverage.sections.socialProof.evidenceSufficient).toBe(false);
+    expect(coverage.sections.socialProof.status).toBe('needs_more_evidence');
+  });
+
   it('keeps self-reported capability claims separate from proven capability scores', () => {
     const result = report({ narrativeActivities: [TUTOR], evidenceItems: [] });
     const canvas = buildPersonalCanvasDetails({
@@ -439,6 +463,23 @@ describe('buildPersonalReport', () => {
     }] as never);
 
     expect(metrics.find((metric) => metric.key === 'teamMembersLed')).toBeUndefined();
+  });
+
+  it('keeps explicit audience scale for creative and product profiles', () => {
+    const metrics = derivedSocialProofMetrics([{
+      activityId: 'media',
+      title: 'Documentary series',
+      role: 'producer',
+      personalContribution: 'Published a short series that got 10k views.',
+      outcome: 'Reached 1.5M users through the campaign.',
+      period: null,
+      evidenceRefs: [{ id: 'media', kind: 'activity', label: 'Documentary series' }],
+    }] as never);
+
+    expect(metrics.find((metric) => metric.key === 'communityReach')).toMatchObject({
+      value: 1_500_000,
+      evidenceIds: ['media'],
+    });
   });
 
   it('routes Q1 into emerging themes and Q3 into positioning as explicitly scoped context', () => {

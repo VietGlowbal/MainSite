@@ -570,20 +570,20 @@ export function PersonalCanvasView({
             onSelect={onSelect}
           />
           <CanvasCell
-            section="areasForGrowth"
-            index={5}
-            title="Areas for Growth"
-            preview={previews.areasForGrowth}
-            active={activeSection === 'areasForGrowth'}
-            side="left"
-            onSelect={onSelect}
-          />
-          <CanvasCell
             section="socialProof"
             index={4}
             title="Social Proof"
             preview={previews.socialProof}
             active={activeSection === 'socialProof'}
+            side="left"
+            onSelect={onSelect}
+          />
+          <CanvasCell
+            section="areasForGrowth"
+            index={5}
+            title="Areas for Growth"
+            preview={previews.areasForGrowth}
+            active={activeSection === 'areasForGrowth'}
             side="left"
             onSelect={onSelect}
           />

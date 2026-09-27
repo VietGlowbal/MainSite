@@ -440,6 +440,8 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Add another reflected example that clearly records your role, action and outcome.':
     'Bổ sung một ví dụ đã tự nhìn nhận khác, ghi rõ vai trò, hành động và kết quả của bạn.',
   'Supported by': 'Được hỗ trợ bởi',
+  'Anchor experience': 'Trải nghiệm neo',
+  'Supporting experiences': 'Các trải nghiệm hỗ trợ',
   'Possible future directions': 'Các hướng đi tương lai có thể cân nhắc',
   'Your stated direction is separated from evidence-backed emerging themes. The latter are possibilities to explore, not career predictions.':
     'Hướng đi bạn đã nêu được tách riêng khỏi các chủ đề đang hình thành có bằng chứng hỗ trợ. Các chủ đề này là khả năng để khám phá, không phải dự đoán nghề nghiệp.',

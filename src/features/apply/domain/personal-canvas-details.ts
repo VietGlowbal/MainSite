@@ -62,6 +62,15 @@ export type SocialProofMetric = {
   sourceActivityIds?: string[];
 };
 
+/** Metrics shown as applicant contribution proof; record/metadata counts stay qualitative. */
+export const APPLICANT_IMPACT_METRIC_KEYS: ReadonlySet<string> = new Set([
+  'recordedOutcomes',
+  'quantifiedOutcomes',
+  'teamMembersLed',
+  'communityReach',
+  'yearsOfCommitment',
+]);
+
 export type SelfReportedCapability = {
   name: string;
   evidenceIds: string[];
@@ -172,11 +181,12 @@ const NUMBER_WORDS: Record<string, number> = {
   hundred: 100,
 };
 
-const NUMBER_TOKEN = '(?:\\d[\\d,]*(?:\\.\\d+)?|' + Object.keys(NUMBER_WORDS).join('|') + ')';
+const NUMBER_TOKEN = '(?:\\d[\\d,]*(?:\\.\\d+)?(?:\\s*[kKmM])?|' + Object.keys(NUMBER_WORDS).join('|') + ')';
 
 function parseNumberToken(value: string): number | null {
   const normalised = value.toLowerCase().replace(/,/g, '').trim();
-  const numeric = Number(normalised);
+  const suffix = normalised.match(/^(\d+(?:\.\d+)?)\s*([km])$/);
+  const numeric = suffix?.[1] ? Number(suffix[1]) * (suffix[2] === 'm' ? 1_000_000 : 1_000) : Number(normalised);
   if (Number.isFinite(numeric) && numeric > 0) return numeric;
   return NUMBER_WORDS[normalised] ?? null;
 }
@@ -231,12 +241,12 @@ export function derivedSocialProofMetrics(cards: readonly ProofCard[]): SocialPr
 
   let communityReach: number | null = null;
   let communityCards: ProofCard[] = [];
-  const reachPattern = new RegExp(`\\b(?:over|more than|around|nearly)?\\s*(${NUMBER_TOKEN})\\s+(?:students?|people|famil(?:y|ies)|participants?|learners?|children|residents?|households?)\\b`, 'gi');
+  const reachPattern = new RegExp(`\\b(?:over|more than|around|nearly)?\\s*(${NUMBER_TOKEN})\\s+(?:students?|people|famil(?:y|ies)|participants?|learners?|children|residents?|households?|users?|customers?|clients?|attendees?|audiences?|viewers?|views?|downloads?|followers?|subscribers?)\\b`, 'gi');
   for (const card of cards) {
     const text = activityProofText(card);
     for (const match of text.matchAll(reachPattern)) {
       const prefix = text.slice(Math.max(0, (match.index ?? 0) - 80), match.index ?? 0);
-      if (!/\b(?:reach(?:ed)?|serve(?:d)?|support(?:ed)?|impact(?:ed)?|benefit(?:ed)?|teach(?:ing|taught)?|train(?:ed|ing)?|deliver(?:ed)?|provide(?:d)?|engag(?:ed)?|help(?:ed)?|mentor(?:ed)?|grow|grew|recruit(?:ed)?|enrol(?:led)?|use(?:d)?|test(?:ed)?)\b/i.test(prefix)) continue;
+      if (!/\b(?:reach(?:ed)?|serve(?:d)?|support(?:ed)?|impact(?:ed)?|benefit(?:ed)?|teach(?:ing|taught)?|train(?:ed|ing)?|deliver(?:ed)?|provide(?:d)?|engag(?:ed)?|help(?:ed)?|mentor(?:ed)?|grow|grew|recruit(?:ed)?|enrol(?:led)?|use(?:d)?|test(?:ed)?|get|got|generat(?:ed|e)|record(?:ed)?|attract(?:ed)?|publish(?:ed)?|broadcast)\b/i.test(prefix)) continue;
       const value = parseNumberToken(match[1] ?? '');
       if (value === null) continue;
       if (communityReach === null || value > communityReach) {

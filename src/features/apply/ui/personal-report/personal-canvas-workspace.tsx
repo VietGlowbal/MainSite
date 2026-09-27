@@ -382,6 +382,7 @@ export function PersonalCanvasWorkspace({
   const activeSpec = activeSection ? specs[activeSection] : null;
   const tab =
     activeSpec?.tabs.find((candidate) => candidate.id === activeTab) ?? activeSpec?.tabs[0];
+  const activeTabId = tab?.id ?? 'overview';
 
   const openSection = useCallback(
     (section: PersonalCanvasSectionKey) => {
@@ -463,17 +464,17 @@ export function PersonalCanvasWorkspace({
           open={Boolean(activeSection)}
           onClose={closePanel}
           label={`${activeSpec.label} details`}
-          className="w-[95vw] max-w-6xl overflow-hidden p-0"
+          className="w-full max-w-6xl overflow-hidden p-0"
         >
-          <div className="flex max-h-[90vh] min-h-0 flex-col" data-report-auto-translate>
-              <header className="shrink-0 border-b border-line bg-surface px-6 pt-6 sm:px-8 sm:pt-8">
+          <div className="flex max-h-[90vh] min-h-0 min-w-0 flex-col" data-report-auto-translate>
+              <header className="shrink-0 border-b border-line bg-surface px-4 pt-4 sm:px-8 sm:pt-8">
                 <div className="flex items-start justify-between gap-gb-lg">
                   <div className="min-w-0">
                     <Badge variant="brand-subtle">
                       {activeSpec.index}. {activeSpec.label}
                     </Badge>
                     <h2
-                      className="mt-gb-md font-display text-gb-display-xs sm:text-gb-display-sm font-semibold tracking-gb-display-tight text-fg"
+                      className="mt-gb-md line-clamp-3 break-words font-display text-gb-display-xs sm:text-gb-display-sm font-semibold tracking-gb-display-tight text-fg"
                       data-no-auto-translate
                     >
                       {activeSpec.title}
@@ -495,17 +496,24 @@ export function PersonalCanvasWorkspace({
                   </div>
                 </div>
 
-                <div className="mt-gb-lg flex gap-gb-xl overflow-x-auto" role="tablist">
+                <div
+                  className="mt-gb-lg flex min-w-0 gap-gb-xl overflow-x-auto"
+                  role="tablist"
+                  aria-label={`${activeSpec.label} views`}
+                >
                   {activeSpec.tabs.map((candidate) => (
                     <button
                       key={candidate.id}
                       type="button"
                       role="tab"
-                      aria-selected={candidate.id === tab?.id}
+                      id={`personal-report-${activeSpec.key}-${candidate.id}-tab`}
+                      aria-selected={candidate.id === activeTabId}
+                      aria-controls={`personal-report-${activeSpec.key}-${candidate.id}-panel`}
+                      tabIndex={candidate.id === activeTabId ? 0 : -1}
                       onClick={() => selectTab(candidate.id)}
                       className={[
                         'shrink-0 border-b-2 pb-gb-md text-gb-sm sm:text-gb-base font-semibold transition',
-                        candidate.id === tab?.id
+                        candidate.id === activeTabId
                           ? 'border-brand text-fg-brand'
                           : 'border-transparent text-fg-muted hover:text-fg',
                       ].join(' ')}
@@ -517,9 +525,12 @@ export function PersonalCanvasWorkspace({
               </header>
 
               <div
-                key={`${activeSection}-${tab?.id ?? 'overview'}`}
+                key={`${activeSection}-${activeTabId}`}
                 role="tabpanel"
-                className="min-h-0 flex-1 overflow-y-auto p-6 sm:p-8"
+                id={`personal-report-${activeSpec.key}-${activeTabId}-panel`}
+                aria-labelledby={`personal-report-${activeSpec.key}-${activeTabId}-tab`}
+                tabIndex={0}
+                className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-8"
               >
                 <PersonalReportInlineUpdateProvider onAnswered={onAnswered} applicationId={applicationId}>
                   {tab?.content}
