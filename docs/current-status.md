@@ -1,5 +1,7 @@
 # Current project status
 
+Working tree 2026-09-27 (Strategy Master concept landing page): added the temporary public route `/strategy-master`, built from the supplied preview as a CSS-only editorial landing page with the current `SiteNavigation`/`Footer` chrome, responsive AI orbit, report cards, structured feedback demo, expert placeholders, student voices, human-support cards, pricing CTA state, and inert consultation form state. The route owns its navigation suppression entries, keeps English concept copy file-scoped from the shared i18n catalog until approval, and avoids adding new dependencies or assets. Verified route HTTP 200, desktop/mobile Playwright smoke (CTA scroll, expert placeholder, form success, mobile horizontal overflow false), 28 navigation/i18n tests, strict TypeScript, scoped ESLint, and i18n static-key check (`missing static keys: 0`).
+
 **Supabase org migration — in progress (2026-09-26).** The old project
 `uooshbumyilwvbgmbixx` is API-restricted (HTTP 402,
 `exceed_storage_size_quota`; measured on Auth, REST and Storage). The owner has

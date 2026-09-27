@@ -281,6 +281,7 @@ export function NavReveal() {
   const OWN_CHROME_ROUTES = new Set([
     '/',
     '/dev/home',
+    '/strategy-master',
     '/universities',
     /*
      * Both match pages ship `SiteNavigation` + `Footer` themselves, exactly
