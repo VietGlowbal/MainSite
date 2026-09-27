@@ -303,6 +303,70 @@ describe('canonical scholarship matching context', () => {
     expect(context.selection.university?.id).toBe(2);
   });
 
+  it('fails closed when explicitly selected programme and university disagree', () => {
+    const context = buildScholarshipMatchingContext(
+      {
+        userId: 'user-incoherent-selection',
+        selectedProgrammeId: 'programme-1',
+        selectedUniversityId: 2,
+      },
+      emptySources({
+        programmes: read([{
+          id: 'programme-1',
+          universityId: 1,
+          universityName: 'University One',
+          name: 'Course One',
+          degreeLevel: 'undergraduate',
+          subject: 'Computing',
+          studyMode: 'full-time',
+          intake: 'autumn-2027',
+          country: 'Country One',
+          city: 'City One',
+          durationText: '3 years',
+          duration: { count: 3, unit: 'year' },
+          tuitionText: '£20,000/year',
+          tuitionAmount: { min: 20_000, max: null, currency: 'GBP', currencyStatus: 'known' },
+          tuitionPeriod: 'annual',
+          source: source('programme', 'programme-1'),
+        }]),
+        universities: read([
+          {
+            id: 1,
+            name: 'University One',
+            country: 'Country One',
+            city: 'City One',
+            type: null,
+            tuitionText: null,
+            livingCostText: null,
+            housingText: null,
+            source: source('university', '1'),
+          },
+          {
+            id: 2,
+            name: 'University Two',
+            country: 'Country Two',
+            city: 'City Two',
+            type: null,
+            tuitionText: null,
+            livingCostText: null,
+            housingText: null,
+            source: source('university', '2'),
+          },
+        ]),
+      }),
+    );
+
+    expect(context.selection.programme).toBeNull();
+    expect(context.selection.university?.id).toBe(2);
+    expect(context.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        source: 'context-loader',
+        status: 'invalid-selection',
+        message: expect.stringContaining('do not refer to the same university'),
+      }),
+    ]));
+  });
+
   it('keeps user cache identities isolated and versioned', () => {
     const left = scholarshipMatchingContextCacheKey({ userId: 'user-a', scholarshipIds: [2, 1] }, '4');
     const right = scholarshipMatchingContextCacheKey({ userId: 'user-b', scholarshipIds: [1, 2] }, '4');

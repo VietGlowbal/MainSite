@@ -53,6 +53,11 @@ export type ScholarshipValuationUniversityInput = {
   retrievedAt?: string | null;
 };
 
+type ScholarshipValuationRefinement = {
+  programme: ScholarshipValuationProgrammeContext | null;
+  university: ScholarshipValuationUniversityContext | null;
+};
+
 function clean(value: string | null | undefined): string | null {
   const trimmed = value?.trim() ?? '';
   return trimmed.length > 0 ? trimmed : null;
@@ -130,17 +135,52 @@ export function buildScholarshipValuationContexts(args: {
   ));
 }
 
+function coherentRefinement(refinement: ScholarshipValuationRefinement): ScholarshipValuationRefinement {
+  const programmeUniversityId = refinement.programme?.universityId ?? null;
+  const selectedUniversityId = refinement.university?.id ?? null;
+  if (
+    programmeUniversityId != null &&
+    selectedUniversityId != null &&
+    programmeUniversityId !== selectedUniversityId
+  ) {
+    // Keep a valid university-only refinement, but never carry an unrelated
+    // programme's tuition, duration, or programme cost key with it.
+    return { programme: null, university: refinement.university };
+  }
+  return refinement;
+}
+
+function refinementForCandidate(
+  candidate: ScholarshipValuationContext,
+  refinement: ScholarshipValuationRefinement,
+): ScholarshipValuationRefinement {
+  const safeRefinement = coherentRefinement(refinement);
+  const programme = safeRefinement.programme;
+  if (!programme) return safeRefinement;
+
+  const programmeApplies =
+    candidate.programme?.id === programme.id ||
+    (programme.universityId != null && candidate.university?.id === programme.universityId);
+  return programmeApplies
+    ? safeRefinement
+    : { programme: null, university: safeRefinement.university };
+}
+
 function sameCandidateEntity(
   candidate: ScholarshipValuationContext,
-  refinement: {
-    programme: ScholarshipValuationProgrammeContext | null;
-    university: ScholarshipValuationUniversityContext | null;
-  },
+  refinement: ScholarshipValuationRefinement,
 ): boolean {
-  const selectedProgrammeUniversity = refinement.programme?.universityId ?? null;
-  const selectedUniversityId = refinement.university?.id ?? selectedProgrammeUniversity;
-  if (selectedUniversityId != null && candidate.university?.id === selectedUniversityId) return true;
-  return refinement.programme?.id != null && candidate.programme?.id === refinement.programme.id;
+  const safeRefinement = refinementForCandidate(candidate, refinement);
+  if (safeRefinement.programme?.id != null && candidate.programme?.id === safeRefinement.programme.id) {
+    return true;
+  }
+  if (
+    safeRefinement.programme?.universityId != null &&
+    candidate.university?.id === safeRefinement.programme.universityId
+  ) {
+    return true;
+  }
+  return safeRefinement.university?.id != null && candidate.university?.id === safeRefinement.university.id;
 }
 
 /**
@@ -149,14 +189,12 @@ function sameCandidateEntity(
  */
 export function refineScholarshipValuationContext(
   candidate: ScholarshipValuationContext,
-  refinement: {
-    programme: ScholarshipValuationProgrammeContext | null;
-    university: ScholarshipValuationUniversityContext | null;
-  },
+  refinement: ScholarshipValuationRefinement,
 ): ScholarshipValuationContext {
-  if (!sameCandidateEntity(candidate, refinement)) return candidate;
-  const programme = refinement.programme ?? candidate.programme;
-  const university = refinement.university ?? candidate.university;
+  const safeRefinement = refinementForCandidate(candidate, refinement);
+  if (!sameCandidateEntity(candidate, safeRefinement)) return candidate;
+  const programme = safeRefinement.programme ?? candidate.programme;
+  const university = safeRefinement.university ?? candidate.university;
   const city = clean(university?.city) ?? candidate.city;
   const country = clean(university?.country) ?? candidate.country;
   return {
@@ -183,10 +221,7 @@ export function refineScholarshipValuationContext(
 
 export function selectScholarshipValuationContext(
   contexts: readonly ScholarshipValuationContext[],
-  refinement?: {
-    programme: ScholarshipValuationProgrammeContext | null;
-    university: ScholarshipValuationUniversityContext | null;
-  } | null,
+  refinement?: ScholarshipValuationRefinement | null,
 ): ScholarshipValuationContext | null {
   const ordered = [...contexts].sort((left, right) =>
     (left.university?.id ?? Number.MAX_SAFE_INTEGER) - (right.university?.id ?? Number.MAX_SAFE_INTEGER) ||

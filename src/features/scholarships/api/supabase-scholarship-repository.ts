@@ -25,6 +25,10 @@ import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import {
   calculateCandidateScholarshipValue,
   CANDIDATE_VALUATION_CACHE_VERSIONS,
+  SCHOLARSHIP_VALUATION_CACHE_KEY_VERSION,
+  scholarshipValuationCacheInput,
+  scholarshipValuationCacheKey,
+  type ScholarshipValuationCacheInput,
 } from './candidate-valuation';
 import { normalizeScholarshipDirectoryFilters } from '../domain/eligibility-normalization';
 import {
@@ -54,6 +58,10 @@ const SEARCH_COLUMNS = ['eligibility', 'applies_to_text', 'conditions', 'insight
 const HOME_HIGHLIGHT_DEFAULT = 6;
 const HOME_HIGHLIGHT_MAX = 8;
 const PUBLISHED_CANDIDATE_BATCH_SIZE = 1000;
+
+function asOfDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function homeHighlightScore(scholarship: DirectoryScholarship): number {
   const ranking = scholarship.ranking_note?.toLowerCase() ?? '';
@@ -191,7 +199,10 @@ type PublishedCandidates = {
   total: number;
 };
 
-async function loadPublishedCandidatesUncached(query: ScholarshipListQuery): Promise<PublishedCandidates> {
+async function loadPublishedCandidatesUncached(
+  query: ScholarshipListQuery,
+  asOf: string,
+): Promise<PublishedCandidates> {
   const filters = query.filters ?? normalizeScholarshipDirectoryFilters({
     country: query.country ?? null,
     universityIds: query.universityId == null ? [] : [query.universityId],
@@ -272,9 +283,9 @@ async function loadPublishedCandidatesUncached(query: ScholarshipListQuery): Pro
       databaseQuery = databaseQuery.or(keywordFilter([subjectKeyword]));
     }
     if (filters.deadline === 'open') {
-      databaseQuery = databaseQuery.gte('deadline_date', new Date().toISOString().slice(0, 10));
+      databaseQuery = databaseQuery.gte('deadline_date', asOf);
     } else if (filters.deadline === 'closed') {
-      databaseQuery = databaseQuery.lt('deadline_date', new Date().toISOString().slice(0, 10));
+      databaseQuery = databaseQuery.lt('deadline_date', asOf);
     } else if (filters.deadline === 'undated') {
       databaseQuery = databaseQuery.is('deadline_date', null);
     }
@@ -297,6 +308,7 @@ async function loadPublishedCandidatesUncached(query: ScholarshipListQuery): Pro
 
 const listPublishedCandidatesCached: (
   query: ScholarshipListQuery,
+  asOf: string,
 ) => Promise<PublishedCandidates> = unstable_cache(
     loadPublishedCandidatesUncached,
     [
@@ -312,21 +324,26 @@ const listPublishedCandidatesCached: (
     { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
   );
 
-async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>> {
+async function listPublishedUncached(
+  query: ScholarshipListQuery,
+  valuationCache: ScholarshipValuationCacheInput,
+): Promise<Page<DirectoryScholarship>> {
+  if (valuationCache.key !== scholarshipValuationCacheKey(valuationCache.asOf)) {
+    throw new Error('Scholarship valuation cache identity is invalid.');
+  }
   const page = clampPage(query.page);
   const pageSize = clampPageSize(
     query.pageSize,
     SCHOLARSHIP_PAGE_SIZE_MAX,
     SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   );
-  const asOf = new Date().toISOString().slice(0, 10);
-  const { items, total } = await listPublishedCandidatesCached(query);
+  const { items, total } = await listPublishedCandidatesCached(query, valuationCache.asOf);
   const ranked = rankScholarships(
     items.map((item) => ({
       id: item.id,
       name: item.name,
       deadline: item.deadline_date,
-      value: catalogueValue(item, asOf),
+      value: catalogueValue(item, valuationCache.asOf),
       // User-specific T3/T4/T5 projections are injected by the private
       // ranking adapter. The public catalogue never invents eligibility or
       // fit, so relevance falls back to deterministic catalogue order here.
@@ -357,6 +374,7 @@ const listPublishedCached = unstable_cache(
     SCHOLARSHIP_VALUE_SORT_VERSION,
     PERSONAL_FIT_POLICY_VERSION,
     SCHOLARSHIP_QUERY_VERSION,
+    SCHOLARSHIP_VALUATION_CACHE_KEY_VERSION,
     ...CANDIDATE_VALUATION_CACHE_VERSIONS,
   ],
   { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
@@ -510,6 +528,7 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
   readonly name = 'supabase';
 
   async listPublished(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>> {
+    const valuationCache = scholarshipValuationCacheInput(asOfDate());
     return listPublishedCached({
       ...query,
       page: clampPage(query.page),
@@ -518,15 +537,16 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
         SCHOLARSHIP_PAGE_SIZE_MAX,
         SCHOLARSHIP_PAGE_SIZE_DEFAULT,
       ),
-    });
+    }, valuationCache);
   }
 
   async listPublishedCandidates(query: ScholarshipListQuery): Promise<DirectoryScholarship[]> {
+    const asOf = asOfDate();
     const result = await listPublishedCandidatesCached({
       ...query,
       page: 1,
       pageSize: SCHOLARSHIP_PAGE_SIZE_MAX,
-    });
+    }, asOf);
     return result.items;
   }
 

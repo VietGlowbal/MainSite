@@ -33,6 +33,10 @@ import { SCHOLARSHIP_VALUE_SORT_VERSION } from '../domain/value-sort';
 import {
   calculateCandidateScholarshipValue,
   CANDIDATE_VALUATION_CACHE_VERSIONS,
+  SCHOLARSHIP_VALUATION_CACHE_KEY_VERSION,
+  scholarshipValuationCacheInput,
+  scholarshipValuationCacheKey,
+  type ScholarshipValuationCacheInput,
   valuationRefinementFromMatchingSelection,
 } from './candidate-valuation';
 import { loadScholarshipMatchingContext } from './matching-context-loader';
@@ -511,7 +515,13 @@ export async function loadScholarshipDirectoryForUser(args: {
 }
 
 const loadCached = unstable_cache(
-  async (requested: ScholarshipQueryState): Promise<ScholarshipDirectoryBaseResponse> => {
+  async (
+    requested: ScholarshipQueryState,
+    valuationCache: ScholarshipValuationCacheInput,
+  ): Promise<ScholarshipDirectoryBaseResponse> => {
+    if (valuationCache.key !== scholarshipValuationCacheKey(valuationCache.asOf)) {
+      throw new Error('Scholarship valuation cache identity is invalid.');
+    }
     if (requested.view !== 'directory') {
       throw new Error('The public scholarship loader only supports directory view');
     }
@@ -571,7 +581,7 @@ const loadCached = unstable_cache(
       countryPage,
       focusUniversity: publicFocus,
       canonicalSearch: scholarshipSearchParams(query, {}).toString(),
-      values: publicValueResults(visibleItems, asOfDate()),
+      values: publicValueResults(visibleItems, valuationCache.asOf),
     };
   },
   [
@@ -582,6 +592,7 @@ const loadCached = unstable_cache(
     SCHOLARSHIP_VALUE_SORT_VERSION,
     PERSONAL_FIT_POLICY_VERSION,
     SCHOLARSHIP_QUERY_VERSION,
+    SCHOLARSHIP_VALUATION_CACHE_KEY_VERSION,
     ...CANDIDATE_VALUATION_CACHE_VERSIONS,
   ],
   {
@@ -591,5 +602,5 @@ const loadCached = unstable_cache(
 );
 
 export function loadScholarshipDirectory(state: ScholarshipQueryState) {
-  return loadCached(state).then(attachFrequentlyPicked);
+  return loadCached(state, scholarshipValuationCacheInput(asOfDate())).then(attachFrequentlyPicked);
 }

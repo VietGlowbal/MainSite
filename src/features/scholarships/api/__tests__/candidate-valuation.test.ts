@@ -3,7 +3,10 @@ import type { BenefitComponent } from '../../domain/benefit-types';
 import { DEFAULT_SCHOLARSHIP_COMPARISON_POLICY } from '../../domain/comparison-policy';
 import type { CostReferenceProvider } from '../../domain/cost-reference';
 import { buildScholarshipValuationContexts } from '../../domain/valuation-context';
-import { calculateCandidateScholarshipValue } from '../candidate-valuation';
+import {
+  calculateCandidateScholarshipValue,
+  scholarshipValuationCacheKey,
+} from '../candidate-valuation';
 
 const evidence = {
   sourceType: 'catalogue-field' as const,
@@ -202,6 +205,56 @@ describe('candidate valuation adapter', () => {
     expect(result.comparableTotalValue).toBeNull();
   });
 
+  it('does not carry an incoherent programme into candidate valuation context', () => {
+    const costProvider = provider(() => ({
+      record: null,
+      source: null,
+      level: null,
+      attempts: [],
+    }));
+    const [candidateContext] = buildScholarshipValuationContexts({
+      scholarshipId: 8,
+      scholarshipCountry: 'United Kingdom',
+      universities: [{ id: 20, name: 'University B', country: 'United Kingdom', city: 'Oxford' }],
+    });
+    const candidate = {
+      id: 8,
+      country: 'United Kingdom',
+      benefits: [livingBenefit()],
+      valuationContexts: [{
+        ...candidateContext!,
+        duration: { count: 3, unit: 'year' as const },
+      }],
+    };
+
+    const result = calculateCandidateScholarshipValue(candidate, {
+      programme: {
+        id: 'programme-a',
+        name: 'Programme A',
+        universityId: 10,
+        duration: { count: 1, unit: 'year' },
+        tuitionSource: null,
+        provenance: { sourceType: 'programme', recordId: 'programme-a', sourceUrl: null, retrievedAt: null },
+      },
+      university: {
+        id: 20,
+        name: 'University B',
+        city: 'Oxford',
+        country: 'United Kingdom',
+        provenance: { sourceType: 'university', recordId: '20', sourceUrl: null, retrievedAt: null },
+      },
+    }, { asOf: '2026-09-24', costProvider });
+
+    expect(costProvider.resolve).toHaveBeenCalledWith(expect.objectContaining({
+      context: expect.objectContaining({
+        programmeKey: null,
+        universityKey: '20',
+        cityKey: 'Oxford',
+      }),
+    }));
+    expect(result.duration).toMatchObject({ count: 3, unit: 'year' });
+  });
+
   it('converts candidate values into the explicit comparison currency', () => {
     const result = calculateCandidateScholarshipValue({
       id: 5,
@@ -227,6 +280,35 @@ describe('candidate valuation adapter', () => {
       currency: 'USD',
       fxVersion: 'fx-test-v1',
     });
+  });
+
+  it('keeps Home and directory projections equivalent through the shared candidate adapter', () => {
+    const candidate = {
+      id: 9,
+      country: 'United Kingdom',
+      benefits: [fixedBenefit('GBP', 80_000, 100_000)],
+      valuationContexts: buildScholarshipValuationContexts({
+        scholarshipId: 9,
+        scholarshipCountry: 'United Kingdom',
+        universities: [],
+      }),
+    };
+    const dependencies = {
+      asOf: '2026-09-24',
+      fx: {
+        version: 'fx-test-v1',
+        convert: (amount: number, from: string, to: string) => from === to
+          ? amount
+          : from === 'GBP' && to === DEFAULT_SCHOLARSHIP_COMPARISON_POLICY.currency
+            ? amount * 1.25
+            : null,
+      },
+    };
+
+    const directoryValue = calculateCandidateScholarshipValue(candidate, null, dependencies);
+    const homeValue = calculateCandidateScholarshipValue(candidate, null, dependencies);
+
+    expect(homeValue).toEqual(directoryValue);
   });
 
   it('keeps cross-currency values incomparable when FX is missing or stale', () => {
@@ -278,5 +360,20 @@ describe('candidate valuation adapter', () => {
     expect(result.totalValue).toMatchObject({ currency: 'RMB', currencyStatus: 'unknown' });
     expect(result.totalValue?.currency).not.toBe('USD');
     expect(result.comparableTotalValue).toBeNull();
+  });
+
+  it('keys public valuation caches by date bucket and provider versions', () => {
+    const baseVersions = ['candidate-v1', 'cost-v1', 'fx-v1', 'comparison-v1', 'USD'];
+    const base = scholarshipValuationCacheKey('2026-09-24', baseVersions);
+
+    expect(scholarshipValuationCacheKey('2026-09-24', baseVersions)).toBe(base);
+    expect(scholarshipValuationCacheKey('2026-09-25', baseVersions)).not.toBe(base);
+    expect(scholarshipValuationCacheKey('2026-09-24', [
+      'candidate-v1', 'cost-v2', 'fx-v1', 'comparison-v1', 'USD',
+    ])).not.toBe(base);
+    expect(scholarshipValuationCacheKey('2026-09-24', [
+      'candidate-v1', 'cost-v1', 'fx-v2', 'comparison-v1', 'USD',
+    ])).not.toBe(base);
+    expect(base).not.toContain('user-');
   });
 });

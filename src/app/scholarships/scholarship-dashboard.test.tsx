@@ -79,4 +79,43 @@ describe('AI scholarship sort controls', () => {
       'Higher nominal award',
     ]);
   });
+
+  it('does not render unsafe AI or extracted scholarship URLs as hrefs', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        scholarships: [{
+          ...aiScholarship('Unsafe AI scholarship', '$5,000'),
+          applicationUrl: 'JaVaScRiPt:alert(1)',
+        }],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    render(
+      <ScholarshipDashboard
+        applications={[application]}
+        existingScholarships={[
+          {
+            id: 'unsafe-source',
+            application_id: application.id,
+            title: 'Unsafe extracted scholarship',
+            description: null,
+            url: 'data:text/html,<script>alert(1)</script>',
+            confidence: '0.9',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: 'View' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Find scholarships' }));
+    const card = screen
+      .getByRole('heading', { name: 'Unsafe AI scholarship' })
+      .closest('div.flex.flex-col');
+    expect(card).not.toBeNull();
+    expect(card?.querySelector('a')).toBeNull();
+    expect(card?.textContent).toContain('No link available');
+  });
 });

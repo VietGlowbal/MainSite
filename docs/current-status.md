@@ -122,6 +122,24 @@ unavailable-Supabase/fetch warnings during static generation. E2E was not rerun
 in this fix pass and remains environment-blocked. `git diff --check` passed.
 T2B production cost/FX coverage remains intentionally incomplete; no values
 were fabricated, and no schema or migration change was made.
+Working tree 2026-09-27 (Scholarship Personalization final hardening):
+the four scoped review fixes are committed in the final hardening commit.
+Candidate-owned valuation context is used for Home and directory projections;
+public valuation
+cache identities include the asOf date bucket and provider/policy versions;
+AI and extracted scholarship URLs are sanitized at ingestion and render time;
+and incoherent programme/university refinements fail closed. Focused
+scholarship tests passed, the full `npm test` run passed 436 files / 4,091
+tests with 2 todos, base and strict typechecks passed, ESLint passed with 0
+errors and 9 existing warnings, the i18n checker passed with 0 missing static
+keys and 0 placeholder mismatches, and the production build passed with
+expected missing-Supabase/fetch warnings during static generation. `verify:pr`
+is blocked before its code checks because this workspace has Node 22.15.0 while
+`.node-version` requires Node 24.19.0. E2E is blocked because no `.env.local`
+Supabase environment is available; the local server repeatedly failed
+Supabase client creation. `git diff --check` passed. T2B production cost/FX
+coverage remains intentionally incomplete; no values were fabricated, and no
+schema or migration change was made.
 
 Working tree 2026-09-25 (Scholarship Personalization final verification):
 the required Node 24.19.0 runtime was used with the existing npm 10.9.2 CLI.

@@ -430,6 +430,13 @@ function selectedUniversity(
     ?? applicationFallbackUniversity(application, programme);
 }
 
+function coherentProgrammeUniversitySelection(
+  programme: MatchingProgrammeContext | null,
+  university: MatchingUniversityContext | null,
+): boolean {
+  return programme?.universityId == null || university?.id == null || programme.universityId === university.id;
+}
+
 function normalizeCachePart(value: string | number | null): string {
   return value == null ? '-' : String(value);
 }
@@ -457,6 +464,7 @@ function diagnosticForSelection(
   application: MatchingApplicationSource | null,
   programme: MatchingProgrammeContext | null,
   university: MatchingUniversityContext | null,
+  selectionIsCoherent: boolean,
 ): MatchingContextDiagnostic[] {
   const diagnostics: MatchingContextDiagnostic[] = [];
   if (request.applicationId && !application) {
@@ -478,6 +486,13 @@ function diagnosticForSelection(
       source: 'university',
       status: 'invalid-selection',
       message: 'The requested university was not found in the available catalogue.',
+    });
+  }
+  if (!selectionIsCoherent) {
+    diagnostics.push({
+      source: 'context-loader',
+      status: 'invalid-selection',
+      message: 'The selected programme and university do not refer to the same university.',
     });
   }
   return diagnostics;
@@ -513,13 +528,21 @@ export function buildScholarshipMatchingContext(
 ): ScholarshipMatchingContext {
   const profileVersion = sources.profile.value?.profileVersion ?? null;
   const application = selectedApplication(request, sources.applications.value ?? []);
-  const programme = selectedProgramme(request, application, sources.programmes.value ?? []);
-  const university = selectedUniversity(
+  const selectedProgrammeContext = selectedProgramme(request, application, sources.programmes.value ?? []);
+  const selectedUniversityContext = selectedUniversity(
     request,
     application,
-    programme,
+    selectedProgrammeContext,
     sources.universities.value ?? [],
   );
+  const selectionIsCoherent = coherentProgrammeUniversitySelection(
+    selectedProgrammeContext,
+    selectedUniversityContext,
+  );
+  // Keep the invalid selection visible through diagnostics, but do not pass
+  // an incoherent programme into valuation or downstream personalization.
+  const programme = selectionIsCoherent ? selectedProgrammeContext : null;
+  const university = selectedUniversityContext;
 
   const scholarships = (sources.scholarships.value ?? [])
     .map((scholarship): MatchingScholarshipContext => ({
@@ -578,7 +601,13 @@ export function buildScholarshipMatchingContext(
     diagnostics: [
       ...(sources.diagnostics ?? []),
       ...diagnosticForReads(sources),
-      ...diagnosticForSelection(request, application, programme, university),
+      ...diagnosticForSelection(
+        request,
+        application,
+        selectedProgrammeContext,
+        selectedUniversityContext,
+        selectionIsCoherent,
+      ),
     ].filter((diagnostic, index, diagnostics) =>
       diagnostics.findIndex((candidate) =>
         candidate.source === diagnostic.source &&

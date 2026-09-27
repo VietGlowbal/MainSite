@@ -153,7 +153,7 @@ describe('ScholarshipsPage performance', () => {
                 application_id: 'app-1',
                 title: 'Award',
                 description: null,
-                url: null,
+                url: 'javascript:alert(1)',
                 confidence: 0.8,
               },
             ],
@@ -173,6 +173,7 @@ describe('ScholarshipsPage performance', () => {
     expect(client.props.queryState.view).toBe('ai');
     expect(client.props.applications).toEqual([application]);
     expect(client.props.existingScholarships[0].confidence).toBe('0.8');
+    expect(client.props.existingScholarships[0].url).toBeNull();
   });
 
   it('waits for authentication before selecting a public or user-specific directory cache', async () => {

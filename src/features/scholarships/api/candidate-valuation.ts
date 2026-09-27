@@ -182,3 +182,31 @@ export const CANDIDATE_VALUATION_CACHE_VERSIONS = [
   DEFAULT_SCHOLARSHIP_COMPARISON_POLICY.version,
   DEFAULT_SCHOLARSHIP_COMPARISON_POLICY.currency,
 ] as const;
+
+export const SCHOLARSHIP_VALUATION_CACHE_KEY_VERSION = 'scholarship-valuation-cache-v1';
+
+/**
+ * Public valuation caches are date-bucketed because cost and FX references
+ * can become effective or stale without a dataset code change. Provider and
+ * policy versions remain part of the identity as an additional invalidation
+ * boundary. The returned key contains no user-specific information.
+ */
+export function scholarshipValuationCacheKey(
+  asOf: string,
+  versions: readonly string[] = CANDIDATE_VALUATION_CACHE_VERSIONS,
+): string {
+  const normalizedAsOf = asOf.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedAsOf)) {
+    throw new Error('Scholarship valuation cache keys require a YYYY-MM-DD asOf date.');
+  }
+  return [SCHOLARSHIP_VALUATION_CACHE_KEY_VERSION, normalizedAsOf, ...versions].join('|');
+}
+
+export type ScholarshipValuationCacheInput = {
+  asOf: string;
+  key: string;
+};
+
+export function scholarshipValuationCacheInput(asOf: string): ScholarshipValuationCacheInput {
+  return { asOf, key: scholarshipValuationCacheKey(asOf) };
+}

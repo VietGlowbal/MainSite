@@ -3,8 +3,11 @@ import { unstable_cache } from 'next/cache';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
 import { getUniversityQueries } from '@/features/universities/api';
-import { getScholarshipQueries } from '@/features/scholarships/api';
-import { calculateDisplayScholarshipValue, createScholarshipValueViewModel } from '@/features/scholarships/domain';
+import { calculateCandidateScholarshipValue, getScholarshipQueries } from '@/features/scholarships/api';
+import {
+  DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
+  createScholarshipValueViewModel,
+} from '@/features/scholarships/domain';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
   HomeContact,
@@ -145,6 +148,7 @@ function compactCoverage(value: string | null): string {
 async function getHomeScholarshipSpotlight(locale: Locale = 'en') {
   try {
     const result = await getScholarshipQueries().homeHighlights(6);
+    const asOf = new Date().toISOString().slice(0, 10);
     return {
       total: result.total,
       entries: result.items.map((scholarship) => {
@@ -169,7 +173,15 @@ async function getHomeScholarshipSpotlight(locale: Locale = 'en') {
           valueModel: scholarship.benefits
             ? createScholarshipValueViewModel({
               benefits: scholarship.benefits,
-              value: calculateDisplayScholarshipValue(scholarship.benefits),
+              value: calculateCandidateScholarshipValue({
+                id: scholarship.id,
+                country: scholarship.country,
+                benefits: scholarship.benefits.components,
+                valuationContexts: scholarship.valuationContexts,
+              }, null, {
+                asOf,
+                comparisonPolicy: DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
+              }),
             }, locale === 'vi' ? 'vi-VN' : 'en-US', (source, vars) => getLocaleText(locale, source, vars))
             : null,
           ranking: scholarship.ranking_note,

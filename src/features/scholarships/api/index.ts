@@ -32,6 +32,7 @@ export {
   createSupabaseScholarshipMatchingContextRepository,
   loadScholarshipMatchingContext,
 } from './matching-context-loader';
+export { calculateCandidateScholarshipValue } from './candidate-valuation';
 export {
   FREQUENTLY_PICKED_CACHE_TAG,
   FREQUENTLY_PICKED_CACHE_TTL_SECONDS,

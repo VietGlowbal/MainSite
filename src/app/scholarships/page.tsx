@@ -15,6 +15,7 @@ import {
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { localizePath, type Locale } from '@/lib/i18n/locale';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 export const metadata: Metadata = {
   title: 'Find Scholarships & Financial Aid | GlowBal',
@@ -174,6 +175,7 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
       .eq('source_type', 'scholarships');
     existingScholarships = (resources ?? []).map((resource) => ({
       ...resource,
+      url: canonicalizeExternalUrl(resource.url),
       confidence: String(resource.confidence ?? 0.7),
     }));
   }
