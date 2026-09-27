@@ -2,6 +2,7 @@
 
 import { useT } from '@/lib/i18n';
 import { Badge } from '@/shared/ui';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import { V3ReferenceList, formatV3Identifier, type V3EvidenceItem, type V3TargetSource } from './v3-report-details';
 
 export type RequirementItem = {
@@ -35,6 +36,7 @@ export function HardRequirementsSection({
   officialCourseUrl,
 }: HardRequirementsSectionProps) {
   const t = useT();
+  const safeOfficialCourseUrl = canonicalizeExternalUrl(officialCourseUrl);
 
   if (requirements.length === 0 && !courseRequirementsText && !englishRequirementsText) {
     return null;
@@ -115,14 +117,18 @@ export function HardRequirementsSection({
             </p>
           ) : null}
           {officialCourseUrl ? (
-            <a
-              href={officialCourseUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-gb-2xs w-fit text-brand font-semibold hover:underline"
-            >
-              {t('Check official course page →')}
-            </a>
+            safeOfficialCourseUrl ? (
+              <a
+                href={safeOfficialCourseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-gb-2xs w-fit text-brand font-semibold hover:underline"
+              >
+                {t('Check official course page →')}
+              </a>
+            ) : (
+              <span className="mt-gb-2xs w-fit text-fg-muted">{t('No link available')}</span>
+            )
           ) : null}
         </div>
       )}

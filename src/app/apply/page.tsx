@@ -80,7 +80,7 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
       universityName: app.university_name,
       logoUrl: university?.logo_url ?? null,
       courseName: app.course_name,
-      courseUrl: app.course_url,
+      courseUrl: canonicalizeExternalUrl(app.course_url),
       country: app.country,
       deadline: app.deadline,
       status: app.status,

@@ -140,6 +140,22 @@ Supabase environment is available; the local server repeatedly failed
 Supabase client creation. `git diff --check` passed. T2B production cost/FX
 coverage remains intentionally incomplete; no values were fabricated, and no
 schema or migration change was made.
+Working tree 2026-09-27 (saved programme URL application-flow hardening):
+legacy saved `program_url` values are canonicalized before being copied into
+`course_applications.course_url`; `/apply` and the AI report data adapter also
+drop unsafe legacy course URLs, and the matching-report render boundary
+revalidates before producing an external anchor. Invalid URLs render the
+localized non-clickable fallback with no executable href, while valid HTTP(S)
+URLs retain safe `noopener noreferrer` behavior. Focused URL/application tests
+passed (4 files / 69 tests), scholarship tests passed (27 files / 192 tests),
+base and strict typechecks passed, ESLint passed with 0 errors and 9 existing
+warnings, the i18n checker passed, and the production build passed with the
+usual missing-Supabase/fetch warnings during static generation. The full
+`npm test` run passed 4,121 tests and had 3 unrelated pre-existing API timeout
+failures. `verify:pr` remains blocked before code checks because this workspace
+uses Node 22.15.0 while `.node-version` requires Node 24.19.0. `git
+diff --check` passed; no schema, migration, or production data change was made.
+
 Working tree 2026-09-27 (Scholarship Personalization final review fixes):
 the two scoped final review fixes are implemented. An explicitly requested but
 unresolved university now fails closed before programme tuition, duration, or
