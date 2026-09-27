@@ -1,5 +1,16 @@
 # Current project status
 
+Working tree 2026-09-28 (clean-checkout CSS-module type declaration fix):
+`next-env.d.ts` is intentionally ignored and is absent before `verify:pr`, so
+fresh Ubuntu checkouts could not resolve the tracked
+`strategy-master-preview.module.css` import during strict typecheck. Added the
+single shared ambient `*.module.css` declaration at
+`src/shared/types/css-modules.d.ts`; base and strict typechecks plus full lint
+passed locally, and PR #239 shared CI verify passed on Node 24.19.0/npm 11.17.0.
+Shared E2E ran with the configured environment and reported five unrelated
+university/Home layout failures (51 passed, 10 skipped); no product behavior
+was changed for those failures.
+
 Working tree 2026-09-27 (Strategy Master concept landing page): added the temporary public route `/strategy-master`, built from the supplied preview as a CSS-only editorial landing page with the current `SiteNavigation`/`Footer` chrome, responsive AI orbit, report cards, structured feedback demo, expert placeholders, student voices, human-support cards, pricing CTA state, and inert consultation form state. The route owns its navigation suppression entries, keeps English concept copy file-scoped from the shared i18n catalog until approval, and avoids adding new dependencies or assets. Verified route HTTP 200, desktop/mobile Playwright smoke (CTA scroll, expert placeholder, form success, mobile horizontal overflow false), 28 navigation/i18n tests, strict TypeScript, scoped ESLint, and i18n static-key check (`missing static keys: 0`).
 
 **Supabase org migration — in progress (2026-09-26).** The old project
