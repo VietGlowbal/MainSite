@@ -1,5 +1,44 @@
 # Current project status
 
+**Supabase org migration — in progress (2026-09-26).** The old project
+`uooshbumyilwvbgmbixx` is API-restricted (HTTP 402,
+`exceed_storage_size_quota`; measured on Auth, REST and Storage). The owner has
+restored schema + data into a new project in another org (Free plan). Postgres
+is still reachable through the session pooler. Not yet done: Storage file bytes,
+Auth config, and the env cutover. Tools:
+`scripts/compare-supabase.mjs` (read-only old↔new diff, including rows still
+holding the old ref), `scripts/copy-supabase-storage.mjs` (dry run by default;
+refuses to push the new project past 1 GB), and
+`scripts/copy-supabase-auth-config.mjs` (Management API).
+Compare run 2026-09-26 against the new project `kvwsugncsvwvdukdmjij`:
+- **Matches:** `public` data (151 tables, 57,969 rows) and `auth.users`/identities.
+- **Missing:** Storage (6 buckets, 586 objects, 0.193 GB) and the 17
+  `storage.objects` policies.
+- **Privileges lost on restore:** there are no SELECT/INSERT/UPDATE/DELETE grants
+  for anon/authenticated/service_role. Function EXECUTE is reset to PUBLIC, the
+  26 column grants are gone, and the default privileges are narrower.
+- **Missing indexes:** 2 trigram indexes. `pg_trgm` now lives in `extensions`,
+  not `public`.
+- **Old ref still in rows:** about 210 rows in 5 columns hold the old ref.
+
+The owner applied the fix SQL (generated from the old ACLs) on 2026-09-26. The
+re-measure matches on table grants, the 26 column grants, the per-function
+grantee sets (65), 466 indexes and 101 policy groups. Still open: Storage bytes
+(the old project is 402), auth config, rewriting the old-ref URLs, and the env
+cutover. pg_cron now runs `reset_all_billing_periods` daily instead of monthly.
+The function only touches expired periods, so this was left as is.
+
+**Home sales-journey redesign — design brief written, awaiting mockups
+(2026-09-27).** The owner's PDF "Customer Journey for Sales | GlowBal" reorders
+Home into a single funnel ending at the consultation form. It also changes the
+guest nav to Home + Sign in / Sign up and gates the full menu until the form is
+submitted. The Claude Design prompt, the section-by-section delta against
+today's code, and 14 open [CONFIRM] conflicts are in
+[plans/2026-09-27-home-sales-journey-design-brief.md](plans/2026-09-27-home-sales-journey-design-brief.md).
+The biggest open item: the PDF's packages (Free / Yearly with 1 session /
+Premium with 3) do not match the checkout in `src/lib/plus.ts` (Monthly /
+Yearly with 3 / Premium with 5). No code has changed yet.
+
 Latest measured Data Platform ultra-max replay: `stage1-package-schema-fix-20260924T093711Z-drive`
 completed on 2026-09-24 from the frozen 230-programme population and raw run
 `stage1-coverage-20260922T135149Z-drive`. It generated 230 rows across 42
