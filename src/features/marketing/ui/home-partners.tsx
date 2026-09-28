@@ -792,7 +792,7 @@ export function HomePartners({
           className="relative isolate mx-auto flex w-full flex-col items-center gap-gb-6xl lg:block lg:aspect-[1020/572] lg:w-[min(88%,1120px)] lg:[container-type:inline-size]"
         >
           <div
-            className="flex flex-col items-center gap-gb-lg lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2"
+            className="flex flex-col items-center gap-gb-lg lg:absolute lg:inset-x-0 lg:top-[calc(50%_+_var(--spacing-gb-md))] lg:-translate-y-1/2"
             style={{ zIndex: ORBIT_Z_CEILING }}
           >
             {/* The money half of this line is owner-supplied and is NOT
