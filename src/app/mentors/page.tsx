@@ -46,7 +46,11 @@ const getCachedApprovedMentors = unstable_cache(
 );
 
 export default async function MentorsBrowsePage({ locale = 'en' }: { locale?: Locale } = {}) {
-  const mentors = await getCachedApprovedMentors({});
+  // Fallback outside the cache: a thrown error is not cached, an empty list is.
+  const mentors = await getCachedApprovedMentors({}).catch((error: unknown) => {
+    console.error('Error fetching mentors:', error);
+    return [];
+  });
 
   return <MentorsClient mentors={mentors} locale={locale} />;
 }
