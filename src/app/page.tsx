@@ -131,7 +131,7 @@ export const revalidate = 43200;
  * directory index for those — see the ⚠️ on `findIdsByNames`. That is what keeps
  * a rename in the `universities` table from turning a crest into a 404.
  */
-const getPartnerUniversityIds = unstable_cache(
+const getPartnerUniversityIdsCached = unstable_cache(
   async (): Promise<(number | null)[]> => {
     const idsByName = await getUniversityQueries().findIdsByNames(
       PARTNER_LOGOS.map((logo) => logo.name),
@@ -153,6 +153,20 @@ async function getGlobeCountries(): Promise<GlobeCountry[]> {
   } catch (error) {
     console.error('Home globe countries failed:', error);
     return [];
+  }
+}
+
+/**
+ * The all-null fallback lives OUTSIDE the cache on purpose: a database error
+ * throws through `unstable_cache` uncached, so the next request retries instead
+ * of serving unlinked crests for twelve hours.
+ */
+async function getPartnerUniversityIds(): Promise<(number | null)[]> {
+  try {
+    return await getPartnerUniversityIdsCached();
+  } catch (error) {
+    console.error('Home partner university ids failed:', error);
+    return PARTNER_LOGOS.map(() => null);
   }
 }
 

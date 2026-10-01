@@ -20,6 +20,13 @@ const privateSegments = new Set(['profile', 'dashboard', 'apply', 'onboarding', 
 // Vietnamese copy. Keep them visible in the report, but do not treat their
 // source language as an untranslated UI regression.
 const authoritativeVietnameseRoutes = new Set(['/privacy', '/terms']);
+// This temporary concept page intentionally remains English-only until its
+// copy is approved for the shared catalog. Keep the exemption file-scoped so
+// other no-auto subtrees still fail the normal missing-key check.
+const noAutoEnglishFiles = new Set([
+  'src/app/strategy-master/page.tsx',
+  'src/features/marketing/ui/strategy-master-preview.tsx',
+]);
 function isAuthoritativeVietnameseRoute(route) {
   return typeof route === 'string' && (route === '/vi' || route.startsWith('/vi/') || authoritativeVietnameseRoutes.has(route));
 }
@@ -328,7 +335,9 @@ function main() {
   );
   const scopedOccurrences = dedupeByRouteAndKey(occurrences.filter((item) => !isExcludedOccurrence(item)));
   const dictionaryBacked = scopedOccurrences.filter(({ key }) => dictionary[key] !== undefined);
-  const candidates = scopedOccurrences.filter(({ key }) => dictionary[key] === undefined && !hasVietnamese(key));
+  const candidates = scopedOccurrences.filter(({ key, file }) =>
+    dictionary[key] === undefined && !hasVietnamese(key) && !noAutoEnglishFiles.has(file),
+  );
   const viSource = scopedOccurrences.filter(({ key }) => hasVietnamese(key));
   const viSourceProtected = viSource.filter(({ key, route }) =>
     isAuthoritativeVietnameseRoute(route) || isViSourceProtected(key),

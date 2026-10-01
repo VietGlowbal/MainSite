@@ -54,9 +54,12 @@ export class SupabaseUniversityRepository implements UniversityQueries {
         : q.order('qs_rank', { ascending: true, nullsFirst: false });
 
     const { data, error, count } = await q;
+    // Throw, never return an empty page: the directory caches this for 12 hours
+    // (`unstable_cache` stores whatever resolves), so an outage would be served
+    // as "no universities" long after the database recovers. A throw is not
+    // cached. Measured 2026-09-29 after the Supabase 402 restriction.
     if (error) {
-      console.error('UniversityRepository.list failed:', error.message);
-      return toPage<UniversityListItem>([], 0, page, pageSize);
+      throw new Error(`UniversityRepository.list failed: ${error.message}`);
     }
 
     const items = (data ?? []) as unknown as UniversityListItem[];
@@ -148,9 +151,9 @@ export class SupabaseUniversityRepository implements UniversityQueries {
       .order('id', { ascending: true })
       .limit(5000);
 
+    // Throws for the same reason as `list`: the caller caches the result.
     if (error) {
-      console.error('UniversityRepository.findIdsByNames failed:', error.message);
-      return {};
+      throw new Error(`UniversityRepository.findIdsByNames failed: ${error.message}`);
     }
 
     const byNormalisedName = new Map<string, number>();
@@ -177,9 +180,9 @@ export class SupabaseUniversityRepository implements UniversityQueries {
       .from('universities')
       .select('country', { count: 'exact' });
 
+    // Throws for the same reason as `list`: the caller caches the result.
     if (error) {
-      console.error('UniversityRepository.facets failed:', error.message);
-      return { countries: [], total: 0 };
+      throw new Error(`UniversityRepository.facets failed: ${error.message}`);
     }
 
     const rows = (data ?? []) as Array<{ country: string | null }>;

@@ -25,6 +25,7 @@ const EXACT_ROUTES_WITHOUT_GLOBAL_NAV = new Set([
   '/onboarding',
   '/plus',
   '/plus/success',
+  '/strategy-master',
   '/universities',
 ]);
 
