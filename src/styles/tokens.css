@@ -67,10 +67,24 @@
      but only 600 is design-confirmed. */
   --color-gb-brand-50: #fff1f2;
   --color-gb-brand-100: #ffe4e6;
+  /* Tailwind rose-200. Added 2026-10-01 so the Home ramp can leave the rose
+     numbers band on a visible pink and fade to white over three sections. */
+  --color-gb-brand-200: #fecdd3;
   --color-gb-brand-300: #fda4af;
   --color-gb-brand-500: #f43f5e;
   --color-gb-brand-600: #e11d48; /* Figma: Colors/Rose/600 — CONFIRMED */
   --color-gb-brand-700: #be123c;
+
+  /* Home v2 marketing surfaces. These values come from the owner-supplied
+     glowbal-home-redesign-v2.html rather than the legacy Figma kit. They are
+     intentionally scoped as marketing colours: the product UI continues to
+     use the neutral and brand ramps above. */
+  --color-gb-marketing-wine-950: #170008;
+  --color-gb-marketing-wine-900: #29000f;
+  --color-gb-marketing-wine-800: #52001e;
+  /* The crimson seam between the stories band and the rose numbers band — on
+     the line from wine-800 to brand-600, so the ramp never changes hue. */
+  --color-gb-marketing-wine-700: #8c0a30;
 
   /* ── Product icon tones — from the icon plan (handoff v1.0) ──────────────
      Two literals the plan specifies that no step here matches, recorded rather
@@ -455,31 +469,22 @@
   --gb-verified: var(--color-gb-blue-500);
 
   /* ── Hero globe ───────────────────────────────────────────────────────────
-     The colours the dot globe in the homepage hero lights up with.
+     The two colours the dot globe in the homepage hero draws with.
 
-     TOKENS RATHER THAN LITERALS IN THE COMPONENT for two reasons. Canvas needs
-     real colour strings, and eslint bans raw hex under src/features — but more
-     usefully, a palette is design-system data and belongs where a designer can
-     find it.
+     TOKENS RATHER THAN LITERALS IN THE COMPONENT: canvas needs real colour
+     strings, eslint bans raw hex under src/features, and a palette is
+     design-system data that belongs where a designer can find it.
 
-     WHY THESE FIVE. The prototype this came from flashed twenty-one hues —
-     neon red, crimson, electric blue, matrix green, solar gold, violet — all at
-     once. Every colour clashing with its neighbour is what makes that read as
-     television static rather than as something alive. These five are the brand
-     rose and the logo gradient's own pink and aqua, plus the two hues that
-     bridge them, so any pair that happens to light up together still looks
-     deliberate. No green, no yellow: neither is in the brand, and they are what
-     made the prototype look like a Christmas tree.
-
-     Ordered warm to cool. The component walks the list rather than picking at
-     random, so consecutive blooms are adjacent hues. */
-  --gb-globe-flash-1: var(--color-gb-brand-600); /* rose 600 — the brand */
-  --gb-globe-flash-2: #ff4d8c;                   /* logo pink */
-  --gb-globe-flash-3: #c084fc;                   /* violet bridge */
-  --gb-globe-flash-4: #38bdf8;                   /* sky */
-  --gb-globe-flash-5: #00b4d8;                   /* logo aqua */
-  /* The dots that are not lit. Near-white on the black hero band. */
-  --gb-globe-dot: var(--color-gb-neutral-0);
+     GREY LAND, ROSE DATA (sales-journey handoff, 2026-09-27). The globe used to
+     flash five hues at random — rose, the logo's pink and aqua, and a violet and
+     a sky bridging them. The redesign makes the colour MEAN something: land is
+     neutral, and only the countries GlowBal has scholarship data for are lit,
+     in the brand's rose-500 (the accent that reads on black). The brief is
+     explicit that rose is the only accent on this page, so the four other hues
+     — and the partner heading's gradient built from them — were retired
+     together. */
+  --gb-globe-land: var(--color-gb-neutral-400);
+  --gb-globe-lit: var(--color-gb-brand-500);
 
   /* There is deliberately no sea or rim colour here. A filled navy sphere with
      a lit limb was tried behind the dots and taken back out: at hero size it
@@ -715,14 +720,16 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Home partner orbit — the swapping word in "Study <university>"
-   (src/features/marketing/ui/home-partners.tsx). ⚠️ NOT DESIGN-CONFIRMED.
+   Home partner orbit — the swapping word in "Study <country>"
+   (src/features/marketing/ui/home-partners.tsx).
 
-   No frame draws this: the heading in Figma 104:7135 is the flat "Our featured
-   partners" that section shipped with, and both the flip and the colour come
-   from a reference prototype the owner supplied. Recorded here rather than
-   inlined for the reason at the top of this file — the alternative is a
-   component inventing its own gradient and its own two keyframes.
+   The flip comes from a reference prototype the owner supplied; the sales-
+   journey handoff (2026-09-27) keeps it but paints the word solid rose-500 and
+   swaps in the hovered crest's COUNTRY rather than its short name. The word's
+   old pink→aqua gradient was retired with the globe's five-hue palette (see
+   "Hero globe" above). Recorded here rather than inlined for the reason at the
+   top of this file — the alternative is a component inventing its own
+   keyframes.
 
    WHY TWO KEYFRAMES AND NOT A CROSSFADE. The prototype rotates the word about
    the horizontal axis, and the direction is load-bearing: the outgoing word's
@@ -766,21 +773,181 @@
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Sales-journey Home — ONE background ramp: black → rose → white.
+
+   The owner's content PDF ("General visual guidelines") asks for the Home
+   background to run black → red → white as one wash, and the owner asked again
+   on 2026-09-29 after the first v2 build read as a stack of separate bands.
+
+   Each band is its own gradient because sections change height with the
+   viewport (and the scholarship preview expands in place): one gradient on the
+   page wrapper would slide its colours under the sections as they resize.
+   Instead every band ENDS on exactly the colour the next one STARTS on, so the
+   seams vanish at every width.
+
+   The light half is spread over three bands (owner, 2026-10-01: the first
+   version went white right after the team and read as "white from there on";
+   white should arrive at GlowBal Packages, whose rose glow already carries
+   colour). Pink → blush → white across team, journey and features; pricing
+   and the consultation form are white.
+
+   ⚠️ A seam colour lives in TWO bands — change both or the seam comes back:
+       hero → showcase       wine-950
+       showcase → stories    wine-800
+       stories → numbers     wine-700
+       numbers → team        brand-200
+       team → journey        brand-100
+       journey → features    brand-50
+       features → the rest   neutral-0
+
+   Headings on the pink bands use the `tint` keyword tone (home-highlight.tsx):
+   the light tone's rose-500 end is only 2.6:1 on brand-200.
+
+   The numbers band holds its rose until 240px from its foot and fades to
+   brand-200 there, i.e. inside its bottom padding, below the cards — no text
+   ever sits on the mid-fade colour. Glows inside a band must stay clear of its
+   top and bottom edges: a blurred blob clipped by `overflow-hidden` at a seam
+   draws exactly the hard line this ramp exists to remove.
+
+   Consumed in features/marketing/ui/home-* as an arbitrary background-image
+   utility naming ONE band, e.g. `bg-[image:var(--gb-home-band-hero)]`.
+   ⚠️ Never write that utility with a wildcard in place of the band name, even
+   in a comment: Tailwind scans comments and docs for class candidates, and a
+   wildcard one compiles to `var(--gb-home-band-*)`, which is invalid CSS and
+   took the dev server down with a 500 on 2026-09-29.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* The word's fill, painted through background-clip: text.
-     Built from the globe's flash palette above rather than a new set of hues —
-     those five are already the vetted "colourful but still GLOWBAL" ramp (see
-     the note on why the prototype's twenty-one were cut to five), and this word
-     sits on the same near-black band the globe does. Rose 600 is left out on
-     purpose: it is the CTA fill, and a heading wearing the button's colour
-     reads as something you can press. */
-  --gb-partner-word: linear-gradient(
-    100deg,
-    var(--gb-globe-flash-2) 0%,
-    var(--gb-globe-flash-3) 38%,
-    var(--gb-globe-flash-4) 70%,
-    var(--gb-globe-flash-5) 100%
+  --gb-home-band-hero: linear-gradient(
+    to bottom,
+    var(--color-gb-neutral-1000) 45%,
+    var(--color-gb-marketing-wine-950)
   );
+  --gb-home-band-showcase: linear-gradient(
+    to bottom,
+    var(--color-gb-marketing-wine-950),
+    var(--color-gb-marketing-wine-900) 55%,
+    var(--color-gb-marketing-wine-800)
+  );
+  --gb-home-band-stories: linear-gradient(
+    to bottom,
+    var(--color-gb-marketing-wine-800),
+    var(--color-gb-marketing-wine-700)
+  );
+  --gb-home-band-numbers: linear-gradient(
+    to bottom,
+    var(--color-gb-marketing-wine-700),
+    var(--color-gb-brand-600) 42%,
+    var(--color-gb-brand-500) calc(100% - 240px),
+    var(--color-gb-brand-200)
+  );
+  --gb-home-band-team: linear-gradient(
+    to bottom,
+    var(--color-gb-brand-200),
+    var(--color-gb-brand-100)
+  );
+  --gb-home-band-journey: linear-gradient(
+    to bottom,
+    var(--color-gb-brand-100),
+    var(--color-gb-brand-50)
+  );
+  --gb-home-band-features: linear-gradient(
+    to bottom,
+    var(--color-gb-brand-50),
+    var(--color-gb-neutral-0)
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Sales-journey Home (design handoff 2026-09-27) — the section motions.
+
+   Each one is a design annotation from the handoff, and each is switched off
+   at the call site with `motion-reduce:animate-none` (the travelling dot is
+   hidden outright — a stationary glowing dot on a rail reads as a bug).
+
+   - `gb-journey-travel-*` moves the rose dot along the "Your GlowBal journey"
+     rail (PROPOSAL in the handoff). It animates a TRANSFORM on a full-length
+     wrapper rather than `left`/`top` on the dot: translate percentages refer to
+     the element itself, so a wrapper as long as the rail carries the dot from
+     one end to the other on the compositor, with no layout per frame.
+   - `gb-rule-draw` is the rose rule that draws in under each Standout-number
+     card (700ms ease-out; the stagger is an animation-delay at the call site).
+   - `gb-bar-breathe` is the rose bars in the feature demo's fallback mock
+     (2.6s+, a per-bar duration offset at the call site so they never sync).
+   - `gb-pkg-flash` is the 6px rose-100 ring the consultation form's package
+     card pulses when a Pricing CTA pre-selects it (1.6s).
+   - `gb-team-dwell` fills the active dot under the GlowBal Team wall while the
+     centre card rests. It is also the wall's CLOCK: its `animationend` turns
+     the wall, so `animation-play-state: paused` (hover, keyboard focus, the
+     dialog, off-screen) pauses the rotation exactly where it was. The 5s here
+     is overridden inline by `DWELL_MS` in home-team.tsx.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --animate-gb-journey-travel-x: gb-journey-travel-x 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  --animate-gb-journey-travel-y: gb-journey-travel-y 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  --animate-gb-rule-draw: gb-rule-draw 700ms ease-out both;
+  --animate-gb-bar-breathe: gb-bar-breathe 2.6s ease-in-out infinite;
+  --animate-gb-pkg-flash: gb-pkg-flash 1.6s ease-out both;
+  --animate-gb-team-dwell: gb-team-dwell 5s linear both;
+
+  @keyframes gb-team-dwell {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes gb-journey-travel-x {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes gb-journey-travel-y {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(100%);
+    }
+  }
+
+  @keyframes gb-rule-draw {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes gb-bar-breathe {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.62);
+    }
+  }
+
+  @keyframes gb-pkg-flash {
+    0% {
+      box-shadow: 0 0 0 0 var(--color-gb-brand-100);
+    }
+    15%,
+    80% {
+      box-shadow: 0 0 0 6px var(--color-gb-brand-100);
+    }
+    100% {
+      box-shadow: 0 0 0 0 var(--color-gb-brand-100);
+    }
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

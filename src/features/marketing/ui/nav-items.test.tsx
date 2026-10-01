@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getMarketingNavPresentation } from './nav-items';
 
 describe('getMarketingNavPresentation', () => {
-  it('returns the new-user matrix and registration action for a guest', () => {
+  it('returns the new-user matrix with Sign up and Sign in for a guest', () => {
     expect(getMarketingNavPresentation({ signedIn: false, completed: false })).toEqual({
       items: [
         { href: '/', label: 'Home' },
@@ -18,8 +18,8 @@ describe('getMarketingNavPresentation', () => {
         { href: '/ai-strategy', label: 'Strategy Master' },
         { href: '/apply#portal', label: 'My Portal' },
       ],
-      primaryAction: { href: '/onboarding', label: 'Plan your Global Education' },
-      accountAction: { href: '/auth?mode=signup', label: 'Register' },
+      primaryAction: { href: '/auth?mode=signup', label: 'Sign up' },
+      accountAction: { href: '/auth', label: 'Sign in' },
     });
   });
 

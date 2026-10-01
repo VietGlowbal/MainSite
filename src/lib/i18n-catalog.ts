@@ -7,6 +7,7 @@ import { MATCHING_REPORT_TRANSLATIONS } from './i18n-matching-report';
 import { FINAL_CHECK_TRANSLATIONS } from './i18n-final-check';
 import { STRATEGY_REPORT_TRANSLATIONS } from './i18n-strategy-report';
 import { AUTH_TRANSLATIONS } from './i18n-auth';
+import { HOME_TRANSLATIONS } from './i18n-home';
 
 /**
  * Runtime/static-audit translation catalog.
@@ -15,6 +16,10 @@ import { AUTH_TRANSLATIONS } from './i18n-auth';
  * turning the base navigation/product dictionary into an unstructured dump.
  */
 export const translations: Record<string, string> = {
+  // FIRST on purpose: every catalog below overrides it, so a Home string that
+  // already had an approved translation elsewhere keeps that one — the Home
+  // catalog can only add keys, never change copy on another page.
+  ...HOME_TRANSLATIONS,
   ...baseTranslations,
   ...PERSONAL_REPORT_TRANSLATIONS,
   ...APPLICATION_FLOW_TRANSLATIONS,

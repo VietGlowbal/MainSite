@@ -5,6 +5,7 @@ import {
   ORBIT_TOTAL_LENGTH,
   ORBIT_VIEWBOX,
   orbitArcDistance,
+  orbitDepthScale,
   orbitPointAt,
   parseCubicPath,
   sampleOrbit,
@@ -208,5 +209,17 @@ describe('orbitArcDistance', () => {
   it('matches the direct calculation for points that do not cross the seam', () => {
     const distance = orbitArcDistance(0.3, 0.45);
     expect(distance).toBeCloseTo(0.15 * ORBIT_TOTAL_LENGTH, 1);
+  });
+});
+
+describe('orbitDepthScale', () => {
+  it('runs 0.55 at the back of the ring to 1.25 at the front', () => {
+    expect(orbitDepthScale(0)).toBeCloseTo(0.55, 5);
+    expect(orbitDepthScale(1)).toBeCloseTo(1.25, 5);
+  });
+
+  it('never shrinks a crest below the back-of-ring size anywhere on the lap', () => {
+    const smallest = Math.min(...ORBIT_SAMPLES.map((point) => orbitDepthScale(point.depth)));
+    expect(smallest).toBeGreaterThanOrEqual(0.55 - 1e-9);
   });
 });

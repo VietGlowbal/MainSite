@@ -152,6 +152,9 @@ describe('NavigationSessionProvider', () => {
         id: 'user-1',
         name: 'Test Student',
         avatarUrl: 'https://example.com/avatar.png',
+        // Pre-filled (read-only) into the Home consultation form.
+        email: 'student@example.com',
+        fullName: 'Test Student',
       },
       completed: true,
     });

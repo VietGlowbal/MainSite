@@ -14,6 +14,7 @@ import {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
   type HomeScholarshipHighlights,
+  type ScholarshipCountryCount,
   type ScholarshipFacets,
   type ScholarshipForUniversity,
   type ScholarshipLabel,
@@ -284,6 +285,78 @@ const facetsCached = unstable_cache(
   { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
 );
 
+type CountryLinkRow = {
+  scholarship_id: number;
+  scholarships: { status: string; country: string | null } | null;
+  universities: { country: string | null } | null;
+};
+
+/**
+ * Count distinct scholarships per country. A scholarship's own `country` wins
+ * over its universities' (the `coalesce(s.country, u.country)` the Home figures
+ * were measured with), and one scholarship counts once per country however
+ * many of that country's universities it links. Exported for tests.
+ */
+export function tallyScholarshipCountries(
+  direct: ReadonlyArray<{ id: number; country: string | null }>,
+  links: ReadonlyArray<{ scholarship_id: number; universities: { country: string | null } | null }>,
+): ScholarshipCountryCount[] {
+  const byCountry = new Map<string, Set<number>>();
+  const add = (country: string | null | undefined, scholarshipId: number) => {
+    const name = country?.trim();
+    if (!name || !Number.isFinite(scholarshipId)) return;
+    const ids = byCountry.get(name) ?? new Set<number>();
+    ids.add(scholarshipId);
+    byCountry.set(name, ids);
+  };
+
+  const hasOwnCountry = new Set<number>();
+  for (const row of direct) {
+    const id = Number(row.id);
+    if (row.country?.trim()) hasOwnCountry.add(id);
+    add(row.country, id);
+  }
+  for (const row of links) {
+    const id = Number(row.scholarship_id);
+    if (!hasOwnCountry.has(id)) add(row.universities?.country, id);
+  }
+
+  return [...byCountry.entries()]
+    .map(([country, ids]) => ({ country, count: ids.size }))
+    .sort((a, b) => b.count - a.count || a.country.localeCompare(b.country));
+}
+
+/**
+ * Per-country counts for the Home globe.
+ *
+ * Two reads, both small: `scholarships.country` is filled on only 18 of 2,877
+ * rows (measured 2026-09-27), so almost every country comes through the 374-row
+ * `scholarship_universities` join instead. The union is deduplicated per
+ * (country, scholarship) so a scholarship linked to three UK universities is
+ * one UK scholarship, not three.
+ */
+const countryCountsCached = unstable_cache(
+  async (): Promise<ScholarshipCountryCount[]> => {
+    const admin = createAdminClient();
+    const [direct, links] = await Promise.all([
+      admin.from('scholarships').select('id, country').eq('status', 'published').not('country', 'is', null),
+      admin
+        .from('scholarship_universities')
+        .select('scholarship_id, scholarships!inner(status, country), universities!inner(country)')
+        .eq('scholarships.status', 'published'),
+    ]);
+    if (direct.error) throw new Error(`Scholarship country query failed: ${direct.error.message}`);
+    if (links.error) throw new Error(`Scholarship country links query failed: ${links.error.message}`);
+
+    return tallyScholarshipCountries(
+      (direct.data ?? []) as Array<{ id: number; country: string | null }>,
+      (links.data ?? []) as unknown as CountryLinkRow[],
+    );
+  },
+  ['published-scholarship-country-counts'],
+  { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
+);
+
 /**
  * Columns the "scholarships available here" strip on a university needs.
  *
@@ -476,5 +549,9 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
 
   async facets(): Promise<ScholarshipFacets> {
     return facetsCached();
+  }
+
+  async countryCounts(): Promise<ScholarshipCountryCount[]> {
+    return countryCountsCached();
   }
 }

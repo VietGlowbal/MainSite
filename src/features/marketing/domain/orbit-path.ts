@@ -291,3 +291,22 @@ export function orbitPointAt(
     depth: from.depth + (to.depth - from.depth) * t,
   };
 }
+
+/** Depth scale range: 0.55 at the back of the orbit to 1.25 at the front —
+    wider than an earlier build's 0.55–1.15, matching the reference. Depth
+    affects only size and stacking order, never colour — the reference's
+    opacity fade at the back horizon (down to 0.35) is deliberately not
+    carried over: it read as the logos dimming as they orbit, and a
+    university's crest is a fixed mark, not something that should look
+    different depending on where it currently sits on the ring. */
+const DEPTH_SCALE_FROM = 0.55;
+const DEPTH_SCALE_SPAN = 0.7;
+
+/**
+ * How big a crest is drawn at a given `depth` (see OrbitPoint), before any
+ * hover pop. Lives here rather than in the component so the e2e heading test
+ * can walk the whole lap at the real sizes instead of copying the numbers.
+ */
+export function orbitDepthScale(depth: number): number {
+  return DEPTH_SCALE_FROM + depth * DEPTH_SCALE_SPAN;
+}

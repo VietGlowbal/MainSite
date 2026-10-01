@@ -2,20 +2,20 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
+import { scrollToConsultation } from './home-consultation';
 import { HomeScholarshipPreview } from './home-scholarship-preview';
 import type { ScholarshipTeaser } from './home-scholarship-pillars';
-import {
-  PARTNER_TOTAL_SCHOLARSHIP_VALUE,
-  partnerScholarshipValue,
-} from './partner-scholarship-value';
+import { PARTNER_TOTAL_SCHOLARSHIP_VALUE } from './partner-scholarship-value';
+import { highlightPhrases } from './home-highlight';
 import {
   ORBIT_SAMPLES,
   ORBIT_TOTAL_LENGTH,
   ORBIT_VIEWBOX,
   orbitArcDistance,
+  orbitDepthScale,
   orbitPointAt,
 } from '../domain/orbit-path';
 import { TID, testId } from '@/shared/lib';
@@ -24,6 +24,18 @@ import { PARTNER_LOGOS } from './partner-logos';
 /**
  * Partner logos, orbiting a tilted ellipse and reacting to hover with a
  * shockwave — replaces the Figma 104:7135 scatter this section started as.
+ *
+ * ─── SALES-JOURNEY HANDOFF (2026-09-27, §2 "Scholarship showcase") ──────────
+ *
+ * A light touch, per the brief. What changed: "Study <word>" now swaps in the
+ * hovered crest's COUNTRY (EN/VI, see partner-logos.ts) in solid rose-500 —
+ * the pink→aqua gradient went with the globe's five-hue palette, since rose is
+ * the page's only accent; the hovered or focused crest gets a 2px rose ring;
+ * below `lg` the crests are one horizontal scroll row above left-aligned copy;
+ * and the library preview's cards follow the handoff's anatomy (see
+ * home-scholarship-preview.tsx). What did not: the orbit, the shockwave and its
+ * sound, and every crest still linking to its university (owner, 2026-09-27:
+ * crests stay clickable until page gating is decided).
  *
  * ─── THE SHOCKWAVE, PORTED FROM A SUPPLIED REFERENCE ────────────────────────
  *
@@ -185,15 +197,6 @@ const HOVER_LOCK_MS = 500;
 const FOCUS_SCALE = 1.25;
 /** How far the hovered logo lifts, px. */
 const FOCUS_LIFT_PX = 14;
-/** Depth scale range: 0.55 at the back of the orbit to 1.25 at the front —
-    wider than an earlier build's 0.55–1.15, matching the reference. Depth
-    affects only size and stacking order here, never colour — the reference's
-    opacity fade at the back horizon (down to 0.35) is deliberately not
-    carried over: it read as the logos dimming as they orbit, and a
-    university's crest is a fixed mark, not something that should look
-    different depending on where it currently sits on the ring. */
-const DEPTH_SCALE_FROM = 0.55;
-const DEPTH_SCALE_SPAN = 0.7;
 /** Degrees a logo tilts away from the hovered one at full impact, capped and
     tapering with index distance around the ring. */
 const TILT_MAX_DEG = 12;
@@ -207,12 +210,13 @@ const ORBIT_Z_CEILING = FOCUS_Z_INDEX + 1;
 
 /** What the heading says while nothing is hovered: "Study Anywhere". */
 const DEFAULT_STUDY_WORD = 'Anywhere';
-/** Every word the heading's second slot can hold, which is what reserves its
-    width. Order is irrelevant — they all occupy the same grid cell. */
-const STUDY_WORDS: readonly string[] = [
-  DEFAULT_STUDY_WORD,
-  ...PARTNER_LOGOS.map((logo) => logo.shortName),
-];
+
+/** Every word the heading's second slot can hold in this locale, which is what
+    reserves its width. Order is irrelevant — they all occupy one grid cell. */
+function studyWords(locale: Locale): readonly string[] {
+  const countries = PARTNER_LOGOS.map((logo) => (locale === 'vi' ? logo.country.vi : logo.country.en));
+  return [...new Set([getLocaleText(locale, DEFAULT_STUDY_WORD), ...countries])];
+}
 /** Must be ≥ the flip-out animation in tokens.css, or the outgoing word is
     unmounted mid-rotation and disappears instead of finishing. */
 const WORD_FLIP_OUT_MS = 260;
@@ -324,7 +328,7 @@ type OrbitVars = {
     itself now runs ~110ms) without needing a separate boolean plumbed through. */
 function orbitVars(progress: number, focus: number, tiltDeg: number, offsetPx: number): OrbitVars {
   const point = orbitPointAt(ORBIT_SAMPLES, progress);
-  const depthScale = DEPTH_SCALE_FROM + point.depth * DEPTH_SCALE_SPAN;
+  const depthScale = orbitDepthScale(point.depth);
   return {
     x: `${((point.x / ORBIT_VIEWBOX.width) * 100).toFixed(3)}%`,
     y: `${((point.y / ORBIT_VIEWBOX.height) * 100).toFixed(3)}%`,
@@ -347,8 +351,11 @@ function orbitStyle(vars: OrbitVars): CSSProperties {
 }
 
 const NODE_CLASSES = [
-  /* Mobile: the centred wrap, at close to the images' real resolution. */
-  'relative aspect-square w-[88px] overflow-hidden rounded-gb-md',
+  /* Mobile: one tile in the horizontal scroll row, near the images' real size. */
+  'relative aspect-square w-[88px] shrink-0 overflow-hidden rounded-gb-md',
+  /* The handoff's 2px rose ring on the crest being pointed at. A box-shadow on
+     the node itself, so the node's own `overflow-hidden` cannot clip it. */
+  'transition-shadow hover:shadow-[0_0_0_2px_var(--color-brand)] focus-within:shadow-[0_0_0_2px_var(--color-brand)]',
   /* Desktop: a point on the orbit, centred on it. Full opacity always — depth
      is conveyed by scale and stacking order only, never by fading colour. */
   'lg:absolute lg:left-[var(--orbit-x)] lg:top-[var(--orbit-y)] lg:w-[9.8%]',
@@ -360,11 +367,11 @@ const NODE_CLASSES = [
 /**
  * The second word of "Study <somewhere>", rotating down as it changes.
  *
- * The gradient fill and both keyframes are tokens — see the partner-orbit block
- * at the end of src/styles/tokens.css, which also explains why the rotation goes
- * the way it does.
+ * Both keyframes are tokens — see the partner-orbit block in
+ * src/styles/tokens.css, which also explains why the rotation goes the way it
+ * does. `word` arrives already localized; `reserve` is every word it could be.
  */
-function StudyWord({ word, locale }: { word: string; locale: Locale }) {
+function StudyWord({ word, reserve }: { word: string; reserve: readonly string[] }) {
   /** `nonce` exists to key the two animated spans: React reuses a DOM node when
       only its text changes, and a reused node does not replay a CSS animation.
       Bumping it on every swap forces a fresh element, which is what makes the
@@ -394,19 +401,14 @@ function StudyWord({ word, locale }: { word: string; locale: Locale }) {
     return () => clearTimeout(timer);
   }, [shown.nonce, shown.leaving]);
 
-  /* The gradient is painted through the glyphs, so the text itself has no
-     colour of its own — `text-transparent` is what makes the fill visible, not
-     an accident.
-
-     `text-left` OVERRIDES the `text-center` inherited from the h2. Without it,
-     a short word (MIT, NUS, HKU) centres inside the reservation cell above —
-     which is sized for "Cambridge"/"ETH Zürich" — and ends up floating well
-     right of "Study" with a big gap in between. Left-aligning pins every word
-     flush against "Study "; the leftover reserved width still trails invisibly
-     after the word, so the line's total width (and therefore "Study"'s
-     position) still never jitters as words change. */
+  /* `text-left` OVERRIDES the `text-center` inherited from the heading block.
+     Without it, a short word (Anh, Mỹ) centres inside the reservation cell —
+     which is sized for "the United Kingdom" — and floats well right of "Study"
+     with a gap in between. Left-aligning pins every word flush against
+     "Study "; the leftover reserved width trails invisibly after it, so the
+     line's total width (and "Study"'s position) never jitters. */
   const wordClasses =
-    'col-start-1 row-start-1 whitespace-nowrap text-left bg-[image:var(--gb-partner-word)] bg-clip-text text-transparent';
+    'col-start-1 row-start-1 whitespace-nowrap text-left font-semibold text-gb-brand-500';
 
   /* inline-grid, not inline-block: every word below shares ONE cell
      (col-start-1 row-start-1), which both stacks them and makes the cell as wide
@@ -419,8 +421,8 @@ function StudyWord({ word, locale }: { word: string; locale: Locale }) {
           in this file's header for why this is not a `longest by length` guess.
           data-no-auto-translate: these are institution names, and translating
           text nobody can see would be a round trip for nothing. */}
-      <span aria-hidden="true" data-no-auto-translate className="invisible col-start-1 row-start-1 grid">
-        {STUDY_WORDS.map((candidate) => (
+      <span aria-hidden="true" data-no-auto-translate className="invisible col-start-1 row-start-1 grid font-semibold">
+        {reserve.map((candidate) => (
           <span key={candidate} className="col-start-1 row-start-1 whitespace-nowrap">
             {candidate}
           </span>
@@ -441,15 +443,14 @@ function StudyWord({ word, locale }: { word: string; locale: Locale }) {
         </span>
       ) : null}
 
-      {/* Only the default word is translatable; the rest are university names,
-          which the i18n rules say are never translated. The attribute is
-          conditional rather than always-on for exactly that reason. */}
+      {/* Every word arrives already in the page's language (the countries carry
+          both), so none of them is handed to machine translation. */}
       <span
         key={`in-${shown.nonce}`}
-        {...(shown.word === DEFAULT_STUDY_WORD ? {} : { 'data-no-auto-translate': true })}
+        data-no-auto-translate
         className={`${wordClasses} animate-gb-word-flip-in motion-reduce:animate-none`}
       >
-          {shown.word === DEFAULT_STUDY_WORD ? getLocaleText(locale, shown.word) : shown.word}
+        {shown.word}
       </span>
     </span>
   );
@@ -487,23 +488,6 @@ export function HomePartners({
    * reading layer, and opening it on load would bury the orbit it belongs to.
    */
   const [previewOpen, setPreviewOpen] = useState(false);
-
-  /**
-   * Both the cards and the preview's own button land here — the consultation
-   * form at the foot of Home (`id="contact"`, home-contact.tsx).
-   *
-   * `scrollIntoView` rather than `location.hash = '#contact'`: the hash would
-   * also push a history entry, so Back from the form would "return" to the same
-   * page with the preview freshly closed, which reads as the site losing the
-   * visitor's place. Honours reduced motion, because a full-page glide is
-   * exactly the kind of movement that setting asks not to happen.
-   */
-  const scrollToContact = useCallback(() => {
-    const target = document.getElementById('contact');
-    if (target === null) return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-  }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   /** Which logo is hovered, and since when — read every frame by the loop, so
       kept in a ref rather than state (a state update would re-render eleven
@@ -771,8 +755,12 @@ export function HomePartners({
   }, []);
 
   return (
-    <section {...testId(TID.heroPartners)} className="bg-surface-inverse-strong text-white">
-      <div className="mx-auto w-full max-w-[1440px] px-gb-xl py-gb-9xl">
+    <section
+      id="scholarships"
+      {...testId(TID.heroPartners)}
+      className="scroll-mt-gb-9xl overflow-hidden bg-[image:var(--gb-home-band-showcase)] text-white"
+    >
+      <div className="mx-auto w-full max-w-[1440px] px-gb-xl py-gb-7xl md:px-gb-4xl md:py-gb-9xl">
         {/* The stage is the orbit's coordinate space: its aspect ratio is the
             curve's viewBox, so a percentage of it is a point on the curve, and
             `container-type` lets the heading scale with it — 4.7059cqw is 48/1020
@@ -787,12 +775,27 @@ export function HomePartners({
             in the root stacking context and beat every Modal (z-[100]) — the
             privacy-settings dialog had this heading and its button painted
             over its own text. */}
+        {/* Below `lg` the handoff stacks a crest scroll row ABOVE left-aligned
+            copy; the DOM keeps copy first (the reading order) and `order-first`
+            lifts the row visually. */}
         <div
           ref={stageRef}
-          className="relative isolate mx-auto flex w-full flex-col items-center gap-gb-6xl lg:block lg:aspect-[1020/572] lg:w-[min(88%,1120px)] lg:[container-type:inline-size]"
+          className="relative isolate mx-auto flex w-full flex-col gap-gb-4xl lg:block lg:aspect-[1020/572] lg:w-[min(88%,1120px)] lg:[container-type:inline-size]"
         >
+          {/* ⚠️ `lg:top-[55%]` and the heading's `lg:max-w-[54cqw]` are what
+              keep the text out of the crests' path — measured over the WHOLE
+              lap, not at one moment. The ring's upper-left arc crosses the
+              top-left corner of a centred block: at `top-1/2` / `61cqw` the
+              heading's box sat ~20px inside the path at every width for ~3%
+              of each lap (and the first line's text itself at 1024px, where
+              the px-sized line and button below push it higher). 54cqw is
+              the width the balanced three lines actually use, so the box
+              stops claiming empty corners; 55% moves it clear. Minimum gap
+              after the change: 4.4px at 1024, EN and VI. Re-measure with the
+              e2e "partner heading clears the orbit" test if either the copy
+              or the curve changes. */}
           <div
-            className="flex flex-col items-center gap-gb-lg lg:absolute lg:inset-x-0 lg:top-[calc(50%_+_var(--spacing-gb-md))] lg:-translate-y-1/2"
+            className="flex flex-col items-start gap-gb-lg lg:absolute lg:inset-x-0 lg:top-[55%] lg:-translate-y-1/2 lg:items-center"
             style={{ zIndex: ORBIT_Z_CEILING }}
           >
             {/* The money half of this line is owner-supplied and is NOT
@@ -800,16 +803,29 @@ export function HomePartners({
                 for the measured figures it departs from. It is interpolated
                 rather than written into the sentence so the caveat lives in one
                 file and the translators get one key, not two. */}
-            <h2 className="pointer-events-none max-w-[620px] text-center font-display text-gb-display-sm font-semibold leading-tight lg:max-w-[61cqw] lg:text-[3.5cqw]">
-              {getLocaleText(
-                activeLocale,
-                "Choose from 200+ of the world's leading universities with {value} in total scholarship value",
-                { value: PARTNER_TOTAL_SCHOLARSHIP_VALUE },
+            <h2 className="pointer-events-none max-w-[620px] text-balance font-display text-gb-display-sm font-semibold tracking-gb-display-tight lg:max-w-[54cqw] lg:text-center lg:text-[3.5cqw] lg:leading-tight">
+              {highlightPhrases(
+                getLocaleText(
+                  activeLocale,
+                  "Choose from 900+ of the world's leading universities with {value} in total scholarship value",
+                  { value: PARTNER_TOTAL_SCHOLARSHIP_VALUE },
+                ),
+                [getLocaleText(activeLocale, '900+'), PARTNER_TOTAL_SCHOLARSHIP_VALUE],
+                'dark',
               )}
             </h2>
-            <p className="pointer-events-none text-gb-sm text-white/70 md:text-gb-md">
+            <p className="pointer-events-none text-gb-md font-medium text-gb-neutral-300">
               <span>{getLocaleText(activeLocale, 'Study')}</span>{' '}
-              <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} locale={activeLocale} />
+              <StudyWord
+                word={
+                  hovered === null
+                    ? getLocaleText(activeLocale, DEFAULT_STUDY_WORD)
+                    : activeLocale === 'vi'
+                      ? hovered.country.vi
+                      : hovered.country.en
+                }
+                reserve={studyWords(activeLocale)}
+              />
             </p>
             {/* A button, not a link: it opens the preview below rather than
                 navigating. When there is nothing to preview it becomes a real
@@ -834,10 +850,9 @@ export function HomePartners({
             )}
           </div>
 
-          <ul className="flex flex-wrap justify-center gap-gb-3xl lg:block">
+          <ul className="-mx-gb-xl order-first flex gap-gb-lg overflow-x-auto px-gb-xl py-gb-md [scrollbar-width:none] md:-mx-gb-4xl md:px-gb-4xl lg:order-none lg:m-0 lg:block lg:overflow-visible lg:p-0">
             {PARTNER_LOGOS.map((logo, index) => {
               const universityId = universityIds?.[index] ?? null;
-              const value = partnerScholarshipValue(logo.name);
               return (
                 <li
                   key={logo.name}
@@ -880,6 +895,9 @@ export function HomePartners({
                     prefetch={false}
                     className="absolute inset-0 block rounded-gb-md focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
                   >
+                    {/* No "Up to $…" strip under the crest any more — removed
+                        at the owner's request on 2026-09-29. The heading's
+                        aggregate is the only money figure in this band. */}
                     <Image
                       src={logo.src}
                       alt={logo.name}
@@ -887,23 +905,6 @@ export function HomePartners({
                       sizes="(min-width: 1024px) 128px, 88px"
                       className="object-cover"
                     />
-                    {/* The award ceiling strip along the bottom of the crest.
-                        Rendered only where the owner has supplied a figure —
-                        see partner-scholarship-value.ts. A crest with no entry
-                        shows no strip, which is the honest state; it is NOT a
-                        bug to fix by falling back to a number.
-
-                        No separate font size: the whole node is scaled by the
-                        orbit's transform, so `text-gb-xs` rides the same depth
-                        curve the logo does instead of fighting it. */}
-                    {value !== null ? (
-                      <span
-                        data-no-auto-translate
-                        className="absolute inset-x-0 bottom-0 bg-brand px-gb-xs py-gb-xxs text-center text-gb-xs font-semibold leading-tight text-on-brand"
-                      >
-                        {getLocaleText(activeLocale, 'Up to {value}', { value })}
-                      </span>
-                    ) : null}
                   </Link>
                 </li>
               );
@@ -916,12 +917,15 @@ export function HomePartners({
             inside it would be laid out against the orbit's geometry rather than
             the section's. */}
         {previewOpen && scholarships.length > 0 ? (
-          <div id={PREVIEW_ID} className="mx-auto w-full lg:w-[min(88%,1120px)]">
+          /* `lg:pt-gb-6xl`: crests at the front of the ring hang up to half a
+             (scaled) logo below the stage, and would overlap the panel's top
+             edge with only the panel's own 48px margin. */
+          <div id={PREVIEW_ID} className="mx-auto w-full lg:w-[min(88%,1120px)] lg:pt-gb-6xl">
             <HomeScholarshipPreview
               entries={scholarships}
               total={scholarshipTotal}
               locale={activeLocale}
-              onRequestConsultation={scrollToContact}
+              onRequestConsultation={scrollToConsultation}
             />
           </div>
         ) : null}

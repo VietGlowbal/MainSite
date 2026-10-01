@@ -65,8 +65,9 @@ export type MarketingNavState = Readonly<{
 
 export type MarketingNavPresentation = Readonly<{
   items: readonly TopNavEntry[];
+  /** Sign up for guests; the onboarding or Strategy Master CTA once signed in. */
   primaryAction: TopNavItem;
-  /** Register for guests; the Profile destination for authenticated students. */
+  /** Sign in for guests; the Profile destination for authenticated students. */
   accountAction: TopNavItem;
 }>;
 
@@ -81,10 +82,18 @@ const STRATEGY_ACTION = {
   href: '/ai-strategy',
   label: 'Strategy Master',
 } satisfies TopNavItem;
-const REGISTER_ACTION = {
+/*
+ * Guests: "Register" became Sign in + Sign up in the sales-journey handoff
+ * (2026-09-27, Nav state A) — Sign up is the rose primary, Sign in the white
+ * secondary. The guest MENU is unchanged for now: the handoff also shrinks it
+ * to Home only and gates the rest behind the consultation form, and the owner
+ * deferred that gating (2026-09-27) until the locked pages are decided.
+ */
+const SIGN_UP_ACTION = {
   href: '/auth?mode=signup',
-  label: 'Register',
+  label: 'Sign up',
 } satisfies TopNavItem;
+const SIGN_IN_ACTION = { href: '/auth', label: 'Sign in' } satisfies TopNavItem;
 const PROFILE_ACTION = { href: '/profile', label: 'User Profile' } satisfies TopNavItem;
 const ONBOARDING_ACTION = {
   href: '/onboarding',
@@ -125,23 +134,26 @@ export function getMarketingNavPresentation(
     ? COMPLETED_MARKETING_NAV_ITEMS
     : INCOMPLETE_MARKETING_NAV_ITEMS;
 
+  const primary = !state.signedIn
+    ? SIGN_UP_ACTION
+    : isCompletedStudent
+      ? STRATEGY_ACTION
+      : ONBOARDING_ACTION;
+
   return {
     items: sourceItems.map((item) => translateEntry(item, t, locale)),
-    primaryAction: translateAction(
-      isCompletedStudent ? STRATEGY_ACTION : ONBOARDING_ACTION,
-      t,
-      locale,
-    ),
-    accountAction: translateAction(state.signedIn ? PROFILE_ACTION : REGISTER_ACTION, t, locale),
+    primaryAction: translateAction(primary, t, locale),
+    accountAction: translateAction(state.signedIn ? PROFILE_ACTION : SIGN_IN_ACTION, t, locale),
   };
 }
 
 /** Guest/incomplete defaults retained for existing call sites during rollout. */
 export const MARKETING_NAV_ITEMS: readonly TopNavEntry[] = INCOMPLETE_MARKETING_NAV_ITEMS;
 
+/** The guest header's two actions. */
 export const MARKETING_NAV_ACTIONS = {
-  secondary: REGISTER_ACTION,
-  primary: ONBOARDING_ACTION,
+  secondary: SIGN_IN_ACTION,
+  primary: SIGN_UP_ACTION,
 } satisfies Record<'secondary' | 'primary', TopNavItem>;
 
 /** Figma 104:7410. */

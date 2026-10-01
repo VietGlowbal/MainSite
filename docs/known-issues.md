@@ -2288,16 +2288,10 @@ user's entitlement.
 7. **Ratings badge** — "Best AI Tool · 2,000+ reviews" is placeholder the owner asked to keep temporarily. It appears in the footer of every page, so it is a public claim.
 8. **X (Twitter)** — drawn in the footer frame `104:7422` with no handle supplied. Currently omitted; Instagram has no art in Figma at all (hence the hand-shaped `InstagramMark`).
 9. **Rose `#e11d48`** — confirmed as brand by the owner, but Figma variables still resolve to Untitled UI purple `#6941c6`. `tokens.css` is the authority; do not "correct" it against a variable dump.
-10. **`public/home-contact-team.jpg` is too small for retina.** The master is
-   1200×675 (145 KB), added by the owner in `a0d165b`. The Home contact card
-   crops 16:9 into a 576×533 box, which uses only ~61% of the width — so a
-   DPR-2 screen needs a **~1900 px wide** source and the file caps out at 1200.
-   The `sizes` fix above makes DPR 1 pixel-exact; DPR 2 is still upscaled 1.58×
-   and visibly soft. **Needs a higher-resolution export of the same photo** —
-   drop it in at the same path, ≥1920×1080 (ideally 2400×1350), 16:9. No code
-   change required. Alternatively re-crop the framing so less of the width is
-   thrown away, but `home-contact.tsx` documents the 576×533 crop as
-   design-intended, so ask before changing it.
+10. ~~**`public/home-contact-team.jpg` is too small for retina.**~~ Resolved
+   2026-10-01: the contact card now uses the owner's booth photo,
+   `public/home/contact-team-booth.webp` (1440×1333, pre-cropped to the box's
+   576:533). The old JPG has been deleted.
 
 ## 5v. Fixed 2026-08-20 — do not re-introduce
 

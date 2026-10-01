@@ -131,6 +131,10 @@ const eslintConfig = defineConfig([
     // lint pass. (Until 2026-09-20 this also covered the GEO generator in
     // scripts/geo, which had its own tsc gate; that pipeline was removed.)
     'scripts/**',
+    // Design handoffs are reference HTML/JS from the design tool (support.js is
+    // its prototype runtime, "not for production" per its README), not app
+    // source — keep them readable in the repo without failing the lint gate.
+    'design_handoff_*/**',
   ]),
 
   // ── Zone: app/ — route handlers and the admin-client debt list ──────────
