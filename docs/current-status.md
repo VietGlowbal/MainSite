@@ -1,5 +1,18 @@
 # Current project status
 
+Branch `fix/cached-empty-on-supabase-error` 2026-09-29: a database error is no
+longer cached as "no data". During the Supabase 402 restriction the university
+repository returned an empty page/facets, `unstable_cache` stored it, and
+production `/universities` showed zero universities and zero countries for
+12 hours — surviving a redeploy — until `/api/admin/universities/revalidate`
+was hit. Rule now: **inside `unstable_cache`, throw; apply fallbacks outside.**
+`list`, `facets`, `findIdsByNames`, the published-scholarship loader (no longer
+caches a partial list), the home search index, team roster and mentor
+directory follow it; `/universities` falls to `error.tsx` for that request and
+retries on the next. Regression test:
+`src/features/universities/api/__tests__/cache-error-poisoning.test.ts` (fails
+3/3 without the fix).
+
 Working tree 2026-09-28 (clean-checkout CSS-module type declaration fix):
 `next-env.d.ts` is intentionally ignored and is absent before `verify:pr`, so
 fresh Ubuntu checkouts could not resolve the tracked

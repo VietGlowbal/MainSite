@@ -74,7 +74,7 @@ export type TeamMember = {
   achievements: TeamAchievement[];
 };
 
-export const getTeamMembers = unstable_cache(
+const getTeamMembersCached = unstable_cache(
   async (): Promise<TeamMember[]> => {
     const admin = createAdminClient();
     const { data, error } = await admin
@@ -93,11 +93,11 @@ export const getTeamMembers = unstable_cache(
       .eq('is_visible', true)
       .order('display_order', { ascending: true });
 
-    if (error || !data) {
-      // Table missing (pre-migration) or transient error — let the UI fall back.
-      if (error) console.error('Error fetching team members:', error.message);
-      return [];
-    }
+    // Throw rather than return []: whatever this resolves is cached for 12
+    // hours, so a transient error would hide the team long after recovery.
+    // The empty fallback is applied outside the cache, in `getTeamMembers`.
+    if (error) throw new Error(`Team members query failed: ${error.message}`);
+    if (!data) return [];
 
     const members = data as unknown as TeamMember[];
     for (const m of members) {
@@ -113,6 +113,16 @@ export const getTeamMembers = unstable_cache(
   ['team-members'],
   { revalidate: 43200, tags: ['team'] },
 );
+
+/** Visible team roster; `[]` on a database error so the UI can fall back. */
+export async function getTeamMembers(): Promise<TeamMember[]> {
+  try {
+    return await getTeamMembersCached();
+  } catch (error) {
+    console.error('Error fetching team members:', error);
+    return [];
+  }
+}
 
 /** Splits the roster into the featured founder spotlight + the remaining grid. */
 export function splitTeam(members: TeamMember[]): {

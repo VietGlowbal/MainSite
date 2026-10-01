@@ -116,10 +116,10 @@ export async function getApprovedMentors(
     .select(PUBLIC_MENTOR_SELECT)
     .eq('status', 'approved');
 
-  if (error) {
-    console.error('Error fetching mentors:', error);
-    return [];
-  }
+  // Throw rather than return []: /mentors caches this result, and an empty
+  // directory would outlive the error. The page applies the fallback outside
+  // its cache.
+  if (error) throw new Error(`Error fetching mentors: ${error.message}`);
 
   let results = (data ?? []) as unknown as PublicMentor[];
 
