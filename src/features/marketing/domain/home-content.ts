@@ -20,7 +20,8 @@ import type { ConsultationPackage } from './consultation';
 /** Phạm Quỳnh Chi's featured card. [CONFIRM] VinUni 100% (text) vs 90% (screenshot) — brief default 100%. */
 export const FEATURED_STORY = {
   name: 'Phạm Quỳnh Chi',
-  portrait: '/home/team/pham-quynh-chi.webp',
+  /** The video's thumbnail (owner-supplied 2026-10-01, cropped to the box's 5:4). */
+  portrait: '/home/chi-story-poster.webp',
   achievements: [
     '100% Merit-based Scholarship for Bachelor of Business Administration — VinUniversity',
     '100% Scholarship — Fulbright University',
@@ -41,8 +42,11 @@ export const FEATURED_STORY = {
     { name: 'Lingnan University', logo: null },
   ],
   /**
-   * The story video does not exist yet. The card is built video-ready — set a
-   * source here and the play button and "Watch Chi's story" chip appear.
+   * Chi's story video. Not supplied yet: the box already shows as a video
+   * (thumbnail + play button) with a "Coming soon" chip. To publish it, put the
+   * file at e.g. `public/home/chi-story.mp4` and set
+   * `{ src: '/home/chi-story.mp4', type: 'video/mp4' }` — play then swaps the
+   * thumbnail for the video in place, with no layout change.
    */
   video: null as { readonly src: string; readonly type: 'video/mp4' | 'video/webm' } | null,
 } as const;

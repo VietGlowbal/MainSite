@@ -144,6 +144,23 @@ shapes with a stray line).
 - foreground: `fg`, `fg-secondary`, `fg-tertiary`, `fg-muted`, `fg-brand`, `fg-on-inverse`, `fg-on-inverse-secondary`, `fg-on-inverse-muted`, `fg-error`
 - lines: `line`, `line-strong`, `line-on-inverse`, `line-on-image`, `line-error`
 - brand: `brand`, `brand-hover`, `brand-subtle`, `brand-surface`, `on-brand`
+- Home campaign accents: `gb-marketing-wine-950`, `gb-marketing-wine-900`,
+  `gb-marketing-wine-800`, `gb-marketing-wine-700`. These are deliberately
+  scoped primitives for the v2 marketing bands, not new semantic status
+  colours. `gb-marketing-cyan-400` was retired on 2026-09-29 — rose is the
+  page's only accent. The Home background is one ramp of per-section
+  gradients, `--gb-home-band-{hero,showcase,stories,numbers,team,journey,features}`
+  in tokens.css, each applied with an arbitrary background-image utility that
+  names the band, e.g. `bg-[image:var(--gb-home-band-hero)]` (never a
+  wildcard in its place — Tailwind scans docs too, and that compiles to
+  invalid CSS; see the ⚠️ in tokens.css); each band ends on the colour the
+  next starts on. Since 2026-10-01 the fade to white runs over team →
+  journey → features (rose-200 → 100 → 50 → white; `gb-brand-200` was added
+  for it), so pricing and the form are the only white bands.
+  Keywords are highlighted with `KeywordHighlight` / `highlightPhrases`
+  (`features/marketing/ui/home-highlight.tsx`), rose-only, in four tones by
+  surface — `tint` is for headings on the pink bands, where `light`'s
+  rose-500 end drops under 3:1.
 - tiers: `tier-reach`/`on-tier-reach`, `tier-recommend`/`on-tier-recommend`, `tier-safe`/`on-tier-safe`
 - informational: `info-subtle` (bg) / `fg-info` (text) — the pair behind `Badge`'s
   `info-chip`. Resolves to the same Figma Blue/50 + Blue/600 as the `recommend`

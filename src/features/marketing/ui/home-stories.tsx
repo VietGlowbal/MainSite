@@ -31,9 +31,10 @@ import { highlightPhrases } from './home-highlight';
  * ─── VIDEO-READY, NOT VIDEO ─────────────────────────────────────────────────
  *
  * The handoff draws a play button and a "Watch Chi's story" chip over the
- * portrait, and a photo-only fallback. The video does not exist yet, so this
- * ships the fallback; setting `FEATURED_STORY.video` turns the play state on
- * with no layout change. Clicking play swaps the portrait for the video in
+ * portrait. The box always shows as a video (owner, 2026-10-01): thumbnail,
+ * play button, chip. Until `FEATURED_STORY.video` is set the button is
+ * disabled and the chip reads "Coming soon"; setting it enables play with no
+ * layout change. Clicking play swaps the portrait for the video in
  * place — muted, with controls, never autoplaying on load.
  *
  * The featured portrait and testimonial images are local, owner-supplied v2
@@ -235,6 +236,7 @@ function FeaturedStory({ locale }: { locale: Locale }) {
           <video
             className="size-full bg-black object-cover"
             src={video.src}
+            poster={FEATURED_STORY.portrait}
             controls
             autoPlay
             muted
@@ -243,37 +245,40 @@ function FeaturedStory({ locale }: { locale: Locale }) {
           />
         ) : (
           <>
+            {/* The video's thumbnail. The box is a video slot whether or not
+                the file exists yet (owner, 2026-10-01). */}
             <Image
               src={FEATURED_STORY.portrait}
               alt={FEATURED_STORY.name}
               fill
               sizes="(min-width: 1280px) 460px, (min-width: 768px) 38vw, calc(100vw - 80px)"
-              className="object-cover object-top"
+              className="object-cover"
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black/85 px-gb-xl pb-gb-xl pt-gb-6xl">
               <p data-no-auto-translate className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-white">
                 {FEATURED_STORY.name}
               </p>
             </div>
-            {video !== null ? (
-              <>
-                <span className="absolute left-gb-lg top-gb-lg inline-flex items-center gap-gb-sm rounded-gb-full bg-black/60 px-gb-md py-gb-xs text-gb-xs font-semibold text-white">
-                  <span aria-hidden="true" className="size-gb-sm rounded-gb-full bg-gb-brand-500" />
-                  {getLocaleText(locale, "Watch Chi's story")}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPlaying(true)}
-                  aria-label={getLocaleText(locale, "Watch Chi's story")}
-                  className="absolute left-1/2 top-[44%] flex size-gb-7xl -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-gb-full bg-brand text-white shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-brand)_25%,transparent)] transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="ml-gb-xs h-0 w-0 border-y-[11px] border-l-[18px] border-y-transparent border-l-white"
-                  />
-                </button>
-              </>
-            ) : null}
+            <span className="absolute left-gb-lg top-gb-lg inline-flex items-center gap-gb-sm rounded-gb-full bg-black/60 px-gb-md py-gb-xs text-gb-xs font-semibold text-white backdrop-blur-sm">
+              <span aria-hidden="true" className="size-gb-sm rounded-gb-full bg-gb-brand-500" />
+              {getLocaleText(locale, video !== null ? "Watch Chi's story" : 'Coming soon')}
+            </span>
+            {/* Bottom-right, beside the name: centred, it covered her face.
+                Until the file arrives the button is disabled rather than
+                hidden, so the box already reads as a video and nothing moves
+                when it lands. */}
+            <button
+              type="button"
+              onClick={() => setPlaying(true)}
+              disabled={video === null}
+              aria-label={getLocaleText(locale, "Watch Chi's story")}
+              className="absolute bottom-gb-xl right-gb-xl z-[1] flex size-gb-7xl items-center justify-center rounded-gb-full bg-brand text-white shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-brand)_25%,transparent)] transition-[background-color,transform] hover:scale-105 hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:scale-100 disabled:hover:bg-brand motion-reduce:hover:scale-100"
+            >
+              <span
+                aria-hidden="true"
+                className="ml-gb-xs h-0 w-0 border-y-[11px] border-l-[18px] border-y-transparent border-l-white"
+              />
+            </button>
           </>
         )}
       </div>
