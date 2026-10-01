@@ -5,8 +5,9 @@ import { StrategyHome } from '@/features/ai-strategy-dashboard/ui/strategy-home'
 import { StateBlock } from '@/features/application-strategy/ui/states';
 import { LanguageProvider, T, useLanguage } from '@/lib/i18n';
 import { StartCard } from '@/components/cv/CvStartFlow';
-import { HomeHowItWorks } from '@/features/marketing/ui/home-how-it-works';
+import { HomeJourney } from '@/features/marketing/ui/home-journey';
 import { HomePartners } from '@/features/marketing/ui/home-partners';
+import { loadCatalog } from '@/lib/i18n-catalog-runtime';
 import { TopNav } from '@/shared/ui/top-nav';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
@@ -123,18 +124,19 @@ describe('Vietnamese screenshot copy', () => {
     });
   });
 
-  it('localizes dynamic accessibility labels in the homepage journey', async () => {
-    render(
-      <LanguageProvider>
-        <Vietnamese>
-          <HomeHowItWorks />
-        </Vietnamese>
-      </LanguageProvider>,
-    );
+  it('localizes the homepage journey steps', async () => {
+    // HomeJourney is a server component that takes its locale as a prop, as
+    // "/vi" renders it; the catalog is what the /vi layout primes first.
+    await loadCatalog();
+    render(<HomeJourney locale="vi" />);
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '1. Nhập thông tin đơn giản' })).toBeInTheDocument();
-    });
+    // Content PDF (3) §6's steps; step 02 is the free consultation.
+    expect(screen.getAllByRole('heading', { level: 3, name: 'Tư vấn miễn phí' }).length).toBeGreaterThan(0);
+    expect(screen.getByText('Hành trình cùng GlowBal')).toBeInTheDocument();
+    // The highlighted keyword is its own span; the heading's name stays whole.
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Làm thế nào để “săn học bổng” cùng GlowBal?' }),
+    ).toBeInTheDocument();
   });
 
   it('localizes the shared primary navigation landmark', async () => {
@@ -161,7 +163,12 @@ describe('Vietnamese screenshot copy', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Mọi nơi')).toBeInTheDocument();
+      // The word also sits, invisible, in the width-reservation list — so look
+      // for the copy that is actually read out.
+      const shown = screen
+        .getAllByText('Mọi nơi')
+        .find((element) => element.closest('[aria-hidden="true"]') === null);
+      expect(shown).toBeDefined();
     });
   });
 });

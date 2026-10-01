@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DomTranslator } from '@/lib/dom-translate';
@@ -146,5 +147,38 @@ describe('DomTranslator', () => {
       'Personal report analysis',
     ]);
     expect(screen.getByText('Private profile copy')).toBeInTheDocument();
+  });
+
+  // The Home team wall's pause button: React swaps its label AND its glyph.
+  // The glyph swap is a childList mutation, so a pass runs 150ms later — and
+  // it used to "restore" the first label it had snapshotted over the new one.
+  it('keeps an aria-label the app changes after the first pass', async () => {
+    function PauseToggle() {
+      const [paused, setPaused] = useState(false);
+      return (
+        <button
+          type="button"
+          aria-label={paused ? 'Resume automatic rotation' : 'Pause automatic rotation'}
+          onClick={() => setPaused((value) => !value)}
+        >
+          {paused ? <span>play</span> : <span>pause</span>}
+        </button>
+      );
+    }
+
+    render(
+      <LanguageProvider>
+        <main className="glowbal-main-content">
+          <PauseToggle />
+        </main>
+        <DomTranslator />
+      </LanguageProvider>,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    fireEvent.click(screen.getByRole('button', { name: 'Pause automatic rotation' }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(screen.getByRole('button', { name: 'Resume automatic rotation' })).toBeInTheDocument();
   });
 });
