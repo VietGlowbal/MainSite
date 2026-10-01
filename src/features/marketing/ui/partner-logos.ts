@@ -6,11 +6,11 @@
  * 1. RESOLVED — the partnership claim. The section used to be headed "Đối tác
  *    tiêu biểu của chúng tôi" ("our featured partners"), and nothing in this
  *    repo substantiates a partnership with MIT, Harvard, Oxford or the other
- *    eight. The heading is now "Study <university>", which claims only that
- *    the place exists in the directory and that we will help you apply — which
- *    is true, and is now literally true, because each logo links to that
- *    university's page. Do not put the old heading back without a signed
- *    agreement behind it.
+ *    eight. The heading is now "Study <country>" (it was "Study <university>"
+ *    until the 2026-09-27 handoff), which claims only that you can study there
+ *    and that we will help you apply — which is true, and each logo still links
+ *    to that university's page in the directory. Do not put the old heading
+ *    back without a signed agreement behind it.
  *
  * 2. Every source file is 90x90 and the orbit paints them between about 60 and
  *    125px, so the ones at the near side of the orbit are upscaled before the
@@ -34,33 +34,31 @@ export type PartnerLogo = {
   readonly name: string;
   readonly src: string;
   /**
-   * What the heading says after "Study " while this logo is hovered.
+   * What the heading says after "Study " while this logo is hovered — the
+   * university's COUNTRY since the sales-journey handoff (2026-09-27), which
+   * swapped it in for the short name ("Study MIT" → "Study the United States").
    *
-   * ⚠️ NOT DERIVABLE FROM `name`, which is why it is written out. "Study
-   * Massachusetts Institute of Technology" wraps the heading onto a second line
-   * and nobody says it out loud; "Study MIT" is what a student would type. Any
-   * rule that produces one from the other ("drop 'University of'", "take the
-   * first word") gets Caltech, NUS, HKU and Imperial wrong.
-   *
-   * Keep these SHORT — the heading reserves the width of the longest of them
-   * (see PARTNER_STUDY_WORDS in home-partners.tsx) so the line never re-centres
-   * mid-flip, and a long one leaves a visible gap for every other logo.
-   *
-   * Never translated: these are institution names, same rule as `name`.
+   * Both languages are written out rather than looked up: the English carries
+   * the article the sentence needs ("the United Kingdom"), and the Vietnamese
+   * reads as a destination after "Du học" ("Du học Anh", not "Vương quốc Anh").
+   * Values are the handoff's `crests` table, verbatim.
    */
-  readonly shortName: string;
+  readonly country: { readonly en: string; readonly vi: string };
 };
 
+const US = { en: 'the United States', vi: 'Mỹ' } as const;
+const UK = { en: 'the United Kingdom', vi: 'Anh' } as const;
+
 export const PARTNER_LOGOS: readonly PartnerLogo[] = [
-  { name: 'Massachusetts Institute of Technology', src: '/partners/mit.png', shortName: 'MIT' },
-  { name: 'Imperial College London', src: '/partners/imperial.png', shortName: 'Imperial' },
-  { name: 'Stanford University', src: '/partners/stanford.png', shortName: 'Stanford' },
-  { name: 'University of Oxford', src: '/partners/oxford.png', shortName: 'Oxford' },
-  { name: 'Harvard University', src: '/partners/harvard.png', shortName: 'Harvard' },
-  { name: 'University of Cambridge', src: '/partners/cambridge.png', shortName: 'Cambridge' },
-  { name: 'California Institute of Technology', src: '/partners/caltech.png', shortName: 'Caltech' },
-  { name: 'National University of Singapore', src: '/partners/nus.png', shortName: 'NUS' },
-  { name: 'The University of Hong Kong', src: '/partners/hku.png', shortName: 'HKU' },
-  { name: 'Cornell University', src: '/partners/cornell.png', shortName: 'Cornell' },
-  { name: 'ETH Zürich', src: '/partners/eth-zurich.png', shortName: 'ETH Zürich' },
+  { name: 'Massachusetts Institute of Technology', src: '/partners/mit.png', country: US },
+  { name: 'Imperial College London', src: '/partners/imperial.png', country: UK },
+  { name: 'Stanford University', src: '/partners/stanford.png', country: US },
+  { name: 'University of Oxford', src: '/partners/oxford.png', country: UK },
+  { name: 'Harvard University', src: '/partners/harvard.png', country: US },
+  { name: 'University of Cambridge', src: '/partners/cambridge.png', country: UK },
+  { name: 'California Institute of Technology', src: '/partners/caltech.png', country: US },
+  { name: 'National University of Singapore', src: '/partners/nus.png', country: { en: 'Singapore', vi: 'Singapore' } },
+  { name: 'The University of Hong Kong', src: '/partners/hku.png', country: { en: 'Hong Kong', vi: 'Hồng Kông' } },
+  { name: 'Cornell University', src: '/partners/cornell.png', country: US },
+  { name: 'ETH Zürich', src: '/partners/eth-zurich.png', country: { en: 'Switzerland', vi: 'Thuỵ Sĩ' } },
 ];
