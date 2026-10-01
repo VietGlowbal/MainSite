@@ -7,22 +7,23 @@ import {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
+  HOME_BANDS_CLASS,
+  HomeConsultationProvider,
   HomeContact,
-  HomeFaq,
   HomeFeatures,
   getOfficialScholarshipBranding,
   HomeHero,
-  HomeHowItWorks,
+  HomeJourney,
   HomeMetrics,
-  HomePainPoints,
   HomePartners,
-  HomeScholarships,
+  HomePricing,
+  HomeStories,
   HomeTeam,
-  HomeTestimonials,
   MARKETING_NAV_ACTIONS,
   MARKETING_NAV_ITEMS,
   type ContactState,
 } from '@/features/marketing/ui';
+import type { GlobeCountry } from '@/features/marketing/domain';
 import { Footer, MobileNav, TopNav } from '@/shared/ui';
 
 function previewBranding(title: string) {
@@ -118,10 +119,31 @@ const PREVIEW_SCHOLARSHIPS = [
   },
 ] as const;
 
+/** The seventeen countries `countryCounts()` returned on 2026-09-27. */
+const PREVIEW_GLOBE_COUNTRIES: readonly GlobeCountry[] = [
+  { name: 'United Kingdom', count: 89 },
+  { name: 'United States', count: 83 },
+  { name: 'Australia', count: 62 },
+  { name: 'Canada', count: 39 },
+  { name: 'China', count: 16 },
+  { name: 'New Zealand', count: 13 },
+  { name: 'Germany', count: 11 },
+  { name: 'Ireland', count: 11 },
+  { name: 'Singapore', count: 11 },
+  { name: 'South Korea', count: 11 },
+  { name: 'Hong Kong', count: 9 },
+  { name: 'Japan', count: 9 },
+  { name: 'France', count: 8 },
+  { name: 'Netherlands', count: 7 },
+  { name: 'Italy', count: 5 },
+  { name: 'Czech Republic', count: 4 },
+  { name: 'Hungary', count: 4 },
+];
+
 /**
- * Development-only mirror of the Home flow from Figma 884:12026. It keeps the
- * form inert, partner links generic, and team roster empty so visual checks do
- * not depend on Supabase.
+ * Development-only mirror of the sales-journey Home. It keeps the form inert,
+ * partner links generic, and the team roster without portraits (initials) so
+ * visual checks do not depend on Supabase.
  */
 export default function HomePreviewPage() {
   // Same gate as /dev/kitchen-sink: hidden in production, but reachable by the
@@ -134,10 +156,7 @@ export default function HomePreviewPage() {
   // that only ever reports back. The real "/" passes the Supabase-backed action.
   async function previewAction(): Promise<ContactState> {
     'use server';
-    return {
-      status: 'error',
-      message: 'This is the design preview — the form is not wired up here.',
-    };
+    return { status: 'server-error' };
   }
 
   return (
@@ -164,19 +183,19 @@ export default function HomePreviewPage() {
         openLabel="Menu"
         closeLabel="Close menu"
       />
-      <main>
-        <HomeHero />
-        <HomePartners />
-        <HomeMetrics />
-        <HomeScholarships entries={PREVIEW_SCHOLARSHIPS} total={2_877} />
-        <HomePainPoints />
-        <HomeHowItWorks />
-        <HomeFeatures />
-        <HomeTestimonials />
-        <HomeTeam />
-        <HomeContact action={previewAction} />
-        <HomeFaq />
-      </main>
+      <HomeConsultationProvider>
+        <main className={HOME_BANDS_CLASS}>
+          <HomeHero countries={PREVIEW_GLOBE_COUNTRIES} />
+          <HomePartners scholarships={PREVIEW_SCHOLARSHIPS} scholarshipTotal={2_877} />
+          <HomeStories />
+          <HomeMetrics />
+          <HomeTeam />
+          <HomeJourney />
+          <HomeFeatures />
+          <HomePricing />
+          <HomeContact action={previewAction} />
+        </main>
+      </HomeConsultationProvider>
       <Footer
         logo={<GlowbalLogo height={28} />}
         tagline={FOOTER_TAGLINE}

@@ -6,23 +6,30 @@ import { getUniversityQueries } from '@/features/universities/api';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
-  HomeContact,
-  HomeFaq,
+  HOME_BANDS_CLASS,
+  HomeConsultationProvider,
   HomeFeatures,
   getOfficialScholarshipBranding,
   HomeHero,
-  HomeHowItWorks,
+  HomeJourney,
   HomeMetrics,
-  HomePainPoints,
   HomePartners,
-  HomeScholarships,
+  HomePricing,
+  HomeStories,
   HomeTeam,
   PARTNER_LOGOS,
   type ContactState,
   getLocalizedFooter,
 } from '@/features/marketing/ui';
+import {
+  consultationNotes,
+  dialCodeFor,
+  validateConsultation,
+  type GlobeCountry,
+} from '@/features/marketing/domain';
 import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
+import { HomeContactSection } from './home-contact-section';
 import { sendEmail } from '@/lib/send-email';
 import { Footer } from '@/shared/ui';
 import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
@@ -40,8 +47,16 @@ import { homeCopy, type Locale } from '@/lib/i18n/locale';
 const contactLimiter = new RateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 1000 });
 
 /**
- * "/" — Home, rebuilt from Figma 884:12026. Home.md owns the final copy and
- * the Figma frame owns the section order and responsive visual direction.
+ * "/" — Home, the sales-journey redesign (design handoff
+ * `design_handoff_home_redesign/`, brief
+ * docs/plans/2026-09-27-home-sales-journey-design-brief.md). One funnel: every
+ * CTA on the page ends at the consultation form (`#contact`).
+ *
+ * Order: Hero · Scholarship showcase · Success stories · Standout numbers ·
+ * Team · Your GlowBal journey · Product features · Pricing · Consultation form.
+ * Removed from Home by the brief: the pain points and the five-step how-it-works
+ * (both replaced by the journey), the scholarship pillars, and the FAQ (which
+ * still renders on /about).
  */
 
 export const metadata: Metadata = {
@@ -127,6 +142,20 @@ const getPartnerUniversityIds = unstable_cache(
   { revalidate: CACHE_TTL_LONG, tags: [CACHE_TAGS.universities] },
 );
 
+/**
+ * Countries the hero globe lights, with their scholarship counts. Fail-soft:
+ * with no data the globe is simply grey land, never a broken hero.
+ */
+async function getGlobeCountries(): Promise<GlobeCountry[]> {
+  try {
+    const counts = await getScholarshipQueries().countryCounts();
+    return counts.map(({ country, count }) => ({ name: country, count }));
+  } catch (error) {
+    console.error('Home globe countries failed:', error);
+    return [];
+  }
+}
+
 function compactCoverage(value: string | null): string {
   if (!value) return 'Funding support available';
   const firstLine = value
@@ -170,6 +199,8 @@ async function getHomeScholarshipSpotlight() {
           fundingTypes: scholarship.funding_type,
           country:
             scholarship.country ?? university?.country ?? officialBranding?.country ?? null,
+          kind: scholarship.scope === 'university' ? ('university' as const) : ('provider' as const),
+          eligibility: scholarship.eligibility,
         };
       }),
     };
@@ -180,18 +211,25 @@ async function getHomeScholarshipSpotlight() {
 }
 
 /**
- * The consultation form (Figma 104:7361).
+ * The consultation form (sales-journey handoff §9).
  *
  * It writes to `waitlist_signups`, the same table the pre-launch /coming-soon
  * gate uses, through the marketing repository rather than a second inline
  * admin-client insert. That is what took this file off ADMIN_CLIENT_DEBT in
  * eslint.config.mjs — a list that may shrink and must never grow.
  *
- * ⚠️ The table has three columns (email, first_name, notes), while the form also
- * captures a phone number. The phone number is appended to the notes so nothing
- * the student typed is silently dropped. The
- * real fix is columns; until then this is lossy-but-visible rather than lossy-
- * and-silent.
+ * Validation is the same `validateConsultation` the form runs in the browser —
+ * the browser's run is for instant feedback, this one is the one that counts.
+ *
+ * ⚠️ WHERE EACH FIELD GOES. Name, email, phone and date of birth go to their
+ * columns. Destination, budget and package go to their own columns added by
+ * sql/supabase-waitlist-consultation-fields.sql (a follow-up, never an edit to
+ * the already-run sql/supabase-waitlist.sql) AND into `notes` as one labelled
+ * line via `consultationNotes`. The line is what a person reads in the
+ * dashboard, and it is also what keeps the answers if this deploys before the
+ * migration runs — the repository then retries without the new columns.
+ * `source` is 'home_consultation', so these leads are distinguishable from the
+ * /coming-soon waitlist's 'website_waitlist'.
  */
 async function submitContact(
   _prevState: ContactState,
@@ -220,59 +258,66 @@ async function submitContact(
   const clientIp = forwarded.split(',')[0]?.trim() || headerList.get('x-real-ip') || 'unknown';
 
   const limit = contactLimiter.checkLimit(`contact:${clientIp}`);
-  if (!limit.allowed) {
-    return {
-      status: 'error',
-      message: `Too many requests. Please try again in ${limit.retryAfter} seconds.`,
-    };
-  }
+  if (!limit.allowed) return { status: 'rate-limited' };
 
-  const email = String(formData.get('email') || '').trim().toLowerCase();
-  const firstName = String(formData.get('firstName') || '').trim();
-  const lastName = String(formData.get('lastName') || '').trim();
-  const notes = String(formData.get('notes') || '').trim();
-  const dialCode = String(formData.get('dialCode') || '').trim();
-  const phone = String(formData.get('phone') || '').trim();
+  const field = (name: string) => {
+    const value = formData.get(name);
+    return typeof value === 'string' ? value : '';
+  };
+  const validation = validateConsultation({
+    name: field('name'),
+    dob: field('dob'),
+    email: field('email'),
+    dialCode: field('dialCode'),
+    phone: field('phone'),
+    destination: field('destination'),
+    budget: field('budget'),
+    package: field('package'),
+    consent: formData.get('consent') !== null,
+  });
+  if (!validation.ok) return { status: 'invalid', errors: validation.errors };
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { status: 'error', message: 'Please enter a valid email address.' };
-  }
-
-  const fullName = [firstName, lastName].filter(Boolean).join(' ');
-
+  const { request } = validation;
   const result = await recordWaitlistSignup({
-    email,
-    firstName: fullName,
-    notes,
-    phone: phone ? `${dialCode} ${phone}`.trim() : '',
-    dateOfBirth: '',
+    email: request.email,
+    firstName: request.name,
+    notes: consultationNotes(request),
+    phone: `${dialCodeFor(request.dialCode)} ${request.phone}`.trim(),
+    dateOfBirth: request.dateOfBirth,
+    source: 'home_consultation',
+    consultation: {
+      destination: request.destination,
+      budget: request.budget,
+      package: request.package,
+    },
   });
 
   if (result.outcome === 'table-missing' || result.outcome === 'error') {
-    return {
-      status: 'error',
-      message: 'Something went wrong saving your details. Please try again.',
-    };
+    return { status: 'server-error' };
   }
 
   // Only a genuinely new signup gets the confirmation mail; re-submitting the
-  // form must not send it a second time.
+  // form must not send it a second time. The success panel only says "we've
+  // emailed you" when the mailer actually accepted one.
+  let emailed = false;
   if (result.outcome === 'inserted') {
-    await sendEmail({
-      to: email,
-      subject: "You're on the GLOWBAL waitlist",
-      html: waitlistConfirmationEmail(firstName),
+    const sent = await sendEmail({
+      to: request.email,
+      subject: "We've received your GlowBal consultation request",
+      html: waitlistConfirmationEmail(request.name),
     });
+    emailed = sent.ok && sent.skipped !== true;
   }
 
-  return { status: 'ok', message: "Thanks — we'll be in touch shortly." };
+  return { status: 'ok', email: request.email, emailed };
 }
 
 export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {}) {
-  const [partnerUniversityIds, team, scholarshipSpotlight] = await Promise.all([
+  const [partnerUniversityIds, team, scholarshipSpotlight, globeCountries] = await Promise.all([
     getPartnerUniversityIds(),
     getTeamMembers(),
     getHomeScholarshipSpotlight(),
+    getGlobeCountries(),
   ]);
 
   const copy = homeCopy[locale];
@@ -300,32 +345,31 @@ export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {})
           page has NO navigation on a phone at all: "/" is in OWN_CHROME_ROUTES,
           so the legacy mobile nav is suppressed too. `gb-has-mobile-header` on
           the wrapper is what offsets the content past the fixed 64px bar. */}
-      <main>
-        <HomeHero locale={locale} />
-        {/* The same six records HomeScholarships shows further down, reused for
-            the library preview the partner CTA opens — one read, two places. */}
-        <HomePartners
-          universityIds={partnerUniversityIds}
-          locale={locale}
-          scholarships={scholarshipSpotlight.entries}
-          scholarshipTotal={scholarshipSpotlight.total}
-        />
-        <HomeMetrics locale={locale} />
-        <HomeScholarships
-          entries={scholarshipSpotlight.entries}
-          total={scholarshipSpotlight.total}
-          locale={locale}
-        />
-        <HomePainPoints locale={locale} />
-        <HomeHowItWorks locale={locale} />
-        <HomeFeatures locale={locale} />
-        {/* Testimonials tạm ẩn khỏi "/" theo yêu cầu của chủ dự án (15/08).
-            Component `HomeTestimonials` vẫn còn nguyên và vẫn render ở
-            `/dev/home` — bật lại chỉ cần import và đặt lại đúng chỗ này. */}
-        <HomeTeam members={team} locale={locale} />
-        <HomeContact action={submitContact} locale={locale} />
-        <HomeFaq locale={locale} />
-      </main>
+      {/* The provider carries a Pricing CTA's package down to the form. Every
+          section between them is still a server component — a client provider
+          passes server-rendered children straight through. */}
+      <HomeConsultationProvider>
+        {/* The sections are one black → rose → white background ramp; see
+            HOME_BANDS_CLASS for why each one overlaps the next by 1px. */}
+        <main className={HOME_BANDS_CLASS}>
+          <HomeHero locale={locale} countries={globeCountries} />
+          {/* The six highlighted records feed the library preview the
+              "Find scholarships" button opens. */}
+          <HomePartners
+            universityIds={partnerUniversityIds}
+            locale={locale}
+            scholarships={scholarshipSpotlight.entries}
+            scholarshipTotal={scholarshipSpotlight.total}
+          />
+          <HomeStories locale={locale} />
+          <HomeMetrics locale={locale} />
+          <HomeTeam members={team} locale={locale} />
+          <HomeJourney locale={locale} />
+          <HomeFeatures locale={locale} />
+          <HomePricing locale={locale} />
+          <HomeContactSection action={submitContact} locale={locale} />
+        </main>
+      </HomeConsultationProvider>
       <Footer
         logo={<GlowbalLogo height={28} />}
         tagline={footer.tagline}
