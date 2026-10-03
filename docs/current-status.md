@@ -1,5 +1,26 @@
 # Current project status
 
+Working tree 2026-10-04 (saved-university interactions and regression audit):
+university headings link to internal profiles; trash actions confirm through the shared Modal. A single
+responsive action dock pins while its measured natural slot is outside the
+viewport, with select-all/indeterminate states and one selected-university scope
+for both scholarship actions. Shared awards group by id and require an explicit
+attachment university when multiple matches remain. Card scholarship triggers
+reuse the picker with a row scope. Subject selection, tuition maths, Plus gating,
+upsert semantics and refresh behavior remain. Audit fixed silent reassignment of
+already attached shared awards (including outside-list/null-university links),
+stale selections/dialogs on refresh, picker/detail focus loss, keyboard access to
+gated cards, and missing failed-image fallbacks. The dock reserves its bottom inset to
+prevent a handover jump and reveals covered row controls on keyboard focus.
+Focus selection handles delayed/concurrent row refresh and reduced motion.
+Measured: 109 affected tests across six files passed; base/strict typechecks and
+touched-file lint passed, final `build:ci` passed (151 pages; existing Edge/placeholder-read warnings),
+i18n audit and diff checks passed. Browser preview at 360/768/1440px had no
+horizontal overflow; dock pin/natural behavior and mobile picker were checked.
+No schema or additional queries; the server read model carries existing attachment
+IDs from already fetched data. No real mutation browser tests. Old Storage covers
+still return HTTP 402. Details: [saved-universities.md](saved-universities.md).
+
 Main 2026-10-03 (AI Strategy tab performance): `fetchOnboardingState` now uses
 React request memoization, sharing the nav/page read without a cross-request TTL.
 `ApplicationNav` starts onboarding and Planner access reads concurrently. Report

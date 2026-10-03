@@ -27,43 +27,56 @@ export interface SavedListUniversity<S extends SavedListScholarship = SavedListS
   options: readonly S[];
   /** The ones the student has already attached to it. Only the ids are read. */
   attached: readonly SavedListScholarship[];
+  /** Linked options already in user_scholarships, including other universities
+   * or a null university association. They remain options for tuition joins,
+   * but must not be offered as new attachments. */
+  attachedScholarshipIds?: readonly number[];
 }
 
 export interface ScholarshipCandidate<S extends SavedListScholarship> {
   option: S;
-  universityId: number;
-  universityName: string;
+  applicableUniversities: Array<{ id: number; name: string }>;
 }
 
 /**
- * The scholarships offerable for the ticked universities, flattened.
+ * The scholarships offerable for the ticked universities, grouped by award id.
  *
  * Two rules, and both are load-bearing:
  *   - only ticked rows contribute, because the dialog's whole purpose is to
  *     attach an award to a specific saved university;
- *   - anything already attached is dropped, because re-offering it leads the
- *     student to a no-op upsert that looks like a successful action.
+ *   - anything attached anywhere in the saved list is dropped. The existing
+ *     user_scholarships key is user + scholarship, so attaching it elsewhere
+ *     would silently move the existing university association.
  *
- * Order follows the rows, then each row's own option order, so the dialog is
- * stable across re-renders.
+ * A shared award retains every eligible selected university. The caller must
+ * ask which university to attach it to rather than choosing the first match.
+ * Order follows the rows, then each row's own option order.
  */
 export function scholarshipCandidates<S extends SavedListScholarship>(
   rows: readonly SavedListUniversity<S>[],
   selectedUniversityIds: readonly number[],
 ): Array<ScholarshipCandidate<S>> {
   const selected = new Set(selectedUniversityIds);
-  return rows
-    .filter((row) => selected.has(row.universityId))
-    .flatMap((row) => {
-      const attached = new Set(row.attached.map((s) => s.id));
-      return row.options
-        .filter((option) => !attached.has(option.id))
-        .map((option) => ({
-          option,
-          universityId: row.universityId,
-          universityName: row.name,
-        }));
-    });
+  const attached = new Set(rows.flatMap((row) => [
+    ...row.attached.map((scholarship) => scholarship.id),
+    ...(row.attachedScholarshipIds ?? []),
+  ]));
+  const grouped = new Map<number, ScholarshipCandidate<S>>();
+  for (const row of rows) {
+    if (!selected.has(row.universityId)) continue;
+    for (const option of row.options) {
+      if (attached.has(option.id)) continue;
+      let candidate = grouped.get(option.id);
+      if (!candidate) {
+        candidate = { option, applicableUniversities: [] };
+        grouped.set(option.id, candidate);
+      }
+      if (!candidate.applicableUniversities.some((university) => university.id === row.universityId)) {
+        candidate.applicableUniversities.push({ id: row.universityId, name: row.name });
+      }
+    }
+  }
+  return [...grouped.values()];
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

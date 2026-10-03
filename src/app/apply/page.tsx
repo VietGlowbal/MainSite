@@ -540,6 +540,12 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
         }>
       | null;
   }>;
+  const attachedScholarshipIds = new Set(savedScholarships.flatMap((savedScholarship) => {
+    const scholarship = Array.isArray(savedScholarship.scholarships)
+      ? savedScholarship.scholarships[0]
+      : savedScholarship.scholarships;
+    return scholarship ? [scholarship.id] : [];
+  }));
   const frequentlyPicked = await loadFrequentlyPicked({
     scholarshipIds: [
       ...new Set([
@@ -679,6 +685,10 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
         programUrl: canonicalizeExternalUrl(row.program_url),
         attached,
         options,
+        // Keep full options for row-local pricing. Separately identify awards
+        // already saved anywhere: upsert(user_id, scholarship_id) would move
+        // their existing university_id if the picker offered them again.
+        attachedScholarshipIds: options.filter((option) => attachedScholarshipIds.has(option.id)).map((option) => option.id),
       },
     ];
   });

@@ -2203,18 +2203,24 @@ export const translations: Record<string, string> = {
   'Course page': 'Trang khoá học',
   'Official site': 'Liên kết chính thức',
   Remove: 'Xóa',
-  /*
-   * ⚠️ NOT COVERED, and it cannot be: the row checkbox and the picker's radios
-   * carry interpolated aria-labels ("Select Massachusetts Institute of
-   * Technology", "Choose Fulbright Scholarship 2026"). There is no static key for
-   * a string containing a university name, and this route has no machine
-   * fallback, so those stay English for screen-reader users. Fixing it properly
-   * means a t()-with-parameters helper, which this dictionary does not have.
-   */
+  'Select {name}': 'Chọn {name}',
+  'Choose {name}': 'Chọn {name}',
+  'Delete {name}': 'Xóa {name}',
+  'Choose a scholarship for {name}': 'Chọn học bổng cho {name}',
+  'Choose here': 'Chọn tại đây',
+  'Scholarship:': 'Học bổng:',
+  'Tuition fee:': 'Học phí:',
+  'No scholarships available': 'Chưa có học bổng khả dụng',
+  'Are you sure you want to delete this university?': 'Bạn có chắc muốn xóa trường này không?',
+  No: 'Không',
 
   // The scholarship bar (375:12813 / 375:12841)
   'See all the scholarships you could apply for': 'Xem thêm tất cả các học bổng',
   'Scholarships here': 'Học bổng tại đây',
+  'Choose all': 'Chọn tất cả',
+  'Saved university actions': 'Thao tác với trường đã lưu',
+  'Select a university to browse scholarships or plan its application.':
+    'Chọn một trường để xem học bổng hoặc lên kế hoạch ứng tuyển.',
   Scholarship: 'Học bổng',
   'scholarship attached': 'học bổng đã áp dụng',
   'scholarships attached': 'học bổng đã áp dụng',
@@ -2235,6 +2241,10 @@ export const translations: Record<string, string> = {
   'None of the universities on your saved list have a scholarship in our directory yet.':
     'Các trường trong danh sách đã lưu hiện chưa có học bổng nào trong hệ thống.',
   'Available scholarships': 'Học bổng khả dụng',
+  'Scholarships linked to your selected universities. Open one to see who it is for and what it covers.':
+    'Học bổng liên kết với các trường bạn đã chọn. Mở một học bổng để xem đối tượng và mức hỗ trợ.',
+  'Attach to university': 'Áp dụng cho trường',
+  'Choose which university to attach this scholarship to.': 'Chọn trường để áp dụng học bổng này.',
   'See details': 'Xem chi tiết',
   'Value not published': 'Chưa công bố giá trị',
   'Apply scholarship now': 'Áp học bổng ngay',

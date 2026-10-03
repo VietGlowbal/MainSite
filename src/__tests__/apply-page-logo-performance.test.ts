@@ -31,6 +31,8 @@ vi.mock('@/app/apply/application-progress-client', () => ({
 }));
 
 import ApplyPage from '@/app/apply/page';
+import { normalizeScholarshipBenefits } from '@/features/scholarships/domain';
+import type { SavedRow } from '@/app/apply/saved-list-section';
 
 function queryPromise(resolved: Promise<unknown>) {
   const builder: Record<string, unknown> = {};
@@ -73,6 +75,42 @@ describe('ApplyPage logo loading', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mocks.loadFrequentlyPicked.mockResolvedValue({});
+  });
+
+  it.each([99, null])('retains linked pricing options while identifying an award saved at university %s', async (universityId) => {
+    const award = {
+      id: 30, name: 'Government Scholarship', amount_min: null, amount_max: null,
+      amount_currency: null, coverage: '50% tuition', funding_type: [], source_url: null,
+    };
+    mocks.byUniversityIds.mockResolvedValue(new Map([[82, [{
+      id: award.id, name: award.name, coverage: award.coverage, fundingType: [],
+      amountLabel: null, deadlineLabel: null, amountMin: null, amountMax: null,
+      amountCurrency: null, scope: null, eligibility: null, conditions: null,
+      insight: null, appliesToText: null, sourceUrl: null,
+      benefits: normalizeScholarshipBenefits(award),
+    }]]]));
+    const results: Record<string, unknown> = {
+      course_applications: { data: [], error: null },
+      user_universities: { data: [{ id: 1, university_id: 82, universities: {
+        id: 82, name: 'Harvard', country: 'United States', tuition_usd: '50000',
+      } }], error: null },
+      user_scholarships: { data: [{ id: 5, university_id: universityId, scholarships: award }], error: null },
+      student_profiles: { data: null, error: null },
+      student_personal_report_versions: { data: null, error: null },
+      applicant_analyses: { data: [], error: null },
+      application_match_analyses: { data: [], error: null },
+    };
+    const supabase = { from: vi.fn((table: string) => query(results[table] ?? { data: [], error: null })) };
+    mocks.createClient.mockResolvedValue(supabase);
+    mockIdentity(supabase);
+    const page = await ApplyPage({ searchParams: Promise.resolve({}) });
+    const rows = await page.props.children.props.savedRowsPromise as SavedRow[];
+    expect(rows[0]?.attached).toEqual([]);
+    expect(rows[0]?.attachedScholarshipIds).toEqual([30]);
+    expect(rows[0]?.options[0]).toMatchObject({ id: 30, coverage: '50% tuition' });
+    expect(rows[0]?.tuitionRaw).toBe('50000');
+    // The existing shell count and saved-list read suffice; no attachment query is added.
+    expect(supabase.from.mock.calls.filter(([table]) => table === 'user_scholarships')).toHaveLength(2);
   });
 
   it('uses the application university join without a second university lookup', async () => {

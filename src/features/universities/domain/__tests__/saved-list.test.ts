@@ -51,15 +51,15 @@ describe('scholarshipCandidates', () => {
   it('only offers scholarships from the ticked universities', () => {
     const result = scholarshipCandidates([MIT, OXFORD], [2]);
     expect(result.map((c) => c.option.id)).toEqual([20]);
-    expect(result[0]?.universityName).toBe('University of Oxford');
+    expect(result[0]?.applicableUniversities).toEqual([{ id: 2, name: 'University of Oxford' }]);
   });
 
   it('carries the university each scholarship belongs to', () => {
     const result = scholarshipCandidates([MIT, OXFORD], [1, 2]);
-    expect(result.map((c) => [c.universityId, c.option.id])).toEqual([
-      [1, 10],
-      [1, 11],
-      [2, 20],
+    expect(result.map((c) => [c.applicableUniversities, c.option.id])).toEqual([
+      [[{ id: 1, name: 'MIT' }], 10],
+      [[{ id: 1, name: 'MIT' }], 11],
+      [[{ id: 2, name: 'University of Oxford' }], 20],
     ]);
   });
 
@@ -81,6 +81,52 @@ describe('scholarshipCandidates', () => {
 
   it('handles a university with no linked scholarships', () => {
     expect(scholarshipCandidates([row(3, 'Sorbonne', [])], [3])).toEqual([]);
+  });
+
+  const government = { id: 30, name: 'Government Scholarship' };
+  const mit = row(1, 'MIT', [...MIT.options, government]);
+  const harvard = row(3, 'Harvard', [{ id: 40, name: 'Harvard Grant' }, government]);
+
+  it('scopes to MIT alone or the union of MIT and Harvard, deduped by scholarship id', () => {
+    expect(scholarshipCandidates([mit, harvard], [1]).map((c) => c.option.id)).toEqual([10, 11, 30]);
+    const union = scholarshipCandidates([mit, harvard], [1, 3]);
+    expect(union.map((c) => c.option.id)).toEqual([10, 11, 30, 40]);
+    expect(union.find((c) => c.option.id === 30)?.applicableUniversities).toEqual([
+      { id: 1, name: 'MIT' }, { id: 3, name: 'Harvard' },
+    ]);
+  });
+
+  it.each([{ selection: [1, 3] }, { selection: [3] }])('never reoffers an attached shared award to another university: $selection', ({ selection }) => {
+    const result = scholarshipCandidates([{ ...mit, attached: [government] }, harvard], selection);
+    expect(result.some((c) => c.option.id === 30)).toBe(false);
+  });
+
+  it('excludes Stanford-only matches and retains only selected associations for shared awards', () => {
+    const stanford = row(4, 'Stanford', [{ id: 50, name: 'Stanford Grant' }, government]);
+    const rows = [mit, harvard, stanford];
+    const union = scholarshipCandidates(rows, [1, 3]);
+    expect(union.map((c) => c.option.id)).toEqual([10, 11, 30, 40]);
+    expect(union.find((c) => c.option.id === 30)?.applicableUniversities).toEqual([
+      { id: 1, name: 'MIT' }, { id: 3, name: 'Harvard' },
+    ]);
+    expect(scholarshipCandidates(rows, [1]).find((c) => c.option.id === 30)?.applicableUniversities)
+      .toEqual([{ id: 1, name: 'MIT' }]);
+  });
+
+  it('keeps different scholarship ids even when their names match', () => {
+    const result = scholarshipCandidates([row(1, 'MIT', [government, { ...government, id: 31 }])], [1]);
+    expect(result.map((c) => c.option.id)).toEqual([30, 31]);
+  });
+
+  it('excludes attachments outside the saved list without removing the full pricing options', () => {
+    const outsideAttachment = { ...harvard, attachedScholarshipIds: [government.id] };
+    expect(scholarshipCandidates([outsideAttachment], [3]).map((c) => c.option.id)).toEqual([40]);
+    expect(outsideAttachment.options).toContain(government);
+  });
+
+  it('dedupes repeated relationship rows as well as shared scholarships', () => {
+    expect(scholarshipCandidates([row(1, 'MIT', [government, government]), mit], [1, 1])
+      .find((c) => c.option.id === 30)?.applicableUniversities).toEqual([{ id: 1, name: 'MIT' }]);
   });
 });
 
