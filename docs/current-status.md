@@ -1,78 +1,15 @@
 # Current project status
 
-2026-10-03 follow-up main sync: main advanced to `5472d476` while CI ran.
-The delta is the upstream latest-Personal-Report onboarding query/test and
-documentation; only current-status.md conflicted. Kept both status records
-and the upstream source unchanged. Scholarship/application URL, valuation,
-fit, eligibility, ranking and recommendation files are unchanged from
-`69f7c1aa`. That revision passed shared CI `37127251317`: verify and E2E
-(69 passed/10 skipped), with Planner checks passing, on Node 24.19.0/npm
-11.17.0. Post-sync local sanity passed on the same runtime: both typechecks,
-lint (0 errors/9 existing warnings), 354 focused tests across 52 files, i18n
-and diff checks. Fresh shared gates are required on the follow-up HEAD.
-
-2026-10-03 Scholarship Personalization/main integration: incorporated main
-`34b6bb5a` into `feat/scholarship-personalization`, retaining main's Home
-streaming/redesign/CSS-module fix and canonical Home value/localization.
-No eligibility, fit, valuation, recommendation or ranking policy was changed.
-The complete candidate cache now stores losslessly compressed raw rows and
-hydrates normalized facts after decoding; it still ranks before pagination,
-throws on database errors, and retains version/date/public-user boundaries.
-Measured 2,877 candidates: encoded cache entry 867,622 bytes (previous normalized
-entry 11,604,875 bytes exceeded Next's 2 MB limit). Cold directory request
-2.707s, repeated request 13ms; these are local measurements, not shared CI.
-
-Node 24.19.0/npm 11.17.0 clean-install local verification: `verify:pr` PASS
-(both typechecks, lint with 0 errors/9 existing warnings, 4,207 tests passed/
-2 todo across 451 files, production build); focused scholarship/application/
-cache/Home checks 297/297 across 42 files; i18n missing keys/placeholder
-mismatches 0; diff check PASS. Two new streaming tests preserve canonical
-candidate valuation and English/Vietnamese formatting with main's Suspense
-regions. No scholarship/application domain or security logic changed.
-Earlier `c2e63de2` production E2E: **70 passed, 0 failed, 9 skipped**. Orbit geometry
-passed at 960/1024/1100/1280/1440px; the Windows kitchen-sink baseline was
-corrected only after tracing the intentional 73px duplicate-header removal,
-with optional cookies rejected through the UI (see verification.md). Seven
-signed-in tests lack E2E account credentials; two Home visual baselines are
-absent. Independent OpenCode delta review is **NOT COMPLETED**: configured
-Anthropic and DeepSeek credentials both returned HTTP 401. Commit `c2e63de2`
-was pushed and shared CI `37120195871` passed verify on Node 24.19.0/npm 11.17.0,
-but E2E failed (59 passed, 10 failed, 10 skipped) because the CI Supabase
-project returned `exceed_storage_size_quota`. On the owner's approval, the
-three GitHub Actions Supabase secrets were updated from the validated new
-local environment on 2026-10-03; keys were not logged. Read-only server catalogue
-probes returned HTTP 200. Integrating main `34b6bb5a` retains its independent
-Home Suspense regions and the canonical locale-aware scholarship adapter;
-local integration gates pass; fresh feature shared CI is pending. The main lockfile's missing
-optional emnapi entries are repaired in separate PR #244; the exact repair is
-also included here so current-base CI can install dependencies. No dependency
-versions, CI checks, scholarship policy or database data were changed.
-
-City schema repair: the owner applied `sql/supabase-universities-city.sql` in
-the new project's SQL Editor. Read-only PostgREST checks confirmed nullable
-TEXT city data and the complete nested scholarship select return HTTP 200.
-No city data was inferred/backfilled and no database mutation was performed
-by the integration checks. Local Supabase env now targets the new project.
-Storage remains incomplete: an old-project university image returns 402,
-while its corresponding new-project object returns "Object not found" (400).
-Do not just replace URL hosts: restore the actual bytes before a controlled
-URL cutover. T2B production cost/FX datasets remain incomplete, so full
-production value estimation is not data-ready.
-
-Main 2026-10-03 (clean-install lockfile repair): shared CI `37120854081`
-failed before verification because `npm ci` could not find the locked optional
-`@emnapi/core@1.10.0` and `@emnapi/runtime@1.10.0` entries required by
-`@rolldown/binding-wasm32-wasi`. Reproduced on clean main `34b6bb5a` with
-Node 24.19.0/npm 11.17.0. Restored only those two nested package entries;
-all existing locked packages/versions and package.json are unchanged.
-The same clean `npm ci` now succeeds (903 packages). Local `verify:pr` PASS:
-both typechecks, lint (0 errors/5 existing warnings), 3,986 tests passed/2 todo
-across 425 files, and production build; diff check PASS. Shared CI must still
-verify the pushed revision. Shared PR #244 CI `37126477773` subsequently passed
-verify on Ubuntu/Node 24.19.0/npm 11.17.0 and E2E (67 passed/10 skipped), with
-zero catalogue quota-error log entries. Planner checks passed. These results
-verify the main repair, not the feature integration's new HEAD. No application,
-scholarship, database or workflow behavior changed by the lockfile repair.
+Main 2026-10-03 (AI Strategy tab performance): `fetchOnboardingState` now uses
+React request memoization, sharing the nav/page read without a cross-request TTL.
+`ApplicationNav` starts onboarding and Planner access reads concurrently. Report
+tabs prefetch on hover, keyboard focus or touch; active/locked tabs and non-report
+workspaces are not explicitly prefetched. Next's ordinary Link behavior remains.
+An isolated real Next RSC renderer measured duplicate onboarding reads falling
+from 10 to 5 per request, with fresh flags on the next request and separate reads
+for different users/applications. No signed-in production tab latency was measured.
+Full suite 3,990 tests passed (2 todo); production build, strict TypeScript and
+lint passed (zero errors, five existing warnings).
 
 Main 2026-10-03 (Matching open-link redirect loop): the onboarding gate limited
 Personal Report versions to one without ordering. With an older report on a
@@ -106,6 +43,31 @@ regions, so the shell does not wait for all Supabase reads. Scholarship preview
 and floating help content load when opened. Fixed the Vietnamese catalog lookup
 capturing an empty catalog before a streamed child primes it. Measurements and
 validation are recorded in `docs/performance.md`.
+
+Main 2026-10-03 (clean-install lockfile repair): shared CI `37120854081`
+failed before verification because `npm ci` could not find the locked optional
+`@emnapi/core@1.10.0` and `@emnapi/runtime@1.10.0` entries required by
+`@rolldown/binding-wasm32-wasi`. Reproduced on clean main `34b6bb5a` with
+Node 24.19.0/npm 11.17.0. Restored only those two nested package entries;
+all existing locked packages/versions and package.json are unchanged.
+The same clean `npm ci` now succeeds (903 packages). Local `verify:pr` PASS:
+both typechecks, lint (0 errors/5 existing warnings), 3,986 tests passed/2 todo
+across 425 files, and production build; diff check PASS. Shared CI
+`37126477773` passed verify and E2E (67 passed/10 skipped), with all Planner
+checks passing, on Node 24.19.0/npm 11.17.0. Main then advanced to `5472d476`;
+the follow-up sync preserves its onboarding fix unchanged and resolves only
+this documentation conflict. Post-sync local typechecks and 29 focused
+onboarding/workspace tests passed; diff check PASS. Fresh shared checks are
+required for that HEAD.
+No application, scholarship, database or workflow behavior changed by the
+lockfile repair.
+
+Shared follow-up CI `37131700878` passed verify/E2E on `e4de096c`.
+Main then advanced to `24e038e6`. The next sync keeps its request memoization
+and report-intent prefetch source unchanged. The lockfile note is kept below
+the stable homepage checkpoint so unrelated new main status entries can be
+merged without repeatedly conflicting at the document header. The new HEAD
+still requires fresh shared CI; no verification result is inferred forward.
 
 Branch `fix/cached-empty-on-supabase-error` 2026-09-29: a database error is no
 longer cached as "no data". During the Supabase 402 restriction the university
@@ -441,6 +403,80 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+## Scholarship Personalization integration checkpoints (2026-10-03)
+
+Current integration base: `24e038e6`. Only current-status.md conflicted.
+Kept the upstream request-local onboarding memoization and report-intent
+prefetch source unchanged; no scholarship/domain or application URL logic
+changed. Branch-specific notes are grouped here to leave the rolling main
+status header intact. Prior HEAD `8a360cc4` passed shared CI `37131701953`
+(verify/E2E), with all Planner checks passing. Fresh checks are required on
+the new integration HEAD. Post-sync local sanity passed: both typechecks,
+lint (0 errors/9 existing warnings), 332 focused tests across 48 files
+(including request-local user/application cache isolation), i18n and diff
+checks. The following measured checkpoints apply only to
+their named revisions, not to untested future commits.
+
+2026-10-03 follow-up main sync: main advanced to `5472d476` while CI ran.
+The delta is the upstream latest-Personal-Report onboarding query/test and
+documentation; only current-status.md conflicted. Kept both status records
+and the upstream source unchanged. Scholarship/application URL, valuation,
+fit, eligibility, ranking and recommendation files are unchanged from
+`69f7c1aa`. That revision passed shared CI `37127251317`: verify and E2E
+(69 passed/10 skipped), with Planner checks passing, on Node 24.19.0/npm
+11.17.0. Post-sync local sanity passed on the same runtime: both typechecks,
+lint (0 errors/9 existing warnings), 354 focused tests across 52 files, i18n
+and diff checks. Fresh shared gates are required on the follow-up HEAD.
+
+2026-10-03 Scholarship Personalization/main integration: incorporated main
+`34b6bb5a` into `feat/scholarship-personalization`, retaining main's Home
+streaming/redesign/CSS-module fix and canonical Home value/localization.
+No eligibility, fit, valuation, recommendation or ranking policy was changed.
+The complete candidate cache now stores losslessly compressed raw rows and
+hydrates normalized facts after decoding; it still ranks before pagination,
+throws on database errors, and retains version/date/public-user boundaries.
+Measured 2,877 candidates: encoded cache entry 867,622 bytes (previous normalized
+entry 11,604,875 bytes exceeded Next's 2 MB limit). Cold directory request
+2.707s, repeated request 13ms; these are local measurements, not shared CI.
+
+Node 24.19.0/npm 11.17.0 clean-install local verification: `verify:pr` PASS
+(both typechecks, lint with 0 errors/9 existing warnings, 4,207 tests passed/
+2 todo across 451 files, production build); focused scholarship/application/
+cache/Home checks 297/297 across 42 files; i18n missing keys/placeholder
+mismatches 0; diff check PASS. Two new streaming tests preserve canonical
+candidate valuation and English/Vietnamese formatting with main's Suspense
+regions. No scholarship/application domain or security logic changed.
+Earlier `c2e63de2` production E2E: **70 passed, 0 failed, 9 skipped**. Orbit geometry
+passed at 960/1024/1100/1280/1440px; the Windows kitchen-sink baseline was
+corrected only after tracing the intentional 73px duplicate-header removal,
+with optional cookies rejected through the UI (see verification.md). Seven
+signed-in tests lack E2E account credentials; two Home visual baselines are
+absent. Independent OpenCode delta review is **NOT COMPLETED**: configured
+Anthropic and DeepSeek credentials both returned HTTP 401. Commit `c2e63de2`
+was pushed and shared CI `37120195871` passed verify on Node 24.19.0/npm 11.17.0,
+but E2E failed (59 passed, 10 failed, 10 skipped) because the CI Supabase
+project returned `exceed_storage_size_quota`. On the owner's approval, the
+three GitHub Actions Supabase secrets were updated from the validated new
+local environment on 2026-10-03; keys were not logged. Read-only server catalogue
+probes returned HTTP 200. Integrating main `34b6bb5a` retains its independent
+Home Suspense regions and the canonical locale-aware scholarship adapter;
+local integration gates pass; fresh feature shared CI is pending. The main lockfile's missing
+optional emnapi entries are repaired in separate PR #244; the exact repair is
+also included here so current-base CI can install dependencies. No dependency
+versions, CI checks, scholarship policy or database data were changed.
+
+City schema repair: the owner applied `sql/supabase-universities-city.sql` in
+the new project's SQL Editor. Read-only PostgREST checks confirmed nullable
+TEXT city data and the complete nested scholarship select return HTTP 200.
+No city data was inferred/backfilled and no database mutation was performed
+by the integration checks. Local Supabase env now targets the new project.
+Storage remains incomplete: an old-project university image returns 402,
+while its corresponding new-project object returns "Object not found" (400).
+Do not just replace URL hosts: restore the actual bytes before a controlled
+URL cutover. T2B production cost/FX datasets remain incomplete, so full
+production value estimation is not data-ready.
+
+
 Working tree 2026-09-25 (Scholarship Personalization T9): unified scholarship
 value formatting and badges across the directory cards/detail, saved list,
 application drawer/picker, Home catalogue-backed surfaces, and the AI surface's

@@ -101,6 +101,7 @@ export function SubNav({
   activeKey,
   label,
   tone = 'light',
+  onIntent,
 }: {
   items: readonly SubNavItem[];
   activeKey: string | null;
@@ -108,6 +109,7 @@ export function SubNav({
   label: string;
   /** Which surface the bar is drawn on. See the note above. */
   tone?: SubNavTone | undefined;
+  onIntent?: ((href: string) => void) | undefined;
 }) {
   const { t } = useLanguage();
   const palette = TONES[tone];
@@ -131,6 +133,11 @@ export function SubNav({
             <li key={item.key}>
               <Link
                 href={item.href}
+                {...(onIntent && !isActive ? {
+                  onMouseEnter: () => onIntent(item.href),
+                  onFocus: () => onIntent(item.href),
+                  onTouchStart: () => onIntent(item.href),
+                } : {})}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex flex-col items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center transition-all ${focusRing} ${
                   isActive ? palette.active : palette.rest

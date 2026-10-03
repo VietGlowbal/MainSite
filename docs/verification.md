@@ -77,6 +77,15 @@ code. Post-sync local sanity: both typechecks, lint (0 errors/9 existing
 warnings), 354 focused tests across 52 files, i18n and diff checks passed.
 Fresh CI is required on the resulting HEAD, not inferred from this run.
 
+Main subsequently advanced to `24e038e6` (request-local onboarding memoization
+and report-intent prefetch). Only the rolling status note conflicted; upstream
+source was retained unchanged, and feature status notes were moved below the
+stable main checkpoints to avoid repeated header conflicts. Scholarship,
+valuation, application URL and recommendation source is unchanged. Post-sync
+local sanity passed: both typechecks, lint (0 errors/9 existing warnings),
+332 focused tests across 48 files including real-RSC user/application cache
+isolation, i18n and diff checks. Shared CI must verify the new HEAD.
+
 ### Scholarship integration checks (2026-10-03)
 
 The owner applied `sql/supabase-universities-city.sql` separately. Read-only

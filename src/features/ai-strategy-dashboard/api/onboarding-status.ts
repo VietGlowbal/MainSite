@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { cache } from 'react';
 import type { OnboardingState } from '../domain';
 
 /**
@@ -72,7 +73,9 @@ async function selectApplicationFlags(
   return base.data;
 }
 
-export async function fetchOnboardingState(
+// Layout, nav and page share this read within one server render. React resets
+// the cache for every request, so confirming/regenerating never leaves stale flags.
+export const fetchOnboardingState = cache(async function fetchOnboardingState(
   supabase: SupabaseClient,
   userId: string,
   applicationId: string,
@@ -136,7 +139,7 @@ export async function fetchOnboardingState(
     introSeen: Boolean(application?.strategy_intro_seen_at),
     strategyComplete: Boolean(strategyRecommendation.data),
   };
-}
+});
 
 /** Marks the Strategy Introduction as seen for this application, idempotently. */
 export async function markStrategyIntroSeen(
