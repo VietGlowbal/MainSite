@@ -66,6 +66,17 @@ The independent main lockfile repair PR #244 then passed shared CI
 not a substitute for CI on the new feature HEAD. The 10 shared skips include
 seven missing-account tests and three absent Linux visual baselines.
 
+Feature revision `69f7c1aa` subsequently passed shared CI `37127251317`
+(Ubuntu, Node 24.19.0/npm 11.17.0): verify, 451 passing test files, production
+build, and E2E 69 passed/10 skipped; all Planner checks passed. Catalogue quota
+errors were absent, but old Storage image requests still returned HTTP 402.
+Main advanced to `5472d476` while that run completed. The follow-up merge has
+only a documentation conflict and preserves its upstream onboarding query
+fix unchanged; it does not alter scholarship/application security or domain
+code. Post-sync local sanity: both typechecks, lint (0 errors/9 existing
+warnings), 354 focused tests across 52 files, i18n and diff checks passed.
+Fresh CI is required on the resulting HEAD, not inferred from this run.
+
 ### Scholarship integration checks (2026-10-03)
 
 The owner applied `sql/supabase-universities-city.sql` separately. Read-only

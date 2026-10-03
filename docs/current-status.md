@@ -1,5 +1,16 @@
 # Current project status
 
+2026-10-03 follow-up main sync: main advanced to `5472d476` while CI ran.
+The delta is the upstream latest-Personal-Report onboarding query/test and
+documentation; only current-status.md conflicted. Kept both status records
+and the upstream source unchanged. Scholarship/application URL, valuation,
+fit, eligibility, ranking and recommendation files are unchanged from
+`69f7c1aa`. That revision passed shared CI `37127251317`: verify and E2E
+(69 passed/10 skipped), with Planner checks passing, on Node 24.19.0/npm
+11.17.0. Post-sync local sanity passed on the same runtime: both typechecks,
+lint (0 errors/9 existing warnings), 354 focused tests across 52 files, i18n
+and diff checks. Fresh shared gates are required on the follow-up HEAD.
+
 2026-10-03 Scholarship Personalization/main integration: incorporated main
 `34b6bb5a` into `feat/scholarship-personalization`, retaining main's Home
 streaming/redesign/CSS-module fix and canonical Home value/localization.
@@ -62,6 +73,17 @@ verify on Ubuntu/Node 24.19.0/npm 11.17.0 and E2E (67 passed/10 skipped), with
 zero catalogue quota-error log entries. Planner checks passed. These results
 verify the main repair, not the feature integration's new HEAD. No application,
 scholarship, database or workflow behavior changed by the lockfile repair.
+
+Main 2026-10-03 (Matching open-link redirect loop): the onboarding gate limited
+Personal Report versions to one without ordering. With an older report on a
+previous snapshot first, it incorrectly marked analysis incomplete and sent
+`matching-report` back to Analysis even after the workspace said reports were
+ready. The query now selects the newest version by `created_at`, consistently
+with the report repository. Snapshot/review/confirmation checks remain enforced.
+Regression reproduced the old-snapshot/new-report case before repair. Measured:
+54 tests across onboarding, workspace, strategy page and application navigation
+passed; production build (151 pages), strict TypeScript and lint passed (five
+existing warnings). Workspace `2/5` is generation quota usage, not report count.
 
 Main 2026-10-03 (Matching generation hotfix): reproduced the legacy Course Match
 reader crashing on V3's empty `pillars` with `undefined.assessed`. It now accepts
