@@ -45,14 +45,13 @@ export function PersonalPositioningView({
     <SectionShell
       eyebrow={t('Personal Positioning')}
       title={t('An evidence-grounded positioning statement')}
-      confidence={section.confidence}
     >
       {section.available || hasPositioningNarrative ? (
         <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
           <div className="rounded-gb-xl border border-line bg-surface p-6 sm:p-7 shadow-xs">
             <div className="flex flex-wrap items-center gap-gb-sm">
               <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Profile narrative')}</p>
-              {!section.available ? <Badge variant="neutral-chip">{t('Emerging')} · {section.confidence}</Badge> : null}
+              {!section.available ? <Badge variant="neutral-chip">{t('Emerging')}</Badge> : null}
             </div>
             <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative?.profileNarrative ?? section.statement}</p>
             {narrative?.positioningOptions.length ? (
@@ -72,10 +71,8 @@ export function PersonalPositioningView({
               </div>
             ) : null}
             <p className="mt-gb-md text-gb-xs font-medium text-fg-muted">
-              {t('{count} linked evidence references · {confidenceLabel}: {confidence}', {
+              {t('{count} linked evidence references', {
                 count: section.evidenceRefs.length,
-                confidenceLabel: t('confidence'),
-                confidence: section.confidence,
               })}
             </p>
           </div>

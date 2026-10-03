@@ -41,10 +41,6 @@ const BAND_LABEL: Record<CapabilityRating['band'], string> = {
   limited: 'Limited evidence',
 };
 
-function confidenceLabel(confidence: CapabilityRating['confidence']): string {
-  return confidence === 'high' ? 'High confidence' : confidence === 'medium' ? 'Medium confidence' : 'Low confidence';
-}
-
 function Stars({ stars }: { stars: CapabilityRating['stars'] }) {
   return (
     <span
@@ -165,7 +161,6 @@ export function SnapshotCapabilityProfileView({ report }: { report: PersonalRepo
                     <Badge variant="neutral-chip">
                       {capability.evidenceCount} {capability.evidenceCount === 1 ? t('experience') : t('experiences')}
                     </Badge>
-                    <Badge variant="neutral-chip">{confidenceLabel(capability.confidence)}</Badge>
                     {capability.verifiedEvidenceCount > 0 ? (
                       <Badge variant="safe-chip">{capability.verifiedEvidenceCount} {t('verified')}</Badge>
                     ) : null}
@@ -226,7 +221,7 @@ export function SnapshotMotivationProfileView({ report }: { report: PersonalRepo
           key: motivation.label.toLowerCase().replace(/\s+/g, '-'),
           label: motivation.label,
           value: motivation.score,
-          caption: `${motivation.evidenceCount} supporting reflection${motivation.evidenceCount === 1 ? '' : 's'} · ${confidenceLabel(motivation.confidence)}`,
+          caption: `${motivation.evidenceCount} supporting reflection${motivation.evidenceCount === 1 ? '' : 's'}`,
         }))}
       />
     </div>

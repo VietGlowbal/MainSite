@@ -1,5 +1,12 @@
 # Current project status
 
+Main 2026-10-03 (Personal Report confidence labels): removed the overall
+confidence badge and High/Medium/Low confidence labels from section headers,
+snapshot, insight charts and detailed popups, including the shared print view.
+Report confidence data and analysis rules remain intact. Updated English and
+Vietnamese evidence captions. Measured: 34 focused UI tests, strict TypeScript,
+scoped ESLint, i18n catalog checks and production build passed.
+
 Main 2026-10-03 (AI Strategy tab performance): `fetchOnboardingState` now uses
 React request memoization, sharing the nav/page read without a cross-request TTL.
 `ApplicationNav` starts onboarding and Planner access reads concurrently. Report

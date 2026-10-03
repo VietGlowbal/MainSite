@@ -3,7 +3,6 @@
 import type { PersonalReportV2 } from '../../domain';
 import { Badge, ICONS, KitIcon } from '@/shared/ui';
 import { useT } from '@/lib/i18n';
-import { ConfidenceBadge } from './shared';
 
 function unique(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value?.trim())))];
@@ -146,14 +145,6 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
             </div>
           </div>
 
-          <div className="flex flex-col gap-gb-xs border-t border-line/60 pt-gb-md">
-            <div className="flex items-center justify-between">
-              <span className="text-gb-xs font-medium text-fg-muted">
-                {t('Confidence')}
-              </span>
-              <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
-            </div>
-          </div>
         </div>
       </div>
     </section>

@@ -1,5 +1,5 @@
 export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
-  'Evidence context and confidence': 'Bối cảnh và độ tin cậy của bằng chứng',
+  'Evidence context': 'Bối cảnh bằng chứng',
   experiences: 'trải nghiệm',
   'Exploring Potential Pathways': 'Khám phá các hướng đi tiềm năng',
   'Open Matching Report': 'Mở Báo cáo Độ phù hợp',
@@ -55,8 +55,8 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
     'Các trải nghiệm hiện có chưa tạo thành một mối liên kết đủ cơ sở.',
   'No evidence-backed positioning option is available yet.':
     'Chưa có lựa chọn định vị nào được bằng chứng hỗ trợ.',
-  '{count} linked evidence references · {confidenceLabel}: {confidence}':
-    '{count} tham chiếu bằng chứng liên kết · {confidenceLabel}: {confidence}',
+  '{count} linked evidence references':
+    '{count} tham chiếu bằng chứng liên kết',
   'Proof of Me': 'Bằng chứng về tôi',
   'The evidence behind every claim above': 'Bằng chứng đứng sau từng nhận định ở trên',
   Supports: 'Hỗ trợ',
@@ -294,8 +294,8 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   Repeated: 'Lặp lại',
   Isolated: 'Đơn lẻ',
   Insufficient: 'Chưa đủ',
-  '{scope} signal · {count} linked evidence references · {confidence} confidence':
-    'Tín hiệu {scope} · {count} tham chiếu bằng chứng liên kết · độ tin cậy {confidence}',
+  '{scope} signal · {count} linked evidence references':
+    'Tín hiệu {scope} · {count} tham chiếu bằng chứng liên kết',
   'Your strongest differentiator will become clearer as you add more reflected experiences.':
     'Điểm khác biệt mạnh nhất của bạn sẽ rõ hơn khi bạn bổ sung thêm các trải nghiệm đã tự nhìn nhận.',
   'Your competitive advantage is still emerging from the evidence currently available.':

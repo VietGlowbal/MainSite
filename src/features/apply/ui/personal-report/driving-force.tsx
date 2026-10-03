@@ -20,7 +20,7 @@ export function DrivingForceView({
   const t = useT();
   const narrative = report?.narrativeDetails?.drivingForce;
   return (
-    <SectionShell eyebrow={t('Driving Force')} title={t('What consistently motivates them')} confidence={section.confidence}>
+    <SectionShell eyebrow={t('Driving Force')} title={t('What consistently motivates them')}>
       {section.available ? (
         <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
           <div>

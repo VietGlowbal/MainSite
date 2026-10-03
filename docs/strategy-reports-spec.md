@@ -1,5 +1,14 @@
 # Strategy reports — build spec
 
+## Personal Report presentation (2026-10-03)
+
+Personal Report no longer displays overall or per-section confidence badges,
+or High/Medium/Low confidence captions in its detailed views. This applies to
+the snapshot, Canvas popups and shared printable sections. Confidence remains
+in the report schema and analysis; evidence counts and maturity labels still
+render. English and Vietnamese captions were updated. Verification: 34 focused
+UI tests, strict TypeScript, scoped ESLint, i18n checks and production build passed.
+
 ## Report navigation repair (2026-10-03)
 
 The Matching "Open report" link could return to Analysis although generation

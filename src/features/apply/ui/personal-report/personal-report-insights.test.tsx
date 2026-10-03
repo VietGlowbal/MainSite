@@ -215,7 +215,7 @@ describe('Personal Report Pass 2 insights', () => {
 
     expect(screen.getByText(/notices engagement problems/i)).toBeInTheDocument();
     expect(screen.getByText('Problem solving and initiative')).toBeInTheDocument();
-    expect(screen.getByText(/Emerging · limited · low/i)).toBeInTheDocument();
+    expect(screen.getByText(/Emerging · limited/i)).toBeInTheDocument();
     expect(screen.getByText('Tutor platform')).toBeInTheDocument();
   });
 
