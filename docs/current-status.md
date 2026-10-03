@@ -21,8 +21,17 @@ corrected only after tracing the intentional 73px duplicate-header removal,
 with optional cookies rejected through the UI (see verification.md). Seven
 signed-in tests lack E2E account credentials; two Home visual baselines are
 absent. Independent OpenCode delta review is **NOT COMPLETED**: configured
-Anthropic and DeepSeek credentials both returned HTTP 401. This work has not
-been pushed; fresh shared CI/review is still required before merging PR #238.
+Anthropic and DeepSeek credentials both returned HTTP 401. Commit `c2e63de2`
+was pushed and shared CI `37120195871` passed verify on Node 24.19.0/npm 11.17.0,
+but E2E failed (59 passed, 10 failed, 10 skipped) because the CI Supabase
+project returned `exceed_storage_size_quota`. On the owner's approval, the
+three GitHub Actions Supabase secrets were updated from the validated new
+local environment on 2026-10-03; keys were not logged. Read-only server catalogue
+probes returned HTTP 200. Integrating main `34b6bb5a` retains its independent
+Home Suspense regions and the canonical locale-aware scholarship adapter;
+fresh integration gates/shared CI are pending. The main lockfile's missing
+optional emnapi entries are being repaired separately, without changing
+dependency versions, CI checks, scholarship policy or database data.
 
 City schema repair: the owner applied `sql/supabase-universities-city.sql` in
 the new project's SQL Editor. Read-only PostgREST checks confirmed nullable
@@ -34,6 +43,28 @@ while its corresponding new-project object returns "Object not found" (400).
 Do not just replace URL hosts: restore the actual bytes before a controlled
 URL cutover. T2B production cost/FX datasets remain incomplete, so full
 production value estimation is not data-ready.
+
+Main 2026-10-03 (Matching generation hotfix): reproduced the legacy Course Match
+reader crashing on V3's empty `pillars` with `undefined.assessed`. It now accepts
+partial pillars and returns null for unavailable scores, while retaining real
+assessed zeroes. The generation failure was a separate upstream Personal Report
+extraction HTTP 400: the configured model rejected `temperature: 0`. The shared
+completion helper now omits custom temperature for GPT-6 as well as GPT-5; GPT-4o
+keeps its existing sampling parameters. Full coverage suite: 424 files / 3,985
+passed, 2 todo; new compatibility-route test passed separately; production build
+151 pages, strict TypeScript and full lint passed (five existing warnings).
+No production AI request or database write was performed locally.
+
+Main 2026-10-03 (local merge and homepage performance): restored the local
+reviewed VinUni importer onto upstream `97b1e825`, preserving the upstream CSV
+pipeline default and adding optional metadata overrides. `npm run import:vinuni`
+requires the reviewed `data/VinUni data.xlsx` locally alongside the tracked
+normalized JSON; it defaults to a dry run. No database import was applied.
+Homepage reads now start together and stream into three independent Suspense
+regions, so the shell does not wait for all Supabase reads. Scholarship preview
+and floating help content load when opened. Fixed the Vietnamese catalog lookup
+capturing an empty catalog before a streamed child primes it. Measurements and
+validation are recorded in `docs/performance.md`.
 
 Branch `fix/cached-empty-on-supabase-error` 2026-09-29: a database error is no
 longer cached as "no data". During the Supabase 402 restriction the university

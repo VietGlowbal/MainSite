@@ -2,11 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { useLanguage } from '@/lib/i18n';
+import { T, useLanguage } from '@/lib/i18n';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { scrollToConsultation } from './home-consultation';
-import { HomeScholarshipPreview } from './home-scholarship-preview';
 import type { ScholarshipTeaser } from './home-scholarship-pillars';
 import { PARTNER_TOTAL_SCHOLARSHIP_VALUE } from './partner-scholarship-value';
 import { highlightPhrases } from './home-highlight';
@@ -20,6 +20,17 @@ import {
 } from '../domain/orbit-path';
 import { TID, testId } from '@/shared/lib';
 import { PARTNER_LOGOS } from './partner-logos';
+
+const HomeScholarshipPreview = dynamic(() =>
+  import('./home-scholarship-preview').then((module) => module.HomeScholarshipPreview),
+  {
+    loading: () => (
+      <div role="status" className="py-gb-6xl text-center text-white">
+        <T k="Please wait..." />
+      </div>
+    ),
+  },
+);
 
 /**
  * Partner logos, orbiting a tilted ellipse and reacting to hover with a

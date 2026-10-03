@@ -6,6 +6,53 @@ for front-end performance: what was measured, what was fixed, and what is still
 open. Numbers here are measured, never estimated — if a row has no measurement
 it says so.
 
+## Homepage streaming and closed panels (2026-10-03)
+
+The current home awaited all four data sources before returning any content.
+Its hero, partners and team now stream independently with the existing views
+as fallbacks. Reads still start concurrently; completed sections receive their
+real data. The hero country caption reserves height while loading. The floating
+help guide and scholarship preview use dynamic imports and mount only when
+opened; the help modal retains its focus, Escape and scrolling behavior.
+
+Streaming also exposed a Vietnamese hydration mismatch: the root language
+provider captured an empty catalog before its streamed child primed it. The
+translation callback now consults the runtime catalog when called. English still
+returns before looking up any catalog.
+
+Local before/after production-build measurements, Chromium 1440×900, fresh
+browser contexts, cache disabled, 4× CPU slowdown, no network throttling:
+
+| Route | FCP before | FCP after | Requested JS gzip before | After |
+|---|---:|---:|---:|---:|
+| `/` | 8,116 ms | 1,296 ms | 419,069 B | 418,163 B |
+| `/vi` | 7,528 ms | 1,320 ms | 614,685 B | 613,779 B |
+| `/terms` | 568 ms | 1,872 ms | 342,190 B | 335,821 B |
+
+These are single local samples using the CI placeholder backend, whose failed
+reads delay completion. They demonstrate the shell no longer waits for those
+reads, rather than a measured production improvement. The terms page loses
+19,284 raw JS bytes (6,369 gzip) from deferring the help guide. Terms FCP did not
+improve in this sample; earlier after-change runs measured 660 ms, so treat
+timings as noisy local samples rather than route-wide performance guarantees.
+JS totals include
+requests during 3.5 seconds after DOMContentLoaded. Real-user production FCP,
+LCP and INP still need monitoring after deployment.
+
+Regression coverage exercises pending home reads in both languages, real data
+delivery, opening/filtering/closing the scholarship preview, help entry steps
+on reopening, suppressed admin routes, and catalog priming after provider render.
+
+Validation: full coverage suite 423 files / 3,980 tests passed (2 todo), production
+build generated all 151 pages, strict TypeScript and i18n checks passed. Full lint
+passed with zero errors and five existing warnings; the final catalog regression
+also passed after moving it into the configured component-test project. Production
+browser smoke on `/vi` first, `/` and `/terms` reported no hydration errors; mobile
+EN/VI had no horizontal overflow. Opening help fetched one additional script and
+closing worked. CI placeholder data has no scholarships, so actual preview
+interaction is verified by the component test. Local Node is 24.13.0; the aggregate
+`verify:pr` runtime preflight requires 24.19.x, so individual checks were used.
+
 ## The production symptom (2026-09-05, before any fix)
 
 | Metric | Value | Target |

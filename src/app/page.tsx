@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { unstable_cache } from 'next/cache';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
@@ -345,13 +346,34 @@ async function submitContact(
   return { status: 'ok', email: request.email, emailed };
 }
 
+async function HomeHeroData({ data, locale }: {
+  data: ReturnType<typeof getGlobeCountries>;
+  locale: Locale;
+}) {
+  return <HomeHero locale={locale} countries={await data} />;
+}
+
+async function HomePartnersData({ data, locale }: {
+  data: Promise<[Awaited<ReturnType<typeof getPartnerUniversityIds>>, Awaited<ReturnType<typeof getHomeScholarshipSpotlight>>]>;
+  locale: Locale;
+}) {
+  const [universityIds, spotlight] = await data;
+  return <HomePartners universityIds={universityIds} locale={locale} scholarships={spotlight.entries} scholarshipTotal={spotlight.total} />;
+}
+
+async function HomeTeamData({ data, locale }: {
+  data: ReturnType<typeof getTeamMembers>;
+  locale: Locale;
+}) {
+  return <HomeTeam members={await data} locale={locale} />;
+}
+
 export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {}) {
-  const [partnerUniversityIds, team, scholarshipSpotlight, globeCountries] = await Promise.all([
-    getPartnerUniversityIds(),
-    getTeamMembers(),
-    getHomeScholarshipSpotlight(locale),
-    getGlobeCountries(),
-  ]);
+  // Start every read together, but let the actual sections stream independently.
+  // The existing views reserve their layout while the data is pending.
+  const globeCountries = getGlobeCountries();
+  const partners = Promise.all([getPartnerUniversityIds(), getHomeScholarshipSpotlight(locale)]);
+  const team = getTeamMembers();
 
   const copy = homeCopy[locale];
   const footer = getLocalizedFooter(locale);
@@ -385,18 +407,19 @@ export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {})
         {/* The sections are one black → rose → white background ramp; see
             HOME_BANDS_CLASS for why each one overlaps the next by 1px. */}
         <main className={HOME_BANDS_CLASS}>
-          <HomeHero locale={locale} countries={globeCountries} />
+          <Suspense fallback={<HomeHero locale={locale} />}>
+            <HomeHeroData locale={locale} data={globeCountries} />
+          </Suspense>
           {/* The six highlighted records feed the library preview the
               "Find scholarships" button opens. */}
-          <HomePartners
-            universityIds={partnerUniversityIds}
-            locale={locale}
-            scholarships={scholarshipSpotlight.entries}
-            scholarshipTotal={scholarshipSpotlight.total}
-          />
+          <Suspense fallback={<HomePartners locale={locale} />}>
+            <HomePartnersData locale={locale} data={partners} />
+          </Suspense>
           <HomeStories locale={locale} />
           <HomeMetrics locale={locale} />
-          <HomeTeam members={team} locale={locale} />
+          <Suspense fallback={<HomeTeam locale={locale} />}>
+            <HomeTeamData locale={locale} data={team} />
+          </Suspense>
           <HomeJourney locale={locale} />
           <HomeFeatures locale={locale} />
           <HomePricing locale={locale} />

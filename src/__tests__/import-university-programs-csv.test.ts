@@ -41,6 +41,7 @@ describe('university programme CSV importer', () => {
     ['Master of Science', 'Computer Science', 'master'],
     ['PhD', 'Economics', 'phd'],
     ['Juris Doctor (JD)', 'Law', 'professional'],
+    ['Medical Doctor', 'Medicine', 'professional'],
     ['VMD', 'Veterinary Medicine', 'professional'],
   ])('maps %s to %s degree level', (degree, programme, expected) => {
     expect(inferDegreeLevel(degree, programme)).toBe(expected);
@@ -125,6 +126,35 @@ describe('university programme CSV importer', () => {
     expect(result.programmes[0].verification_status).toBe('REJECTED');
     expect(result.programmes[1].verification_status).toBe('NEEDS_REVIEW');
     expect(result.programmes[1].official_url).toContain('#glowbal-program=computer-science-phd-');
+  });
+
+  it('updates an existing programme in place when an approved source is authoritative', () => {
+    const plan = {
+      programmes: [{
+        programme_id: 'incoming',
+        institution_id: 'csv-university-97',
+        programme_name: 'Bachelor of Business Administration',
+        official_url: 'https://vinuni.edu.vn/college-of-business-management/bachelor-of-business-administration/',
+        degree_level: 'bachelor',
+        verification_status: 'HUMAN_VERIFIED',
+        payload: { source_official_url: 'https://vinuni.edu.vn/college-of-business-management/bachelor-of-business-administration/' },
+      }],
+      programmeRelations: [],
+      organisationUnits: [],
+    };
+    const existing = [{
+      programme_id: 'existing',
+      university_id: 97,
+      programme_name: 'Bachelor of Business Administration',
+      official_url: 'https://vinuni.edu.vn/college-of-business-management/bachelor-of-business-administration/',
+      degree_level: "Bachelor's",
+    }];
+
+    const result = applyExistingCataloguePolicy(plan, existing, { updateExisting: true });
+
+    expect(result.programmes[0].verification_status).toBe('HUMAN_VERIFIED');
+    expect(result.programmes[0].official_url).toBe(existing[0].official_url);
+    expect(result.programmes[0].payload.import_decision).toBe('update_existing_catalogue_programme');
   });
 });
 
