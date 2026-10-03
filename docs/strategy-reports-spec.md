@@ -1,5 +1,20 @@
 # Strategy reports — build spec
 
+## Narrative truncation recovery (2026-10-03)
+
+Structured Personal Report batches now allow 6,000 completion tokens. If the
+provider ends a batch with `finish_reason: length`, each requested section is
+regenerated independently with 4,000 tokens and the same strict schema and
+grounding checks. Single-section truncation is terminal; successful siblings
+are retained. Failed sections still use the deterministic report and report
+their section-specific failure through telemetry. Reflection context is selected
+by requested section, so recovery and repair retain the original batch context.
+Tests simulate successful recovery of all seven narrative sections and a repeated
+single-section truncation that preserves the other six without looping.
+70 focused tests, strict TypeScript, scoped ESLint, i18n checks and production
+build passed. No live provider generation was performed. The strategy landing
+page keeps its hero CTA and removes the duplicate CTA below testimonials.
+
 ## Personal Report presentation (2026-10-03)
 
 Personal Report no longer displays overall or per-section confidence badges,

@@ -1,5 +1,16 @@
 # Current project status
 
+Main 2026-10-03 (Personal Report truncated narrative): the two structured
+narrative batches were capped at 3,000 completion tokens; provider truncation
+was thrown before parsing and skipped the entire batch. Increased the budget
+to 6,000 and recover truncation with concurrent single-section requests capped
+at 4,000 each. A single-section truncation cannot retry again; valid siblings
+survive and failed sections retain deterministic content. Retry/repair payloads
+now select reflection context by section rather than batch object identity.
+Removed the duplicate bottom Start My Strategy CTA. Measured: 70 focused tests,
+strict TypeScript, scoped ESLint, i18n checks and production build passed.
+Recovery was tested with simulated provider truncation; no live AI call ran.
+
 Main 2026-10-03 (Personal Report confidence labels): removed the overall
 confidence badge and High/Medium/Low confidence labels from section headers,
 snapshot, insight charts and detailed popups, including the shared print view.

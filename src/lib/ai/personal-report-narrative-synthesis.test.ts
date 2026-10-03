@@ -1108,6 +1108,43 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(content).not.toContain('I built a chatbot for my school.');
   });
 
+  it.each([false, true])('recovers a truncated batch per section, with bounded retries (child fails: %s)', async (childFails) => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[] };
+      const keys = request.requestedSections;
+      if ((keys.includes('snapshot') && keys.length > 1) || (childFails && keys.length === 1 && keys[0] === 'coreIdentity')) {
+        return { ok: true, json: async () => ({ choices: [{ finish_reason: 'length', message: { content: '{' } }] }) } as Response;
+      }
+      const all = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(keys.map((key) => [key, all[key as keyof typeof all]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna',
+      grounding: narrativeGrounding(), onFailure,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    const requests = fetchMock.mock.calls.map((call) => JSON.parse(JSON.parse(String(call[1]?.body)).messages[1].content));
+    const original = requests.find((request) => request.requestedSections.length > 1 && request.requestedSections.includes('snapshot'));
+    const coreRetry = requests.find((request) => request.requestedSections.length === 1 && request.requestedSections[0] === 'coreIdentity');
+    expect(coreRetry.input.reflectionFindings.byKey).toEqual(original.input.reflectionFindings.byKey);
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    expect(result?.narrativeDetails?.drivingForce).toBeTruthy();
+    expect(result?.narrativeDetails?.profilePositioning).toBeTruthy();
+    expect(result?.narrativeDetails?.provenCapabilities).toBeTruthy();
+    expect(result?.narrativeDetails?.socialProof).toBeTruthy();
+    expect(result?.narrativeDetails?.keyTakeaways).toBeTruthy();
+    if (childFails) {
+      expect(result?.narrativeDetails?.coreIdentity).toBeUndefined();
+      expect(onFailure).toHaveBeenCalledWith('output_truncated', expect.objectContaining({ batch: ['coreIdentity'] }));
+    } else {
+      expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+      expect(onFailure).not.toHaveBeenCalled();
+    }
+  });
+
   it('sends deterministic findings and section-scoped evidence ids, never raw extraction input', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
@@ -1128,7 +1165,7 @@ describe('synthesizePersonalReportNarrative', () => {
     const bodies = fetchMock.mock.calls.map((call) =>
       JSON.parse(call?.[1]?.body as string),
     );
-    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([3000, 3000]);
+    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([6000, 6000]);
     const content = bodies.map((body) => body.messages[1].content).join('\n');
     expect(content).toContain('"input"');
     expect(content).toContain('coordinating volunteers');

@@ -1048,20 +1048,21 @@ type NarrativeBatch = {
   maxTokens: number;
 };
 
-// Two concise calls keep the report within the worker runtime budget. Each
-// receives only the sections it must write; no raw evidence is duplicated.
+// Two concurrent calls receive only their requested sections. Leave room for
+// complete structured JSON and model reasoning; a truncated batch is retried
+// once per section, without discarding successful siblings.
 const NARRATIVE_BATCHES: readonly NarrativeBatch[] = [
   {
     canonical: [],
     structured: ['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning'],
     optional: [],
-    maxTokens: 3_000,
+    maxTokens: 6_000,
   },
   {
     canonical: [],
     structured: ['provenCapabilities', 'socialProof', 'keyTakeaways'],
     optional: [],
-    maxTokens: 3_000,
+    maxTokens: 6_000,
   },
 ];
 
@@ -1079,7 +1080,9 @@ function batchInput(
   const wantsPositioning = requested.has('personalPositioning') || structured.has('profilePositioning') || structured.has('keyTakeaways') || wantsSnapshot;
   const wantsProof = requested.has('proofOfMe') || structured.has('provenCapabilities') || structured.has('keyTakeaways') || wantsSnapshot;
   const reflectionKeys = new Set<ReflectionAnswerKey>(
-    batch === NARRATIVE_BATCHES[0] ? ['q1', 'q2', 'q3', 'q5', 'q6'] : ['q4', 'q5', 'q6', 'q7'],
+    batch.structured.some((key) => ['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning'].includes(key))
+      ? ['q1', 'q2', 'q3', 'q5', 'q6']
+      : ['q4', 'q5', 'q6', 'q7'],
   );
   const byKey = Object.fromEntries(
     Object.entries(sectionInput.reflectionFindings.byKey)
@@ -1641,17 +1644,49 @@ async function completeNarrativeBatch(args: {
 }): Promise<Partial<PersonalReportNarrativeSynthesis>> {
   const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowedBySection);
   const responseFormat = personalReportNarrativeResponseFormat(args.batch, args.sectionInput);
-  const content = await openAiJsonCompletion({
-    apiKey: args.apiKey,
-    model: args.model,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: JSON.stringify(payload) },
-    ],
-    temperature: 0.4,
-    maxTokens: args.batch.maxTokens,
-    responseFormat,
-  });
+  let content: string;
+  try {
+    content = await openAiJsonCompletion({
+      apiKey: args.apiKey,
+      model: args.model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(payload) },
+      ],
+      temperature: 0.4,
+      maxTokens: args.batch.maxTokens,
+      responseFormat,
+    });
+  } catch (error) {
+    // Provider truncation happens before JSON parsing. A schema repair cannot
+    // recover the missing bytes; regenerate smaller, independently validated
+    // sections instead. A single-section failure never retries recursively.
+    if (failureCode(error) !== 'output_truncated' || args.batch.structured.length <= 1) throw error;
+    console.info('[personal-report-narrative-synthesis] retrying truncated batch per section', {
+      batch: args.batch.structured,
+      maxTokens: args.batch.maxTokens,
+      model: args.model,
+    });
+    const values = await Promise.all(args.batch.structured.map(async (key) => {
+      const batch: NarrativeBatch = { ...args.batch, structured: [key], maxTokens: 4_000 };
+      try {
+        return await completeNarrativeBatch({ ...args, batch });
+      } catch (sectionError) {
+        const code = failureCode(sectionError);
+        const context = {
+          batch: [key],
+          issues: failureIssues(sectionError),
+          detail: sectionError instanceof Error ? sectionError.message.slice(0, 240) : String(sectionError).slice(0, 240),
+        };
+        args.onPartialFailure?.(code, context);
+        console.warn('[personal-report-narrative-synthesis] section retry failed; keeping valid siblings', {
+          code, ...context, model: args.model,
+        });
+        return {};
+      }
+    }));
+    return values.reduce<Partial<PersonalReportNarrativeSynthesis>>(mergeNarrativeBatchValues, {});
+  }
 
   try {
     const parsed = parseNarrativeBatch(content, args.batch, args.sectionInput, args.allowedBySection);

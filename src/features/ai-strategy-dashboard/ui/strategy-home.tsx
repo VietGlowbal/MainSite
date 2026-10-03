@@ -121,11 +121,6 @@ export function StrategyHome({
         </div>
       </Section>
 
-      <Section padded={false} containerClassName="flex flex-col items-center gap-gb-lg text-center">
-        <Button href={startHref} size="lg" className="min-w-64">
-          <T k="Start My Strategy" />
-        </Button>
-      </Section>
     </div>
   );
 }
