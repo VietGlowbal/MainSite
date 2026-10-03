@@ -1,5 +1,16 @@
 # Current project status
 
+Main 2026-10-03 (Matching generation hotfix): reproduced the legacy Course Match
+reader crashing on V3's empty `pillars` with `undefined.assessed`. It now accepts
+partial pillars and returns null for unavailable scores, while retaining real
+assessed zeroes. The generation failure was a separate upstream Personal Report
+extraction HTTP 400: the configured model rejected `temperature: 0`. The shared
+completion helper now omits custom temperature for GPT-6 as well as GPT-5; GPT-4o
+keeps its existing sampling parameters. Full coverage suite: 424 files / 3,985
+passed, 2 todo; new compatibility-route test passed separately; production build
+151 pages, strict TypeScript and full lint passed (five existing warnings).
+No production AI request or database write was performed locally.
+
 Main 2026-10-03 (local merge and homepage performance): restored the local
 reviewed VinUni importer onto upstream `97b1e825`, preserving the upstream CSV
 pipeline default and adding optional metadata overrides. `npm run import:vinuni`

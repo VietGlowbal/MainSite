@@ -1,5 +1,27 @@
 # Strategy reports — build spec
 
+## Production compatibility repair (2026-10-03)
+
+Matching V3 saves no legacy pillar scores. The read-only
+`/api/applications/[id]/strategy/course-match` compatibility endpoint now handles
+empty/partial pillars without reading `assessed` on undefined. Unavailable
+sub-scores and overall scores are null, rather than fabricated zeroes. Available
+legacy assessed scores, including an assessed zero, keep their original meaning.
+
+A separate Matching generation failure happened before Matching composition:
+Personal Report extraction received an OpenAI 400 rejecting custom temperature.
+The shared request-parameter helper now omits temperature for GPT-6 family names
+(including `gpt-6-luna`) alongside the existing GPT-5 behavior. The provider uses
+its default; GPT-4o still receives the requested temperature. No report contract,
+grounding validation, generation limit, or previous-report preservation was relaxed.
+
+Regression checks reproduced both failures before repair. Measured after repair:
+151 focused extraction/Personal/Matching/domain tests passed; new compatibility
+route plus shared client checks passed 6/6; full coverage 424 files / 3,985 tests
+passed (2 todo); strict TypeScript, lint (0 errors / 5 existing warnings), and
+production build (151 pages) passed. Local AI credentials are unavailable, so
+the real production model call must be confirmed after deployment.
+
 Written 2026-08-20. Decisions confirmed by the owner on the same date.
 
 Sources:

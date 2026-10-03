@@ -46,7 +46,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   if (!latest) return NextResponse.json({ analysis: null });
 
-  const pillars = (latest.pillars ?? {}) as Record<PillarKey, PillarBreakdown>;
+  const pillars = (latest.pillars ?? {}) as Partial<Record<PillarKey, PillarBreakdown>>;
   const inputsPresent = (latest.inputs_present ?? {}) as MatchInputsPresent;
 
   const analysis = deriveCourseMatchAnalysis(
@@ -54,8 +54,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     pillars,
     latest.confidence ?? 0,
     inputsPresent,
-    latest.current_match_score ?? 0,
-    latest.max_possible_match_score ?? 0,
+    latest.current_match_score ?? null,
+    latest.max_possible_match_score ?? null,
   );
 
   return NextResponse.json({ analysis });

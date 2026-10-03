@@ -61,8 +61,11 @@ export function openAiCompletionParameters(args: {
   temperature?: number;
   maxTokens?: number;
 }): { temperature?: number; max_completion_tokens?: number } {
+  // GPT-6 deployments, like GPT-5, reject the extractors' custom temperature.
+  // Omitting it lets the provider use its supported default.
+  const defaultTemperatureOnly = isGpt5Model(args.model) || /^gpt-6(?:[.-]|$)/i.test(args.model);
   return {
-    ...(!isGpt5Model(args.model) && args.temperature !== undefined
+    ...(!defaultTemperatureOnly && args.temperature !== undefined
       ? { temperature: args.temperature }
       : {}),
     ...(args.maxTokens !== undefined ? { max_completion_tokens: args.maxTokens } : {}),

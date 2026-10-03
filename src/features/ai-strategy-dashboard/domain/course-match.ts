@@ -16,16 +16,16 @@ import type { MatchInputsPresent, PillarBreakdown, PillarKey } from '@/lib/match
 
 export type CourseMatchSubScore = {
   label: string;
-  /** 0-100, sourced from the pillar(s) this sub-score maps to. */
-  score: number;
+  /** 0-100 from assessed pillars, or null when this legacy score is unavailable. */
+  score: number | null;
   pillars: PillarKey[];
 };
 
 export type CourseMatchAnalysis = {
   applicationId: string;
   /** Overall Match — requirements.md 7.1. Same figure as `current_match_score`. */
-  overallMatchPercent: number;
-  goalMatchPercent: number;
+  overallMatchPercent: number | null;
+  goalMatchPercent: number | null;
   entryRequirementMatch: CourseMatchSubScore;
   experienceMatch: CourseMatchSubScore;
   personalQualitiesMatch: CourseMatchSubScore;
@@ -48,15 +48,16 @@ const SUB_SCORE_PILLARS: Record<'entryRequirement' | 'experience' | 'personalQua
   personalQualities: ['essays', 'personal'],
 };
 
-function averageScore(pillars: Record<PillarKey, PillarBreakdown>, keys: PillarKey[]): number {
-  const assessed = keys.map((key) => pillars[key]).filter((p) => p.assessed);
-  if (assessed.length === 0) return 0;
+function averageScore(pillars: Partial<Record<PillarKey, PillarBreakdown>>, keys: PillarKey[]): number | null {
+  // V3 records intentionally have no legacy pillars. Missing input is not zero.
+  const assessed = keys.map((key) => pillars[key]).filter((p): p is PillarBreakdown => Boolean(p?.assessed));
+  if (assessed.length === 0) return null;
   return Math.round(assessed.reduce((sum, p) => sum + p.current, 0) / assessed.length);
 }
 
 function subScore(
   label: string,
-  pillars: Record<PillarKey, PillarBreakdown>,
+  pillars: Partial<Record<PillarKey, PillarBreakdown>>,
   keys: PillarKey[],
 ): CourseMatchSubScore {
   return { label, score: averageScore(pillars, keys), pillars: keys };
@@ -64,11 +65,11 @@ function subScore(
 
 export function deriveCourseMatchAnalysis(
   applicationId: string,
-  pillars: Record<PillarKey, PillarBreakdown>,
+  pillars: Partial<Record<PillarKey, PillarBreakdown>>,
   confidence: number,
   inputsPresent: MatchInputsPresent,
-  overallMatchPercent: number,
-  goalMatchPercent: number,
+  overallMatchPercent: number | null,
+  goalMatchPercent: number | null,
 ): CourseMatchAnalysis {
   const missingAreas = Object.values(pillars).flatMap((p) => p.gaps);
   const admissionsRisk = Object.values(pillars)

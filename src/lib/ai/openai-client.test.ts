@@ -4,7 +4,7 @@ import { openAiJsonCompletion } from './openai-client';
 describe('openAiJsonCompletion', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('uses the completion-token parameter required by GPT-5 models', async () => {
+  it.each(['gpt-5.6-luna', 'gpt-6-luna', 'gpt-6.1-sol', 'GPT-6'])('omits custom temperature for %s', async (model) => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ choices: [{ message: { content: '{"ok":true}' } }] }),
@@ -13,9 +13,9 @@ describe('openAiJsonCompletion', () => {
 
     await openAiJsonCompletion({
       apiKey: 'test-key',
-      model: 'gpt-5.6-luna',
+      model,
       messages: [{ role: 'user', content: 'test' }],
-      temperature: 0.2,
+      temperature: 0,
       maxTokens: 123,
     });
 
