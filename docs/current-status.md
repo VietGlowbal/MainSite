@@ -1,22 +1,15 @@
 # Current project status
 
-Main 2026-10-03 (clean-install lockfile repair): shared CI `37120854081`
-failed before verification because `npm ci` could not find the locked optional
-`@emnapi/core@1.10.0` and `@emnapi/runtime@1.10.0` entries required by
-`@rolldown/binding-wasm32-wasi`. Reproduced on clean main `34b6bb5a` with
-Node 24.19.0/npm 11.17.0. Restored only those two nested package entries;
-all existing locked packages/versions and package.json are unchanged.
-The same clean `npm ci` now succeeds (903 packages). Local `verify:pr` PASS:
-both typechecks, lint (0 errors/5 existing warnings), 3,986 tests passed/2 todo
-across 425 files, and production build; diff check PASS. Shared CI
-`37126477773` passed verify and E2E (67 passed/10 skipped), with all Planner
-checks passing, on Node 24.19.0/npm 11.17.0. Main then advanced to `5472d476`;
-the follow-up sync preserves its onboarding fix unchanged and resolves only
-this documentation conflict. Post-sync local typechecks and 29 focused
-onboarding/workspace tests passed; diff check PASS. Fresh shared checks are
-required for that HEAD.
-No application, scholarship, database or workflow behavior changed by the
-lockfile repair.
+Main 2026-10-03 (AI Strategy tab performance): `fetchOnboardingState` now uses
+React request memoization, sharing the nav/page read without a cross-request TTL.
+`ApplicationNav` starts onboarding and Planner access reads concurrently. Report
+tabs prefetch on hover, keyboard focus or touch; active/locked tabs and non-report
+workspaces are not explicitly prefetched. Next's ordinary Link behavior remains.
+An isolated real Next RSC renderer measured duplicate onboarding reads falling
+from 10 to 5 per request, with fresh flags on the next request and separate reads
+for different users/applications. No signed-in production tab latency was measured.
+Full suite 3,990 tests passed (2 todo); production build, strict TypeScript and
+lint passed (zero errors, five existing warnings).
 
 Main 2026-10-03 (Matching open-link redirect loop): the onboarding gate limited
 Personal Report versions to one without ordering. With an older report on a
@@ -50,6 +43,31 @@ regions, so the shell does not wait for all Supabase reads. Scholarship preview
 and floating help content load when opened. Fixed the Vietnamese catalog lookup
 capturing an empty catalog before a streamed child primes it. Measurements and
 validation are recorded in `docs/performance.md`.
+
+Main 2026-10-03 (clean-install lockfile repair): shared CI `37120854081`
+failed before verification because `npm ci` could not find the locked optional
+`@emnapi/core@1.10.0` and `@emnapi/runtime@1.10.0` entries required by
+`@rolldown/binding-wasm32-wasi`. Reproduced on clean main `34b6bb5a` with
+Node 24.19.0/npm 11.17.0. Restored only those two nested package entries;
+all existing locked packages/versions and package.json are unchanged.
+The same clean `npm ci` now succeeds (903 packages). Local `verify:pr` PASS:
+both typechecks, lint (0 errors/5 existing warnings), 3,986 tests passed/2 todo
+across 425 files, and production build; diff check PASS. Shared CI
+`37126477773` passed verify and E2E (67 passed/10 skipped), with all Planner
+checks passing, on Node 24.19.0/npm 11.17.0. Main then advanced to `5472d476`;
+the follow-up sync preserves its onboarding fix unchanged and resolves only
+this documentation conflict. Post-sync local typechecks and 29 focused
+onboarding/workspace tests passed; diff check PASS. Fresh shared checks are
+required for that HEAD.
+No application, scholarship, database or workflow behavior changed by the
+lockfile repair.
+
+Shared follow-up CI `37131700878` passed verify/E2E on `e4de096c`.
+Main then advanced to `24e038e6`. The next sync keeps its request memoization
+and report-intent prefetch source unchanged. The lockfile note is kept below
+the stable homepage checkpoint so unrelated new main status entries can be
+merged without repeatedly conflicting at the document header. The new HEAD
+still requires fresh shared CI; no verification result is inferred forward.
 
 Branch `fix/cached-empty-on-supabase-error` 2026-09-29: a database error is no
 longer cached as "no data". During the Supabase 402 restriction the university

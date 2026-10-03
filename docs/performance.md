@@ -6,6 +6,36 @@ for front-end performance: what was measured, what was fixed, and what is still
 open. Numbers here are measured, never estimated — if a row has no measurement
 it says so.
 
+## AI Strategy tab transitions (2026-10-03)
+
+Two observed server-path bottlenecks: nav and report pages independently called
+the same five-query onboarding reader; the nav then awaited Planner mode only
+after onboarding completed. The reader is now React `cache()`d for the current
+server render, keyed by Supabase client, user and application. Nav starts both
+independent reads together. Ownership, review, snapshot and entitlement checks
+retain their existing conditions; no shared persistent cache or TTL was added.
+
+An isolated process using Next's real bundled server React/RSC renderer and a
+counted fake Supabase client measured two same-key reads at 10 queries before
+and 5 after. A second RSC request also performed 5 reads and observed a changed
+completion flag. Different users or applications within one render performed
+10 reads, verifying key isolation. This measures query count, not production
+navigation latency. The fixture is `src/__tests__/fixtures/strategy-request-cache.mjs`.
+
+Application report links now ask `router.prefetch` on hover, focus and touch.
+Only Personal/Matching/Strategy report destinations are warmed explicitly, and
+only when reachable and inactive. Dynamic routes' default loading-boundary
+prefetch only warms their shell; this intent path can warm the requested report
+before the click without eagerly fetching every CV/Essay/Planner workspace.
+Next retains its client-cache expiry/invalidation behavior; no custom permanent
+prefetch set is maintained.
+
+Full coverage suite passed 427 files / 3,990 tests (2 todo). The RSC isolation,
+nav concurrency and prefetch tests also passed after final fixture/prop cleanup.
+Production build generated 151 pages; strict TypeScript and full lint passed
+(zero errors, five existing warnings).
+Signed-in production browser timings are not available in the local environment.
+
 ## Homepage streaming and closed panels (2026-10-03)
 
 The current home awaited all four data sources before returning any content.

@@ -26,6 +26,21 @@ import { ApplicationNav } from './application-nav';
 describe('ApplicationNav', () => {
   beforeEach(() => vi.resetAllMocks());
 
+  it('starts the Planner check while onboarding reads are still pending', async () => {
+    mocks.getServerIdentity.mockResolvedValue({ supabase: {}, identity: { id: 'user' } });
+    let resolveState!: (state: { aiAnalysisComplete: boolean }) => void;
+    const state = new Promise<{ aiAnalysisComplete: boolean }>(resolve => { resolveState = resolve; });
+    let markStarted!: () => void;
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    mocks.fetchOnboardingState.mockImplementation(() => { markStarted(); return state; });
+    mocks.getPlannerMode.mockResolvedValue('legacy');
+    const pending = ApplicationNav({ applicationId: 'app' });
+    await started;
+    expect(mocks.getPlannerMode).toHaveBeenCalled();
+    resolveState({ aiAnalysisComplete: false });
+    await pending;
+  });
+
   it('prefers the id its caller already resolved over the one in the session', async () => {
     const getUser = vi.fn();
     const supabase = { auth: { getUser } };

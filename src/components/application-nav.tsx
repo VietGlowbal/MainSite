@@ -30,9 +30,11 @@ export async function ApplicationNav({
 
   if (!authenticatedUserId) return null;
 
-  const state = await fetchOnboardingState(supabase, authenticatedUserId, applicationId);
+  const [state, plannerMode] = await Promise.all([
+    fetchOnboardingState(supabase, authenticatedUserId, applicationId),
+    getPlannerMode(supabase, authenticatedUserId),
+  ]);
   const step = nextOnboardingStep(state);
-  const plannerMode = await getPlannerMode(supabase, authenticatedUserId);
   const items = aiStrategyApplicationNav(applicationId, {
     analysisReady: state.aiAnalysisComplete,
     strategyReady: Boolean(state.strategyComplete || step === 'strategy' || step === 'dashboard'),
