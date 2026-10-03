@@ -1,5 +1,12 @@
 # Current project status
 
+Main 2026-10-04 (Personal Report snapshot formatting): formatted the Applicant
+Snapshot narrative into structured section cards (Overall Identity, Unique
+Positioning, Most Prominent Recurring Pattern, Potential/Development Direction)
+with distinct headers and icons, eliminating unformatted wall-of-text display.
+Added fallback parsing for paragraphs and bilingual Vietnamese/English
+dictionary translations. Measured: 13 focused tests passed, scoped ESLint passed.
+
 Main 2026-10-04 (Personal Report bounded narrative recovery): a timed-out
 multi-part batch now retries once as independent sections, as truncated batches
 already did; a single-section timeout/truncation is terminal. Missing snapshots
