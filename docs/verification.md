@@ -1,7 +1,8 @@
 # Verification
 
 Last measured locally on **2026-10-03**, on the Scholarship Personalization
-integration with main `97b1e825`, using **Node 24.19.0/npm 10.9.2**. Results are
+integration with main `34b6bb5a`, using **Node 24.19.0/npm 11.17.0** after a
+clean `npm ci`. Results are
 also summarized in [current-status.md](current-status.md). This is not a claim
 that the new integration has passed GitHub Actions or independent review.
 
@@ -40,20 +41,30 @@ Current measured local snapshot:
 | Lint | **Pass:** 0 errors, 9 warnings. |
 | Base typecheck | **Pass.** |
 | Strict typecheck | **Pass.** |
-| Vitest | **4188 pass / 2 todo** across **444 passing** files; coverage enabled. |
-| Focused tests | **290 pass** across **39 files** (scholarship, application URL, cache, Home value). |
+| Vitest | **4207 pass / 2 todo** across **451 passing** files; coverage enabled. |
+| Focused tests | **297 pass** across **42 files** (scholarship, application URL, cache, Home value/streaming). |
 | Build | **Pass:** Next.js 16.3.1 production build, including `build:ci` in the aggregate gate. |
 | `verify:pr` | **Pass**, using the unchanged repository gate. |
-| E2E | **70 pass / 0 fail / 9 skipped**, on an owned fresh production server, not an arbitrary existing dev server. |
+| E2E | Earlier `c2e63de2` local run: **70 pass / 0 fail / 9 skipped** on an owned fresh production server. Not rerun locally after the new streaming integration; fresh feature shared CI pending. |
 | i18n | Missing static keys, placeholder mismatches and dynamic-catalog misses **0**. |
 | `git diff --check` | **Pass.** |
 
-The E2E skips are seven signed-in tests (no local `E2E_EMAIL`/`E2E_PASSWORD`)
+The earlier local E2E skips are seven signed-in tests (no local `E2E_EMAIL`/`E2E_PASSWORD`)
 and two absent platform-specific Home baselines. Signed-in flows therefore
 remain unverified by this run. Old-project Storage images still log HTTP 402;
 their bytes have not been restored into the new project. Independent OpenCode
 delta review could not start (configured providers returned HTTP 401); report
 **NOT COMPLETED**, not PASS. Fresh shared CI is required after pushing.
+
+The previous feature CI `37120195871` passed verify but failed E2E because its
+Supabase project returned catalogue `exceed_storage_size_quota`. With owner
+approval, the three GitHub Actions Supabase secrets were updated from the new
+validated local environment, without logging keys or changing database data.
+The independent main lockfile repair PR #244 then passed shared CI
+`37126477773` (Ubuntu, Node 24.19.0/npm 11.17.0): verify and E2E, 67 passed/
+10 skipped, no catalogue quota errors. This is environment/lockfile evidence,
+not a substitute for CI on the new feature HEAD. The 10 shared skips include
+seven missing-account tests and three absent Linux visual baselines.
 
 ### Scholarship integration checks (2026-10-03)
 

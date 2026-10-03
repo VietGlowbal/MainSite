@@ -1,8 +1,8 @@
 # Current project status
 
 2026-10-03 Scholarship Personalization/main integration: incorporated main
-`97b1e825` into `feat/scholarship-personalization`, retaining main's Home
-redesign/CSS-module fix and the feature's canonical Home value/localization.
+`34b6bb5a` into `feat/scholarship-personalization`, retaining main's Home
+streaming/redesign/CSS-module fix and canonical Home value/localization.
 No eligibility, fit, valuation, recommendation or ranking policy was changed.
 The complete candidate cache now stores losslessly compressed raw rows and
 hydrates normalized facts after decoding; it still ranks before pagination,
@@ -11,11 +11,14 @@ Measured 2,877 candidates: encoded cache entry 867,622 bytes (previous normalize
 entry 11,604,875 bytes exceeded Next's 2 MB limit). Cold directory request
 2.707s, repeated request 13ms; these are local measurements, not shared CI.
 
-Node 24.19.0/npm 10.9.2 local verification: `verify:pr` PASS (both typechecks,
-lint with 0 errors/9 warnings, 4,188 tests passed/2 todo across 444 files,
-production build); focused scholarship/application/cache/Home checks 290/290
-across 39 files; i18n missing keys/placeholder mismatches 0; diff check PASS.
-Fresh production-build E2E: **70 passed, 0 failed, 9 skipped**. Orbit geometry
+Node 24.19.0/npm 11.17.0 clean-install local verification: `verify:pr` PASS
+(both typechecks, lint with 0 errors/9 existing warnings, 4,207 tests passed/
+2 todo across 451 files, production build); focused scholarship/application/
+cache/Home checks 297/297 across 42 files; i18n missing keys/placeholder
+mismatches 0; diff check PASS. Two new streaming tests preserve canonical
+candidate valuation and English/Vietnamese formatting with main's Suspense
+regions. No scholarship/application domain or security logic changed.
+Earlier `c2e63de2` production E2E: **70 passed, 0 failed, 9 skipped**. Orbit geometry
 passed at 960/1024/1100/1280/1440px; the Windows kitchen-sink baseline was
 corrected only after tracing the intentional 73px duplicate-header removal,
 with optional cookies rejected through the UI (see verification.md). Seven
@@ -29,9 +32,10 @@ three GitHub Actions Supabase secrets were updated from the validated new
 local environment on 2026-10-03; keys were not logged. Read-only server catalogue
 probes returned HTTP 200. Integrating main `34b6bb5a` retains its independent
 Home Suspense regions and the canonical locale-aware scholarship adapter;
-fresh integration gates/shared CI are pending. The main lockfile's missing
-optional emnapi entries are being repaired separately, without changing
-dependency versions, CI checks, scholarship policy or database data.
+local integration gates pass; fresh feature shared CI is pending. The main lockfile's missing
+optional emnapi entries are repaired in separate PR #244; the exact repair is
+also included here so current-base CI can install dependencies. No dependency
+versions, CI checks, scholarship policy or database data were changed.
 
 City schema repair: the owner applied `sql/supabase-universities-city.sql` in
 the new project's SQL Editor. Read-only PostgREST checks confirmed nullable
@@ -43,6 +47,21 @@ while its corresponding new-project object returns "Object not found" (400).
 Do not just replace URL hosts: restore the actual bytes before a controlled
 URL cutover. T2B production cost/FX datasets remain incomplete, so full
 production value estimation is not data-ready.
+
+Main 2026-10-03 (clean-install lockfile repair): shared CI `37120854081`
+failed before verification because `npm ci` could not find the locked optional
+`@emnapi/core@1.10.0` and `@emnapi/runtime@1.10.0` entries required by
+`@rolldown/binding-wasm32-wasi`. Reproduced on clean main `34b6bb5a` with
+Node 24.19.0/npm 11.17.0. Restored only those two nested package entries;
+all existing locked packages/versions and package.json are unchanged.
+The same clean `npm ci` now succeeds (903 packages). Local `verify:pr` PASS:
+both typechecks, lint (0 errors/5 existing warnings), 3,986 tests passed/2 todo
+across 425 files, and production build; diff check PASS. Shared CI must still
+verify the pushed revision. Shared PR #244 CI `37126477773` subsequently passed
+verify on Ubuntu/Node 24.19.0/npm 11.17.0 and E2E (67 passed/10 skipped), with
+zero catalogue quota-error log entries. Planner checks passed. These results
+verify the main repair, not the feature integration's new HEAD. No application,
+scholarship, database or workflow behavior changed by the lockfile repair.
 
 Main 2026-10-03 (Matching generation hotfix): reproduced the legacy Course Match
 reader crashing on V3's empty `pillars` with `undefined.assessed`. It now accepts
