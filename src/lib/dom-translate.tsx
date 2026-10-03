@@ -93,6 +93,13 @@ const original = new WeakMap<Text, string>();
 // Per-element snapshot of original attribute values, so toggling back to
 // English restores them (mirrors `original` for text nodes).
 const originalAttrs = new WeakMap<Element, Record<string, string>>();
+// What this module last wrote (or confirmed) for each attribute. A live value
+// that matches neither this nor the snapshot was set by the APP — React
+// re-rendered the label (e.g. a "Pause" button becoming "Resume") — so the
+// snapshot is stale and must be re-taken, or the next pass "restores" the old
+// copy over the new one. Text nodes get the same refresh from their
+// characterData records; attribute changes produce no record we observe.
+const writtenAttrs = new WeakMap<Element, Record<string, string>>();
 let cacheLoaded = false;
 
 function loadCache() {
@@ -257,6 +264,12 @@ export function DomTranslator() {
 
     const writeAttr = (el: Element, attr: string, value: string) => {
       if (el.getAttribute(attr) !== value) el.setAttribute(attr, value);
+      let written = writtenAttrs.get(el);
+      if (!written) {
+        written = {};
+        writtenAttrs.set(el, written);
+      }
+      written[attr] = value;
     };
 
     // Translate (or restore) the allow-listed attributes on one element. Shared
@@ -272,6 +285,7 @@ export function DomTranslator() {
           originalAttrs.set(el, snap);
         }
         if (!(attr in snap)) snap[attr] = current;
+        else if (current !== snap[attr] && current !== writtenAttrs.get(el)?.[attr]) snap[attr] = current;
         const raw = snap[attr];
         if (!eligibleAttrValue(el, raw)) continue;
         const [lead, core, trail] = splitWhitespace(raw);

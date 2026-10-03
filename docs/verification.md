@@ -1,8 +1,9 @@
 # Verification
 
-Last measured on branch `fix/feedback-118` at `24117e3` plus the PR #182 My
-Portal logo reconciliation and cron-budget work on **2026-08-14**. Results are
-also summarized in [current-status.md](current-status.md).
+Last measured locally on **2026-10-03**, on the Scholarship Personalization
+integration with main `97b1e825`, using **Node 24.19.0/npm 10.9.2**. Results are
+also summarized in [current-status.md](current-status.md). This is not a claim
+that the new integration has passed GitHub Actions or independent review.
 
 ## Gates
 
@@ -32,26 +33,54 @@ merged cleanly, passed typecheck, and still failed on Vercel with
 the other side's imports. Neither `tsc --noEmit` on the pre-merge tree nor the
 tests caught it. Run the build after every merge, not only before a PR.
 
-Current measured local snapshot (Node 24.19.0):
+Current measured local snapshot:
 
-The 2026-08-14 Node 24.19.0 runtime alignment ran the complete
-`npm run verify:pr` gate after the logo-reconciliation work. The aggregate gate
-passed in 248 seconds.
-
-| Gate | 2026-08-14 result |
+| Gate | 2026-10-03 result |
 |---|---|
-| Lint | **Pass:** 0 errors, 23 warnings. |
+| Lint | **Pass:** 0 errors, 9 warnings. |
 | Base typecheck | **Pass.** |
 | Strict typecheck | **Pass.** |
-| Vitest | **1983 pass / 2 todo** across **195 passing** files; coverage enabled. |
-| Build | **Pass:** Next.js 16.2.3 production build completed. Placeholder Supabase fetches and the existing NFT trace warning were non-fatal. |
-| E2E | Not rerun in the docs refresh. |
+| Vitest | **4188 pass / 2 todo** across **444 passing** files; coverage enabled. |
+| Focused tests | **290 pass** across **39 files** (scholarship, application URL, cache, Home value). |
+| Build | **Pass:** Next.js 16.3.1 production build, including `build:ci` in the aggregate gate. |
+| `verify:pr` | **Pass**, using the unchanged repository gate. |
+| E2E | **70 pass / 0 fail / 9 skipped**, on an owned fresh production server, not an arbitrary existing dev server. |
+| i18n | Missing static keys, placeholder mismatches and dynamic-catalog misses **0**. |
+| `git diff --check` | **Pass.** |
 
-The follow-up cron-budget repair was checked on the resulting working tree with
-10/10 focused Vitest tests, base and strict TypeScript, targeted ESLint, and a
-Next.js 16.2.3 production build; all passed. The full coverage suite and E2E
-were not rerun after that follow-up, so the aggregate table above remains the
-latest full-suite measurement rather than a claim about the current tree.
+The E2E skips are seven signed-in tests (no local `E2E_EMAIL`/`E2E_PASSWORD`)
+and two absent platform-specific Home baselines. Signed-in flows therefore
+remain unverified by this run. Old-project Storage images still log HTTP 402;
+their bytes have not been restored into the new project. Independent OpenCode
+delta review could not start (configured providers returned HTTP 401); report
+**NOT COMPLETED**, not PASS. Fresh shared CI is required after pushing.
+
+### Scholarship integration checks (2026-10-03)
+
+The owner applied `sql/supabase-universities-city.sql` separately. Read-only
+schema and nested-select probes returned HTTP 200; integration verification
+did not run SQL, backfill city data, or acquire cost/FX references.
+
+The candidate cache now stores raw rows as deflate/base64 (`raw-deflate-base64-v1`)
+and normalizes after decoding, preserving evidence and non-JSON helper values
+such as an undated deadline's `Infinity`. Complete sets are loaded in 1,000-row
+batches; sort/page fields do not duplicate the raw-set cache. Regression tests
+enforce the 2 MB serialized-entry limit, lossless decoding, global asc/desc
+ordering across pages, two batched reads, and retry after a failed read.
+At 2,877 published rows, raw JSON measured 6,208,025 bytes and encoded cache JSON
+867,622 bytes. This is a current-scale measurement, not a guarantee for arbitrary
+catalogue growth. Date, provider, FX and comparison-policy identities remain
+part of the existing cache boundaries.
+
+Home orbit assertions are unchanged and additionally run at 960/1100px;
+960/1024/1100/1280/1440px all passed. The Windows kitchen-sink failure was traced
+to intentional global-navigation deduplication in commit `9886033900c88ec5`:
+the old reference included an extra 73px header. After aligning that offset
+and rejecting optional cookies, the body differed by 0.026%, with unchanged
+token geometry. Only the Windows baseline was regenerated (1280×7688 instead
+of 1280×7761). The test now rejects optional cookies through the actual privacy
+UI before capturing; no screenshot tolerance, assertion or timeout was weakened.
+The subsequent full E2E run passed without snapshot-update mode.
 
 Per wave, plus a legacy sweep of the page's whole tree:
 
@@ -69,8 +98,8 @@ when the job fails. This corrects the 2026-08-03 audit statement that CI had no
 E2E job.
 
 `public.user_universities` was created 2026-07-27 (see known-issues.md §1), so
-the missing-table failure this doc used to document is gone. The last historical
-baseline, measured 2026-07-30 and not yet rerun, was
+the missing-table failure this doc used to document is gone. The historical
+baseline measured 2026-07-30 was
 **52 pass / 1 fail** with `E2E_EMAIL`/`E2E_PASSWORD`
 set in the Playwright process, **49 pass / 1 fail / 3 skipped** without them (the
 signed-in specs skip rather than fail).

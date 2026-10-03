@@ -25,6 +25,10 @@ export type ScholarshipTeaser = {
   country?: string | null;
   /** Canonical scholarship value view model supplied by the server route. */
   valueModel?: ScholarshipValueViewModel | null;
+  /** Library-preview type pill: tied to a university, or offered by a foundation/provider. */
+  kind?: 'university' | 'provider' | null;
+  /** One clamped eligibility line on the library-preview card. */
+  eligibility?: string | null;
 };
 
 const LEGACY_FUNDING_TYPE_LABELS: Readonly<Record<string, string>> = {
@@ -32,7 +36,7 @@ const LEGACY_FUNDING_TYPE_LABELS: Readonly<Record<string, string>> = {
   'need-based': FUNDING_TYPE_LABELS.need,
 };
 
-function fundingTypeLabel(value: string, locale: Locale): string {
+export function fundingTypeLabel(value: string, locale: Locale): string {
   const normalized = value.trim().toLowerCase().replaceAll('_', '-');
   if (Object.prototype.hasOwnProperty.call(FUNDING_TYPE_LABELS, normalized)) {
     return getLocaleText(locale, FUNDING_TYPE_LABELS[normalized as keyof typeof FUNDING_TYPE_LABELS]);

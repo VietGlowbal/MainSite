@@ -29,6 +29,14 @@ export type NavigationSessionUser = {
   id: string;
   name: string;
   avatarUrl?: string;
+  /** The account email — the Home consultation form pre-fills it read-only. */
+  email?: string;
+  /**
+   * The name the student registered with, when there is one. Unlike `name` it
+   * never falls back to the email's local part, so a form can pre-fill it as a
+   * real name.
+   */
+  fullName?: string;
 };
 
 export type NavigationSessionValue = {
@@ -99,6 +107,8 @@ function summarizeUser(user: User): NavigationSessionUser {
     ...(typeof metadataAvatar === 'string' && metadataAvatar
       ? { avatarUrl: metadataAvatar }
       : {}),
+    ...(user.email ? { email: user.email } : {}),
+    ...(typeof metadataName === 'string' && metadataName.trim() ? { fullName: metadataName.trim() } : {}),
   };
 }
 

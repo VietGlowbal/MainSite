@@ -1,5 +1,64 @@
 # Current project status
 
+2026-10-03 Scholarship Personalization/main integration: incorporated main
+`97b1e825` into `feat/scholarship-personalization`, retaining main's Home
+redesign/CSS-module fix and the feature's canonical Home value/localization.
+No eligibility, fit, valuation, recommendation or ranking policy was changed.
+The complete candidate cache now stores losslessly compressed raw rows and
+hydrates normalized facts after decoding; it still ranks before pagination,
+throws on database errors, and retains version/date/public-user boundaries.
+Measured 2,877 candidates: encoded cache entry 867,622 bytes (previous normalized
+entry 11,604,875 bytes exceeded Next's 2 MB limit). Cold directory request
+2.707s, repeated request 13ms; these are local measurements, not shared CI.
+
+Node 24.19.0/npm 10.9.2 local verification: `verify:pr` PASS (both typechecks,
+lint with 0 errors/9 warnings, 4,188 tests passed/2 todo across 444 files,
+production build); focused scholarship/application/cache/Home checks 290/290
+across 39 files; i18n missing keys/placeholder mismatches 0; diff check PASS.
+Fresh production-build E2E: **70 passed, 0 failed, 9 skipped**. Orbit geometry
+passed at 960/1024/1100/1280/1440px; the Windows kitchen-sink baseline was
+corrected only after tracing the intentional 73px duplicate-header removal,
+with optional cookies rejected through the UI (see verification.md). Seven
+signed-in tests lack E2E account credentials; two Home visual baselines are
+absent. Independent OpenCode delta review is **NOT COMPLETED**: configured
+Anthropic and DeepSeek credentials both returned HTTP 401. This work has not
+been pushed; fresh shared CI/review is still required before merging PR #238.
+
+City schema repair: the owner applied `sql/supabase-universities-city.sql` in
+the new project's SQL Editor. Read-only PostgREST checks confirmed nullable
+TEXT city data and the complete nested scholarship select return HTTP 200.
+No city data was inferred/backfilled and no database mutation was performed
+by the integration checks. Local Supabase env now targets the new project.
+Storage remains incomplete: an old-project university image returns 402,
+while its corresponding new-project object returns "Object not found" (400).
+Do not just replace URL hosts: restore the actual bytes before a controlled
+URL cutover. T2B production cost/FX datasets remain incomplete, so full
+production value estimation is not data-ready.
+
+Branch `fix/cached-empty-on-supabase-error` 2026-09-29: a database error is no
+longer cached as "no data". During the Supabase 402 restriction the university
+repository returned an empty page/facets, `unstable_cache` stored it, and
+production `/universities` showed zero universities and zero countries for
+12 hours — surviving a redeploy — until `/api/admin/universities/revalidate`
+was hit. Rule now: **inside `unstable_cache`, throw; apply fallbacks outside.**
+`list`, `facets`, `findIdsByNames`, the published-scholarship loader (no longer
+caches a partial list), the home search index, team roster and mentor
+directory follow it; `/universities` falls to `error.tsx` for that request and
+retries on the next. Regression test:
+`src/features/universities/api/__tests__/cache-error-poisoning.test.ts` (fails
+3/3 without the fix).
+
+Working tree 2026-09-28 (clean-checkout CSS-module type declaration fix):
+`next-env.d.ts` is intentionally ignored and is absent before `verify:pr`, so
+fresh Ubuntu checkouts could not resolve the tracked
+`strategy-master-preview.module.css` import during strict typecheck. Added the
+single shared ambient `*.module.css` declaration at
+`src/shared/types/css-modules.d.ts`; base and strict typechecks plus full lint
+passed locally, and PR #239 shared CI verify passed on Node 24.19.0/npm 11.17.0.
+Shared E2E ran with the configured environment and reported five unrelated
+university/Home layout failures (51 passed, 10 skipped); no product behavior
+was changed for those failures.
+
 Working tree 2026-09-27 (Strategy Master concept landing page): added the temporary public route `/strategy-master`, built from the supplied preview as a CSS-only editorial landing page with the current `SiteNavigation`/`Footer` chrome, responsive AI orbit, report cards, structured feedback demo, expert placeholders, student voices, human-support cards, pricing CTA state, and inert consultation form state. The route owns its navigation suppression entries, keeps English concept copy file-scoped from the shared i18n catalog until approval, and avoids adding new dependencies or assets. Verified route HTTP 200, desktop/mobile Playwright smoke (CTA scroll, expert placeholder, form success, mobile horizontal overflow false), 28 navigation/i18n tests, strict TypeScript, scoped ESLint, and i18n static-key check (`missing static keys: 0`).
 
 **Supabase org migration — in progress (2026-09-26).** The old project
@@ -30,16 +89,255 @@ grantee sets (65), 466 indexes and 101 policy groups. Still open: Storage bytes
 cutover. pg_cron now runs `reset_all_billing_periods` daily instead of monthly.
 The function only touches expired periods, so this was left as is.
 
-**Home sales-journey redesign — design brief written, awaiting mockups
-(2026-09-27).** The owner's PDF "Customer Journey for Sales | GlowBal" reorders
-Home into a single funnel ending at the consultation form. It also changes the
-guest nav to Home + Sign in / Sign up and gates the full menu until the form is
-submitted. The Claude Design prompt, the section-by-section delta against
-today's code, and 14 open [CONFIRM] conflicts are in
-[plans/2026-09-27-home-sales-journey-design-brief.md](plans/2026-09-27-home-sales-journey-design-brief.md).
-The biggest open item: the PDF's packages (Free / Yearly with 1 session /
-Premium with 3) do not match the checkout in `src/lib/plus.ts` (Monthly /
-Yearly with 3 / Premium with 5). No code has changed yet.
+Re-measured 2026-09-29 (`compare-supabase.mjs`): `public` still 151 tables /
+57,969 rows identical; policies, RLS, triggers, views, grants, sequences match.
+The new project's pooler is **`aws-0-ap-southeast-1`** (the scripts' default
+`aws-1` returns "tenant not found" — pass `--new-host`); its direct host
+`db.<ref>.supabase.co` is IPv6-only and does not resolve from the dev machine.
+Created the 6 storage buckets (same ids/public flags); the 17 storage policies
+were already present. Missing `auth` rows are only sessions/refresh tokens —
+every user must sign in again after cutover. The 30 "missing" trigram functions
+are `pg_trgm` living in `extensions`; no public function calls them.
+Auth config copied 2026-09-29 (writing needs the token's *Project Settings:
+Read-Write* besides *Auth Config*): Site URL, redirect allow-list, Google
+provider enabled + client id. Two gaps: (1) the Google client secret must be
+pasted by hand — the API returns secrets as a SHA-256 digest, and the first run
+copied that digest (script fixed to flag it instead); (2) the 14 custom email
+templates/subjects are refused on Free without custom SMTP, so the new project
+sends Supabase's default emails.
+Local cutover done 2026-09-29: `.env.local` now points at the new project; the
+old values are kept as `OLD_SUPABASE_*` for the Storage copy. Measured on the
+running dev server: `/`, `/universities`, `/scholarships`, `/news`, `/auth`
+return 200 and `/api/directory/{universities,scholarships}` return real rows.
+Still open: Vercel env + redeploy, the Google secret and the new callback URI in
+Google Cloud, Storage bytes (old API still 402), then the old-ref URL rewrite.
+
+**Home sales-journey redesign v2 — working tree 2026-09-27, not yet merged.**
+The first sales-journey implementation from `design_handoff_home_redesign/` was
+reworked against the owner-supplied `specific-redesign/Customer Journey for
+Sales _ GlowBal (3).pdf` for content and `specific-redesign/glowbal-home-redesign-v2.html`
+for visual direction; `specific-redesign/F1 GLOWBAL (1).pdf` remains a secondary
+draft. `/`, `/vi`, and `/dev/home` share one funnel on ONE background ramp,
+black → rose → white: black hero · wine showcase · crimson success stories ·
+rose numbers band · then a three-band fade (pink team wall → blush
+journey → features fading to white) · white pricing and consultation form. Product-feature CTAs were removed per the v2
+brief. Pricing CTAs still pre-select their package in the real form
+(`HomeConsultationProvider`); nothing on Home takes payment.
+
+- **Round 2 — owner feedback 2026-09-29 (working tree).** The first v2 read as
+  separate bands; the owner asked for one black → rose → white wash, no "Up to
+  …" strips on the orbiting crests, a hero headline in as few lines as possible
+  with "ultimate solution" highlighted, and content taken from PDF (3) first.
+  - *Ramp:* `--gb-home-band-*` in tokens.css; each band ends on the colour the
+    next starts on (was: showcase dark→light→dark, numbers ending rose-300 into
+    a rose-50 team, a `#fafafa` journey start, `border-t` rules, and a near-black
+    form after a rose-50 pricing band). Glows that were clipped at section edges
+    moved inside their bands. `HOME_BANDS_CLASS` overlaps sections by 1px: at
+    fractional section edges the wrapper's black leaked through as 1px
+    hairlines (measured rgb(118,8,40) between rows of rgb(140,10,48)). The form
+    section is white now, which also fixed its two headset icons (ink stroke
+    was white-on-white inside `data-surface="dark"`). The shared `Footer` stays
+    dark — its contract says dark on every page; a light Home footer is the
+    owner's call.
+  - *Hero:* copy column ~62% at `lg`, headline sized per locale — 2 lines EN at
+    390/1024/1440 and VI at 1440 (VI is 3 lines on a phone: its first phrase
+    alone is wider than 358px at 32px).
+  - *Content synced to PDF (3):* the student quotes (four had been trimmed by
+    the older brief, one had older wording) in the PDF's order, square photo
+    crops with per-photo focus; journey retitled 'How to "Hunt Scholarship"
+    with GlowBal?' with the PDF's four steps; team title "GlowBal Team";
+    second tool "GlowBal AI"; pricing title/subtitle/sale tag, plus Mentor /
+    GlowBal AI chips on Premium and Yearly. Keywords use the PDF's red→pink
+    gradient via `home-highlight.tsx`; cyan (`gb-marketing-cyan-400`) retired.
+    Metric cards are white so the highlighted figures read on the rose band.
+  - *Success stories, owner follow-up the same day:* title "GlowBal Success
+    Stories" (no "Scholarship"); Chi's label "Star Mentee" (was
+    "Achievements"); every student card one size — the row stretches, quotes
+    clamp to six lines with an ellipsis, and "Read more" opens the whole quote
+    in the shared `Modal` instead of growing the card. Whether a quote is cut
+    is measured in the browser (`useIsClamped`), not guessed from length.
+    Later the same day the owner also removed three decorative eyebrow labels
+    to cut on-page text: the hero's "Scholarship discovery · strategy ·
+    support", the stories' "Student stories", and the team's "The team behind
+    your journey" — each section's title now leads directly. The
+    `'Student stories'` key stays (nav-items + the dictionary still use it);
+    the two section-only eyebrow keys were dropped.
+  - *Two traps hit, both commented where they live:* Tailwind scans comments
+    and docs for class candidates — a wildcard band utility written in a
+    tokens.css comment compiled to `var(--gb-home-band-*)` and 500'd the dev
+    server until it was restarted (the candidate cache outlives the edit).
+    And the highlight component is `KeywordHighlight`, never `Highlight`,
+    which is a browser global that type-checks without an import.
+  - *Not done, needs the owner:* a university logo per Chi achievement (not
+    supplied; the docx holds only mockup screenshots). The PDF's "Arial" body
+    font was not adopted; Inter stays per CLAUDE.md.
+  - *Verification 2026-09-29 (measured):* base and strict TypeScript pass;
+    scoped ESLint passes on every touched source and spec; `check-i18n --all`
+    0 missing / 0 placeholder mismatches; Vitest (marketing + i18n
+    regression) 79/79; `tests/e2e/home-preview.spec.ts` 29 passed, 2
+    platform-baseline skips, including new tests for the seam contract, the
+    two-line headline at 390/1024/1440, no crest strips, and equal-size quote
+    cards. `build:ci` exits 0 with all 150 static pages on the final code.
+    Seams measured on full-page renders at 390/1024/1440 EN and VI:
+    worst hairline dip 0.7/255 (was 22 and 41). Not checked: a signed-in
+    session or a real form submission (the old Supabase project is
+    quota-restricted, so Home runs on its fail-soft paths locally).
+
+- **Round 3 — owner feedback 2026-10-01 (working tree).**
+  - *Colour spread deeper:* the light half of the ramp now fades over team →
+    journey → features (rose-200 → rose-100 → rose-50 → white), so the page
+    turns white where GlowBal Packages begins instead of right after the team.
+    New primitive `gb-brand-200` (Tailwind rose-200). Headings on the pink
+    bands use a new `tint` keyword tone; the "Features" label moved to
+    `fg-brand` (rose-600 was 4.3:1 on rose-50).
+  - *Proof image on each number card* (PDF (3) §4), all real: a 2x screenshot
+    of the live university directory (`public/home/metrics/web-access.webp`);
+    the faces of the seven users who supplied testimonial photos; and, since
+    Round 4, the owner's own photos for the two award cards (below). Note the
+    production directory's Oxford image is broken (likely the Supabase quota),
+    so the screenshot frames MIT + Imperial.
+  - *Team photo back beside the form:* the Venture X Demo Day photo card
+    (576:533 crop, frosted caption; photo replaced in Round 4) replaces
+    the text column; its caption strings already had Vietnamese in the
+    dictionary, and the column's seven now-orphaned keys were dropped.
+  - *Verification (measured):* base + strict TypeScript, scoped ESLint and
+    `check-i18n --all` (0 missing) pass; Vitest 79/79; `home-preview.spec.ts`
+    31 passed, 2 platform-baseline skips, with new tests for the three-band
+    fade, one-size proof images flush at each card's foot, and the photo left
+    of the form. Seams at 1440 still ≤3/255 step, ≤0.7 dip; 390px has no
+    horizontal overflow and no broken images. `build:ci` exits 0, 150/150
+    static pages.
+
+- **Round 4 — owner feedback 2026-10-01, later (working tree).**
+  - *Award photos supplied:* `public/home/metrics/venture-x-demo-day.webp` (the
+    team on the Venture X Demo Day stage with its certificate — the same shoot
+    as the contact photo, so it appears twice on the page) and
+    `young-entrepreneurship-2026.webp` (the team receiving the **Á quân**
+    cheque at the Khởi Nghiệp Trẻ 2026 final; its total prize, 1,253,780,000
+    VND, is the card's $51,200). 4:3 crops at 1200×900. The interim
+    `venture-x-startup.webp` and the "pending" emblem path are gone.
+    ⚠️ *For the owner:* the cheque says "Á quân" (runner-up), but the roster
+    lists Chu Tuấn Linh and Nguyễn Tuấn Kiên as "Second Runner-up, Young
+    Entrepreneurship Competition 2026" (VI "Giải Ba") — unconfirmed which is
+    right; the copy was left as supplied.
+  - *Team section rebuilt as a slowly turning wall* (`home-team.tsx`): every
+    card is one box (`--team-card-w` × `--team-card-h`: clamp(560px, 46vw,
+    680px) × 500 from `md`, ≤380 × 620 on a phone). The side cards follow the
+    owner's sketch — inner edge as tall as the centre card, outer edge
+    receding (a concave wall; the old cover-flow was convex). Two a side from
+    `xl`, one from `md`, none on a phone. Overflow is cut at whole rows
+    (`useCardFit` measures), and "Read more" (+N hidden) opens the whole
+    profile in the shared `Modal`. No arrow buttons: it advances every 5s
+    (1.1s turn), clocked by the active dot's fill animation, and pauses on
+    mouse hover, keyboard focus inside, the dialog, off-screen, a hidden tab,
+    or the pause button; reduced motion never starts it.
+  - *Card redesign (owner: "dễ visualize và highlight nội dung quan
+    trọng"):* the design's photo-over-crest column; one rose spotlight per
+    card (the "students guided" figure, else the member's first-listed
+    achievement); icon rows for Studies at / Programme / Exchange; a
+    category icon per achievement; titles before ", "/" — " in bold and
+    figures (%, Top N, 4.0/4.0, 9.0, Q1) in rose — all derived from the
+    owner's text, nothing added.
+  - *Pre-existing i18n bug fixed:* `dom-translate.tsx` snapshotted an
+    element's first `aria-label`/`title`/`placeholder` and restored it on
+    every later pass, so a label React changed (the pause button's
+    "Pause…" → "Resume…") reverted ~150ms later, even in English. It now
+    re-snapshots a value it did not write itself; regression test in
+    `dom-translate.test.tsx` (fails without the fix).
+  - *Verification 2026-10-01 (measured):* base + strict TypeScript pass;
+    full ESLint 0 errors (5 warnings, none in touched files); full Vitest
+    417 files / 3,964 tests pass; `check-i18n --all` 0 missing;
+    `home-preview.spec.ts` 34 passed, 2 platform-baseline skips, with new
+    tests for one card size + concave wall, cut-card dialog, and
+    auto-turn/pause. Measured: first turn at 5.06s, hover held 7.5s, resume
+    continues the interrupted dwell; no horizontal overflow at
+    390/1024/1440/1920. `build:ci` exits 0, 150/150 static pages.
+  - *Owner follow-up the same day:* the award is confirmed as **Runner-up**
+    (Á quân), so Chu Tuấn Linh's and Nguyễn Tuấn Kiên's line now reads
+    "Runner-up, Young Entrepreneurship Competition 2026" (VI "Á quân, …";
+    was "Second Runner-up" / "Giải Ba"). The consultation form's photo is
+    now the team at the GlowBal booth with the poster
+    (`public/home/contact-team-booth.webp`, 1440×1333, pre-cropped to 576:533
+    so `sizes` is the box width); the old `public/home-contact-team.jpg` was deleted.
+  - *Chi's featured box is now a video slot:* thumbnail
+    `public/home/chi-story-poster.webp` (owner's new photo, 5:4 crop), play
+    button bottom-right (centred, it covered her face), "Coming soon" chip and
+    a disabled button until `FEATURED_STORY.video` is set in
+    `home-content.ts` — drop the file at e.g. `public/home/chi-story.mp4`.
+    The video element uses the same image as its `poster`.
+
+- **Nav — owner decision 2026-09-27: "Home now, gating later".** Guests now see
+  Sign in + Sign up (Register and the guest "Plan your Global Education" CTA are
+  gone, site-wide); the guest menu and signed-in navs are unchanged. The
+  handoff's Home-only guest menu, the "pending" state + strip, and the gate card
+  are NOT built: nothing records "this account sent the form", and which pages
+  lock is undecided. The mobile bar is still the shared `MobileNav` (no Sign up
+  beside the hamburger) for the same reason.
+- **Globe lights real data.** `ScholarshipQueries.countryCounts()` (new, cached,
+  `scholarships` tag) counts published scholarships per country via the
+  scholarship's own country or its universities' — 17 countries on 2026-09-27
+  (UK 89 … Hungary 4); 2,485 of 2,877 have no country. Countries resolve through
+  a baked index mask, `public/hero-globe-countries.png` +
+  `marketing/domain/globe-country-index.ts`, regenerated by
+  `scripts/build-globe-countries.mjs`. The five-hue flash palette and the
+  partner-word gradient were retired (rose-only brief).
+- **Form storage.** `waitlist_signups` (measured on `kvwsugncsvwvdukdmjij`:
+  81 rows, all `website_waitlist`) has columns for name, email, phone and
+  date_of_birth. **`sql/supabase-waitlist-consultation-fields.sql` — written,
+  NOT yet run** — adds nullable `destination`, `budget`, `package` (no CHECK
+  constraints while pricing is unreconciled). `recordWaitlistSignup` writes
+  them and tags Home leads `source = 'home_consultation'`; until the migration
+  runs, PostgREST answers PGRST204 and it retries once without the new columns
+  (unit-tested), so deploy order cannot lose a lead — the same answers are
+  always in `notes` as one labelled line (`consultationNotes`). One validator
+  (`validateConsultation`, Zod) runs in the browser and the server action. The
+  success panel says "we've emailed" only when Resend accepted the mail.
+- **Copy.** Vietnamese for every new string is in `src/lib/i18n-home.ts` (merged
+  FIRST so no existing translation changes). Most are drafts —
+  native-speaker review still needed, as the handoff says.
+- **V2 content decisions.** The page now uses 900+ universities, Chi's 100%
+  VinUniversity award, 413 regular users, $2,000 Venture X investment and
+  $51,200 Academy of Finance award exactly as the detailed PDF specifies. The
+  owner-supplied files were converted to local WebP assets for Chi, seven named
+  testimonial students and nine team members. Nguyễn Uyên Nhi and Lý Giai Mẫn
+  have no supplied portrait and deliberately retain initials/fallback imagery.
+  **Not shipped until supplied:** the Zalo number/OA, story video, feature demo
+  videos, Fulbright/RMIT/BUV/Lingnan/AOF logos, and the Board 5 confirmation-email
+  redesign (the existing request-received email remains).
+- **Pricing ≠ checkout.** The Home cards follow the PDF (Starter free / Yearly
+  2.49M with 1 session / Premium 4.49M with 3); `src/lib/plus.ts` still sells
+  Monthly / Yearly (3) / Premium (5). Reconcile before any card links to
+  checkout.
+- **V2 verification 2026-09-27 (measured):** base and strict TypeScript pass;
+  scoped ESLint passes for every v2 Home source and its E2E spec;
+  `check-i18n --all` reports 0 missing keys and 0 placeholder mismatches; four
+  focused Vitest files pass 37/37; `tests/e2e/home-preview.spec.ts` passes 23
+  with 2 platform-baseline skips; and `build:ci` completes all 150 static pages.
+  The build logged the expected handled Supabase fetch warnings in the
+  network-restricted environment. Desktop 1440 and mobile 390 full-page renders,
+  plus isolated story/team/contact captures, were inspected; the E2E overflow
+  guard also passes at 768–1440 and on mobile. Not checked: a signed-in session
+  end to end or a real consultation submission against Supabase.
+- **Partner heading vs. orbit — fixed (was failing on `main` too).** The e2e
+  test only checked the crests where they happened to be at one instant, so it
+  failed at 1024px and passed at 1280/1440 by timing. Measured over the whole
+  lap, the heading's box sat ~20px inside the crests' path at EVERY width for
+  ~3% of each lap (upper-left arc). Fix: heading `lg:max-w-[54cqw]` (the width
+  its balanced three lines actually use, EN and VI) and the block at
+  `lg:top-[55%]`; minimum gap now 4.4px at 1024. The test now walks one real
+  crest through 240 points of the lap (`orbitDepthScale` moved to
+  `marketing/domain/orbit-path.ts` so it shares the component's numbers); with
+  the old values it fails at all three widths, with the new ones it passes.
+- **Pre-existing, found while verifying, NOT fixed:** every `/vi*` page logs a
+  hydration mismatch on the footer's "Privacy settings" button (server
+  "Cài đặt quyền riêng tư", client "Privacy settings"), and React re-renders
+  the whole tree on the client. Identical on `main` (checked by stashing this
+  branch). Cause: the root layout's `LanguageProvider` renders before the
+  `/vi` layout's `ViCatalog` client module is evaluated, and its `t` captures
+  the still-empty catalog; `getLocaleText` reads the catalog at call time, so
+  Home's own copy is unaffected. The fix belongs in `src/lib/i18n.tsx` — likely
+  reading the catalog inside `t` rather than at provider render (untested) —
+  shared i18n, left for a separate change.
 
 Working tree 2026-09-26 (reference-report parity and popup presentation): reviewed all four supplied VINUNI DOCX personal-report samples through parallel report analyses and separated their editorial guidance from executable facts. The shared report flow now uses GPT-6 Luna prompt `report-synthesis-v19-profile-neutral-complete-framework`: it extracts only supplied facts, stays domain-neutral, handles sparse profiles without filler, groups evidence by every framework section, pairs evidence with interpretation, preserves supported/emerging/hypothesis status, uses a causal arrow chain when supported, and keeps one canonical anchor plus corroborating titles. Narrative materialization now repairs sparse anchor links from canonical Proof of Me titles, deduplicates/caps model traits and capabilities, and keeps Social Proof restricted to applicant-impact metrics; audience values support `k`/`M` notation. The Personal Report popup is viewport-safe on mobile, has linked accessible tabs/panels, avoids dense nested padding, clamps long headings, and follows framework order in the canvas. Verified 98 focused Personal Report/domain/UI/narrative tests, `npm.cmd run typecheck:strict`, touched-file ESLint, `node scripts/check-i18n.mjs --all`, and `git diff --check`; `npm.cmd run build` compiled successfully and completed TypeScript, but both normal and 4096 MB-heap retries terminated with an environment out-of-memory error during static page generation; the full production build is therefore not claimed clean for this change. No production data or deployment was changed; pre-existing unrelated working-tree changes remain preserved.
 

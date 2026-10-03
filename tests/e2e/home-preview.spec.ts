@@ -2,6 +2,12 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { TID } from '../../src/shared/lib/testids';
+import {
+  ORBIT_SAMPLES,
+  ORBIT_VIEWBOX,
+  orbitDepthScale,
+  orbitPointAt,
+} from '../../src/features/marketing/domain/orbit-path';
 
 /**
  * Baselines are per-platform (font rasterisation differs), and only the win32
@@ -103,32 +109,65 @@ test.describe('home preview — desktop', () => {
   }
 
   /**
-   * The partner wall (Figma 104:7135) is eleven hand-placed tiles with the
-   * heading floating in a lane the designer left clear between them. Nothing
-   * about that lane is enforced by layout — it exists because every coordinate,
-   * including the font size, is a percentage of one fixed-ratio stage. Change
-   * any of those to a fixed px value and the heading starts landing on a crest
-   * at some width nobody happened to look at.
+   * The partner heading floats inside the crests' orbit, in a lane nothing in
+   * the layout enforces — it holds only because the curve, the crests and the
+   * heading's width and font are all percentages of one fixed-ratio stage.
+   *
+   * ⚠️ WALKS THE WHOLE LAP, not the crests where they happen to be. The ring
+   * moves, so the earlier version of this test (which checked the eleven
+   * crests at one instant) passed or failed by timing: at 1024px it failed,
+   * and at 1280/1440 it passed only because no crest was in the heading's
+   * top-left corner at that moment — the overlap was there at every width.
+   * Reduced motion stops the loop from moving the nodes, then one real crest
+   * is placed at each sample in turn through the same custom properties the
+   * loop writes, so its measured box has the real size and transform.
+   *
+   * Covers the resting orbit only; the hover lift and bounce are transient.
+   * English is the longer copy (the Vietnamese lines measured narrower), so
+   * /dev/home is the binding case.
    */
-  for (const width of [1440, 1280, 1024]) {
-    test(`partner heading clears every tile at ${width}px`, async ({ page }) => {
+  for (const width of [1440, 1280, 1100, 1024, 960]) {
+    test(`partner heading clears the orbit at ${width}px`, async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/dev/home');
 
-      const hit = await page.evaluate(() => {
+      const SAMPLES = 240;
+      const samples = Array.from({ length: SAMPLES }, (_, index) => {
+        const point = orbitPointAt(ORBIT_SAMPLES, index / SAMPLES);
+        return {
+          x: `${(point.x / ORBIT_VIEWBOX.width) * 100}%`,
+          y: `${(point.y / ORBIT_VIEWBOX.height) * 100}%`,
+          scale: String(orbitDepthScale(point.depth)),
+        };
+      });
+
+      const hits = await page.evaluate((samples) => {
         const stage = document
           .querySelector('img[alt="Harvard University"]')!
           .closest('section')!.firstElementChild!;
-        const h = stage.querySelector('h2')!.getBoundingClientRect();
-        return [...stage.querySelectorAll('li')]
-          .filter((li) => {
-            const r = li.getBoundingClientRect();
-            return !(r.right <= h.left || r.left >= h.right || r.bottom <= h.top || r.top >= h.bottom);
-          })
-          .map((li) => li.querySelector('img')?.getAttribute('alt') ?? '?');
-      });
+        // The heading, the "Study <word>" line and the CTA.
+        const block = [...stage.querySelector('h2')!.parentElement!.children];
+        const targets = block.map((el) => ({ tag: el.tagName, rect: el.getBoundingClientRect() }));
+        const node = stage.querySelector<HTMLElement>('[data-orbit-node]')!;
+        const found: string[] = [];
+        samples.forEach(({ x, y, scale }, index) => {
+          node.style.setProperty('--orbit-x', x);
+          node.style.setProperty('--orbit-y', y);
+          node.style.setProperty('--orbit-scale', scale);
+          node.style.setProperty('--orbit-tilt', '0');
+          node.style.setProperty('--orbit-offset-px', '0px');
+          const r = node.getBoundingClientRect();
+          for (const { tag, rect: t } of targets) {
+            if (!(r.right <= t.left || r.left >= t.right || r.bottom <= t.top || r.top >= t.bottom)) {
+              found.push(`${tag} at ${(index / samples.length).toFixed(3)}`);
+            }
+          }
+        });
+        return found;
+      }, samples);
 
-      expect(hit, `heading overlaps ${hit.join(', ')}`).toEqual([]);
+      expect(hits, `a crest crosses the heading block: ${hits.join(', ')}`).toEqual([]);
     });
   }
 
@@ -180,100 +219,319 @@ test.describe('home preview — desktop', () => {
     });
   }
 
-  test('the journey renders five steps in the supplied order', async ({ page }) => {
+  test('the journey renders four steps in the supplied order', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    const section = page
-      .getByRole('heading', { name: /GlowBal is here to help you achieve your dream/i })
-      .locator('..')
-      .locator('..');
-    const steps = section.locator('ol > li');
-    await expect(steps).toHaveCount(5);
-    await expect(steps.nth(0)).toContainText('Input simple information');
-    await expect(steps.nth(4)).toContainText('Build your application, track progress and receive feedback');
+    // The first <ol> is the tablet/desktop grid; the second is the phone timeline.
+    const steps = page.locator('#journey ol').first().locator('> li');
+    await expect(steps).toHaveCount(4);
+    // Content PDF (3) §6: Matcher · Free Consultation · Strategy Master · AI + experts.
+    await expect(steps.nth(0)).toContainText('GlowBal Matcher: Unlock Best-Fit Scholarships and Universities');
+    await expect(steps.nth(1)).toContainText('Free Consultation');
+    await expect(steps.nth(3)).toContainText('Conquer your Dream with GlowBal AI and experts');
   });
 
   test('only the two finished product demo sections are present', async ({ page }) => {
     await page.goto('/dev/home');
 
-    await expect(page.getByRole('heading', { level: 3, name: 'GlowBal Matcher' })).toHaveCount(1);
-    await expect(page.getByRole('heading', { level: 3, name: 'Strategy Master' })).toHaveCount(1);
+    // Exact: the journey's step titles ("GlowBal Matcher: Unlock …") are h3s too.
+    await expect(page.getByRole('heading', { level: 3, name: 'GlowBal Matcher', exact: true })).toHaveCount(1);
+    // Content PDF (3) §7 names the second row "GlowBal AI".
+    await expect(page.getByRole('heading', { level: 3, name: 'GlowBal AI', exact: true })).toHaveCount(1);
     await expect(page.getByRole('heading', { level: 3, name: /Demo Video/i })).toHaveCount(0);
+    await expect(page.locator('#features a[href="#contact"]')).toHaveCount(0);
   });
 
-  test('team uses the eight-person Figma roster and the requested closing flow', async ({ page }) => {
+  test('the team carousel holds the ten-person roster and exposes one card at a time', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    const teamHeading = page.getByRole('heading', { name: 'The team behind your journey.' });
-    const teamSection = teamHeading.locator('..').locator('..').locator('..');
-    await expect(teamSection.locator('article')).toHaveCount(8);
-    // Full names, as the owner's member sheet spells them.
-    await expect(
-      teamSection.getByRole('heading', { level: 3, name: 'Nguyễn Khánh Linh' }),
-    ).toBeVisible();
-    await expect(
-      teamSection.getByRole('heading', { level: 3, name: 'James Lapslie' }),
-    ).toBeVisible();
-    // Every card names the university its member studies at, via that
-    // institution's crest — see features/marketing/ui/university-crests.ts.
-    await expect(teamSection.getByRole('img', { name: 'VinUniversity' })).toHaveCount(3);
-    await expect(
-      teamSection.getByRole('img', { name: 'Hanoi University of Science and Technology' }),
-    ).toHaveCount(3);
-    await expect(
-      teamSection.getByRole('img', { name: 'Foreign Trade University' }),
-    ).toHaveCount(1);
-    await expect(
-      teamSection.getByRole('img', { name: 'University of Birmingham' }),
-    ).toHaveCount(1);
+    const team = page.locator('#team');
+    await expect(team.locator('article')).toHaveCount(10);
+    // Only the centre card is exposed to assistive technology; it opens on #2.
+    await expect(team.getByRole('heading', { level: 3 })).toHaveCount(1);
+    await expect(team.getByRole('heading', { level: 3, name: 'Nguyễn Khánh Linh' })).toBeVisible();
+
+    // No arrow buttons any more (owner, 2026-10-01) — the dots and ←/→ still move it.
+    await expect(team.getByRole('button', { name: 'Next' })).toHaveCount(0);
+    await team.getByRole('button', { name: 'Nguyễn Hoàng Linh' }).click();
+    await expect(team.getByRole('heading', { level: 3, name: 'Nguyễn Hoàng Linh' })).toBeVisible();
 
     const order = await page.evaluate(() => {
       const headings = [...document.querySelectorAll('h2')];
-      const indices = [
-        'The team behind your journey.',
-        'Not sure where to begin?',
-        'Frequently asked questions',
+      return [
+        'GlowBal Success Stories',
+        'Numbers say it all',
+        'GlowBal Team',
+        'Become a GlowBal Mentee TODAY!',
+        'Register for Free Scholarship Consultation with GlowBal Mentors',
       ].map((text) => headings.findIndex((heading) => heading.textContent?.trim() === text));
-      return indices;
     });
 
     expect(order.every((index) => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
-  test('hero renders its heading and call to action', async ({ page }) => {
+  /**
+   * Owner, 2026-10-01: every member card one size, and the cards beside the
+   * centre drawn as the sketch's trapezoids — inner edge as tall as the centre
+   * card, outer edge receding. A card's bounding box is as tall as its tallest
+   * edge, so the first side card must match the centre's height (its inner
+   * edge sits in the centre's plane) while the second is shorter (both edges
+   * recede). The old convex cover-flow scaled the first card down to .8.
+   */
+  test('team cards are one size and the side cards recede as a concave wall', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/dev/home');
+
+    const cards = await page.locator('#team article').evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const box = node.getBoundingClientRect();
+        return {
+          layout: `${(node as HTMLElement).offsetWidth}x${(node as HTMLElement).offsetHeight}`,
+          left: box.left,
+          width: box.width,
+          height: box.height,
+          shown: getComputedStyle(node).opacity !== '0',
+          centre: node.getAttribute('aria-roledescription') === 'slide',
+        };
+      }),
+    );
+    expect(new Set(cards.map((card) => card.layout)).size, JSON.stringify(cards)).toBe(1);
+
+    const shown = cards.filter((card) => card.shown).sort((a, b) => a.left - b.left);
+    expect(shown).toHaveLength(5);
+    const [outerLeft, innerLeft, centre, innerRight, outerRight] = shown;
+    expect(centre!.centre).toBe(true);
+    for (const inner of [innerLeft!, innerRight!]) {
+      expect(Math.abs(inner.height - centre!.height)).toBeLessThanOrEqual(2);
+      expect(inner.width).toBeLessThan(centre!.width * 0.5);
+    }
+    for (const outer of [outerLeft!, outerRight!]) {
+      expect(outer.height).toBeLessThan(centre!.height * 0.8);
+    }
+  });
+
+  test('a cut team card opens the whole profile in a dialog', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/dev/home');
+
+    const team = page.locator('#team');
+    const hiddenRows = () =>
+      team
+        .locator('article[aria-roledescription="slide"] ul > li')
+        .evaluateAll((rows) => rows.filter((row) => getComputedStyle(row).visibility === 'hidden').length);
+    // The cut is measured after hydration; a click before it would be lost.
+    await expect.poll(hiddenRows).toBeGreaterThan(0);
+    await team.getByRole('button', { name: 'James David Lapslie' }).click();
+    const centre = team.locator('article[aria-roledescription="slide"]');
+    await expect(centre.getByRole('heading', { level: 3 })).toHaveText('James David Lapslie');
+    // Rows past the fit are hidden whole, never cut mid-line.
+    const hidden = await centre.locator('ul > li').evaluateAll(
+      (rows) => rows.filter((row) => getComputedStyle(row).visibility === 'hidden').length,
+    );
+    expect(hidden).toBeGreaterThan(0);
+
+    await centre.getByRole('button', { name: /Read more/ }).click();
+    const dialog = page.getByRole('dialog', { name: 'James David Lapslie' });
+    await expect(dialog).toBeVisible();
+    // Eight achievements: one in the spotlight, seven listed.
+    await expect(dialog.locator('li')).toHaveCount(7);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test('the team wall turns on its own, and pause stops it', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    const team = page.locator('#team');
+    await team.locator('[aria-roledescription="carousel"]').scrollIntoViewIfNeeded();
+    await page.mouse.move(2, 2); // hovering the wall would pause it
+    await expect(team.getByRole('heading', { level: 3, name: 'Nguyễn Khánh Linh' })).toBeVisible();
+    await expect(team.getByRole('heading', { level: 3, name: 'Nguyễn Hoàng Linh' })).toBeVisible({ timeout: 9_000 });
+
+    await team.getByRole('button', { name: 'Pause automatic rotation' }).click();
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(6_500);
+    await expect(team.getByRole('heading', { level: 3, name: 'Nguyễn Hoàng Linh' })).toBeVisible();
+    await expect(team.getByRole('button', { name: 'Resume automatic rotation' })).toBeVisible();
+  });
+
+  test('hero renders its heading and its one call to action', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(
-      page.locator('a[href="/start"]').filter({ hasText: 'Plan your Global Education' }),
+      page.locator('a[href="#contact"]').filter({ hasText: 'Register for Free Consultation' }),
     ).toBeVisible();
   });
 
-  test('hero CTA stays on one line with the support message underneath', async ({ page }) => {
+  /**
+   * Owner, 2026-09-29: the background must read as ONE wash, black → rose →
+   * white. Each band is its own gradient (tokens.css, `--gb-home-band-*`), so
+   * the contract is that every band ends on exactly the colour the next one
+   * starts on, and that the last band is white. Read from computed styles, so
+   * it holds at any width without a pixel baseline.
+   */
+  test('the section backgrounds join into one black → rose → white ramp', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    const bands = await page.evaluate(() =>
+      [...document.querySelectorAll('main > section')].map((section) => {
+        const style = getComputedStyle(section);
+        const colours = style.backgroundImage.match(/rgba?\([^)]*\)/g) ?? [style.backgroundColor];
+        return { id: section.id, first: colours[0], last: colours[colours.length - 1] };
+      }),
+    );
+
+    expect(bands.length).toBeGreaterThanOrEqual(9);
+    expect(bands[0]!.first).toBe('rgb(0, 0, 0)');
+    for (let i = 1; i < bands.length; i += 1) {
+      expect(bands[i]!.first, `seam into #${bands[i]!.id || 'hero'}`).toBe(bands[i - 1]!.last);
+    }
+    expect(bands.at(-1)!.last).toBe('rgb(255, 255, 255)');
+
+    // Owner, 2026-10-01: the fade to white is spread over team, journey and
+    // features, and white arrives where GlowBal Packages begins.
+    const byId = Object.fromEntries(bands.map((band) => [band.id, band]));
+    for (const id of ['team', 'journey', 'features']) {
+      expect(byId[id]!.first, `#${id} should still be tinted`).not.toBe('rgb(255, 255, 255)');
+    }
+    expect(byId.features!.last).toBe('rgb(255, 255, 255)');
+    expect(byId.pricing!.first).toBe('rgb(255, 255, 255)');
+  });
+
+  // Owner, 2026-10-01: a proof image at the foot of every number card (content
+  // PDF (3) §4), the same size on all four so the cards stay one height.
+  test('every number card ends in a proof image of one size', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    const cards = page.locator('#numbers article');
+    await expect(cards).toHaveCount(4);
+    const boxes = await cards.evaluateAll((nodes) =>
+      nodes.map((card) => {
+        const slot = card.lastElementChild!.getBoundingClientRect();
+        const box = card.getBoundingClientRect();
+        return {
+          card: Math.round(box.height),
+          slot: `${Math.round(slot.width)}x${Math.round(slot.height)}`,
+          flushBottom: Math.abs(slot.bottom - box.bottom) <= 2,
+        };
+      }),
+    );
+    expect(new Set(boxes.map((box) => box.card)).size, JSON.stringify(boxes)).toBe(1);
+    expect(new Set(boxes.map((box) => box.slot)).size, JSON.stringify(boxes)).toBe(1);
+    expect(boxes.every((box) => box.flushBottom)).toBe(true);
+    await expect(page.locator('#numbers img[src*="web-access"]')).toHaveCount(1);
+    await expect(page.locator('#numbers img[src*="venture-x-demo-day"]')).toHaveCount(1);
+    await expect(page.locator('#numbers img[src*="young-entrepreneurship-2026"]')).toHaveCount(1);
+  });
+
+  test('the consultation form has the team photo beside it', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    const photo = page.locator('#contact figure img');
+    await expect(photo).toHaveAttribute('alt', 'The GlowBal team at Venture X Demo Day');
+    await expect(page.locator('#contact figcaption')).toContainText('The GlowBal team');
+    // Left of the form on desktop.
+    const [figure, form] = await Promise.all([
+      page.locator('#contact figure').boundingBox(),
+      page.locator('#contact form').boundingBox(),
+    ]);
+    expect(figure!.x + figure!.width).toBeLessThanOrEqual(form!.x);
+  });
+
+  // Owner, 2026-09-29: "càng ít dòng càng tốt" — the headline in as few lines as possible.
+  for (const width of [390, 1024, 1440] as const) {
+    test(`the hero headline fits on two lines at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/dev/home');
+      await page.evaluate(() => document.fonts.ready);
+
+      const lines = await page.locator('h1').evaluate((heading) => {
+        const style = getComputedStyle(heading);
+        return Math.round(heading.getBoundingClientRect().height / parseFloat(style.lineHeight));
+      });
+      expect(lines).toBeLessThanOrEqual(2);
+    });
+  }
+
+  // Owner, 2026-09-29: every student card the same size; a long quote ends in
+  // an ellipsis and "Read more" shows the rest without resizing the card.
+  test('student quote cards are one size and Read more opens the full quote', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+    await page.evaluate(() => document.fonts.ready);
+
+    const cards = page.locator('#stories [role="region"] article');
+    await expect(cards).toHaveCount(8);
+    const sizes = await cards.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const box = node.getBoundingClientRect();
+        return `${Math.round(box.width)}x${Math.round(box.height)}`;
+      }),
+    );
+    expect(new Set(sizes).size, sizes.join(' ')).toBe(1);
+
+    // Size only: clicking scrolls the card into view, so its position moves.
+    const first = cards.first();
+    const sizeOf = async () => {
+      const box = await first.boundingBox();
+      return { width: box?.width, height: box?.height };
+    };
+    const before = await sizeOf();
+    await first.getByRole('button', { name: 'Read more' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Nguyễn Hoàng Minh Anh' });
+    await expect(dialog).toContainText('VinUni');
+    expect(await sizeOf()).toEqual(before);
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test('the orbiting crests carry no "Up to" award strip', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    await expect(page.locator('#scholarships li[data-orbit-node]')).toHaveCount(11);
+    await expect(page.locator('#scholarships li[data-orbit-node]').filter({ hasText: /Up to/ })).toHaveCount(0);
+  });
+
+  test('hero CTA stays on one line with the data caption underneath', async ({ page }) => {
     await page.setViewportSize({ width: 393, height: 851 });
     await page.goto('/dev/home');
 
     const cta = page
-      .locator('a[href="/start"]')
-      .filter({ hasText: 'Plan your Global Education' });
-    const support = page.getByText('Find a Scholarship that Fits You 100% free');
-    const [ctaBox, supportBox] = await Promise.all([cta.boundingBox(), support.boundingBox()]);
+      .locator('a[href="#contact"]')
+      .filter({ hasText: 'Register for Free Consultation' });
+    const caption = page.getByText(
+      'A collection of insights from 3,000+ scholarships and 700+ universities worldwide.',
+    );
+    const [ctaBox, captionBox] = await Promise.all([cta.boundingBox(), caption.boundingBox()]);
 
     expect(await cta.evaluate((element) => getComputedStyle(element).whiteSpace)).toBe('nowrap');
     expect(ctaBox).not.toBeNull();
-    expect(supportBox).not.toBeNull();
-    expect(supportBox!.y).toBeGreaterThanOrEqual(ctaBox!.y + ctaBox!.height);
-    expect(await support.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
+    expect(captionBox).not.toBeNull();
+    expect(captionBox!.y).toBeGreaterThanOrEqual(ctaBox!.y + ctaBox!.height);
+    expect(await caption.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
   });
 
-  test('the five-step journey can be explored directly', async ({ page }) => {
+  test('a Pricing CTA scrolls to the form and pre-selects its package', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    await page.getByRole('button', { name: /3\. Receive specialised reports/i }).click();
-    await expect(page.getByRole('heading', { level: 3, name: 'Receive specialised reports' })).toBeVisible();
-    await expect(page.getByText('Evidence-backed clarity')).toBeVisible();
+    await page.getByRole('button', { name: 'Get Yearly Plan' }).click();
+
+    await expect(page.locator('#contact input[name="package"][value="yearly"]')).toBeChecked();
+    await expect(page.getByText('You picked GlowBal Yearly — change anytime')).toBeVisible();
+    await expect(page.locator('#contact')).toBeInViewport();
   });
 
   test('visual baseline', async ({ page }) => {
@@ -320,12 +578,12 @@ test.describe('home preview — animated metrics', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    const firstValue = page.locator('[aria-label="7,800+"] span');
+    const firstValue = page.locator('[aria-label="10,000+"] span');
 
-    await expect(firstValue).toHaveText('7,800+');
+    await expect(firstValue).toHaveText('10,000+');
     await firstValue.evaluate((element) => element.scrollIntoView({ block: 'center' }));
-    await expect(firstValue).not.toHaveText('7,800+');
-    await expect(firstValue).toHaveText('7,800+', { timeout: 4_000 });
+    await expect(firstValue).not.toHaveText('10,000+');
+    await expect(firstValue).toHaveText('10,000+', { timeout: 4_000 });
   });
 
   test('reduced motion keeps the complete figures static', async ({ page }) => {
@@ -333,10 +591,10 @@ test.describe('home preview — animated metrics', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    const firstValue = page.locator('[aria-label="7,800+"] span');
+    const firstValue = page.locator('[aria-label="10,000+"] span');
     await firstValue.evaluate((element) => element.scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(200);
-    await expect(firstValue).toHaveText('7,800+');
+    await expect(firstValue).toHaveText('10,000+');
   });
 });
 

@@ -38,6 +38,16 @@ test('design tokens render as expected', async ({ page }) => {
     `No visual baseline for ${process.platform}. Run npm run test:e2e:update here and commit the PNG.`,
   );
 
+  // The reference predates the privacy banner. Establish a real, refused
+  // optional-cookie choice via the UI rather than masking an unpredictable
+  // overlay or enabling analytics just to capture design tokens.
+  const banner = page.getByRole('complementary', { name: 'Cookie preferences' });
+  await banner.getByRole('button', { name: 'Configure', exact: true }).click();
+  const settings = page.getByRole('dialog', { name: 'Privacy settings' });
+  await settings.getByRole('button', { name: 'Reject all optional cookies', exact: true }).click();
+  await expect(banner).toBeHidden();
+  await expect(settings).toBeHidden();
+
   // Fonts must settle before the screenshot or the diff is pure flake.
   await page.evaluate(() => document.fonts.ready);
 

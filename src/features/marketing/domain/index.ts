@@ -12,3 +12,16 @@ export {
   stepIndexForPath,
 } from './strategy-guide';
 export type { FlatGuideStep, GuideArea, GuideStep } from './strategy-guide';
+export {
+  CONSULTATION_PACKAGES,
+  consultationNotes,
+  dialCodeFor,
+  validateConsultation,
+} from './consultation';
+export type {
+  ConsultationFieldErrors,
+  ConsultationInput,
+  ConsultationPackage,
+  ConsultationRequest,
+} from './consultation';
+export type { GlobeCountry } from './home-globe';

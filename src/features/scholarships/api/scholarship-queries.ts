@@ -118,6 +118,19 @@ export interface ScholarshipQueries {
   homeHighlights(limit?: number): Promise<HomeScholarshipHighlights>;
 
   facets(): Promise<ScholarshipFacets>;
+
+  /**
+   * Published scholarships per country, most first — the scholarship's own
+   * `country`, or failing that each linked university's. A scholarship counts
+   * once per country however many of that country's universities it links.
+   * Scholarships with no country at all are absent. Powers the Home globe.
+   */
+  countryCounts(): Promise<ScholarshipCountryCount[]>;
+}
+
+export interface ScholarshipCountryCount {
+  country: string;
+  count: number;
 }
 
 /** The subset of a scholarship needed to render it as a saved/linked chip. */

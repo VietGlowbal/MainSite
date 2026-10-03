@@ -6,8 +6,10 @@
  * belongs in src/shared/ui instead.
  */
 export { AboutTeam } from './about-team';
+export { HOME_BANDS_CLASS } from './home-bands';
 export { HomeContact } from './home-contact';
-export type { ContactState } from './home-contact';
+export type { ConsultationAccount, ContactState } from './home-contact';
+export { HomeConsultationProvider, scrollToConsultation, useHomeConsultation } from './home-consultation';
 export { HOME_FAQ, HomeFaq } from './home-faq';
 export type { FaqEntry } from './home-faq';
 export { HOME_FEATURE_DEMO_VIDEOS, HomeFeatures } from './home-features';
@@ -18,16 +20,13 @@ export type {
   HomeFeatureDemoVideos,
 } from './home-features';
 export { HomeHero } from './home-hero';
-export { HomeHowItWorks } from './home-how-it-works';
+export { HomeJourney } from './home-journey';
 export { HomeMetrics } from './home-metrics';
-export { HomePainPoints } from './home-pain-points';
 export { HomePartners } from './home-partners';
+export { HomePricing } from './home-pricing';
+export { HomeStories } from './home-stories';
 export { HomeScholarshipPreview } from './home-scholarship-preview';
-export {
-  PARTNER_SCHOLARSHIP_VALUE,
-  PARTNER_TOTAL_SCHOLARSHIP_VALUE,
-  partnerScholarshipValue,
-} from './partner-scholarship-value';
+export { PARTNER_TOTAL_SCHOLARSHIP_VALUE } from './partner-scholarship-value';
 export { HomeScholarships } from './home-scholarships';
 export type { ScholarshipTeaser } from './home-scholarships';
 export { getOfficialScholarshipBranding } from './home-scholarship-branding';

@@ -231,10 +231,9 @@ const getPublishedScholarshipsCached = unstable_cache(
         .order('id', { ascending: true }) // unique tiebreaker → stable paging across batches
         .range(from, from + SCHOLARSHIPS_PAGE_SIZE - 1);
 
-      if (error) {
-        console.error('getPublishedScholarships failed:', error.message);
-        break; // return whatever was fetched so far rather than dropping everything
-      }
+      // Throw rather than return the batches fetched so far: this result is
+      // cached for 12 hours, so a partial list would outlive the error.
+      if (error) throw new Error(`getPublishedScholarships failed: ${error.message}`);
       const batch = (data ?? []) as unknown as ScholarshipRow[];
       rows.push(...batch);
       if (batch.length < SCHOLARSHIPS_PAGE_SIZE) break; // last (short) batch → done

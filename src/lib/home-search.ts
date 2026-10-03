@@ -77,13 +77,16 @@ function localizedPreview(
 const getHomeIndex = unstable_cache(
   async (): Promise<HomeIndex> => {
     const admin = createAdminClient();
-    const [{ data: uniData }, scholarships] = await Promise.all([
+    const [{ data: uniData, error: uniError }, scholarships] = await Promise.all([
       admin
         .from('universities')
         .select('id, name, country')
         .order('qs_rank', { ascending: true, nullsFirst: false }),
       getPublishedScholarships(),
     ]);
+    // Throw so the 12-hour cache never stores an empty index; the search route
+    // already turns a throw into `{ matches: [] }` for that one request.
+    if (uniError) throw new Error(`Home search universities query failed: ${uniError.message}`);
 
     const byUniversityId: Record<number, HomePreviewRecord[]> = {};
     const byCountry: Record<string, HomePreviewRecord[]> = {};

@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import { deflateSync, inflateSync } from 'node:zlib';
 import { createAdminClient } from '@/server/db/admin';
 import { clampPage, clampPageSize, pageOffset, toPage, type Page } from '@/shared/lib';
 import {
@@ -35,6 +36,7 @@ import {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
   type HomeScholarshipHighlights,
+  type ScholarshipCountryCount,
   type ScholarshipFacets,
   type ScholarshipForUniversity,
   type ScholarshipLabel,
@@ -199,10 +201,15 @@ type PublishedCandidates = {
   total: number;
 };
 
+type PublishedCandidateRows = {
+  rows: ScholarshipRow[];
+  total: number;
+};
+
 async function loadPublishedCandidatesUncached(
   query: ScholarshipListQuery,
   asOf: string,
-): Promise<PublishedCandidates> {
+): Promise<PublishedCandidateRows> {
   const filters = query.filters ?? normalizeScholarshipDirectoryFilters({
     country: query.country ?? null,
     universityIds: query.universityId == null ? [] : [query.universityId],
@@ -248,7 +255,7 @@ async function loadPublishedCandidatesUncached(
       [...new Set([...relatedLinks, ...relatedCountry])].filter((id) => !excluded.has(id)),
     );
   }
-  if (included?.length === 0) return { items: [], total: 0 };
+  if (included?.length === 0) return { rows: [], total: 0 };
 
   const rows: ScholarshipRow[] = [];
   let total: number | null = null;
@@ -302,17 +309,24 @@ async function loadPublishedCandidatesUncached(
     if (batch.length < PUBLISHED_CANDIDATE_BATCH_SIZE) break;
   }
 
-  const items = rows.map(toDirectoryScholarship);
-  return { items, total: total ?? rows.length };
+  return { rows, total: total ?? rows.length };
 }
 
-const listPublishedCandidatesCached: (
+// Cache raw rows, not the much larger normalized graph (which repeats raw
+// excerpts for provenance). Deflate + base64 keeps this catalogue below Next's
+// 2 MB entry limit without truncating evidence or paging before ranking.
+// Hydrate after decoding so Infinity/date helpers also survive JSON caching.
+const listPublishedCandidateRowsCached: (
   query: ScholarshipListQuery,
   asOf: string,
-) => Promise<PublishedCandidates> = unstable_cache(
-    loadPublishedCandidatesUncached,
+) => Promise<string> = unstable_cache(
+    async (query: ScholarshipListQuery, asOf: string) => {
+      const rows = await loadPublishedCandidatesUncached(query, asOf);
+      return deflateSync(JSON.stringify(rows)).toString('base64');
+    },
     [
       'published-scholarship-candidates',
+      'raw-deflate-base64-v1',
       SCHOLARSHIP_RANKING_VERSION,
       SCHOLARSHIP_BENEFIT_NORMALIZER_VERSION,
       SCHOLARSHIP_VALUATION_VERSION,
@@ -323,6 +337,24 @@ const listPublishedCandidatesCached: (
     ],
     { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
   );
+
+async function listPublishedCandidatesCached(
+  query: ScholarshipListQuery,
+  asOf: string,
+): Promise<PublishedCandidates> {
+  const encoded = await listPublishedCandidateRowsCached({
+    ...query,
+    // These affect ordering/output, never the SQL candidate selection.
+    // Reuse the same complete-set cache across pages and sort directions.
+    page: 1,
+    pageSize: PUBLISHED_CANDIDATE_BATCH_SIZE,
+    sort: 'relevance',
+  }, asOf);
+  const { rows, total } = JSON.parse(
+    inflateSync(Buffer.from(encoded, 'base64')).toString('utf8'),
+  ) as PublishedCandidateRows;
+  return { items: rows.map(toDirectoryScholarship), total };
+}
 
 async function listPublishedUncached(
   query: ScholarshipListQuery,
@@ -445,6 +477,78 @@ const facetsCached = unstable_cache(
     };
   },
   ['published-scholarship-facets'],
+  { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
+);
+
+type CountryLinkRow = {
+  scholarship_id: number;
+  scholarships: { status: string; country: string | null } | null;
+  universities: { country: string | null } | null;
+};
+
+/**
+ * Count distinct scholarships per country. A scholarship's own `country` wins
+ * over its universities' (the `coalesce(s.country, u.country)` the Home figures
+ * were measured with), and one scholarship counts once per country however
+ * many of that country's universities it links. Exported for tests.
+ */
+export function tallyScholarshipCountries(
+  direct: ReadonlyArray<{ id: number; country: string | null }>,
+  links: ReadonlyArray<{ scholarship_id: number; universities: { country: string | null } | null }>,
+): ScholarshipCountryCount[] {
+  const byCountry = new Map<string, Set<number>>();
+  const add = (country: string | null | undefined, scholarshipId: number) => {
+    const name = country?.trim();
+    if (!name || !Number.isFinite(scholarshipId)) return;
+    const ids = byCountry.get(name) ?? new Set<number>();
+    ids.add(scholarshipId);
+    byCountry.set(name, ids);
+  };
+
+  const hasOwnCountry = new Set<number>();
+  for (const row of direct) {
+    const id = Number(row.id);
+    if (row.country?.trim()) hasOwnCountry.add(id);
+    add(row.country, id);
+  }
+  for (const row of links) {
+    const id = Number(row.scholarship_id);
+    if (!hasOwnCountry.has(id)) add(row.universities?.country, id);
+  }
+
+  return [...byCountry.entries()]
+    .map(([country, ids]) => ({ country, count: ids.size }))
+    .sort((a, b) => b.count - a.count || a.country.localeCompare(b.country));
+}
+
+/**
+ * Per-country counts for the Home globe.
+ *
+ * Two reads, both small: `scholarships.country` is filled on only 18 of 2,877
+ * rows (measured 2026-09-27), so almost every country comes through the 374-row
+ * `scholarship_universities` join instead. The union is deduplicated per
+ * (country, scholarship) so a scholarship linked to three UK universities is
+ * one UK scholarship, not three.
+ */
+const countryCountsCached = unstable_cache(
+  async (): Promise<ScholarshipCountryCount[]> => {
+    const admin = createAdminClient();
+    const [direct, links] = await Promise.all([
+      admin.from('scholarships').select('id, country').eq('status', 'published').not('country', 'is', null),
+      admin
+        .from('scholarship_universities')
+        .select('scholarship_id, scholarships!inner(status, country), universities!inner(country)')
+        .eq('scholarships.status', 'published'),
+    ]);
+    if (direct.error) throw new Error(`Scholarship country query failed: ${direct.error.message}`);
+    if (links.error) throw new Error(`Scholarship country links query failed: ${links.error.message}`);
+
+    return tallyScholarshipCountries(
+      (direct.data ?? []) as Array<{ id: number; country: string | null }>,
+      (links.data ?? []) as unknown as CountryLinkRow[],
+    );
+  },
+  ['published-scholarship-country-counts'],
   { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
 );
 
@@ -659,5 +763,9 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
 
   async facets(): Promise<ScholarshipFacets> {
     return facetsCached();
+  }
+
+  async countryCounts(): Promise<ScholarshipCountryCount[]> {
+    return countryCountsCached();
   }
 }

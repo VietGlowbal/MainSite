@@ -108,7 +108,7 @@ describe('SiteNavigation', () => {
     expect(screen.getByTestId('desktop-nav')).toHaveAttribute('data-account', '');
   });
 
-  it('shows Register and the onboarding CTA to a new visitor', () => {
+  it('shows Sign up and Sign in to a new visitor', () => {
     mocks.session = {
       ready: true,
       signedIn: false,
@@ -118,11 +118,8 @@ describe('SiteNavigation', () => {
 
     render(<SiteNavigation />);
 
-    expect(screen.getByTestId('desktop-nav')).toHaveAttribute(
-      'data-primary',
-      'Plan your Global Education',
-    );
-    expect(screen.getByTestId('mobile-nav')).toHaveAttribute('data-account', 'Register');
+    expect(screen.getByTestId('desktop-nav')).toHaveAttribute('data-primary', 'Sign up');
+    expect(screen.getByTestId('mobile-nav')).toHaveAttribute('data-account', 'Sign in');
   });
 
   it('promotes Strategy Master and shows the user name after onboarding', () => {
@@ -232,10 +229,7 @@ describe('SiteNavigation', () => {
 
     expect(recoverableErrors).toEqual([]);
     expect(within(container).getAllByTestId('desktop-nav')).toHaveLength(1);
-    expect(within(container).getByTestId('desktop-nav')).toHaveAttribute(
-      'data-primary',
-      'Plan your Global Education',
-    );
+    expect(within(container).getByTestId('desktop-nav')).toHaveAttribute('data-primary', 'Sign up');
 
     act(() => root?.unmount());
     container.remove();
