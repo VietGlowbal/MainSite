@@ -25,7 +25,6 @@ export { HomeMetrics } from './home-metrics';
 export { HomePartners } from './home-partners';
 export { HomePricing } from './home-pricing';
 export { HomeStories } from './home-stories';
-export { HomeScholarshipPreview } from './home-scholarship-preview';
 export { PARTNER_TOTAL_SCHOLARSHIP_VALUE } from './partner-scholarship-value';
 export { HomeScholarships } from './home-scholarships';
 export type { ScholarshipTeaser } from './home-scholarships';

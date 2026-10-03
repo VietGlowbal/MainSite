@@ -110,29 +110,31 @@ export function HomeHero({
             'dark',
           )}
         </p>
-        {countries.length > 0 ? (
-          <>
-            <span className="inline-flex items-center gap-gb-md text-gb-xs text-gb-neutral-400">
-              <span
-                aria-hidden="true"
-                className="size-gb-md shrink-0 rounded-gb-full bg-gb-brand-500 shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-gb-brand-500)_20%,transparent)]"
-              />
-              {getLocaleText(locale, 'Countries with GlowBal scholarship data · drag to spin')}
-            </span>
-            {/* The globe is aria-hidden decoration; this is what it shows, as text. */}
-            <p className="sr-only">
-              {getLocaleText(locale, 'GlowBal has scholarship data for:')}{' '}
-              {countries
-                .map((country) =>
-                  getLocaleText(locale, '{country} ({count} scholarships)', {
-                    country: globeCountryName(country.name, locale === 'vi'),
-                    count: country.count,
-                  }),
-                )
-                .join(', ')}
-            </p>
-          </>
-        ) : null}
+        <div className="min-h-gb-3xl">
+          {countries.length > 0 ? (
+            <>
+              <span className="inline-flex items-center gap-gb-md text-gb-xs text-gb-neutral-400">
+                <span
+                  aria-hidden="true"
+                  className="size-gb-md shrink-0 rounded-gb-full bg-gb-brand-500 shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-gb-brand-500)_20%,transparent)]"
+                />
+                {getLocaleText(locale, 'Countries with GlowBal scholarship data · drag to spin')}
+              </span>
+              {/* The globe is aria-hidden decoration; this is what it shows, as text. */}
+              <p className="sr-only">
+                {getLocaleText(locale, 'GlowBal has scholarship data for:')}{' '}
+                {countries
+                  .map((country) =>
+                    getLocaleText(locale, '{country} ({count} scholarships)', {
+                      country: globeCountryName(country.name, locale === 'vi'),
+                      count: country.count,
+                    }),
+                  )
+                  .join(', ')}
+              </p>
+            </>
+          ) : null}
+        </div>
       </div>
       </div>
     </section>

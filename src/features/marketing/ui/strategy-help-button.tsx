@@ -1,11 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { useT } from '@/lib/i18n';
-import { flattenGuide, STRATEGY_GUIDE, stepIndexForPath } from '../domain/strategy-guide';
-import { GuidePanel } from './strategy-guide';
-import { ICONS, KitIcon, Modal } from '@/shared/ui';
+import { T, useT } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
+
+const StrategyHelpContent = dynamic(() =>
+  import('./strategy-help-content').then((module) => module.StrategyHelpContent),
+  {
+    loading: () => (
+      <div role="status" className="flex h-[min(88vh,46rem)] items-center justify-center text-fg-muted">
+        <T k="Please wait..." />
+      </div>
+    ),
+  },
+);
 
 /**
  * The floating "?" — the whole GlowBal walkthrough, from wherever the student
@@ -83,26 +93,13 @@ export function StrategyHelpButton() {
   const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const flat = useMemo(() => flattenGuide(STRATEGY_GUIDE), []);
-
-  /* The entry step is derived when it OPENS, not in an effect watching `open`.
-     Same result — it follows the student around instead of remembering where
-     they were three pages ago — without the render-then-correct pass that
-     setting state from an effect costs. */
-  function openAtCurrentPage() {
-    setActiveIndex(stepIndexForPath(pathname));
-    setOpen(true);
-  }
-
   if (isSuppressed(pathname)) return null;
 
   return (
     <>
       <button
         type="button"
-        onClick={openAtCurrentPage}
+        onClick={() => setOpen(true)}
         aria-label={t('How GlowBal works')}
         title={t('How GlowBal works')}
         className="fixed bottom-gb-3xl right-gb-3xl z-40 flex size-gb-7xl items-center justify-center rounded-gb-full bg-brand text-white shadow-gb-lg transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand motion-reduce:transition-none motion-reduce:hover:scale-100"
@@ -123,37 +120,7 @@ export function StrategyHelpButton() {
             parent height to resolve against. With an auto height the column
             would grow instead of scrolling and push Previous/Next out of the
             dialog on a short viewport. */}
-        <div className="flex h-[min(88vh,46rem)] flex-col">
-          <div className="flex shrink-0 items-start justify-between gap-gb-lg px-gb-3xl pt-gb-3xl">
-            <div className="flex flex-col">
-              <p className="text-gb-sm font-semibold text-fg">{t('How GlowBal works')}</p>
-              <p className="text-gb-xs text-fg-muted">
-                Step {activeIndex + 1} of {flat.length}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close"
-              className="inline-flex size-gb-5xl shrink-0 items-center justify-center rounded-gb-full text-fg-secondary transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              <KitIcon art={ICONS.close} frame={20} />
-            </button>
-          </div>
-
-          <div className="min-h-0 flex-1 p-gb-3xl">
-            {/* `-mx-gb-3xl` cancels this block's own padding for the one
-                element that wants the dialog's full width: the rule under the
-                area cards. See `bleedClassName` on GuidePanel. */}
-            <GuidePanel
-              flat={flat}
-              activeIndex={activeIndex}
-              onSelect={setActiveIndex}
-              bleedClassName="-mx-gb-3xl"
-            />
-          </div>
-        </div>
+        {open ? <StrategyHelpContent pathname={pathname} onClose={() => setOpen(false)} /> : null}
       </Modal>
     </>
   );

@@ -1,5 +1,16 @@
 # Current project status
 
+Main 2026-10-03 (local merge and homepage performance): restored the local
+reviewed VinUni importer onto upstream `97b1e825`, preserving the upstream CSV
+pipeline default and adding optional metadata overrides. `npm run import:vinuni`
+requires the reviewed `data/VinUni data.xlsx` locally alongside the tracked
+normalized JSON; it defaults to a dry run. No database import was applied.
+Homepage reads now start together and stream into three independent Suspense
+regions, so the shell does not wait for all Supabase reads. Scholarship preview
+and floating help content load when opened. Fixed the Vietnamese catalog lookup
+capturing an empty catalog before a streamed child primes it. Measurements and
+validation are recorded in `docs/performance.md`.
+
 Branch `fix/cached-empty-on-supabase-error` 2026-09-29: a database error is no
 longer cached as "no data". During the Supabase 402 restriction the university
 repository returned an empty page/facets, `unstable_cache` stored it, and

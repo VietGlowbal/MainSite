@@ -120,7 +120,9 @@ export function LanguageProvider({
       // English is the key, so it never needs the catalog at all — this
       // short-circuit is the reason the 584 KB was pure waste on every route.
       if (lang === 'en') return interpolate(en, vars);
-      const entry = catalog[en];
+      // A streamed /vi child can prime the catalog after the root provider
+      // rendered. Read the singleton at call time instead of retaining {}.
+      const entry = getCatalog()[en] ?? catalog[en];
       return interpolate(entry ?? en, vars);
     },
     [lang, catalog],
