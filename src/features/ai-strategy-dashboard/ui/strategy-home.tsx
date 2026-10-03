@@ -544,24 +544,6 @@ export function StrategyHome({
           ))}
         </div>
       </Section>
-
-      {/* ─────────────────── 8. BOTTOM CALL TO ACTION BANNER ─────────────────── */}
-      <Section padded={false} containerClassName="py-gb-4xl">
-        <Panel className="flex flex-col items-center justify-center gap-gb-2xl rounded-gb-2xl border border-line bg-surface-muted p-gb-4xl md:p-gb-6xl text-center shadow-gb-sm">
-          <div className="flex flex-col items-center gap-gb-sm max-w-xl">
-            <h3 className="font-display text-gb-display-xs md:text-gb-display-sm font-semibold text-fg">
-              <T k="Ready to build your winning strategy?" />
-            </h3>
-            <p className="text-gb-md text-fg-tertiary">
-              <T k="Start your personalised journey towards your dream university today." />
-            </p>
-          </div>
-
-          <Button href={startHref} size="lg" className="min-w-64 shadow-gb-sm">
-            <T k="Start My Strategy" />
-          </Button>
-        </Panel>
-      </Section>
     </div>
   );
 }
