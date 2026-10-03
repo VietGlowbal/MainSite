@@ -1,5 +1,15 @@
 # Current project status
 
+Main 2026-10-03 (AI Strategy Home redesign & video placeholders): redesigned
+StrategyHome overview page to guide students through the 5 core AI Strategy
+functions (Applicant Profile, Course Match, Personalised Action Roadmap, 24/7 AI
+Coach, and Application Assets/Essays) with dedicated video walkthrough
+placeholders. Added `StrategyVideoPlaceholder` component supporting HTML5 video
+playback and mock preview states with file slot hints. Preserved all
+requirements, tests, and bilingual English/Vietnamese coverage in
+`i18n-dictionary.ts`. Measured: 15 focused tests passed, strict TypeScript (zero
+errors), ESLint passed.
+
 Main 2026-10-03 (Personal Report truncated narrative): the two structured
 narrative batches were capped at 3,000 completion tokens; provider truncation
 was thrown before parsing and skipped the entire batch. Increased the budget
