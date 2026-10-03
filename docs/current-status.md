@@ -1,5 +1,17 @@
 # Current project status
 
+Main 2026-10-03 (clean-install lockfile repair): shared CI `37120854081`
+failed before verification because `npm ci` could not find the locked optional
+`@emnapi/core@1.10.0` and `@emnapi/runtime@1.10.0` entries required by
+`@rolldown/binding-wasm32-wasi`. Reproduced on clean main `34b6bb5a` with
+Node 24.19.0/npm 11.17.0. Restored only those two nested package entries;
+all existing locked packages/versions and package.json are unchanged.
+The same clean `npm ci` now succeeds (903 packages). Local `verify:pr` PASS:
+both typechecks, lint (0 errors/5 existing warnings), 3,986 tests passed/2 todo
+across 425 files, and production build; diff check PASS. Shared CI must still
+verify the pushed revision. No application, scholarship, database or workflow
+behavior changed.
+
 Main 2026-10-03 (Matching generation hotfix): reproduced the legacy Course Match
 reader crashing on V3's empty `pillars` with `undefined.assessed`. It now accepts
 partial pillars and returns null for unavailable scores, while retaining real
