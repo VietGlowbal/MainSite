@@ -85,6 +85,9 @@ export async function fetchOnboardingState(
         .select('id, confirmed_snapshot_id')
         .eq('user_id', userId)
         .eq('application_id', applicationId)
+        // A regenerated report can belong to a newer confirmed snapshot.
+        // An unordered limit may pick an old version and loop back to analysis.
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
       supabase

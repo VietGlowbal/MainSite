@@ -1,5 +1,22 @@
 # Strategy reports — build spec
 
+## Report navigation repair (2026-10-03)
+
+The Matching "Open report" link could return to Analysis although generation
+was complete. `fetchOnboardingState` read a single unordered Personal Report
+version, compared its old `confirmed_snapshot_id` with the newest snapshot, and
+the Matching page redirected on the resulting `analysis` step. The Personal
+Report readiness query now orders by `created_at` descending before limiting,
+matching the existing report repository's latest-version policy. It still
+requires the application reviews, confirmation and current snapshot lineage.
+
+Regression coverage has an old-snapshot report inserted before a current-snapshot
+report and checks readiness plus the next onboarding step. 54 focused tests,
+production build (151 pages), strict TypeScript and lint passed (0 errors / five
+existing warnings). No database writes were made. Production data could not be
+read with the local environment's restricted old Supabase project; the redirect
+was reproduced with versioned fixtures, and the user confirmed the same behavior.
+
 ## Production compatibility repair (2026-10-03)
 
 Matching V3 saves no legacy pillar scores. The read-only

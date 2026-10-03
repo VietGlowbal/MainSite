@@ -1,5 +1,16 @@
 # Current project status
 
+Main 2026-10-03 (Matching open-link redirect loop): the onboarding gate limited
+Personal Report versions to one without ordering. With an older report on a
+previous snapshot first, it incorrectly marked analysis incomplete and sent
+`matching-report` back to Analysis even after the workspace said reports were
+ready. The query now selects the newest version by `created_at`, consistently
+with the report repository. Snapshot/review/confirmation checks remain enforced.
+Regression reproduced the old-snapshot/new-report case before repair. Measured:
+54 tests across onboarding, workspace, strategy page and application navigation
+passed; production build (151 pages), strict TypeScript and lint passed (five
+existing warnings). Workspace `2/5` is generation quota usage, not report count.
+
 Main 2026-10-03 (Matching generation hotfix): reproduced the legacy Course Match
 reader crashing on V3's empty `pillars` with `undefined.assessed`. It now accepts
 partial pillars and returns null for unavailable scores, while retaining real
