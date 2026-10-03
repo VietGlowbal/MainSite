@@ -1,5 +1,15 @@
 # Current project status
 
+Main 2026-10-04 (Home stories testimonial carousel full-width stretch): extended
+the student stories carousel track in `HomeStories` (`src/features/marketing/ui/home-stories.tsx`)
+to stretch across the full viewport width instead of indenting the track to the
+1280px content column (`md:pl-[max(32px,calc((100%-1280px)/2+32px))]`), eliminating
+the unbalanced left-side gap on wide displays. Cards now start with standard
+responsive padding (`px-gb-xl md:px-gb-4xl`) and scroll edge-to-edge. Aligned the
+carousel controls ("Translated from Vietnamese" and direction buttons) symmetrically.
+Full verification: 4,027 tests passed across 427 files in Vitest; ESLint and
+`tsc --noEmit` passed with 0 errors.
+
 Main 2026-10-04 (Strategy synthesis timeout and references): Strategy retries
 timed-out or truncated synthesis once as three concurrent 4,000-token section
 requests, retaining profile/activity results and enforcing final report coverage.
