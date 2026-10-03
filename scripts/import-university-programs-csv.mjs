@@ -123,7 +123,7 @@ export function inferDegreeLevel(degree, programmeName = '') {
   const value = `${degree} ${programmeName}`.toLocaleLowerCase('en-US');
   if (/\b(ph\.?d|doctor of philosophy|doctoral)\b/.test(value)) return 'phd';
   if (
-    /\b(j\.?d\.?|juris doctor|m\.?d\.?|doctor of medicine|dds|dmd|dvm|vmd|pharmd|ed\.?d)\b/.test(
+    /\b(j\.?d\.?|juris doctor|m\.?d\.?|medical doctor|doctor of medicine|dds|dmd|dvm|vmd|pharmd|ed\.?d)\b/.test(
       value,
     )
   ) {
@@ -158,7 +158,7 @@ function isPresent(value) {
   return Boolean(value && value.trim() && value.trim().toLocaleUpperCase('en-US') !== 'N/A');
 }
 
-function stableUuid(namespace, value) {
+export function stableUuid(namespace, value) {
   const bytes = createHash('sha256').update(`${namespace}\u001f${value}`).digest().subarray(0, 16);
   bytes[6] = (bytes[6] & 0x0f) | 0x50;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
@@ -199,7 +199,16 @@ function fieldConsensus(rows, field) {
     .sort((left, right) => right.count - left.count || left.value.localeCompare(right.value));
 }
 
-export function buildImportPlan({ rows, headers, universities, fileName, fileHash, retrievedAt }) {
+export function buildImportPlan({
+  rows,
+  headers,
+  universities,
+  fileName,
+  fileHash,
+  retrievedAt,
+  verificationStatus = VERIFICATION_STATUS,
+  catalogueSource = SOURCE_NAME,
+}) {
   const missingColumns = CORE_COLUMNS.filter((column) => !headers.includes(column));
   if (missingColumns.length > 0) {
     throw new Error(`CSV is missing required columns: ${missingColumns.join(', ')}`);
@@ -284,10 +293,10 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
       country_code: university.country_code ?? 'US',
       official_domain: university.primary_domain,
       official_url: university.official_url,
-      verification_status: VERIFICATION_STATUS,
+      verification_status: verificationStatus,
       last_checked_at: retrievedAt,
       payload: {
-        source: SOURCE_NAME,
+        source: catalogueSource,
         source_name: sourceName,
         row_count: sourceRows.length,
         repeated_field_consensus: Object.fromEntries(
@@ -320,9 +329,9 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
         source_url: row['Program Link'],
         evidence: `School / College: ${row['School / College']}`,
         confidence: 0.55,
-        verification_status: VERIFICATION_STATUS,
+        verification_status: verificationStatus,
         retrieved_at: retrievedAt,
-        payload: { source: SOURCE_NAME },
+        payload: { source: catalogueSource },
       });
     }
 
@@ -344,9 +353,9 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
         source_url: row['Program Link'],
         evidence: `Department: ${row.Department}`,
         confidence: 0.55,
-        verification_status: VERIFICATION_STATUS,
+        verification_status: verificationStatus,
         retrieved_at: retrievedAt,
-        payload: { source: SOURCE_NAME },
+        payload: { source: catalogueSource },
       });
     }
 
@@ -376,13 +385,13 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
       delivery_mode: null,
       duration: row.Duration,
       programme_status: null,
-      catalogue_source: SOURCE_NAME,
+      catalogue_source: catalogueSource,
       retrieved_at: retrievedAt,
-      verification_status: VERIFICATION_STATUS,
+      verification_status: verificationStatus,
       is_deep_selected: true,
       selection_basis: 'User-provided university programme dataset',
       payload: {
-        source: SOURCE_NAME,
+        source: catalogueSource,
         source_file: fileName,
         source_file_sha256: fileHash,
         source_official_url: normalizeUrl(row['Program Link']),
@@ -403,8 +412,8 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
           ? `School / College: ${row['School / College']}`
           : `Department: ${row.Department}`,
         confidence: 0.55,
-        verification_status: VERIFICATION_STATUS,
-        payload: { source: SOURCE_NAME },
+        verification_status: verificationStatus,
+        payload: { source: catalogueSource },
       });
     }
   });
@@ -427,12 +436,20 @@ export function buildImportPlan({ rows, headers, universities, fileName, fileHas
   };
 }
 
-export function applyExistingCataloguePolicy(plan, existingCatalog) {
+export function applyExistingCataloguePolicy(
+  plan,
+  existingCatalog,
+  { updateExisting = false } = {},
+) {
   const byExactUrl = Map.groupBy(existingCatalog, (programme) => programme.official_url);
   const byIdentity = Map.groupBy(
     existingCatalog,
     (programme) =>
       `${programme.university_id}|${normalizeProgrammeName(programme.programme_name)}|${programme.degree_level ?? ''}`,
+  );
+  const byName = Map.groupBy(
+    existingCatalog,
+    (programme) => `${programme.university_id}|${normalizeProgrammeName(programme.programme_name)}`,
   );
 
   const programmes = plan.programmes.map((sourceProgramme) => {
@@ -476,8 +493,29 @@ export function applyExistingCataloguePolicy(plan, existingCatalog) {
     }
     const identityKey = `${universityId}|${normalizeProgrammeName(programme.programme_name)}|${programme.degree_level ?? ''}`;
     const identityMatches = byIdentity.get(identityKey) ?? [];
-    const matches = exactSameDegree.length > 0 ? exactSameDegree : identityMatches;
+    let matches = exactSameDegree.length > 0 ? exactSameDegree : identityMatches;
+    if (updateExisting && matches.length === 0) {
+      matches = byName.get(`${universityId}|${normalizeProgrammeName(programme.programme_name)}`) ?? [];
+    }
     if (matches.length === 0) return programme;
+
+    if (updateExisting) {
+      if (matches.length > 1) {
+        throw new Error(
+          `Programme ${programme.programme_name} has ${matches.length} catalogue matches; refusing an ambiguous update.`,
+        );
+      }
+      return {
+        ...programme,
+        official_url: matches[0].official_url,
+        payload: {
+          ...programme.payload,
+          import_decision: 'update_existing_catalogue_programme',
+          match_basis: exactMatches.length > 0 ? 'exact_course_url' : 'name_and_degree',
+          existing_programme_id: matches[0].programme_id,
+        },
+      };
+    }
 
     return {
       ...programme,
@@ -519,7 +557,7 @@ export function applyExistingCataloguePolicy(plan, existingCatalog) {
   };
 }
 
-async function readAll(supabase, table, select = '*') {
+export async function readAll(supabase, table, select = '*') {
   const rows = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from(table).select(select).range(from, from + 999);
@@ -685,7 +723,7 @@ function summarizePlan(plan, existingCatalog, existingRun) {
   };
 }
 
-async function applyPlan(supabase, plan, metadata) {
+export async function applyPlan(supabase, plan, metadata) {
   const { data: existingRuns, error: existingRunError } = await supabase
     .from('crawl_runs')
     .select('id,status')
@@ -719,15 +757,15 @@ async function applyPlan(supabase, plan, metadata) {
       .from('crawl_runs')
       .insert({
         run_key: plan.runKey,
-      pipeline_version: 'manual-csv-v1-convergence-shadow',
-        config_name: 'user-provided-us-university-programmes',
+        pipeline_version: metadata.pipelineVersion ?? 'manual-csv-v1-convergence-shadow',
+        config_name: metadata.configName ?? 'user-provided-us-university-programmes',
         status: 'importing',
         started_at: metadata.retrievedAt,
         imported_at: new Date().toISOString(),
         metrics: metadata.metrics,
         coverage_report: metadata.coverageReport,
         source_manifest: metadata.sourceManifest,
-        notes: 'Imported from a user-provided CSV; rich non-core fields remain in crawl_programmes.payload pending source-level validation.',
+        notes: metadata.notes ?? 'Imported from a user-provided CSV; rich non-core fields remain in crawl_programmes.payload pending source-level validation.',
       })
       .select('id')
       .single();
@@ -760,6 +798,12 @@ async function applyPlan(supabase, plan, metadata) {
       'crawl_programme_organisation_units',
       withRunId(plan.programmeRelations),
       'run_id,programme_id,organisation_unit_id',
+    );
+    await upsertBatches(
+      supabase,
+      'crawl_field_assertions',
+      withRunId(plan.fieldAssertions ?? []),
+      'run_id,assertion_id',
     );
 
     const { error: completedError } = await supabase

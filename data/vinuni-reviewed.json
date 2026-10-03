@@ -1,0 +1,1195 @@
+{
+  "schema_version": 1,
+  "source": {
+    "file_name": "VinUni data.xlsx",
+    "sha256": "9348ebddbe350f2fdb7ac5957b32491ff21ac3c58a8ff3c3e2eef35a5d1b2b99",
+    "review_status": "HUMAN_VERIFIED",
+    "retrieved_at": "2026-09-06T12:33:04.052Z"
+  },
+  "university": {
+    "id": 97,
+    "name": "VinUniversity",
+    "official_url": "https://vinuni.edu.vn/",
+    "profile": {
+      "mission": "VinUni’s mission is to educate exceptional individuals with strong expertise, skills, life experience, and a passion for contributing, enabling them to achieve the greatest impact and contribute to their own prosperity, society, and the global knowledge economy.",
+      "vision": "Become a world-class, private, not-for-profit university built on international standards.\nUnder official government frameworks, VinUni is targeted to rank among Asia's Top 100 by 2030 and the World's Top 100 by 2035",
+      "core_values": "Empathy: Show how your goals solve problems facing your community or society. \nCreativity: Highlight a personal story where your open-mindedness solved a complex issue.\nLeadership Mindset: Prove your ability to motivate others toward a unified goal.\nXceptional Capability: Back up your profile with objective, hard data (e.g., top test scores, awards).\nEntrepreneurial Spirit: Feature examples where you took risks, broke boundaries, or managed projects",
+      "strengths": "- Global Elite Accreditations & Validations (QS 5-Star Rating, FIBAA Institutional Accreditation, Subject-Specific Benchmarks)\n- High-Caliber Faculty & Research Impact (1000 faculty members and scientists from 20+ countries, with over 40% international faculty;  The \"VinUni500\" talent program successfully attracted 150 elite scientists and faculty members from 18 countries within its first year.)\n- Deep Integration with Vingroup Ecosystem (Corporate labs connected to Vingroup ecosystem like VinFast, VinMec, etc)\n- Students and researchers work on live data pipelines, heavy-industry infrastructure, and testing environments.\n- World-Class Campus Architecture",
+      "teaching_style": "Active Learning Formats: Swaps massive lecture halls for interactive Team-Based Learning (TBL) and Problem-Based Learning (PBL) spaces where students solve complex case studies in small groups. Experiential Education: Integrates heavy hands-on training, mandatory laboratory research, and early corporate immersion programs right from the first year. Interdisciplinary Framework: Encourages students to cross traditional boundaries by blending technology, business metrics, and healthcare insights into singular graduation projects. Digital Integration: Leverages high-fidelity simulation rooms, advanced robotics platforms, and cutting-edge virtual reality tools to simulate high-stress professional environments safely. Global Benchmarking: Delivers 100% of instruction in English under a highly international faculty, maintaining identical rigorous grading rubrics used by Top 100 global universities.",
+      "industry_connections_and_internships": "- The Flagship \"5-in-5\" Internship Framework (This unique co-op structure allows students to gain corporate insights without interrupting their standard academic semester. Students cycle through completely different functional departments within a single partner corporation.-->  It functions as a rapid corporate rotation program, allowing students to map company dynamics before selecting their long-term Summer Internship targets.)\n- Professional Structured Internship: A compulsory, credited course (typically starting in the second year) that requires up to 16 consecutive full-time weeks or specialized part-time equivalents (640 hours).\n- The university uses the Student Industry Engagement Program to prepare students for these corporate placements (Industry Mentorship Program: Students are paired one-on-one with active corporate executives and industry mentors for an entire semester to guide their career paths)",
+      "best_for": "Students seeking an elite, internationally accredited education with direct pathways to global research and an immediate connection to large-scale industrial ecosystems",
+      "weaknesses": null
+    },
+    "source": {
+      "sheet": "VinUni (general)",
+      "range": "A1:I2"
+    }
+  },
+  "colleges": [
+    "College of Arts and Sciences",
+    "College of Business and Management",
+    "College of Engineering and Computer Science",
+    "College of Health Sciences"
+  ],
+  "programmes": [
+    {
+      "name": "Bachelor of Business Administration",
+      "college": "College of Business and Management",
+      "degree": "Bachelor",
+      "duration": "4 years",
+      "official_url": "https://vinuni.edu.vn/",
+      "source_sheet": "CBM (BBA)",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Strategic Partners & Programme Framework",
+          "content": "VinUni’s Bachelor of Business Administration (BBA) is an English-based, four-year undergraduate programme requiring 120 credits and validated by Cornell University. The programme combines comprehensive business knowledge, practical business experience and personal development, with an emphasis on developing competent business professionals, future leaders and entrepreneurs with integrity and critical-thinking abilities. Its learning approach is active, team-based, experience-oriented and connected to real-world business problems, allowing students to connect academic knowledge with practical application and professional development.",
+          "applications": [],
+          "source": {
+            "sheet": "CBM (BBA)",
+            "title_cell": "A2",
+            "content_cell": "B2",
+            "application_cell": "C2",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Programme & Distinctive Highlights",
+          "content": "BBA offers six concentrations: Finance, Marketing, Entrepreneurship, Business Analytics, Supply Chain & Operations Management, and Service Leadership. Students can personalise their academic pathway through concentrations, minors and interdisciplinary learning, with the programme highlighting more than 100 potential career choices. Distinctive features include 1:1 faculty advising, research opportunities, real-life problem-based learning, Innovation and Leadership Bootcamp, internships, and company-based graduation projects. The programme is designed to combine academic breadth with opportunities for students to develop specialised expertise and apply knowledge in real-world contexts.",
+          "applications": [],
+          "source": {
+            "sheet": "CBM (BBA)",
+            "title_cell": "A3",
+            "content_cell": "B3",
+            "application_cell": "C3",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Accelerated & Global Mobility Pathways",
+          "content": "BBA provides multiple international pathways and global learning opportunities, including integrated programmes with Cornell University, Carnegie Mellon University, Nanyang Technological University, the University of Queensland and the University of Western Australia. Students can also access exchange opportunities with 15+ universities as well as study-abroad and study-tour experiences. These pathways create opportunities for students to gain international academic exposure, experience different educational environments and connect their undergraduate studies with longer-term global academic or career goals.",
+          "applications": [],
+          "source": {
+            "sheet": "CBM (BBA)",
+            "title_cell": "A4",
+            "content_cell": "B4",
+            "application_cell": "C4",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Programme & Opportunity Ecosystem",
+          "content": "BBA provides an extensive ecosystem connecting students with industry, research and experiential learning. The programme highlights 150+ industry partners, 80+ industry experts, a minimum of 400 internship hours, Executive Internship opportunities, research projects, case competitions, hackathons, innovation activities, company-based graduation projects, faculty advising and interdisciplinary learning opportunities. These experiences allow students to develop and demonstrate capabilities such as professional competence, problem-solving, leadership, teamwork, analytical thinking, innovation, adaptability and practical business judgement.",
+          "applications": [],
+          "source": {
+            "sheet": "CBM (BBA)",
+            "title_cell": "A5",
+            "content_cell": "B5",
+            "application_cell": "C5",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile / Student Qualities",
+          "content": "Based on the programme’s stated objectives, learning philosophy and opportunities, BBA is particularly relevant to students who demonstrate or are developing professional competence, critical thinking, leadership, entrepreneurial initiative, problem-solving ability, innovation, integrity, collaboration and a willingness to learn through practical experience. Strong applicant evidence should focus on observable behaviours and outcomes rather than simply claiming these qualities—for example, taking ownership of a problem, making decisions, testing solutions, learning from failure, creating measurable impact, working effectively with others, or turning an idea into action. These qualities should be treated as programme-fit signals rather than strict admission requirements unless explicitly stated as such by VinUni.",
+          "applications": [],
+          "source": {
+            "sheet": "CBM (BBA)",
+            "title_cell": "A6",
+            "content_cell": "B6",
+            "application_cell": "C6",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Finance and Banking",
+      "college": "College of Business and Management",
+      "degree": "Bachelor",
+      "duration": "4 years",
+      "official_url": "https://vinuni.edu.vn/",
+      "source_sheet": "CBM (BFB)",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Programme: Bachelor of Finance and Banking. Duration: 4 years. Minimum credits: 122. Positioning: designed to prepare future leaders in an evolving financial-services landscape shaped by digital banking, FinTech, AI and sustainable finance. Academic orientation: combines rigorous finance and banking knowledge with analytical tools, industry-specific skills, practical experience and personal development. Curriculum progression: General Education → Fundamental Knowledge → Innovation/Leadership Bootcamp → In-depth Specialization → Research Thesis/Company Graduation Project. \n--> AI interpretation: the programme is not positioned as traditional finance education alone; it combines technical finance competence with innovation, technology awareness, leadership and responsible decision-making.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CBM (BFB)",
+            "title_cell": "A2",
+            "content_cell": "B2",
+            "application_cell": "C2",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Curriculum & Distinctive Academic Focus",
+          "content": "Core domains: Banking, Investment, FinTech, Digital Banking, Financial Investment Innovation and Sustainable Finance/ESG. Global benchmarking: curriculum is benchmarked against institutions including LSE, SMU and MIT Sloan. Professional alignment: aligned with frameworks/certifications including CFA, ACCA, ICAEW, CBCA and FRM. Learning resources: students have access to financial databases and platforms such as Refinitiv Workspace and LSEG. AI interpretation: applicants with evidence of quantitative reasoning, finance/economics interest, analytical problem-solving, technology adoption or interest in responsible finance may demonstrate stronger potential alignment with the programme’s academic direction.",
+          "applications": [
+            "Matching Report",
+            "Personal Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CBM (BFB)",
+            "title_cell": "A3",
+            "content_cell": "B3",
+            "application_cell": "C3",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Industry & Experiential Learning Ecosystem",
+          "content": "Industry integration: programme developed in consultation with leading employers including KPMG, Deloitte, VPBank, Techcombank, Vietcombank and BIDV. Practical learning: industry-led instruction, hands-on projects, real business challenges and guided internship opportunities. Career ecosystem: 150+ global industry partners and opportunities for internships, industry projects, mentorship and career development. Internship: students need to accumulate at least 3 credits, equivalent to approximately 10–12 weeks of internship. AI interpretation: strong fit can be demonstrated through experiences where applicants have applied knowledge to real problems, worked with organisations, analysed data/business situations, taken ownership of projects or demonstrated professional curiosity.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CBM (BFB)",
+            "title_cell": "A4",
+            "content_cell": "B4",
+            "application_cell": "C4",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Global Pathways & Career Opportunities",
+          "content": "Global pathways: integrated programmes with Cornell University, University of Queensland, University of Western Australia and Carnegie Mellon University, including 3+2, 3+1+1 and 2+2 structures. Career positioning: graduates are prepared for evolving careers across banking, investment, FinTech and sustainable finance. Outcome signal: the programme reports that 80% of students receive job offers or postgraduate opportunities before graduation. AI interpretation: international ambition, interest in global finance, postgraduate aspirations or career goals connected to financial innovation can strengthen programme-fit reasoning, but should not be treated as mandatory applicant characteristics.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CBM (BFB)",
+            "title_cell": "A5",
+            "content_cell": "B5",
+            "application_cell": "C5",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Professional competence: ability to apply financial knowledge, analytical tools and industry-specific skills to decision-making. Innovation: willingness to use innovative and entrepreneurial thinking to address changing financial-market problems. Sustainable development: awareness of ethics, responsible decision-making, sustainability and global perspectives in finance. Strong evidence may include: quantitative/analytical projects, finance or economics activities, FinTech/technology projects, entrepreneurial initiatives, research, competitions, investment-related exploration, problem-solving experiences or sustainability-focused work. AI should distinguish between claimed interest and demonstrated evidence: “I am interested in finance” is weak evidence; analysing a real financial problem, building a financial model, conducting investment research or developing a FinTech solution provides stronger evidence.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CBM (BFB)",
+            "title_cell": "A6",
+            "content_cell": "B6",
+            "application_cell": "C6",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Science in Hospitality Management",
+      "college": "College of Business and Management",
+      "degree": "Bachelor",
+      "duration": "4 years, full-time",
+      "official_url": "https://vinuni.edu.vn/",
+      "source_sheet": "CBM (BHM)",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Programme: Bachelor of Science in Hospitality Management BDuration: 4 years, full-timeCredits: 120 minimum creditsProgramme Mission: Prepare students for meaningful careers and accelerated advancement in hospitality, particularly senior executive roles in Vietnam and Southeast Asia.Academic Foundation: Hospitality knowledge + business knowledge + professional skills + practical experience.Core Capabilities: Numerical/data literacy, strategic decision-making, communication, teamwork, cross-cultural management, critical thinking, strategic thinking, adaptability and lifelong learning.AI Insight: BSHM is positioned beyond traditional hotel management, combining hospitality expertise with business, leadership, strategic thinking and practical experience.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CBM (BHM)",
+            "title_cell": "A3",
+            "content_cell": "B3",
+            "application_cell": "C3",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Distinctive Academic Focus & Learning Environment",
+          "content": "Multidisciplinary Focus: Business + hospitality + service management + strategic decision-making + people management.Learning Approach: Practical, experiential and industry-oriented learning.Innovation: Encourages imagination, divergent thinking and appropriate risk-taking.H-Lab: Hands-on environment for food safety, F&B, hospitality competitions/events, technology, sustainability and service experiences.Personal Development: Emphasis on communication, teamwork, ethical leadership and continuous learning.AI Insight: Strong fit may come from applicants who combine people-oriented strengths with business thinking, creativity, analytical ability and adaptability.",
+          "applications": [
+            "Matching Report",
+            "Personal Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CBM (BHM)",
+            "title_cell": "A4",
+            "content_cell": "B4",
+            "application_cell": "C4",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Industry & Experiential Learning Ecosystem",
+          "content": "Industry Exposure: Strong integration between academic learning and the hospitality industry.Experiential Learning: Hospitality events, F&B activities, competitions, technology and sustainability projects.Internships: Three summer internships are expected, ideally including two in Vietnam and one abroad.Internship Target: Approximately 1,000 total hours.Industry Preparation: Designed to prepare students for professional and managerial roles across hospitality organisations.AI Insight: Relevant applicant evidence can include event management, customer-facing work, service projects, team management, user/customer experience improvement and problem-solving in real-world environments.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CBM (BHM)",
+            "title_cell": "A5",
+            "content_cell": "B5",
+            "application_cell": "C5",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Career Scope, Global Orientation & Opportunity Pathways",
+          "content": "Career Scope: Hospitality, hotels, tourism, restaurants, airlines, events, real estate, wellness, service/product design, technology and other people-oriented industries.Management Pathway: Designed to support progression toward senior management and executive roles.Regional Orientation: Strong relevance to Vietnam and Southeast Asia.Global Opportunities: Exchange programmes, study abroad and integrated degree pathways with international partner universities.AI Insight: Previous hospitality experience is not necessarily required for programme fit; relevant signals may come from service, business, leadership, event management, international exposure or experience designing meaningful experiences for others.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CBM (BHM)",
+            "title_cell": "A6",
+            "content_cell": "B6",
+            "application_cell": "C6",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Professional Competence: Ability to apply business and hospitality knowledge to real situations.People & Communication: Listening, communication, teamwork and cross-cultural collaboration.Leadership: Ownership, decision-making, team management and ethical leadership.Strategic Thinking: Problem investigation, evidence-based reasoning and informed decision-making.Creativity & Innovation: Imagination, divergent thinking and calculated risk-taking.Adaptability: Ability to respond to changing situations and continuously learn.Strong Evidence: Events, service projects, customer/user experience, team leadership, entrepreneurship, hospitality-related work, creative problem-solving or cross-cultural experiences.AI Rule: Evaluate demonstrated behaviours and evidence rather than self-described traits.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CBM (BHM)",
+            "title_cell": "A7",
+            "content_cell": "B7",
+            "application_cell": "C7",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Science in Computer Science",
+      "college": "College of Engineering and Computer Science",
+      "degree": "Bachelor",
+      "duration": "4 years, full-time",
+      "official_url": "https://cecs.vinuni.edu.vn/vi/trang-chu",
+      "source_sheet": "CECS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Programme: Bachelor of Science in Computer Science (BSCS)Duration: 4 years, full-timeCredits: 120 credits for the major; students can combine the major with a minor such as Robotics, Product Design, Entrepreneurship or another minor, depending on the programme structure.Academic Positioning: Deep foundation in computer science principles + advanced technical knowledge + exposure to practical industry technologies.Programme Purpose: Prepare students to solve technical and social problems, create useful products/systems/services, discover and apply new knowledge, and contribute to technological and societal development.Long-term Directions: Advanced graduate study, technical/management leadership in technology industries, or entrepreneurship.\n--> AI Insight: BSCS is positioned not simply as “learning to code”, but as a rigorous programme combining theoretical computer science, technical problem-solving, innovation, leadership and real-world impact.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A4",
+            "content_cell": "B4",
+            "application_cell": "C4",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Technical Curriculum & Areas of Specialisation",
+          "content": "Core Foundation: Programming, algorithms & data structures, computer organisation, software construction, operating systems, databases, networks, discrete mathematics and probability/statistics.Advanced Areas: Artificial Intelligence, Machine Learning, Computer Vision, Natural Language Processing, Data Mining & Big Data, Data Visualisation, Cryptography and other specialised CS topics.Technical Depth: Students progressively move from foundational concepts to advanced computing systems and specialised areas.Interdisciplinary Options: Students can pursue minors such as Robotics, Product Design or Entrepreneurship.\n-->.AI Insight: Strong academic/programme fit should be assessed through evidence of computational thinking, mathematical reasoning, technical curiosity and sustained engagement with technology, not simply an interest in computers or programming.",
+          "applications": [
+            "Matching Report",
+            "Personal Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A5",
+            "content_cell": "B5",
+            "application_cell": "C5",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Experiential Learning, Research & Industry Exposure",
+          "content": "Hands-on Learning: Course-related projects require students to apply technical knowledge to practical problems.Interdisciplinary Projects: Students may work in interdisciplinary teams on projects related to AI, Machine Learning, Robotics, Cybersecurity, Data Mining & Big Data and other technical areas.Internship: Students solve problems jointly defined by faculty and companies/organisations, with work requiring higher-level design, teamwork and exposure to different stages of organisational activities.Graduation Project: Students solve a faculty-supervised problem while applying knowledge gained from coursework and internship.Research Orientation: Programme outcomes explicitly support progression into leading graduate programmes and advanced research careers.AI Insight: Strong evidence includes building technical projects, conducting research, solving open-ended problems, collaborating across disciplines or applying technology to real-world needs.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A6",
+            "content_cell": "B6",
+            "application_cell": "C6",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Innovation, Leadership & Social Impact",
+          "content": "Innovation: Students are expected to develop new tools, products, systems and services and explore new knowledge.Entrepreneurship: Programme outcomes include entrepreneurial thinking and the possibility of pursuing technology-based ventures.Leadership: Graduates are expected to become leaders with critical thinking, creativity and the ability to communicate effectively in multidisciplinary teams.Ethics: Technical solutions should consider economic, environmental, cultural, safety and ethical constraints.Social Contribution: Programme explicitly expects students to contribute to communities, the profession, Vietnam, Southeast Asia and the global community.AI Insight: The strongest applicants may demonstrate a combination of technical ability + initiative + creativity + responsible technology use, rather than technical achievement alone.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A7",
+            "content_cell": "B7",
+            "application_cell": "C7",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Technical Curiosity: Genuine interest in understanding how technology works and solving complex problems.Analytical Thinking: Ability to break down complex problems and develop evidence-based solutions.Creativity: Ability to generate and test new ideas, products or technical solutions.Problem-Solving: Evidence of designing, implementing and evaluating solutions rather than only completing predefined tasks.Collaboration: Ability to work effectively within multidisciplinary teams and communicate technical ideas.Entrepreneurial Mindset: Willingness to identify opportunities and transform technical ideas into useful products or services.Ethical Awareness: Understanding that technology operates within social, environmental, legal and ethical constraints.Strong Evidence: Coding/engineering projects, research, technical competitions, AI/ML projects, robotics, software products, open-source contributions, technology-for-social-impact initiatives or independent technical exploration.AI Rule: Distinguish technical interest from technical evidence. “I love AI” is weak evidence; independently building an ML model, developing a software product, researching a technical problem or using technology to solve a meaningful problem is stronger evidence.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A8",
+            "content_cell": "B8",
+            "application_cell": "C8",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Science in Data Science",
+      "college": "College of Engineering and Computer Science",
+      "degree": "Bachelor",
+      "duration": "4 years, full-time",
+      "official_url": "https://cecs.vinuni.edu.vn/vi/trang-chu",
+      "source_sheet": "CECS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Programme: Bachelor of Science in Data Science (BSDS)Duration: 4 years, full-timeCredits: 120 credits for the major; up to 135 credits when combined with an optional minor.Programme Positioning: Develop young leaders in Data Science with foundations in computer science, statistics and data management.Core Purpose: Enable students to use current Data Science techniques to create value from data and understand the role of data management and responsible data use in organisations and society.Long-term Directions: Graduate study, technical/management leadership in technology-driven industries, or entrepreneurship.AI Insight: BSDS is positioned as a combination of computing + statistics + data management + business/social context, rather than simply a programming or analytics programme. (",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A12",
+            "content_cell": "B12",
+            "application_cell": "C12",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Technical & Analytical Curriculum",
+          "content": "Technical Foundation: Computer science principles, programming, algorithms & data structures, databases and software development.Statistical Foundation: Probability, statistics and advanced statistical methods.Data Science Core: Data collection, management, exploration, analysis, data pipelines and visualisation.Advanced Areas: Machine Learning, Data Mining & Big Data, Computer Vision, Natural Language Processing, Data Visualisation, Cybersecurity and Cryptography.Tools & Methods: Python, R, data preprocessing, data tables/pipelines, scientific computing and visualisation tools such as Tableau.AI Insight: Strong academic fit should be based on evidence of quantitative reasoning, computational thinking, analytical problem-solving and sustained technical exploration—not simply “liking data” or using spreadsheets.",
+          "applications": [
+            "Matching Report",
+            "Personal Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A13",
+            "content_cell": "B13",
+            "application_cell": "C13",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Applied Data Science, Research & Experiential Learning",
+          "content": "Applied Learning: Students work with complex datasets and apply Data Science methods to organisational or scientific problems.Projects: Course-related projects allow students to work on interdisciplinary problems under faculty guidance.Internship: Students solve higher-level problems jointly defined by faculty and companies/organisations, working in teams and experiencing different stages of organisational activity.Graduation Project: Students solve a faculty-supervised problem and apply knowledge gained from coursework and internship.Research Orientation: Programme supports progression toward advanced study and research-oriented careers.AI Insight: Strong evidence includes independently analysing data, building models/pipelines, conducting research, solving open-ended problems, or applying data to a real organisational/social problem.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A14",
+            "content_cell": "B14",
+            "application_cell": "C14",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Value Creation, Innovation & Responsible Data Use",
+          "content": "Value Creation: Students are expected to transform data into useful information and value for organisations or scientific fields.Innovation: Programme encourages agile development, entrepreneurial thinking and the creation of new tools, products, systems and services.Decision-Making: Graduates should become informed decision-makers and effective communicators within multidisciplinary teams.Responsible Practice: Data Science must account for legal, economic, environmental, cultural and ethical constraints, including fairness, privacy and security.Social Context: Students are expected to understand how data affects organisations and wider society and interact with professional, national and global communities.AI Insight: The strongest profiles may combine technical data capability with initiative, communication, business thinking and awareness of the consequences of data-driven decisions.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A15",
+            "content_cell": "B15",
+            "application_cell": "C15",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Analytical Thinking: Ability to identify patterns, investigate problems and derive insights from evidence.Technical Curiosity: Genuine interest in understanding how computational and statistical methods can solve problems.Problem-Solving: Ability to move from raw data → analysis → interpretation → actionable solution.Communication: Ability to communicate data insights effectively to different audiences.Interdisciplinary Collaboration: Ability to work as a team member or leader across different domains.Entrepreneurial Mindset: Willingness to identify opportunities and turn data-driven ideas into useful products/services.Responsible Practice: Awareness of privacy, security, fairness, ethics and broader social consequences.Strong Evidence: Data analysis/research projects, coding, ML projects, statistics/economics work, data visualisation, scientific research, business analytics, technology-for-social-impact projects or independent experimentation with datasets.AI Rule: Distinguish data exposure from data capability. “I enjoy analysing data” is weak evidence; cleaning and analysing a real dataset, building a predictive model, designing a data visualisation or using data to influence a real decision is much stronger evidence.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A16",
+            "content_cell": "B16",
+            "application_cell": "C16",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Science in Electrical & Computer Engineering",
+      "college": "College of Engineering and Computer Science",
+      "degree": "Bachelor",
+      "duration": "4 years, full-time",
+      "official_url": "https://cecs.vinuni.edu.vn/vi/trang-chu",
+      "source_sheet": "CECS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Programme: Bachelor of Science in Electrical & Computer Engineering (ECE)Duration: 4 years, full-timeCredits: 122 credits for the major; up to 137 credits with a minor.Academic Foundation: Electrical engineering + computer engineering + mathematics + physics + programming.Programme Positioning: Developed based on Cornell’s ECE programme and validated by Cornell University.Purpose: Develop young leaders who can advance science and technology, improve productivity and create societal value.Long-term Directions: Advanced graduate study, technical/management leadership in high-tech industries, or entrepreneurship.AI Insight: ECE is broader than either pure Electrical Engineering or Computer Science; it connects hardware, software, electronics, communication, control, computing and energy.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A20",
+            "content_cell": "B20",
+            "application_cell": "C20",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Technical Curriculum & Specialisation Pathways",
+          "content": "Core Foundation: Mathematics, physics, programming, electrical circuits, electronics, signals and systems, computer architecture and engineering fundamentals.Four Specialisations: Computer Engineering; Communication & Signal Processing; Control & Automation; Energy & Green Energy.Computer Engineering: IC design, computer networks, embedded systems, AI/ML chip design.Communication & Signal Processing: Digital signal processing, wireless communication, data compression, modulation and error-control coding.Control & Automation: Control theory, system modelling, feedback systems, robotics, mechatronics and industrial automation.Energy & Green Energy: Power systems, renewable energy integration, energy efficiency and power electronics.Interdisciplinary Minors: AI, Robotics, Product Design, Business and other minors are available within the programme structure.AI Insight: Strong fit should be assessed through evidence of mathematical/physical reasoning, engineering curiosity and sustained engagement with a relevant technical domain—not simply an interest in technology.",
+          "applications": [
+            "Matching Report",
+            "Personal Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A21",
+            "content_cell": "B21",
+            "application_cell": "C21",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Experiential Learning, Research & Industry Exposure",
+          "content": "Hands-on Learning: Engineering courses integrate laboratory work and practical application, such as circuit analysis and electronics experiments.Projects: Students apply engineering, scientific and mathematical principles to identify, formulate and solve complex engineering problems.Exchange/Internship: The curriculum includes at least 640 hours of study exchange/internship experience.Graduation Project: Students complete a 6-credit graduation project applying their technical knowledge to an engineering problem.Research: The programme supports pathways toward leading graduate programmes and advanced research.AI Insight: Strong evidence includes building/testing hardware or software systems, conducting experiments, analysing technical data, engineering prototypes, research projects or solving open-ended technical problems.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A22",
+            "content_cell": "B22",
+            "application_cell": "C22",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Innovation, Leadership & Societal Impact",
+          "content": "Engineering Design: Students are expected to develop and realise products, systems and services while considering economic, environmental, cultural, safety and ethical constraints.Entrepreneurship: The programme explicitly develops entrepreneurial thinking and connects students with VinUni’s E-lab ecosystem.Leadership: Graduates are expected to demonstrate critical thinking, creativity, communication and informed decision-making in multidisciplinary teams.Ethics & Responsibility: Engineering decisions should consider public health, safety, welfare, environmental, economic and social consequences.Impact: Programme outcomes emphasise contribution to the community, profession, Vietnam, Southeast Asia and the global community.\n--> AI Insight: The strongest profiles may combine technical depth with creativity, ownership, entrepreneurship and responsible technology development.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A23",
+            "content_cell": "B23",
+            "application_cell": "C23",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Technical & Analytical Ability: Strong mathematical, scientific and engineering reasoning.Engineering Problem-Solving: Ability to identify, formulate and solve complex technical problems.Design Mindset: Ability to move from problem → design → prototype → testing → improvement.Technical Curiosity: Sustained exploration of hardware, software, electronics, robotics, communication, energy or related technologies.Collaboration: Ability to work effectively in multidisciplinary teams and communicate technical ideas.Innovation & Entrepreneurship: Willingness to turn technical ideas into useful products, systems or services.Responsible Engineering: Awareness of safety, ethics, environmental and social implications.Strong Evidence: Robotics/electronics projects, engineering competitions, coding + hardware projects, research, IoT, embedded systems, renewable-energy projects, technical prototypes or technology-for-social-impact initiatives.AI Rule: Distinguish technical exposure from engineering capability. “I like robotics” is weak evidence; designing a robot, testing its performance, diagnosing failures and iterating the system is much stronger evidence.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A24",
+            "content_cell": "B24",
+            "application_cell": "C24",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Science in Mechanical Engineering",
+      "college": "College of Engineering and Computer Science",
+      "degree": "Bachelor",
+      "duration": "4 years, full-time",
+      "official_url": "https://cecs.vinuni.edu.vn/vi/bac-dai-hoc/chuong-trinh-cu-nhan-ky-thuat-co-khi",
+      "source_sheet": "CECS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Programme: Bachelor of Science in Mechanical Engineering (BSME)Duration: 4 years, full-timeCredits: 120 credits for the major; up to 135 credits with an optional minor.Programme Purpose: Develop young mechanical-engineering leaders with clear direction, creativity, strong personal values and the ability to advance science and technology, improve productivity and contribute to society.Academic Positioning: A rigorous engineering programme combining mathematics, science, engineering fundamentals and specialised mechanical-engineering knowledge.Long-term Directions: Graduate study; technical/management leadership in technology-driven industries; or entrepreneurship. (Trường Kỹ thuật & Khoa học Máy tính)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A28",
+            "content_cell": "B28",
+            "application_cell": "C28",
+            "url": "https://cecs.vinuni.edu.vn/vi/bac-dai-hoc/chuong-trinh-cu-nhan-ky-thuat-co-khi"
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Technical Curriculum & Engineering Focus",
+          "content": "Foundation: Mathematics, physics, chemistry and fundamental engineering knowledge.Core Mechanical Areas: Thermodynamics, dynamics, fluid mechanics, mechanics of materials, heat transfer, materials, mechanical systems and engineering design.Advanced Areas: Mechatronics, dynamics & control, intelligent physical systems, hybrid electric vehicles, sustainable energy systems, wind energy and other specialised engineering topics.Design & Technology: CAD, engineering drawing, prototyping, machining, 3D printing and laser cutting are integrated into relevant project-based learning.Interdisciplinary Options: Students can combine the major with minors such as Robotics, Product Design, Entrepreneurship or other available minors.AI Insight: Strong fit should reflect mathematical/scientific reasoning + engineering design capability + technical curiosity, rather than simply an interest in machines or engineering. (Trường Kỹ thuật & Khoa học Máy tính)",
+          "applications": [
+            "Matching Report",
+            "Personal Report"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A29",
+            "content_cell": "B29",
+            "application_cell": "C29",
+            "url": "https://cecs.vinuni.edu.vn/vi/bac-dai-hoc/chuong-trinh-cu-nhan-ky-thuat-co-khi"
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Experiential Learning, Research & Engineering Practice",
+          "content": "Hands-on Design: Students experience the engineering design process from ideation → design → prototyping → testing.Laboratory Work: Engineering principles are reinforced through experiments, technical analysis and evaluation of results.Interdisciplinary Projects: Intelligent Physical Systems brings together students from Mechanical Engineering, Computer Science and other engineering programmes to build systems that can sense, reason and act.Internship/Exchange: At least 640 hours of study exchange/internship experience are included in the curriculum.Graduation Project: A 6-credit graduation project requires students to apply their knowledge to an engineering problem.Research Orientation: The programme supports progression to leading graduate programmes and advanced technical research. (Trường Kỹ thuật & Khoa học Máy tính)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A30",
+            "content_cell": "B30",
+            "application_cell": "C30",
+            "url": "https://cecs.vinuni.edu.vn/vi/bac-dai-hoc/chuong-trinh-cu-nhan-ky-thuat-co-khi"
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Innovation, Leadership & Real-world Impact",
+          "content": "Engineering Design: Students are expected to design and realise products, systems and services while considering economic, environmental, cultural, safety and ethical constraints.Innovation: Programme encourages creative thinking, new technology development and entrepreneurial thinking.Leadership: Graduates should demonstrate critical thinking, creativity, communication, informed decision-making and effective teamwork.Experimentation: Students are expected to develop experiments, analyse data and evaluate engineering results before reaching conclusions.Responsible Engineering: Solutions should account for public health, safety, welfare, environmental and social consequences.Impact: Graduates are expected to contribute to the community, engineering profession, Vietnam, Southeast Asia and the global community. (Trường Kỹ thuật & Khoa học Máy tính)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A31",
+            "content_cell": "B31",
+            "application_cell": "C31",
+            "url": "https://cecs.vinuni.edu.vn/vi/bac-dai-hoc/chuong-trinh-cu-nhan-ky-thuat-co-khi"
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Engineering Thinking: Ability to understand systems, identify constraints and approach complex problems systematically.Analytical Ability: Strong mathematical/scientific reasoning and evidence-based decision-making.Design Mindset: Ability to move from problem → concept → design → prototype → test → iteration.Technical Curiosity: Sustained exploration of mechanics, robotics, vehicles, energy, automation, materials or related technologies.Experimentation: Willingness to test assumptions, analyse failures and improve solutions based on evidence.Collaboration: Ability to work effectively in multidisciplinary teams and communicate technical ideas.Innovation & Entrepreneurship: Ability to recognise opportunities and turn technical ideas into useful products/systems.Responsible Engineering: Awareness of safety, environmental, ethical and social implications.Strong Evidence: Robotics/mechanical projects, engineering competitions, CAD/prototyping, electronics + mechanical systems, research, vehicle projects, renewable-energy projects, product design or technical solutions to real-world problems.AI Rule: Distinguish interest → technical activity → engineering creation → experimentation → impact. A student saying “I love robotics” provides little evidence; designing, building, testing and iterating a robotic system provides much stronger evidence.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CECS",
+            "title_cell": "A32",
+            "content_cell": "B32",
+            "application_cell": "C32",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Arts in Economics",
+      "college": "College of Arts and Sciences",
+      "degree": "Bachelor",
+      "duration": "4 years / 8 semesters",
+      "official_url": "https://cas.vinuni.edu.vn/vi/trang-chu",
+      "source_sheet": "CAS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Duration: 4 years / 8 semestersCredits: 120–130 creditsLanguage: EnglishAcademic Positioning: Economics grounded in economic theory, quantitative methods, critical thinking and analytical decision-making.Core Purpose: Prepare students for roles across businesses, economic organisations, research institutions, education, government and NGOs.Academic Pathway: Also prepares students for Master's and PhD study in Economics and related fields in Vietnam and internationally.AI Insight: BAE is not simply a “business” programme. Its core is economic reasoning + quantitative analysis + evidence-based decision-making, applied to business, markets, institutions and societal problems.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "A4",
+            "content_cell": "B4",
+            "application_cell": "C4",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Academic Focus & Specialisation Pathways",
+          "content": "Core Economics: Microeconomics, Macroeconomics, Intermediate Microeconomics, Development Economics and quantitative/econometric analysis.Innovation Economics: Focuses on technological innovation, innovation systems, industrial transformation, public policy, sustainable development and the economic impact of emerging technologies.Business, Markets & Institutions: Focuses on behavioural economics, game theory, strategy & information, institutions, industrial organisation, market structures, welfare, finance and real estate economics.Advanced Methods: Statistics, quantitative methods, econometrics, modelling and forecasting; curriculum also incorporates Machine Learning, Big Data and AI for economic data analysis.AI Insight: Programme fit can come from different directions: analytical/economic thinking, business strategy, policy, technology & innovation, research or data-driven decision-making.",
+          "applications": [
+            "Matching Report",
+            "Personal Report"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "A5",
+            "content_cell": "B5",
+            "application_cell": "C5",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Analytical, Research & Applied Learning Orientation",
+          "content": "Quantitative Reasoning: Students use statistical, quantitative and econometric tools to model, interpret and forecast economic trends.Research: Students are expected to identify research questions, design studies/surveys/experiments, collect data, validate findings and derive evidence-based conclusions.Problem-Solving: Emphasis on solving complex economic, business and societal problems systematically.Evidence-Based Thinking: Solutions should be supported by evidence rather than assumptions or opinions.Interdisciplinary Application: Economics knowledge can be applied across business, government, research, education, NGOs and broader social/economic contexts.AI Insight: Strong evidence includes independent research, data analysis, economic research projects, policy analysis, market research, quantitative modelling or projects where evidence was used to make a real decision.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "A6",
+            "content_cell": "B6",
+            "application_cell": "C6",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Innovation, Strategy & Societal Impact",
+          "content": "Innovation: Innovation Economics explores how technological change affects organisations, industrial transformation and global competitiveness.Strategic Thinking: Business, Markets & Institutions develops strategic decision-making through game theory, behavioural economics, information, competition and institutional analysis.Policy Thinking: Students examine how policies, institutions and regulations shape economic behaviour and markets.Social Impact: Curriculum connects economics with sustainable development, globalisation, multiculturalism, welfare, public policy and social responsibility.Leadership: Programme outcomes include autonomy, judgement, adaptability, leadership and innovation in diverse organisational environments.AI Insight: Strong applicants may stand out not because they “love economics”, but because they use economic/analytical thinking to understand or improve real systems—markets, organisations, policies, technologies or communities.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "A7",
+            "content_cell": "B7",
+            "application_cell": "C7",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Analytical Thinking: Ability to break down complex economic/social problems and reason from evidence.Quantitative Capability: Comfort with statistics, data, modelling or analytical methods.Critical Thinking: Ability to question assumptions, compare explanations and construct evidence-based arguments.Strategic Thinking: Ability to understand incentives, competition, behaviour, institutions and decision-making.Research Curiosity: Willingness to investigate questions systematically and generate evidence.Innovation Mindset: Interest in understanding how technology and innovation transform organisations and economies.Global & Social Awareness: Ability to connect economic issues with policy, sustainability, globalisation and societal consequences.Strong Evidence: Research, data analysis, economics/business competitions, policy projects, entrepreneurship, market research, social-impact projects, technology/innovation projects or independent investigation of economic/social issues.AI Rule: Distinguish interest in economics from economic thinking in action. “I am interested in business and economics” is weak evidence; analysing a market, conducting research, evaluating a policy or using data to explain a real economic problem is much stronger evidence.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "A8",
+            "content_cell": "B8",
+            "application_cell": "C8",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Arts in Psychology",
+      "college": "College of Arts and Sciences",
+      "degree": "Bachelor",
+      "duration": "4 years / 8 semesters",
+      "official_url": "https://cas.vinuni.edu.vn/vi/trang-chu",
+      "source_sheet": "CAS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Duration: 4 years / 8 semestersCredits: 120–130 credits; 135 with minorLanguage: EnglishAcademic Positioning: Psychology grounded in social sciences and humanities, with strong emphasis on understanding human mind, behaviour and psychological processes.Core Focus: Social psychology, educational psychology, and business–organizational psychology.Pathways: Educational Psychology; Business & Organizational Psychology; students may also combine courses across both pathways.AI Insight: BAP is not limited to counselling or mental health. It provides a broad foundation in human behaviour + scientific inquiry + applied psychology, with applications across education, business, organizations, research and other fields.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "E4",
+            "content_cell": "F4",
+            "application_cell": "G4",
+            "url": null
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Academic Focus & Applied Psychology Pathways",
+          "content": "Psychology Foundation: Human behaviour, personality, social psychology, cognition, developmental psychology and psychological theory.Research & Methods: Statistics for Social Sciences + Psychological Research Methods; students learn to evaluate existing research and conduct their own psychological research.Educational Psychology: School psychology, child/adolescent psychopathology, counselling & therapy theories, child assessment, learning difficulties and school counselling.Business & Organizational Psychology: Organizational psychology, work motivation, consumer behaviour, group dynamics, workplace stress/wellbeing/safety and psychological assessment in the workplace.AI Insight: Applicant fit can emerge through different routes: education & human development, research, mental/behavioural health, organizational behaviour, HR, marketing/consumer behaviour or human-centred product/service design.",
+          "applications": [
+            "Matching Report",
+            "Personal Report"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "E5",
+            "content_cell": "F5",
+            "application_cell": "G5",
+            "url": null
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Research, Evidence & Human-Centred Problem Solving",
+          "content": "Scientific Orientation: Psychology is treated as an empirical science of thoughts, emotions and behaviour.Research Capability: Students learn to evaluate research, collect and analyse information, conduct psychological research and formulate evidence-based conclusions.Assessment: Programme develops ability to analyse psychological phenomena through biological, psychological, social and cultural factors.Applied Problem-Solving: Students learn to identify client needs, analyse problems, select appropriate interventions/tools and evaluate their effectiveness.AI Insight: Strong evidence includes research projects, behavioural studies, surveys, data analysis, observation, user research, educational interventions, community projects or initiatives where the applicant investigated human behaviour before designing a solution.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "E6",
+            "content_cell": "F6",
+            "application_cell": "G6",
+            "url": null
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Interdisciplinary Applications & Career Ecosystem",
+          "content": "Education: School counselling, educational psychology, education coordination and student support.Healthcare: Psychological counselling, health psychology and rehabilitation psychology.Research: Behavioural science, market research and academic research.Business/HR: Organizational psychology, recruitment, coaching and people management.Marketing/Product: Consumer marketing, campaign management, product design and consumer insights.Consulting/NGOs: Organizational consulting, business analysis and project counselling.Technology: UX/UI design and human-centred technology roles.Further Study: Potential progression to Master's/PhD programmes in Psychology and related fields such as Neuroscience, Healthcare, Law and Business.AI Insight: BAP can fit applicants whose interests sit at the intersection of people + systems + evidence, even when their activities are not explicitly labelled “psychology.”",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "E7",
+            "content_cell": "F7",
+            "application_cell": "G7",
+            "url": null
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Curiosity About People: Genuine interest in understanding why people think, feel and behave differently.Analytical Thinking: Ability to examine behaviour using evidence rather than assumptions.Research Mindset: Willingness to ask questions, investigate systematically and evaluate evidence.Empathy + Objectivity: Ability to understand diverse perspectives while maintaining analytical distance and ethical awareness.Human-Centred Problem Solving: Ability to translate understanding of people into interventions, services, products or organisational solutions.Communication: Ability to listen, interpret and communicate psychological insights effectively.Cultural Awareness: Sensitivity to biological, social and cultural influences on behaviour.Strong Evidence: Psychology/research projects, education initiatives, peer support, community work, behavioural research, HR/people projects, consumer research, UX research, social-impact initiatives or independent investigation of human behaviour.AI Rule: Distinguish “interest in people” from evidence of psychological thinking. “I enjoy helping people” is weak evidence; conducting research, observing behaviour, identifying patterns and designing/evaluating an intervention is much stronger evidence.",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "E8",
+            "content_cell": "F8",
+            "application_cell": "G8",
+            "url": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Arts in Multimedia",
+      "college": "College of Arts and Sciences",
+      "degree": "Bachelor",
+      "duration": "4 years / 8 semesters",
+      "official_url": "https://cas.vinuni.edu.vn/vi/giao-duc-dai-hoc/cu-nhan-truyen-thong-da-phuong-tien",
+      "source_sheet": "CAS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Duration: 4 years / 8 semestersCredits: 120–130 credits; 136 with minorLanguage: EnglishAcademic Positioning: Communication theory + multimedia technology + creative production + critical thinking + research + intercultural communication.Two Specialisations: Digital Media; Public Relations.Programme Purpose: Prepare graduates to create impactful and ethical communication content, work across multicultural environments, lead multidisciplinary teams and adapt to rapidly changing media landscapes.AI Insight: BAC is broader than content creation. Strong fit requires the ability to combine communication thinking, creative execution, technology and audience understanding. (College of Arts and Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "I4",
+            "content_cell": "J4",
+            "application_cell": "K4",
+            "url": "https://cas.vinuni.edu.vn/vi/giao-duc-dai-hoc/cu-nhan-truyen-thong-da-phuong-tien"
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Academic Focus & Specialisation Pathways",
+          "content": "Communication Foundation: Communication theories, principles, concepts, media and society, communication strategy and audience understanding.Digital Media: Digital communication, media production, social media management, digital writing, website design, UX, advanced multimedia production and digital media measurement.Public Relations: Strategic communication, PR campaigns and crisis communication.Emerging Areas: Digital Design Thinking, Future of Digital Media, Communication with AI, Narrative & Storytelling, Public Diplomacy.Technology: Multimedia tools, emerging technologies such as VR, AR and AI, and platform-specific communication techniques.AI Insight: Match should depend on the applicant's intended communication direction: creative/digital production, strategic communication/PR, storytelling, UX, marketing, media technology or communication research. (College of Arts and Sciences)",
+          "applications": [
+            "Matching Report",
+            "Personal Report"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "I5",
+            "content_cell": "J5",
+            "application_cell": "K5",
+            "url": "https://cas.vinuni.edu.vn/vi/giao-duc-dai-hoc/cu-nhan-truyen-thong-da-phuong-tien"
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Creative Production, Research & Data Capability",
+          "content": "Content Creation: Students learn to design multimedia products including publications, websites, videos, podcasts and livestreams.Storytelling: Ability to combine language, visuals, audio, graphics and animation to create compelling narratives.Digital Strategy: Content should align with broader communication objectives and target audiences.Data: Students learn to collect, process, analyse and interpret communication-related information and data.Research: Students are expected to independently design and conduct surveys, experiments or research, validate findings and translate findings into practical solutions.Measurement: Digital Media pathway includes Digital Media Measurement, emphasising evaluation of communication effectiveness.AI Insight: Strong applicants should show evidence beyond “making content”: research → audience insight → creative decision → execution → measurement/learning. (College of Arts and Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Planner"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "I6",
+            "content_cell": "J6",
+            "application_cell": "K6",
+            "url": "https://cas.vinuni.edu.vn/vi/giao-duc-dai-hoc/cu-nhan-truyen-thong-da-phuong-tien"
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Innovation, Technology & Professional Impact",
+          "content": "Creative Thinking: Programme emphasises innovation, creativity and critical analysis in a rapidly changing communication environment.Technology Integration: Students use modern digital tools and emerging technologies such as AI, VR and AR to improve communication outputs.User-Centred Design: Digital Design Thinking is used to create communication solutions based on usability, accessibility, layout and content strategy.Leadership: Graduates are expected to lead diverse multidisciplinary and multicultural teams and manage projects with integrity and inclusiveness.Ethics: Programme explicitly addresses misinformation, fact-checking, media literacy, professional ethics and social responsibility.Global Orientation: Strong emphasis on intercultural communication and adapting to diverse perspectives and global environments.AI Insight: Strong profiles combine creative capability + strategic thinking + technology + responsible communication, rather than creativity alone. (College of Arts and Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "I7",
+            "content_cell": "J7",
+            "application_cell": "K7",
+            "url": "https://cas.vinuni.edu.vn/vi/giao-duc-dai-hoc/cu-nhan-truyen-thong-da-phuong-tien"
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Programme Values",
+          "content": "Creative Thinking: Generates original ideas and translates them into communication concepts/products.Communication Intelligence: Understands audience, context, platform and purpose before creating content.Storytelling: Uses narrative, visual and multimedia elements to create meaningful audience connections.Strategic Thinking: Connects individual content pieces to broader communication objectives.Digital/Technical Capability: Comfortable experimenting with digital platforms, multimedia tools and emerging technologies.Research & Data: Uses evidence, audience insights and performance data to improve communication decisions.Critical & Ethical Thinking: Verifies information, recognises misinformation and considers social/cultural consequences.Collaboration: Can work across disciplines, cultures and creative/technical roles.Strong Evidence: Media campaigns, content production, storytelling projects, social media strategy, UX/design projects, journalism, PR/event communication, audience research, digital products, creative competitions or technology-enabled communication projects.AI Rule: Distinguish content production from communication thinking. “I enjoy creating videos” is weak evidence; identifying an audience problem, developing a communication strategy, producing content, measuring its response and iterating is much stronger evidence. (College of Arts and Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CAS",
+            "title_cell": "I8",
+            "content_cell": "J8",
+            "application_cell": "K8",
+            "url": "https://cas.vinuni.edu.vn/vi/giao-duc-dai-hoc/cu-nhan-truyen-thong-da-phuong-tien"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medical Doctor",
+      "college": "College of Health Sciences",
+      "degree": "Medical Doctor",
+      "duration": null,
+      "official_url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/bac-si-y-khoa",
+      "source_sheet": "CHS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Institution: College of Health Sciences, VinUniversityAcademic Positioning: Internationally oriented medical education combining medical knowledge, clinical practice, professionalism and research.Core Mission: Develop professional, compassionate physicians committed to excellence, lifelong learning, innovation, scholarship and leadership.Programme Vision: Become an internationally recognised medical programme through high-quality education, transformative research and meaningful contributions to community health and wellbeing.Core Model: Three integrated pillars — Clinician + Professional + Researcher.Strategic Partner: University of Pennsylvania, supporting curriculum development and a comprehensive medical education environment.AI Insight: MD fit should be evaluated as a combination of scientific capability + patient-centred care + professional integrity + research curiosity + leadership potential, rather than academic performance alone. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "A5",
+            "content_cell": "B5",
+            "application_cell": "C5",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/bac-si-y-khoa"
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Clinical Education & Experiential Learning",
+          "content": "Clinical Focus: Students apply medical knowledge in real healthcare environments and work alongside experienced healthcare professionals.Clinical Skills: Diagnostic reasoning, patient care, clinical communication, interpersonal skills and practical medical competencies.Patient-Centred Practice: Emphasis on empathy, professionalism, integrity and ethical values in complex clinical situations.Real-World Exposure: Opportunities to connect classroom knowledge with healthcare practice and develop clinical judgement.AI Insight: Strong applicants should demonstrate more than an interest in medicine. Relevant evidence includes patient/community exposure, healthcare volunteering, clinical observation, health-related projects or experiences requiring responsibility, communication and care for others. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "A6",
+            "content_cell": "B6",
+            "application_cell": "C6",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/bac-si-y-khoa"
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Research, Innovation & Lifelong Learning",
+          "content": "Research Pillar: Students are encouraged to participate in scientific research with guidance from CHS faculty, other VinUni institutes and global university partners.Research Mindset: Curiosity, scientific inquiry, scholarship and contribution to advances in medicine.Innovation: Programme explicitly values innovation and adapting to evolving healthcare needs.Lifelong Learning: Graduates are expected to continuously develop knowledge and skills throughout their professional careers.AI Insight: Strong research fit can be demonstrated through independent research, science projects, health-related investigation, data analysis, scientific competitions, publications, laboratory work or experiences where the applicant formulated questions and sought evidence rather than simply participating in activities. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "A7",
+            "content_cell": "B7",
+            "application_cell": "C7",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/bac-si-y-khoa"
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Professionalism, Empathy & Leadership",
+          "content": "Professionalism: Integrity, ethical judgement, responsibility and professional conduct are core qualities of the programme.Empathy: Understanding patients as people and responding appropriately to complex human needs.Communication: Ability to interact effectively with patients, colleagues and diverse stakeholders.Leadership: Programme aims to develop future clinical leaders, managers, researchers and academics.Resilience & Adaptability: Medical practice requires students to respond to complex and constantly changing healthcare situations.Community Orientation: Commitment to improving health and wellbeing in Vietnam and globally.AI Insight: Leadership evidence should not be reduced to titles. Stronger evidence comes from taking responsibility, making difficult decisions, supporting others, responding to failure, improving a system or creating meaningful health/community impact. (College of Health Sciences)",
+          "applications": [
+            "Strategy Report",
+            "Personal Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "A8",
+            "content_cell": "B8",
+            "application_cell": "C8",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/bac-si-y-khoa"
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Career Ecosystem",
+          "content": "Ideal Applicant Signals: Strong scientific foundation; intellectual curiosity; disciplined learning; empathy; ethical awareness; communication skills; resilience; research curiosity; adaptability; leadership potential; commitment to improving health outcomes.Career Ecosystem: Hospitals and leading healthcare institutions; universities and research organisations; UN/WHO/NGOs; private research and industry; public services; private enterprises.Potential Roles: Clinical specialist/physician; department head; healthcare manager/leader; researcher; academic.Global Orientation: English-medium, internationally oriented curriculum and opportunities connected to global academic/healthcare partners.AI Rule: Distinguish “I want to become a doctor because I want to help people” from evidence of sustained engagement with healthcare, scientific inquiry and patient-centred responsibility.Strong Evidence: Long-term healthcare/community involvement, scientific research, health innovation, patient-facing volunteering, medical/science competitions, leadership in health initiatives or sustained investigation of a health problem. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "A9",
+            "content_cell": "B9",
+            "application_cell": "C9",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/bac-si-y-khoa"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bachelor of Nursing",
+      "college": "College of Health Sciences",
+      "degree": "Bachelor",
+      "duration": "4 years / 8 semesters + summer semester for general education courses",
+      "official_url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/cu-nhan-dieu-duong",
+      "source_sheet": "CHS",
+      "facts": [
+        {
+          "field_name": "programme_framework",
+          "title": "1. Programme Identity & Academic Framework",
+          "content": "Programme: Bachelor of Nursing (BSN)Duration: 4 years / 8 semesters + summer semester for general education courses.Language: English.Academic Positioning: Nursing combines science + clinical practice + the art of caring, with an emphasis on evidence-based and patient-centred care.Core Orientation: Excellence in care, evidence and outcomes; preparing nurses who can provide high-quality care across diverse healthcare environments.Strategic Partner: University of Pennsylvania School of Nursing; curriculum is co-designed around international nursing standards.AI Insight: Nursing fit should not be reduced to “liking to help people.” The programme expects a combination of scientific knowledge, clinical capability, compassion, professionalism and leadership potential. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "E5",
+            "content_cell": "F5",
+            "application_cell": "G5",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/cu-nhan-dieu-duong"
+          }
+        },
+        {
+          "field_name": "distinctive_opportunities",
+          "title": "2. Clinical Practice & Patient-Centred Care",
+          "content": "Clinical Learning: Strong integration between classroom learning, simulation and real clinical environments.Practice Exposure: Students gain practical experience through Vinmec and other leading hospitals.Simulation: Pre-clinical laboratories, simulation centre, scenario-based training, communication skills practice and advanced technologies including VR.Patient-Centred Care: Focus on understanding diverse patient needs and delivering safe, high-quality care based on evidence.Scope: Nursing extends beyond hospital care to community health, disease prevention, health education, disasters, epidemics and emergency situations.AI Insight: Strong evidence includes sustained healthcare exposure, community health activities, patient-facing volunteering, health education or situations where the applicant demonstrated care, responsibility, communication and calm decision-making. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "E6",
+            "content_cell": "F6",
+            "application_cell": "G6",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/cu-nhan-dieu-duong"
+          }
+        },
+        {
+          "field_name": "experiential_learning",
+          "title": "3. Evidence, Research & Interdisciplinary Learning",
+          "content": "Evidence-Based Practice: Students learn to base nursing decisions and care on scientific evidence.Research: Graduates are expected to participate continuously in research and update their knowledge throughout their careers.Interdisciplinary Learning: Opportunities to study and collaborate with students from Medicine, Computer Science, Business Administration and other disciplines.Technology: Learning incorporates simulation and advanced technologies to strengthen clinical and professional skills.AI Insight: Strong applicants should demonstrate more than empathy. Valuable evidence includes science/research projects, health investigations, data-driven initiatives, health education, experimentation, evidence-based problem solving or interdisciplinary projects. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "E7",
+            "content_cell": "F7",
+            "application_cell": "G7",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/cu-nhan-dieu-duong/nhung-net-noi-bat"
+          }
+        },
+        {
+          "field_name": "career_impact",
+          "title": "4. Professionalism, Leadership & Social Impact",
+          "content": "Professionalism: Ethical practice, accountability, competence and commitment to quality care.Leadership: Programme aims to develop nurses capable of leading the profession and driving positive change in healthcare.Community Impact: Improving individual, community and societal health and quality of life.Innovation: Graduates are expected to become positive change agents within healthcare organisations.Career Progression: Potential development toward specialist, educator, manager, researcher, academic and leadership roles.AI Insight: Leadership should be evaluated through responsibility and influence, not titles. Strong evidence includes improving a process, coordinating people, advocating for others, leading health initiatives or creating sustainable community impact. (College of Health Sciences)",
+          "applications": [
+            "Strategy Report",
+            "Personal Report",
+            "Essay Review"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "E8",
+            "content_cell": "F8",
+            "application_cell": "G8",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/cu-nhan-dieu-duong/nhung-net-noi-bat"
+          }
+        },
+        {
+          "field_name": "ideal_applicant_profile",
+          "title": "5. Ideal Applicant Profile & Career Ecosystem",
+          "content": "Scientific Readiness: Strong interest in biology/health sciences and willingness to learn rigorous clinical knowledge.Compassion: Genuine concern for people's wellbeing and ability to respond sensitively to vulnerable individuals.Clinical Mindset: Careful, responsible and capable of applying knowledge to real-world situations.Communication: Able to listen, explain clearly and collaborate with patients, families and healthcare teams.Resilience: Able to remain responsible and adaptable in demanding healthcare environments.Research Mindset: Willingness to continuously learn, investigate and update professional knowledge.Leadership Potential: Capacity to improve healthcare practice and eventually lead teams or organisations.Career Ecosystem: Hospitals/clinics; universities and research organisations; WHO/UN/NGOs; private research and technology organisations; public services; healthcare businesses; specialist, leadership, research and academic pathways. (College of Health Sciences)",
+          "applications": [
+            "Matching Report",
+            "Strategy Report",
+            "Essay Review",
+            "Final Check"
+          ],
+          "source": {
+            "sheet": "CHS",
+            "title_cell": "E9",
+            "content_cell": "F9",
+            "application_cell": "G9",
+            "url": "https://chs.vinuni.edu.vn/vi/chuong-trinh-giao-duc-bac-dai-hoc/cu-nhan-dieu-duong/nhung-net-noi-bat"
+          }
+        }
+      ]
+    }
+  ],
+  "ai_training": [
+    {
+      "aspect": "1. Programme Identity & Academic Framework",
+      "database_input": "Programme positioning: ngành đào tạo ứng viên để trở thành ai/làm gìAcademic focus: kiến thức & năng lực cốt lõiCurriculum structure: major, minor, interdisciplinary options, key coursesStrategic partners / accreditation: Cornell, Penn, AACSB, ABET, ACEN...Distinctive learning model: experiential / interdisciplinary / research-based...",
+      "ai_processing": "Extract core programme signals → identify what type of applicant is naturally suited to the programme → distinguish generic university strengths from programme-specific strengths.",
+      "website_output": "Programme Fit Summary“Why this programme fits you”Key programme strengthsProgramme-specific fit score",
+      "source": {
+        "sheet": "AI Training",
+        "range": "A3:D3"
+      }
+    },
+    {
+      "aspect": "2. Programme Specialisations & Distinctive Opportunities",
+      "database_input": "Specialisations / concentrationsUnique courses / learning experiencesResearch opportunitiesInternships / clinical practice / projectsInternational exchange / mobilityInterdisciplinary opportunitiesUnique resources / facilities / partners",
+      "ai_processing": "Map applicant's interests + existing experiences + capabilities → relevant programme opportunities.AI should answer: “Which parts of this programme are particularly relevant to this applicant?”",
+      "website_output": "Personalised Opportunity Match“You may benefit from…”Relevant courses / tracks / opportunitiesPotential areas to explore",
+      "source": {
+        "sheet": "AI Training",
+        "range": "A4:D4"
+      }
+    },
+    {
+      "aspect": "3. Programme → Career Ecosystem",
+      "database_input": "Target career fieldsTypical graduate rolesIndustries / organisationsSkills developed by programmeFurther study pathwaysEntrepreneurship / research / leadership pathways",
+      "ai_processing": "Compare applicant's career vision + proven capabilities + interests with programme's career ecosystem.Identify alignment / uncertainty / missing evidence.",
+      "website_output": "Career FitCareer-direction alignmentPotential career pathways“What this programme could help you build toward”",
+      "source": {
+        "sheet": "AI Training",
+        "range": "A5:D5"
+      }
+    },
+    {
+      "aspect": "4. Ideal Applicant Profile",
+      "database_input": "Convert programme philosophy into observable applicant signals rather than adjectives.Example:Academic: quantitative/scientific readinessCapability: research, problem-solvingBehaviour: initiative, resilienceValues: empathy, ethical responsibilityEvidence: sustained projects, leadership, community impact",
+      "ai_processing": "Turn each ideal-applicant characteristic into an evidence criterion → search applicant's Personal Canvas / Reflections for supporting evidence → classify evidence as Strong / Partial / Missing.",
+      "website_output": "Applicant–Programme Fit BreakdownAcademic FitCapability FitValues FitExperience FitCareer Fit+ Evidence supporting each fit",
+      "source": {
+        "sheet": "AI Training",
+        "range": "A6:D6"
+      }
+    },
+    {
+      "aspect": "5. Programme Differentiators & Fit Signals",
+      "database_input": "Store only the high-value signals that distinguish this programme from similar programmes.Examples:• Penn partnership• Clinical exposure• Evidence-based practice• Entrepreneurship ecosystem• Interdisciplinary education• Specific mobility opportunities",
+      "ai_processing": "Identify whether applicant's profile naturally connects to these differentiators.Important: AI should NOT force-fit the applicant to every differentiator. Only surface relevant ones supported by evidence.",
+      "website_output": "Why This Programme?2–4 personalised reasons this programme may fit the applicant.Potential Gap: what connection is currently weak or unsupported.Strategic Suggestion: how applicant could explore/evidence the connection.",
+      "source": {
+        "sheet": "AI Training",
+        "range": "A7:D7"
+      }
+    }
+  ]
+}
