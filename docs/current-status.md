@@ -1,5 +1,17 @@
 # Current project status
 
+Main 2026-10-04 (Personal Report required component gaps): available Driving
+Force sections now retain explicit per-component limitations and follow-up
+actions when recurring problems, guiding values, choices or decision patterns
+are not established. Framework validation still rejects omitted components and
+limitations without actions. Canonical findings survive empty model lists;
+interactive and print views show all six Driving Force parts with or without
+narrative synthesis. GPT-6 Luna prompt v20 adds a six-field checklist and receives
+component gap reasons, preserving unsupported arrays without inventing evidence.
+Verification: full coverage suite passed 4,010 tests (two todo) across 427 files;
+strict TypeScript, lint (five existing warnings), i18n and production build
+passed. No live provider generation or signed-in end-to-end regeneration ran.
+
 Main 2026-10-03 (Personal → Matching → Strategy flow audit): Strategy retries
 now start a fresh workspace; application/Personal Report version changes reset
 the view, and late responses cannot replace a newer selection. Strategy GET

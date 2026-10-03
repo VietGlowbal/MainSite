@@ -240,6 +240,7 @@ type SynthesisSectionInput = {
     decisionMaking: string | null;
     underlyingValues: string[];
     missingPersonalGrounding: string | null;
+    componentLimitations?: Record<string, string>;
     reflectionFindings: ReflectionFindingWithStatus[];
     cmcaitfMotivations: string[];
     activityChoices: string[];
@@ -581,6 +582,7 @@ export function synthesisInputFromReport(
           decisionMaking: report.drivingForce.decisionMaking ?? null,
           underlyingValues: report.drivingForce.underlyingValues ?? [],
           missingPersonalGrounding: report.drivingForce.missingPersonalGrounding,
+          componentLimitations: Object.fromEntries(Object.entries(report.drivingForce.componentLimitations ?? {}).map(([key, gap]) => [key, gap.reason])),
           reflectionFindings: findingsWithStatus.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key)),
           cmcaitfMotivations: activityEvidence.map((activity) => activity.motivation).filter((value): value is string => Boolean(value)),
           activityChoices: activityEvidence.map((activity) => activity.title),
@@ -1412,6 +1414,9 @@ function materializeNarrativeDetails(
     }
     output.drivingForce = {
       ...details.drivingForce,
+      repeatedChoices: details.drivingForce.repeatedChoices.length ? details.drivingForce.repeatedChoices : sectionInput.drivingForce?.repeatedChoices ?? [],
+      recurringProblems: details.drivingForce.recurringProblems.length ? details.drivingForce.recurringProblems : sectionInput.drivingForce?.recurringProblems ?? [],
+      underlyingValues: details.drivingForce.underlyingValues.length ? details.drivingForce.underlyingValues : sectionInput.drivingForce?.underlyingValues ?? [],
       decisionMaking: details.drivingForce.decisionMaking ?? sectionInput.drivingForce?.decisionMaking ?? 'A decision-making pattern is not established from the available records yet.',
       evidenceIds: requireEvidenceIds(details.drivingForce.evidenceIds, allowedBySection.narrativeDrivingForce),
       evidenceStrength: sectionInput.drivingForce?.evidenceStrength === 'high'

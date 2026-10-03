@@ -17,11 +17,13 @@ describe('Personal Report synthesis prompt', () => {
   it('keeps reference style profile-neutral and complete for sparse profiles', () => {
     const prompt = getReportPrompt('report_narrative_synthesis');
 
-    expect(prompt.version).toBe('report-synthesis-v19-profile-neutral-complete-framework');
+    expect(prompt.version).toBe('report-synthesis-v20-explicit-component-gaps');
     expect(prompt.systemPrompt).toContain('derive the causal arrow chain from the applicant');
     expect(prompt.systemPrompt).toContain('Do not default every profile to software');
     expect(prompt.systemPrompt).toContain('include every supplied capability when fewer than four exist');
     expect(prompt.systemPrompt).toContain('include fewer when evidence is sparse');
+    expect(prompt.systemPrompt).toContain('always return all six fields');
+    expect(prompt.systemPrompt).toContain('input.drivingForce.componentLimitations');
   });
 });
 
@@ -642,6 +644,29 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.narrativeDetails?.coreIdentity?.identityStatement.split(/\s+/)).toHaveLength(80);
     expect(result?.narrativeDetails?.profilePositioning?.positioningOptions[0]?.supportingEvidenceIds).toEqual(['activity-1']);
     expect(result?.narrativeDetails?.profilePositioning?.experienceConnection.anchorExperience).toBe('Coding club');
+  });
+
+  it('preserves canonical Driving Force findings when the model returns empty lists', async () => {
+    const report = structuredReport();
+    report.drivingForce.repeatedChoices = ['Coding club'];
+    report.drivingForce.recurringProblems = ['access to learning'];
+    report.drivingForce.underlyingValues = ['community access'];
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const details = structuredNarrativeDetails(request.requestedSections.includes('provenCapabilities') ? 'b' : 'a');
+      if ('drivingForce' in details && details.drivingForce) {
+        details.drivingForce.repeatedChoices = [];
+        details.drivingForce.recurringProblems = [];
+        details.drivingForce.underlyingValues = [];
+      }
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report, intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding() });
+    expect(result?.narrativeDetails?.drivingForce).toMatchObject({
+      repeatedChoices: ['Coding club'], recurringProblems: ['access to learning'], underlyingValues: ['community access'],
+    });
   });
 
   it('uses the narrative schema vocabulary for model evidence strength', async () => {

@@ -1,5 +1,23 @@
 # Strategy reports — build spec
 
+## Required component gaps (2026-10-04)
+
+A Driving Force can be available while recurring problems or underlying values
+remain unsupported. Those components now carry explicit limitation reasons and
+follow-up actions instead of making the entire report fail as structurally
+missing. The validator continues to reject absent components and incomplete gap
+records. No recurrence or value is fabricated to satisfy the framework.
+
+All six Driving Force parts render in the interactive and print views, including
+canonical fallback and unavailable sections. Empty model lists retain canonical
+findings. Prompt `report-synthesis-v20-explicit-component-gaps` receives component
+limitations and requires all six fields, with unsupported lists left empty and
+their gaps explained in the strategic interpretation.
+
+Full coverage: 4,010 passed, two todo, 427 files. Strict TypeScript, lint (five
+existing warnings), i18n and production build passed. Live AI regeneration was
+not run.
+
 ## Flow audit (2026-10-03)
 
 Strategy workspace retries and report selection changes remount the loading
