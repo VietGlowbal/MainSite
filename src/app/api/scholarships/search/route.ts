@@ -1,6 +1,34 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { openAiCompletionParameters } from '@/lib/ai/openai-client';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
+
+type JsonRecord = Record<string, unknown>;
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * AI output is untrusted network data. Keep only canonical http(s) URLs in the
+ * response so an active scheme never reaches a client-side href.
+ */
+function sanitizeScholarshipResults(value: unknown): JsonRecord[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(isJsonRecord)
+    .map((scholarship) => {
+      const sanitized = { ...scholarship };
+      for (const field of ['applicationUrl', 'url'] as const) {
+        if (!(field in sanitized)) continue;
+        const canonicalUrl = canonicalizeExternalUrl(sanitized[field]);
+        if (canonicalUrl) sanitized[field] = canonicalUrl;
+        else delete sanitized[field];
+      }
+      return sanitized;
+    });
+}
 
 /**
  * POST /api/scholarships/search
@@ -173,10 +201,13 @@ Return JSON only: { "scholarships": [...] }`;
     }
 
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const result = JSON.parse(cleaned);
+    const result: unknown = JSON.parse(cleaned);
+    const scholarships = isJsonRecord(result)
+      ? sanitizeScholarshipResults(result.scholarships)
+      : [];
 
     return NextResponse.json({
-      scholarships: result.scholarships || [],
+      scholarships,
       applicationsSearched: applications.length,
       searchedAt: new Date().toISOString(),
     });

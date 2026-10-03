@@ -23,6 +23,23 @@ export function setScholarshipQueries(impl: ScholarshipQueries | null): void {
 
 export { SupabaseScholarshipRepository };
 export {
+  FILE_COST_REFERENCE_DATASET,
+  FILE_FX_REFERENCE_DATASET,
+  getFileCostReferenceProvider,
+  getFileFxReferenceProvider,
+} from './file-reference-providers';
+export {
+  createSupabaseScholarshipMatchingContextRepository,
+  loadScholarshipMatchingContext,
+} from './matching-context-loader';
+export { calculateCandidateScholarshipValue } from './candidate-valuation';
+export {
+  FREQUENTLY_PICKED_CACHE_TAG,
+  FREQUENTLY_PICKED_CACHE_TTL_SECONDS,
+  loadFrequentlyPicked,
+  loadFrequentlyPickedUncached,
+} from './frequently-picked';
+export {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
 } from './scholarship-queries';
@@ -37,3 +54,8 @@ export type {
   ScholarshipQueries,
   ScholarshipUniversityLite,
 } from './scholarship-queries';
+export type { ScholarshipMatchingContextRepository } from './matching-context-loader';
+export type {
+  FrequentlyPickedRowsReader,
+  LoadFrequentlyPickedInput,
+} from './frequently-picked';

@@ -8,10 +8,14 @@ import {
   scholarshipSearchParams,
 } from '@/features/scholarships/directory-query';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
-import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
+import {
+  loadScholarshipDirectory,
+  loadScholarshipDirectoryForUser,
+} from '@/features/scholarships/directory-loader';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { localizePath, type Locale } from '@/lib/i18n/locale';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 export const metadata: Metadata = {
   title: 'Find Scholarships & Financial Aid | GlowBal',
@@ -43,10 +47,6 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
   const currentSearch = scholarshipSearchParams(state, {}).toString();
   const returnTo = localizePath(currentSearch ? `/scholarships?${currentSearch}` : '/scholarships', locale);
 
-  const directoryPromise = state.view === 'directory'
-    ? loadScholarshipDirectory(state)
-    : Promise.resolve(null);
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,6 +56,12 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
   if (!user && state.view === 'ai') {
     redirect(`/auth?redirect=${encodeURIComponent(returnTo)}`);
   }
+
+  const directoryPromise = state.view === 'directory'
+    ? user
+      ? loadScholarshipDirectoryForUser({ state, supabase, userId: user.id })
+      : loadScholarshipDirectory(state)
+    : Promise.resolve(null);
 
   const applicationsPromise = (user && state.view === 'ai')
     ? supabase
@@ -169,6 +175,7 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
       .eq('source_type', 'scholarships');
     existingScholarships = (resources ?? []).map((resource) => ({
       ...resource,
+      url: canonicalizeExternalUrl(resource.url),
       confidence: String(resource.confidence ?? 0.7),
     }));
   }
@@ -191,6 +198,9 @@ export default async function ScholarshipsPage({ searchParams, locale = 'en' }: 
           existingScholarships={existingScholarships}
           focusUniversity={directory?.focusUniversity ?? null}
           savedScholarships={savedScholarships}
+          frequentlyPicked={directory?.frequentlyPicked ?? {}}
+          recommendations={directory?.recommendations ?? {}}
+          values={directory?.values ?? {}}
           canonicalSearch={directory?.canonicalSearch ?? currentSearch}
           isPlus={isPlus}
           locale={locale}

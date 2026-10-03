@@ -1,11 +1,18 @@
-import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
+import { createClient } from '@/lib/supabase/server';
+import {
+  loadScholarshipDirectory,
+  loadScholarshipDirectoryForUser,
+} from '@/features/scholarships/directory-loader';
 import { parseScholarshipSearchParams } from '@/features/scholarships/directory-query';
 
 export const runtime = 'nodejs';
 
+// The response includes the separate Frequently-picked aggregate. Keep the
+// HTTP/CDN lifetime aligned with that provider's short TTL; the underlying
+// catalogue/ranking data remains independently cached in the feature loader.
 const PUBLIC_CACHE_HEADERS = {
   'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-  'Vercel-CDN-Cache-Control': 'public, max-age=43200, stale-while-revalidate=86400',
+  'Vercel-CDN-Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
 };
 
 export async function GET(request: Request) {
@@ -19,6 +26,19 @@ export async function GET(request: Request) {
   }
 
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const payload = await loadScholarshipDirectoryForUser({
+        state,
+        supabase,
+        userId: user.id,
+      });
+      return Response.json(payload, {
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
+    }
+
     const payload = await loadScholarshipDirectory(state);
     return Response.json(payload, { headers: PUBLIC_CACHE_HEADERS });
   } catch (error) {

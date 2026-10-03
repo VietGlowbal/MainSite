@@ -9,7 +9,9 @@ vi.mock('@/server/db/admin', () => ({
   createAdminClient: () => ({ from }),
 }));
 
+import { toDirectoryScholarship } from '@/lib/scholarships-data';
 import { SupabaseScholarshipRepository } from '../supabase-scholarship-repository';
+import { normalizeScholarshipDirectoryFilters } from '../../domain/eligibility-normalization';
 
 type Result = { data: unknown[] | null; error: { message: string } | null; count?: number | null };
 
@@ -25,6 +27,9 @@ class Query {
   in(...args: unknown[]) { this.calls.push(['in', ...args]); return this; }
   not(...args: unknown[]) { this.calls.push(['not', ...args]); return this; }
   or(...args: unknown[]) { this.calls.push(['or', ...args]); return this; }
+  gte(...args: unknown[]) { this.calls.push(['gte', ...args]); return this; }
+  lt(...args: unknown[]) { this.calls.push(['lt', ...args]); return this; }
+  is(...args: unknown[]) { this.calls.push(['is', ...args]); return this; }
   order(...args: unknown[]) { this.calls.push(['order', ...args]); return this; }
   range(...args: unknown[]) { this.calls.push(['range', ...args]); return this; }
   limit(...args: unknown[]) { this.calls.push(['limit', ...args]); return this; }
@@ -36,7 +41,7 @@ function row(id = 1) {
     id,
     name: `Award ${id}`,
     slug: `award-${id}`,
-    scope: 'university',
+    scope: 'university' as const,
     country: 'United Kingdom',
     provider: null,
     funding_type: ['merit'],
@@ -53,9 +58,9 @@ function row(id = 1) {
     deadline_date: null,
     deadline_text: null,
     source_url: null,
-    source_lang: 'en',
+    source_lang: 'en' as const,
     ranking_note: null,
-    status: 'published',
+    status: 'published' as const,
     scholarship_universities: [],
   };
 }
@@ -63,24 +68,65 @@ function row(id = 1) {
 describe('SupabaseScholarshipRepository.listPublished', () => {
   beforeEach(() => from.mockReset());
 
-  it('queries published rows with exact count, stable ordering, and a nine-row range', async () => {
+  it('attaches typed benefit normalization without replacing raw catalogue fields', () => {
+    const result = toDirectoryScholarship({
+      ...row(11),
+      coverage: '100% tuition',
+      funding_type: ['full-ride'],
+    });
+
+    expect(result.coverage).toBe('100% tuition');
+    expect(result.benefits?.classification).toMatchObject({
+      label: 'tuition-only',
+      fullRideStatus: 'not-claimed',
+    });
+    expect(result.benefits?.components[0]).toMatchObject({
+      type: 'tuition',
+      percentage: { min: 100, max: null },
+    });
+  });
+
+  it('loads the complete filtered set before applying deterministic ranking and pagination', async () => {
     const query = new Query({ data: [row(10)], error: null, count: 17 });
     from.mockReturnValue(query);
 
     const result = await new SupabaseScholarshipRepository().listPublished({
-      page: 2,
+      page: 1,
       pageSize: 9,
       sort: 'name',
     });
 
     expect(from).toHaveBeenCalledWith('scholarships');
     expect(query.calls).toContainEqual(['eq', 'status', 'published']);
-    expect(query.calls).toContainEqual(['range', 9, 17]);
-    expect(query.calls).toContainEqual(['order', 'name', { ascending: true }]);
+    expect(query.calls).toContainEqual(['range', 0, 999]);
     expect(query.calls).toContainEqual(['order', 'id', { ascending: true }]);
     expect(query.calls.find(([method]) => method === 'select')?.[2]).toEqual({ count: 'exact' });
     expect(result.total).toBe(17);
     expect(result.items).toHaveLength(1);
+  });
+
+  it('carries structured country, funding, discovery, and date-backed deadline filters to SQL', async () => {
+    const query = new Query({ data: [row(10)], error: null, count: 1 });
+    from.mockReturnValue(query);
+
+    await new SupabaseScholarshipRepository().listPublished({
+      page: 1,
+      pageSize: 9,
+      sort: 'name',
+      filters: normalizeScholarshipDirectoryFilters({
+        country: 'United Kingdom',
+        fundingTypes: ['merit'],
+        major: 'stem',
+        degree: 'postgraduate',
+        subject: 'Computer Science',
+        deadline: 'open',
+      }),
+    });
+
+    expect(query.calls).toContainEqual(['eq', 'country', 'United Kingdom']);
+    expect(query.calls).toContainEqual(['overlaps', 'funding_type', ['merit']]);
+    expect(query.calls).toContainEqual(['gte', 'deadline_date', expect.any(String)]);
+    expect(query.calls.filter(([method]) => method === 'or').length).toBe(3);
   });
 
   it('excludes scholarships linked to the focused university from the country section', async () => {
@@ -98,6 +144,8 @@ describe('SupabaseScholarshipRepository.listPublished', () => {
       page: 1,
       pageSize: 9,
       sort: 'name',
+      universityId: 42,
+      filters: normalizeScholarshipDirectoryFilters({ universityIds: [42] }),
       relatedUniversityCountry: 'United Kingdom',
       excludeUniversityId: 42,
     });

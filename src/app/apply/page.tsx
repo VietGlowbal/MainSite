@@ -2,6 +2,12 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import {
+  loadScholarshipSurfacePersonalization,
+  type ScholarshipSurfaceCandidate,
+} from '@/features/scholarships/directory-loader';
+import { loadFrequentlyPicked } from '@/features/scholarships/api';
+import { calculateDisplayScholarshipValue, normalizeScholarshipBenefits } from '@/features/scholarships/domain';
+import {
   formatDeadlineLabel,
   formatTuitionForCard,
   officialWebsite,
@@ -10,6 +16,7 @@ import { formatAmount } from '@/lib/scholarships-data';
 import { createClient } from '@/lib/supabase/server';
 import { getServerIdentity } from '@/server/auth/server-identity';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import type { CourseApplication } from '@/lib/apply-types';
 import type {
   ApplicationScholarship,
@@ -73,7 +80,7 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
       universityName: app.university_name,
       logoUrl: university?.logo_url ?? null,
       courseName: app.course_name,
-      courseUrl: app.course_url,
+      courseUrl: canonicalizeExternalUrl(app.course_url),
       country: app.country,
       deadline: app.deadline,
       status: app.status,
@@ -256,6 +263,63 @@ async function fetchApplicationScholarships(
     getScholarshipQueries().byUniversityIds(universityIds),
   ]);
 
+  const aggregateIds = [
+    ...new Set([
+      ...((saved.data ?? []) as Array<{ scholarships?: { id?: number } | null }>).flatMap((row) => {
+        const scholarship = Array.isArray(row.scholarships) ? row.scholarships[0] : row.scholarships;
+        return scholarship?.id != null ? [scholarship.id] : [];
+      }),
+      ...[...optionsByUniversity.values()].flat().map((option) => option.id),
+    ]),
+  ];
+  const frequentlyPicked = await loadFrequentlyPicked({ scholarshipIds: aggregateIds });
+
+  type SurfaceScholarship = {
+    id: number;
+    name: string;
+    amount_min: number | null;
+    amount_max: number | null;
+    amount_currency: string | null;
+    coverage: string | null;
+    funding_type: string[] | null;
+    deadline_date: string | null;
+    deadline_text: string | null;
+    source_url: string | null;
+  };
+  const surfaceRows = (saved.data ?? []) as unknown as Array<{
+    scholarships?: SurfaceScholarship | SurfaceScholarship[] | null;
+  }>;
+  const surfaceCandidates: ScholarshipSurfaceCandidate[] = [
+    ...surfaceRows.flatMap((row) => {
+      const scholarship = Array.isArray(row.scholarships) ? row.scholarships[0] : row.scholarships;
+      if (!scholarship) return [];
+      return [{
+        id: scholarship.id,
+        name: scholarship.name,
+        deadline: scholarship.deadline_date ?? scholarship.deadline_text,
+        benefits: normalizeScholarshipBenefits({
+          coverage: scholarship.coverage,
+          amount_min: scholarship.amount_min,
+          amount_max: scholarship.amount_max,
+          amount_currency: scholarship.amount_currency,
+          funding_type: scholarship.funding_type ?? [],
+          source_url: scholarship.source_url,
+        }),
+      }];
+    }),
+    ...[...optionsByUniversity.values()].flat().map((option) => ({
+      id: option.id,
+      name: option.name,
+      deadline: option.deadlineLabel,
+      benefits: option.benefits,
+    })),
+  ];
+  const personalization = await loadScholarshipSurfacePersonalization({
+    supabase,
+    userId,
+    candidates: surfaceCandidates,
+  });
+
   if (saved.error) {
     // An empty drawer and a failed read look identical on screen, so say which
     // one happened — the same reason `fetchSavedRows` logs its failure.
@@ -304,7 +368,19 @@ async function fetchApplicationScholarships(
       coverage: s.coverage,
       fundingType: s.funding_type,
       sourceUrl: s.source_url,
+      frequentlyPicked: frequentlyPicked[String(s.id)] ?? null,
+      benefits: normalizeScholarshipBenefits({
+        coverage: s.coverage,
+        amount_min: s.amount_min,
+        amount_max: s.amount_max,
+        amount_currency: s.amount_currency,
+        funding_type: s.funding_type ?? [],
+        source_url: s.source_url,
+      }),
     };
+    const canonical = personalization[String(s.id)];
+    entry.value = canonical?.value ?? calculateDisplayScholarshipValue(entry.benefits ?? []);
+    entry.recommendation = canonical?.recommendation ?? null;
 
     const bucket = chosenByUniversity.get(universityId);
     if (bucket) bucket.push(entry);
@@ -324,6 +400,10 @@ async function fetchApplicationScholarships(
         coverage: option.coverage,
         fundingType: option.fundingType,
         sourceUrl: option.sourceUrl,
+        benefits: option.benefits,
+        value: personalization[String(option.id)]?.value ?? calculateDisplayScholarshipValue(option.benefits),
+        recommendation: personalization[String(option.id)]?.recommendation ?? null,
+        frequentlyPicked: frequentlyPicked[String(option.id)] ?? null,
       })),
     };
   }
@@ -368,7 +448,7 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
     .order('added_at', { ascending: false });
   const savedScholarshipRowsPromise = supabase
     .from('user_scholarships')
-    .select('id, university_id, scholarships(id, name, amount_min, amount_max, amount_currency)')
+    .select('id, university_id, scholarships(id, name, amount_min, amount_max, amount_currency, coverage, funding_type, source_url)')
     .eq('user_id', userId);
   const [
     { data: savedRows, error: savedError },
@@ -444,6 +524,9 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
           amount_min: number | null;
           amount_max: number | null;
           amount_currency: string | null;
+          coverage: string | null;
+          funding_type: string[] | null;
+          source_url: string | null;
         }
       | Array<{
           id: number;
@@ -451,9 +534,63 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
           amount_min: number | null;
           amount_max: number | null;
           amount_currency: string | null;
+          coverage: string | null;
+          funding_type: string[] | null;
+          source_url: string | null;
         }>
       | null;
   }>;
+  const attachedScholarshipIds = new Set(savedScholarships.flatMap((savedScholarship) => {
+    const scholarship = Array.isArray(savedScholarship.scholarships)
+      ? savedScholarship.scholarships[0]
+      : savedScholarship.scholarships;
+    return scholarship ? [scholarship.id] : [];
+  }));
+  const frequentlyPicked = await loadFrequentlyPicked({
+    scholarshipIds: [
+      ...new Set([
+        ...savedScholarships.flatMap((savedScholarship) => {
+          const scholarship = Array.isArray(savedScholarship.scholarships)
+            ? savedScholarship.scholarships[0]
+            : savedScholarship.scholarships;
+          return scholarship?.id != null ? [scholarship.id] : [];
+        }),
+        ...[...linkedScholarships.values()].flat().map((scholarship) => scholarship.id),
+      ]),
+    ],
+  });
+  const surfaceCandidates: ScholarshipSurfaceCandidate[] = [
+    ...savedScholarships.flatMap((savedScholarship) => {
+      const scholarship = Array.isArray(savedScholarship.scholarships)
+        ? savedScholarship.scholarships[0]
+        : savedScholarship.scholarships;
+      if (!scholarship) return [];
+      return [{
+        id: scholarship.id,
+        name: scholarship.name,
+        deadline: null,
+        benefits: normalizeScholarshipBenefits({
+          coverage: scholarship.coverage,
+          amount_min: scholarship.amount_min,
+          amount_max: scholarship.amount_max,
+          amount_currency: scholarship.amount_currency,
+          funding_type: scholarship.funding_type ?? [],
+          source_url: scholarship.source_url,
+        }),
+      }];
+    }),
+    ...[...linkedScholarships.values()].flat().map((scholarship) => ({
+      id: scholarship.id,
+      name: scholarship.name,
+      deadline: scholarship.deadlineLabel,
+      benefits: scholarship.benefits,
+    })),
+  ];
+  const personalization = await loadScholarshipSurfacePersonalization({
+    supabase,
+    userId,
+    candidates: surfaceCandidates,
+  });
 
   // getByIds returns rows in whatever order the database hands back, so the
   // saved order (newest first) is reapplied here rather than lost.
@@ -471,6 +608,24 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
               id: label.id,
               name: label.name,
               amountLabel: formatAmount(label.amount_min, label.amount_max, label.amount_currency),
+              benefits: normalizeScholarshipBenefits({
+                coverage: label.coverage,
+                amount_min: label.amount_min,
+                amount_max: label.amount_max,
+                amount_currency: label.amount_currency,
+                funding_type: label.funding_type ?? [],
+                source_url: label.source_url,
+              }),
+              value: personalization[String(label.id)]?.value ?? calculateDisplayScholarshipValue(normalizeScholarshipBenefits({
+                coverage: label.coverage,
+                amount_min: label.amount_min,
+                amount_max: label.amount_max,
+                amount_currency: label.amount_currency,
+                funding_type: label.funding_type ?? [],
+                source_url: label.source_url,
+              })),
+              recommendation: personalization[String(label.id)]?.recommendation ?? null,
+              frequentlyPicked: frequentlyPicked[String(label.id)] ?? null,
             }]
           : [];
       });
@@ -497,6 +652,10 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
         insight: s.insight,
         appliesToText: s.appliesToText,
         sourceUrl: s.sourceUrl,
+        benefits: s.benefits,
+        value: personalization[String(s.id)]?.value ?? calculateDisplayScholarshipValue(s.benefits),
+        recommendation: personalization[String(s.id)]?.recommendation ?? null,
+        frequentlyPicked: frequentlyPicked[String(s.id)] ?? null,
       }),
     );
 
@@ -521,9 +680,15 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
         tuition: formatTuitionForCard(uni.tuition_usd),
         tuitionRaw: uni.tuition_usd ?? null,
         program: row.program ?? null,
-        programUrl: row.program_url ?? null,
+        // Persisted rows may predate the write-time URL validator. Do not pass
+        // an unsafe value into the client component's URL-bearing contract.
+        programUrl: canonicalizeExternalUrl(row.program_url),
         attached,
         options,
+        // Keep full options for row-local pricing. Separately identify awards
+        // already saved anywhere: upsert(user_id, scholarship_id) would move
+        // their existing university_id if the picker offered them again.
+        attachedScholarshipIds: options.filter((option) => attachedScholarshipIds.has(option.id)).map((option) => option.id),
       },
     ];
   });

@@ -114,10 +114,16 @@ describe('POST /api/scholarships/search', () => {
                     eligibility: 'High GPA',
                     matchReason: 'Strong Olympiad background',
                     matchScore: 90,
+                    applicationUrl: 'https://example.test/apply',
+                    url: 'javascript:alert(1)',
                     difficulty: 'medium',
                     courseApplicationId: 'app-1',
                     isUniversitySpecific: true,
                     type: 'merit',
+                  },
+                  {
+                    applicationUrl: 'data:text/html,<script>alert(1)</script>',
+                    url: 'vbscript:msgbox(1)',
                   },
                 ],
               }),
@@ -129,6 +135,11 @@ describe('POST /api/scholarships/search', () => {
 
     const response = await POST(new Request('http://localhost/api/scholarships/search', { method: 'POST' }));
     expect(response.status).toBe(200);
+    const responseBody = await response.json();
+    expect(responseBody.scholarships[0].applicationUrl).toBe('https://example.test/apply');
+    expect(responseBody.scholarships[0].url).toBeUndefined();
+    expect(responseBody.scholarships[1].applicationUrl).toBeUndefined();
+    expect(responseBody.scholarships[1].url).toBeUndefined();
 
     // Verify student_profiles was queried WITHOUT achievements
     expect(tableSelects['student_profiles']).toBeDefined();

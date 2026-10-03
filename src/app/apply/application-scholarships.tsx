@@ -4,11 +4,19 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { parseCoveragePercent, scholarshipLabel } from '@/features/universities/domain';
+import type {
+  FrequentlyPickedSummary,
+  NormalizedScholarshipBenefits,
+  ScholarshipRecommendationResult,
+  ScholarshipValueResult,
+} from '@/features/scholarships/domain';
+import { ScholarshipBadges, ScholarshipValueSummary } from '@/features/scholarships/ui';
 import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarship-constants';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
 import { Modal } from '@/shared/ui/modal';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 /**
  * The scholarship drawer on an application row — /apply, "My application".
@@ -79,6 +87,10 @@ export type ApplicationScholarship = {
   coverage: string | null;
   fundingType: string[] | null;
   sourceUrl: string | null;
+  benefits?: NormalizedScholarshipBenefits | null;
+  value?: ScholarshipValueResult | null;
+  recommendation?: ScholarshipRecommendationResult | null;
+  frequentlyPicked?: FrequentlyPickedSummary | null;
 };
 
 export type UniversityScholarships = {
@@ -143,18 +155,13 @@ function VoucherCard({
       {/* The stub. `border-b` stacked / `border-r` side-by-side, dashed, so the
           card reads as a coupon at both widths. */}
       <div className="flex shrink-0 items-center gap-gb-md border-b border-dashed border-gb-brand-300 pb-gb-lg sm:w-[132px] sm:flex-col sm:items-start sm:gap-gb-xxs sm:border-b-0 sm:border-r sm:pb-0 sm:pr-gb-xl">
-        {scholarship.amountLabel ? (
-          <span className="text-gb-md font-semibold text-brand">{scholarship.amountLabel}</span>
-        ) : (
-          /* Roughly half the directory publishes no figure. The stub still has
-             to hold the column, so it keeps the gift mark and says why it is
-             empty — one type step down, so an award with no number never shouts
-             louder than one with a real one beside it. */
-          <span className="flex items-center gap-gb-sm text-gb-xs text-fg-tertiary">
-            <KitIcon art={ICONS.gift01} frame={16} className="shrink-0 text-brand" />
-            Value not published
-          </span>
-        )}
+        <ScholarshipValueSummary
+          value={scholarship.value}
+          benefits={scholarship.benefits}
+          raw={{ coverage: scholarship.coverage, fundingType: scholarship.fundingType, sourceUrl: scholarship.sourceUrl }}
+          fallbackAwardLabel={scholarship.amountLabel}
+          compact
+        />
         {scholarship.scope ? (
           <span className="text-gb-xs font-medium text-fg-muted">
             {scopeLabel(scholarship.scope)}
@@ -163,16 +170,21 @@ function VoucherCard({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-gb-xs sm:pl-gb-xl">
-        <span className="flex min-w-0 items-center gap-gb-md">
+        <div className="flex min-w-0 items-center gap-gb-md">
           {/* The "Quà Tặng" tag in the reference — what kind of thing this row
               is, so the ticket is legible without reading the name. */}
           <Badge variant="brand-chip" className="shrink-0">
             Scholarship
           </Badge>
+          <ScholarshipBadges
+            recommendation={scholarship.recommendation}
+            frequentlyPicked={scholarship.frequentlyPicked}
+            showReasons
+          />
           <span className="min-w-0 truncate text-gb-sm font-semibold text-fg" title={scholarship.name}>
             {scholarshipLabel(scholarship.name, universityName)}
           </span>
-        </span>
+        </div>
         {scholarship.deadlineLabel ? (
           <span
             className="flex min-w-0 items-center gap-gb-sm text-gb-xs text-fg-tertiary"
@@ -188,9 +200,9 @@ function VoucherCard({
       </div>
 
       <div className="flex shrink-0 items-center gap-gb-lg sm:pl-gb-lg">
-        {scholarship.sourceUrl ? (
+        {canonicalizeExternalUrl(scholarship.sourceUrl) ? (
           <a
-            href={scholarship.sourceUrl}
+            href={canonicalizeExternalUrl(scholarship.sourceUrl)!}
             target="_blank"
             rel="noreferrer noopener"
             className="flex items-center gap-gb-xs rounded-gb-sm text-gb-xs font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
@@ -315,7 +327,7 @@ function ScholarshipChoiceDialog({
                     aria-label={`Choose ${option.name}`}
                     className="mt-gb-xxs size-gb-2xl shrink-0 cursor-pointer accent-brand"
                   />
-                  <span className="flex min-w-0 flex-1 flex-col gap-gb-md">
+                  <div className="flex min-w-0 flex-1 flex-col gap-gb-md">
                     {option.scope ? (
                       <span className="flex">
                         <Badge variant="brand-subtle">{scopeLabel(option.scope)}</Badge>
@@ -328,14 +340,17 @@ function ScholarshipChoiceDialog({
                     <span className="text-gb-sm font-semibold text-fg" title={option.name}>
                       {scholarshipLabel(option.name, universityName)}
                     </span>
-                    {option.amountLabel ? (
-                      <span className="text-gb-xl font-semibold text-brand">{option.amountLabel}</span>
-                    ) : (
-                      <span className="text-gb-sm text-fg-tertiary">Value not published</span>
-                    )}
-                    {option.coverage ? (
-                      <span className="line-clamp-2 text-gb-sm text-fg-tertiary">{option.coverage}</span>
-                    ) : null}
+                    <ScholarshipValueSummary
+                      value={option.value}
+                      benefits={option.benefits}
+                      raw={{ coverage: option.coverage, fundingType: option.fundingType, sourceUrl: option.sourceUrl }}
+                      fallbackAwardLabel={option.amountLabel}
+                      compact
+                    />
+                    <ScholarshipBadges
+                      recommendation={option.recommendation}
+                      frequentlyPicked={option.frequentlyPicked}
+                    />
                     <span className="flex min-w-0 flex-wrap items-center justify-between gap-gb-lg">
                       {option.deadlineLabel ? (
                         <span
@@ -349,13 +364,13 @@ function ScholarshipChoiceDialog({
                       ) : (
                         <span />
                       )}
-                      {option.sourceUrl ? (
+                      {canonicalizeExternalUrl(option.sourceUrl) ? (
                         /* An <a> inside a <label> is activated by clicking the
                            label, which would tick the box on the way to a new
                            tab. `stopPropagation` keeps the two apart — the same
                            trap the saved list's "See details" button documents. */
                         <a
-                          href={option.sourceUrl}
+                          href={canonicalizeExternalUrl(option.sourceUrl)!}
                           target="_blank"
                           rel="noreferrer noopener"
                           onClick={(event) => event.stopPropagation()}
@@ -366,7 +381,7 @@ function ScholarshipChoiceDialog({
                         </a>
                       ) : null}
                     </span>
-                  </span>
+                  </div>
                 </label>
               );
             })}

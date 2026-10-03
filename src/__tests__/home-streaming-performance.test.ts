@@ -1,11 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Children, isValidElement, Suspense, type ReactElement } from 'react';
+import { normalizeScholarshipBenefits } from '@/features/scholarships/domain/benefit-normalization';
+import { calculateScholarshipValue } from '@/features/scholarships/domain/valuation';
+import { createScholarshipValueViewModel } from '@/features/scholarships/domain/value-formatting';
+import { getLocaleText } from '@/lib/i18n/locale';
 const mocks = vi.hoisted(() => ({
-  ids: vi.fn(), countries: vi.fn(), highlights: vi.fn(), team: vi.fn(),
+  ids: vi.fn(), countries: vi.fn(), highlights: vi.fn(), team: vi.fn(), value: vi.fn(),
 }));
 vi.mock('next/cache', () => ({ unstable_cache: (fn: unknown) => fn }));
 vi.mock('@/features/universities/api', () => ({ getUniversityQueries: () => ({ findIdsByNames: mocks.ids }) }));
-vi.mock('@/features/scholarships/api', () => ({ getScholarshipQueries: () => ({ countryCounts: mocks.countries, homeHighlights: mocks.highlights }) }));
+vi.mock('@/features/scholarships/api', () => ({
+  getScholarshipQueries: () => ({ countryCounts: mocks.countries, homeHighlights: mocks.highlights }),
+  calculateCandidateScholarshipValue: mocks.value,
+}));
 vi.mock('@/lib/team', () => ({ getTeamMembers: mocks.team }));
 vi.mock('@/components/site-navigation', () => ({ SiteNavigation: 'nav' }));
 vi.mock('@/features/marketing/ui', () => ({
@@ -47,5 +54,33 @@ describe('homepage streaming', () => {
     expect(resolved[0].props).toMatchObject({ countries: [{ name: 'Vietnam', count: 12 }] });
     expect(resolved[1].props).toMatchObject({ scholarshipTotal: 3000 });
     expect(resolved[2].props).toMatchObject({ members: [] });
+  });
+
+  it.each(['en', 'vi'] as const)('keeps canonical candidate valuation and %s formatting in the streamed spotlight', async (locale) => {
+    const benefits = normalizeScholarshipBenefits({ coverage: '100% tuition', funding_type: ['full-ride'] });
+    const value = calculateScholarshipValue({ benefits: benefits.components });
+    mocks.ids.mockResolvedValue({});
+    mocks.countries.mockResolvedValue([]);
+    mocks.team.mockResolvedValue([]);
+    mocks.value.mockReturnValue(value);
+    mocks.value.mockClear();
+    mocks.highlights.mockResolvedValue({ total: 1, items: [{
+      id: 42, name: 'Tuition award', scope: 'university', country: 'Vietnam',
+      universities: [], benefits, valuationContexts: [], coverage: '100% tuition',
+      amountLabel: null, funding_type: ['full-ride'],
+    }] });
+
+    const sections = boundaries(await MarketingHome({ locale }));
+    const child = sections[1]!.props.children;
+    const partners = await (child.type as (props: typeof child.props) => Promise<ReactElement>)(child.props);
+    expect(mocks.value).toHaveBeenCalledWith({
+      id: 42, country: 'Vietnam', benefits: benefits.components, valuationContexts: [],
+    }, null, expect.objectContaining({ asOf: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }));
+    const expected = createScholarshipValueViewModel(
+      { benefits, value }, locale === 'vi' ? 'vi-VN' : 'en-US',
+      (source, vars) => getLocaleText(locale, source, vars),
+    );
+    expect(partners.props).toMatchObject({ scholarships: [{ id: 42, valueModel: expected }] });
+    expect(expected.coverageLabel).not.toContain('Full-ride');
   });
 });

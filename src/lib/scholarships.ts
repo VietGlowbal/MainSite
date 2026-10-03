@@ -13,6 +13,7 @@
  */
 import { z } from 'zod';
 import { FUNDING_TYPES, SCHOLARSHIP_SCOPES } from './scholarship-constants';
+import { isSafeExternalUrl } from '@/shared/lib/external-url';
 
 export {
   FUNDING_TYPES,
@@ -46,7 +47,10 @@ export const scholarshipSchema = z.object({
   insight: z.string().nullable().optional(),
   deadline_date: z.string().nullable().optional(),
   deadline_text: z.string().nullable().optional(),
-  source_url: z.string().url().nullable().optional(),
+  source_url: z.string()
+    .refine(isSafeExternalUrl, 'source_url must use http or https.')
+    .nullable()
+    .optional(),
   source_lang: z.enum(['en', 'vi', 'mixed']).nullable().optional(),
   ranking_note: z.string().nullable().optional(),
   raw: z.record(z.string(), z.unknown()).default({}),

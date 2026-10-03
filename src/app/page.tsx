@@ -4,7 +4,11 @@ import { unstable_cache } from 'next/cache';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
 import { getUniversityQueries } from '@/features/universities/api';
-import { getScholarshipQueries } from '@/features/scholarships/api';
+import { calculateCandidateScholarshipValue, getScholarshipQueries } from '@/features/scholarships/api';
+import {
+  DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
+  createScholarshipValueViewModel,
+} from '@/features/scholarships/domain';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
   HOME_BANDS_CLASS,
@@ -39,7 +43,7 @@ import { getTeamMembers } from '@/lib/team';
 import { SITE_URL } from '@/lib/site-url';
 import { buildOrganizationJsonLd, buildWebSiteJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { buildLocaleAlternates } from '@/lib/seo/alternates';
-import { homeCopy, type Locale } from '@/lib/i18n/locale';
+import { getLocaleText, homeCopy, type Locale } from '@/lib/i18n/locale';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -185,9 +189,10 @@ function compactCoverage(value: string | null): string {
  * The repository ranks the explicitly editorialised records and caches the
  * result with the same invalidation tag as `/scholarships`.
  */
-async function getHomeScholarshipSpotlight() {
+async function getHomeScholarshipSpotlight(locale: Locale = 'en') {
   try {
     const result = await getScholarshipQueries().homeHighlights(6);
+    const asOf = new Date().toISOString().slice(0, 10);
     return {
       total: result.total,
       entries: result.items.map((scholarship) => {
@@ -209,6 +214,20 @@ async function getHomeScholarshipSpotlight() {
           value: scholarship.amountLabel ?? compactCoverage(scholarship.coverage),
           valueLabel: scholarship.amountLabel ? 'Award value' : 'What it covers',
           coverage: scholarship.amountLabel ? compactCoverage(scholarship.coverage) : null,
+          valueModel: scholarship.benefits
+            ? createScholarshipValueViewModel({
+              benefits: scholarship.benefits,
+              value: calculateCandidateScholarshipValue({
+                id: scholarship.id,
+                country: scholarship.country,
+                benefits: scholarship.benefits.components,
+                valuationContexts: scholarship.valuationContexts,
+              }, null, {
+                asOf,
+                comparisonPolicy: DEFAULT_SCHOLARSHIP_COMPARISON_POLICY,
+              }),
+            }, locale === 'vi' ? 'vi-VN' : 'en-US', (source, vars) => getLocaleText(locale, source, vars))
+            : null,
           ranking: scholarship.ranking_note,
           deadline: scholarship.deadlineLabel,
           fundingTypes: scholarship.funding_type,
@@ -353,7 +372,7 @@ export async function MarketingHome({ locale = 'en' }: { locale?: Locale } = {})
   // Start every read together, but let the actual sections stream independently.
   // The existing views reserve their layout while the data is pending.
   const globeCountries = getGlobeCountries();
-  const partners = Promise.all([getPartnerUniversityIds(), getHomeScholarshipSpotlight()]);
+  const partners = Promise.all([getPartnerUniversityIds(), getHomeScholarshipSpotlight(locale)]);
   const team = getTeamMembers();
 
   const copy = homeCopy[locale];

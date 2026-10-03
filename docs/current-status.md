@@ -111,6 +111,36 @@ Report confidence data and analysis rules remain intact. Updated English and
 Vietnamese evidence captions. Measured: 34 focused UI tests, strict TypeScript,
 scoped ESLint, i18n catalog checks and production build passed.
 
+Working tree 2026-10-04 (saved-university interactions and regression audit):
+university headings link to internal profiles; trash actions confirm through the shared Modal. A single
+responsive action dock pins while its measured natural slot is outside the
+viewport, with select-all/indeterminate states and one selected-university scope
+for both scholarship actions. Shared awards group by id and require an explicit
+attachment university when multiple matches remain. Card scholarship triggers
+reuse the picker with a row scope. Subject selection, tuition maths, Plus gating,
+upsert semantics and refresh behavior remain. Audit fixed silent reassignment of
+already attached shared awards (including outside-list/null-university links),
+stale selections/dialogs on refresh, picker/detail focus loss, keyboard access to
+gated cards, and missing failed-image fallbacks. The dock reserves its bottom inset to
+prevent a handover jump and reveals covered row controls on keyboard focus.
+Focus selection handles delayed/concurrent row refresh and reduced motion.
+Measured: 109 affected tests across six files passed; base/strict typechecks and
+touched-file lint passed, final `build:ci` passed (151 pages; existing Edge/placeholder-read warnings),
+i18n audit and diff checks passed. Browser preview at 360/768/1440px had no
+horizontal overflow; dock pin/natural behavior and mobile picker were checked.
+No schema or additional queries; the server read model carries existing attachment
+IDs from already fetched data. No real mutation browser tests. Old Storage covers
+still return HTTP 402. Details: [saved-universities.md](saved-universities.md).
+
+Post-audit integration 2026-10-04: synced with main `57e91918`; only this rolling
+status file conflicted, and both histories were retained. Saved Universities
+source/tests are unchanged; automatic source merges retain upstream report
+lineage and feature URL normalization. Full `verify:pr` passed with Node
+24.19.0/npm 10.9.2: 4,289 tests across 454 files (two todo), base/strict TypeScript,
+lint (zero errors/nine existing warnings), coverage and `build:ci` (151 pages).
+i18n and diff checks passed. Fresh shared CI is pending at this commit checkpoint;
+local E2E was not rerun. No schema/dependency changes or unrelated work included.
+
 Main 2026-10-03 (AI Strategy tab performance): `fetchOnboardingState` now uses
 React request memoization, sharing the nav/page read without a cross-request TTL.
 `ApplicationNav` starts onboarding and Planner access reads concurrently. Report
@@ -514,6 +544,347 @@ production population is 230 verified programmes across 115 institutions;
 enforces exactly 230 targets, so the 100+ university threshold is demonstrated,
 but the 500–1,000 programme scope has not been run and is not yet executable
 without expanding the population manifest and runner guard.
+## Scholarship Personalization integration checkpoints (2026-10-03)
+
+Current integration base: `24e038e6`. Only current-status.md conflicted.
+Kept the upstream request-local onboarding memoization and report-intent
+prefetch source unchanged; no scholarship/domain or application URL logic
+changed. Branch-specific notes are grouped here to leave the rolling main
+status header intact. Prior HEAD `8a360cc4` passed shared CI `37131701953`
+(verify/E2E), with all Planner checks passing. Fresh checks are required on
+the new integration HEAD. Post-sync local sanity passed: both typechecks,
+lint (0 errors/9 existing warnings), 332 focused tests across 48 files
+(including request-local user/application cache isolation), i18n and diff
+checks. The following measured checkpoints apply only to
+their named revisions, not to untested future commits.
+
+2026-10-03 follow-up main sync: main advanced to `5472d476` while CI ran.
+The delta is the upstream latest-Personal-Report onboarding query/test and
+documentation; only current-status.md conflicted. Kept both status records
+and the upstream source unchanged. Scholarship/application URL, valuation,
+fit, eligibility, ranking and recommendation files are unchanged from
+`69f7c1aa`. That revision passed shared CI `37127251317`: verify and E2E
+(69 passed/10 skipped), with Planner checks passing, on Node 24.19.0/npm
+11.17.0. Post-sync local sanity passed on the same runtime: both typechecks,
+lint (0 errors/9 existing warnings), 354 focused tests across 52 files, i18n
+and diff checks. Fresh shared gates are required on the follow-up HEAD.
+
+2026-10-03 Scholarship Personalization/main integration: incorporated main
+`34b6bb5a` into `feat/scholarship-personalization`, retaining main's Home
+streaming/redesign/CSS-module fix and canonical Home value/localization.
+No eligibility, fit, valuation, recommendation or ranking policy was changed.
+The complete candidate cache now stores losslessly compressed raw rows and
+hydrates normalized facts after decoding; it still ranks before pagination,
+throws on database errors, and retains version/date/public-user boundaries.
+Measured 2,877 candidates: encoded cache entry 867,622 bytes (previous normalized
+entry 11,604,875 bytes exceeded Next's 2 MB limit). Cold directory request
+2.707s, repeated request 13ms; these are local measurements, not shared CI.
+
+Node 24.19.0/npm 11.17.0 clean-install local verification: `verify:pr` PASS
+(both typechecks, lint with 0 errors/9 existing warnings, 4,207 tests passed/
+2 todo across 451 files, production build); focused scholarship/application/
+cache/Home checks 297/297 across 42 files; i18n missing keys/placeholder
+mismatches 0; diff check PASS. Two new streaming tests preserve canonical
+candidate valuation and English/Vietnamese formatting with main's Suspense
+regions. No scholarship/application domain or security logic changed.
+Earlier `c2e63de2` production E2E: **70 passed, 0 failed, 9 skipped**. Orbit geometry
+passed at 960/1024/1100/1280/1440px; the Windows kitchen-sink baseline was
+corrected only after tracing the intentional 73px duplicate-header removal,
+with optional cookies rejected through the UI (see verification.md). Seven
+signed-in tests lack E2E account credentials; two Home visual baselines are
+absent. Independent OpenCode delta review is **NOT COMPLETED**: configured
+Anthropic and DeepSeek credentials both returned HTTP 401. Commit `c2e63de2`
+was pushed and shared CI `37120195871` passed verify on Node 24.19.0/npm 11.17.0,
+but E2E failed (59 passed, 10 failed, 10 skipped) because the CI Supabase
+project returned `exceed_storage_size_quota`. On the owner's approval, the
+three GitHub Actions Supabase secrets were updated from the validated new
+local environment on 2026-10-03; keys were not logged. Read-only server catalogue
+probes returned HTTP 200. Integrating main `34b6bb5a` retains its independent
+Home Suspense regions and the canonical locale-aware scholarship adapter;
+local integration gates pass; fresh feature shared CI is pending. The main lockfile's missing
+optional emnapi entries are repaired in separate PR #244; the exact repair is
+also included here so current-base CI can install dependencies. No dependency
+versions, CI checks, scholarship policy or database data were changed.
+
+City schema repair: the owner applied `sql/supabase-universities-city.sql` in
+the new project's SQL Editor. Read-only PostgREST checks confirmed nullable
+TEXT city data and the complete nested scholarship select return HTTP 200.
+No city data was inferred/backfilled and no database mutation was performed
+by the integration checks. Local Supabase env now targets the new project.
+Storage remains incomplete: an old-project university image returns 402,
+while its corresponding new-project object returns "Object not found" (400).
+Do not just replace URL hosts: restore the actual bytes before a controlled
+URL cutover. T2B production cost/FX datasets remain incomplete, so full
+production value estimation is not data-ready.
+
+
+Working tree 2026-09-25 (Scholarship Personalization T9): unified scholarship
+value formatting and badges across the directory cards/detail, saved list,
+application drawer/picker, Home catalogue-backed surfaces, and the AI surface's
+canonical/non-canonical amount boundary. Shared summaries preserve coverage,
+original award amounts, total value, duration, component breakdown, evidence,
+and EXACT/MIXED/ESTIMATED/unavailable states; 100% tuition is never rendered as
+full ride, and AI-researched amounts remain explicitly non-canonical unless a
+catalogue id/value is supplied. Directory output carries the same visible-row
+T6 value results, T7 aggregate summaries, and T8 recommendation results; saved
+and application server loaders now reuse the same T2A/T4/T5/T8 adapters over a
+bounded complete candidate set. Save/select semantics and Home editorial
+highlighting remain separate. The formatter domain suite passed 7/7 tests and
+the focused T6/T7/T8/value integration set passed 31/31 tests. The broader
+scholarship run passed 146/147, with the one existing sibling-worktree alias
+mismatch in the pre-T1 catalogue normalization assertion. UI suites could not
+start because the available sibling toolchain resolves no
+`@testing-library/jest-dom`; local typecheck could not start because this
+checkout has no `tsc`. `git diff --check` passed. No schema, migration, data
+acquisition, recommendation-policy, eligibility-rule, or popularity-semantic
+changes were made.
+Working tree 2026-09-26 (Scholarship Personalization OpenCode review fixes):
+under Node 24.19.0, the scoped fixes close the focused-university related-
+country/fallback intersection, preserve full-tuition versus full-ride
+semantics, prevent incomplete valuations from being labelled exact, validate
+known currencies and reference chronology, carry comparable upper bounds
+through FX conversion, and route shared scholarship labels through the existing
+Vietnamese catalogue. Focused scholarship tests passed 25 files / 163 tests;
+base and strict typechecks passed; ESLint passed with 0 errors and 9 existing
+warnings; the i18n checker reported 0 missing static keys and 0 placeholder
+mismatches. Direct `npm test` still has 2 unrelated CV API timing failures in
+unchanged files that have no diff versus origin/main; the CI-style `test:ci`
+gate passed all 433 files / 4,054 tests with 2 todos. Build and `verify:pr`
+passed with expected missing-Supabase/fetch warnings during static generation.
+E2E remains blocked by the unavailable Supabase environment. `git diff --check`
+passed. T2B production cost/FX coverage remains intentionally incomplete; no
+values were fabricated, and no schema or migration change was made.
+Working tree 2026-09-27 (Scholarship Personalization second-review hardening):
+under Node 24.19.0, the scoped fixes now use candidate-owned valuation
+contexts for public and private paths, an explicit versioned comparison
+currency policy, shared external-URL validation, and localized AI-only
+scholarship disclaimers. Focused scholarship/UI tests passed 29 files / 190
+tests; base and strict typechecks passed; ESLint passed with 0 errors and 9
+existing warnings; the i18n checker reported 0 missing static keys and 0
+placeholder mismatches. The direct default-timeout `npm test` run had 2
+full-suite timeout failures, but both files passed in isolation; the CI-style
+`test:ci` gate passed all 436 files / 4,081 tests with 2 todos on the final
+`verify:pr` rerun. Production build and `verify:pr` passed, with expected
+unavailable-Supabase/fetch warnings during static generation. E2E was not rerun
+in this fix pass and remains environment-blocked. `git diff --check` passed.
+T2B production cost/FX coverage remains intentionally incomplete; no values
+were fabricated, and no schema or migration change was made.
+Working tree 2026-09-27 (Scholarship Personalization final hardening):
+the four scoped review fixes are committed in the final hardening commit.
+Candidate-owned valuation context is used for Home and directory projections;
+public valuation
+cache identities include the asOf date bucket and provider/policy versions;
+AI and extracted scholarship URLs are sanitized at ingestion and render time;
+and incoherent programme/university refinements fail closed. Focused
+scholarship tests passed, the full `npm test` run passed 436 files / 4,091
+tests with 2 todos, base and strict typechecks passed, ESLint passed with 0
+errors and 9 existing warnings, the i18n checker passed with 0 missing static
+keys and 0 placeholder mismatches, and the production build passed with
+expected missing-Supabase/fetch warnings during static generation. `verify:pr`
+is blocked before its code checks because this workspace has Node 22.15.0 while
+`.node-version` requires Node 24.19.0. E2E is blocked because no `.env.local`
+Supabase environment is available; the local server repeatedly failed
+Supabase client creation. `git diff --check` passed. T2B production cost/FX
+coverage remains intentionally incomplete; no values were fabricated, and no
+schema or migration change was made.
+Working tree 2026-09-27 (saved programme URL application-flow hardening):
+legacy saved `program_url` values are canonicalized before being copied into
+`course_applications.course_url`; `/apply` and the AI report data adapter also
+drop unsafe legacy course URLs, and the matching-report render boundary
+revalidates before producing an external anchor. Invalid URLs render the
+localized non-clickable fallback with no executable href, while valid HTTP(S)
+URLs retain safe `noopener noreferrer` behavior. Focused URL/application tests
+passed (4 files / 69 tests), scholarship tests passed (27 files / 192 tests),
+base and strict typechecks passed, ESLint passed with 0 errors and 9 existing
+warnings, the i18n checker passed, and the production build passed with the
+usual missing-Supabase/fetch warnings during static generation. The full
+`npm test` run passed 4,121 tests and had 3 unrelated pre-existing API timeout
+failures. `verify:pr` remains blocked before code checks because this workspace
+uses Node 22.15.0 while `.node-version` requires Node 24.19.0. `git
+diff --check` passed; no schema, migration, or production data change was made.
+
+Working tree 2026-09-27 (Scholarship Personalization final review fixes):
+the two scoped final review fixes are implemented. An explicitly requested but
+unresolved university now fails closed before programme tuition, duration, or
+cost context can refine valuation; saved programme URLs are sanitized at the
+server mapping boundary and again before rendering. Focused scholarship and
+saved-list tests passed (4 files / 43 tests), base and strict typechecks passed,
+ESLint passed with 0 errors and 9 existing warnings, the i18n checker passed
+with 0 missing static keys and 0 placeholder mismatches, and the production
+build passed with expected missing-Supabase/fetch warnings during static
+generation. The full `npm test` run remains subject to 3 unrelated pre-existing
+CV/API timing and interaction failures; the affected tests pass in isolation.
+`verify:pr` is blocked before its code checks because this workspace has Node
+22.15.0 while `.node-version` requires Node 24.19.0. `git diff --check` passed.
+T2B production cost/FX coverage remains intentionally incomplete; no values
+were fabricated, and no schema or migration change was made.
+
+Working tree 2026-09-25 (Scholarship Personalization final verification):
+the required Node 24.19.0 runtime was used with the existing npm 10.9.2 CLI.
+The branch-specific i18n checker now reports zero missing static keys and zero
+placeholder mismatches after adding the scholarship catalog translations
+introduced by T6-T9. Base and strict typechecks passed; ESLint passed with 0
+errors and 9 existing warnings; the focused scholarship/application/UI run
+passed 32 files / 177 tests. A direct full `npm test` run had 3 unrelated
+candidate API timing/interaction failures; the unchanged test files pass in
+isolation against the branch and origin/main, and the CI-style `test:ci` gate
+passed all 433 files / 4,043 tests with 2 todos. Build and `verify:pr` passed,
+with expected missing-Supabase/fetch warnings during static generation. E2E
+remains blocked because this checkout has no Supabase environment and the
+configured Playwright web server timed out after 300 seconds. `git diff --check`
+passed. T2B production cost/FX coverage remains intentionally incomplete; no
+values were fabricated. No schema, migration, ranking policy, eligibility
+rule, popularity semantic, or external-data change was made in verification
+hardening. OpenCode was not marked complete: the supervised dispatch stalled,
+and a fresh OpenCode terminal stopped with an invalid API key before producing
+a findings report.
+
+Working tree 2026-09-25 (Scholarship Personalization T8): added the pure,
+versioned GlowBal Recommend domain. Recommendations gate INELIGIBLE and
+UNKNOWN eligibility, use T5 fit as the primary signal, normalize T2A lower-bound
+values over the complete candidate set, keep missing values non-zero/non-fabricated,
+and discount MIXED/ESTIMATED value quality separately from source confidence.
+Results include recommendation state, score, rank, deterministic reason codes,
+structured reason data, warnings, and policy version. The default policy is
+configurable and versioned; AI match scores and Home editorial scores are not
+inputs. Signed-in directory loading computes over the deduplicated complete
+candidate union before page slicing and exposes results only for visible rows;
+public output carries an empty recommendation map. No badge/UI rendering,
+schema, migration, cost/FX acquisition, or Frequently-picked semantics changed.
+T8 focused tests passed (1 file, 13 tests); the T6/T7 regression set passed
+(6 files, 38 tests); pure recommendation-domain strict compilation passed;
+`git diff --check` passed. The broader scholarship run passed 141/142 tests,
+with the same existing sibling-worktree alias mismatch in the pre-T1 benefit
+normalization assertion. Full repository typecheck remains unavailable in this
+checkout because local framework/dependency packages are absent.
+
+Working tree 2026-09-25 (Scholarship Personalization T7): added the
+privacy-safe Frequently-picked aggregate over current `user_scholarships`
+rows. The server reads `scholarship_id,user_id` once for the requested batch,
+deduplicates by user, and returns only `count`, `threshold`, and
+`isFrequentlyPicked`; application submission and award state are not read.
+The default versioned threshold is 3, configurable through the domain policy.
+The aggregate uses an independent 60-second cache/tag, while public directory
+HTTP responses containing the aggregate use a 60-second CDN max-age with a
+300-second stale-while-revalidate window; direct browser save/remove writes
+therefore become visible within that bounded staleness window without changing
+save semantics. The server directory output
+now carries the aggregate map, but no UI badge was rendered. Existing RLS and
+service-role boundaries are preserved, and no migration, index, RPC, or data
+acquisition was added. T7 focused tests passed (4 files, 17 tests); the pure
+scholarship-domain strict compilation passed; the current-scale fixture sanity
+check aggregated 2,877 scholarship IDs and 48 save rows in 2ms. `git diff
+--check` passed.
+
+Working tree 2026-09-25 (Scholarship Personalization T6): added versioned
+global ranking over the complete filtered scholarship set before pagination.
+Public catalogue sorting now uses the T2A lower-bound comparable value when
+currencies are comparable; missing/undefensible values remain last for both
+value directions, with range/status/evidence/deadline/name/id tie-breaks.
+Signed-in directory requests load the public candidate set separately, then
+compose T3 context, T4 eligibility, T5 fit, and T2A valuation in a private
+request-scoped ranking pass. Browser-side page-local relevance sorting was
+removed, query state now supports relevance/value_desc/value_asc/deadline/name,
+and the non-canonical AI Amount control was removed. No schema, migration, cost
+data, FX data, or T7/T8 work was added. Focused T6 domain/API tests passed
+(5 files, 24 tests); the existing list-published suite passed 5/6 with the
+known sibling-worktree alias mismatch in the pre-T1 benefit-normalization
+assertion. The UI suite could not load because the sibling dependency set lacks
+`@testing-library/jest-dom`; page tests also resolve the sibling pre-T6 page in
+that runner. Pure T6 domain strict compilation and `git diff --check` passed;
+the 2,877-candidate in-memory ranking sanity check completed in 12ms. No
+production cost/FX dataset was fabricated.
+
+Working tree 2026-09-25 (Scholarship Personalization T5): added deterministic
+soft personal-fit scoring over the T3 context and T4 EligibilityResult. The
+versioned policy weights preferred country, one deduplicated selected/saved
+university signal, selected programme, subject, study level, intake, funding,
+budget, and study mode. Missing evidence contributes no positive score;
+confidence, warnings, missing signals, reason codes, and structured reason
+data explain coverage. Discovery text is capped at a policy multiplier and
+cannot prove fit. INELIGIBLE and UNKNOWN eligibility are hard gates and return
+no rankable fit score. No legacy personal-match behavior, UI, ranking,
+recommendation, migration, or data acquisition was changed. The T5 suite
+passed (1 file, 14 tests); T3/T4 regression tests also passed. The broader
+scholarship run passed 99 tests with the same one existing sibling-worktree
+alias mismatch in the pre-T1 catalogue normalization assertion. Pure T5
+domain strict compilation and `git diff --check` passed; repository-local
+dependencies remain unavailable in this checkout.
+
+Working tree 2026-09-25 (Scholarship Personalization T4): added deterministic,
+fail-closed eligibility normalization/evaluation over the T3 matching context.
+The domain returns ELIGIBLE, INELIGIBLE, or UNKNOWN with reason codes,
+warnings, missing signals, evidence, and a versioned policy; explicit
+contradictions fail, while missing or ambiguous profile/catalogue evidence
+remains UNKNOWN. Added structured directory filter contracts for country,
+university, subject/major, degree, funding, deadline, and comparable value.
+The public query path currently applies structured country/university/funding
+and date-backed deadline filters; subject/degree SQL is discovery-only, and
+value matching remains a pure contract until T6 supplies comparable values.
+No T5 fit, ranking, recommendation, UI, migration, or data acquisition work
+was added. T4-focused tests passed (3 files, 22 tests), the focused repository
+filter test passed, and the pure T4 domain strict compilation passed. The
+broader scholarship run passed 85 tests with one existing sibling-worktree
+alias mismatch in the pre-T1 catalogue normalization assertion; repository
+local dependencies remain unavailable in this checkout.
+
+Working tree 2026-09-24 (Scholarship Personalization T3): added the pure,
+versioned canonical scholarship matching context and a request-scoped server
+loader. The context carries profile preferences, academic evidence, saved
+universities, selected application/programme/university facts, programme
+tuition and duration, normalized scholarship benefits, and source provenance.
+Selection precedence is explicit programme → application programme and explicit
+university → selected programme/application university; missing signals remain
+null with read status/diagnostics. The loader uses injected repository ports and
+fixed batch reads for programmes, universities, and scholarships, does not use
+the public catalogue cache, and derives a user-scoped cache key containing the
+context version, user id, profile version, selectors, and candidate ids. No
+eligibility, fit, ranking, recommendation, UI, migration, or data acquisition
+work was added. T3 focused tests passed (2 files, 7 tests); strict compilation
+of the pure T3 domain passed. Repository-local dependencies remain unavailable
+in this checkout.
+
+Working tree 2026-09-24 (Scholarship Personalization T2B): corrected the T1
+unknown-currency test assertion only; the normalizer already preserved `RMB`
+as `currencyStatus: 'unknown'`, and the old assertion incorrectly rejected the
+literal `USD` in its warning text. Added runtime-validated, versioned
+CostReference and FX contracts/providers with deterministic
+programme→university→city→country→global fallback, freshness diagnostics,
+range/currency/provenance preservation, and bundled-category metadata for
+double-count prevention. Added empty file-backed cost/FX datasets marked
+`incomplete` because the repository contains no authoritative versioned
+programme, university, city, country, global cost references, or FX table. No
+production values were fabricated, and T2A remains file-free. Focused
+normalization/T2A/T2B tests passed (6 files, 43 tests); direct strict
+compilation of the new T2B domain and file-loader sources passed.
+
+Working tree 2026-09-24 (Scholarship Personalization T2A): added the pure
+duration-aware valuation domain. It resolves explicit scholarship/component
+durations before programme/application fallbacks, normalizes one-time/monthly/
+annual/term amounts, derives percentage/full tuition only from an injected
+tuition source, preserves ranges and source provenance, selects one exclusive
+scenario, prevents bundled cost-source double counting, and emits
+EXACT/MIXED/ESTIMATED status plus a lower-bound comparable value when an
+explicit currency/FX contract permits it. No cost or FX dataset, matching,
+ranking, UI, schema, or migration work was added. The focused T2A suite passed
+(2 files, 19 tests) through an existing sibling-worktree toolchain; direct
+strict compilation of the T2A domain files and `git diff --check` passed. The
+repository-local Vitest/TypeScript commands remain unavailable because this
+checkout has no `node_modules`; the broader scholarship-domain run exposed the
+existing T1 unknown-currency assertion failure and no T2A failure.
+
+Working tree 2026-09-24 (Scholarship Personalization T1): added the pure,
+evidence-bearing scholarship benefit contract and deterministic normalizer. It
+recognizes typed tuition, living, accommodation, stipend, meals, travel,
+insurance, books/materials, and other components; preserves ranges, currency
+status, periods, explicit durations, source excerpts, confidence, raw fields,
+and mutually exclusive scenarios. The legacy cleaner no longer classifies
+generic `100%`, `full tuition`, or `fully funded` text as `full-ride`; the
+runtime catalogue adapter preserves raw fields and exposes computed benefits
+without a schema change or data backfill. `node --check
+scripts/clean-scholarships.mjs` passed. Focused Vitest and both typechecks were
+not executable in this checkout because local `vitest`/`tsc` dependencies are
+absent; no packages were installed.
 
 Working tree 2026-09-21 (personal report post-review completeness): implemented the evidence-aware report contract v8. The
 report now keeps required framework sections structurally present, distinguishes supported/emerging/

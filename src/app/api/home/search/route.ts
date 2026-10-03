@@ -14,13 +14,14 @@ export const revalidate = 43200;
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q') ?? '';
+  const locale = searchParams.get('locale') === 'vi' ? 'vi' : 'en';
 
   if (q.trim().length < 2) {
     return NextResponse.json({ matches: [] });
   }
 
   try {
-    const matches = await searchHomeUniversities(q, { limit: 6, previewLimit: 3 });
+    const matches = await searchHomeUniversities(q, { limit: 6, previewLimit: 3, locale });
     return NextResponse.json({ matches });
   } catch (error) {
     console.error('home search failed:', error);

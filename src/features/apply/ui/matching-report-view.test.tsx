@@ -223,6 +223,29 @@ describe('MatchingReportView', () => {
     }
   });
 
+  it.each(['https://example.edu/course', 'http://example.edu/course'])('renders a valid course URL as a safe link: %s', (courseUrl) => {
+    renderReport({ courseUrl });
+
+    const link = screen.getByRole('link', { name: /Check official course page/i });
+    expect(link).toHaveAttribute('href', courseUrl);
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    'blob:https://example.edu/id',
+    'course/cs',
+    'https://example.edu/course page',
+  ])('does not render an unsafe course URL as a link: %s', (courseUrl) => {
+    renderReport({ courseUrl });
+
+    expect(screen.queryByRole('link', { name: /Check official course page/i })).not.toBeInTheDocument();
+    expect(screen.getByText('No link available')).toBeInTheDocument();
+  });
+
   it('renders legacy analyses that do not carry a report_v2 payload', () => {
     renderReport();
 

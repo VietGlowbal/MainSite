@@ -217,6 +217,40 @@ describe('POST /api/applications/from-saved-university', () => {
     expect(row.university_name).not.toMatch(/unknown university/i);
   });
 
+  it.each(['https://example.edu/cs', 'http://example.edu/cs'])('persists a valid saved programme URL unchanged: %s', async (programUrl) => {
+    const client = buildSupabase({
+      savedRow: { ...SAVED, program_url: programUrl },
+    });
+    mockCreateClient.mockResolvedValue(client);
+
+    await POST(request({ universityId: 123 }));
+
+    expect(application(client)).toMatchObject({ course_url: programUrl });
+    expect(mockCreateParseJob).toHaveBeenCalledWith('application-1', programUrl, 123);
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    'blob:https://example.edu/id',
+    'course/cs',
+    'https://example.edu/course page',
+  ])('does not persist an unsafe legacy saved programme URL: %s', async (programUrl) => {
+    const client = buildSupabase({
+      savedRow: { ...SAVED, program_url: programUrl },
+    });
+    mockCreateClient.mockResolvedValue(client);
+
+    const res = await POST(request({ universityId: 123 }));
+
+    expect(res.status).toBe(200);
+    expect(application(client)).toMatchObject({ course_url: null });
+    expect(mockCreateParseJob).not.toHaveBeenCalled();
+    await expect(res.json()).resolves.toMatchObject({ enrichment: 'none' });
+  });
+
   it('does not copy the university deadline onto the course', async () => {
     // universities.application_deadline is institution-wide free prose;
     // course_applications.deadline is a date about one course.

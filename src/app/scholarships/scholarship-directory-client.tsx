@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { clearFocusUniversity, getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
 import { TID, testId } from '@/shared/lib/testids';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import { useLanguage } from '@/lib/i18n';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 import { AutoTranslate } from '@/lib/use-auto-translate';
@@ -30,8 +31,14 @@ import {
   type ScholarshipQueryState,
   type ScholarshipSort,
 } from '@/features/scholarships/directory-query';
-import { scorePersonalMatch, scholarshipSaveDestination } from '@/features/scholarships/domain';
+import {
+  scholarshipSaveDestination,
+  type FrequentlyPickedSummary,
+  type ScholarshipRecommendationResult,
+  type ScholarshipValueResult,
+} from '@/features/scholarships/domain';
 import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
+import { ScholarshipBadges, ScholarshipValueSummary } from '@/features/scholarships/ui';
 import { useDebouncedSearchField } from '@/shared/hooks/use-debounced-search-field';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
 import { GlowbalIcon, type GlowbalIconName } from '@/shared/ui';
@@ -91,6 +98,12 @@ type Props = {
   focusUniversity?: { id: number; name: string; country: string | null } | null;
   // Only rows whose scholarship and university are both present in My Portal.
   savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
+  /** Server aggregate for the Frequently-picked badge. */
+  frequentlyPicked?: ScholarshipDirectoryResponse['frequentlyPicked'];
+  /** Server recommendation results for the GlowBal Recommend badge. */
+  recommendations?: ScholarshipDirectoryResponse['recommendations'];
+  /** Canonical value results for visible catalogue rows. */
+  values?: ScholarshipDirectoryResponse['values'];
   canonicalSearch: string;
   isPlus?: boolean;
   locale?: Locale;
@@ -138,6 +151,9 @@ export function ScholarshipDirectoryClient({
   existingScholarships,
   focusUniversity: initialFocusUniversity = null,
   savedScholarships = [],
+  frequentlyPicked = {},
+  recommendations = {},
+  values = {},
   canonicalSearch,
   isPlus: initialIsPlus,
   locale = 'en',
@@ -155,13 +171,19 @@ export function ScholarshipDirectoryClient({
     countryPage: initialCountryPage,
     focusUniversity: initialFocusUniversity,
     canonicalSearch,
+    frequentlyPicked,
+    recommendations,
+    values,
   }), [
     canonicalSearch,
+    frequentlyPicked,
     initialCountryPage,
     initialDirectoryPage,
     initialFocusPage,
     initialFocusUniversity,
     initialQueryState,
+    recommendations,
+    values,
   ]);
   const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data, locale), [locale]);
   const directory = useDirectoryNavigation({
@@ -175,6 +197,7 @@ export function ScholarshipDirectoryClient({
   const directoryPage = publicData.directoryPage;
   const focusPage = publicData.focusPage;
   const countryPage = publicData.countryPage;
+  const valueResults = publicData.values ?? {};
   const focusUniversityProp = publicData.focusUniversity;
   const tab = queryState.view;
 
@@ -472,14 +495,16 @@ export function ScholarshipDirectoryClient({
   // Deep-link focus: split the directory into "at this university" + "same country".
   const focusHasMatches = (focusPage?.total ?? 0) > 0;
 
-  // Personalization: which scholarships match the user's saved universities.
-  const matchedIds = useMemo(() => {
+  // Personalization is the server-side canonical recommendation result. The
+  // legacy page-local saved-university matcher is not rendered as a product
+  // recommendation badge.
+  const recommendedIds = useMemo(() => {
     const set = new Set<number>();
-    for (const s of scholarships) {
-      if (scorePersonalMatch(s, savedUniversityIds, savedCountries).matched) set.add(s.id);
+    for (const recommendation of Object.values(publicData.recommendations)) {
+      if (recommendation.recommended) set.add(recommendation.scholarshipId);
     }
     return set;
-  }, [scholarships, savedUniversityIds, savedCountries]);
+  }, [publicData.recommendations]);
 
   const fundingPresent = FUNDING_TYPES;
   const countriesPresent = facets.countries.map(({ value }) => value);
@@ -494,16 +519,13 @@ export function ScholarshipDirectoryClient({
     queryState.country !== 'all' ||
     queryState.sort !== 'relevance';
 
-  const sortVisible = (items: DirectoryScholarship[]) => {
-    if (queryState.sort !== 'relevance') return items;
-    return [...items].sort((a, b) => {
-      const matched = Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id));
-      return matched || a.name.localeCompare(b.name);
-    });
-  };
-  const directoryItems = sortVisible(directoryPage?.items ?? []);
-  const sectionAtUni = sortVisible(focusPage?.items ?? []);
-  const sectionSameCountry = sortVisible(countryPage?.items ?? []);
+  // Ordering is finalized by the server over the complete filtered set before
+  // this page is delivered. Never re-sort these slices in the browser: doing
+  // so would make relevance page-local again and could move a later-page item
+  // behind the wrong first-page item.
+  const directoryItems = directoryPage?.items ?? [];
+  const sectionAtUni = focusPage?.items ?? [];
+  const sectionSameCountry = countryPage?.items ?? [];
 
   // Reset to the first page whenever the result set changes (filters/search/sort).
   const pageCount = (value: Page<DirectoryScholarship> | null) =>
@@ -549,7 +571,9 @@ export function ScholarshipDirectoryClient({
             <ScholarshipDirectoryCard
               key={s.id}
               scholarship={s}
-              matched={matchedIds.has(s.id)}
+              value={valueResults[String(s.id)] ?? null}
+              recommendation={publicData.recommendations[String(s.id)] ?? null}
+              frequentlyPicked={publicData.frequentlyPicked[String(s.id)] ?? null}
               saved={savedIds.has(s.id)}
               busy={savingIds.has(s.id)}
               onOpen={() => setSelected(s)}
@@ -616,7 +640,7 @@ export function ScholarshipDirectoryClient({
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[430px]">
             <HeroMetric value={facets.total.toLocaleString()} label={t('opportunities')} />
-            <HeroMetric value={String(matchedIds.size)} label={t('matched on this page')} />
+            <HeroMetric value={String(recommendedIds.size)} label={t('recommended on this page')} />
             <HeroMetric value={String(savedIds.size)} label={t('saved')} className="col-span-2 sm:col-span-1" />
           </div>
         </div>
@@ -748,7 +772,7 @@ export function ScholarshipDirectoryClient({
                 onClick={() => navigate({ sort: 'relevance' })}
                 className="inline-flex h-11 items-center rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic transition hover:bg-surface-hover focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-subtle"
               >
-                {t('Popular')}
+                {t('Relevance')}
               </button>
 
               <label className="relative block">
@@ -798,7 +822,9 @@ export function ScholarshipDirectoryClient({
                   onChange={(event) => navigate({ sort: event.target.value as ScholarshipSort })}
                   className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
-                  <option value="relevance">{t('Competition rate')}</option>
+                  <option value="relevance">{t('Relevance')}</option>
+                  <option value="value_desc">{t('Highest value')}</option>
+                  <option value="value_asc">{t('Lowest value')}</option>
                   <option value="deadline">{t('Deadline (soonest)')}</option>
                   <option value="name">{t('Name (A-Z)')}</option>
                 </select>
@@ -813,6 +839,8 @@ export function ScholarshipDirectoryClient({
                   className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-fg outline-none focus:border-brand"
                 >
                   <option value="relevance">{t('Relevance')}</option>
+                  <option value="value_desc">{t('Highest value')}</option>
+                  <option value="value_asc">{t('Lowest value')}</option>
                   <option value="deadline">{t('Deadline (soonest)')}</option>
                   <option value="name">{t('Name (A–Z)')}</option>
                 </select>
@@ -884,10 +912,10 @@ export function ScholarshipDirectoryClient({
               )}
 
               {/* Personalized note */}
-              {queryState.sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
+              {queryState.sort === 'relevance' && recommendedIds.size > 0 && !hasActiveFilters && (
                 <p className="flex items-center gap-2 text-xs font-medium text-fg-secondary">
                   <span className="inline-block h-2 w-2 rounded-full bg-brand shadow-[0_0_0_4px_var(--color-brand-subtle)]" />
-                  {t('Matched to your saved universities on this page')}
+                  {t('GlowBal recommendations are ranked globally for your profile')}
                 </p>
               )}
 
@@ -922,6 +950,9 @@ export function ScholarshipDirectoryClient({
       {selected && (
         <ScholarshipDetailModal
           scholarship={selected}
+          value={valueResults[String(selected.id)] ?? null}
+          recommendation={publicData.recommendations[String(selected.id)] ?? null}
+          frequentlyPicked={publicData.frequentlyPicked[String(selected.id)] ?? null}
           saved={savedIds.has(selected.id)}
           busy={savingIds.has(selected.id)}
           onToggleSave={() => toggleSave(selected)}
@@ -1021,7 +1052,9 @@ type Translate = (en: string, vars?: Record<string, string | number>) => string;
 
 function ScholarshipDirectoryCard({
   scholarship: s,
-  matched,
+  value,
+  recommendation,
+  frequentlyPicked,
   saved,
   busy,
   onOpen,
@@ -1029,7 +1062,9 @@ function ScholarshipDirectoryCard({
   t,
 }: {
   scholarship: DirectoryScholarship;
-  matched: boolean;
+  value: ScholarshipValueResult | null;
+  recommendation: ScholarshipRecommendationResult | null;
+  frequentlyPicked: FrequentlyPickedSummary | null;
   saved: boolean;
   busy: boolean;
   onOpen: () => void;
@@ -1072,7 +1107,10 @@ function ScholarshipDirectoryCard({
           <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-fg-secondary">
             {t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}
           </span>
-          {matched && <span className="rounded-full bg-brand-subtle px-2.5 py-1 text-[11px] font-semibold text-fg-brand">{t('For you')}</span>}
+          <ScholarshipBadges
+            recommendation={recommendation}
+            frequentlyPicked={frequentlyPicked}
+          />
         </div>
         <h3 className="font-[family-name:var(--font-gb-display)] text-xl font-semibold leading-[1.15] tracking-[-0.025em] text-fg line-clamp-2 transition group-hover:text-fg-brand">{s.name}</h3>
         <p className="mt-2 truncate text-sm text-fg-tertiary">
@@ -1082,23 +1120,24 @@ function ScholarshipDirectoryCard({
       </div>
 
       {/* Amount / coverage */}
-      {(s.amountLabel || s.coverage) && (
+      {(s.amountLabel || s.coverage || (s.benefits?.components.length ?? 0) > 0) && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3">
           <GlowbalIcon name="awardAmount" size={20} className="mt-1" />
-          <div className="min-w-0 flex-1">
-            {s.amountLabel ? (
-              <p className="font-[family-name:var(--font-gb-display)] text-xl font-semibold tracking-tight text-fg-brand">{s.amountLabel}</p>
-            ) : (
-              <AutoTranslate
-                as="p"
-                className="text-sm font-semibold text-fg-brand line-clamp-2"
-                text={s.coverage}
-              />
-            )}
-            {s.amountLabel && s.coverage && (
-              <AutoTranslate as="p" className="mt-1 text-xs text-fg-brand/80 line-clamp-1" text={s.coverage} />
-            )}
-          </div>
+          <ScholarshipValueSummary
+            value={value}
+            benefits={s.benefits}
+            raw={{
+              coverage: s.coverage,
+              amountMin: s.amount_min,
+              amountMax: s.amount_max,
+              amountCurrency: s.amount_currency,
+              fundingType: s.funding_type,
+              sourceUrl: s.source_url,
+            }}
+            fallbackAwardLabel={s.amountLabel}
+            compact
+            className="min-w-0 flex-1"
+          />
         </div>
       )}
 
@@ -1148,6 +1187,9 @@ function ScholarshipDirectoryCard({
 
 function ScholarshipDetailModal({
   scholarship: s,
+  value,
+  recommendation,
+  frequentlyPicked,
   saved,
   busy,
   onToggleSave,
@@ -1155,6 +1197,9 @@ function ScholarshipDetailModal({
   t,
 }: {
   scholarship: DirectoryScholarship;
+  value: ScholarshipValueResult | null;
+  recommendation: ScholarshipRecommendationResult | null;
+  frequentlyPicked: FrequentlyPickedSummary | null;
   saved: boolean;
   busy: boolean;
   onToggleSave: () => void;
@@ -1204,6 +1249,13 @@ function ScholarshipDetailModal({
           ))}
         </div>
 
+        <ScholarshipBadges
+          recommendation={recommendation}
+          frequentlyPicked={frequentlyPicked}
+          showReasons
+          className="mt-4"
+        />
+
         <section className="mt-6 rounded-gb-lg border border-line bg-surface p-4 sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <div className="flex h-20 w-full shrink-0 items-center justify-center rounded-gb-md border-b border-line pb-5 text-3xl sm:h-24 sm:w-40 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-5">
@@ -1214,8 +1266,22 @@ function ScholarshipDetailModal({
                 <GlowbalIcon name="awardAmount" size={16} />
                 {t('Scholarship value')}
               </p>
-              {s.amountLabel && <p className="mt-1 font-[family-name:var(--font-gb-display)] text-3xl font-semibold tracking-[-0.03em] text-fg-brand">{s.amountLabel}</p>}
-              {s.coverage && <AutoTranslate as="p" className="mt-2 text-sm leading-6 text-fg-secondary" text={s.coverage} />}
+              <ScholarshipValueSummary
+                value={value}
+                benefits={s.benefits}
+                raw={{
+                  coverage: s.coverage,
+                  amountMin: s.amount_min,
+                  amountMax: s.amount_max,
+                  amountCurrency: s.amount_currency,
+                  fundingType: s.funding_type,
+                  sourceUrl: s.source_url,
+                }}
+                fallbackAwardLabel={s.amountLabel}
+                showBreakdown
+                showEvidence
+                className="mt-2"
+              />
               {s.deadlineLabel && (
                 <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-fg-tertiary">
                   <GlowbalIcon name="deadlineAlert" size={16} />
@@ -1269,9 +1335,9 @@ function ScholarshipDetailModal({
             <GlowbalIcon name="savedScholarship" size={16} tone="current" />
             {saved ? t('Saved to My Universities') : t('Save to My Universities')}
           </button>
-          {s.source_url && (
+          {canonicalizeExternalUrl(s.source_url) && (
             <a
-              href={s.source_url}
+              href={canonicalizeExternalUrl(s.source_url)!}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-gb-md bg-surface-inverse px-5 text-sm font-semibold text-fg-on-inverse shadow-gb-xs-skeuomorphic transition hover:bg-surface-inverse-strong"

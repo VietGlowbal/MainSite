@@ -1,6 +1,7 @@
 ﻿import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { matchingReportV2Schema, matchingReportV3Schema, type MatchingReportV2, type MatchingReportV3 } from '@/lib/ai/matching/domain';
 import { buildProgrammeFitPlaceholder } from '@/shared/evaluation/f5-programme-fit';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 import {
   MATCH_PROMPT_VERSION_V2,
   enforceFitClassification,
@@ -316,7 +317,7 @@ export async function getMatchingReportPageData(
       analysis: analysisFromRow(selectedAnalysisRow),
       personalReportVersionId: resolvedPersonalReportVersionId,
       universityId,
-      courseUrl: application.course_url ?? courseText('course_url'),
+      courseUrl: canonicalizeExternalUrl(application.course_url ?? courseText('course_url')),
       studyMode: application.study_mode ?? courseText('study_mode'),
       intake: application.intake ?? courseText('intake'),
       status: application.status,

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DirectoryScholarship } from '@/lib/scholarships-data';
@@ -106,14 +106,25 @@ function scholarship(
   };
 }
 
-function renderDirectory(items: DirectoryScholarship[]) {
+function renderDirectory(
+  items: DirectoryScholarship[],
+  options: {
+    savedUniversityIds?: number[];
+    savedCountries?: string[];
+    total?: number;
+    pageSize?: number;
+    hasMore?: boolean;
+  } = {},
+) {
   const queryState = {
     search: '',
     universitySearch: '',
+    subject: '',
     major: 'all' as const,
     degree: 'all' as const,
     country: 'all',
     funding: [],
+    deadline: 'any' as const,
     sort: 'relevance' as const,
     page: 1,
     universityId: null,
@@ -123,12 +134,18 @@ function renderDirectory(items: DirectoryScholarship[]) {
   render(
     <ScholarshipDirectoryClient
       queryState={queryState}
-      directoryPage={{ items, total: items.length, page: 1, pageSize: 9, hasMore: false }}
+      directoryPage={{
+        items,
+        total: options.total ?? items.length,
+        page: 1,
+        pageSize: options.pageSize ?? 9,
+        hasMore: options.hasMore ?? false,
+      }}
       focusPage={null}
       countryPage={null}
       facets={{ countries: [], total: items.length }}
-      savedUniversityIds={[]}
-      savedCountries={[]}
+      savedUniversityIds={options.savedUniversityIds ?? []}
+      savedCountries={options.savedCountries ?? []}
       applications={[]}
       existingScholarships={[]}
       focusUniversity={null}
@@ -190,5 +207,19 @@ describe('ScholarshipDirectoryClient save picker coordination', () => {
     await user.keyboard('{Escape}');
     expect(screen.queryByTestId(TID.scholarshipUniversityPicker)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+  });
+
+  it('does not re-sort a server-ranked page with page-local relevance', () => {
+    renderDirectory(
+      [scholarship(2), scholarship(1, [7])],
+      { savedUniversityIds: [7], total: 2, pageSize: 1, hasMore: true },
+    );
+
+    // The server owns the complete-set order. A saved-university signal on a
+    // visible card must not move it locally after pagination.
+    expect(screen.getAllByTestId(TID.scholarshipCard).map((card) => card.textContent)).toEqual([
+      expect.stringContaining('Scholarship 2'),
+      expect.stringContaining('Scholarship 1'),
+    ]);
   });
 });

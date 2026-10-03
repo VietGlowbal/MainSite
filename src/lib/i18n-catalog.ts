@@ -7,6 +7,7 @@ import { MATCHING_REPORT_TRANSLATIONS } from './i18n-matching-report';
 import { FINAL_CHECK_TRANSLATIONS } from './i18n-final-check';
 import { STRATEGY_REPORT_TRANSLATIONS } from './i18n-strategy-report';
 import { AUTH_TRANSLATIONS } from './i18n-auth';
+import { SCHOLARSHIP_TRANSLATIONS } from './i18n-scholarships';
 import { HOME_TRANSLATIONS } from './i18n-home';
 
 /**
@@ -29,4 +30,5 @@ export const translations: Record<string, string> = {
   ...FINAL_CHECK_TRANSLATIONS,
   ...STRATEGY_REPORT_TRANSLATIONS,
   ...AUTH_TRANSLATIONS,
+  ...SCHOLARSHIP_TRANSLATIONS,
 };

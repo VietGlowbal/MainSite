@@ -1,0 +1,7 @@
+{
+  "version": "cost-references-v1-empty",
+  "coverage": "incomplete",
+  "defaultMaxAgeDays": 365,
+  "records": [],
+  "notes": "No authoritative versioned programme, university, city, country, or global cost references are bundled yet."
+}

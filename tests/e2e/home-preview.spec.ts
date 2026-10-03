@@ -126,7 +126,7 @@ test.describe('home preview — desktop', () => {
    * English is the longer copy (the Vietnamese lines measured narrower), so
    * /dev/home is the binding case.
    */
-  for (const width of [1440, 1280, 1024]) {
+  for (const width of [1440, 1280, 1100, 1024, 960]) {
     test(`partner heading clears the orbit at ${width}px`, async ({ page }) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.setViewportSize({ width, height: 900 });

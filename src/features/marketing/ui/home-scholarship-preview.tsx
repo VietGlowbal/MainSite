@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from 'react';
 import { ICONS, KitIcon, SearchMark, controlClasses } from '@/shared/ui';
+import { SharedScholarshipValueSummary } from '@/shared/ui/scholarship-value-summary';
 import { getLocaleText, type Locale } from '@/lib/i18n/locale';
 import { fundingTypeLabel, type ScholarshipTeaser } from './home-scholarship-pillars';
 
@@ -174,24 +175,29 @@ export function HomeScholarshipPreview({
                   <KitIcon art={ICONS.heart} frame={20} />
                 </span>
               </span>
-
               <span className="line-clamp-2 font-display text-gb-lg font-semibold text-fg transition-colors group-hover:text-fg-brand">
                 {entry.title}
               </span>
               <span className="-mt-gb-md text-gb-sm text-fg-tertiary">{entry.organization}</span>
 
-              {/* The page maps a teaser as `value` = award amount + `coverage` =
-                  what it covers, or — when there is no amount — `value` = the
-                  coverage and `coverage` = null. Only a real amount gets the
-                  large figure; coverage is always the detail line. */}
-              <span className="flex w-full flex-col gap-gb-xs rounded-gb-lg bg-brand-subtle px-gb-xl py-gb-lg">
-                {entry.coverage ? (
-                  <span className="text-gb-lg font-semibold text-fg-brand">{entry.value}</span>
-                ) : null}
-                <span className="line-clamp-2 text-gb-sm font-medium text-fg-brand">
-                  {entry.coverage ?? entry.value}
-                </span>
-              </span>
+              <div className="flex w-full flex-col gap-gb-xs rounded-gb-lg bg-brand-subtle px-gb-xl py-gb-lg">
+                {entry.valueModel ? (
+                  <SharedScholarshipValueSummary
+                    model={entry.valueModel}
+                    compact
+                    t={(source, vars) => getLocaleText(locale, source, vars)}
+                  />
+                ) : (
+                  <>
+                    {entry.coverage ? (
+                      <span className="text-gb-lg font-semibold text-fg-brand">{entry.value}</span>
+                    ) : null}
+                    <span className="line-clamp-2 text-gb-sm font-medium text-fg-brand">
+                      {entry.coverage ?? entry.value}
+                    </span>
+                  </>
+                )}
+              </div>
 
               {entry.fundingTypes?.length ? (
                 <span className="flex flex-wrap gap-gb-sm">

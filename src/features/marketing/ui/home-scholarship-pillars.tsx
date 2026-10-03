@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarship-constants';
 import { ICONS, KitIcon } from '@/shared/ui';
+import type { ScholarshipValueViewModel } from '@/shared/types/scholarship-value';
+import { SharedScholarshipValueSummary } from '@/shared/ui/scholarship-value-summary';
 import { getLocaleText, localizePath, type Locale } from '@/lib/i18n/locale';
 
 export type ScholarshipTeaser = {
@@ -21,6 +23,8 @@ export type ScholarshipTeaser = {
   deadline?: string | null;
   fundingTypes?: readonly string[] | null;
   country?: string | null;
+  /** Canonical scholarship value view model supplied by the server route. */
+  valueModel?: ScholarshipValueViewModel | null;
   /** Library-preview type pill: tied to a university, or offered by a foundation/provider. */
   kind?: 'university' | 'provider' | null;
   /** One clamped eligibility line on the library-preview card. */
@@ -231,17 +235,28 @@ export function HomeScholarshipPillars({ entries, locale = 'en' }: { entries: re
                   <p className="text-gb-xs font-semibold uppercase tracking-[0.1em] text-brand">
                     {getLocaleText(locale, entry.valueLabel || 'Scholarship value')}
                   </p>
-                  <p
-                    data-no-auto-translate
-                    className="mt-gb-md line-clamp-2 min-h-[2.75rem] font-display text-gb-xl font-semibold leading-snug text-brand"
-                  >
-                    {entry.value}
-                  </p>
-                  {entry.coverage ? (
-                    <p data-no-auto-translate className="mt-gb-md line-clamp-1 text-gb-xs font-medium text-fg-secondary">
-                      {entry.coverage}
-                    </p>
-                  ) : null}
+                  {entry.valueModel ? (
+                    <SharedScholarshipValueSummary
+                      model={entry.valueModel}
+                      compact
+                      className="mt-gb-md"
+                      t={(source, vars) => getLocaleText(locale, source, vars)}
+                    />
+                  ) : (
+                    <>
+                      <p
+                        data-no-auto-translate
+                        className="mt-gb-md line-clamp-2 min-h-[2.75rem] font-display text-gb-xl font-semibold leading-snug text-brand"
+                      >
+                        {entry.value}
+                      </p>
+                      {entry.coverage ? (
+                        <p data-no-auto-translate className="mt-gb-md line-clamp-1 text-gb-xs font-medium text-fg-secondary">
+                          {entry.coverage}
+                        </p>
+                      ) : null}
+                    </>
+                  )}
                 </div>
 
                 <dl className="mt-gb-2xl grid grid-cols-2 gap-x-gb-xl gap-y-gb-xl border-y border-line py-gb-2xl">

@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/i18n';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarships';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import type { ScholarshipValueViewModel } from '@/shared/types/scholarship-value';
+import { SharedScholarshipValueSummary } from '@/shared/ui/scholarship-value-summary';
 
 /**
  * UniversitySearch — the interactive entry point into the funnel (Phase 3).
@@ -25,6 +28,7 @@ type PreviewScholarship = {
   amountLabel: string | null;
   fundingType: string[];
   deadlineLabel: string | null;
+  valueModel: ScholarshipValueViewModel | null;
 };
 
 type UniversityMatch = {
@@ -48,6 +52,7 @@ function fundingLabel(token: string): string {
 }
 
 export function UniversitySearch() {
+  const { lang } = useLanguage();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [matches, setMatches] = useState<UniversityMatch[]>([]);
@@ -71,7 +76,7 @@ export function UniversitySearch() {
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       try {
-        const res = await fetch(`/api/home/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+        const res = await fetch(`/api/home/search?q=${encodeURIComponent(q)}&locale=${lang}`, { signal: ctrl.signal });
         const data = (await res.json()) as { matches: UniversityMatch[] };
         setMatches(data.matches ?? []);
       } catch (err) {
@@ -81,7 +86,7 @@ export function UniversitySearch() {
       }
     }, 250);
     return () => clearTimeout(handle);
-  }, [query, selected]);
+  }, [lang, query, selected]);
 
   const visibleMatches = query.trim().length < 2 ? [] : matches;
 
@@ -182,6 +187,7 @@ function SelectedUniversity({
   onBack: () => void;
   onUnlock: () => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(30,40,80,0.06)] sm:p-7">
       <button type="button" onClick={onBack} className="text-sm font-semibold text-slate-500 transition hover:text-slate-900">
@@ -215,7 +221,25 @@ function SelectedUniversity({
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                {s.amountLabel ? <span className="text-sm font-bold text-slate-900">{s.amountLabel}</span> : null}
+                <SharedScholarshipValueSummary
+                  model={s.valueModel ?? {
+                    coverageLabel: null,
+                    originalAwardLabel: null,
+                    totalValueLabel: t('Total value unavailable'),
+                    totalValueKind: 'unavailable',
+                    totalValueStatusLabel: null,
+                    durationLabel: null,
+                    components: [],
+                    evidence: [],
+                    sourceUrl: null,
+                    warnings: [],
+                    hasComparableValue: false,
+                  }}
+                  fallbackAwardLabel={s.amountLabel}
+                  compact
+                  className="min-w-0"
+                  t={t}
+                />
                 {s.fundingType.slice(0, 2).map((f) => (
                   <span key={f} className="rounded-full bg-pink-50 px-2 py-0.5 text-[11px] font-medium text-pink-600">{fundingLabel(f)}</span>
                 ))}

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   facets: vi.fn(),
   listPublished: vi.fn(),
   loadDirectory: vi.fn(),
+  loadUserDirectory: vi.fn(),
   redirect: vi.fn(),
 }));
 
@@ -19,6 +20,7 @@ vi.mock('@/features/scholarships/api', () => ({
 }));
 vi.mock('@/features/scholarships/api/directory-loader', () => ({
   loadScholarshipDirectory: mocks.loadDirectory,
+  loadScholarshipDirectoryForUser: mocks.loadUserDirectory,
 }));
 vi.mock('@/app/scholarships/scholarship-directory-client', () => ({
   ScholarshipDirectoryClient: vi.fn(() => null),
@@ -77,6 +79,26 @@ describe('ScholarshipsPage performance', () => {
       focusUniversity: null,
       canonicalSearch: '',
     });
+    mocks.loadUserDirectory.mockResolvedValue({
+      query: {
+        search: '',
+        universitySearch: '',
+        major: 'all',
+        degree: 'all',
+        country: 'all',
+        funding: [],
+        sort: 'relevance',
+        page: 1,
+        universityId: null,
+        countryPage: 1,
+        view: 'directory',
+      },
+      directoryPage: { items: [], total: 0, page: 1, pageSize: 9, hasMore: false },
+      focusPage: null,
+      countryPage: null,
+      focusUniversity: null,
+      canonicalSearch: '',
+    });
   });
 
   it('does not read application or AI resource tables for the directory view', async () => {
@@ -96,7 +118,7 @@ describe('ScholarshipsPage performance', () => {
 
     expect(tables).not.toContain('course_applications');
     expect(tables).not.toContain('application_sources');
-    expect(mocks.loadDirectory).toHaveBeenCalledOnce();
+    expect(mocks.loadUserDirectory).toHaveBeenCalledOnce();
     expect(client.props.queryState.view).toBe('directory');
     expect(client.props.applications).toEqual([]);
     expect(client.props.existingScholarships).toEqual([]);
@@ -131,7 +153,7 @@ describe('ScholarshipsPage performance', () => {
                 application_id: 'app-1',
                 title: 'Award',
                 description: null,
-                url: null,
+                url: 'javascript:alert(1)',
                 confidence: 0.8,
               },
             ],
@@ -151,9 +173,10 @@ describe('ScholarshipsPage performance', () => {
     expect(client.props.queryState.view).toBe('ai');
     expect(client.props.applications).toEqual([application]);
     expect(client.props.existingScholarships[0].confidence).toBe('0.8');
+    expect(client.props.existingScholarships[0].url).toBeNull();
   });
 
-  it('starts the public directory before the authentication request resolves', async () => {
+  it('waits for authentication before selecting a public or user-specific directory cache', async () => {
     let resolveAuth!: (value: unknown) => void;
     const auth = new Promise((resolve) => {
       resolveAuth = resolve;
@@ -164,9 +187,11 @@ describe('ScholarshipsPage performance', () => {
     });
 
     const render = ScholarshipsPage({ searchParams: Promise.resolve({}) });
-    await vi.waitFor(() => expect(mocks.loadDirectory).toHaveBeenCalledOnce());
+    expect(mocks.loadDirectory).not.toHaveBeenCalled();
+    expect(mocks.loadUserDirectory).not.toHaveBeenCalled();
     resolveAuth({ data: { user: { id: 'user-1' } } });
     await render;
+    expect(mocks.loadUserDirectory).toHaveBeenCalledOnce();
   });
 
   it('preserves the selected scholarship and filters through authentication', async () => {

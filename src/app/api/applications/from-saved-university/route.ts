@@ -43,6 +43,7 @@ import {
   type CourseCatalogueCandidate,
 } from '@/lib/course-catalog/course-id';
 import { createClient } from '@/lib/supabase/server';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
 
 const requestSchema = z.object({
   universityId: z.number().int().positive(),
@@ -101,7 +102,9 @@ export async function POST(request: Request) {
 
     const saved = savedRow as { program?: string | null; program_url?: string | null };
     const program = saved.program?.trim() || null;
-    const programUrl = saved.program_url?.trim() || null;
+    // Legacy rows may predate the write-time URL validator. Never copy an
+    // unsafe persisted value into an application or a parse job.
+    const programUrl = canonicalizeExternalUrl(saved.program_url);
 
     /*
      * No subject, no application. An application is "I am applying to study X at

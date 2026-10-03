@@ -6,6 +6,8 @@ import type {
   ScholarshipMajor,
   ScholarshipSort,
 } from '../domain/query-state';
+import type { ScholarshipDirectoryFilters } from '../domain/eligibility';
+import type { NormalizedScholarshipBenefits } from '../domain/benefit-types';
 
 export type { Page };
 
@@ -41,6 +43,7 @@ export interface ScholarshipForUniversity {
   appliesToText: string | null;
   deadlineLabel: string | null;
   sourceUrl: string | null;
+  benefits: NormalizedScholarshipBenefits;
 }
 
 export interface ScholarshipListQuery {
@@ -57,6 +60,8 @@ export interface ScholarshipListQuery {
   funding?: ScholarshipFunding[];
   sort?: ScholarshipSort;
   universityId?: number;
+  /** Canonical structured filters; legacy fields remain for compatibility. */
+  filters?: ScholarshipDirectoryFilters;
   relatedUniversityCountry?: string;
   excludeUniversityId?: number;
 }
@@ -81,6 +86,9 @@ export interface ScholarshipQueries {
 
   /** Reads one stable, counted page from the published directory. */
   listPublished(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>>;
+
+  /** Read the complete filtered published set for a private ranking pass. */
+  listPublishedCandidates(query: ScholarshipListQuery): Promise<DirectoryScholarship[]>;
 
   /**
    * Scholarships linked to the given universities, keyed by university id.

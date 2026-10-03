@@ -199,7 +199,9 @@ const FUNDING_SYNONYMS = [
   [/diversity|lgbt|women|female|nu gioi|inclusion|da dang|minority/, 'diversity'],
   [/regional|vung|khu vuc|asean|country|quoc gia|government|chinh phu/, 'regional'],
   [/development|phat trien/, 'regional'],
-  [/full|toan phan|100%|toan bo/, 'full-ride'],
+  // Full ride is a semantic claim. Do not turn generic "full", "100%", or
+  // "fully funded" text into the full-ride token: 100% tuition is tuition-only.
+  [/full[\s-]*ride/, 'full-ride'],
   [/partial|ban phan|mot phan/, 'partial'],
   [/travel|mobility|di chuyen|internship|thuc tap/, 'travel'],
 ];

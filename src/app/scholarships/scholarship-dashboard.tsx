@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 import { GlowbalIcon } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { canonicalizeExternalUrl } from '@/shared/lib/external-url';
+import type { NormalizedScholarshipBenefits, ScholarshipValueResult } from '@/features/scholarships/domain';
+import { ScholarshipValueSummary } from '@/features/scholarships/ui';
 
 /* ─────────────────────────────────────────────────────────────────────────
    TYPES
@@ -47,6 +50,10 @@ type AIScholarship = {
   courseApplicationId: string;
   isUniversitySpecific: boolean;
   type: string;
+  /** Populated only when an AI result has been resolved to the catalogue. */
+  canonicalScholarshipId?: number | null;
+  canonicalBenefits?: NormalizedScholarshipBenefits | null;
+  canonicalValue?: ScholarshipValueResult | null;
 };
 
 type Props = {
@@ -98,7 +105,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
   const [searched, setSearched] = useState(false);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'match' | 'amount' | 'difficulty'>('match');
+  const [sortBy, setSortBy] = useState<'match' | 'difficulty'>('match');
 
   const handleSearch = async () => {
     setLoading(true);
@@ -143,7 +150,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
         const order = { easy: 0, medium: 1, hard: 2 };
         return (order[a.difficulty] ?? 1) - (order[b.difficulty] ?? 1);
       }
-      return 0; // amount sort not easily comparable
+      return 0;
     });
 
   const uniqueTypes = [...new Set(scholarships.map((s) => s.type))];
@@ -255,9 +262,9 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                         <p className="mt-0.5 text-xs text-slate-500">{s.description}</p>
                       )}
                     </div>
-                    {s.url && (
+                    {canonicalizeExternalUrl(s.url) && (
                       <a
-                        href={s.url}
+                        href={canonicalizeExternalUrl(s.url) ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-white"
@@ -317,7 +324,6 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                 >
                   <option value="match">{t('Best match')}</option>
                   <option value="difficulty">{t('Easiest first')}</option>
-                  <option value="amount">{t('Amount')}</option>
                 </select>
               </div>
 
@@ -364,6 +370,7 @@ function ScholarshipCard({
   const app = applications.find((a) => a.id === s.courseApplicationId);
   const diff = difficultyBadge(s.difficulty);
   const tBadge = typeBadge(s.type);
+  const applicationUrl = canonicalizeExternalUrl(s.applicationUrl);
 
   return (
     <div className="flex flex-col rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -374,16 +381,29 @@ function ScholarshipCard({
           <p className="mt-0.5 text-xs text-slate-400">{s.provider}</p>
         </div>
         {/* Match score */}
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 text-xs font-bold text-emerald-700">
+        <span
+          title={t('AI match score; not the canonical catalogue ranking')}
+          aria-label={t('AI match score {score}; not the canonical catalogue ranking', { score: s.matchScore })}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 text-xs font-bold text-emerald-700"
+        >
           {s.matchScore}
         </span>
       </div>
 
       {/* Amount */}
       <div className="mb-3 rounded-lg bg-gradient-to-r from-pink-50 to-violet-50 px-3 py-2">
-        <p className="text-base font-bold text-slate-900">{s.amount}</p>
-        {s.coverage && (
-          <p className="text-[11px] text-slate-500">{s.coverage}</p>
+        {s.canonicalScholarshipId != null && s.canonicalValue ? (
+          <ScholarshipValueSummary
+            value={s.canonicalValue}
+            benefits={s.canonicalBenefits}
+            compact
+          />
+        ) : (
+          <>
+            <p className="text-xs font-semibold text-slate-500">{t('AI-researched amount — not catalogue verified')}</p>
+            <p className="text-base font-bold text-slate-900">{s.amount}</p>
+            {s.coverage ? <p className="text-[11px] text-slate-500">{s.coverage}</p> : null}
+          </>
         )}
       </div>
 
@@ -426,9 +446,9 @@ function ScholarshipCard({
             {t('Deadline:')} {s.deadline}
           </span>
         )}
-        {s.applicationUrl ? (
+        {applicationUrl ? (
           <a
-            href={s.applicationUrl}
+            href={applicationUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="ml-auto inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-medium text-white hover:bg-slate-700"

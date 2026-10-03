@@ -1,0 +1,7 @@
+{
+  "version": "fx-rates-v1-empty",
+  "coverage": "incomplete",
+  "defaultMaxAgeDays": 30,
+  "rates": [],
+  "notes": "No versioned FX rates are bundled yet; unknown or missing rates remain unavailable."
+}
