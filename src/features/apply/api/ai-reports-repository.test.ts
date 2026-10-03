@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   analysisFromRow,
+  getMatchingReportPageData,
   isMigrationMissing,
   saveApplicationMatchingAnalysis,
   toMatchingAnalysisRecord,
@@ -160,6 +161,28 @@ describe('ai-reports-repository helpers', () => {
       expect(view?.reportV2).toBeUndefined();
       expect(view?.fit.classification).toBe('strong_match');
     });
+  });
+
+  it('pins the Strategy link to the valid Matching row rather than a malformed newer row', async () => {
+    const valid = {
+      created_at: '2026-10-01', prompt_version: 'legacy', source_personal_report_version_id: 'valid-personal',
+      fit_classification: 'strong_match', fit_confidence: 90,
+      fit_eligibility: { requiredSubjects: 'met', minimumQualification: 'met', languageRequirement: 'met', citizenshipRequirement: 'met', deadline: 'met' },
+      fit_dimensions: Object.fromEntries(['academicCompetitiveness', 'personaAlignment', 'financialFeasibility', 'careerDirection', 'applicationReadiness'].map((key) => [key, { status: 'assessed', score: 4, summary: 's', strengths: [], gaps: [], evidence: [] }])),
+    };
+    const supabase = { from: (table: string) => {
+      const result = table === 'course_applications'
+        ? { data: { id: 'app-1', user_id: 'user-1', university_id: null, courses: {} }, error: null }
+        : { data: [{ created_at: '2026-10-03', source_personal_report_version_id: 'broken-personal', report_v2: { invalid: true } }, valid], error: null };
+      const query: Record<string, unknown> = {};
+      for (const method of ['select', 'eq']) query[method] = () => query;
+      query.maybeSingle = async () => result;
+      query.order = async () => result;
+      return query;
+    } } as any;
+    const result = await getMatchingReportPageData(supabase, 'user-1', 'app-1');
+    expect(result.data?.analysis?.createdAt).toBe('2026-10-01');
+    expect(result.data?.personalReportVersionId).toBe('valid-personal');
   });
 
   it('does not insert a legacy row when the V2 migration is missing', async () => {

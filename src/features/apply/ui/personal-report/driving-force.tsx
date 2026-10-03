@@ -19,8 +19,16 @@ export function DrivingForceView({
 }) {
   const t = useT();
   const narrative = report?.narrativeDetails?.drivingForce;
+  const components = [
+    { key: 'primaryMotivation', label: t('Primary motivation'), value: narrative?.primaryMotivation || section.primaryMotivation, empty: t('Not established from the available evidence.') },
+    { key: 'repeatedChoices', label: t('Repeated choices'), value: narrative?.repeatedChoices.length ? narrative.repeatedChoices : section.repeatedChoices, empty: t('No repeated opportunity choice is established yet.') },
+    { key: 'recurringProblems', label: t('Recurring problems'), value: narrative?.recurringProblems.length ? narrative.recurringProblems : section.recurringProblems, empty: t('No recurring problem domain is established yet.') },
+    { key: 'decisionMaking', label: t('Decision-making'), value: section.decisionMaking || narrative?.decisionMaking, empty: t('No decision-making pattern is established yet.') },
+    { key: 'underlyingValues', label: t('Underlying values'), value: narrative?.underlyingValues.length ? narrative.underlyingValues : section.underlyingValues, empty: t('Values cannot be interpreted confidently yet.') },
+    { key: 'strategicInterpretation', label: t('Strategic interpretation'), value: narrative?.strategicInterpretation || section.strategicInterpretation || section.explanation, empty: t('Not established from the available evidence.') },
+  ] as const;
   return (
-    <SectionShell eyebrow={t('Driving Force')} title={t('What consistently motivates them')} confidence={section.confidence}>
+    <SectionShell eyebrow={t('Driving Force')} title={t('What consistently motivates them')}>
       {section.available ? (
         <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
           <div>
@@ -35,73 +43,28 @@ export function DrivingForceView({
             <p className="mt-gb-sm text-gb-base sm:text-gb-md leading-relaxed text-fg-secondary">{narrative?.strategicInterpretation ?? section.explanation}</p>
           </div>
 
-          {narrative ? (
-            <div className="grid gap-gb-lg sm:grid-cols-3">
-              <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Primary motivation')}</p>
-                <p className="text-gb-sm sm:text-gb-base font-semibold text-fg leading-relaxed">{narrative.primaryMotivation}</p>
-              </div>
-              <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Repeated choices')}</p>
-                {narrative.repeatedChoices.length > 0 ? (
-                  <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
-                    {narrative.repeatedChoices.map((choice) => <li key={choice}>{choice}</li>)}
-                  </ul>
-                ) : (
-                  <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{t('No repeated choice is established from the available evidence.')}</p>
-                )}
-              </div>
-              <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Underlying values')}</p>
-                {narrative.underlyingValues.length > 0 ? (
-                  <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
-                    {narrative.underlyingValues.map((value) => <li key={value}>{value}</li>)}
-                  </ul>
-                ) : (
-                  <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{t('Values cannot be interpreted confidently yet.')}</p>
-                )}
-              </div>
-              <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Decision-making')}</p>
-                <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.decisionMaking || t('No decision-making pattern is established yet.')}</p>
-              </div>
-              {narrative.recurringProblems.length > 0 ? (
-                <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:col-span-3">
-                  <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Recurring problems')}</p>
-                  <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.recurringProblems.join(' · ')}</p>
+          <div className="grid gap-gb-lg sm:grid-cols-2">
+            {components.map(({ key, label, value, empty }) => {
+              const hasContent = Array.isArray(value) ? value.length > 0 : Boolean(value);
+              const limitation = section.componentLimitations?.[key];
+              return (
+                <div key={key} className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
+                  <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{label}</p>
+                  {hasContent && Array.isArray(value) ? (
+                    <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
+                      {value.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  ) : hasContent ? (
+                    <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{value}</p>
+                  ) : limitation ? (
+                    <InsufficientDataCard data={limitation} returnTo={returnTo} onAnswered={onAnswered} />
+                  ) : (
+                    <p className="text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{empty}</p>
+                  )}
                 </div>
-              ) : null}
-              <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:col-span-3">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('Strategic interpretation')}</p>
-                <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{narrative.strategicInterpretation}</p>
-              </div>
-            </div>
-          ) : section.repeatedMotivations.length > 0 ? (
-            <div className="grid gap-gb-lg sm:grid-cols-2">
-              <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
-                  {t('Primary motivation')}
-                </p>
-                <p className="text-gb-base font-semibold text-fg leading-relaxed">{section.repeatedMotivations[0]}</p>
-              </div>
-              <div className="flex flex-col gap-gb-sm rounded-gb-xl border border-line bg-surface p-6 shadow-xs">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
-                  {t('Repeated motivation signals')}
-                </p>
-                <ul className="flex list-disc flex-col gap-gb-xs pl-gb-lg text-gb-sm text-fg-secondary">
-                  {section.repeatedMotivations.map((motivation, index) => (
-                    <li key={`${motivation}-${index}`}>{motivation}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:col-span-2">
-                <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
-                  {t('Strategic interpretation')}
-                </p>
-                <p className="mt-gb-xs text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">{section.explanation}</p>
-              </div>
-            </div>
-          ) : null}
+              );
+            })}
+          </div>
           {section.missingPersonalGrounding ? (
             <p className="rounded-gb-xl border border-line bg-surface-muted/60 p-6 text-gb-sm sm:text-gb-base leading-relaxed text-fg-secondary">
               {section.missingPersonalGrounding}

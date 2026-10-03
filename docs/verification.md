@@ -1,8 +1,8 @@
 # Verification
 
-Last measured locally on **2026-10-03**, on the Scholarship Personalization
-integration with main `34b6bb5a`, using **Node 24.19.0/npm 11.17.0** after a
-clean `npm ci`. Results are
+Last measured locally on **2026-10-04**, on the Saved Universities integration
+with main `57e91918`, using **Node 24.19.0/npm 10.9.2** and the existing install
+(the merge changes no dependency/lockfile). Results are
 also summarized in [current-status.md](current-status.md). This is not a claim
 that the new integration has passed GitHub Actions or independent review.
 
@@ -36,16 +36,16 @@ tests caught it. Run the build after every merge, not only before a PR.
 
 Current measured local snapshot:
 
-| Gate | 2026-10-03 result |
+| Gate | 2026-10-04 result |
 |---|---|
 | Lint | **Pass:** 0 errors, 9 warnings. |
 | Base typecheck | **Pass.** |
 | Strict typecheck | **Pass.** |
-| Vitest | **4207 pass / 2 todo** across **451 passing** files; coverage enabled. |
-| Focused tests | **297 pass** across **42 files** (scholarship, application URL, cache, Home value/streaming). |
+| Vitest | **4289 pass / 2 todo** across **454 passing** files; coverage enabled and thresholds passed. |
+| Saved Universities coverage | The six affected files and their 109 regression tests are included in the full suite. |
 | Build | **Pass:** Next.js 16.3.1 production build, including `build:ci` in the aggregate gate. |
 | `verify:pr` | **Pass**, using the unchanged repository gate. |
-| E2E | Earlier `c2e63de2` local run: **70 pass / 0 fail / 9 skipped** on an owned fresh production server. Not rerun locally after the new streaming integration; fresh feature shared CI pending. |
+| E2E | Earlier `c2e63de2` local run: **70 pass / 0 fail / 9 skipped** on an owned fresh production server. Not rerun locally after the Saved Universities/main merge; fresh shared CI required. |
 | i18n | Missing static keys, placeholder mismatches and dynamic-catalog misses **0**. |
 | `git diff --check` | **Pass.** |
 

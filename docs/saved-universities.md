@@ -46,7 +46,8 @@ reduced motion, and the pinned dock accounts for the bottom safe area.
 
 ## Measured verification
 
-Checks below used the local Node 22.15.0 runtime; shared CI was not run.
+Initial audit checks below used the local Node 22.15.0 runtime; shared CI was
+not run for that checkpoint. Post-merge verification follows below.
 
 - Regression audit initially reran the original **59 tests** successfully, then
   reproduced selection/dialog/focus/gating/image failures with new assertions.
@@ -72,6 +73,23 @@ Checks below used the local Node 22.15.0 runtime; shared CI was not run.
 No schema, additional query, dependency or unrelated-page changes. The `/apply`
 read model adds matching existing-attachment IDs from already fetched data.
 Browser checks used the existing read-only preview; mutations were verified with component mocks,
-not against a signed-in account. The full repository suite/E2E were not rerun.
+not against a signed-in account. The initial audit did not rerun the full
+repository suite/E2E.
 Old-project university cover requests still return HTTP 402; unavailable upstream
 image bytes were not repaired by this UI change.
+
+## Post-audit main synchronization (2026-10-04)
+
+Merged main `57e91918` into the existing feature branch. The only conflict was
+`docs/current-status.md`; both histories were retained. Saved Universities
+source/tests are unchanged, and the automatic report-repository/i18n merges
+preserve both branches' behavior. No schema or dependency changes were added.
+
+The unchanged `npm run verify:pr` gate passed with Node 24.19.0/npm 10.9.2:
+base/strict TypeScript, full lint (zero errors/nine existing warnings), **454
+files / 4,289 passing tests / two todo**, coverage thresholds, and `build:ci`
+(151 pages). Coverage: statements 74.40%, branches 65.32%, functions 75.27%,
+lines 77.08%. i18n and whitespace checks passed. Node's downloaded executable
+matched the official SHA-256 checksum and stays in ignored `output/`.
+Local E2E was not rerun; fresh shared CI is required for the resulting commit.
+The pre-existing untracked personalization plan remains excluded.

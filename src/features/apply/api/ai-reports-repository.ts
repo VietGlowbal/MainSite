@@ -102,20 +102,17 @@ export function analysisFromRow(row: Record<string, unknown> | null): MatchingAn
   return legacyAnalysisFromRow(row);
 }
 
+function latestAnalysisRowFromRows(rows: Array<Record<string, unknown>>): Record<string, unknown> | null {
+  // Prefer the newest valid V3, then V2, then legacy artifact. Resolve the
+  // displayed report and its Personal Report lineage from the same row.
+  return rows.find((row) => reportV3FromRow(row))
+    ?? rows.find((row) => reportFromRow(row))
+    ?? rows.find((row) => analysisFromRow(row))
+    ?? null;
+}
+
 function latestAnalysisFromRows(rows: Array<Record<string, unknown>>): MatchingAnalysisView | null {
-  // Prefer the newest valid V3, then V2, then legacy artifact. A malformed
-  // newest row must not hide an older valid report.
-  for (const row of rows) {
-    if (reportV3FromRow(row)) return analysisFromRow(row);
-  }
-  for (const row of rows) {
-    if (reportFromRow(row)) return analysisFromRow(row);
-  }
-  for (const row of rows) {
-    const analysis = analysisFromRow(row);
-    if (analysis) return analysis;
-  }
-  return null;
+  return analysisFromRow(latestAnalysisRowFromRows(rows));
 }
 
 function personalReportVersionFromRow(row: Record<string, unknown>): string | null {
@@ -258,8 +255,9 @@ export async function getMatchingReportPageData(
   if (personalReportVersionId) {
     analysisRows = analysisRows.filter((row) => matchesPersonalReportVersion(row, personalReportVersionId));
   }
-  const resolvedPersonalReportVersionId =
-    personalReportVersionId ?? analysisRows.map(personalReportVersionFromRow).find(Boolean) ?? null;
+  const selectedAnalysisRow = latestAnalysisRowFromRows(analysisRows);
+  const resolvedPersonalReportVersionId = personalReportVersionId
+    ?? (selectedAnalysisRow ? personalReportVersionFromRow(selectedAnalysisRow) : null);
   const [universityResult, scholarshipLinksResult] = await Promise.all([
     universityId == null
       ? Promise.resolve({ data: null, error: null })
@@ -316,9 +314,7 @@ export async function getMatchingReportPageData(
       country: application.country ?? courseText('country') ?? universityText('country'),
       degreeLevel: application.degree_level ?? courseText('degree_level'),
       deadline: application.deadline ?? universityText('application_deadline'),
-      analysis: latestAnalysisFromRows(
-        analysisRows,
-      ),
+      analysis: analysisFromRow(selectedAnalysisRow),
       personalReportVersionId: resolvedPersonalReportVersionId,
       universityId,
       courseUrl: canonicalizeExternalUrl(application.course_url ?? courseText('course_url')),

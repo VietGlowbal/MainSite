@@ -295,6 +295,18 @@ describe('/api/applications/[id]/strategy/recommendation V3', () => {
     expect((await response.json()).reportV3.contractVersion).toBe('strategy-report-v3');
   });
 
+  it.each(['personal', 'matching'])('does not serve a stored Strategy with stale %s lineage', async (source) => {
+    const metadata = { ...GENERATED_REPORT.metadata,
+      ...(source === 'personal' ? { personalReportVersionId: 'previous-pr' } : { matchingReportId: 'previous-match' }),
+    };
+    strategyRows = [{ id: 'old', report_v2: { ...GENERATED_REPORT, metadata } }];
+    setupSupabase();
+    const { GET } = await importRoute();
+    const response = await GET(new Request('http://localhost'), { params: Promise.resolve({ id: 'app-1' }) });
+    expect((await response.json()).reportV3).toBeNull();
+    expect(mocks.generateStrategyReportV3).not.toHaveBeenCalled();
+  });
+
   it('returns typed failure and does not persist when V3 generation fails', async () => {
     mocks.generateStrategyReportV3.mockRejectedValue(new Error('timeout'));
     setupSupabase();

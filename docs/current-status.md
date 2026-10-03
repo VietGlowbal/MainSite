@@ -1,5 +1,116 @@
 # Current project status
 
+Main 2026-10-04 (Home stories testimonial carousel full-width stretch): extended
+the student stories carousel track in `HomeStories` (`src/features/marketing/ui/home-stories.tsx`)
+to stretch across the full viewport width instead of indenting the track to the
+1280px content column (`md:pl-[max(32px,calc((100%-1280px)/2+32px))]`), eliminating
+the unbalanced left-side gap on wide displays. Cards now start with standard
+responsive padding (`px-gb-xl md:px-gb-4xl`) and scroll edge-to-edge. Aligned the
+carousel controls ("Translated from Vietnamese" and direction buttons) symmetrically.
+Full verification: 4,027 tests passed across 427 files in Vitest; ESLint and
+`tsc --noEmit` passed with 0 errors.
+
+Main 2026-10-04 (Strategy synthesis timeout and references): Strategy retries
+timed-out or truncated synthesis once as three concurrent 4,000-token section
+requests, retaining profile/activity results and enforcing final report coverage.
+Exhausted retries fail rather than saving a partial report; AI call counts include
+recovery. All stages now use strict output schemas with canonical reference
+allowlists, reusable enum definitions, and a requested activity-ID checklist.
+Snapshot activities missing from the Evidence Bank retain their original IDs as
+unverified report-only provenance. Prompt v3.3 adds explicit reference checks and
+section recovery instructions. Full coverage: 4,027 passed, two todo, 427 files;
+base/strict TypeScript, lint (five existing warnings), and production build passed.
+The updated 80-evidence schema regression also passed separately after the full
+suite. No live provider call or database change was made; diagnosis follows the
+supplied Vercel timeout and unknown-reference logs.
+
+Main 2026-10-04 (Matching reuse and completed Personal loading): Matching now
+reuses a saved Personal Report when source hash and confirmed snapshot match,
+including manual request keys and older prompt metadata. The Analysis regenerate
+button retains unchanged Personal; the Reflection edit flow still regenerates it.
+Catalogue provenance reads recover Vercel's `42501` using a server client scoped
+to selected programme run IDs and safe metadata fields, without changing grants.
+Personal polling accepts an owned newer report that supersedes a completed job
+version, while rejecting stale or older results. Snapshot parsing also passes
+strict array-index checks after the latest formatting change. Full CI coverage:
+4,023 passed, two todo, 427 files; strict TypeScript and production build passed.
+The supplied Vercel logs guided diagnosis; local DB identity is unverified and
+no database changes or live provider generation were made.
+
+Main 2026-10-04 (Personal Report snapshot formatting): formatted the Applicant
+Snapshot narrative into structured section cards (Overall Identity, Unique
+Positioning, Most Prominent Recurring Pattern, Potential/Development Direction)
+with distinct headers and icons, eliminating unformatted wall-of-text display.
+Added fallback parsing for paragraphs and bilingual Vietnamese/English
+dictionary translations. Measured: 13 focused tests passed, scoped ESLint passed.
+
+Main 2026-10-04 (Personal Report bounded narrative recovery): a timed-out
+multi-part batch now retries once as independent sections, as truncated batches
+already did; a single-section timeout/truncation is terminal. Missing snapshots
+now enter targeted repair alongside other omitted available sections. A partial
+repair preserves every valid original and repaired sibling, and telemetry names
+only the parts still invalid. Word ranges and evidence scopes remain enforced.
+Regression coverage reproduces the combined timeout, 124-word overview and
+out-of-scope takeaway evidence from the production log. Full coverage passed
+4,015 tests (two todo), 427 files; base/strict TypeScript, lint (five existing
+warnings) and production build passed.
+No live provider call was made.
+
+Main 2026-10-04 (Personal Report required component gaps): available Driving
+Force sections now retain explicit per-component limitations and follow-up
+actions when recurring problems, guiding values, choices or decision patterns
+are not established. Framework validation still rejects omitted components and
+limitations without actions. Canonical findings survive empty model lists;
+interactive and print views show all six Driving Force parts with or without
+narrative synthesis. GPT-6 Luna prompt v20 adds a six-field checklist and receives
+component gap reasons, preserving unsupported arrays without inventing evidence.
+Verification: full coverage suite passed 4,010 tests (two todo) across 427 files;
+strict TypeScript, lint (five existing warnings), i18n and production build
+passed. No live provider generation or signed-in end-to-end regeneration ran.
+
+Main 2026-10-03 (Personal → Matching → Strategy flow audit): Strategy retries
+now start a fresh workspace; application/Personal Report version changes reset
+the view, and late responses cannot replace a newer selection. Strategy GET
+resolves the selected/latest Personal Report and accepts V3 only when its
+snapshot and Matching ID/hash match the source. Matching fallback now resolves
+the displayed artifact and its Strategy-link lineage from the same valid row.
+Personal request/after-worker and Matching runtime limits are 300 seconds to
+cover extraction, narrative recovery and downstream composition. Concurrent
+StrategyHome redesign commits were preserved; its feature list is now typed as
+nonempty and ten missing catalog entries were added. Verification: 152 focused
+tests, strict TypeScript, scoped/full ESLint (five existing warnings), i18n and
+production build passed. Full coverage ran 3,997 tests successfully with one
+i18n failure caused by the concurrent redesign; that failure passed after repair
+in the focused rerun. No live provider generation or signed-in database E2E ran.
+
+Main 2026-10-03 (AI Strategy Home redesign & video placeholders): redesigned
+StrategyHome overview page to guide students through the 5 core AI Strategy
+functions (Applicant Profile, Course Match, Personalised Action Roadmap, 24/7 AI
+Coach, and Application Assets/Essays) with dedicated video walkthrough
+placeholders. Added `StrategyVideoPlaceholder` component supporting HTML5 video
+playback and mock preview states with file slot hints. Preserved all
+requirements, tests, and bilingual English/Vietnamese coverage in
+`i18n-dictionary.ts`. Removed the duplicate bottom Start My Strategy CTA banner.
+Measured: 15 focused tests passed, strict TypeScript (zero errors), ESLint passed.
+
+Main 2026-10-03 (Personal Report truncated narrative): the two structured
+narrative batches were capped at 3,000 completion tokens; provider truncation
+was thrown before parsing and skipped the entire batch. Increased the budget
+to 6,000 and recover truncation with concurrent single-section requests capped
+at 4,000 each. A single-section truncation cannot retry again; valid siblings
+survive and failed sections retain deterministic content. Retry/repair payloads
+now select reflection context by section rather than batch object identity.
+Removed the duplicate bottom Start My Strategy CTA. Measured: 70 focused tests,
+strict TypeScript, scoped ESLint, i18n checks and production build passed.
+Recovery was tested with simulated provider truncation; no live AI call ran.
+
+Main 2026-10-03 (Personal Report confidence labels): removed the overall
+confidence badge and High/Medium/Low confidence labels from section headers,
+snapshot, insight charts and detailed popups, including the shared print view.
+Report confidence data and analysis rules remain intact. Updated English and
+Vietnamese evidence captions. Measured: 34 focused UI tests, strict TypeScript,
+scoped ESLint, i18n catalog checks and production build passed.
+
 Working tree 2026-10-04 (saved-university interactions and regression audit):
 university headings link to internal profiles; trash actions confirm through the shared Modal. A single
 responsive action dock pins while its measured natural slot is outside the
@@ -20,6 +131,15 @@ horizontal overflow; dock pin/natural behavior and mobile picker were checked.
 No schema or additional queries; the server read model carries existing attachment
 IDs from already fetched data. No real mutation browser tests. Old Storage covers
 still return HTTP 402. Details: [saved-universities.md](saved-universities.md).
+
+Post-audit integration 2026-10-04: synced with main `57e91918`; only this rolling
+status file conflicted, and both histories were retained. Saved Universities
+source/tests are unchanged; automatic source merges retain upstream report
+lineage and feature URL normalization. Full `verify:pr` passed with Node
+24.19.0/npm 10.9.2: 4,289 tests across 454 files (two todo), base/strict TypeScript,
+lint (zero errors/nine existing warnings), coverage and `build:ci` (151 pages).
+i18n and diff checks passed. Fresh shared CI is pending at this commit checkpoint;
+local E2E was not rerun. No schema/dependency changes or unrelated work included.
 
 Main 2026-10-03 (AI Strategy tab performance): `fetchOnboardingState` now uses
 React request memoization, sharing the nav/page read without a cross-request TTL.

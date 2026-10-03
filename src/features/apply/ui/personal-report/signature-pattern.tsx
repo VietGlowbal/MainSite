@@ -20,7 +20,6 @@ export function SignaturePatternView({
     <SectionShell
       eyebrow={t('Signature Pattern')}
       title={t('The behavioural sequence that repeats')}
-      confidence={section.confidence}
     >
       {section.available ? (
         <div className="flex flex-col gap-gb-lg">

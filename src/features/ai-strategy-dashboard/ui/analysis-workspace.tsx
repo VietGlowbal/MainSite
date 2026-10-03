@@ -358,7 +358,7 @@ export function AnalysisWorkspace({
     setMatching({ status: 'waiting' });
     setStrategy({ status: 'waiting' });
     try {
-      const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages, true, setQuota);
+      const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages, false, setQuota);
       setPersonal(personalState);
       if (personalState.status !== 'complete') {
         setMatching({ status: 'failed', error: personalState.error ?? errorMessages.generic });

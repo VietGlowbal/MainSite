@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe('AnalysisWorkspace', () => {
-  it('shows the shared report quota and regenerates all three reports from one button', async () => {
+  it('regenerates Matching and Strategy while retaining an unchanged Personal Report', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_GET && !init) return jsonResponse({ reportV2: { coreIdentity: {} }, versionId: 'p1', stale: false, reportCount: 1, reportLimit: 5 });
       if (url === MATCHING_GET && !init) return jsonResponse({ analysis: { id: 'm1' } });
@@ -38,11 +38,9 @@ describe('AnalysisWorkspace', () => {
     expect(screen.getByText('Reports generated: 1/5')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Generate all reports again' }));
-    await waitFor(() => expect(screen.getByText('Reports generated: 2/5')).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ trigger: 'manual', force: true }),
-    }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(STRATEGY_POST, expect.objectContaining({ method: 'POST' })));
+    expect(screen.getByText('Reports generated: 1/5')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url, init]) => url === PERSONAL_POST && init?.method === 'POST')).toBe(false);
     expect(fetchMock).toHaveBeenCalledWith(MATCHING_POST, expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ force: true }),

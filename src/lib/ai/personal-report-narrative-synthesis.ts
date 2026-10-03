@@ -240,6 +240,7 @@ type SynthesisSectionInput = {
     decisionMaking: string | null;
     underlyingValues: string[];
     missingPersonalGrounding: string | null;
+    componentLimitations?: Record<string, string>;
     reflectionFindings: ReflectionFindingWithStatus[];
     cmcaitfMotivations: string[];
     activityChoices: string[];
@@ -581,6 +582,7 @@ export function synthesisInputFromReport(
           decisionMaking: report.drivingForce.decisionMaking ?? null,
           underlyingValues: report.drivingForce.underlyingValues ?? [],
           missingPersonalGrounding: report.drivingForce.missingPersonalGrounding,
+          componentLimitations: Object.fromEntries(Object.entries(report.drivingForce.componentLimitations ?? {}).map(([key, gap]) => [key, gap.reason])),
           reflectionFindings: findingsWithStatus.filter(({ finding }) => ['q1', 'q2', 'q3'].includes(finding.key)),
           cmcaitfMotivations: activityEvidence.map((activity) => activity.motivation).filter((value): value is string => Boolean(value)),
           activityChoices: activityEvidence.map((activity) => activity.title),
@@ -1048,20 +1050,21 @@ type NarrativeBatch = {
   maxTokens: number;
 };
 
-// Two concise calls keep the report within the worker runtime budget. Each
-// receives only the sections it must write; no raw evidence is duplicated.
+// Two concurrent calls receive only their requested sections. Leave room for
+// complete structured JSON and model reasoning; a truncated batch is retried
+// once per section, without discarding successful siblings.
 const NARRATIVE_BATCHES: readonly NarrativeBatch[] = [
   {
     canonical: [],
     structured: ['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning'],
     optional: [],
-    maxTokens: 3_000,
+    maxTokens: 6_000,
   },
   {
     canonical: [],
     structured: ['provenCapabilities', 'socialProof', 'keyTakeaways'],
     optional: [],
-    maxTokens: 3_000,
+    maxTokens: 6_000,
   },
 ];
 
@@ -1079,7 +1082,9 @@ function batchInput(
   const wantsPositioning = requested.has('personalPositioning') || structured.has('profilePositioning') || structured.has('keyTakeaways') || wantsSnapshot;
   const wantsProof = requested.has('proofOfMe') || structured.has('provenCapabilities') || structured.has('keyTakeaways') || wantsSnapshot;
   const reflectionKeys = new Set<ReflectionAnswerKey>(
-    batch === NARRATIVE_BATCHES[0] ? ['q1', 'q2', 'q3', 'q5', 'q6'] : ['q4', 'q5', 'q6', 'q7'],
+    batch.structured.some((key) => ['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning'].includes(key))
+      ? ['q1', 'q2', 'q3', 'q5', 'q6']
+      : ['q4', 'q5', 'q6', 'q7'],
   );
   const byKey = Object.fromEntries(
     Object.entries(sectionInput.reflectionFindings.byKey)
@@ -1409,6 +1414,9 @@ function materializeNarrativeDetails(
     }
     output.drivingForce = {
       ...details.drivingForce,
+      repeatedChoices: details.drivingForce.repeatedChoices.length ? details.drivingForce.repeatedChoices : sectionInput.drivingForce?.repeatedChoices ?? [],
+      recurringProblems: details.drivingForce.recurringProblems.length ? details.drivingForce.recurringProblems : sectionInput.drivingForce?.recurringProblems ?? [],
+      underlyingValues: details.drivingForce.underlyingValues.length ? details.drivingForce.underlyingValues : sectionInput.drivingForce?.underlyingValues ?? [],
       decisionMaking: details.drivingForce.decisionMaking ?? sectionInput.drivingForce?.decisionMaking ?? 'A decision-making pattern is not established from the available records yet.',
       evidenceIds: requireEvidenceIds(details.drivingForce.evidenceIds, allowedBySection.narrativeDrivingForce),
       evidenceStrength: sectionInput.drivingForce?.evidenceStrength === 'high'
@@ -1589,7 +1597,6 @@ function parseNarrativeBatch(
   // Do not silently treat an omitted available framework section as success;
   // send it through the existing targeted-repair path instead.
   const missingSections = batch.structured.filter((key) =>
-    key !== 'snapshot' &&
     structuredSectionAvailable(key, batchInputValue) &&
     !Object.hasOwn(acceptedDetails, key) &&
     !invalidSections.includes(key),
@@ -1639,19 +1646,63 @@ async function completeNarrativeBatch(args: {
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>;
   onPartialFailure?: (code: PersonalReportNarrativeFailureCode, context: PersonalReportNarrativeFailureContext) => void;
 }): Promise<Partial<PersonalReportNarrativeSynthesis>> {
+  const acceptRepair = (repaired: NarrativeBatchParseResult, original: Partial<PersonalReportNarrativeSynthesis> = {}) => {
+    if (repaired.invalidSections.length > 0) {
+      const detail = repaired.issues[0]?.message ?? `Sections failed repair: ${repaired.invalidSections.join(', ')}`;
+      args.onPartialFailure?.(failureCode(new Error(detail)), {
+        batch: repaired.invalidSections,
+        issues: repaired.issues,
+        detail,
+      });
+    }
+    return mergeNarrativeBatchValues(original, repaired.value);
+  };
   const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowedBySection);
   const responseFormat = personalReportNarrativeResponseFormat(args.batch, args.sectionInput);
-  const content = await openAiJsonCompletion({
-    apiKey: args.apiKey,
-    model: args.model,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: JSON.stringify(payload) },
-    ],
-    temperature: 0.4,
-    maxTokens: args.batch.maxTokens,
-    responseFormat,
-  });
+  let content: string;
+  try {
+    content = await openAiJsonCompletion({
+      apiKey: args.apiKey,
+      model: args.model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(payload) },
+      ],
+      temperature: 0.4,
+      maxTokens: args.batch.maxTokens,
+      responseFormat,
+    });
+  } catch (error) {
+    // Truncation and timeout happen before JSON parsing. Regenerate smaller, independently validated
+    // sections instead. A single-section failure never retries recursively.
+    const code = failureCode(error);
+    if (!['output_truncated', 'timeout'].includes(code) || args.batch.structured.length <= 1) throw error;
+    console.info('[personal-report-narrative-synthesis] retrying failed batch per section', {
+      code,
+      batch: args.batch.structured,
+      maxTokens: args.batch.maxTokens,
+      model: args.model,
+    });
+    const values = await Promise.all(args.batch.structured.map(async (key) => {
+      const batch: NarrativeBatch = { ...args.batch, structured: [key], maxTokens: 4_000 };
+      try {
+        return await completeNarrativeBatch({ ...args, batch });
+      } catch (sectionError) {
+        const code = failureCode(sectionError);
+        const context = {
+          batch: [key],
+          issues: failureIssues(sectionError),
+          detail: sectionError instanceof Error ? sectionError.message.slice(0, 240) : String(sectionError).slice(0, 240),
+        };
+        args.onPartialFailure?.(code, context);
+        console.warn('[personal-report-narrative-synthesis] section retry failed; keeping valid siblings', {
+          code, ...context, model: args.model,
+        });
+        return {};
+      }
+    }));
+    return values.reduce<Partial<PersonalReportNarrativeSynthesis>>(mergeNarrativeBatchValues, {});
+  }
 
   try {
     const parsed = parseNarrativeBatch(content, args.batch, args.sectionInput, args.allowedBySection);
@@ -1682,17 +1733,7 @@ async function completeNarrativeBatch(args: {
         responseFormat: personalReportNarrativeResponseFormat(repairBatch, args.sectionInput),
       });
       const repaired = parseNarrativeBatch(repairedContent, repairBatch, args.sectionInput, args.allowedBySection);
-      if (repaired.invalidSections.length > 0) {
-        const issue = repaired.issues[0];
-        const detail = issue?.message ?? `Sections failed repair: ${repaired.invalidSections.join(', ')}`;
-        args.onPartialFailure?.(failureCode(new Error(detail)), {
-          batch: [...repairBatch.structured],
-          issues: repaired.issues,
-          detail,
-        });
-        return parsed.value;
-      }
-      return mergeNarrativeBatchValues(parsed.value, repaired.value);
+      return acceptRepair(repaired, parsed.value);
     } catch (repairError) {
       args.onPartialFailure?.(failureCode(repairError), {
         batch: [...repairBatch.structured],
@@ -1732,7 +1773,7 @@ async function completeNarrativeBatch(args: {
       maxTokens: args.batch.maxTokens,
       responseFormat,
     });
-    return parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection).value;
+    return acceptRepair(parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection));
   }
 }
 

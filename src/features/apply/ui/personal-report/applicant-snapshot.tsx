@@ -1,9 +1,8 @@
 'use client';
 
 import type { PersonalReportV2 } from '../../domain';
-import { Badge, ICONS, KitIcon } from '@/shared/ui';
+import { Badge, ICONS, KitIcon, type KitIconArt } from '@/shared/ui';
 import { useT } from '@/lib/i18n';
-import { ConfidenceBadge } from './shared';
 
 function unique(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value?.trim())))];
@@ -29,6 +28,79 @@ function FormattedProse({ text }: { text: string }) {
       })}
     </>
   );
+}
+
+type SnapshotSection = {
+  readonly title?: string;
+  readonly content: string;
+};
+
+const SECTION_ICONS: Record<string, KitIconArt> = {
+  'Overall Identity': ICONS.usersTwo,
+  'Core Identity': ICONS.usersTwo,
+  'Unique Positioning': ICONS.zapFast,
+  'Profile Positioning': ICONS.zapFast,
+  'Positioning': ICONS.zapFast,
+  'Most Prominent Recurring Pattern': ICONS.chartBreakoutSquare,
+  'Recurring Pattern': ICONS.chartBreakoutSquare,
+  'Signature Pattern': ICONS.chartBreakoutSquare,
+  'Potential/Development Direction': ICONS.arrowRight,
+  'Potential / Development Direction': ICONS.arrowRight,
+  'Development Direction': ICONS.arrowRight,
+  'Future Direction': ICONS.arrowRight,
+};
+
+/**
+ * Parses snapshot narrative into structured sections if section headings exist
+ * (e.g. "Overall Identity: ... Unique Positioning: ... Most Prominent Recurring Pattern: ...")
+ * or multiple paragraphs. Falls back to a single paragraph.
+ */
+function parseSnapshotSections(text: string): SnapshotSection[] {
+  if (!text || typeof text !== 'string') return [];
+
+  // Match section headers like "Overall Identity:", "**Unique Positioning:**", etc.
+  const headerRegex = /(?:^|(?<=[.!?]\s+|\n+))(?:\*\*)?([A-Z][A-Za-z0-9/–—\s]{2,40}):?(?:\*\*)?:?\s*/g;
+  const matches = [...text.matchAll(headerRegex)];
+
+  if (matches.length >= 2) {
+    const sections: SnapshotSection[] = [];
+
+    // Any introductory text before the first heading
+    const firstMatch = matches[0];
+    if (firstMatch && firstMatch.index > 0) {
+      const intro = text.slice(0, firstMatch.index).trim();
+      if (intro) {
+        sections.push({ content: intro });
+      }
+    }
+
+    matches.forEach((m, idx) => {
+      const title = (m[1] ?? '').trim();
+      const nextMatch = matches[idx + 1];
+      const start = m.index + m[0].length;
+      const end = nextMatch ? nextMatch.index : text.length;
+      const content = text.slice(start, end).trim();
+      if (content) {
+        sections.push({ title, content });
+      }
+    });
+
+    return sections;
+  }
+
+  // Fallback: split by double newlines into distinct paragraphs if present
+  const paragraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  if (paragraphs.length > 1) {
+    return paragraphs.map((p) => {
+      const inlineMatch = p.match(/^(?:\*\*)?([A-Z][A-Za-z0-9/–—\s]{2,40}):?(?:\*\*)?:?\s+(.*)$/s);
+      if (inlineMatch) {
+        return { title: (inlineMatch[1] ?? '').trim(), content: (inlineMatch[2] ?? '').trim() };
+      }
+      return { content: p };
+    });
+  }
+
+  return [{ content: text.trim() }];
 }
 
 /**
@@ -62,6 +134,8 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
     report.personalPositioning.statement ??
     'Add more reflected experiences to help GlowBal identify reliable patterns across your profile.';
 
+  const sections = parseSnapshotSections(summary);
+
   return (
     <section
       aria-labelledby="applicant-snapshot-title"
@@ -89,9 +163,41 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
             </h2>
           </div>
 
-          <p className="text-gb-sm md:text-gb-md leading-relaxed text-fg-secondary" data-no-auto-translate>
-            {summary}
-          </p>
+          {sections.length > 1 || (sections.length === 1 && sections[0]?.title) ? (
+            <div className="flex flex-col gap-gb-md" data-no-auto-translate>
+              {sections.map((section, idx) => {
+                const icon = section.title ? SECTION_ICONS[section.title] : undefined;
+                return (
+                  <div
+                    key={idx}
+                    className="flex flex-col gap-gb-xs rounded-gb-xl border border-line/70 bg-surface-muted/30 p-gb-lg transition-colors hover:border-line hover:bg-surface-muted/50"
+                  >
+                    {section.title ? (
+                      <div className="flex items-center gap-gb-sm">
+                        {icon ? (
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-gb-md bg-brand-surface text-fg-brand">
+                            <KitIcon art={icon} frame={14} />
+                          </span>
+                        ) : (
+                          <span className="size-1.5 shrink-0 rounded-full bg-brand" />
+                        )}
+                        <h3 className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">
+                          {t(section.title)}
+                        </h3>
+                      </div>
+                    ) : null}
+                    <p className="text-gb-sm md:text-gb-md leading-relaxed text-fg-secondary">
+                      <FormattedProse text={section.content} />
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-gb-sm md:text-gb-md leading-relaxed text-fg-secondary" data-no-auto-translate>
+              <FormattedProse text={summary} />
+            </p>
+          )}
 
           {report.overallSummary?.paragraphs[0] ? (
             <div
@@ -146,14 +252,6 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
             </div>
           </div>
 
-          <div className="flex flex-col gap-gb-xs border-t border-line/60 pt-gb-md">
-            <div className="flex items-center justify-between">
-              <span className="text-gb-xs font-medium text-fg-muted">
-                {t('Confidence')}
-              </span>
-              <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
-            </div>
-          </div>
         </div>
       </div>
     </section>

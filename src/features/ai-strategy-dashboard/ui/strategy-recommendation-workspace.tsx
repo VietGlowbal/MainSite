@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { StrategyRecommendationRecord, StrategyReportV2 } from '../domain';
 import type { StrategyReportV3 } from '@/lib/ai/strategy-v3/domain';
 import { StrategyRecommendationReport } from './strategy-recommendation-report';
@@ -43,15 +43,27 @@ type LoadState = 'checking' | 'generating' | 'ready' | 'error';
  * Sending them to the generation gate instead gives them a page that can
  * actually produce what is missing.
  */
-export function StrategyRecommendationWorkspace({
-  applicationId,
-  plannerMode = 'canonical',
-  personalReportVersionId,
-}: {
+type WorkspaceProps = {
   applicationId: string;
   plannerMode?: PlannerMode;
   personalReportVersionId?: string;
-}) {
+};
+
+export function StrategyRecommendationWorkspace(props: WorkspaceProps) {
+  const [attempt, setAttempt] = useState(0);
+  return <StrategyRecommendationContent
+    key={`${props.applicationId}:${props.personalReportVersionId ?? 'latest'}:${attempt}`}
+    {...props}
+    onRetry={() => setAttempt((value) => value + 1)}
+  />;
+}
+
+function StrategyRecommendationContent({
+  applicationId,
+  plannerMode = 'canonical',
+  personalReportVersionId,
+  onRetry,
+}: WorkspaceProps & { onRetry: () => void }) {
   const { t } = useLanguage();
   const router = useRouter();
   const [state, setState] = useState<LoadState>('checking');
@@ -60,7 +72,6 @@ export function StrategyRecommendationWorkspace({
   const [reportV3, setReportV3] = useState<StrategyReportV3 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
-  const ran = useRef(false);
   const reportEndpoint = personalReportVersionId
     ? `/api/applications/${applicationId}/strategy/recommendation?personalReportVersionId=${encodeURIComponent(personalReportVersionId)}`
     : `/api/applications/${applicationId}/strategy/recommendation`;
@@ -78,8 +89,7 @@ export function StrategyRecommendationWorkspace({
   }, []);
 
   useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
+    let cancelled = false;
     void run();
 
     async function run() {
@@ -90,6 +100,7 @@ export function StrategyRecommendationWorkspace({
           reportV2?: StrategyReportV2 | null;
           reportV3?: StrategyReportV3 | null;
         };
+        if (cancelled) return;
         // A stored V3 report is the completed page state. Do not POST on
         // reload: POST can legitimately miss its recomputed hash when an
         // upstream row changed shape, which would regenerate the report.
@@ -122,11 +133,13 @@ export function StrategyRecommendationWorkspace({
               ),
             });
             generated = (await generatedRes.json()) as typeof generated;
+            if (cancelled) return;
             requestError = null;
             if (generated.needsInputs || (generatedRes.ok && (generated.recommendation || generated.reportV2 || generated.reportV3))) {
               break;
             }
           } catch (caught) {
+            if (cancelled) return;
             requestError = caught;
           }
         }
@@ -159,10 +172,12 @@ export function StrategyRecommendationWorkspace({
         setReportV3(generated.reportV3 ?? null);
         setState('ready');
       } catch {
+        if (cancelled) return;
         setError(t('Something went wrong. Please try again.'));
         setState('error');
       }
     }
+    return () => { cancelled = true; };
   }, [applicationId, personalReportVersionId, reportEndpoint, router, t]);
 
   if (state === 'ready' && reportV3) {
@@ -187,11 +202,7 @@ export function StrategyRecommendationWorkspace({
       <div className="flex flex-col items-center gap-gb-lg py-gb-7xl text-center">
         <p className="text-gb-md text-fg-error">{error ?? t('Something went wrong.')}</p>
         <Button
-          onClick={() => {
-            ran.current = false;
-            setState('checking');
-            setError(null);
-          }}
+          onClick={onRetry}
         >
           {t('Try again')}
         </Button>

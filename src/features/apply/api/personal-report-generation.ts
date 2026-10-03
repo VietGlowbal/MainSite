@@ -345,10 +345,13 @@ async function regenerateApplicationPersonalReport(
       current.applicationId === applicationId &&
       current.confirmedSnapshotId === state.snapshotId &&
       current.inputHash === inputHash &&
-      current.engineVersion === ENGINE_VERSION &&
-      current.promptVersion === PERSONAL_REPORT_EXTRACTION_VERSION &&
-      current.reportContractVersion === PERSONAL_REPORT_CONTRACT_VERSION &&
-      current.cacheKey === baseCacheKey,
+      // Matching consumes the saved report until applicant source data changes.
+      // Manual request keys and prompt upgrades are not Reflection edits.
+      (trigger === 'matching_report' || (
+        current.engineVersion === ENGINE_VERSION &&
+        current.promptVersion === PERSONAL_REPORT_EXTRACTION_VERSION &&
+        current.reportContractVersion === PERSONAL_REPORT_CONTRACT_VERSION
+      )),
   );
   if (current && !force && currentMatches) {
     return { status: 'cached', record: current };

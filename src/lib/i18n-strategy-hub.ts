@@ -6,6 +6,16 @@
  * self-contained report/feature surfaces.
  */
 export const STRATEGY_HUB_TRANSLATIONS: Record<string, string> = {
+  'Step 1 • Profile': 'Bước 1 • Hồ sơ',
+  'Step 2 • Fit Score': 'Bước 2 • Điểm phù hợp',
+  'Step 3 • Action Plan': 'Bước 3 • Kế hoạch hành động',
+  'Step 4 • Guidance': 'Bước 4 • Hướng dẫn',
+  'Step 5 • Documents': 'Bước 5 • Tài liệu',
+  'public/videos/': 'public/videos/',
+  'Play or pause preview': 'Phát hoặc tạm dừng bản xem trước',
+  Audio: 'Âm thanh',
+  CC: 'Phụ đề',
+  Fullscreen: 'Toàn màn hình',
   // Sound toggle
   'Sounds on': 'Đã bật âm thanh',
   'Sounds off': 'Đã tắt âm thanh',

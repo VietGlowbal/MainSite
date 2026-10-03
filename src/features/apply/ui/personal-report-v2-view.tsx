@@ -12,7 +12,6 @@ import { Badge, Button } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import {
   ApplicantSnapshotView,
-  ConfidenceBadge,
   KeyTakeawaysView,
   PersonalCanvasWorkspace,
   PersonalReportPrintView,
@@ -203,7 +202,8 @@ export function PersonalReportV2View({
         const reportIsFresh = Boolean(
           body.reportV2 &&
             (!body.generation ||
-              (body.generation.status === 'complete' && body.generation.report_version_id === body.versionId)),
+              (body.generation.status === 'complete' &&
+                (body.generation.report_version_id === body.versionId || body.generationReportReady === true))),
         );
         if (reportIsFresh && !generationActive) {
           setReport(body.reportV2 as PersonalReportV2);
@@ -328,12 +328,6 @@ export function PersonalReportV2View({
             ) : null}
           </div>
 
-          <div className="flex items-center gap-gb-sm rounded-gb-xl border border-line bg-surface-muted/60 px-gb-lg py-gb-sm">
-            <span className="text-gb-xs font-medium text-fg-muted">
-              {t('Overall evidence confidence')}:
-            </span>
-            <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
-          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-gb-md border-t border-line/70 pt-gb-md print:hidden">

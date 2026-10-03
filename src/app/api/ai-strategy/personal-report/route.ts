@@ -15,7 +15,7 @@ import { applyRateLimit, personalReportLimiter } from '@/lib/rate-limiter';
  * that module's doc comment for why there is no time-based cooldown here.
  */
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const bodySchema = z.object({
   applicationId: z.string().trim().min(1).max(200).optional(),

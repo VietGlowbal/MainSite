@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveTargetProfile } from './generation';
 import type { CatalogueProjection } from './domain';
 
+const adminMock = vi.hoisted(() => vi.fn());
+vi.mock('@/server/db/admin', () => ({ createAdminClient: adminMock }));
+
 const PROJECTION: CatalogueProjection = {
   programme: {
     id: 'prog-1',
@@ -115,6 +118,7 @@ function supabaseHarness(options: {
   };
   return {
     supabase: { from: (table: string) => builderFor(table) } as never,
+    from: builderFor,
     inserts,
   };
 }
@@ -127,6 +131,20 @@ const BASE_ARGS = {
 describe('resolveTargetProfile', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('reads only bounded crawl provenance with the server client when authenticated lacks SELECT', async () => {
+    const harness = supabaseHarness({ programmeRow: PROJECTION.programme as Record<string, unknown>, latestVersion: null });
+    const adminFrom = vi.fn((table: string) => harness.from(table));
+    adminMock.mockReturnValue({ from: adminFrom });
+    const from = vi.fn((table: string) => table === 'crawl_sources'
+      ? { select: () => ({ in: () => Promise.resolve({ data: null, error: { code: '42501', message: 'permission denied for table crawl_sources' } }) }) }
+      : harness.from(table));
+    const result = await resolveTargetProfile({ ...BASE_ARGS, supabase: { from } as never });
+    expect(result.status).toBe('ready');
+    expect(adminFrom).toHaveBeenCalledTimes(1);
+    expect(adminFrom).toHaveBeenCalledWith('crawl_sources');
+    expect(result.profile?.sources[0]?.url).toBe('https://example.edu/cs');
   });
 
   it('returns not_ready when required catalogue lineage is absent (no programme row)', async () => {

@@ -360,9 +360,8 @@ export function HomeStories({ locale = 'en' }: { locale?: Locale }) {
         <FeaturedStory locale={locale} />
       </div>
 
-      {/* Left edge lines up with the 1280 content column; the right side runs
-          to the viewport edge so the track visibly continues. */}
-      <div className="mt-gb-3xl pl-gb-xl md:pl-[max(32px,calc((100%-1280px)/2+32px))]">
+      {/* Student quotes carousel stretching across the screen */}
+      <div className="mt-gb-3xl w-full">
         <div className="flex min-w-0 flex-col gap-gb-xl">
           <div
             ref={trackRef}
@@ -372,7 +371,7 @@ export function HomeStories({ locale = 'en' }: { locale?: Locale }) {
             className="snap-x snap-mandatory overflow-x-auto pb-gb-xs [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-scrollbar]:hidden"
           >
             {/* `items-stretch`: every card takes the tallest card's height. */}
-            <div className="flex w-max items-stretch gap-gb-lg pr-gb-4xl md:gap-gb-3xl">
+            <div className="flex w-max items-stretch gap-gb-lg px-gb-xl md:gap-gb-3xl md:px-gb-4xl">
               {STUDENT_QUOTES.map((quote) => (
                 <QuoteCard
                   key={quote.name}
@@ -385,7 +384,7 @@ export function HomeStories({ locale = 'en' }: { locale?: Locale }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-gb-lg pr-gb-xl md:pr-[max(32px,calc((100vw-1280px)/2+32px))]">
+          <div className="flex items-center justify-between gap-gb-lg px-gb-xl md:px-gb-4xl">
             <span className="text-gb-xs text-gb-neutral-400">
               {locale === 'vi' ? '' : getLocaleText(locale, 'Translated from Vietnamese')}
             </span>

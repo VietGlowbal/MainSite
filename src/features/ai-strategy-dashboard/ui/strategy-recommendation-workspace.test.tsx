@@ -1,11 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StrategyRecommendationWorkspace } from './strategy-recommendation-workspace';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }));
-vi.mock('@/lib/i18n', () => ({ useLanguage: () => ({ t: (value: string) => value }) }));
+const hooks = vi.hoisted(() => ({ router: { replace: vi.fn() }, language: { t: (value: string) => value } }));
+vi.mock('next/navigation', () => ({ useRouter: () => hooks.router }));
+vi.mock('@/lib/i18n', () => ({ useLanguage: () => hooks.language }));
 vi.mock('@/shared/ui', () => ({
-  Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => <button onClick={onClick}>{children}</button>,
   usePrefersReducedMotion: () => true,
 }));
 vi.mock('./strategy-report-v3-view', () => ({
@@ -44,6 +45,41 @@ describe('StrategyRecommendationWorkspace', () => {
     render(<StrategyRecommendationWorkspace applicationId="app-1" personalReportVersionId={versionId} />);
 
     await waitFor(() => expect(screen.getByText('selected')).toBeInTheDocument());
+  });
+
+  it('runs a new request when Try again is clicked after generation fails', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: false, status: 502, json: async () => ({ error: 'temporary failure' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ reportV3: { marker: 'recovered' } }) });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<StrategyRecommendationWorkspace applicationId="app-1" />);
+    fireEvent.click(await screen.findByText('Try again'));
+    expect(await screen.findByText('recovered')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('loads the new version when the Personal Report selection changes', async () => {
+    const fetchMock = vi.fn((url: string) => Promise.resolve({ ok: true, json: async () => ({ reportV3: { marker: url.includes('version-2') ? 'second' : 'first' } }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { rerender } = render(<StrategyRecommendationWorkspace applicationId="app-1" personalReportVersionId="version-1" />);
+    expect(await screen.findByText('first')).toBeInTheDocument();
+    rerender(<StrategyRecommendationWorkspace applicationId="app-1" personalReportVersionId="version-2" />);
+    expect(await screen.findByText('second')).toBeInTheDocument();
+    expect(screen.queryByText('first')).not.toBeInTheDocument();
+  });
+
+  it('ignores the previous version response while the new version is loading', async () => {
+    let resolvePrevious!: (response: Response) => void;
+    const previous = new Promise<Response>((resolve) => { resolvePrevious = resolve; });
+    const fetchMock = vi.fn((url: string) => url.includes('version-1') ? previous : Promise.resolve({ ok: true, json: async () => ({ reportV3: { marker: 'current-version' } }) } as Response));
+    vi.stubGlobal('fetch', fetchMock);
+    const { rerender } = render(<StrategyRecommendationWorkspace applicationId="app-1" personalReportVersionId="version-1" />);
+    rerender(<StrategyRecommendationWorkspace applicationId="app-1" personalReportVersionId="version-2" />);
+    expect(await screen.findByText('current-version')).toBeInTheDocument();
+    await act(async () => resolvePrevious({ ok: true, json: async () => ({}) } as Response));
+    expect(screen.getByText('current-version')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('shows the legacy fallback after one failed Strategy V3 generation', async () => {

@@ -1,4 +1,7 @@
 export { StrategyHome } from './strategy-home';
+export { StrategyVideoPlaceholder } from './strategy-video-placeholder';
+export type { StrategyHomeVideos } from './strategy-home';
+export type { StrategyVideoPlaceholderProps } from './strategy-video-placeholder';
 /**
  * `ApplicantAnalysisReport` and `CourseMatchReport` were here. The analysis is
  * now two pages rather than two panels stacked on one — see

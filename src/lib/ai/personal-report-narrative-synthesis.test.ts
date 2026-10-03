@@ -17,11 +17,13 @@ describe('Personal Report synthesis prompt', () => {
   it('keeps reference style profile-neutral and complete for sparse profiles', () => {
     const prompt = getReportPrompt('report_narrative_synthesis');
 
-    expect(prompt.version).toBe('report-synthesis-v19-profile-neutral-complete-framework');
+    expect(prompt.version).toBe('report-synthesis-v20-explicit-component-gaps');
     expect(prompt.systemPrompt).toContain('derive the causal arrow chain from the applicant');
     expect(prompt.systemPrompt).toContain('Do not default every profile to software');
     expect(prompt.systemPrompt).toContain('include every supplied capability when fewer than four exist');
     expect(prompt.systemPrompt).toContain('include fewer when evidence is sparse');
+    expect(prompt.systemPrompt).toContain('always return all six fields');
+    expect(prompt.systemPrompt).toContain('input.drivingForce.componentLimitations');
   });
 });
 
@@ -644,6 +646,29 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result?.narrativeDetails?.profilePositioning?.experienceConnection.anchorExperience).toBe('Coding club');
   });
 
+  it('preserves canonical Driving Force findings when the model returns empty lists', async () => {
+    const report = structuredReport();
+    report.drivingForce.repeatedChoices = ['Coding club'];
+    report.drivingForce.recurringProblems = ['access to learning'];
+    report.drivingForce.underlyingValues = ['community access'];
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const request = JSON.parse(body.messages[1]!.content) as { requestedSections: string[] };
+      const details = structuredNarrativeDetails(request.requestedSections.includes('provenCapabilities') ? 'b' : 'a');
+      if ('drivingForce' in details && details.drivingForce) {
+        details.drivingForce.repeatedChoices = [];
+        details.drivingForce.recurringProblems = [];
+        details.drivingForce.underlyingValues = [];
+      }
+      return chatResponse(JSON.stringify({ narrativeDetails: details }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report, intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding() });
+    expect(result?.narrativeDetails?.drivingForce).toMatchObject({
+      repeatedChoices: ['Coding club'], recurringProblems: ['access to learning'], underlyingValues: ['community access'],
+    });
+  });
+
   it('uses the narrative schema vocabulary for model evidence strength', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
@@ -776,6 +801,61 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     expect(result).toBeNull();
+  });
+
+  it('retries an omitted snapshot without regenerating valid siblings', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[]; invalidResponse?: string };
+      const details = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') } as Record<string, unknown>;
+      if (!request.invalidResponse) delete details.snapshot;
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(request.requestedSections.map((key) => [key, details[key]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding() });
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    const repairs = fetchMock.mock.calls.map((call) => JSON.parse(JSON.parse(String(call[1]?.body)).messages[1].content)).filter((request) => request.invalidResponse);
+    expect(repairs.map((request) => request.requestedSections)).toEqual([['snapshot']]);
+  });
+
+  it('recovers the logged timeout, 124-word overview and evidence-scope failure together', async () => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[]; invalidResponse?: string };
+      const keys = request.requestedSections;
+      if (keys.includes('snapshot') && keys.length > 1) throw new Error('OpenAI request timed out.');
+      const details = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      if (keys.includes('provenCapabilities') && !request.invalidResponse) {
+        details.provenCapabilities!.overview = repeatedWords(124, 'cap');
+        details.keyTakeaways!.competitiveAdvantage.evidenceIds = ['theme-1'];
+      }
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(keys.map((key) => [key, details[key as keyof typeof details]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding(), onFailure });
+    expect(Object.keys(result?.narrativeDetails ?? {}).sort()).toEqual(['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning', 'provenCapabilities', 'socialProof', 'keyTakeaways'].sort());
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
+  it('keeps a repaired capability overview when a different repaired part still has invalid evidence', async () => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[]; invalidResponse?: string };
+      const details = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      if (!request.invalidResponse) details.provenCapabilities!.overview = repeatedWords(124, 'cap');
+      details.keyTakeaways!.competitiveAdvantage.evidenceIds = ['theme-1'];
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(request.requestedSections.map((key) => [key, details[key as keyof typeof details]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding(), onFailure });
+    expect(result?.narrativeDetails?.provenCapabilities?.overview.split(/\s+/)).toHaveLength(100);
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(result?.narrativeDetails?.keyTakeaways).toBeUndefined();
+    expect(onFailure).toHaveBeenCalledWith('invalid_evidence_scope', expect.objectContaining({ batch: ['keyTakeaways'] }));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('repairs an omitted available framework section before accepting the batch', async () => {
@@ -1108,6 +1188,69 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(content).not.toContain('I built a chatbot for my school.');
   });
 
+  it.each([false, true])('retries a timed-out batch per part without looping (child times out: %s)', async (childTimesOut) => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[] };
+      const keys = request.requestedSections;
+      if ((keys.includes('snapshot') && keys.length > 1) || (childTimesOut && keys.length === 1 && keys[0] === 'drivingForce')) throw new Error('OpenAI request timed out.');
+      const all = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(keys.map((key) => [key, all[key as keyof typeof all]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding(), onFailure });
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(result?.narrativeDetails?.profilePositioning).toBeTruthy();
+    expect(result?.narrativeDetails?.provenCapabilities).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    if (childTimesOut) {
+      expect(result?.narrativeDetails?.drivingForce).toBeUndefined();
+      expect(onFailure).toHaveBeenCalledWith('timeout', expect.objectContaining({ batch: ['drivingForce'] }));
+    } else {
+      expect(result?.narrativeDetails?.drivingForce).toBeTruthy();
+      expect(onFailure).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each([false, true])('recovers a truncated batch per section, with bounded retries (child fails: %s)', async (childFails) => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[] };
+      const keys = request.requestedSections;
+      if ((keys.includes('snapshot') && keys.length > 1) || (childFails && keys.length === 1 && keys[0] === 'coreIdentity')) {
+        return { ok: true, json: async () => ({ choices: [{ finish_reason: 'length', message: { content: '{' } }] }) } as Response;
+      }
+      const all = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(keys.map((key) => [key, all[key as keyof typeof all]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({
+      report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna',
+      grounding: narrativeGrounding(), onFailure,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    const requests = fetchMock.mock.calls.map((call) => JSON.parse(JSON.parse(String(call[1]?.body)).messages[1].content));
+    const original = requests.find((request) => request.requestedSections.length > 1 && request.requestedSections.includes('snapshot'));
+    const coreRetry = requests.find((request) => request.requestedSections.length === 1 && request.requestedSections[0] === 'coreIdentity');
+    expect(coreRetry.input.reflectionFindings.byKey).toEqual(original.input.reflectionFindings.byKey);
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    expect(result?.narrativeDetails?.drivingForce).toBeTruthy();
+    expect(result?.narrativeDetails?.profilePositioning).toBeTruthy();
+    expect(result?.narrativeDetails?.provenCapabilities).toBeTruthy();
+    expect(result?.narrativeDetails?.socialProof).toBeTruthy();
+    expect(result?.narrativeDetails?.keyTakeaways).toBeTruthy();
+    if (childFails) {
+      expect(result?.narrativeDetails?.coreIdentity).toBeUndefined();
+      expect(onFailure).toHaveBeenCalledWith('output_truncated', expect.objectContaining({ batch: ['coreIdentity'] }));
+    } else {
+      expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+      expect(onFailure).not.toHaveBeenCalled();
+    }
+  });
+
   it('sends deterministic findings and section-scoped evidence ids, never raw extraction input', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
@@ -1128,7 +1271,7 @@ describe('synthesizePersonalReportNarrative', () => {
     const bodies = fetchMock.mock.calls.map((call) =>
       JSON.parse(call?.[1]?.body as string),
     );
-    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([3000, 3000]);
+    expect(bodies.map((body) => body.max_completion_tokens).sort((a, b) => a - b)).toEqual([6000, 6000]);
     const content = bodies.map((body) => body.messages[1].content).join('\n');
     expect(content).toContain('"input"');
     expect(content).toContain('coordinating volunteers');

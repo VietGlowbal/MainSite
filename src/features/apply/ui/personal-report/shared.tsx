@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useT } from '@/lib/i18n';
-import type { InsufficientData, ReportConfidence } from '../../domain';
-import { Badge, Button, Panel, PanelHeader, Textarea } from '@/shared/ui';
+import type { InsufficientData } from '../../domain';
+import { Button, Panel, PanelHeader, Textarea } from '@/shared/ui';
 
 /**
  * Chrome shared by every Personal Report section — pulled out of the
@@ -11,30 +11,6 @@ import { Badge, Button, Panel, PanelHeader, Textarea } from '@/shared/ui';
  * "break the page into section files") so each chapter file only carries
  * the markup specific to its own section.
  */
-
-export const CONFIDENCE_LABEL: Record<ReportConfidence, string> = {
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-};
-
-const CONFIDENCE_BADGE_VARIANT: Record<
-  ReportConfidence,
-  'safe-chip' | 'brand-chip' | 'neutral-chip'
-> = {
-  high: 'safe-chip',
-  medium: 'brand-chip',
-  low: 'neutral-chip',
-};
-
-export function ConfidenceBadge({ confidence }: { confidence: ReportConfidence }) {
-  const t = useT();
-  return (
-    <Badge variant={CONFIDENCE_BADGE_VARIANT[confidence]}>
-      {t(CONFIDENCE_LABEL[confidence])}
-    </Badge>
-  );
-}
 
 /**
  * Appends the current `?return=` context (this application's own path, when
@@ -313,12 +289,10 @@ export function InsufficientDataCard({
 export function SectionShell({
   eyebrow,
   title,
-  confidence,
   children,
 }: {
   eyebrow: string;
   title: string;
-  confidence?: ReportConfidence | undefined;
   children: ReactNode;
 }) {
   return (
@@ -330,7 +304,6 @@ export function SectionShell({
       <PanelHeader
         title={title}
         description={eyebrow}
-        action={confidence ? <ConfidenceBadge confidence={confidence} /> : undefined}
       />
       <div className="flex flex-col gap-gb-lg">{children}</div>
     </Panel>

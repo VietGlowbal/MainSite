@@ -39,10 +39,9 @@ function TakeawayCard({
             <div className="flex flex-col gap-gb-xs border-t border-line pt-gb-md text-gb-xs text-fg-muted" data-no-auto-translate>
               <p>
                 <span className="font-semibold text-fg">{t('Evidence basis')}:</span>{' '}
-                {t('{scope} signal · {count} linked evidence references · {confidence} confidence', {
+                {t('{scope} signal · {count} linked evidence references', {
                   scope: t(finding.scope === 'repeated' ? 'Repeated' : finding.scope === 'isolated' ? 'Isolated' : 'Insufficient'),
                   count: finding.evidenceIds.length,
-                  confidence: t(finding.confidence === 'high' ? 'High' : finding.confidence === 'medium' ? 'Medium' : 'Low'),
                 })}
               </p>
               {details.length === 0 && (finding.importance || finding.currentGap) ? (

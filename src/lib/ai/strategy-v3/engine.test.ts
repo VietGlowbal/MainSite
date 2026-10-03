@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StrategyInputContext } from './context';
 import { strategyReportV3FromRow, strategyReportV3Schema, type ActivityStrategyAnalysis } from './domain';
 import {
@@ -88,6 +88,45 @@ function activityAnalysis(activityId: string): ActivityStrategyAnalysis {
 }
 
 describe('Strategy V3 engine', () => {
+  beforeEach(() => { mocks.openAiJsonCompletion.mockReset(); });
+  it('constrains every stage to supplied reference IDs and the requested activity batch', async () => {
+    mocks.openAiJsonCompletion.mockReset();
+    const evidenceIndex = Array.from({ length: 80 }, (_, index) => ({ ...context().evidenceIndex[0]!, id: `evidence-${index + 1}` }));
+    const evidenceIds = evidenceIndex.map((item) => item.id);
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockResolvedValueOnce(JSON.stringify({ analyses: [activityAnalysis('activity:1')] }))
+      .mockResolvedValueOnce(JSON.stringify(synthesis()));
+    const report = await generateStrategyReportV3({ context: context({ evidenceIndex, activities: [{ activityId: 'activity:1', title: 'Activity', category: null, organisation: null, level: null, period: null, description: null, reflection: null, evidenceIds: ['evidence-1'] }] }), apiKey: 'key', model: 'gpt-6-luna' });
+    const formats = mocks.openAiJsonCompletion.mock.calls.map(([request]) => request.responseFormat);
+    expect(formats).toHaveLength(3);
+    for (const [index, format] of formats.entries()) {
+      expect(format).toMatchObject({ type: 'json_schema', json_schema: { strict: true } });
+      const referenceSchemas: Record<string, unknown>[] = [];
+      let enumValues = 0;
+      const visit = (value: unknown): void => {
+        if (!value || typeof value !== 'object') return;
+        for (const [key, child] of Object.entries(value)) {
+          if (key === 'enum' && Array.isArray(child)) enumValues += child.length;
+          if (key === 'evidenceIds' && (child as Record<string, unknown>).type === 'array') referenceSchemas.push(child as Record<string, unknown>);
+          if (key === 'targetSourceRefs') expect(child).toMatchObject({ maxItems: 0 });
+          if (key === 'activityId') expect(child).toMatchObject({ enum: ['activity:1'] });
+          visit(child);
+        }
+      };
+      visit(format.json_schema.schema);
+      expect(enumValues).toBeLessThanOrEqual(1000);
+      expect(referenceSchemas.length).toBeGreaterThan(0);
+      referenceSchemas.forEach((schema) => {
+        expect(schema.items).toEqual({ $ref: '#/$defs/evidenceIds' });
+        expect(format.json_schema.schema.$defs.evidenceIds).toEqual({ type: 'string', enum: evidenceIds });
+      });
+      const input = JSON.parse(mocks.openAiJsonCompletion.mock.calls[index]?.[0].messages[1].content);
+      expect(input.allowedReferences).toMatchObject({ evidenceIds, targetSourceRefs: [] });
+    }
+    expect(report.profileDevelopmentStrategy.areas).toHaveLength(4);
+    expect(report.strategicRoadmap).toHaveLength(4);
+  });
   it('makes exactly one profile and one synthesis call when there are no activities', async () => {
     mocks.openAiJsonCompletion
       .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
@@ -96,6 +135,35 @@ describe('Strategy V3 engine', () => {
     expect(mocks.openAiJsonCompletion).toHaveBeenCalledTimes(2);
     expect(report.metadata.aiCallCount).toBe(2);
     expect(report.strategicRoadmap.map((phase) => phase.phaseKey)).toEqual(['strengthen_foundation', 'build_competitive_advantages', 'craft_application', 'finalise_optimise']);
+  });
+
+  it.each(['OpenAI request timed out.', 'OpenAI response exceeded the token limit.'])('recovers synthesis in three bounded parts after %s', async (failure) => {
+    const sections = synthesis();
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockRejectedValueOnce(new Error(failure))
+      .mockResolvedValueOnce(JSON.stringify({ strategicOverview: sections.strategicOverview }))
+      .mockResolvedValueOnce(JSON.stringify({ narrativeStrategy: sections.narrativeStrategy }))
+      .mockResolvedValueOnce(JSON.stringify({ strategicRoadmap: sections.strategicRoadmap }));
+    const report = await generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-6-luna' });
+    expect(mocks.openAiJsonCompletion).toHaveBeenCalledTimes(5);
+    expect(report.metadata.aiCallCount).toBe(5);
+    expect(report.profileDevelopmentStrategy.areas).toHaveLength(4);
+    expect(report.strategicRoadmap).toHaveLength(4);
+    for (const [index, section] of ['strategicOverview', 'narrativeStrategy', 'strategicRoadmap'].entries()) {
+      const request = mocks.openAiJsonCompletion.mock.calls[index + 2]?.[0];
+      expect(Object.keys(request.responseFormat.json_schema.schema.properties)).toEqual([section]);
+      expect(JSON.parse(request.messages[1].content).requestedSections).toEqual([section]);
+      expect(request.maxTokens).toBeLessThan(8000);
+    }
+  });
+
+  it('stops when an independent synthesis retry times out without restarting profile', async () => {
+    mocks.openAiJsonCompletion
+      .mockResolvedValueOnce(JSON.stringify({ areas: ['academic', 'experience', 'differentiation', 'evidence'].map((category) => area(category as never)) }))
+      .mockRejectedValue(new Error('OpenAI request timed out.'));
+    await expect(generateStrategyReportV3({ context: context(), apiKey: 'key', model: 'gpt-6-luna' })).rejects.toThrow('timed out');
+    expect(mocks.openAiJsonCompletion).toHaveBeenCalledTimes(5);
   });
 
   it('requires a development plan for BUILD areas and preserves its routes', async () => {

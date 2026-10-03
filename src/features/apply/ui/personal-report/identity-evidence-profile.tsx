@@ -2,7 +2,7 @@
 
 import { useT } from '@/lib/i18n';
 import type { PersonalReportV2 } from '../../domain';
-import { Badge, HorizontalBarChart } from '@/shared/ui';
+import { HorizontalBarChart } from '@/shared/ui';
 
 const SIGNAL_EXPLANATION: Record<string, string> = {
   patternConsistency: 'How consistently specific behaviours recur across separate experiences.',
@@ -42,16 +42,13 @@ export function IdentityEvidenceProfileView({ report }: { report: PersonalReport
       <div className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface-muted/60 p-6 sm:p-7 lg:col-span-5">
         <div>
           <p className="text-gb-xs font-bold uppercase tracking-wider text-fg-brand">{t('What the signals mean')}</p>
-          <p className="mt-0.5 text-gb-xs text-fg-muted">{t('Evidence context and confidence')}</p>
+          <p className="mt-0.5 text-gb-xs text-fg-muted">{t('Evidence context')}</p>
         </div>
         <div className="flex flex-col gap-gb-sm">
           {signals.map((signal) => (
             <div key={signal.key} className="flex flex-col gap-1 rounded-gb-lg border border-line/60 bg-surface p-4 shadow-2xs">
               <div className="flex items-center justify-between gap-gb-sm">
                 <p className="text-gb-sm font-bold text-fg">{signal.label}</p>
-                <Badge variant={signal.confidence === 'high' ? 'safe-chip' : 'neutral-chip'}>
-                  {signal.confidence} {t('confidence')}
-                </Badge>
               </div>
               <p className="text-gb-xs sm:text-gb-sm leading-relaxed text-fg-secondary">
                 {SIGNAL_EXPLANATION[signal.key] ?? signal.explanation ?? t('An evidence-backed identity signal.')}

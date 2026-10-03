@@ -34,7 +34,7 @@ export function CoreIdentityView({ section, report, returnTo }: { section: CoreI
   const hasIdentityEvidence = Boolean(identityStatement || section.headline || section.observations.length > 0);
 
   return (
-    <SectionShell eyebrow={t('Core Identity')} title={t('Who they consistently are')} confidence={section.confidence}>
+    <SectionShell eyebrow={t('Core Identity')} title={t('Who they consistently are')}>
       <div className="flex flex-col gap-gb-xl" data-no-auto-translate>
         {hasIdentityEvidence ? (
           <>
@@ -45,7 +45,7 @@ export function CoreIdentityView({ section, report, returnTo }: { section: CoreI
                 </h3>
                 {!section.available ? (
                   <span className="rounded-full border border-line bg-surface-muted px-2 py-1 text-gb-xs font-semibold text-fg-muted">
-                    {t('Emerging')} · {section.confidence}
+                    {t('Emerging')}
                   </span>
                 ) : null}
               </div>
@@ -104,7 +104,7 @@ export function CoreIdentityView({ section, report, returnTo }: { section: CoreI
                   <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-gb-sm [&::-webkit-details-marker]:hidden">
                     <h4 className="text-gb-base font-bold text-fg">{trait.characteristic}</h4>
                     <span className="rounded-full border border-line bg-surface-muted px-2 py-1 text-gb-xs font-semibold text-fg-muted">
-                      {trait.maturity === 'emerging' ? t('Emerging') : t('Established')} · {trait.evidenceStrength} · {trait.confidence}
+                      {trait.maturity === 'emerging' ? t('Emerging') : t('Established')} · {trait.evidenceStrength}
                     </span>
                   </summary>
                   <div className="flex flex-col gap-gb-sm pt-gb-sm">

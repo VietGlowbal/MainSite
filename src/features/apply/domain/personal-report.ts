@@ -221,6 +221,8 @@ function buildCoreIdentity(evaluation: ProfileEvaluation, activities: readonly N
   };
 }
 
+type DrivingForceComponent = 'primaryMotivation' | 'repeatedChoices' | 'recurringProblems' | 'decisionMaking' | 'underlyingValues' | 'strategicInterpretation';
+
 export type DrivingForceSection = {
   available: boolean;
   headline: string | null;
@@ -233,6 +235,8 @@ export type DrivingForceSection = {
   strategicInterpretation?: string | null;
   evidenceStrength?: 'strong' | 'moderate' | 'limited';
   motivationSource?: 'stated' | 'inferred' | 'insufficient';
+  /** Explicit gaps keep each framework component present without inventing evidence. */
+  componentLimitations?: Partial<Record<DrivingForceComponent, InsufficientData>>;
   repeatedMotivations: string[];
   evidenceRefs: EvidenceRef[];
   confidence: ReportConfidence;
@@ -352,11 +356,23 @@ function buildDrivingForce(
     ? `The available evidence connects the motivation and choices to these values: ${underlyingValues.join(', ')}.`
     : explanationParts.join(' ');
 
+  const componentLimitations: DrivingForceSection['componentLimitations'] = {};
+  const gap = (component: DrivingForceComponent, reason: string) => {
+    componentLimitations[component] = { reason, actions: [expandReflectionAction()] };
+  };
+  const primaryMotivation = statedMotivation ?? (isHypothesis ? 'An emerging motivation hypothesis from repeated activity choices.' : repeatedMotivations[0] ?? null);
+  if (!primaryMotivation) gap('primaryMotivation', 'Not established from the available evidence.');
+  if (!repeatedChoices.length) gap('repeatedChoices', 'No repeated opportunity choice is established yet.');
+  if (!recurringProblems.length) gap('recurringProblems', 'No recurring problem domain is established yet.');
+  if (!decisionMaking) gap('decisionMaking', 'No decision-making pattern is established yet.');
+  if (!underlyingValues.length) gap('underlyingValues', 'Values cannot be interpreted confidently yet.');
+
   return {
     available: true,
     headline,
+    componentLimitations,
     explanation: explanationParts.join(' '),
-    primaryMotivation: statedMotivation ?? (isHypothesis ? 'An emerging motivation hypothesis from repeated activity choices.' : repeatedMotivations[0] ?? null),
+    primaryMotivation,
     repeatedChoices,
     recurringProblems,
     decisionMaking,
@@ -1554,6 +1570,9 @@ function hasInsightContent(value: unknown): boolean {
 export function validatePersonalReportFramework(report: PersonalReportV2): PersonalReportFrameworkCoverage {
   const coreIdentity = report.coreIdentity as Partial<CoreIdentitySection> | undefined;
   const drivingForce = report.drivingForce as Partial<DrivingForceSection> | undefined;
+  const drivingLimitation = (component: DrivingForceComponent) =>
+    hasExplicitLimitation(drivingForce) ||
+    hasExplicitLimitation({ insufficientData: drivingForce?.componentLimitations?.[component] });
   const signaturePattern = report.signaturePattern as Partial<SignaturePatternSection> | undefined;
   const emergingThemes = report.emergingThemes as Partial<EmergingThemesSection> | undefined;
   const personalPositioning = report.personalPositioning as Partial<PersonalPositioningSection> | undefined;
@@ -1623,12 +1642,12 @@ export function validatePersonalReportFramework(report: PersonalReportV2): Perso
     definingTraits: section(hasTraits, hasExplicitLimitation(coreIdentity), idsFor(traitEvidence, coreEvidenceRefs.map((ref) => ref.id))),
     drivingForces: section(Boolean(drivingForce?.available || drivingForce?.primaryMotivation), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
     motivationLandscape: section(Boolean(narrative?.drivingForce || drivingForce?.repeatedMotivations?.length || drivingForce?.primaryMotivation), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
-    primaryMotivation: section(Boolean(narrative?.drivingForce?.primaryMotivation || drivingForce?.primaryMotivation), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
-    repeatedChoices: section(Boolean(narrative?.drivingForce?.repeatedChoices.length || drivingForce?.repeatedChoices?.length), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
-    recurringProblems: section(Boolean(narrative?.drivingForce?.recurringProblems.length || drivingForce?.recurringProblems?.length), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
-    decisionMaking: section(Boolean(narrative?.drivingForce?.decisionMaking || drivingForce?.decisionMaking), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
-    underlyingValues: section(Boolean(narrative?.drivingForce?.underlyingValues.length || drivingForce?.underlyingValues?.length), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
-    strategicInterpretation: section(Boolean(narrative?.drivingForce?.strategicInterpretation || drivingForce?.strategicInterpretation), hasExplicitLimitation(drivingForce), drivingEvidenceRefs.map((ref) => ref.id)),
+    primaryMotivation: section(Boolean(narrative?.drivingForce?.primaryMotivation || drivingForce?.primaryMotivation), drivingLimitation('primaryMotivation'), drivingEvidenceRefs.map((ref) => ref.id)),
+    repeatedChoices: section(Boolean(narrative?.drivingForce?.repeatedChoices.length || drivingForce?.repeatedChoices?.length), drivingLimitation('repeatedChoices'), drivingEvidenceRefs.map((ref) => ref.id)),
+    recurringProblems: section(Boolean(narrative?.drivingForce?.recurringProblems.length || drivingForce?.recurringProblems?.length), drivingLimitation('recurringProblems'), drivingEvidenceRefs.map((ref) => ref.id)),
+    decisionMaking: section(Boolean(narrative?.drivingForce?.decisionMaking || drivingForce?.decisionMaking), drivingLimitation('decisionMaking'), drivingEvidenceRefs.map((ref) => ref.id)),
+    underlyingValues: section(Boolean(narrative?.drivingForce?.underlyingValues.length || drivingForce?.underlyingValues?.length), drivingLimitation('underlyingValues'), drivingEvidenceRefs.map((ref) => ref.id)),
+    strategicInterpretation: section(Boolean(narrative?.drivingForce?.strategicInterpretation || drivingForce?.strategicInterpretation), drivingLimitation('strategicInterpretation'), drivingEvidenceRefs.map((ref) => ref.id)),
     provenCapabilities: section(hasCapabilities, hasCanvas, capabilityEvidence),
     capabilityOverview: section(Boolean(narrative?.provenCapabilities?.overview || hasCapabilities), hasCanvas, capabilityEvidence),
     capabilityProfile: section(hasCapabilities, hasCanvas, capabilityEvidence),

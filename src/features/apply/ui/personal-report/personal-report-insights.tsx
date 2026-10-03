@@ -48,10 +48,6 @@ function confidenceFromCount(count: number): ReportConfidence {
   return 'low';
 }
 
-function confidenceLabel(confidence: ReportConfidence): string {
-  return confidence === 'high' ? 'High confidence' : confidence === 'medium' ? 'Medium confidence' : 'Low confidence';
-}
-
 function Stars({ score }: { score: number }) {
   const stars = starsFromScore(score);
   return (
@@ -157,7 +153,7 @@ export function MotivationProfileView({ report }: { report: PersonalReportV2 }) 
           key: signal.key,
           label: signal.label,
           value: signal.value,
-          caption: `${signal.evidenceCount} supporting reflection${signal.evidenceCount === 1 ? '' : 's'} · ${confidenceLabel(signal.confidence)}`,
+          caption: `${signal.evidenceCount} supporting reflection${signal.evidenceCount === 1 ? '' : 's'}`,
         }))}
       />
     </div>
@@ -225,7 +221,6 @@ export function CapabilityProfileView({ report }: { report: PersonalReportV2 }) 
               ) : null}
               <div className="flex flex-wrap gap-gb-sm">
                 <Badge variant="neutral-chip">{capability.evidenceCount} experience{capability.evidenceCount === 1 ? '' : 's'}</Badge>
-                <Badge variant="neutral-chip">{confidenceLabel(capability.confidence)}</Badge>
                 {capability.verifiedEvidenceCount > 0 ? <Badge variant="safe-chip">{capability.verifiedEvidenceCount} verified</Badge> : null}
               </div>
               <div className="border-t border-line pt-gb-md">

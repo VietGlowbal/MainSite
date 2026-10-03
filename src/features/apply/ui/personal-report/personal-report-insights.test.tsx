@@ -12,6 +12,7 @@ import { KeyTakeawaysView } from './key-takeaways';
 import { CoreIdentityView } from './core-identity';
 import { PersonalReportPrintView } from './personal-report-print';
 import { ProofOfMeView } from './proof-of-me';
+import { DrivingForceView } from './driving-force';
 
 const NO_DATA = { reason: 'More evidence needed.', actions: [] };
 
@@ -142,6 +143,22 @@ function report(): PersonalReportV2 {
 }
 
 describe('Personal Report Pass 2 insights', () => {
+  it.each(['canonical', 'narrative', 'unavailable'] as const)('shows every Driving Force component in the %s path', (mode) => {
+    const current = report();
+    current.drivingForce = {
+      ...current.drivingForce, available: mode !== 'unavailable', insufficientData: mode === 'unavailable' ? NO_DATA : null, primaryMotivation: 'Supporting learners',
+      repeatedChoices: [], recurringProblems: [], underlyingValues: [], decisionMaking: null,
+      componentLimitations: { recurringProblems: { reason: 'No recurring problem domain is established yet.', actions: [{ kind: 'expand_activity_reflection', label: 'Add more detail to your existing activities (context, action, outcome)', href: '/ai-strategy/reflection/achievements' }] } },
+    };
+    if (mode === 'narrative') current.narrativeDetails = { drivingForce: {
+      primaryMotivation: 'Supporting learners', repeatedChoices: [], recurringProblems: [], underlyingValues: [], decisionMaking: '',
+      strategicInterpretation: 'Your motivation is emerging.', evidenceStrength: 'limited', isHypothesis: true, evidenceIds: [],
+    } };
+    render(<DrivingForceView section={current.drivingForce} report={current} returnTo={undefined} />);
+    for (const label of ['Primary motivation', 'Repeated choices', 'Recurring problems', 'Decision-making', 'Underlying values', 'Strategic interpretation']) expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText('No recurring problem domain is established yet.')).toBeInTheDocument();
+  });
+
   it('turns repeated named capabilities into an evidence radar and star ratings', () => {
     render(<CapabilityProfileView report={report()} />);
     expect(screen.getByRole('list', { name: 'Named capability evidence profile' })).toBeInTheDocument();
@@ -215,7 +232,7 @@ describe('Personal Report Pass 2 insights', () => {
 
     expect(screen.getByText(/notices engagement problems/i)).toBeInTheDocument();
     expect(screen.getByText('Problem solving and initiative')).toBeInTheDocument();
-    expect(screen.getByText(/Emerging · limited · low/i)).toBeInTheDocument();
+    expect(screen.getByText(/Emerging · limited/i)).toBeInTheDocument();
     expect(screen.getByText('Tutor platform')).toBeInTheDocument();
   });
 

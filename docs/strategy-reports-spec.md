@@ -1,5 +1,133 @@
 # Strategy reports — build spec
 
+## Strategy synthesis recovery and canonical references (2026-10-04)
+
+Synthesis timeout or output truncation triggers one bounded recovery: independent
+Strategic Overview, Narrative Strategy and Strategic Roadmap calls run concurrently
+with 4,000 output tokens each. Profile/activity diagnoses are retained. Every
+section is required and the assembled report still passes schema, evidence,
+deadline and framework validation. A terminal section failure propagates without
+saving a partial report or restarting profile/activity. Metadata counts recovery
+calls. Existing synthesis fallback for invalid legacy shapes remains unchanged.
+
+Profile, activity and synthesis now use strict provider schemas with enum-based
+reference allowlists and an explicit reference checklist in prompt v3.3. Activity
+output IDs are scoped to the requested batch. Empty reference namespaces require
+empty arrays; nested structures and final reference checks remain enforced.
+Reusable definitions avoid duplicating evidence enums throughout the schema;
+this follows the supported definitions and enum limits in
+[OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Original snapshot activity IDs absent from the Evidence Bank join provenance as
+report-only, never as verified evidence.
+
+Measured full coverage: 4,027 tests passed, two todo, 427 files; base/strict
+TypeScript, lint (five existing warnings), and production build passed. Updated
+80-evidence schema checks passed separately after the full suite. Regressions
+cover timeout/truncation recovery, exhausted retries, call counts, output section
+scope, empty allowlists and incomplete activity provenance. No live provider call
+or database change was made.
+
+## Matching reuse and completed job polling (2026-10-04)
+
+Matching reuses Personal when the saved input hash and confirmed snapshot match.
+Manual generation cache keys and prompt upgrades do not invalidate that reuse.
+The Analysis regenerate action refreshes downstream reports while retaining
+unchanged Personal; returning from an explicit Reflection edit still regenerates
+all three. Changed applicant source data remains covered by a regeneration test.
+
+If authenticated catalogue reads return `42501` for `crawl_sources`, provenance
+uses a server client for at most 20 selected-programme run IDs and six metadata
+columns. Programme and applicant access remain on the authenticated client.
+Personal GET marks a completed job ready when its owned version was superseded
+by a newer current report. The UI can stop polling without accepting an older
+split-read result or a stale snapshot. Tests reproduce both rejected cases.
+
+Full CI coverage passed 4,023 tests (two todo) across 427 files; strict TypeScript
+and production build passed. No database grants, report deletion or live provider
+calls were performed. Production diagnosis follows the supplied Vercel logs;
+the local DB was not used to establish production state.
+
+## Bounded narrative retry (2026-10-04)
+
+Timeouts now use the same independent-section recovery as provider truncation:
+one smaller request per part, with no recursive timeout/truncation retry for a
+single part. Omitted available snapshots enter the existing one-shot targeted
+repair, alongside schema, word-length and evidence-scope failures. Successful
+repair parts merge with the original valid parts even when another repair part
+fails. Failure telemetry identifies only the remaining invalid parts.
+
+Every accepted retry still passes strict schema, word ranges, grounding, voice
+and section-specific evidence validation. Exhausted retries use the canonical
+framework fallback; unsupported component conclusions remain explicit gaps.
+Tests cover omitted snapshots, successful and exhausted timeout recovery,
+partial repair retention, and the combined production-log failure. Full coverage
+passed 4,015 tests (two todo) across 427 files; base/strict TypeScript, lint
+(five existing warnings) and production build passed. No live provider generation
+was run.
+
+## Required component gaps (2026-10-04)
+
+A Driving Force can be available while recurring problems or underlying values
+remain unsupported. Those components now carry explicit limitation reasons and
+follow-up actions instead of making the entire report fail as structurally
+missing. The validator continues to reject absent components and incomplete gap
+records. No recurrence or value is fabricated to satisfy the framework.
+
+All six Driving Force parts render in the interactive and print views, including
+canonical fallback and unavailable sections. Empty model lists retain canonical
+findings. Prompt `report-synthesis-v20-explicit-component-gaps` receives component
+limitations and requires all six fields, with unsupported lists left empty and
+their gaps explained in the strategic interpretation.
+
+Full coverage: 4,010 passed, two todo, 427 files. Strict TypeScript, lint (five
+existing warnings), i18n and production build passed. Live AI regeneration was
+not run.
+
+## Flow audit (2026-10-03)
+
+Strategy workspace retries and report selection changes remount the loading
+state. Requests that finish after the previous selection unmounts cannot render,
+redirect or start another generation. GET resolves the selected/latest Personal
+Report first and checks V3 snapshot and Matching ID/hash before returning cached
+output; mismatched lineage goes through the existing generation/prerequisite
+flow. Historical Personal Report selection remains explicitly supported.
+Matching's fallback selects its displayed report and downstream Personal Report
+version from the same valid row, preventing malformed newer rows from supplying
+the Strategy link. Personal generation and Matching routes allow 300 seconds,
+aligned with the existing durable worker and Strategy pipeline.
+
+Regression tests reproduced stale cached output, inert retry, stale selection
+and malformed-row lineage before fixes; an additional delayed-response test
+checks that obsolete GET results cannot trigger POST. 152 focused tests, strict
+TypeScript, lint, i18n checks and production build passed. The broad coverage run
+had 3,997 passes and one i18n failure from parallel StrategyHome work; the fixed
+catalog passed its real integration checker in the final focused run. Production
+AI/database E2E was unavailable in the local environment.
+
+## Narrative truncation recovery (2026-10-03)
+
+Structured Personal Report batches now allow 6,000 completion tokens. If the
+provider ends a batch with `finish_reason: length`, each requested section is
+regenerated independently with 4,000 tokens and the same strict schema and
+grounding checks. Single-section truncation is terminal; successful siblings
+are retained. Failed sections still use the deterministic report and report
+their section-specific failure through telemetry. Reflection context is selected
+by requested section, so recovery and repair retain the original batch context.
+Tests simulate successful recovery of all seven narrative sections and a repeated
+single-section truncation that preserves the other six without looping.
+70 focused tests, strict TypeScript, scoped ESLint, i18n checks and production
+build passed. No live provider generation was performed. The strategy landing
+page keeps its hero CTA and removes the duplicate CTA below testimonials.
+
+## Personal Report presentation (2026-10-03)
+
+Personal Report no longer displays overall or per-section confidence badges,
+or High/Medium/Low confidence captions in its detailed views. This applies to
+the snapshot, Canvas popups and shared printable sections. Confidence remains
+in the report schema and analysis; evidence counts and maturity labels still
+render. English and Vietnamese captions were updated. Verification: 34 focused
+UI tests, strict TypeScript, scoped ESLint, i18n checks and production build passed.
+
 ## Report navigation repair (2026-10-03)
 
 The Matching "Open report" link could return to Analysis although generation

@@ -31,5 +31,5 @@ export { ProfileAtAGlanceView } from './profile-at-a-glance';
 export { ProofOfMeView } from './proof-of-me';
 export { PersonalReportSectionNav } from './report-section-nav';
 export { SignaturePatternView } from './signature-pattern';
-export { ConfidenceBadge, withReturn } from './shared';
+export { withReturn } from './shared';
 export { VersionHistoryPicker } from './version-history';

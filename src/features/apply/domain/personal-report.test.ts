@@ -312,6 +312,48 @@ describe('buildPersonalReport', () => {
     expect(coverage.groundingValidity.valid).toBe(true);
   });
 
+  it('keeps every Driving Force component for a stated motivation without repeated problems', () => {
+    const result = report({ narrativeActivities: [TUTOR, { ...CODING, domainTheme: 'scientific discovery' }], reflectionRecords: [] });
+    expect(result.drivingForce.available).toBe(true);
+    expect(result.drivingForce.recurringProblems).toEqual([]);
+    const coverage = validatePersonalReportFramework(result);
+    expect(coverage.sections.recurringProblems.structuralPresent).toBe(true);
+    expect(coverage.sections.recurringProblems.status).toBe('needs_more_evidence');
+    expect(coverage.structuralCompleteness.missing).not.toContain('recurringProblems');
+    expect(result.drivingForce.componentLimitations?.recurringProblems?.actions.length).toBeGreaterThan(0);
+  });
+
+  it('retains underlying values as an explicit gap for an emerging motivation', () => {
+    const result = report({ narrativeActivities: [TUTOR, CODING, CAREERBRIDGE].map((activity) => ({ ...activity, statedMotivation: null })) });
+    expect(result.drivingForce.available).toBe(true);
+    expect(result.drivingForce.isHypothesis).toBe(true);
+    expect(result.drivingForce.underlyingValues).toEqual([]);
+    expect(validatePersonalReportFramework(result).sections.underlyingValues).toMatchObject({ structuralPresent: true, contentComplete: true, status: 'needs_more_evidence' });
+    expect(result.drivingForce.componentLimitations?.underlyingValues?.actions.length).toBeGreaterThan(0);
+  });
+
+  it('rejects a missing component when its limitation or follow-up action is absent', () => {
+    const result = report({ narrativeActivities: [TUTOR, { ...CODING, domainTheme: 'scientific discovery' }] });
+    delete result.drivingForce.componentLimitations?.recurringProblems;
+    expect(validatePersonalReportFramework(result).structuralCompleteness.missing).toContain('recurringProblems');
+    result.drivingForce.componentLimitations = { recurringProblems: { reason: 'Not established.', actions: [] } };
+    expect(validatePersonalReportFramework(result).contentCompleteness.missing).toContain('recurringProblems');
+  });
+
+  it.each([
+    ['rich', [TUTOR, CODING, CAREERBRIDGE]],
+    ['mixed domains', [TUTOR, { ...CODING, domainTheme: 'scientific discovery' }]],
+    ['emerging motivation', [TUTOR, CODING, CAREERBRIDGE].map((activity) => ({ ...activity, statedMotivation: null }))],
+    ['sparse', [TUTOR]],
+    ['empty', []],
+  ] as const)('assembles every framework component for the %s profile', (_name, activities) => {
+    const result = report({ narrativeActivities: [...activities] });
+    result.canvasDetails = buildPersonalCanvasDetails({ activities, coreIdentity: result.coreIdentity, drivingForce: result.drivingForce, emergingThemes: result.emergingThemes, personalPositioning: result.personalPositioning, proofOfMe: result.proofOfMe, intendedDirection: null });
+    const coverage = validatePersonalReportFramework(result);
+    expect(coverage.structuralCompleteness.missing).toEqual([]);
+    expect(coverage.contentCompleteness.missing).toEqual([]);
+  });
+
   it('does not treat empty section objects as framework coverage', () => {
     const coverage = validatePersonalReportFramework({} as never);
 
