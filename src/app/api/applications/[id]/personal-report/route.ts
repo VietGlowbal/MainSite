@@ -22,7 +22,7 @@ import {
 } from './_helpers';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 const bodySchema = z.object({

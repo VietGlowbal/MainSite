@@ -52,7 +52,7 @@ type FeatureItem = {
   readonly duration: string;
 };
 
-const FEATURES: readonly FeatureItem[] = [
+const FEATURES: readonly [FeatureItem, ...FeatureItem[]] = [
   {
     key: 'portrait',
     icon: 'personalReport',

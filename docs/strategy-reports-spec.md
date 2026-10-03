@@ -1,5 +1,26 @@
 # Strategy reports — build spec
 
+## Flow audit (2026-10-03)
+
+Strategy workspace retries and report selection changes remount the loading
+state. Requests that finish after the previous selection unmounts cannot render,
+redirect or start another generation. GET resolves the selected/latest Personal
+Report first and checks V3 snapshot and Matching ID/hash before returning cached
+output; mismatched lineage goes through the existing generation/prerequisite
+flow. Historical Personal Report selection remains explicitly supported.
+Matching's fallback selects its displayed report and downstream Personal Report
+version from the same valid row, preventing malformed newer rows from supplying
+the Strategy link. Personal generation and Matching routes allow 300 seconds,
+aligned with the existing durable worker and Strategy pipeline.
+
+Regression tests reproduced stale cached output, inert retry, stale selection
+and malformed-row lineage before fixes; an additional delayed-response test
+checks that obsolete GET results cannot trigger POST. 152 focused tests, strict
+TypeScript, lint, i18n checks and production build passed. The broad coverage run
+had 3,997 passes and one i18n failure from parallel StrategyHome work; the fixed
+catalog passed its real integration checker in the final focused run. Production
+AI/database E2E was unavailable in the local environment.
+
 ## Narrative truncation recovery (2026-10-03)
 
 Structured Personal Report batches now allow 6,000 completion tokens. If the

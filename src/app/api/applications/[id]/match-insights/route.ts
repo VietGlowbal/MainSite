@@ -8,7 +8,7 @@ import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service'
 import { applyRateLimit, strategyAiLimiter } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 300;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const bodySchema = z.object({
   force: z.boolean().optional(),

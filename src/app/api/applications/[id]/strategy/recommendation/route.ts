@@ -117,12 +117,24 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const requestedVersionId = z.string().uuid().safeParse(
     new URL(request.url).searchParams.get('personalReportVersionId'),
   );
-  const strategyRows = await loadStrategyRows(
-    supabase,
-    applicationId,
-    requestedVersionId.success ? requestedVersionId.data : undefined,
-  );
-  const reportV3 = strategyRows.map(strategyReportV3FromRow).find(Boolean) ?? null;
+  const personalResult = requestedVersionId.success
+    ? await getApplicationPersonalReportV2Version(supabase, { userId: user.id, applicationId }, requestedVersionId.data)
+    : await getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId });
+  const personal = personalResult.record;
+  if (!personal?.confirmedSnapshotId) {
+    return NextResponse.json({ reportV3: null, reportV2: null, recommendation: null });
+  }
+  const [strategyRows, matching] = await Promise.all([
+    loadStrategyRows(supabase, applicationId, personal.id),
+    loadCurrentMatching(supabase, applicationId, user.id, personal.id, personal.confirmedSnapshotId),
+  ]);
+  const reportV3 = strategyRows.map(strategyReportV3FromRow).find((report) =>
+    report && matching &&
+    report.metadata.personalReportVersionId === personal.id &&
+    report.metadata.confirmedSnapshotId === personal.confirmedSnapshotId &&
+    report.metadata.matchingReportId === String(matching.row.id) &&
+    report.metadata.matchingInputHash === stringValue(matching.row.input_hash),
+  ) ?? null;
   const reportV2 = strategyRows.map(strategyReportV2FromRow).find(Boolean) ?? null;
   const recommendation = strategyRows.map(strategyRecommendationFromRow).find(Boolean) ?? null;
   return NextResponse.json({ reportV3, reportV2, recommendation });

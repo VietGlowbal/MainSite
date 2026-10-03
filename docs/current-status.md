@@ -1,5 +1,20 @@
 # Current project status
 
+Main 2026-10-03 (Personal → Matching → Strategy flow audit): Strategy retries
+now start a fresh workspace; application/Personal Report version changes reset
+the view, and late responses cannot replace a newer selection. Strategy GET
+resolves the selected/latest Personal Report and accepts V3 only when its
+snapshot and Matching ID/hash match the source. Matching fallback now resolves
+the displayed artifact and its Strategy-link lineage from the same valid row.
+Personal request/after-worker and Matching runtime limits are 300 seconds to
+cover extraction, narrative recovery and downstream composition. Concurrent
+StrategyHome redesign commits were preserved; its feature list is now typed as
+nonempty and ten missing catalog entries were added. Verification: 152 focused
+tests, strict TypeScript, scoped/full ESLint (five existing warnings), i18n and
+production build passed. Full coverage ran 3,997 tests successfully with one
+i18n failure caused by the concurrent redesign; that failure passed after repair
+in the focused rerun. No live provider generation or signed-in database E2E ran.
+
 Main 2026-10-03 (AI Strategy Home redesign & video placeholders): redesigned
 StrategyHome overview page to guide students through the 5 core AI Strategy
 functions (Applicant Profile, Course Match, Personalised Action Roadmap, 24/7 AI
