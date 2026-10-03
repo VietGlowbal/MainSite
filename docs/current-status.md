@@ -1,5 +1,16 @@
 # Current project status
 
+Main 2026-10-03 (AI Strategy tab performance): `fetchOnboardingState` now uses
+React request memoization, sharing the nav/page read without a cross-request TTL.
+`ApplicationNav` starts onboarding and Planner access reads concurrently. Report
+tabs prefetch on hover, keyboard focus or touch; active/locked tabs and non-report
+workspaces are not explicitly prefetched. Next's ordinary Link behavior remains.
+An isolated real Next RSC renderer measured duplicate onboarding reads falling
+from 10 to 5 per request, with fresh flags on the next request and separate reads
+for different users/applications. No signed-in production tab latency was measured.
+Full suite 3,990 tests passed (2 todo); production build, strict TypeScript and
+lint passed (zero errors, five existing warnings).
+
 Main 2026-10-03 (Matching open-link redirect loop): the onboarding gate limited
 Personal Report versions to one without ordering. With an older report on a
 previous snapshot first, it incorrectly marked analysis incomplete and sent
