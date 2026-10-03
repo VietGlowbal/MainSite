@@ -1,5 +1,32 @@
 # Strategy reports — build spec
 
+## Strategy synthesis recovery and canonical references (2026-10-04)
+
+Synthesis timeout or output truncation triggers one bounded recovery: independent
+Strategic Overview, Narrative Strategy and Strategic Roadmap calls run concurrently
+with 4,000 output tokens each. Profile/activity diagnoses are retained. Every
+section is required and the assembled report still passes schema, evidence,
+deadline and framework validation. A terminal section failure propagates without
+saving a partial report or restarting profile/activity. Metadata counts recovery
+calls. Existing synthesis fallback for invalid legacy shapes remains unchanged.
+
+Profile, activity and synthesis now use strict provider schemas with enum-based
+reference allowlists and an explicit reference checklist in prompt v3.3. Activity
+output IDs are scoped to the requested batch. Empty reference namespaces require
+empty arrays; nested structures and final reference checks remain enforced.
+Reusable definitions avoid duplicating evidence enums throughout the schema;
+this follows the supported definitions and enum limits in
+[OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Original snapshot activity IDs absent from the Evidence Bank join provenance as
+report-only, never as verified evidence.
+
+Measured full coverage: 4,027 tests passed, two todo, 427 files; base/strict
+TypeScript, lint (five existing warnings), and production build passed. Updated
+80-evidence schema checks passed separately after the full suite. Regressions
+cover timeout/truncation recovery, exhausted retries, call counts, output section
+scope, empty allowlists and incomplete activity provenance. No live provider call
+or database change was made.
+
 ## Matching reuse and completed job polling (2026-10-04)
 
 Matching reuses Personal when the saved input hash and confirmed snapshot match.

@@ -141,7 +141,7 @@ export async function generateStrategyReportV3(args: {
   }
   const profileResult = sanitizeGeneratedReferences(await callStage('strategy_profile_diagnosis', profileStageSchema, {
     context: modelContext(context),
-  }, apiKey, model, 'profile_failed'), referenceAllowlist(context), 'profile');
+  }, apiKey, model, 'profile_failed', referenceAllowlist(context)), referenceAllowlist(context), 'profile');
   const profile = { areas: profileResult.areas.map((area) => ({ ...area, key: area.category })) };
   validateProfile(profile.areas, context);
 
@@ -160,25 +160,46 @@ export async function generateStrategyReportV3(args: {
         apiKey,
         model,
         'activity_failed',
+        referenceAllowlist(context),
       ), referenceAllowlist(context), 'activity'),
     );
   }
   const activities = validateActivities(normalizeActivityClaimSupport(activityResults.flatMap((result) => result.analyses)), context);
 
   const priorities = selectTopPriorities(context, profile.areas, activities);
-  const synthesisCandidate = sanitizeGeneratedReferences(await callStage(
-    'strategy_report_synthesis',
-    synthesisStageSchema,
-    {
-      context: modelContext(context),
-      profileDiagnoses: profile.areas,
-      activityAnalyses: activities,
-      deterministicallyRankedPriorities: priorities,
-    },
-    apiKey,
-    model,
-    'synthesis_failed',
-  ), referenceAllowlist(context, priorities), 'synthesis');
+  const synthesisInput = {
+    context: modelContext(context),
+    profileDiagnoses: profile.areas,
+    activityAnalyses: activities,
+    deterministicallyRankedPriorities: priorities,
+  };
+  const synthesisAllowed = referenceAllowlist(context, priorities);
+  let extraSynthesisCalls = 0;
+  let synthesisResult: z.infer<typeof synthesisStageSchema>;
+  try {
+    synthesisResult = await callStage(
+      'strategy_report_synthesis',
+      synthesisStageSchema,
+      synthesisInput,
+      apiKey,
+      model,
+      'synthesis_failed',
+      synthesisAllowed,
+    );
+  } catch (error) {
+    if (!(error instanceof Error) || !/timed out|exceeded the token limit/i.test(error.message)) throw error;
+    console.warn('[strategy-v3] retrying synthesis as independent parts', { reason: /timed out/i.test(error.message) ? 'timeout' : 'output_truncated' });
+    const sections = ['strategicOverview', 'narrativeStrategy', 'strategicRoadmap'] as const;
+    extraSynthesisCalls = sections.length;
+    const parts = await Promise.all(sections.map((section) => callStage(
+      'strategy_report_synthesis',
+      z.object({ [section]: z.unknown() }).strict(),
+      { ...synthesisInput, requestedSections: [section] },
+      apiKey, model, 'synthesis_failed', synthesisAllowed,
+    )));
+    synthesisResult = synthesisStageSchema.parse(Object.assign({}, ...parts));
+  }
+  const synthesisCandidate = sanitizeGeneratedReferences(synthesisResult, synthesisAllowed, 'synthesis');
   const fallbackSynthesis = deterministicSynthesis(priorities);
   const synthesis = isCanonicalSynthesis(synthesisCandidate) ? synthesisCandidate : fallbackSynthesis;
   if (synthesis === fallbackSynthesis) {
@@ -186,7 +207,7 @@ export async function generateStrategyReportV3(args: {
   }
 
   const assembleAndValidate = (candidate: z.infer<typeof synthesisStageSchema>) => assertStrategyReportV3(
-    assembleReport({ context, profile: profile.areas, activities, priorities, synthesis: candidate, model, now }),
+    assembleReport({ context, profile: profile.areas, activities, priorities, synthesis: candidate, model, now, extraSynthesisCalls }),
     {
       activityIds: context.activities.map((activity) => activity.activityId),
       evidenceIds: context.evidenceIndex.map((item) => item.id),
@@ -224,6 +245,7 @@ async function callStage<T extends z.ZodTypeAny>(
   apiKey: string,
   model: string,
   failureCode: StrategyGenerationError['code'],
+  allowed: Record<ReferenceField, Set<string>>,
 ): Promise<z.infer<T>> {
   const prompt = getReportPrompt(promptId);
   try {
@@ -232,11 +254,11 @@ async function callStage<T extends z.ZodTypeAny>(
       model,
       messages: [
         { role: 'system', content: prompt.systemPrompt },
-        { role: 'user', content: JSON.stringify(input) },
+        { role: 'user', content: JSON.stringify({ ...record(input), allowedReferences: Object.fromEntries(Object.entries(allowed).map(([key, ids]) => [key, [...ids]])) }) },
       ],
       temperature: 0.2,
-      maxTokens: promptId === 'strategy_activity_analysis' ? 6_000 : 8_000,
-      ...(promptId === 'strategy_report_synthesis' ? { responseFormat: strategySynthesisResponseFormat } : {}),
+      maxTokens: Array.isArray(record(input).requestedSections) ? 4_000 : promptId === 'strategy_activity_analysis' ? 6_000 : 8_000,
+      responseFormat: stageResponseFormat(promptId, schema, allowed, record(input).requiredActivityIds, record(input).requestedSections),
     });
     const parsedJson: unknown = JSON.parse(raw);
     const parsed = schema.safeParse(parsedJson);
@@ -248,6 +270,57 @@ async function callStage<T extends z.ZodTypeAny>(
       failureCode,
     );
   }
+}
+
+/** Constrain IDs before generation; keep validation and sanitisation as final guards. */
+function stageResponseFormat(
+  promptId: string,
+  schema: z.ZodTypeAny,
+  allowed: Record<ReferenceField, Set<string>>,
+  activityIds: unknown,
+  requestedSections: unknown,
+): Record<string, unknown> {
+  const base = promptId === 'strategy_report_synthesis'
+    ? record(strategySynthesisResponseFormat.json_schema).schema
+    : toOpenAiStrictSchema(z.toJSONSchema(schema, { target: 'draft-07', unrepresentable: 'any', reused: 'inline' }));
+  const definitions: JsonSchemaRecord = {};
+  const referenceSchema = (field: ReferenceField): JsonSchemaRecord => {
+    const name = field === 'linkedPriorityKeys' ? 'priorityKeys' : field;
+    if (!definitions[name]) {
+      definitions[name] = field === 'basisRefs'
+        ? { anyOf: (['supportingExperienceIds', 'evidenceIds', 'targetSourceRefs', 'metricIds', 'gapIds', 'requirementIds'] as const)
+          .filter((key) => allowed[key].size).map(referenceSchema) }
+        : { type: 'string', enum: [...allowed[field]] };
+    }
+    return { $ref: `#/$defs/${name}` };
+  };
+  const constrain = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(constrain);
+    if (!isJsonSchemaRecord(value)) return value;
+    const result = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, constrain(child)]));
+    if (isJsonSchemaRecord(result.properties)) {
+      for (const [field, child] of Object.entries(result.properties)) {
+        if (!isJsonSchemaRecord(child)) continue;
+        const ids = allowed[field as ReferenceField];
+        if (ids && child.type === 'array') {
+          if (ids.size) child.items = referenceSchema(field as ReferenceField);
+          else child.maxItems = 0;
+        }
+        if (field === 'activityId' && Array.isArray(activityIds) && activityIds.length) child.enum = activityIds;
+      }
+    }
+    return result;
+  };
+  const constrained = record(constrain(base));
+  if (Array.isArray(requestedSections)) {
+    constrained.properties = Object.fromEntries(Object.entries(record(constrained.properties)).filter(([key]) => requestedSections.includes(key)));
+    constrained.required = Object.keys(record(constrained.properties));
+  }
+  if (Object.keys(definitions).length) constrained.$defs = definitions;
+  return {
+    type: 'json_schema',
+    json_schema: { name: `${promptId}_v3`, strict: true, schema: constrained },
+  };
 }
 
 function modelContext(context: StrategyInputContext): Record<string, unknown> {
@@ -675,6 +748,7 @@ function assembleReport(args: {
   synthesis: z.infer<typeof synthesisStageSchema>;
   model: string;
   now: Date;
+  extraSynthesisCalls: number;
 }): unknown {
   const overview = record(args.synthesis.strategicOverview);
   const narrative = args.synthesis.narrativeStrategy;
@@ -682,7 +756,7 @@ function assembleReport(args: {
   if (!rawRoadmap || rawRoadmap.length !== 4) throw new StrategyGenerationError('Strategy roadmap must contain four phases.', 'synthesis_failed');
   const priorityKeys = args.priorities.map((priority) => priority.key);
   const roadmap = rawRoadmap.map((raw, index) => roadmapPhase(record(raw), index, priorityKeys, args.context));
-  const callCount = 1 + Math.ceil(args.context.activities.length / STRATEGY_ACTIVITY_BATCH_SIZE) + 1;
+  const callCount = 2 + Math.ceil(args.context.activities.length / STRATEGY_ACTIVITY_BATCH_SIZE) + args.extraSynthesisCalls;
   return {
     contractVersion: STRATEGY_REPORT_V3_CONTRACT_VERSION,
     generatedAt: args.now.toISOString(),

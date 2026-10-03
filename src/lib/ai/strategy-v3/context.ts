@@ -213,6 +213,7 @@ function buildEvidenceIndex(
     if (id) addReportOnly({ id, label: stringValue(item.label) ?? stringValue(item.statement) ?? id });
   }
   for (const item of [...state.achievements, ...state.activities]) {
+    addReportOnly({ id: item.id, label: item.title });
     addReportOnly({ id: experienceEvidenceId(item.id), label: item.title });
   }
   for (const item of state.evidenceBank) {

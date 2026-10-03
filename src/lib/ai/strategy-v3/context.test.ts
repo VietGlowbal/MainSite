@@ -101,6 +101,9 @@ describe('Strategy V3 canonical context', () => {
       status: 'report_only',
       direct: false,
     });
+    expect(context.evidenceIndex.find((item) => item.id === context.activities[0]?.activityId)).toMatchObject({
+      status: 'report_only', direct: false,
+    });
   });
 
   it('preserves verification status instead of promoting snapshot reflections to verified evidence', () => {

@@ -1,5 +1,19 @@
 # Current project status
 
+Main 2026-10-04 (Strategy synthesis timeout and references): Strategy retries
+timed-out or truncated synthesis once as three concurrent 4,000-token section
+requests, retaining profile/activity results and enforcing final report coverage.
+Exhausted retries fail rather than saving a partial report; AI call counts include
+recovery. All stages now use strict output schemas with canonical reference
+allowlists, reusable enum definitions, and a requested activity-ID checklist.
+Snapshot activities missing from the Evidence Bank retain their original IDs as
+unverified report-only provenance. Prompt v3.3 adds explicit reference checks and
+section recovery instructions. Full coverage: 4,027 passed, two todo, 427 files;
+base/strict TypeScript, lint (five existing warnings), and production build passed.
+The updated 80-evidence schema regression also passed separately after the full
+suite. No live provider call or database change was made; diagnosis follows the
+supplied Vercel timeout and unknown-reference logs.
+
 Main 2026-10-04 (Matching reuse and completed Personal loading): Matching now
 reuses a saved Personal Report when source hash and confirmed snapshot match,
 including manual request keys and older prompt metadata. The Analysis regenerate
