@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/server/db/admin';
 import { targetProfileSchema, type CatalogueProjection, type TargetProfile } from './domain';
 
 /**
@@ -121,13 +122,19 @@ export async function loadProgrammeCatalogue(
     ),
   ).slice(0, 20);
 
-  const sourceRows = runIds.length
-    ? await supabase
-        .from('crawl_sources')
-        .select('run_id, url, title, retrieved_at, content_hash, page_type')
-        .in('run_id', runIds)
-        .then(toRows)
-    : [];
+  const readSources = (client: SupabaseClient) => client
+    .from('crawl_sources')
+    .select('run_id, url, title, retrieved_at, content_hash, page_type')
+    .in('run_id', runIds);
+  let sourceRows: Array<Record<string, unknown>> = [];
+  if (runIds.length) {
+    const result = await readSources(supabase);
+    // Crawl provenance is private ingestion data. Keep authenticated grants
+    // unchanged; read only these safe fields for the selected programme's runs.
+    sourceRows = toRows(result.error?.code === '42501'
+      ? await readSources(createAdminClient())
+      : result);
+  }
 
   // One representative source per run keeps `sources` bounded.
   const byRun = new Map<string, Record<string, unknown>>();

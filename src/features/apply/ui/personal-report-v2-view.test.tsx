@@ -155,6 +155,17 @@ describe('PersonalReportV2View — inline report answers', () => {
     await screen.findByRole('heading', { name: 'Olivia' }, { timeout: 5_000 });
   });
 
+  it('leaves loading when a current newer report supersedes a completed job version', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn((_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return Promise.resolve(new Response(JSON.stringify({ queued: true }), { status: 202 }));
+      return Promise.resolve(new Response(JSON.stringify({ reportV2: reportWithDrivingForceGap(), versionId: 'newer-report', generationReportReady: true, generation: { status: 'complete', report_version_id: 'completed-job-report' } }), { status: 200 }));
+    }));
+    render(<PersonalReportV2View initialReport={null} initialVersionId={null} initialVersions={[]} applicationId="app-1" applicationConfirmed studentName="Olivia" generatedAt={null} migrationMissing={false} />);
+    await user.click(screen.getByRole('button', { name: 'Create report' }));
+    await screen.findByRole('heading', { name: 'Olivia' }, { timeout: 1_000 });
+  });
+
   it('does not accept the old report while the queued job is still processing', async () => {
     const user = userEvent.setup();
     let polls = 0;

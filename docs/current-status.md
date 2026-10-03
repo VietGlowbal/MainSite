@@ -1,5 +1,18 @@
 # Current project status
 
+Main 2026-10-04 (Matching reuse and completed Personal loading): Matching now
+reuses a saved Personal Report when source hash and confirmed snapshot match,
+including manual request keys and older prompt metadata. The Analysis regenerate
+button retains unchanged Personal; the Reflection edit flow still regenerates it.
+Catalogue provenance reads recover Vercel's `42501` using a server client scoped
+to selected programme run IDs and safe metadata fields, without changing grants.
+Personal polling accepts an owned newer report that supersedes a completed job
+version, while rejecting stale or older results. Snapshot parsing also passes
+strict array-index checks after the latest formatting change. Full CI coverage:
+4,023 passed, two todo, 427 files; strict TypeScript and production build passed.
+The supplied Vercel logs guided diagnosis; local DB identity is unverified and
+no database changes or live provider generation were made.
+
 Main 2026-10-04 (Personal Report snapshot formatting): formatted the Applicant
 Snapshot narrative into structured section cards (Overall Identity, Unique
 Positioning, Most Prominent Recurring Pattern, Potential/Development Direction)

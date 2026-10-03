@@ -1,5 +1,25 @@
 # Strategy reports — build spec
 
+## Matching reuse and completed job polling (2026-10-04)
+
+Matching reuses Personal when the saved input hash and confirmed snapshot match.
+Manual generation cache keys and prompt upgrades do not invalidate that reuse.
+The Analysis regenerate action refreshes downstream reports while retaining
+unchanged Personal; returning from an explicit Reflection edit still regenerates
+all three. Changed applicant source data remains covered by a regeneration test.
+
+If authenticated catalogue reads return `42501` for `crawl_sources`, provenance
+uses a server client for at most 20 selected-programme run IDs and six metadata
+columns. Programme and applicant access remain on the authenticated client.
+Personal GET marks a completed job ready when its owned version was superseded
+by a newer current report. The UI can stop polling without accepting an older
+split-read result or a stale snapshot. Tests reproduce both rejected cases.
+
+Full CI coverage passed 4,023 tests (two todo) across 427 files; strict TypeScript
+and production build passed. No database grants, report deletion or live provider
+calls were performed. Production diagnosis follows the supplied Vercel logs;
+the local DB was not used to establish production state.
+
 ## Bounded narrative retry (2026-10-04)
 
 Timeouts now use the same independent-section recovery as provider truncation:

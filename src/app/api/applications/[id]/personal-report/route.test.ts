@@ -6,6 +6,7 @@ import { PERSONAL_REPORT_CONTRACT_VERSION } from '@/features/apply/domain';
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   getLatest: vi.fn(),
+  getVersion: vi.fn(),
   countReportGenerations: vi.fn(),
   enqueue: vi.fn(),
   getGeneration: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('next/server', async (importOriginal) => ({
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => supabaseMock }));
 vi.mock('@/features/apply/api', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatest,
+  getApplicationPersonalReportV2Version: mocks.getVersion,
   countApplicationReportGenerations: mocks.countReportGenerations,
   enqueueApplicationPersonalReportGeneration: mocks.enqueue,
   getApplicationPersonalReportGeneration: mocks.getGeneration,
@@ -79,6 +81,7 @@ describe('application Personal Report route', () => {
     setup();
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.getLatest.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.getVersion.mockResolvedValue({ record: { createdAt: '2026-08-20T00:01:00Z' }, migrationMissing: false });
     mocks.countReportGenerations.mockResolvedValue({ count: 0, migrationMissing: false });
     mocks.enqueue.mockResolvedValue({
       migrationMissing: false,
@@ -104,6 +107,18 @@ describe('application Personal Report route', () => {
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ applicationId: 'app-1', reportV2: null, confirmed: true, stale: true });
+  });
+
+  it.each([
+    ['newer current report', '2026-08-20T00:02:00Z', 'snapshot-1', true],
+    ['older report from a split read', '2026-08-20T00:00:00Z', 'snapshot-1', false],
+    ['newer stale snapshot', '2026-08-20T00:02:00Z', 'old-snapshot', false],
+  ])('resolves completed generation readiness for %s', async (_label, createdAt, confirmedSnapshotId, ready) => {
+    mocks.getLatest.mockResolvedValue({ migrationMissing: false, record: { id: 'latest-report', reportV2: { coreIdentity: {} }, createdAt, confirmedSnapshotId } });
+    mocks.getGeneration.mockResolvedValue({ migrationMissing: false, job: { status: 'complete', report_version_id: 'job-report', completed_at: '2026-08-20T00:01:00Z' } });
+    const { GET } = await import('./route');
+    const response = await GET(new Request('http://localhost/x'), context());
+    expect((await response.json()).generationReportReady).toBe(ready);
   });
 
   it('queues application-scoped generation and preserves force intent', async () => {

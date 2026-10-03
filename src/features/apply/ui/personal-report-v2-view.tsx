@@ -202,7 +202,8 @@ export function PersonalReportV2View({
         const reportIsFresh = Boolean(
           body.reportV2 &&
             (!body.generation ||
-              (body.generation.status === 'complete' && body.generation.report_version_id === body.versionId)),
+              (body.generation.status === 'complete' &&
+                (body.generation.report_version_id === body.versionId || body.generationReportReady === true))),
         );
         if (reportIsFresh && !generationActive) {
           setReport(body.reportV2 as PersonalReportV2);

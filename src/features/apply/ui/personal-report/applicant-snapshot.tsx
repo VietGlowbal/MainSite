@@ -67,7 +67,7 @@ function parseSnapshotSections(text: string): SnapshotSection[] {
 
     // Any introductory text before the first heading
     const firstMatch = matches[0];
-    if (firstMatch.index > 0) {
+    if (firstMatch && firstMatch.index > 0) {
       const intro = text.slice(0, firstMatch.index).trim();
       if (intro) {
         sections.push({ content: intro });
@@ -75,7 +75,7 @@ function parseSnapshotSections(text: string): SnapshotSection[] {
     }
 
     matches.forEach((m, idx) => {
-      const title = m[1].trim();
+      const title = (m[1] ?? '').trim();
       const nextMatch = matches[idx + 1];
       const start = m.index + m[0].length;
       const end = nextMatch ? nextMatch.index : text.length;
@@ -94,7 +94,7 @@ function parseSnapshotSections(text: string): SnapshotSection[] {
     return paragraphs.map((p) => {
       const inlineMatch = p.match(/^(?:\*\*)?([A-Z][A-Za-z0-9/–—\s]{2,40}):?(?:\*\*)?:?\s+(.*)$/s);
       if (inlineMatch) {
-        return { title: inlineMatch[1].trim(), content: inlineMatch[2].trim() };
+        return { title: (inlineMatch[1] ?? '').trim(), content: (inlineMatch[2] ?? '').trim() };
       }
       return { content: p };
     });
@@ -163,7 +163,7 @@ export function ApplicantSnapshotView({ report }: { report: PersonalReportV2 }) 
             </h2>
           </div>
 
-          {sections.length > 1 || (sections.length === 1 && sections[0].title) ? (
+          {sections.length > 1 || (sections.length === 1 && sections[0]?.title) ? (
             <div className="flex flex-col gap-gb-md" data-no-auto-translate>
               {sections.map((section, idx) => {
                 const icon = section.title ? SECTION_ICONS[section.title] : undefined;

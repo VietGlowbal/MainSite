@@ -5,6 +5,7 @@ import {
   enqueueApplicationPersonalReportGeneration,
   getApplicationPersonalReportGeneration,
   getLatestApplicationPersonalReportV2,
+  getApplicationPersonalReportV2Version,
   processApplicationPersonalReportGenerations,
 } from '@/features/apply/api';
 import {
@@ -100,8 +101,24 @@ export async function GET(_request: Request, context: Params) {
     ? Boolean(latest.record)
     : Boolean(snapshotId && (!latest.record || latest.record.confirmedSnapshotId !== snapshotId));
 
+  // A subsequent direct generation can supersede the queue's completed version.
+  // Compare owned version records rather than accepting an older split-read result.
+  let generationReportReady = false;
+  const job = generation.job;
+  if (latest.record && !stale && job?.status === 'complete') {
+    generationReportReady = job.report_version_id === latest.record.id;
+    if (!generationReportReady && job.report_version_id) {
+      const completed = await getApplicationPersonalReportV2Version(
+        supabase, { userId: user.id, applicationId }, job.report_version_id,
+      );
+      generationReportReady = Boolean(completed.record &&
+        Date.parse(latest.record.createdAt) > Date.parse(completed.record.createdAt));
+    }
+  }
+
   return NextResponse.json({
     applicationId,
+    generationReportReady,
     reportV2: latest.record?.reportV2 ?? null,
     versionId: latest.record?.id ?? null,
     generatedAt: latest.record?.generatedAt ?? null,

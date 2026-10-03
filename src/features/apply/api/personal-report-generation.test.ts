@@ -367,6 +367,30 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).toHaveBeenCalled();
   });
 
+  it.each(['manual-request-cache-key', 'older-prompt-bundle'])('Matching reuses unchanged source data after %s', async (reason) => {
+    mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({ migrationMissing: false, record: {
+      ...FAKE_RECORD, applicationId: 'app-a', confirmedSnapshotId: 'snapshot-a', sourceAnalysisVersionId: 'analysis-a',
+      inputHash: 'stable-hash', cacheKey: 'manual-request-cache-key',
+      ...(reason === 'older-prompt-bundle' ? { engineVersion: 'older-engine', promptVersion: 'older-extractor', reportContractVersion: 'older-contract' } : { reportContractVersion: 'personal-report-v3' }),
+    } });
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({ supabase: {} as never, userId: 'user-1', applicationId: 'app-a', trigger: 'matching_report' });
+    expect(result.status).toBe('cached');
+    expect(mocks.buildProfileEvaluationInput).not.toHaveBeenCalled();
+    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+
+  it('Matching regenerates Personal Report after applicant source data changes', async () => {
+    mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({ migrationMissing: false, record: {
+      ...FAKE_RECORD, applicationId: 'app-a', confirmedSnapshotId: 'snapshot-a', sourceAnalysisVersionId: 'analysis-a',
+      inputHash: 'previous-reflection-hash', cacheKey: 'manual-request-cache-key', reportContractVersion: 'personal-report-v3',
+    } });
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({ supabase: {} as never, userId: 'user-1', applicationId: 'app-a', trigger: 'matching_report' });
+    expect(result.status).toBe('regenerated');
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalled();
+  });
+
   it('returns the application cache for the same snapshot and contracts', async () => {
     mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({
       migrationMissing: false,
