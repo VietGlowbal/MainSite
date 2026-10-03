@@ -1,5 +1,17 @@
 # Current project status
 
+Main 2026-10-04 (Personal Report bounded narrative recovery): a timed-out
+multi-part batch now retries once as independent sections, as truncated batches
+already did; a single-section timeout/truncation is terminal. Missing snapshots
+now enter targeted repair alongside other omitted available sections. A partial
+repair preserves every valid original and repaired sibling, and telemetry names
+only the parts still invalid. Word ranges and evidence scopes remain enforced.
+Regression coverage reproduces the combined timeout, 124-word overview and
+out-of-scope takeaway evidence from the production log. Full coverage passed
+4,015 tests (two todo), 427 files; base/strict TypeScript, lint (five existing
+warnings) and production build passed.
+No live provider call was made.
+
 Main 2026-10-04 (Personal Report required component gaps): available Driving
 Force sections now retain explicit per-component limitations and follow-up
 actions when recurring problems, guiding values, choices or decision patterns

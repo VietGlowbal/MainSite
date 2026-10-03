@@ -1,5 +1,23 @@
 # Strategy reports — build spec
 
+## Bounded narrative retry (2026-10-04)
+
+Timeouts now use the same independent-section recovery as provider truncation:
+one smaller request per part, with no recursive timeout/truncation retry for a
+single part. Omitted available snapshots enter the existing one-shot targeted
+repair, alongside schema, word-length and evidence-scope failures. Successful
+repair parts merge with the original valid parts even when another repair part
+fails. Failure telemetry identifies only the remaining invalid parts.
+
+Every accepted retry still passes strict schema, word ranges, grounding, voice
+and section-specific evidence validation. Exhausted retries use the canonical
+framework fallback; unsupported component conclusions remain explicit gaps.
+Tests cover omitted snapshots, successful and exhausted timeout recovery,
+partial repair retention, and the combined production-log failure. Full coverage
+passed 4,015 tests (two todo) across 427 files; base/strict TypeScript, lint
+(five existing warnings) and production build passed. No live provider generation
+was run.
+
 ## Required component gaps (2026-10-04)
 
 A Driving Force can be available while recurring problems or underlying values

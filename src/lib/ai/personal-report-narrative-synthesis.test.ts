@@ -803,6 +803,61 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result).toBeNull();
   });
 
+  it('retries an omitted snapshot without regenerating valid siblings', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[]; invalidResponse?: string };
+      const details = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') } as Record<string, unknown>;
+      if (!request.invalidResponse) delete details.snapshot;
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(request.requestedSections.map((key) => [key, details[key]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding() });
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    const repairs = fetchMock.mock.calls.map((call) => JSON.parse(JSON.parse(String(call[1]?.body)).messages[1].content)).filter((request) => request.invalidResponse);
+    expect(repairs.map((request) => request.requestedSections)).toEqual([['snapshot']]);
+  });
+
+  it('recovers the logged timeout, 124-word overview and evidence-scope failure together', async () => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[]; invalidResponse?: string };
+      const keys = request.requestedSections;
+      if (keys.includes('snapshot') && keys.length > 1) throw new Error('OpenAI request timed out.');
+      const details = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      if (keys.includes('provenCapabilities') && !request.invalidResponse) {
+        details.provenCapabilities!.overview = repeatedWords(124, 'cap');
+        details.keyTakeaways!.competitiveAdvantage.evidenceIds = ['theme-1'];
+      }
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(keys.map((key) => [key, details[key as keyof typeof details]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding(), onFailure });
+    expect(Object.keys(result?.narrativeDetails ?? {}).sort()).toEqual(['snapshot', 'coreIdentity', 'drivingForce', 'profilePositioning', 'provenCapabilities', 'socialProof', 'keyTakeaways'].sort());
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
+  it('keeps a repaired capability overview when a different repaired part still has invalid evidence', async () => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[]; invalidResponse?: string };
+      const details = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      if (!request.invalidResponse) details.provenCapabilities!.overview = repeatedWords(124, 'cap');
+      details.keyTakeaways!.competitiveAdvantage.evidenceIds = ['theme-1'];
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(request.requestedSections.map((key) => [key, details[key as keyof typeof details]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding(), onFailure });
+    expect(result?.narrativeDetails?.provenCapabilities?.overview.split(/\s+/)).toHaveLength(100);
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(result?.narrativeDetails?.keyTakeaways).toBeUndefined();
+    expect(onFailure).toHaveBeenCalledWith('invalid_evidence_scope', expect.objectContaining({ batch: ['keyTakeaways'] }));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('repairs an omitted available framework section before accepting the batch', async () => {
     const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }>; response_format?: unknown };
@@ -1131,6 +1186,32 @@ describe('synthesizePersonalReportNarrative', () => {
       .map((call) => JSON.parse(call?.[1]?.body as string).messages[1].content)
       .join('\n');
     expect(content).not.toContain('I built a chatbot for my school.');
+  });
+
+  it.each([false, true])('retries a timed-out batch per part without looping (child times out: %s)', async (childTimesOut) => {
+    const onFailure = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const request = JSON.parse(body.messages[1].content) as { requestedSections: string[] };
+      const keys = request.requestedSections;
+      if ((keys.includes('snapshot') && keys.length > 1) || (childTimesOut && keys.length === 1 && keys[0] === 'drivingForce')) throw new Error('OpenAI request timed out.');
+      const all = { ...structuredNarrativeDetails('a'), ...structuredNarrativeDetails('b') };
+      return chatResponse(JSON.stringify({ narrativeDetails: Object.fromEntries(keys.map((key) => [key, all[key as keyof typeof all]])) }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await synthesizePersonalReportNarrative({ report: structuredReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-6-luna', grounding: narrativeGrounding(), onFailure });
+    expect(result?.narrativeDetails?.snapshot).toBeTruthy();
+    expect(result?.narrativeDetails?.coreIdentity).toBeTruthy();
+    expect(result?.narrativeDetails?.profilePositioning).toBeTruthy();
+    expect(result?.narrativeDetails?.provenCapabilities).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    if (childTimesOut) {
+      expect(result?.narrativeDetails?.drivingForce).toBeUndefined();
+      expect(onFailure).toHaveBeenCalledWith('timeout', expect.objectContaining({ batch: ['drivingForce'] }));
+    } else {
+      expect(result?.narrativeDetails?.drivingForce).toBeTruthy();
+      expect(onFailure).not.toHaveBeenCalled();
+    }
   });
 
   it.each([false, true])('recovers a truncated batch per section, with bounded retries (child fails: %s)', async (childFails) => {

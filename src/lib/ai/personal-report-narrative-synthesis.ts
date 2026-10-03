@@ -1597,7 +1597,6 @@ function parseNarrativeBatch(
   // Do not silently treat an omitted available framework section as success;
   // send it through the existing targeted-repair path instead.
   const missingSections = batch.structured.filter((key) =>
-    key !== 'snapshot' &&
     structuredSectionAvailable(key, batchInputValue) &&
     !Object.hasOwn(acceptedDetails, key) &&
     !invalidSections.includes(key),
@@ -1647,6 +1646,17 @@ async function completeNarrativeBatch(args: {
   allowedBySection: ReturnType<typeof allowedEvidenceIdsBySection>;
   onPartialFailure?: (code: PersonalReportNarrativeFailureCode, context: PersonalReportNarrativeFailureContext) => void;
 }): Promise<Partial<PersonalReportNarrativeSynthesis>> {
+  const acceptRepair = (repaired: NarrativeBatchParseResult, original: Partial<PersonalReportNarrativeSynthesis> = {}) => {
+    if (repaired.invalidSections.length > 0) {
+      const detail = repaired.issues[0]?.message ?? `Sections failed repair: ${repaired.invalidSections.join(', ')}`;
+      args.onPartialFailure?.(failureCode(new Error(detail)), {
+        batch: repaired.invalidSections,
+        issues: repaired.issues,
+        detail,
+      });
+    }
+    return mergeNarrativeBatchValues(original, repaired.value);
+  };
   const payload = narrativeBatchPayload(args.sectionInput, args.batch, args.allowedBySection);
   const responseFormat = personalReportNarrativeResponseFormat(args.batch, args.sectionInput);
   let content: string;
@@ -1663,11 +1673,12 @@ async function completeNarrativeBatch(args: {
       responseFormat,
     });
   } catch (error) {
-    // Provider truncation happens before JSON parsing. A schema repair cannot
-    // recover the missing bytes; regenerate smaller, independently validated
+    // Truncation and timeout happen before JSON parsing. Regenerate smaller, independently validated
     // sections instead. A single-section failure never retries recursively.
-    if (failureCode(error) !== 'output_truncated' || args.batch.structured.length <= 1) throw error;
-    console.info('[personal-report-narrative-synthesis] retrying truncated batch per section', {
+    const code = failureCode(error);
+    if (!['output_truncated', 'timeout'].includes(code) || args.batch.structured.length <= 1) throw error;
+    console.info('[personal-report-narrative-synthesis] retrying failed batch per section', {
+      code,
       batch: args.batch.structured,
       maxTokens: args.batch.maxTokens,
       model: args.model,
@@ -1722,17 +1733,7 @@ async function completeNarrativeBatch(args: {
         responseFormat: personalReportNarrativeResponseFormat(repairBatch, args.sectionInput),
       });
       const repaired = parseNarrativeBatch(repairedContent, repairBatch, args.sectionInput, args.allowedBySection);
-      if (repaired.invalidSections.length > 0) {
-        const issue = repaired.issues[0];
-        const detail = issue?.message ?? `Sections failed repair: ${repaired.invalidSections.join(', ')}`;
-        args.onPartialFailure?.(failureCode(new Error(detail)), {
-          batch: [...repairBatch.structured],
-          issues: repaired.issues,
-          detail,
-        });
-        return parsed.value;
-      }
-      return mergeNarrativeBatchValues(parsed.value, repaired.value);
+      return acceptRepair(repaired, parsed.value);
     } catch (repairError) {
       args.onPartialFailure?.(failureCode(repairError), {
         batch: [...repairBatch.structured],
@@ -1772,7 +1773,7 @@ async function completeNarrativeBatch(args: {
       maxTokens: args.batch.maxTokens,
       responseFormat,
     });
-    return parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection).value;
+    return acceptRepair(parseNarrativeBatch(repairedContent, args.batch, args.sectionInput, args.allowedBySection));
   }
 }
 
