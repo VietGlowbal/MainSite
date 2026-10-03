@@ -8,9 +8,26 @@ Node 24.19.0/npm 11.17.0. Restored only those two nested package entries;
 all existing locked packages/versions and package.json are unchanged.
 The same clean `npm ci` now succeeds (903 packages). Local `verify:pr` PASS:
 both typechecks, lint (0 errors/5 existing warnings), 3,986 tests passed/2 todo
-across 425 files, and production build; diff check PASS. Shared CI must still
-verify the pushed revision. No application, scholarship, database or workflow
-behavior changed.
+across 425 files, and production build; diff check PASS. Shared CI
+`37126477773` passed verify and E2E (67 passed/10 skipped), with all Planner
+checks passing, on Node 24.19.0/npm 11.17.0. Main then advanced to `5472d476`;
+the follow-up sync preserves its onboarding fix unchanged and resolves only
+this documentation conflict. Post-sync local typechecks and 29 focused
+onboarding/workspace tests passed; diff check PASS. Fresh shared checks are
+required for that HEAD.
+No application, scholarship, database or workflow behavior changed by the
+lockfile repair.
+
+Main 2026-10-03 (Matching open-link redirect loop): the onboarding gate limited
+Personal Report versions to one without ordering. With an older report on a
+previous snapshot first, it incorrectly marked analysis incomplete and sent
+`matching-report` back to Analysis even after the workspace said reports were
+ready. The query now selects the newest version by `created_at`, consistently
+with the report repository. Snapshot/review/confirmation checks remain enforced.
+Regression reproduced the old-snapshot/new-report case before repair. Measured:
+54 tests across onboarding, workspace, strategy page and application navigation
+passed; production build (151 pages), strict TypeScript and lint passed (five
+existing warnings). Workspace `2/5` is generation quota usage, not report count.
 
 Main 2026-10-03 (Matching generation hotfix): reproduced the legacy Course Match
 reader crashing on V3's empty `pillars` with `undefined.assessed`. It now accepts

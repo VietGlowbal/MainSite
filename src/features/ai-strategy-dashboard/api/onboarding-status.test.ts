@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fetchOnboardingState } from './onboarding-status';
+import { nextOnboardingStep } from '../domain/onboarding';
 
 /**
  * A minimal fake Supabase client, same shape as
@@ -18,14 +19,20 @@ function buildSupabase(options: {
   /** Simulates only `supabase-application-experience-flow.sql` (the personal_reflection_reviewed_at column) not having run yet. */
   personalReflectionColumnMissing?: boolean;
   hasPersonalReportV2?: boolean;
+  personalReportRows?: Array<{ id: string; confirmed_snapshot_id: string; created_at: string }>;
   hasConfirmedSnapshot?: boolean;
   hasCompleteMatchAnalysis?: boolean;
   introSeenAt?: string | null;
   hasStrategyRecommendation?: boolean;
 }) {
-  function resolve(table: string, selected: string) {
+  function resolve(table: string, selected: string, newestFirst = false) {
     switch (table) {
       case 'student_personal_report_versions':
+        if (options.personalReportRows) {
+          const rows = [...options.personalReportRows];
+          if (newestFirst) rows.sort((a, b) => b.created_at.localeCompare(a.created_at));
+          return { data: rows[0] ?? null, error: null };
+        }
         return {
           data: options.hasPersonalReportV2
             ? { id: 'v2-1', confirmed_snapshot_id: 'snapshot-1' }
@@ -80,17 +87,21 @@ function buildSupabase(options: {
 
   function makeBuilder(table: string) {
     let selected = '';
+    let newestFirst = false;
     const builder: Record<string, unknown> = {
       select: (columns: string) => {
         selected = columns;
         return builder;
       },
       eq: () => builder,
-      order: () => builder,
+      order: (column: string, options: { ascending: boolean }) => {
+        newestFirst = column === 'created_at' && options.ascending === false;
+        return builder;
+      },
       limit: () => builder,
-      maybeSingle: async () => resolve(table, selected),
+      maybeSingle: async () => resolve(table, selected, newestFirst),
       then: (onFulfilled: (v: unknown) => unknown) =>
-        Promise.resolve(resolve(table, selected)).then(onFulfilled),
+        Promise.resolve(resolve(table, selected, newestFirst)).then(onFulfilled),
     };
     return builder;
   }
@@ -99,6 +110,23 @@ function buildSupabase(options: {
 }
 
 describe('fetchOnboardingState', () => {
+  it('uses the latest Personal Report so regenerated reports can open instead of redirecting back to analysis', async () => {
+    const supabase = buildSupabase({
+      personalSummaryReviewedAt: '2026-10-03T00:00:00Z',
+      achievementsReviewedAt: '2026-10-03T00:00:00Z',
+      personalReflectionReviewedAt: '2026-10-03T00:00:00Z',
+      candidateConfirmedAt: '2026-10-03T00:00:00Z',
+      hasConfirmedSnapshot: true, hasCompleteMatchAnalysis: true,
+      personalReportRows: [
+        { id: 'old', confirmed_snapshot_id: 'old-snapshot', created_at: '2026-10-01T00:00:00Z' },
+        { id: 'new', confirmed_snapshot_id: 'snapshot-1', created_at: '2026-10-03T00:00:00Z' },
+      ],
+    });
+    const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
+    expect(state.aiAnalysisComplete).toBe(true);
+    expect(nextOnboardingStep(state)).toBe('intro');
+  });
+
   it('is aiAnalysisComplete only when BOTH the Personal Report and a complete Matching Report exist', async () => {
     const supabase = buildSupabase({ hasPersonalReportV2: true, hasConfirmedSnapshot: true, candidateConfirmedAt: '2026-01-01T00:00:00Z', hasCompleteMatchAnalysis: false });
     const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
